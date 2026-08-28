@@ -1,0 +1,323 @@
+import type {
+  TopChannelsRawResponse,
+  TopContentRawResponse,
+  TopCountriesRawResponse,
+  UsedDevicesRawResponse,
+  VisitorsAnalyticsRawResponse,
+  VisitorsDataPoint,
+} from "./types";
+
+const weeklyData: VisitorsDataPoint[] = [
+  {
+    id: "vdp-mon",
+    period_start: "2026-08-17T00:00:00.000Z",
+    period_end: "2026-08-17T23:59:59.999Z",
+    label: "Mon",
+    visitors: { value: 3120 },
+    unique_visitors: { value: 2340 },
+  },
+  {
+    id: "vdp-tue",
+    period_start: "2026-08-18T00:00:00.000Z",
+    period_end: "2026-08-18T23:59:59.999Z",
+    label: "Tue",
+    visitors: { value: 3480 },
+    unique_visitors: { value: 2610 },
+  },
+  {
+    id: "vdp-wed",
+    period_start: "2026-08-19T00:00:00.000Z",
+    period_end: "2026-08-19T23:59:59.999Z",
+    label: "Wed",
+    visitors: { value: 4210 },
+    unique_visitors: { value: 3125 },
+  },
+  {
+    id: "vdp-thu",
+    period_start: "2026-08-20T00:00:00.000Z",
+    period_end: "2026-08-20T23:59:59.999Z",
+    label: "Thu",
+    visitors: { value: 3960 },
+    unique_visitors: { value: 2870 },
+  },
+  {
+    id: "vdp-fri",
+    period_start: "2026-08-21T00:00:00.000Z",
+    period_end: "2026-08-21T23:59:59.999Z",
+    label: "Fri",
+    visitors: { value: 4680 },
+    unique_visitors: { value: 3410 },
+  },
+  {
+    id: "vdp-sat",
+    period_start: "2026-08-22T00:00:00.000Z",
+    period_end: "2026-08-22T23:59:59.999Z",
+    label: "Sat",
+    visitors: { value: 5230 },
+    unique_visitors: { value: 3920 },
+  },
+  {
+    id: "vdp-sun",
+    period_start: "2026-08-23T00:00:00.000Z",
+    period_end: "2026-08-23T23:59:59.999Z",
+    label: "Sun",
+    visitors: { value: 4870 },
+    unique_visitors: { value: 3560 },
+  },
+];
+
+const monthlyData: VisitorsDataPoint[] = [
+  {
+    id: "vdp-jan",
+    period_start: "2026-01-01T00:00:00.000Z",
+    period_end: "2026-01-31T23:59:59.999Z",
+    label: "Jan",
+    visitors: { value: 42300 },
+    unique_visitors: { value: 31200 },
+  },
+  {
+    id: "vdp-feb",
+    period_start: "2026-02-01T00:00:00.000Z",
+    period_end: "2026-02-28T23:59:59.999Z",
+    label: "Feb",
+    visitors: { value: 39800 },
+    unique_visitors: { value: 29500 },
+  },
+  {
+    id: "vdp-mar",
+    period_start: "2026-03-01T00:00:00.000Z",
+    period_end: "2026-03-31T23:59:59.999Z",
+    label: "Mar",
+    visitors: { value: 47600 },
+    unique_visitors: { value: 34900 },
+  },
+  {
+    id: "vdp-apr",
+    period_start: "2026-04-01T00:00:00.000Z",
+    period_end: "2026-04-30T23:59:59.999Z",
+    label: "Apr",
+    visitors: { value: 51200 },
+    unique_visitors: { value: 37800 },
+  },
+  {
+    id: "vdp-may",
+    period_start: "2026-05-01T00:00:00.000Z",
+    period_end: "2026-05-31T23:59:59.999Z",
+    label: "May",
+    visitors: { value: 48900 },
+    unique_visitors: { value: 36100 },
+  },
+  {
+    id: "vdp-jun",
+    period_start: "2026-06-01T00:00:00.000Z",
+    period_end: "2026-06-30T23:59:59.999Z",
+    label: "Jun",
+    visitors: { value: 56400 },
+    unique_visitors: { value: 41500 },
+  },
+  {
+    id: "vdp-jul",
+    period_start: "2026-07-01T00:00:00.000Z",
+    period_end: "2026-07-31T23:59:59.999Z",
+    label: "Jul",
+    visitors: { value: 61200 },
+    unique_visitors: { value: 45300 },
+  },
+  {
+    id: "vdp-aug",
+    period_start: "2026-08-01T00:00:00.000Z",
+    period_end: "2026-08-31T23:59:59.999Z",
+    label: "Aug",
+    visitors: { value: 58700 },
+    unique_visitors: { value: 43100 },
+  },
+];
+
+export const visitorsAnalyticsWeeklyRawData: VisitorsAnalyticsRawResponse = {
+  chart_id: "vch-4a7b9c2d-1e3f-4a5b-8c6d-2e0f1a3b4c5d",
+  organization_id: "org-a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  generated_at: "2026-08-28T08:15:00.000Z",
+  timezone: "Asia/Dhaka",
+  granularity: "weekly",
+  data: weeklyData,
+  summary: {
+    total_visitors: 29550,
+    total_unique_visitors: 21835,
+    visitors_delta_percent: 6.82,
+    unique_visitors_delta_percent: 5.14,
+  },
+};
+
+export const visitorsAnalyticsMonthlyRawData: VisitorsAnalyticsRawResponse = {
+  chart_id: "vch-9d2f4a7c-3e1b-4f8d-9c5a-2b6e0f1a3d4c",
+  organization_id: "org-a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  generated_at: "2026-08-28T08:15:00.000Z",
+  timezone: "Asia/Dhaka",
+  granularity: "monthly",
+  data: monthlyData,
+  summary: {
+    total_visitors: 406100,
+    total_unique_visitors: 299400,
+    visitors_delta_percent: 12.46,
+    unique_visitors_delta_percent: 10.28,
+  },
+};
+
+export const usedDevicesRawData: UsedDevicesRawResponse = {
+  dashboard_id: "andash-7fb5c1a2-0f97-4f3e-8edc-2a0f8b8c0e2f",
+  generated_at: "2026-08-28T08:15:00.000Z",
+  timezone: "Asia/Dhaka",
+  total_sessions: 58700,
+  devices: [
+    {
+      id: "dev-8d0d7d4c-5f7d-47b3-9c78-6ee2d0a01f01",
+      device_type: "desktop",
+      session_count: 33959,
+      percentage: 57.85,
+    },
+    {
+      id: "dev-3fdaf8ae-4f2e-48c1-9f37-e7fa9010e9b2",
+      device_type: "mobile",
+      session_count: 19458,
+      percentage: 33.15,
+    },
+    {
+      id: "dev-6c3a18a1-6f9f-4fb2-9d9f-3c80a6f7f6d3",
+      device_type: "tablet",
+      session_count: 5283,
+      percentage: 9.0,
+    },
+  ],
+};
+
+export const topCountriesRawData: TopCountriesRawResponse = {
+  dashboard_id: "andash-7fb5c1a2-0f97-4f3e-8edc-2a0f8b8c0e2f",
+  generated_at: "2026-08-28T08:15:00.000Z",
+  timezone: "Asia/Dhaka",
+  countries: [
+    {
+      id: "cty-11223344-5566-7788-9900-aabbccddeeff",
+      country_name: "United States",
+      country_code: "US",
+      visitor_count: 18940,
+      percentage: 100,
+    },
+    {
+      id: "cty-22334455-6677-8899-00aa-bbccddeeff11",
+      country_name: "United Kingdom",
+      country_code: "GB",
+      visitor_count: 9720,
+      percentage: 78,
+    },
+    {
+      id: "cty-33445566-7788-8899-00aa-bbccddeeff22",
+      country_name: "Germany",
+      country_code: "DE",
+      visitor_count: 7360,
+      percentage: 61,
+    },
+    {
+      id: "cty-44556677-7788-8899-00aa-bbccddeeff33",
+      country_name: "India",
+      country_code: "IN",
+      visitor_count: 6180,
+      percentage: 52,
+    },
+    {
+      id: "cty-55667788-7788-8899-00aa-bbccddeeff44",
+      country_name: "Canada",
+      country_code: "CA",
+      visitor_count: 4025,
+      percentage: 40,
+    },
+    {
+      id: "cty-66778899-7788-8899-00aa-bbccddeeff55",
+      country_name: "Australia",
+      country_code: "AU",
+      visitor_count: 2915,
+      percentage: 31,
+    },
+  ],
+};
+
+export const topContentRawData: TopContentRawResponse = {
+  dashboard_id: "andash-7fb5c1a2-0f97-4f3e-8edc-2a0f8b8c0e2f",
+  generated_at: "2026-08-28T08:15:00.000Z",
+  timezone: "Asia/Dhaka",
+  pages: [
+    {
+      id: "pg-1a2b3c4d-5e6f-47a8-b9c0-1d2e3f4a5b6c",
+      url_path: "/",
+      views_count: 24580,
+      unique_views_count: 18320,
+    },
+    {
+      id: "pg-2b3c4d5e-6f7a-48b9-c0d1-2e3f4a5b6c7d",
+      url_path: "/pricing",
+      views_count: 15230,
+      unique_views_count: 11940,
+    },
+    {
+      id: "pg-3c4d5e6f-7a8b-49c0-d1e2-3f4a5b6c7d8e",
+      url_path: "/blog/next-admin-v2-launch",
+      views_count: 11460,
+      unique_views_count: 9280,
+    },
+    {
+      id: "pg-4d5e6f7a-8b9c-40d1-e2f3-4a5b6c7d8e9f",
+      url_path: "/features",
+      views_count: 9870,
+      unique_views_count: 7650,
+    },
+    {
+      id: "pg-5e6f7a8b-9c0d-41e2-f3a4-5b6c7d8e9f0a",
+      url_path: "/docs/getting-started",
+      views_count: 8120,
+      unique_views_count: 6390,
+    },
+    {
+      id: "pg-6f7a8b9c-0d1e-42f3-a4b5-6c7d8e9f0a1b",
+      url_path: "/blog/design-systems-2026",
+      views_count: 6540,
+      unique_views_count: 5210,
+    },
+  ],
+};
+
+export const topChannelsRawData: TopChannelsRawResponse = {
+  dashboard_id: "andash-7fb5c1a2-0f97-4f3e-8edc-2a0f8b8c0e2f",
+  generated_at: "2026-08-28T08:15:00.000Z",
+  timezone: "Asia/Dhaka",
+  channels: [
+    {
+      id: "ch-a1b2c3d4-e5f6-4789-a0bc-1d2e3f4a5b6c",
+      channel_name: "Organic Search",
+      views_count: 32480,
+      unique_views_count: 24610,
+    },
+    {
+      id: "ch-b2c3d4e5-f6a7-489a-b1cd-2e3f4a5b6c7d",
+      channel_name: "Direct",
+      views_count: 18930,
+      unique_views_count: 15320,
+    },
+    {
+      id: "ch-c3d4e5f6-a7b8-490b-c2de-3f4a5b6c7d8e",
+      channel_name: "Social Media",
+      views_count: 12750,
+      unique_views_count: 9840,
+    },
+    {
+      id: "ch-d4e5f6a7-b8c9-401c-d3ef-4a5b6c7d8e9f",
+      channel_name: "Referral",
+      views_count: 7420,
+      unique_views_count: 5960,
+    },
+    {
+      id: "ch-e5f6a7b8-c9d0-412d-e4f0-5b6c7d8e9f0a",
+      channel_name: "Email",
+      views_count: 4180,
+      unique_views_count: 3520,
+    },
+  ],
+};
