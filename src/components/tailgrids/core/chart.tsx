@@ -13,6 +13,8 @@ type ChartContextProps = {
 
 const ChartContext = React.createContext<ChartContextProps | null>(null);
 
+const DEFAULT_INITIAL_DIMENSION = { width: 1, height: 1 };
+
 function useChart() {
   const context = React.useContext(ChartContext);
   if (!context) {
@@ -23,6 +25,7 @@ function useChart() {
 
 function ChartContainer({
   className,
+  initialDimension = DEFAULT_INITIAL_DIMENSION,
   children,
   ...props
 }: RechartsPrimitive.ResponsiveContainerProps) {
@@ -35,6 +38,7 @@ function ChartContainer({
           "text-xs tracking-[-0.2px] [&_.recharts-cartesian-axis-tick-value]:fill-text-tertiary [&_.recharts-cartesian-grid_line]:stroke-card-border [&_.recharts-wrapper_*]:focus:not-focus-visible:outline-none [&_.recharts-wrapper_*]:focus-visible:outline-2",
           className,
         )}
+        initialDimension={initialDimension}
         {...props}
       >
         {children}

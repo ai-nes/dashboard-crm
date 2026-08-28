@@ -5,7 +5,7 @@ import ThemeToggle from "@/components/common/header/theme-toggle";
 import { UserProfileButton } from "@/components/common/header/user-profile";
 import { ThreeDots } from "@/components/common/sidebar/icon";
 import { cn } from "@/utils/cn";
-import { LogoWithText } from "@/utils/icon";
+import { Logo } from "@/utils/icon";
 import React from "react";
 import { NotificationsButton } from "./notifications";
 import SearchBar from "./searchbar";
@@ -32,8 +32,9 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
           </div>
 
           {/* Center: Logo */}
-          <div className="flex items-center justify-center">
-            <LogoWithText />
+          <div className="flex min-w-0 items-center justify-center gap-2">
+            <Logo className="size-7" aria-hidden="true" />
+            <span className="text-lg font-semibold tracking-[-0.04em] text-text-primary">AI-NES</span>
           </div>
 
           {/* Right: Three-dot */}

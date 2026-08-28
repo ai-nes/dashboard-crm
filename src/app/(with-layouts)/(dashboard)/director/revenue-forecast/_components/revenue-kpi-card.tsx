@@ -1,31 +1,16 @@
 import { ArrowDownward, ArrowUpward } from "@tailgrids/icons";
 
-import type { DirectorKpi } from "./types";
+import type { RevenueKpi } from "./types";
 
 const TONE_STYLES = {
-  primary: {
-    dot: "bg-brand-500",
-    icon: "bg-badge-primary-background text-badge-primary-text",
-  },
-  info: {
-    dot: "bg-blue-500",
-    icon: "bg-badge-sky-background text-badge-sky-text",
-  },
-  success: {
-    dot: "bg-green-500",
-    icon: "bg-badge-success-background text-badge-success-text",
-  },
-  warning: {
-    dot: "bg-orange-400",
-    icon: "bg-badge-warning-background text-badge-warning-text",
-  },
-  danger: {
-    dot: "bg-red-500",
-    icon: "bg-badge-error-background text-badge-error-text",
-  },
+  primary: { dot: "bg-brand-500", icon: "bg-badge-primary-background text-badge-primary-text" },
+  info: { dot: "bg-info-500", icon: "bg-badge-sky-background text-badge-sky-text" },
+  success: { dot: "bg-success-500", icon: "bg-badge-success-background text-badge-success-text" },
+  warning: { dot: "bg-warning-500", icon: "bg-badge-warning-background text-badge-warning-text" },
+  danger: { dot: "bg-error-500", icon: "bg-badge-error-background text-badge-error-text" },
 } as const;
 
-export default function DirectorKpiCard({ kpi }: { kpi: DirectorKpi }) {
+export default function RevenueKpiCard({ kpi }: { kpi: RevenueKpi }) {
   const tone = TONE_STYLES[kpi.tone];
   const isPositive = !kpi.change.startsWith("-");
 
@@ -44,7 +29,7 @@ export default function DirectorKpiCard({ kpi }: { kpi: DirectorKpi }) {
       </div>
 
       <div className="mt-2 flex min-h-12 items-start gap-x-2 gap-y-1 text-base">
-        <span className={`inline-flex shrink-0 items-center gap-1 font-medium ${isPositive ? "text-green-500" : "text-red-500"}`}>
+        <span className={`inline-flex shrink-0 items-center gap-1 font-medium ${isPositive ? "text-success-500" : "text-error-500"}`}>
           {kpi.change}
           {isPositive ? <ArrowUpward size={16} aria-hidden="true" /> : <ArrowDownward size={16} aria-hidden="true" />}
         </span>

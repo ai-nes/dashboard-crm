@@ -1,0 +1,67 @@
+import { CheckCircle1 } from "@tailgrids/icons";
+
+import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+
+export default function RevenueSummaryRail() {
+  return (
+    <Card className="flex min-w-0 flex-col bg-background-gray-primary">
+      <CardHeader className="items-start">
+        <div>
+          <CardTitle className="text-base">Tổng quan tài chính</CardTitle>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Bức tranh doanh thu niên khóa 2026</p>
+        </div>
+        <span className="rounded-full bg-badge-primary-background px-2 py-1 text-[11px] font-semibold text-badge-primary-text">AI</span>
+      </CardHeader>
+
+      <div className="mt-7">
+        <p className="text-xs text-text-tertiary">Doanh thu thuần dự báo</p>
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
+          <p className="text-[38px] leading-none font-semibold tracking-[-1.5px] text-text-primary">468B</p>
+          <span className="rounded-full bg-badge-success-background px-2.5 py-1 text-xs font-semibold text-badge-success-text">90% chỉ tiêu</span>
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <div className="mb-2 flex items-center justify-between text-[11px] text-text-tertiary">
+          <span>Tiến độ chỉ tiêu</span>
+          <span className="font-medium text-text-secondary">520B</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-badge-primary-background">
+          <div className="h-full w-[90%] rounded-full bg-brand-500" />
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-4 border-t border-card-border pt-5">
+        <SummaryMetric label="Độ tin cậy mô hình" value="72%" note="đang trong ngưỡng tốt" valueClassName="text-badge-success-text" />
+      </div>
+
+      <div className="mt-6 rounded-xl bg-card-background p-3.5">
+        <p className="text-[11px] font-medium text-text-tertiary">Mốc kế tiếp</p>
+        <div className="mt-2 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-xl font-semibold text-text-primary">T9</p>
+            <p className="mt-1 text-[11px] text-text-tertiary">420B dự báo</p>
+          </div>
+          <span className="text-right text-[11px] text-text-tertiary">còn 2 kỳ<br />để đạt mục tiêu</span>
+        </div>
+      </div>
+
+      <div className="mt-auto flex items-center gap-2 border-t border-card-border pt-5 text-xs text-badge-success-text">
+        <CheckCircle1 size={15} aria-hidden="true" />
+        <span>Mô hình đang hoạt động</span>
+      </div>
+    </Card>
+  );
+}
+
+function SummaryMetric({ label, value, note, valueClassName = "text-text-primary" }: { label: string; value: string; note: string; valueClassName?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium text-text-secondary">{label}</p>
+        <p className="mt-1 truncate text-[11px] text-text-tertiary">{note}</p>
+      </div>
+      <p className={`shrink-0 text-sm font-semibold ${valueClassName}`}>{value}</p>
+    </div>
+  );
+}

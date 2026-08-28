@@ -1,72 +1,102 @@
-import { ArrowRight } from "@tailgrids/icons";
+"use client";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { ChartContainer } from "@/components/tailgrids/core/chart";
+import { Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from "recharts";
 
+import DirectorChartTooltip from "./chart-tooltip";
 import { admissionsPipeline } from "./data";
+
+const PIPELINE_COLORS = [
+  "var(--brand-500)",
+  "var(--primary-300)",
+  "var(--info-500)",
+  "var(--primary-400)",
+  "var(--warning-500)",
+  "var(--primary-600)",
+  "var(--success-500)",
+];
+
+const chartData = admissionsPipeline.map((stage, index) => ({
+  ...stage,
+  color: PIPELINE_COLORS[index],
+}));
 
 export default function AdmissionsFunnel() {
   return (
-    <Card className="min-w-0">
-      <CardHeader className="mb-6">
+    <Card className="flex h-full min-w-0 flex-col overflow-hidden">
+      <CardHeader className="mb-5 items-start">
         <div>
           <CardTitle>Phễu tuyển sinh</CardTitle>
-          <p className="mt-1 text-xs text-text-tertiary">
-            Hiệu suất chuyển đổi qua từng giai đoạn tuyển sinh
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">
+            Từ hồ sơ tiềm năng đến nhập học trong niên khóa 2026
           </p>
         </div>
-        <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-xs font-medium text-badge-primary-text">
+        <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-xs font-semibold text-badge-primary-text">
           Niên khóa 2026
         </span>
       </CardHeader>
 
-      <div className="space-y-4" aria-label="Phễu tuyển sinh">
-        {admissionsPipeline.map((stage, index) => (
-          <div key={stage.id} className="group">
-            <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className={`size-2.5 shrink-0 rounded-full ${stage.barClassName}`} />
-                <span className="truncate font-medium text-text-secondary">{stage.label}</span>
-                <span className="text-text-tertiary">{stage.value}</span>
-              </div>
-              <span className="shrink-0 font-semibold text-text-primary">{stage.conversion}</span>
-            </div>
-            <div
-              className="h-2.5 w-full overflow-hidden rounded-full bg-background-gray-secondary"
-              role="progressbar"
-              aria-label={`${stage.label}: ${stage.percentage}%`}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={stage.percentage}
+      <div className="min-h-72 w-full flex-1 sm:min-h-80" aria-label="Biểu đồ tiến độ phễu tuyển sinh">
+        <ChartContainer className="h-full w-full" height="100%" width="100%" minWidth={0} minHeight={0}>
+          <BarChart
+            layout="vertical"
+            data={chartData}
+            margin={{ top: 4, right: 28, left: -4, bottom: 0 }}
+            barCategoryGap={12}
+          >
+            <CartesianGrid stroke="var(--border-color-base-100)" strokeDasharray="4 4" horizontal={false} />
+            <XAxis type="number" domain={[0, 100]} hide />
+            <YAxis
+              type="category"
+              dataKey="label"
+              width={108}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
+            />
+            <Tooltip
+              cursor={{ fill: "var(--background-gray-primary)", opacity: 0.5 }}
+              content={<DirectorChartTooltip valueSuffix="%" />}
+            />
+            <Bar
+              dataKey="percentage"
+              name="Tỷ trọng"
+              radius={[0, 7, 7, 0]}
+              background={{ fill: "var(--background-gray-secondary)" }}
+              maxBarSize={24}
+              isAnimationActive={false}
             >
-              <div
-                className={`h-full rounded-full transition-all ${stage.barClassName}`}
-                style={{ width: `${stage.percentage}%` }}
-              />
-            </div>
-            {index < admissionsPipeline.length - 1 && (
-              <div className="mt-2 hidden items-center gap-1 text-[11px] text-text-tertiary sm:flex">
-                <ArrowRight size={12} aria-hidden="true" />
-                <span>{admissionsPipeline[index + 1].conversion} chuyển giai đoạn</span>
-              </div>
-            )}
-          </div>
-        ))}
+              {chartData.map((stage) => (
+                <Cell key={stage.id} fill={stage.color} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ChartContainer>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 border-t border-card-border pt-4 sm:grid-cols-3">
-        <div>
-          <p className="text-xs text-text-tertiary">Mất hồ sơ</p>
-          <p className="mt-1 font-semibold text-text-primary">1,364</p>
-        </div>
-        <div>
-          <p className="text-xs text-text-tertiary">Nuôi dưỡng</p>
-          <p className="mt-1 font-semibold text-text-primary">840</p>
-        </div>
-        <div className="col-span-2 sm:col-span-1">
-          <p className="text-xs text-text-tertiary">Tỷ lệ nhập học</p>
-          <p className="mt-1 font-semibold text-green-600">7.9%</p>
-        </div>
+      <div className="mt-5 grid grid-cols-3 gap-3 border-t border-card-border pt-4">
+        <PipelineSummary label="Tổng hồ sơ tiềm năng" value="24,860" />
+        <PipelineSummary label="Đã trúng tuyển" value="4,820" />
+        <PipelineSummary label="Tỷ lệ nhập học" value="15.4%" valueClassName="text-success-500" />
       </div>
     </Card>
+  );
+}
+
+function PipelineSummary({
+  label,
+  value,
+  valueClassName = "text-text-primary",
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="truncate text-[11px] text-text-tertiary">{label}</p>
+      <p className={`mt-1 text-sm font-semibold ${valueClassName}`}>{value}</p>
+    </div>
   );
 }

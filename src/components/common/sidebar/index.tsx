@@ -125,29 +125,6 @@ export default function Sidebar({
                 </CollapsibleGroup>
             </nav>
 
-            {/* Director context — only visible when expanded */}
-            {isSidebarOpen && (
-                <div className='px-4 py-4'>
-                    <div className='rounded-2xl border border-card-border bg-background-gray-primary px-4 py-4'>
-                        <div className='mb-3 flex items-center justify-between gap-2'>
-                            <p className='leading-6 font-semibold text-text-primary'>
-                                Chế độ Giám đốc
-                            </p>
-                            <span className='flex items-center gap-1.5 rounded-full bg-badge-success-background px-2 py-1 text-xs font-medium text-badge-success-text'>
-                                <span className='size-1.5 rounded-full bg-badge-success-icon-color' />
-                                Đang hoạt động
-                            </span>
-                        </div>
-                        <p className='text-sm leading-5 tracking-[-0.15px] text-text-tertiary'>
-                            Toàn quyền theo dõi tuyển sinh, SLA và chuyển đổi nhập học.
-                        </p>
-                        <div className='mt-4 flex items-center justify-between border-t border-card-border pt-3 text-xs text-text-tertiary'>
-                            <span>Niên khóa</span>
-                            <span className='font-semibold text-text-primary'>2026</span>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

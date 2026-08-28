@@ -34,33 +34,33 @@ export default function DirectorPageHeader() {
   const [period, setPeriod] = useState("this-month");
 
   return (
-    <header className="px-2 lg:px-6">
-      <div className="rounded-2xl border border-card-border bg-background-gray-primary p-5 lg:p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-        <div>
+    <header className="min-w-0 px-2 lg:px-6">
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-card-border bg-background-gray-primary p-5 lg:p-6">
+        <div className="flex min-w-0 flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-full bg-badge-success-background px-2.5 py-1 text-xs font-medium text-badge-success-text">
               <span className="size-1.5 animate-pulse rounded-full bg-badge-success-icon-color" />
-              Tổng quan trực tuyến
+              Trung tâm điều hành trực tuyến
             </span>
             <span className="text-xs text-text-tertiary">Cập nhật 2 phút trước</span>
           </div>
           <h1 className="mb-1 text-[28px] leading-8 font-medium text-text-primary">
-            Tổng quan tuyển sinh
+            Trung tâm điều hành tuyển sinh
           </h1>
           <p className="max-w-2xl text-sm leading-5 text-text-tertiary">
-            Toàn cảnh tuyển sinh, hiệu suất vận hành và các quyết định cần ưu tiên hôm nay.
+            Quan sát, thấu hiểu, dự báo, hành động — toàn cảnh thị trường, phễu và quyết định tuyển sinh trong một màn hình.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 xl:shrink-0">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 xl:shrink-0">
           <Select
-            className="w-auto"
+            className="w-full sm:w-auto"
             value={campus}
             onChange={(value) => setCampus(value as FilterValue)}
             aria-label="Lọc theo cơ sở"
           >
-            <SelectTrigger size="sm" className="min-w-36">
+            <SelectTrigger size="sm" className="w-full min-w-36 sm:w-auto">
               <SelectValue />
               <SelectIndicator />
             </SelectTrigger>
@@ -80,8 +80,8 @@ export default function DirectorPageHeader() {
             </SelectContent>
           </Select>
 
-          <Select className="w-auto" value={period} onChange={setPeriod} aria-label="Lọc theo thời gian">
-            <SelectTrigger size="sm" className="min-w-36">
+          <Select className="w-full sm:w-auto" value={period} onChange={setPeriod} aria-label="Lọc theo thời gian">
+            <SelectTrigger size="sm" className="w-full min-w-36 sm:w-auto">
               <Calendar size={16} className="shrink-0 text-icon-tertiary" />
               <SelectValue />
               <SelectIndicator />
@@ -102,7 +102,7 @@ export default function DirectorPageHeader() {
             </SelectContent>
           </Select>
 
-          <Button variant="primary" size="md" className="gap-2">
+          <Button variant="primary" size="md" className="w-full gap-2 sm:w-auto">
             <Download1 size={16} />
             Xuất báo cáo
           </Button>
