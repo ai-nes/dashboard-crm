@@ -25,14 +25,14 @@ export default function ConversionHealth() {
         </span>
       </CardHeader>
 
-      <div className="relative min-h-52 flex-1">
+      <div className="relative mx-auto mt-2 h-56 w-full max-w-[360px] shrink-0">
         <ChartContainer className="h-full w-full" height="100%" width="100%" minWidth={0} minHeight={0}>
           <RadialBarChart
             cx="50%"
-            cy="70%"
-            innerRadius="68%"
-            outerRadius="100%"
-            barSize={18}
+            cy="78%"
+            innerRadius="63%"
+            outerRadius="88%"
+            barSize={16}
             startAngle={180}
             endAngle={0}
             data={[{ name: "Đạt chỉ tiêu", value: 76.4, fill: "var(--success-500)" }]}
@@ -47,7 +47,7 @@ export default function ConversionHealth() {
             />
           </RadialBarChart>
         </ChartContainer>
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 flex flex-col items-center">
+        <div className="pointer-events-none absolute inset-x-0 bottom-5 flex flex-col items-center text-center">
           <span className="text-3xl font-semibold tracking-[-1px] text-text-primary">76.4%</span>
           <span className="mt-1 text-xs text-text-tertiary">đạt mục tiêu nhập học</span>
         </div>
