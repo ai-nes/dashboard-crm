@@ -104,20 +104,20 @@ export default function SearchBar() {
                     className='w-full text-left outline-none focus:outline-none'
                     type='button'
                 >
-                    <InputGroup className='h-10 cursor-pointer'>
+                    <InputGroup className='h-8.5 cursor-pointer'>
                         <InputGroupAddon
                             align='inline-start'
                             className='pr-0 text-icon-tertiary'
                         >
-                            <SearchIcon />
+                            <SearchIcon className="size-4" />
                         </InputGroupAddon>
                         <InputGroupInput
                             placeholder='Tìm trong hệ thống...'
-                            className='pointer-events-none cursor-pointer pl-2 text-sm select-none'
+                            className='pointer-events-none cursor-pointer pl-2 text-xs select-none'
                             readOnly
                         />
                         <InputGroupAddon align='inline-end'>
-                            <div className='rounded-md border border-card-border bg-background-gray-primary/50 px-2 py-0.75 text-xs text-text-tertiary'>
+                            <div className='rounded border border-card-border bg-background-gray-primary/50 px-1.5 py-0.5 text-[11px] text-text-tertiary'>
                                 <span className='font-medium'>⌘</span> K
                             </div>
                         </InputGroupAddon>
