@@ -1,5 +1,5 @@
-# AI-NES - Hệ thống quản trị tuyển sinh thông minh
-**AI-NES** là hệ thống quản trị tuyển sinh được xây dựng trên Next.js, Tailwind CSS, React Aria, Recharts và TanStack Table. Dashboard Director tập trung vào toàn cảnh hồ sơ, hiệu suất vận hành, SLA, báo cáo và chuyển đổi nhập học.
+# FAIP - FPTU Admission Intelligence Platform
+**FAIP** là nền tảng quản trị tuyển sinh của FPTU, được xây dựng trên Next.js, Tailwind CSS, React Aria, Recharts và TanStack Table. Dashboard Director tập trung vào toàn cảnh hồ sơ, hiệu suất vận hành, SLA, báo cáo và chuyển đổi nhập học.
 
 [![nextjs admin template](nextadmin-v2.png)](https://nextadmin.co/)
 

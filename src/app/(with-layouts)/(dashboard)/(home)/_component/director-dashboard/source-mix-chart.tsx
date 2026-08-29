@@ -18,7 +18,7 @@ export default function SourceMixChart() {
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Tỷ trọng đóng góp vào tổng hồ sơ mới</p>
         </div>
         <Link
-          href="/director/marketing/attribution"
+          href="/director/campaign-intelligence"
           className="flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600"
         >
           Chi tiết

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-16 · AI Trust & Model Health</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-16',
+  title: 'AI Trust & Model Health',
+  lede: 'Câu hỏi mà mọi lãnh đạo sẽ hỏi sau vài tháng vận hành: có nên tin những gì AI nói. Màn hình này đo chính lớp trí tuệ, không đo tuyển sinh.',
+  filters: [['Năm', '2026'], ['Kỳ đánh giá', 'Mùa 2025 đã kết thúc'], ['Mô hình', 'Chấm điểm v4.2'], ['Đội', 'Tất cả'], ['Loại đề xuất', 'Tất cả']],
+});
+
+const CALIB = [
+  { label: '0–10', pred: 5,  act: 4.2 },  { label: '10–20', pred: 15, act: 12.8 },
+  { label: '20–30', pred: 25, act: 24.1 }, { label: '30–40', pred: 35, act: 31.4 },
+  { label: '40–50', pred: 45, act: 46.8 }, { label: '50–60', pred: 55, act: 52.1 },
+  { label: '60–70', pred: 65, act: 68.4 }, { label: '70–80', pred: 75, act: 71.2 },
+  { label: '80–90', pred: 85, act: 88.6 }, { label: '90–100', pred: 95, act: 91.4 },
+];
+
+const LIFT = [
+  { label: 'Top 10%', v: 4.2 }, { label: '20%', v: 3.1 }, { label: '30%', v: 2.4 },
+  { label: '40%', v: 1.7 }, { label: '50%', v: 1.2 }, { label: '60%', v: 0.8 },
+  { label: '70%', v: 0.5 }, { label: '80%', v: 0.3 }, { label: '90%', v: 0.2 }, { label: '100%', v: 0.1 },
+];
+
+const FCERR = [
+  { label: 'T3', err: 14.2 }, { label: 'T4', err: 11.8 }, { label: 'T5', err: 9.4 },
+  { label: 'T6', err: 8.1 }, { label: 'T7', err: 6.8 }, { label: 'T8', err: 5.9 },
+];
+
+canvas.innerHTML = `
+<div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+  <div class="kpi"><div class="kpi__label">Sai số hiệu chuẩn TB</div><div class="kpi__val">3,1<small>đ</small></div>
+    <div class="kpi__deltas"><span>kỳ trước <b class="up">4,8đ</b></span></div></div>
+  <div class="kpi"><div class="kpi__label">Lực nâng nhóm 10% cao nhất</div><div class="kpi__val">4,2<small>×</small></div>
+    <div class="kpi__deltas"><span>so với chọn ngẫu nhiên</span></div></div>
+  <div class="kpi"><div class="kpi__label">Sai số dự báo gần nhất</div><div class="kpi__val">5,9<small>%</small></div>
+    <div class="kpi__deltas"><span>xu hướng <b class="up">giảm đều</b></span></div></div>
+  <div class="kpi"><div class="kpi__label">Chấp nhận đề xuất</div><div class="kpi__val">83,0<small>%</small></div>
+    <div class="kpi__deltas"><span>chấp nhận hoặc sửa rồi dùng</span></div></div>
+  <div class="kpi"><div class="kpi__label">Trả lời có trích dẫn</div><div class="kpi__val">96,2<small>%</small></div>
+    <div class="kpi__deltas"><span>"chưa có thông tin" <b>11,4%</b></span></div></div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c6">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Hiệu chuẩn xác suất</h2>
+      <span class="meta">4.640 hồ sơ đã kết thúc chu kỳ mùa 2025</span></div>
+    ${barChart({
+      data: CALIB, height: 210, valueFmt: v => v + '%',
+      series: [
+        { key: 'pred', name: 'Xác suất dự đoán', c: 's4' },
+        { key: 'act', name: 'Tỷ lệ nhập học thực tế', c: 's1' },
+      ],
+    })}
+    <div class="legend">
+      <span><i style="background:var(--s4)"></i>Xác suất dự đoán</span>
+      <span><i style="background:var(--s1)"></i>Tỷ lệ nhập học thực tế</span>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      Hai cột càng gần nhau, mô hình càng đáng tin. Sai lệch lớn nhất nằm ở nhóm <b>90–100%</b>: mô hình nói 95% nhưng thực tế 91,4% — nó <b>hơi tự tin quá mức ở nhóm cao nhất</b>. Đây là chỗ mà một quyết định "chắc chắn nhập học rồi, không cần chăm nữa" có thể gây thiệt hại thật.
+    </div>
+  </div>
+
+  <div class="card c6">
+    <div class="card__hd"><span class="zone">KV 2</span><h2>Lực nâng theo nhóm mười phần trăm</h2>
+      <span class="meta">so với chọn ngẫu nhiên</span></div>
+    ${barChart({
+      data: LIFT, height: 210, valueFmt: v => v + '×',
+      series: [{ key: 'v', name: 'Lực nâng', c: 's3' }],
+    })}
+    <p class="card__note">Nhóm 10% xác suất cao nhất có tỷ lệ nhập học gấp 4,2 lần mặt bằng. Nghĩa là dồn nguồn lực vào nhóm này thay vì trải đều cho hiệu quả gấp bốn — đây là toàn bộ lý do tồn tại của mô hình chấm điểm.</p>
+    <div class="card__hd" style="margin:18px 0 10px"><h2 style="font-size:12.5px">Sai số dự báo qua các kỳ</h2></div>
+    ${lineChart({
+      data: FCERR, height: 150, valueFmt: v => v + '%',
+      series: [{ key: 'err', name: 'Sai số', c: 's8' }],
+    })}
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>Mức chấp nhận đề xuất</h2>
+      <span class="meta">theo loại · 30 ngày</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Loại đề xuất</th><th class="num">Đã trình</th><th class="num">Chấp nhận</th>
+        <th class="num">Sửa rồi dùng</th><th class="num">Từ chối</th><th>Lý do từ chối phổ biến</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Gọi phụ huynh</td><td class="num">142</td><td class="num">104</td><td class="num">24</td>
+          <td class="num">14</td><td class="subtle">Phụ huynh đã được gọi hôm trước</td></tr>
+        <tr><td class="name">Tư vấn học bổng</td><td class="num">96</td><td class="num">78</td><td class="num">13</td>
+          <td class="num">5</td><td class="subtle">Hồ sơ không đủ điều kiện thực tế</td></tr>
+        <tr><td class="name">Mời dự sự kiện</td><td class="num">210</td><td class="num">164</td><td class="num">22</td>
+          <td class="num">24</td><td class="subtle">Học sinh ở quá xa địa điểm</td></tr>
+        <tr><td class="name">Chuyển giao phụ trách</td><td class="num">64</td><td class="num">28</td><td class="num">13</td>
+          <td class="num" style="color:var(--critical);font-weight:650">23</td>
+          <td class="subtle">Tư vấn viên đã có quan hệ với gia đình</td></tr>
+        <tr><td class="name">Gửi lại thông tin học phí</td><td class="num">88</td><td class="num">41</td><td class="num">11</td>
+          <td class="num" style="color:var(--critical);font-weight:650">36</td>
+          <td class="subtle">Nội dung chưa phù hợp với bối cảnh hồ sơ</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout" style="margin-top:12px">
+      Hai loại đề xuất bị từ chối nhiều nhất đều có cùng nguyên nhân: <b>mô hình không biết những gì con người biết</b> — quan hệ đã có với gia đình, và bối cảnh của cuộc trò chuyện gần nhất. Cả hai tín hiệu này đã được đưa vào kỳ hiệu chỉnh tháng 8; kỳ đánh giá sau sẽ cho biết có cải thiện hay không.
+    </div>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 4–5</span><h2>Chất lượng tri thức và phân bố rủi ro</h2></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+      <div><div class="kpi__label">Có trích dẫn nguồn</div><div class="kpi__val" style="font-size:24px">96,2<small>%</small></div></div>
+      <div><div class="kpi__label">Trả lời "chưa có thông tin"</div><div class="kpi__val" style="font-size:24px">11,4<small>%</small></div></div>
+    </div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Tài liệu tri thức</th><th>Phiên bản</th><th>Cập nhật cuối</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Chính sách học phí 2026</td><td class="subtle">v3</td><td class="subtle">12/06/2026</td>
+          <td><span class="badge badge--good">Hiện hành</span></td></tr>
+        <tr><td class="name">Quy chế học bổng</td><td class="subtle">v2</td><td class="subtle">28/04/2026</td>
+          <td><span class="badge badge--good">Hiện hành</span></td></tr>
+        <tr><td class="name">Điều kiện tuyển sinh theo ngành</td><td class="subtle">v5</td><td class="subtle">02/03/2026</td>
+          <td><span class="badge badge--warning">Cần rà soát</span></td></tr>
+        <tr><td class="name">Mô tả chương trình đào tạo</td><td class="subtle">v1</td><td class="subtle">14/11/2025</td>
+          <td><span class="badge badge--critical">Quá hạn</span></td></tr>
+      </tbody>
+    </table></div>
+    <div class="card__hd" style="margin:18px 0 10px"><h2 style="font-size:12.5px">Phân bố ba mức rủi ro</h2>
+      <span class="meta">4.826 hành động trong 30 ngày</span></div>
+    <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px">
+      <i style="width:64%;background:var(--good)" data-tip="<b>Mức thấp</b><br>3.089 hành động tự động"></i>
+      <i style="width:27%;background:var(--s1)" data-tip="<b>Mức trung bình</b><br>1.303 hành động qua luật nghiệp vụ"></i>
+      <i style="width:9%;background:var(--critical)" data-tip="<b>Mức cao</b><br>434 hành động cần người duyệt"></i>
+    </div>
+    <div class="den__cap" style="margin-top:7px"><span>Thấp 64%</span><span>Trung bình 27%</span><span>Cao 9%</span></div>
+    <p class="card__note">Tỷ lệ tự động hóa 64% là con số cần theo dõi theo cả hai chiều: quá thấp thì hệ thống không giảm được việc, quá cao thì nhiều khả năng đang có hành động rủi ro bị phân loại nhầm xuống mức thấp.</p>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><span class="zone">KV 7</span><h2>Nhật ký quyết định AI</h2>
+      <span class="meta">tra cứu theo hồ sơ, người duyệt, khoảng thời gian · xuất được phục vụ kiểm toán</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Thời điểm</th><th>Hồ sơ</th><th>Quyết định</th><th>Dữ liệu đầu vào</th>
+        <th>Tri thức đã dùng</th><th>Người duyệt</th><th>Kết quả</th></tr></thead>
+      <tbody>
+        <tr><td class="subtle">26/08 14:21</td><td class="name">STU-2026-04821</td>
+          <td>Đề xuất gọi phụ huynh giải thích học phí</td>
+          <td class="subtle">18 điểm chạm, 2 phiên tư vấn</td>
+          <td class="subtle">Chính sách học phí v3</td><td class="subtle">Trần Q. Bảo</td>
+          <td><span class="badge badge--warning">Chờ duyệt</span></td></tr>
+        <tr><td class="subtle">26/08 11:04</td><td class="name">STU-2026-03912</td>
+          <td>Gửi thông tin học bổng 50%</td>
+          <td class="subtle">Điểm học lực, 2 câu hỏi về học bổng</td>
+          <td class="subtle">Quy chế học bổng v2</td><td class="subtle">Nguyễn T. Hà</td>
+          <td><span class="badge badge--good">Đã duyệt và gửi</span></td></tr>
+        <tr><td class="subtle">25/08 16:48</td><td class="name">STU-2026-04102</td>
+          <td>Đề xuất chuyển giao phụ trách</td>
+          <td class="subtle">Tải công việc, 23 ngày im lặng</td>
+          <td class="subtle">—</td><td class="subtle">Lê V. Cường</td>
+          <td><span class="badge badge--critical">Từ chối — đã có quan hệ với gia đình</span></td></tr>
+        <tr><td class="subtle">25/08 09:12</td><td class="name">STU-2026-03844</td>
+          <td>Cập nhật xác suất 54% → 61%</td>
+          <td class="subtle">Tham dự Open Day</td>
+          <td class="subtle">Mô hình chấm điểm v4.2</td><td class="subtle">tự động — mức thấp</td>
+          <td><span class="badge badge--good">Đã ghi</span></td></tr>
+      </tbody>
+    </table></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" type="button">Xuất nhật ký</button>
+      <button class="btn" type="button">Lọc theo người duyệt</button>
+      <span style="margin-left:auto;font-size:11.5px;color:var(--ink-3);align-self:center">
+        Mọi quyết định ghi đủ năm thành phần: đầu vào, tri thức đã dùng, đề xuất sinh ra, người duyệt, kết quả cuối cùng.</span>
+    </div>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

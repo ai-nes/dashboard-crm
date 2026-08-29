@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-12 · Campaign Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-12',
+  title: 'Campaign Intelligence',
+  lede: 'Campaign có tạo ra nhập học và doanh thu hay không, chứ không dừng ở "campaign có bao nhiêu lead". Kênh số và kênh thực địa được đặt lên cùng một thước đo.',
+});
+
+/* [kênh, chi phí (tr), impressions, clicks, leads, qualified, application, enrolled, doanh thu (tr)] */
+const CH = [
+  ['School Event',  620,      0,     0, 3840, 1290,  810,  486, 23900],
+  ['Open Day',      410,      0,     0, 1920,  742,  498,  312, 15300],
+  ['Promoter',      880,      0,     0, 6210, 1680,  902,  521, 25600],
+  ['Facebook',      940, 4820000, 96400, 8420, 1620,  742,  388, 19100],
+  ['Google',        720, 2140000, 64200, 5180, 1284,  648,  341, 16800],
+  ['TikTok',        810, 9640000, 144600, 11240, 1180, 402,  164,  8100],
+  ['Zalo OA',       260,  980000, 39200, 3120,  842,  418,  221, 10900],
+  ['YouTube',       340, 1860000, 22300, 1840,  392,  186,   94,  4600],
+  ['Referral',       40,      0,     0, 1420,  620,  428,  296, 14600],
+];
+
+const CPL_TREND = [
+  { label: '01/08', fb: 118, gg: 142, tt: 68, ev: 168 },
+  { label: '05/08', fb: 121, gg: 138, tt: 71, ev: 162 },
+  { label: '09/08', fb: 116, gg: 145, tt: 74, ev: 158 },
+  { label: '13/08', fb: 124, gg: 139, tt: 78, ev: 161 },
+  { label: '17/08', fb: 119, gg: 141, tt: 82, ev: 159 },
+  { label: '21/08', fb: 127, gg: 148, tt: 88, ev: 164 },
+  { label: '25/08', fb: 131, gg: 144, tt: 94, ev: 160 },
+  { label: '28/08', fb: 129, gg: 146, tt: 98, ev: 162 },
+];
+
+const tot = CH.reduce((a, c) => ({
+  cost: a.cost + c[1], leads: a.leads + c[4], q: a.q + c[5], app: a.app + c[6], enr: a.enr + c[7], rev: a.rev + c[8],
+}), { cost: 0, leads: 0, q: 0, app: 0, enr: 0, rev: 0 });
+
+canvas.innerHTML = `
+<div class="kpis" style="grid-template-columns:repeat(6,1fr)">
+  <div class="kpi simulated"><div class="kpi__label">Tổng chi phí</div><div class="kpi__val" style="font-size:23px">${fmt(tot.cost)}<small> tr</small></div></div>
+  <div class="kpi"><div class="kpi__label">Lead</div><div class="kpi__val" style="font-size:23px">${fmt(tot.leads)}</div></div>
+  <div class="kpi simulated"><div class="kpi__label">CPL</div><div class="kpi__val" style="font-size:23px">${(tot.cost / tot.leads * 1000).toFixed(0)}<small>k</small></div>
+    <div class="kpi__deltas"><span>MoM <b class="down">+12,4%</b></span></div></div>
+  <div class="kpi simulated"><div class="kpi__label">CPQL</div><div class="kpi__val" style="font-size:23px">${(tot.cost / tot.q).toFixed(2).replace('.', ',')}<small> tr</small></div>
+    <div class="kpi__deltas"><span>chi phí trên mỗi Qualified</span></div></div>
+  <div class="kpi simulated"><div class="kpi__label">CAC</div><div class="kpi__val" style="font-size:23px">${(tot.cost / tot.enr).toFixed(1).replace('.', ',')}<small> tr</small></div>
+    <div class="kpi__deltas"><span>chi phí trên mỗi nhập học</span></div></div>
+  <div class="kpi simulated"><div class="kpi__label">ROAS</div><div class="kpi__val" style="font-size:23px">${(tot.rev / tot.cost).toFixed(1).replace('.', ',')}×</div>
+    <div class="kpi__deltas"><span>doanh thu trên chi phí</span></div></div>
+</div>
+
+<div class="grid">
+  <div class="card c12 simulated">
+    <div class="card__hd"><span class="zone">KV 3–4</span><h2>Ma trận kênh — từ chi phí tới doanh thu</h2>
+      <span class="meta">mô hình gán nguồn đang áp dụng: <b>chạm cuối trước khi Qualified</b> · cần chốt, xem Q7</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr>
+        <th>Kênh</th><th class="num">Chi phí</th><th class="num">Impressions</th><th class="num">CTR</th>
+        <th class="num">Lead</th><th class="num">Qualified</th><th class="num">Enrolled</th>
+        <th class="num">CPL</th><th class="num">CPQL</th><th class="num">CAC</th><th class="num">ROAS</th>
+      </tr></thead>
+      <tbody>${CH.slice().sort((a, b) => (b[8] / b[1]) - (a[8] / a[1])).map(c => {
+        const roas = c[8] / c[1], cac = c[1] / c[7], cpql = c[1] / c[5];
+        return `<tr>
+          <td class="name">${c[0]}</td>
+          <td class="num">${fmt(c[1])} tr</td>
+          <td class="num subtle">${c[2] ? fmt(c[2]) : '—'}</td>
+          <td class="num subtle">${c[2] ? pct(c[3] / c[2] * 100, 2) : '—'}</td>
+          <td class="num">${fmt(c[4])}</td>
+          <td class="num">${fmt(c[5])}</td>
+          <td class="num">${fmt(c[7])}</td>
+          <td class="num">${(c[1] / c[4] * 1000).toFixed(0)}k</td>
+          <td class="num" style="${cpql > 0.6 ? 'color:var(--critical);font-weight:650' : ''}">${cpql.toFixed(2).replace('.', ',')} tr</td>
+          <td class="num" style="${cac > 4 ? 'color:var(--critical);font-weight:650' : ''}">${cac.toFixed(1).replace('.', ',')} tr</td>
+          <td class="num"><span class="inbar"><span class="inbar__t"><span class="inbar__f" style="width:${Math.min(roas / 40 * 100, 100)}%;background:var(--${roas > 25 ? 'good' : roas > 15 ? 's1' : 'critical'})"></span></span>${roas.toFixed(1).replace('.', ',')}×</span></td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>
+    <p class="card__note">Kênh thực địa không có Impressions và CTR — đó là bản chất của kênh, không phải dữ liệu thiếu. Vì vậy việc so sánh giữa hai loại kênh phải diễn ra ở cột CPQL, CAC và ROAS, không ở cột CPL.</p>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>CPL theo ngày</h2>
+      <span class="meta">nghìn đồng trên mỗi lead</span></div>
+    ${lineChart({
+      data: CPL_TREND, height: 210, valueFmt: v => v + 'k',
+      series: [
+        { key: 'ev', name: 'Sự kiện', c: 's2' },
+        { key: 'gg', name: 'Google', c: 's4' },
+        { key: 'fb', name: 'Facebook', c: 's1' },
+        { key: 'tt', name: 'TikTok', c: 's3' },
+      ],
+    })}
+    <div class="callout" style="margin-top:12px">
+      <b>Đọc biểu đồ này rất dễ nhầm.</b> TikTok có CPL thấp nhất và trông như kênh rẻ nhất. Nhưng CPQL của TikTok là 0,69 triệu so với 0,48 của School Event, và CAC là 4,9 triệu so với 1,3 triệu. Lead rẻ mà không chuyển đổi thì đắt hơn lead đắt.
+    </div>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 6</span><h2>AI nhận định và đề xuất</h2>
+      <span class="meta">mỗi đề xuất mở được bảng căn cứ</span></div>
+    <div class="ai">
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--critical)">Chất lượng thấp</div>
+        <p class="ai__t"><b>TikTok</b> tạo volume cao nhất — 11.240 lead — nhưng chỉ 10,5% đạt Qualified.</p>
+        <p class="ai__why">Mặt bằng là 21,6%. Phân tích 2.400 hội thoại cho thấy 38% không thuộc đối tượng tuyển sinh: học sinh lớp 10 và 11, hoặc người đã tốt nghiệp đại học.</p>
+        <div class="ai__src">CPQL 0,69 tr · CAC 4,9 tr · <a href="M-05-admission-funnel.html">Phễu của kênh</a></div>
+      </div>
+      <div class="ai__item ai__item--opp">
+        <div class="ai__k" style="color:var(--good-ink)">Đề xuất · tác động 42 nhập học</div>
+        <p class="ai__t">Chuyển <b>15% ngân sách TikTok</b> (122 triệu) sang <b>School Event</b>.</p>
+        <div class="evidence">
+          <span class="w">Nhập học mất đi từ TikTok<span class="wbar"><i style="width:22%"></i></span></span><span>−25</span>
+          <span class="w">Nhập học thêm từ School Event<span class="wbar"><i style="width:74%"></i></span></span><span>+67</span>
+          <span class="w">Độ tin cậy<span class="wbar"><i style="width:61%"></i></span></span><span>61%</span>
+        </div>
+        <div class="ai__src">giả định: hiệu suất biên của School Event giữ nguyên tới quy mô 742 triệu · <span class="tier tier--mid">Rủi ro trung bình</span></div>
+      </div>
+      <div class="ai__item ai__item--rev">
+        <div class="ai__k" style="color:var(--s4)">Cảnh báo hiệu suất biên</div>
+        <p class="ai__t">Referral có ROAS cao nhất (365×) nhưng <b>không mở rộng được bằng tiền</b>.</p>
+        <p class="ai__why">Chi phí chỉ 40 triệu và gần như không co giãn theo ngân sách. Đây là kênh cần đầu tư bằng chương trình giới thiệu, không bằng ngân sách quảng cáo.</p>
+        <div class="ai__src">độ tin cậy 84%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Phễu campaign — từ Impressions tới Enrollment</h2>
+      <span class="meta">tổng hợp các kênh số · kênh thực địa bắt đầu từ bước Lead</span></div>
+    ${funnel([
+      { name: 'Impressions',    n: 19440000, note: 'lượt hiển thị' },
+      { name: 'Clicks',         n: 366700,   note: 'lượt nhấp' },
+      { name: 'Landing visits', n: 284200,   note: 'phiên vào trang đích' },
+      { name: 'Leads',          n: 29800,    note: 'để lại thông tin' },
+      { name: 'Qualified',      n: 5318,     note: 'đúng đối tượng' },
+      { name: 'Application',    n: 2396,     note: 'khởi tạo hồ sơ' },
+      { name: 'Enrolled',       n: 1208,     note: 'nhập học' },
+    ])}
+    <p class="card__note">Nửa trên của phễu — Impressions, Clicks, CTR — đòi hỏi tích hợp API nền tảng quảng cáo, hiện chưa có. Nếu không nối được, màn hình này bắt đầu từ bước Lead và mất khả năng chẩn đoán vấn đề nằm ở nội dung quảng cáo hay ở trang đích. Xem điểm cần chốt Q8.</p>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

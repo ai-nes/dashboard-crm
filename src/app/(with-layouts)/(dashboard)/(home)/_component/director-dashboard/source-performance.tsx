@@ -13,7 +13,7 @@ export default function SourcePerformance() {
           <CardTitle>Nguồn hồ sơ</CardTitle>
           <p className="mt-1 text-xs text-text-tertiary">Đóng góp vào pipeline và kết quả nhập học</p>
         </div>
-        <Link href="/director/marketing/attribution" className="flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600">
+        <Link href="/director/campaign-intelligence" className="flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600">
           Xem phân bổ
           <ArrowRight size={14} aria-hidden="true" />
         </Link>

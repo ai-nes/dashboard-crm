@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-10 · SLA & Risk Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-10',
+  title: 'SLA & Risk Center',
+  lede: 'Mọi thứ đang trượt khỏi cam kết hoặc sắp mất cơ hội, gom vào một chỗ và xếp theo mức khẩn, để can thiệp trước khi quá muộn.',
+});
+
+canvas.innerHTML = `
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Đồng hồ cam kết phản hồi</h2>
+      <span class="meta">cập nhật liên tục · cam kết hiện hành: phản hồi trong 8 giờ làm việc</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      ${[['Sắp tới hạn trong 4 giờ', 86, 'warning', [['Mekong', 31], ['Bắc Trung Bộ', 24], ['Đông Nam Bộ', 18], ['Khác', 13]]],
+         ['Quá hạn dưới 24 giờ', 104, 'serious', [['Mekong', 42], ['Bắc Trung Bộ', 28], ['Nam Trung Bộ', 19], ['Khác', 15]]],
+         ['Quá hạn trên 24 giờ', 142, 'critical', [['Mekong', 68], ['Bắc Trung Bộ', 41], ['Đông Nam Bộ', 21], ['Khác', 12]]]]
+        .map(([label, n, col, rows]) => `
+        <div style="border:1px solid var(--line);border-left:3px solid var(--${col});border-radius:var(--r-s);padding:12px 14px">
+          <div style="font-size:12px;color:var(--ink-2)">${label}</div>
+          <div class="kpi__val" style="color:var(--${col})">${n}</div>
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
+            ${rows.map(([r, v]) => `
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px">
+                <span style="width:92px;color:var(--ink-2)">${r}</span>
+                <span class="inbar__t" style="flex:1;width:auto"><span class="inbar__f" style="width:${v / n * 100}%;background:var(--${col})"></span></span>
+                <b style="font-family:var(--ff-num);width:26px;text-align:right">${v}</b>
+              </div>`).join('')}
+          </div>
+        </div>`).join('')}
+    </div>
+    <p class="card__note">Đội Mekong chiếm 48% tổng số hồ sơ quá hạn trên 24 giờ trong khi chỉ phụ trách 18% khối lượng — đây là dấu hiệu thiếu người, không phải dấu hiệu làm việc kém. Xem <a href="M-09-regional-performance.html" style="color:var(--s1)">phân tích năng lực</a>.</p>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c6">
+    <div class="card__hd"><span class="zone">KV 2</span><h2>Cơ hội đang mất</h2>
+      <span class="meta">xác suất cao nhưng im lặng quá ngưỡng</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Học sinh</th><th>Trường</th><th class="num">Xác suất</th><th class="num">Im lặng</th><th>Phụ trách</th><th style="width:1%"></th></tr></thead>
+      <tbody>
+        <tr><td class="name">Phạm T. D.</td><td class="subtle">Bùi Hữu Nghĩa</td><td class="num"><b>68%</b></td>
+          <td class="num down">23 ngày</td><td class="subtle">Nguyễn T. Hà</td><td><a class="btn" href="M-08-student-360.html" style="text-decoration:none">Mở</a></td></tr>
+        <tr><td class="name">Đặng V. F.</td><td class="subtle">Châu Văn Liêm</td><td class="num"><b>63%</b></td>
+          <td class="num down">14 ngày</td><td class="down">chưa phân công</td><td><a class="btn" href="M-08-student-360.html" style="text-decoration:none">Mở</a></td></tr>
+        <tr><td class="name">Bùi H. M.</td><td class="subtle">Nguyễn Việt Hồng</td><td class="num">61%</td>
+          <td class="num">11 ngày</td><td class="subtle">Trần Q. Bảo</td><td><a class="btn" href="M-08-student-360.html" style="text-decoration:none">Mở</a></td></tr>
+        <tr><td class="name">Lý K. T.</td><td class="subtle">Thới Lai</td><td class="num">58%</td>
+          <td class="num">9 ngày</td><td class="subtle">Lê V. Cường</td><td><a class="btn" href="M-08-student-360.html" style="text-decoration:none">Mở</a></td></tr>
+      </tbody>
+    </table></div>
+    <p class="card__note">42 hồ sơ trong nhóm này, tổng giá trị kỳ vọng 2,1 tỷ. Sắp theo xác suất giảm dần, không theo thời gian im lặng — một hồ sơ 30% im lặng 40 ngày ít đáng tiếc hơn một hồ sơ 68% im lặng 23 ngày.</p>
+  </div>
+
+  <div class="card c6">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>Dấu hiệu rời bỏ</h2>
+      <span class="meta">4 loại · mỗi mục nêu tín hiệu cụ thể</span></div>
+    <div class="ai">
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--critical)">Phản đối chưa được xử lý · 24 hồ sơ</div>
+        <p class="ai__t">Câu hỏi về chi phí lặp lại từ hai lần trở lên mà chưa có câu trả lời cụ thể.</p>
+        <div class="ai__src">tín hiệu: số lần hỏi ≥ 2 và không có tin nhắn chứa con số học phí · <a href="#">Xem danh sách</a></div>
+      </div>
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--serious)">Sắc thái tiêu cực · 11 hồ sơ</div>
+        <p class="ai__t">Hội thoại chuyển sang sắc thái lo lắng hoặc bực bội ở lần tương tác gần nhất.</p>
+        <div class="ai__src">tín hiệu: phân tích sắc thái ở mức tin cậy ≥ 70% · <a href="#">Xem danh sách</a></div>
+      </div>
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--serious)">Tần suất tương tác giảm đột ngột · 18 hồ sơ</div>
+        <p class="ai__t">Từ trung bình 3 tương tác một tuần xuống 0 trong hai tuần liên tiếp.</p>
+        <div class="ai__src">tín hiệu: so với nhịp tương tác của chính hồ sơ đó · <a href="#">Xem danh sách</a></div>
+      </div>
+      <div class="ai__item">
+        <div class="ai__k" style="color:var(--s1)">Xác suất đang tụt · 9 hồ sơ</div>
+        <p class="ai__t">Giảm trên 8 điểm trong 14 ngày mà không do đổi trạng thái.</p>
+        <div class="ai__src">tín hiệu: chênh lệch điểm giữa hai lần chấm · <a href="#">Xem danh sách</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>Hàng đợi nghi trùng</h2>
+      <span class="meta">chờ người duyệt gộp hoặc tách</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
+      <div><div class="kpi__label">Chờ duyệt</div><div class="kpi__val" style="font-size:24px">184</div></div>
+      <div><div class="kpi__label">Tuổi cũ nhất</div><div class="kpi__val" style="font-size:24px;color:var(--critical)">21<small> ngày</small></div></div>
+      <div><div class="kpi__label">Đã gộp tự động</div><div class="kpi__val" style="font-size:24px">1.246</div></div>
+    </div>
+    <div class="callout">
+      Khớp gần đúng theo họ tên kết hợp trường THPT không được gộp tự động — luôn đưa vào hàng đợi này. Hai nhân sự nhập cùng một học sinh tại hai điểm là tình huống thường gặp nhất trong mùa cao điểm.
+    </div>
+    <a class="btn" href="M-17-data-health-sources.html" style="text-decoration:none;display:block;text-align:center;margin-top:12px">Mở màn hình duyệt trùng</a>
+  </div>
+
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 5</span><h2>Bất thường vận hành</h2>
+      <span class="meta">gom theo nguyên nhân để tránh làm ngập màn hình</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Cảnh báo</th><th>Phát sinh</th><th>Giá trị kích hoạt</th><th>Trạng thái</th><th style="width:1%"></th></tr></thead>
+      <tbody>
+        <tr><td class="name">Nguồn thu thực địa ngừng đồng bộ</td><td class="subtle">3 giờ 20 phút trước</td>
+          <td class="subtle">độ trễ 200 phút, ngưỡng 30 phút</td><td><span class="badge badge--critical">Chưa xử lý</span></td>
+          <td><button class="btn" type="button">Xem</button></td></tr>
+        <tr><td class="name">CPL kênh TikTok vượt ngưỡng</td><td class="subtle">5 ngày liên tiếp</td>
+          <td class="subtle">1,84 triệu, ngưỡng 1,0 triệu</td><td><span class="badge badge--serious">Đang theo dõi</span></td>
+          <td><button class="btn" type="button">Xem</button></td></tr>
+        <tr><td class="name">Lead từ Facebook sụt 38% so với đường cơ sở</td><td class="subtle">hôm qua</td>
+          <td class="subtle">412 so với 664 dự kiến</td><td><span class="badge badge--warning">Đang điều tra</span></td>
+          <td><button class="btn" type="button">Xem</button></td></tr>
+        <tr><td class="name">Tỷ lệ hồ sơ thiếu đồng ý xử lý dữ liệu tăng</td><td class="subtle">2 ngày trước</td>
+          <td class="subtle">6,2%, ngưỡng 3%</td><td><span class="badge badge--good">Đã xử lý</span></td>
+          <td><button class="btn" type="button">Xem</button></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout" style="margin-top:12px">
+      Ngưỡng đang áp dụng: <b>4 quy tắc cấp tổ chức</b> và <b>11 quy tắc cấp vùng</b>.
+      <a href="M-18-alerts-subscriptions.html" style="color:var(--s1)">Chỉnh tại M-18 →</a>
+    </div>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

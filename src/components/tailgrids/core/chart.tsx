@@ -73,7 +73,7 @@ const chartTooltipContentVariants = cva("relative p-2 pl-5 font-medium text-titl
 
 interface ChartTooltipContentProps
   extends
-    React.ComponentProps<"div">,
+    Pick<React.ComponentProps<"div">, "className" | "id" | "role" | "style" | "aria-label">,
     Partial<
       Pick<
         RechartsPrimitive.TooltipContentProps,
@@ -101,10 +101,13 @@ function ChartTooltipContent({
   active,
   formatter,
   className,
+  id,
+  role,
+  style,
+  "aria-label": ariaLabel,
   hideLabel,
   hideIndicator,
   indicator = "dot",
-  ...props
 }: ChartTooltipContentProps) {
   const { setIndicator } = useChart();
 
@@ -118,7 +121,13 @@ function ChartTooltipContent({
 
   if (!hideLabel && labelFormatter) {
     return (
-      <div style={labelStyle} className={cn("font-medium", labelClassName)}>
+      <div
+        id={id}
+        role={role}
+        aria-label={ariaLabel}
+        style={{ ...style, ...labelStyle }}
+        className={cn("font-medium", labelClassName)}
+      >
         {labelFormatter(label, payload)}
       </div>
     );
@@ -126,8 +135,11 @@ function ChartTooltipContent({
 
   return (
     <div
+      id={id}
+      role={role}
+      aria-label={ariaLabel}
+      style={style}
       className={cn("min-w-20 overflow-hidden rounded-md bg-background-soft-50", className)}
-      {...props}
     >
       {!hideLabel && (
         <p className="border-b bg-background-soft-100 px-2 py-1 text-title-50">{label}</p>
@@ -137,7 +149,7 @@ function ChartTooltipContent({
         {payload
           .filter((item) => item.type !== "none")
           .map((item, index) => (
-            <li key={item.key}>
+            <li key={`${String(item.dataKey ?? item.name ?? "item")}-${index}`}>
               {formatter && item?.value !== undefined && item.name ? (
                 formatter(item.value, item.name, item, index, item.payload)
               ) : (

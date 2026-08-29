@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-06 · Sales Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-06',
+  title: 'Sales Pipeline',
+  lede: 'Không gian làm việc hằng ngày của tư vấn viên và công cụ theo dõi của quản lý trực tiếp. Đội đang có bao nhiêu cơ hội, cơ hội nào đang nguội, hôm nay phải làm gì.',
+  filters: [['Năm', '2026'], ['Kỳ', 'Đang hoạt động'], ['Địa bàn', 'ĐBSCL'], ['Đội', 'Mekong'], ['Người phụ trách', 'Trần Q. Bảo'], ['Xác suất', '≥ 40%'], ['Hoạt động cuối', 'Tất cả']],
+});
+
+const COLS = [
+  { n: 'Prospect',    c: 128, v: '—',      cards: [
+    { n: 'Huỳnh T. K.', s: 'THPT Bùi Hữu Nghĩa', m: 'AI · Landing page', p: 22, risk: null, last: 'hôm nay' },
+    { n: 'Ngô V. L.',   s: 'THPT Châu Văn Liêm', m: 'CNTT · Zalo OA',    p: 19, risk: null, last: 'hôm nay' },
+  ]},
+  { n: 'Engaged',     c: 64, v: '—', cards: [
+    { n: 'Lê M. C.',   s: 'THPT Châu Văn Liêm', m: 'QTKD · Career Talk', p: 74, risk: null, last: '9 ngày' },
+    { n: 'Phạm T. D.', s: 'THPT Bùi Hữu Nghĩa', m: 'Thiết kế · Open Day', p: 68, risk: 'Im lặng 23 ngày', last: '23 ngày' },
+    { n: 'Bùi H. M.',  s: 'THPT Nguyễn Việt Hồng', m: 'CNTT · Facebook', p: 44, risk: 'Phản hồi thấp', last: '11 ngày' },
+  ]},
+  { n: 'Qualified',   c: 41, v: '2,0 tỷ', cards: [
+    { n: 'Đặng V. F.', s: 'THPT Châu Văn Liêm', m: 'AI · Referral', p: 63, risk: 'Chưa phân công', last: '14 ngày' },
+    { n: 'Trương K. N.', s: 'THPT Thới Lai', m: 'Du lịch · Sự kiện', p: 57, risk: null, last: '3 ngày' },
+  ]},
+  { n: 'Counselling', c: 28, v: '1,4 tỷ', cards: [
+    { n: 'Nguyễn M. A.', s: 'THPT Châu Văn Liêm', m: 'AI · Career Talk', p: 82, risk: 'Mối lo học phí chưa xử lý', last: '2 ngày' },
+    { n: 'Hồ T. P.',   s: 'THPT Nguyễn Việt Hồng', m: 'Ngôn ngữ Anh', p: 66, risk: null, last: '5 ngày' },
+  ]},
+  { n: 'Application', c: 19, v: '0,9 tỷ', cards: [
+    { n: 'Trần M. B.', s: 'THPT Nguyễn Việt Hồng', m: 'CNTT · Open Day', p: 79, risk: null, last: 'hôm qua' },
+    { n: 'Dương A. Q.', s: 'THPT Thới Lai', m: 'QTKD · Zalo', p: 71, risk: 'Hồ sơ đình trệ 9 ngày', last: '9 ngày' },
+  ]},
+  { n: 'Accepted',    c: 12, v: '0,6 tỷ', cards: [
+    { n: 'Võ T. E.',   s: 'THPT Châu Văn Liêm', m: 'Ngôn ngữ Anh', p: 91, risk: null, last: '4 ngày' },
+  ]},
+  { n: 'Enrolled',    c: 34, v: '1,7 tỷ', cards: [
+    { n: 'Phan L. R.', s: 'THPT Thới Lai', m: 'CNTT', p: 100, risk: null, last: 'đã nhập học' },
+  ]},
+];
+
+canvas.innerHTML = `
+<div class="grid grid--top">
+  <div class="card c9 simulated">
+    <div class="card__hd"><span class="zone">KV 1–4</span><h2>Bảng cơ hội</h2>
+      <span class="meta">326 cơ hội · kéo thả để chuyển bước, mỗi lần chuyển đều ghi log</span></div>
+    <div class="board">${COLS.map(col => `
+      <div class="col">
+        <div class="col__hd"><h3>${col.n}</h3><span class="n">${col.c}</span>
+          <span class="v">giá trị kỳ vọng ${col.v}</span></div>
+        ${col.cards.map(c => `
+          <div class="pcard" style="${c.risk ? 'border-left:3px solid var(--serious)' : ''}">
+            <div class="pcard__n">${c.n}</div>
+            <div class="pcard__m">${c.s}</div>
+            <div class="pcard__m">${c.m}</div>
+            ${c.risk ? `<div style="margin-top:6px"><span class="badge badge--serious">${c.risk}</span></div>` : ''}
+            <div class="pcard__f"><span class="subtle">${c.last}</span><span class="pcard__p">${c.p}%</span></div>
+          </div>`).join('')}
+        ${col.c > col.cards.length ? `<div style="text-align:center;font-size:11px;color:var(--ink-3);padding:6px">còn ${col.c - col.cards.length} cơ hội</div>` : ''}
+      </div>`).join('')}
+    </div>
+    <p class="card__note">Bước Prospect và Engaged không hiển thị giá trị kỳ vọng: xác suất ở hai bước này còn quá thấp để quy ra tiền một cách có ý nghĩa. Đưa số vào đó sẽ tạo cảm giác chắc chắn giả tạo.</p>
+  </div>
+
+  <div class="card c3">
+    <div class="card__hd"><span class="zone">KV 5</span><h2>Việc hôm nay</h2>
+      <span class="meta">34 việc</span></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${[['Follow-up đến hạn', 18, 's1'], ['Hồ sơ nóng cần gọi', 7, 'critical'],
+         ['Gọi phụ huynh', 4, 's4'], ['Vướng mắc hồ sơ', 3, 'serious'], ['Hẹn thăm cơ sở', 2, 's6']]
+        .map(([n, c, col]) => `
+        <button class="btn" type="button" style="display:flex;align-items:center;gap:9px;text-align:left;padding:10px 12px">
+          <i style="width:8px;height:8px;border-radius:50%;background:var(--${col});flex:none"></i>
+          <span style="flex:1">${n}</span>
+          <b style="font-family:var(--ff-num);font-size:15px">${c}</b>
+        </button>`).join('')}
+    </div>
+    <div class="callout" style="margin-top:14px">
+      Danh sách được giới hạn ở mức làm được trong một ngày. Việc còn lại nằm trong hàng đợi và sẽ nổi lên khi tới lượt — đổ hết ra một lúc chỉ làm người dùng bỏ qua toàn bộ.
+    </div>
+    <a class="btn btn--primary" href="M-07-ai-next-best-action.html" style="text-decoration:none;display:block;text-align:center;margin-top:12px">Mở AI Next Best Action</a>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c6">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>Rủi ro AI đánh dấu</h2>
+      <span class="meta">5 loại · 41 cơ hội</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Loại rủi ro</th><th class="num">Cơ hội</th><th class="num">Giá trị kỳ vọng</th><th>Tín hiệu kích hoạt</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Không hoạt động trên 7 ngày</td><td class="num">18</td><td class="num">0,9 tỷ</td>
+          <td class="subtle">Không có tương tác hai chiều nào trong 7 ngày</td></tr>
+        <tr><td class="name">Hồ sơ đăng ký đình trệ</td><td class="num">9</td><td class="num">0,4 tỷ</td>
+          <td class="subtle">Đã khởi tạo nhưng thiếu giấy tờ quá 5 ngày</td></tr>
+        <tr><td class="name">Mối lo phụ huynh chưa xử lý</td><td class="num">7</td><td class="num">0,4 tỷ</td>
+          <td class="subtle">Câu hỏi về chi phí lặp lại mà chưa có câu trả lời cụ thể</td></tr>
+        <tr><td class="name">Tỷ lệ phản hồi thấp</td><td class="num">5</td><td class="num">0,2 tỷ</td>
+          <td class="subtle">Dưới 1 phản hồi trên 4 lần liên hệ</td></tr>
+        <tr><td class="name">Xác suất đang giảm</td><td class="num">2</td><td class="num">0,1 tỷ</td>
+          <td class="subtle">Giảm trên 8 điểm trong 14 ngày</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="card c6">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>Bộ lọc đã lưu</h2>
+      <span class="meta">áp nhanh cho công việc lặp lại</span></div>
+    <div class="pills" style="margin-bottom:14px">
+      <button class="pill" aria-pressed="true" type="button">Hồ sơ của tôi</button>
+      <button class="pill" aria-pressed="false" type="button">Xác suất ≥ 70%</button>
+      <button class="pill" aria-pressed="false" type="button">Im lặng &gt; 7 ngày</button>
+      <button class="pill" aria-pressed="false" type="button">Chưa phân công</button>
+      <button class="pill" aria-pressed="false" type="button">Trường Châu Văn Liêm</button>
+      <button class="pill" aria-pressed="false" type="button">Sắp hết hạn nộp</button>
+    </div>
+    <div class="callout">
+      Mười chiều lọc dùng chung: người phụ trách, vùng, tỉnh, trường, chương trình, nguồn, điểm, xác suất, bước, hoạt động cuối. Lựa chọn được giữ khi chuyển sang màn hình khác và khi đăng nhập lại.
+    </div>
+    <div class="card__hd" style="margin:16px 0 10px"><h2 style="font-size:12.5px">Ranh giới kiến trúc của thao tác kéo thả</h2></div>
+    <p style="font-size:12px;color:var(--ink-2);line-height:1.6;margin:0">
+      Kéo một thẻ sang cột khác là thay đổi trạng thái hồ sơ, tức là ghi vào lõi. Theo mục 8 của đặc tả, thao tác này không ghi trực tiếp từ giao diện mà gửi qua lớp trí tuệ. Cần chốt ngưỡng độ trễ chấp nhận được để trải nghiệm kéo thả không bị giật — đây là điểm kỹ thuật cần thống nhất trước khi lập trình.
+    </p>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

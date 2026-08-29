@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-13 · Revenue & Forecast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-13',
+  title: 'Revenue & Forecast',
+  lede: 'Cuối kỳ dự kiến bao nhiêu nhập học và bao nhiêu doanh thu, thiếu bao nhiêu so với mục tiêu, và làm gì thì lấp được khoảng thiếu đó.',
+});
+
+const CURVE = [
+  { label: 'T1', act: 180,  need: 320,  lo: null, hi: null },
+  { label: 'T2', act: 520,  need: 780,  lo: null, hi: null },
+  { label: 'T3', act: 980,  need: 1340, lo: null, hi: null },
+  { label: 'T4', act: 1560, need: 1980, lo: null, hi: null },
+  { label: 'T5', act: 2180, need: 2640, lo: null, hi: null },
+  { label: 'T6', act: 2780, need: 3280, lo: null, hi: null },
+  { label: 'T7', act: 3320, need: 3920, lo: null, hi: null },
+  { label: 'T8', act: 3820, need: 4360, lo: 3820, hi: 3820 },
+  { label: 'T9', act: null, need: 4720, lo: 4080, hi: 4310 },
+  { label: 'T10', act: null, need: 5000, lo: 4410, hi: 4940 },
+];
+
+const SCEN = [
+  ['Giữ nguyên như hiện tại', 0, 4680, 230.2, -320],
+  ['Conversion +1 điểm', 1, 4800, 236.2, -200],
+  ['Conversion +3 điểm', 3, 5040, 248.0, 40],
+  ['Conversion +5 điểm', 5, 5290, 260.3, 290],
+];
+
+const REGREV = [
+  ['TP. Hồ Chí Minh', 40.3, 50.1],
+  ['Bắc Bộ', 37.4, 45.7],
+  ['Đông Nam Bộ', 35.1, 43.2],
+  ['Nam Trung Bộ', 32.1, 39.2],
+  ['Mekong', 18.3, 21.0],
+  ['Bắc Trung Bộ', 14.7, 17.6],
+  ['Khác', 9.8, 13.4],
+];
+
+canvas.innerHTML = `
+<div class="grid">
+  <div class="card c12 simulated">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Dự báo cuối mùa</h2>
+      <span class="meta">còn 47 ngày · mô hình hiệu chỉnh lần cuối 20/08</span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+      <div><div class="hero__n" style="font-size:38px">5.000</div><div class="hero__l">Target</div></div>
+      <div><div class="hero__n" style="font-size:38px">3.820</div><div class="hero__l">Hiện tại · 76,4%</div></div>
+      <div><div class="hero__n" style="font-size:38px;color:var(--s1)">4.680</div>
+        <div class="hero__l">Forecast · khoảng 4.410 – 4.940</div></div>
+      <div><div class="hero__n" style="font-size:38px;color:var(--critical)">−320</div>
+        <div class="hero__l">Gap · độ tin cậy dự báo <b>72%</b></div></div>
+    </div>
+    <div style="margin-top:18px">
+      ${lineChart({
+        data: CURVE, height: 230, band: { lo: 'lo', hi: 'hi' },
+        series: [
+          { key: 'need', name: 'Target', c: 's4', dash: true },
+          { key: 'act', name: 'Thực tế', c: 's1' },
+        ],
+      })}
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--s1)"></i>Nhập học tích lũy thực tế</span>
+      <span><i style="background:var(--s4)"></i>Đường cần thiết để đạt target</span>
+      <span><i style="background:var(--s1);opacity:.25"></i>Dải dự báo, khoảng tin cậy 80%</span>
+      <span style="margin-left:auto;color:var(--ink-3)">Đường thực tế bám sát đường cần thiết tới tuần 6 rồi bắt đầu tụt lại.</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c6 simulated">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>Mô phỏng kịch bản</h2>
+      <span class="meta">đổi tham số, kết quả cập nhật ngay</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+      ${[['Conversion cuối', '6,54%', 40], ['Lead volume còn lại', '18.400', 62],
+         ['Tỷ lệ nộp hồ sơ', '49,4%', 55], ['Tỷ lệ nhập học', '77,8%', 74], ['Tỷ lệ cấp học bổng', '31,2%', 31]]
+        .map(([n, v, w]) => `
+        <div>
+          <div style="display:flex;font-size:12px"><span>${n}</span><b style="margin-left:auto;font-family:var(--ff-num)">${v}</b></div>
+          <div style="height:6px;background:var(--surface-2);border-radius:3px;margin-top:6px;position:relative">
+            <div style="height:100%;width:${w}%;background:var(--s1);border-radius:3px"></div>
+            <div style="position:absolute;top:-3px;left:calc(${w}% - 6px);width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--s1)"></div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Kịch bản</th><th class="num">Enrollment</th><th class="num">Doanh thu</th><th class="num">Gap</th></tr></thead>
+      <tbody>${SCEN.map(([n, d, e, r, g]) => `
+        <tr${d === 0 ? ' style="font-weight:600"' : ''}>
+          <td class="name">${n}</td><td class="num">${fmt(e)}</td>
+          <td class="num">${r.toFixed(1).replace('.', ',')} tỷ</td>
+          <td class="num ${g < 0 ? 'down' : 'up'}">${g > 0 ? '+' : ''}${fmt(g)}</td></tr>`).join('')}
+      </tbody>
+    </table></div>
+    <p class="card__note">Mỗi điểm phần trăm conversion đổi được khoảng 120 nhập học và 5,9 tỷ doanh thu. Cần +2,7 điểm để lấp Gap — không phải mục tiêu bất khả thi, nhưng cũng không xảy ra nếu không can thiệp.</p>
+  </div>
+
+  <div class="card c6 simulated">
+    <div class="card__hd"><span class="zone">KV 4–5</span><h2>Doanh thu theo vùng</h2>
+      <span class="meta">tỷ đồng · đã ghi nhận và dự kiến cuối mùa</span></div>
+    ${barChart({
+      data: REGREV.map(([n, a, f]) => ({ label: n.replace('TP. Hồ Chí Minh', 'TP.HCM').replace('Nam Trung Bộ', 'NTB').replace('Bắc Trung Bộ', 'BTB').replace('Đông Nam Bộ', 'ĐNB'), act: a, fc: f })),
+      series: [{ key: 'act', name: 'Đã ghi nhận', c: 's1' }, { key: 'fc', name: 'Dự kiến cuối mùa', c: 's3' }],
+      height: 200, valueFmt: v => v + ' tỷ',
+    })}
+    <div class="legend">
+      <span><i style="background:var(--s1)"></i>Đã ghi nhận</span>
+      <span><i style="background:var(--s3)"></i>Dự kiến cuối mùa</span>
+    </div>
+    <div class="card__hd" style="margin:16px 0 10px"><h2 style="font-size:12.5px">Mô hình doanh thu</h2></div>
+    <dl class="kv" style="font-size:12.5px">
+      <dt>Học phí niêm yết TB</dt><dd>62,4 triệu một năm</dd>
+      <dt>Học bổng TB</dt><dd>−9,8 triệu</dd>
+      <dt>Chiết khấu nhập học sớm</dt><dd>−3,4 triệu</dd>
+      <dt>Học phí ròng</dt><dd><b>49,2 triệu một sinh viên một năm</b></dd>
+      <dt>Ghi nhận</dt><dd>Theo năm học, không theo toàn khóa</dd>
+    </dl>
+    <div class="callout" style="margin-top:12px">
+      Cách ghi nhận doanh thu <b>chưa được tài chính xác nhận</b>. Ghi theo năm hay theo toàn khóa cho ra hai con số khác nhau gấp bốn lần. Toàn bộ màn hình này phụ thuộc vào quyết định đó — xem điểm cần chốt Q9.
+    </div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c12">
+    <div class="card__hd"><span class="zone">KV 6</span><h2>AI giải thích dự báo</h2>
+      <span class="meta">forecast 4.680 · độ tin cậy 72% · dựa trên 3 mùa dữ liệu lịch sử</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <div class="ai__item ai__item--opp">
+        <div class="ai__k" style="color:var(--good-ink)">Yếu tố đẩy lên</div>
+        <div class="evidence" style="border-top:0;padding-top:8px;margin-top:0">
+          <span class="w">Conversion TP.HCM<span class="wbar"><i style="width:82%"></i></span></span><span class="up">+8%</span>
+          <span class="w">Nhu cầu ngành AI<span class="wbar"><i style="width:94%"></i></span></span><span class="up">+18%</span>
+          <span class="w">3 trường THPT đối tác mới<span class="wbar"><i style="width:56%"></i></span></span><span class="up">+94 HS</span>
+          <span class="w">Tỷ lệ nhận học bổng tăng<span class="wbar"><i style="width:48%"></i></span></span><span class="up">+2,1đ</span>
+        </div>
+      </div>
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--critical)">Yếu tố kéo xuống</div>
+        <div class="evidence" style="border-top:0;padding-top:8px;margin-top:0">
+          <span class="w">Conversion Mekong<span class="wbar"><i style="width:72%;background:var(--critical)"></i></span></span><span class="down">−12%</span>
+          <span class="w">Bỏ dở hồ sơ đăng ký<span class="wbar"><i style="width:44%;background:var(--critical)"></i></span></span><span class="down">+6%</span>
+          <span class="w">Chất lượng lead TikTok<span class="wbar"><i style="width:58%;background:var(--critical)"></i></span></span><span class="down">−11đ</span>
+          <span class="w">Thời gian phản hồi lần đầu<span class="wbar"><i style="width:38%;background:var(--critical)"></i></span></span><span class="down">+4,2 giờ</span>
+        </div>
+      </div>
+      <div class="ai__item">
+        <div class="ai__k">Rủi ro chính và giả định</div>
+        <p class="ai__t"><b>Vùng Mekong</b> là rủi ro lớn nhất đối với dự báo.</p>
+        <p class="ai__why">Vùng này đóng góp 500 trong target 5.000 nhưng đang ở mức đạt 74,6% và có tỷ lệ phủ nhân sự thấp nhất. Nếu Mekong không cải thiện, forecast tụt xuống khoảng 4.520.</p>
+        <p class="ai__why" style="margin-top:8px"><b>Giả định đang dùng:</b> tỷ lệ giữ chân năm nhất 94%; không có thay đổi chính sách học phí trong 47 ngày còn lại; không có đợt tuyển sinh bổ sung.</p>
+        <div class="ai__src"><a href="M-09-regional-performance.html">Mở phân tích vùng Mekong</a></div>
+      </div>
+    </div>
+    <p class="card__note">Dự báo dựa trên 3 mùa dữ liệu. Theo ngưỡng đã thống nhất, cần tối thiểu 3 mùa để hiển thị dự báo và 5 mùa để hiển thị khoảng tin cậy hẹp hơn 10%. Độ chính xác của các dự báo kỳ trước được đo tại <a href="M-16-ai-trust-model-health.html" style="color:var(--s1)">M-16</a>.</p>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

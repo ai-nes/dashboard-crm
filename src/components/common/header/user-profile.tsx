@@ -58,17 +58,17 @@ export function UserProfileButton() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="group flex items-center gap-2.5 rounded-lg border-0 p-0 transition-all outline-none focus-visible:ring-4 focus-visible:ring-input-primary-focus-border/20 focus-visible:ring-offset-1">
+      <DropdownMenuTrigger className="group flex items-center gap-2 rounded-lg border-0 p-0 transition-all outline-none focus-visible:ring-4 focus-visible:ring-input-primary-focus-border/20 focus-visible:ring-offset-1">
         <Avatar>
-          <AvatarImage src={user.avatarUrl!} alt={user.name} className="size-10 rounded-lg" />
-          <AvatarFallback className="rounded-lg border border-border-secondary-alt bg-background-gray-secondary_alt">
+          <AvatarImage src={user.avatarUrl!} alt={user.name} className="size-8.5 rounded-lg" />
+          <AvatarFallback className="rounded-lg border border-border-secondary-alt bg-background-gray-secondary_alt text-xs">
             {user.name.charAt(0)}
           </AvatarFallback>
         </Avatar>
 
-        <span className="text-sm leading-5 font-medium text-text-primary">{user.name}</span>
+        <span className="text-xs leading-5 font-medium text-text-primary">{user.name}</span>
 
-        <AltArrowDownIcon className="text-icon-tertiary transition-transform duration-200 group-aria-expanded:-rotate-180" />
+        <AltArrowDownIcon className="size-3 text-icon-tertiary transition-transform duration-200 group-aria-expanded:-rotate-180" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent placement="bottom end" className="w-70 overflow-hidden p-0 shadow-3xl">

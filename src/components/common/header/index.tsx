@@ -16,7 +16,7 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b-[0.5px] border-card-border bg-card-surface-area px-2 py-4 lg:px-5">
+      <header className="sticky top-0 z-40 w-full border-b-[0.5px] border-card-border bg-card-surface-area px-2 py-2 lg:px-5">
         {/*  Mobile layout (< xl)  3-column grid: menu | logo | dots */}
         <div className="flex items-center xl:hidden">
           {/* Left: Menu / Hamburger */}
@@ -34,7 +34,12 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
           {/* Center: Logo */}
           <div className="flex min-w-0 items-center justify-center gap-2">
             <Logo className="size-7" aria-hidden="true" />
-            <span className="text-lg font-semibold tracking-[-0.04em] text-text-primary">AI-NES</span>
+            <span
+              className="text-lg font-semibold tracking-[-0.04em] text-text-primary"
+              title="FPTU Admission Intelligence Platform"
+            >
+              FAIP
+            </span>
           </div>
 
           {/* Right: Three-dot */}

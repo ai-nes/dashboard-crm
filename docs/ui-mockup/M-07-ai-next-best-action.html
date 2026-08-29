@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-07 · AI Next Best Action</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-07',
+  title: 'AI Next Best Action',
+  lede: 'Không trả lời "có bao nhiêu lead" mà trả lời "bây giờ nên làm gì, với ai, vì sao, và kỳ vọng thu được gì". Đây là nơi phân tích chuyển thành việc cụ thể.',
+  filters: [['Năm', '2026'], ['Kỳ', 'Hôm nay'], ['Địa bàn', 'ĐBSCL'], ['Đội', 'Mekong'], ['Mức ưu tiên', 'Tất cả'], ['Loại hành động', 'Tất cả'], ['Nhân sự', 'Tất cả']],
+});
+
+const QUEUE = [
+  { n: 'Nguyễn Minh A.', school: 'THPT Châu Văn Liêm', p: 82, act: 'Gọi cho phụ huynh — giải thích học phí 4 năm',
+    why: 'Mối lo học phí hỏi 3 lần, chưa lần nào nhận con số cụ thể cho toàn khóa. Bố là người ra quyết định.',
+    when: 'Chiều thứ Năm, 16:00–18:00', impact: '82% → 89%', conf: 76, tier: 'high', owner: 'Trần Q. Bảo', due: 'còn 6 giờ',
+    sig: [['Xem trang học phí 3 lần', 88], ['Dự Open Day', 76], ['Phụ huynh xem học bổng', 72], ['Chưa nộp sau 21 ngày', 34]] },
+  { n: 'Trần Minh B.', school: 'THPT Nguyễn Việt Hồng', p: 79, act: 'Tư vấn học bổng — mức 50% ngành CNTT',
+    why: 'Điểm học lực đủ điều kiện học bổng 50% nhưng hồ sơ chưa được thông báo. Đã hỏi về học bổng 2 lần.',
+    when: 'Trong hôm nay', impact: '79% → 87%', conf: 81, tier: 'high', owner: 'Trần Q. Bảo', due: 'còn 9 giờ',
+    sig: [['Đủ điều kiện học bổng 50%', 95], ['Hỏi học bổng 2 lần', 71], ['Đã nộp hồ sơ', 64]] },
+  { n: 'Lê Minh C.', school: 'THPT Châu Văn Liêm', p: 74, act: 'Mời dự Open Day cơ sở Cần Thơ ngày 07/09',
+    why: 'Nhóm dự Open Day có tỷ lệ nhập học cao gấp 2,1 lần. Hồ sơ chưa từng tới cơ sở.',
+    when: 'Gửi lời mời trước 30/08', impact: '74% → 81%', conf: 69, tier: 'mid', owner: 'Nguyễn T. Hà', due: 'còn 2 ngày',
+    sig: [['Chưa từng tới cơ sở', 82], ['Quan tâm ngành QTKD', 58], ['Ở cách cơ sở 12 km', 74]] },
+  { n: 'Phạm Thu D.', school: 'THPT Bùi Hữu Nghĩa', p: 68, act: 'Chuyển giao cho tư vấn viên khác',
+    why: 'Người phụ trách đang giữ 214 hồ sơ, vượt ngưỡng tải 1,7 lần. Hồ sơ này im lặng 23 ngày.',
+    when: 'Ngay', impact: 'giữ xác suất ở 68%', conf: 72, tier: 'mid', owner: 'Nguyễn T. Hà', due: 'quá hạn 2 ngày',
+    sig: [['Im lặng 23 ngày', 91], ['Người phụ trách quá tải', 84], ['Đã xem trang học phí', 52]] },
+  { n: 'Võ Thanh E.', school: 'THPT Nguyễn Việt Hồng', p: 63, act: 'Tạo nhắc lịch theo dõi sau 3 ngày',
+    why: 'Vừa nhận thông tin tuyển sinh hôm qua, chưa tới thời điểm nên liên hệ lại.',
+    when: '29/08', impact: 'duy trì nhịp tiếp xúc', conf: 88, tier: 'low', owner: 'Trần Q. Bảo', due: 'còn 3 ngày',
+    sig: [['Tương tác gần nhất hôm qua', 66], ['Chưa có phiên tư vấn', 58]] },
+];
+
+const TIERS = { low: ['Thấp — tự động', 'tier--low'], mid: ['Trung bình', 'tier--mid'], high: ['Cao — cần duyệt', 'tier--high'] };
+
+canvas.innerHTML = `
+<div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+  <div class="kpi"><div class="kpi__label">Cần xử lý ngay</div><div class="kpi__val" style="color:var(--critical)">18</div>
+    <div class="kpi__deltas"><span>hạn cam kết dưới 4 giờ</span></div></div>
+  <div class="kpi"><div class="kpi__label">Trong hôm nay</div><div class="kpi__val">34</div>
+    <div class="kpi__deltas"><span>hạn cam kết trong ngày</span></div></div>
+  <div class="kpi"><div class="kpi__label">Trong tuần</div><div class="kpi__val">96</div>
+    <div class="kpi__deltas"><span>ưu tiên thấp hơn</span></div></div>
+  <div class="kpi"><div class="kpi__label">Đề xuất chờ duyệt</div><div class="kpi__val" style="color:var(--s4)">7</div>
+    <div class="kpi__deltas"><span>thuộc nhóm rủi ro cao</span></div></div>
+</div>
+
+<div class="grid">
+  <div class="card c12 simulated">
+    <div class="card__hd"><span class="zone">KV 1–4</span><h2>Hàng đợi cơ hội</h2>
+      <span class="meta">xếp theo tích hợp xác suất nhập học và độ khẩn thời gian · nhấn một dòng để mở lý do</span></div>
+    <div class="pills" style="margin-bottom:12px">
+      <button class="pill" aria-pressed="true" type="button">Tất cả 148</button>
+      <button class="pill" aria-pressed="false" type="button">Cần duyệt 7</button>
+      <button class="pill" aria-pressed="false" type="button">Quá hạn 12</button>
+      <button class="pill" aria-pressed="false" type="button">Chưa phân công 5</button>
+    </div>
+    <div id="queue"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+      <span style="font-size:12.5px;color:var(--ink-2)">Đã chọn <b>0</b> mục</span>
+      <button class="btn" type="button" disabled style="opacity:.5">Giao cho người khác</button>
+      <button class="btn" type="button" disabled style="opacity:.5">Tạo nhắc lịch hàng loạt</button>
+      <button class="btn" type="button" disabled style="opacity:.5">Chuyển duyệt hàng loạt</button>
+      <span style="margin-left:auto;font-size:11.5px;color:var(--ink-3)">Thao tác hàng loạt luôn thuộc nhóm rủi ro cao và cần xác nhận hai bước.</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 6</span><h2>Kết quả của đề xuất đã duyệt</h2>
+      <span class="meta">30 ngày gần nhất · đây là dữ liệu hiệu chỉnh mô hình</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Loại đề xuất</th><th class="num">Đã trình</th><th class="num">Chấp nhận</th>
+        <th class="num">Đã thực hiện</th><th class="num">Chuyển bước</th><th class="num">Tỷ lệ thành công</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Gọi phụ huynh</td><td class="num">142</td><td class="num">128</td><td class="num">121</td><td class="num">74</td>
+          <td class="num"><span class="inbar"><span class="inbar__t"><span class="inbar__f" style="width:61%"></span></span>61,2%</span></td></tr>
+        <tr><td class="name">Tư vấn học bổng</td><td class="num">96</td><td class="num">91</td><td class="num">88</td><td class="num">52</td>
+          <td class="num"><span class="inbar"><span class="inbar__t"><span class="inbar__f" style="width:59%"></span></span>59,1%</span></td></tr>
+        <tr><td class="name">Mời dự sự kiện</td><td class="num">210</td><td class="num">186</td><td class="num">174</td><td class="num">68</td>
+          <td class="num"><span class="inbar"><span class="inbar__t"><span class="inbar__f" style="width:39%"></span></span>39,1%</span></td></tr>
+        <tr><td class="name">Chuyển giao phụ trách</td><td class="num">64</td><td class="num">41</td><td class="num">41</td><td class="num">18</td>
+          <td class="num"><span class="inbar"><span class="inbar__t"><span class="inbar__f" style="width:44%"></span></span>43,9%</span></td></tr>
+        <tr><td class="name">Gửi lại thông tin học phí</td><td class="num">88</td><td class="num">52</td><td class="num">52</td><td class="num">16</td>
+          <td class="num"><span class="inbar"><span class="inbar__t"><span class="inbar__f" style="width:31%"></span></span>30,8%</span></td></tr>
+      </tbody>
+    </table></div>
+    <p class="card__note">Đề xuất "Chuyển giao phụ trách" bị từ chối 36% — lý do phổ biến nhất là tư vấn viên đã có quan hệ với gia đình. Tín hiệu này đã được đưa vào mô hình từ kỳ hiệu chỉnh tháng 8.</p>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><h2>Mô hình kiểm soát hành động</h2>
+      <span class="meta">mục 8 của đặc tả</span></div>
+    <div class="callout" style="margin-bottom:12px">
+      Dashboard <b>không ghi vào lõi</b>. Người dùng bấm nút, lớp trình bày gửi ý định, lớp trí tuệ phân loại rủi ro và điều phối, phân hệ chuyên trách mới thực thi. Nhờ vậy trải nghiệm vẫn liền mạch mà nguyên tắc kiến trúc được giữ nguyên.
+    </div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Mức</th><th>Hành động</th><th>Cơ chế</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tier tier--low">Thấp</span></td>
+          <td class="subtle">Tạo nhắc lịch, gắn nhãn, tạo follow-up, cập nhật điểm</td>
+          <td class="subtle">Tự động thi hành</td></tr>
+        <tr><td><span class="tier tier--mid">Trung bình</span></td>
+          <td class="subtle">Giao cho Sales, đặt lịch hẹn, mời dự sự kiện, gợi ý nội dung</td>
+          <td class="subtle">Thi hành sau khi qua luật nghiệp vụ</td></tr>
+        <tr><td><span class="tier tier--high">Cao</span></td>
+          <td class="subtle">Gửi Zalo, gửi email, mọi nội dung về học phí và học bổng, đổi trạng thái hồ sơ, thao tác hàng loạt</td>
+          <td class="subtle">Bắt buộc người duyệt</td></tr>
+      </tbody>
+    </table></div>
+    <p class="card__note">Nút "Gọi" thuộc mức thấp nếu chỉ mở trình quay số và ghi nhận cuộc gọi. Nếu hệ thống tự gọi và phát nội dung, nó chuyển ngay sang mức cao — đây là điểm cần chốt trước khi lập trình.</p>
+  </div>
+</div>
+`;
+
+document.getElementById('queue').innerHTML = QUEUE.map((q, i) => `
+  <details style="border:1px solid var(--line);border-radius:var(--r-s);margin-bottom:8px;overflow:hidden"${i === 0 ? ' open' : ''}>
+    <summary style="list-style:none;cursor:pointer;padding:11px 13px;display:grid;grid-template-columns:24px 1.5fr 2fr auto auto auto;gap:12px;align-items:center">
+      <span style="font-family:var(--ff-num);font-size:12px;color:var(--ink-3)">${String(i + 1).padStart(2, '0')}</span>
+      <span>
+        <b style="font-size:13px">${q.n}</b>
+        <span style="display:block;font-size:11px;color:var(--ink-3)">${q.school} · ${q.owner}</span>
+      </span>
+      <span style="font-size:12.5px">${q.act}</span>
+      <span style="font-family:var(--ff-num);font-weight:650;font-size:15px">${q.p}%</span>
+      <span class="tier ${TIERS[q.tier][1]}">${TIERS[q.tier][0]}</span>
+      <span style="font-size:11.5px;color:${q.due.includes('quá hạn') ? 'var(--critical)' : 'var(--ink-3)'};min-width:88px;text-align:right">${q.due}</span>
+    </summary>
+    <div style="padding:0 13px 13px;border-top:1px solid var(--line-2);display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div style="padding-top:12px">
+        <div class="ai__k">Vì sao xếp hạng này</div>
+        <div class="evidence" style="border-top:0;padding-top:8px;margin-top:0">
+          ${q.sig.map(([s, w]) => `<span class="w">${s}<span class="wbar"><i style="width:${w}%"></i></span></span><span>${w}</span>`).join('')}
+        </div>
+      </div>
+      <div style="padding-top:12px">
+        <div class="ai__k">Đề xuất</div>
+        <dl class="kv" style="margin-top:8px;font-size:12.5px">
+          <dt>What</dt><dd>${q.act}</dd>
+          <dt>Why</dt><dd>${q.why}</dd>
+          <dt>When</dt><dd>${q.when}</dd>
+          <dt>Impact</dt><dd><b>${q.impact}</b></dd>
+          <dt>Confidence</dt><dd>${q.conf}%</dd>
+        </dl>
+        <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+          ${q.tier === 'high'
+            ? `<button class="btn btn--primary" type="button">Chuyển duyệt</button><button class="btn" type="button">Chỉnh sửa nội dung</button>`
+            : `<button class="btn btn--primary" type="button">Thực hiện</button><button class="btn" type="button">Chỉnh sửa</button>`}
+          <button class="btn" type="button">Từ chối</button>
+          <a class="btn" href="M-08-student-360.html" style="text-decoration:none;margin-left:auto">Mở hồ sơ 360 →</a>
+        </div>
+      </div>
+    </div>
+  </details>`).join('');
+
+bindTip(canvas);
+</script>
+</body>
+</html>

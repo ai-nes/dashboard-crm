@@ -13,7 +13,7 @@ export default function TeamPerformance() {
           <CardTitle>Hiệu suất cơ sở & đội tuyển sinh</CardTitle>
           <p className="mt-1 text-xs text-text-tertiary">So sánh năng suất và chất lượng xử lý hồ sơ</p>
         </div>
-        <a href="/director/reports" className="flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600">
+        <a href="/director/regional-performance" className="flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600">
           Xem báo cáo
           <ArrowRight size={14} aria-hidden="true" />
         </a>

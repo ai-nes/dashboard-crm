@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-18 · Alerts & Subscriptions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-18',
+  title: 'Alerts & Subscriptions',
+  lede: 'Đưa hệ thống tới với người dùng thay vì chờ người dùng mở hệ thống. Cấu hình ngưỡng cảnh báo, kênh nhận và lịch gửi báo cáo.',
+  filters: [['Phạm vi', 'Toàn tổ chức'], ['Trạng thái', 'Đang bật'], ['Kênh', 'Tất cả'], ['Người tạo', 'Tất cả']],
+});
+
+const RULES = [
+  ['Hồ sơ quá hạn cam kết vượt ngưỡng', 'Số hồ sơ quá hạn > 24 giờ', '≥ 100', 'Toàn quốc', 'Email + trong ứng dụng', 'Head of Admission', true, 4],
+  ['CPL kênh vượt ngưỡng', 'CPL theo kênh', '≥ 1,0 triệu, 3 ngày liên tiếp', 'Tất cả kênh số', 'Email', 'Marketing', true, 2],
+  ['Nguồn dữ liệu ngừng đồng bộ', 'Độ trễ nguồn', '≥ 30 phút', 'Mọi nguồn', 'Zalo + Email', 'Quản trị hệ thống', true, 6],
+  ['Lead vùng sụt bất thường', 'Lead mới theo vùng', '≤ −25% so đường cơ sở', 'Theo vùng', 'Trong ứng dụng', 'Regional Manager', true, 3],
+  ['Hồ sơ điểm cao chưa phân công', 'Xác suất ≥ 60% và không có người phụ trách', '≥ 5 hồ sơ', 'Theo đội', 'Trong ứng dụng', 'Regional Manager', true, 11],
+  ['Tỷ lệ thiếu đồng ý dữ liệu tăng', 'Tỷ lệ hồ sơ thiếu consent', '≥ 3%', 'Toàn quốc', 'Email', 'Pháp chế', false, 1],
+];
+
+canvas.innerHTML = `
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Quy tắc cảnh báo</h2>
+      <span class="meta">6 quy tắc · 5 đang bật</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Quy tắc</th><th>Điều kiện</th><th>Phạm vi</th><th>Kênh nhận</th>
+        <th class="num">Bắn 30 ngày</th><th>Trạng thái</th></tr></thead>
+      <tbody>${RULES.map(r => `
+        <tr>
+          <td class="name">${r[0]}</td>
+          <td class="subtle">${r[1]} <b style="color:var(--ink)">${r[2]}</b></td>
+          <td class="subtle">${r[3]}</td><td class="subtle">${r[4]}</td>
+          <td class="num" style="${r[7] > 8 ? 'color:var(--warning);font-weight:650' : ''}">${r[7]}</td>
+          <td>${r[6] ? '<span class="badge badge--good">Đang bật</span>' : '<span class="badge">Tạm dừng</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>
+    <div class="ai__item ai__item--rev" style="margin-top:14px">
+      <div class="ai__k" style="color:var(--s4)">AI cảnh báo về chính cảnh báo</div>
+      <p class="ai__t">Quy tắc <b>"Hồ sơ điểm cao chưa phân công"</b> đã bắn 11 lần trong 30 ngày.</p>
+      <p class="ai__why">Ở nhịp này người nhận sẽ quen và bỏ qua. Đề xuất nâng ngưỡng từ 5 lên 12 hồ sơ, hoặc gom thành một bản tổng hợp hằng ngày thay vì bắn từng lần.</p>
+      <div class="ai__src">nếu áp ngưỡng 12: bắn 3 lần thay vì 11 · <button class="btn" type="button" style="padding:2px 8px;font-size:11px">Áp dụng</button></div>
+    </div>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 2</span><h2>Tạo quy tắc mới</h2>
+      <span class="meta">có xem trước trên dữ liệu 30 ngày</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <div class="kpi__label" style="margin-bottom:5px">Chỉ số theo dõi</div>
+        <div class="btn" style="width:100%;text-align:left;cursor:default">Conversion cuối theo vùng</div>
+      </div>
+      <div>
+        <div class="kpi__label" style="margin-bottom:5px">Điều kiện</div>
+        <div style="display:flex;gap:6px">
+          <div class="btn" style="flex:1;cursor:default">Giảm so đường cơ sở</div>
+          <div class="btn" style="width:88px;text-align:center;cursor:default">≥ 10%</div>
+        </div>
+      </div>
+      <div>
+        <div class="kpi__label" style="margin-bottom:5px">Phạm vi</div>
+        <div class="btn" style="width:100%;text-align:left;cursor:default">Tất cả vùng trong quyền của tôi</div>
+      </div>
+      <div>
+        <div class="kpi__label" style="margin-bottom:5px">Tần suất kiểm tra và chống trùng</div>
+        <div style="display:flex;gap:6px">
+          <div class="btn" style="flex:1;cursor:default">Mỗi 6 giờ</div>
+          <div class="btn" style="flex:1;cursor:default">Tối đa 1 lần/ngày</div>
+        </div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:14px">
+      <b>Xem trước.</b> Nếu áp quy tắc này lên dữ liệu 30 ngày qua, nó sẽ bắn <b>4 lần</b>: vùng Mekong ngày 08/08 và 19/08, vùng Bắc Trung Bộ ngày 12/08 và 24/08.
+      <div style="display:flex;gap:4px;margin-top:10px">
+        ${Array.from({ length: 30 }, (_, i) => {
+          const fire = [8, 12, 19, 24].includes(i + 1);
+          return `<span style="flex:1;height:22px;border-radius:2px;background:var(--${fire ? 'warning' : 'surface'});
+                   border:1px solid var(--line)" data-tip="Ngày ${i + 1}/08${fire ? '<br><b>Cảnh báo bắn</b>' : ''}"></span>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:14px">
+      <button class="btn btn--primary" type="button">Lưu quy tắc</button>
+      <button class="btn" type="button">Gửi thử cho tôi</button>
+    </div>
+    <p class="card__note">Xem trước là bước bắt buộc trước khi lưu. Một quy tắc chưa từng được thử trên dữ liệu lịch sử có thể bắn 200 lần trong tuần đầu và làm hỏng toàn bộ cơ chế cảnh báo.</p>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c6">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>Báo cáo định kỳ</h2>
+      <span class="meta">4 đăng ký đang chạy</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Nội dung</th><th>Tần suất</th><th>Thời điểm</th><th class="num">Người nhận</th><th>Định dạng</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Tổng quan điều hành</td><td class="subtle">Hằng tuần</td><td class="subtle">Thứ Hai 07:30</td>
+          <td class="num">6</td><td class="subtle">Email + PDF</td></tr>
+        <tr><td class="name">Hiệu suất vùng và đội</td><td class="subtle">Hằng tuần</td><td class="subtle">Thứ Hai 08:00</td>
+          <td class="num">14</td><td class="subtle">Email</td></tr>
+        <tr><td class="name">Chi phí và hiệu quả campaign</td><td class="subtle">Hằng ngày</td><td class="subtle">18:00</td>
+          <td class="num">4</td><td class="subtle">Email + bảng tính</td></tr>
+        <tr><td class="name">Dự báo cuối mùa</td><td class="subtle">Hằng tuần</td><td class="subtle">Thứ Sáu 16:00</td>
+          <td class="num">3</td><td class="subtle">Email + PDF</td></tr>
+      </tbody>
+    </table></div>
+    <button class="btn" type="button" style="margin-top:12px">+ Đăng ký báo cáo mới</button>
+    <p class="card__note">Báo cáo gửi ra ngoài hệ thống mang theo dữ liệu. Danh sách người nhận và định dạng đều được ghi log; báo cáo chứa dữ liệu cá nhân tuân theo chính sách che tại mục 9 của đặc tả.</p>
+  </div>
+
+  <div class="card c6">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>Lịch sử cảnh báo</h2>
+      <span class="meta">7 ngày gần nhất</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Thời điểm</th><th>Quy tắc</th><th class="num">Giá trị</th><th>Người nhận</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="subtle">Hôm nay 11:04</td><td class="name">Nguồn dữ liệu ngừng đồng bộ</td>
+          <td class="num">200 phút</td><td class="subtle">Quản trị hệ thống</td>
+          <td><span class="badge badge--critical">Chưa xử lý</span></td></tr>
+        <tr><td class="subtle">Hôm nay 08:12</td><td class="name">Hồ sơ quá hạn cam kết</td>
+          <td class="num">142</td><td class="subtle">Head of Admission</td>
+          <td><span class="badge badge--serious">Đang xử lý</span></td></tr>
+        <tr><td class="subtle">Hôm qua 18:00</td><td class="name">CPL kênh vượt ngưỡng</td>
+          <td class="num">1,84 tr</td><td class="subtle">Marketing</td>
+          <td><span class="badge badge--good">Đã xử lý</span></td></tr>
+        <tr><td class="subtle">26/08 09:30</td><td class="name">Hồ sơ điểm cao chưa phân công</td>
+          <td class="num">7</td><td class="subtle">RM Mekong</td>
+          <td><span class="badge badge--good">Đã xử lý</span></td></tr>
+        <tr><td class="subtle">25/08 14:20</td><td class="name">Lead vùng sụt bất thường</td>
+          <td class="num">−38%</td><td class="subtle">RM Bắc Trung Bộ</td>
+          <td><span class="badge">Đã bỏ qua</span></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout" style="margin-top:12px">
+      Tỷ lệ cảnh báo bị bỏ qua trong 30 ngày là <b>18,4%</b>. Nếu con số này vượt 30%, cơ chế cảnh báo đang bị nhờn và cần rà soát lại ngưỡng chứ không cần thêm quy tắc mới.
+    </div>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

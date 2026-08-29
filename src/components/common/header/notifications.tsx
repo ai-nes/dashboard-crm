@@ -114,11 +114,11 @@ export function NotificationsButton() {
       <Button
         iconOnly
         appearance="outline"
-        className="relative size-10 rounded-lg border border-card-border bg-card-background text-icon-primary shadow-xs focus-visible:border-input-primary-focus-border focus-visible:ring-4 focus-visible:ring-input-primary-focus-border/20 [&>svg]:size-auto"
+        className="relative size-8.5 rounded-lg border border-card-border bg-card-background text-icon-primary shadow-xs focus-visible:border-input-primary-focus-border focus-visible:ring-4 focus-visible:ring-input-primary-focus-border/20 [&>svg]:size-4"
       >
         <BellIcon />
         {unreadCount > 0 && (
-          <span className={cn("absolute top-2 right-2.75 z-1 size-2 rounded-full bg-red-400")}>
+          <span className={cn("absolute top-1.5 right-2 z-1 size-2 rounded-full bg-red-400")}>
             <span className="absolute inset-0 -z-1 animate-ping rounded-full bg-red-400 opacity-75" />
           </span>
         )}

@@ -48,10 +48,13 @@ export default function Sidebar({
             >
                 <Link href='/'>
                     {isSidebarOpen ? (
-                        <span className='flex items-center gap-2.5'>
+                        <span className='flex min-w-0 items-center gap-2.5'>
                             <Logo className='size-8' aria-hidden='true' />
-                            <span className='text-xl font-semibold tracking-[-0.04em] text-text-primary'>
-                                AI-NES
+                            <span className='min-w-0'>
+                                <span className='block text-xl font-semibold tracking-[-0.04em] text-text-primary'>FAIP</span>
+                                <span className='block max-w-44 text-[10px] leading-3 text-text-tertiary'>
+                                    FPTU Admission Intelligence Platform
+                                </span>
                             </span>
                         </span>
                     ) : (

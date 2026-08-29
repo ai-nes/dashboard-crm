@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-11 · School & Field Activity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-11',
+  title: 'School & Field Activity',
+  lede: 'Quản lý và đo hiệu quả hoạt động thực địa. Đây là nơi kế hoạch sinh ra từ Market Map và School Intelligence được thực thi và đo lại.',
+});
+
+const EVENTS = [
+  ['Career Talk — THPT Châu Văn Liêm', '28/05', 'Cần Thơ', 'Trần Q. Bảo', 18, 62, 91.9, 34, 11, 1.6],
+  ['Open Day cơ sở Cần Thơ', '14/03', 'Cần Thơ', 'Nguyễn T. Hà', 86, 214, 96.3, 118, 42, 2.0],
+  ['Tư vấn tại lớp — THPT Bùi Hữu Nghĩa', '12/07', 'Cần Thơ', 'Nguyễn T. Hà', 12, 34, 79.4, 14, 3, 4.0],
+  ['Parent Seminar — Học phí & học bổng', '09/11', 'Cần Thơ', 'Lê V. Cường', 24, 64, 98.4, 51, 24, 1.0],
+  ['Ngày hội tuyển sinh Vĩnh Long', '22/04', 'Vĩnh Long', 'Lê V. Cường', 42, 178, 84.3, 62, 18, 2.3],
+  ['Career Talk — THPT Thới Lai', '18/06', 'Cần Thơ', 'Trần Q. Bảo', 16, 41, 87.8, 19, 6, 2.7],
+];
+
+const PROMO = [
+  ['Trần Quốc Bảo', 137, 38, 2.1, 4.4],
+  ['Nguyễn Thị Hà', 248, 52, 8.9, 14.2],
+  ['Lê Văn Cường', 242, 41, 1.2, 2.9],
+];
+
+canvas.innerHTML = `
+<div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+  <div class="kpi"><div class="kpi__label">Hoạt động trong mùa</div><div class="kpi__val">42</div>
+    <div class="kpi__deltas"><span>YoY <b class="up">+18</b></span></div></div>
+  <div class="kpi"><div class="kpi__label">Lead thu được</div><div class="kpi__val">9.840</div>
+    <div class="kpi__deltas"><span>16,8% tổng prospect</span></div></div>
+  <div class="kpi simulated"><div class="kpi__label">Chi phí mỗi nhập học</div><div class="kpi__val">1,4<small> tr</small></div>
+    <div class="kpi__deltas"><span>kênh số <b>2,5 tr</b></span></div></div>
+  <div class="kpi"><div class="kpi__label">Conversion thực địa</div><div class="kpi__val">11,0<small>%</small></div>
+    <div class="kpi__deltas"><span>kênh số <b>4,1%</b></span></div></div>
+  <div class="kpi"><div class="kpi__label">Bản ghi chưa đồng bộ</div><div class="kpi__val" style="color:var(--critical)">184</div>
+    <div class="kpi__deltas"><span>nguồn ngừng 3 giờ 20</span></div></div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c8">
+    <div class="card__hd"><span class="zone">KV 2</span><h2>Hiệu quả từng hoạt động</h2>
+      <span class="meta">chỉ hoạt động đã kết thúc mới vào xếp hạng</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr>
+        <th>Hoạt động</th><th>Ngày</th><th>Nhân sự</th><th class="num">Chi phí</th>
+        <th class="num">Lead</th><th class="num">Xác minh</th><th class="num">Qualified</th>
+        <th class="num">Nhập học</th><th class="num">Chi phí/NH</th>
+      </tr></thead>
+      <tbody>${EVENTS.slice().sort((a, b) => a[9] - b[9]).map(e => `
+        <tr>
+          <td class="name">${e[0]}</td><td class="subtle">${e[1]}</td><td class="subtle">${e[3]}</td>
+          <td class="num">${e[4]} tr</td><td class="num">${e[5]}</td>
+          <td class="num" style="${e[6] < 85 ? 'color:var(--critical)' : ''}">${pct(e[6])}</td>
+          <td class="num">${e[7]}</td><td class="num"><b>${e[8]}</b></td>
+          <td class="num"><span class="inbar"><span class="inbar__t"><span class="inbar__f" style="width:${e[9] / 4 * 100}%;background:var(--${e[9] < 1.5 ? 'good' : e[9] < 2.5 ? 's1' : 'critical'})"></span></span>${e[9].toFixed(1).replace('.', ',')} tr</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>
+    <div class="callout" style="margin-top:12px">
+      <b>Parent Seminar là hoạt động rẻ nhất trên mỗi nhập học — 1,0 triệu.</b> Nó thu ít lead nhất trong nhóm nhưng chuyển đổi cao gấp 2,4 lần, vì đối tượng tham dự là người ra quyết định. Xếp hạng theo số lead thu được sẽ đẩy hoạt động này xuống cuối bảng và dẫn tới quyết định sai.
+    </div>
+  </div>
+
+  <div class="card c4 simulated">
+    <div class="card__hd"><span class="zone">KV 6</span><h2>Kế hoạch sắp tới</h2>
+      <span class="meta">gợi ý trường ưu tiên từ M-02, M-03</span></div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      ${[['Career Talk + Parent Session', 'THPT Châu Văn Liêm', '07/09', '+9 đến +14 nhập học', 71],
+         ['Cụm 3 trường Ninh Kiều', 'Cần Thơ', '14/09', '+18 đến +26 nhập học', 64],
+         ['Open Day cơ sở Cần Thơ', 'Cần Thơ', '28/09', '+34 đến +48 nhập học', 78]]
+        .map(([n, loc, d, imp, conf]) => `
+        <div style="border:1px solid var(--line);border-radius:var(--r-s);padding:10px 12px">
+          <div style="display:flex;gap:8px;align-items:baseline">
+            <b style="font-size:12.5px">${n}</b>
+            <span style="margin-left:auto;font-family:var(--ff-num);font-size:11px;color:var(--ink-3)">${d}</span>
+          </div>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:2px">${loc}</div>
+          <div class="evidence" style="margin-top:8px;padding-top:8px">
+            <span class="w">Dự báo kết quả<span class="wbar"><i style="width:${conf}%"></i></span></span><span>${imp}</span>
+            <span class="w">Độ tin cậy<span class="wbar"><i style="width:${conf}%"></i></span></span><span>${conf}%</span>
+          </div>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn--primary" type="button" style="width:100%;margin-top:12px">Lập kế hoạch hoạt động mới</button>
+    <p class="card__note">Mọi ước lượng ghi rõ số mẫu lịch sử dùng để tính. Ước lượng dựa trên dưới ba hoạt động tương tự luôn mang nhãn độ tin cậy thấp.</p>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c6">
+    <div class="card__hd"><span class="zone">KV 3–4</span><h2>Nhân sự thực địa và chất lượng dữ liệu</h2>
+      <span class="meta">tín hiệu chất lượng dữ liệu, không phải đánh giá năng lực</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Nhân sự</th><th class="num">Bản ghi nhập</th><th class="num">Giây/hồ sơ</th>
+        <th class="num">Tỷ lệ trùng</th><th class="num">Thiếu trường</th></tr></thead>
+      <tbody>${PROMO.map(p => `
+        <tr><td class="name">${p[0]}</td><td class="num">${p[1]}</td><td class="num">${p[2]}</td>
+          <td class="num" style="${p[3] > 5 ? 'color:var(--critical);font-weight:650' : ''}">${pct(p[3])}</td>
+          <td class="num" style="${p[4] > 10 ? 'color:var(--critical);font-weight:650' : ''}">${pct(p[4])}</td></tr>`).join('')}
+      </tbody>
+    </table></div>
+    <div class="callout" style="margin-top:12px">
+      Nguyễn Thị Hà có tỷ lệ trùng và thiếu trường cao gấp bốn lần đồng nghiệp, đồng thời nhập nhanh nhất — 52 giây một hồ sơ so với 38 và 41. Đây là dấu hiệu cần một buổi hướng dẫn lại về quy trình nhập tại sự kiện đông người, không phải cơ sở để đánh giá.
+    </div>
+    <div class="card__hd" style="margin:16px 0 10px"><h2 style="font-size:12.5px">Chất lượng dữ liệu thực địa toàn mùa</h2></div>
+    ${[['Số điện thoại liên lạc được', 92.4, 95], ['Có đồng ý xử lý dữ liệu', 97.8, 100], ['Có ảnh phiếu đính kèm', 61.2, 80]]
+      .map(([n, v, target]) => `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;font-size:12px"><span>${n}</span>
+          <b style="margin-left:auto;font-family:var(--ff-num);color:var(--${v >= target ? 'good-ink' : 'critical'})">${pct(v)}</b></div>
+        <div class="den__track" style="margin-top:5px;position:relative">
+          <i class="den__fill" style="width:${v}%;background:var(--${v >= target ? 'good' : 'critical'})"></i>
+          <span style="position:absolute;left:${target}%;top:-2px;bottom:-2px;width:2px;background:var(--ink)"></span>
+        </div>
+        <div class="den__cap"><span>mục tiêu ${target}%</span></div>
+      </div>`).join('')}
+  </div>
+
+  <div class="card c6">
+    <div class="card__hd"><span class="zone">KV 5</span><h2>Trạng thái đồng bộ thiết bị</h2>
+      <span class="meta">thu ngoại tuyến, đồng bộ khi có mạng</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Thiết bị</th><th>Hoạt động</th><th class="num">Đã đồng bộ</th>
+        <th class="num">Chờ</th><th class="num">Lỗi</th><th>Lần cuối</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Máy 04 · Nguyễn T. Hà</td><td class="subtle">Tư vấn tại lớp 12/07</td>
+          <td class="num">34</td><td class="num" style="color:var(--warning);font-weight:650">128</td>
+          <td class="num" style="color:var(--critical);font-weight:650">12</td><td class="subtle">3 giờ 20 trước</td></tr>
+        <tr><td class="name">Máy 01 · Trần Q. Bảo</td><td class="subtle">Career Talk 18/06</td>
+          <td class="num">41</td><td class="num">0</td><td class="num">0</td><td class="subtle">2 phút trước</td></tr>
+        <tr><td class="name">Máy 07 · Lê V. Cường</td><td class="subtle">Ngày hội Vĩnh Long</td>
+          <td class="num">178</td><td class="num" style="color:var(--warning)">44</td><td class="num">0</td><td class="subtle">18 phút trước</td></tr>
+      </tbody>
+    </table></div>
+    <div class="empty" style="margin-top:14px">
+      <b>184 bản ghi chưa về hệ thống</b>
+      Máy 04 mất kết nối từ 11:00. Dữ liệu vẫn an toàn trên thiết bị và sẽ tự đồng bộ khi có mạng.
+      Không hiển thị số 0 ở các chỉ số phụ thuộc nguồn này.
+    </div>
+    <a class="btn" href="M-17-data-health-sources.html" style="text-decoration:none;display:block;text-align:center;margin-top:12px">Mở tình trạng dữ liệu →</a>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

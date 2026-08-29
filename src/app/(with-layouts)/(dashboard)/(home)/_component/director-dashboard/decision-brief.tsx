@@ -10,7 +10,7 @@ const signals = [
     tone: "text-orange-500",
     title: "312 hồ sơ có ý định cao",
     description: "Đã xem học phí hoặc học bổng trong 24 giờ qua.",
-    href: "/director/ai/lead-insights",
+    href: "/director/ai/next-best-action",
   },
   {
     id: "sla-recovery",
@@ -26,7 +26,7 @@ const signals = [
     tone: "text-green-500",
     title: "186 hồ sơ sẵn sàng chuyển đổi",
     description: "Đã đủ trạng thái nhập học và thông tin người học.",
-    href: "/director/enrollment/conversion",
+    href: "/director/admission-funnel",
   },
 ];
 
