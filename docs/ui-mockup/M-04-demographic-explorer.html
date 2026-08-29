@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-04 · Demographic Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-04',
+  title: 'Demographic Explorer',
+  lede: 'Dựng phân khúc động để trả lời ai đang muốn học và nhóm nào có tiềm năng nhưng chưa được khai thác. Phân khúc lưu lại dùng được ở các màn hình khác.',
+  filters: [['Năm', '2026'], ['Kỳ', 'Từ đầu mùa'], ['Phân khúc', 'Chưa đặt tên'], ['Địa bàn', 'Toàn quốc'], ['Ngưỡng ẩn danh', '30 hồ sơ']],
+});
+
+const COND = [
+  ['Địa lý', 'Vùng', 'là', 'TP.HCM, Đông Nam Bộ'],
+  ['Học sinh', 'Khối', 'là', 'Lớp 12'],
+  ['Học sinh', 'Giới tính', 'là', 'Nữ'],
+  ['Quan tâm', 'Nhóm ngành', 'chứa', 'Trí tuệ nhân tạo'],
+  ['Hành vi', 'Đã xem trang học phí', 'ít nhất', '2 lần'],
+];
+
+const SEG = [
+  { name: 'Nữ · Lớp 12 · ĐNB · quan tâm AI', p: 3420, e: 1280, q: 420, a: 160, en: 68, cvr: 2.0, tui: 51.2, growth: 31 },
+  { name: 'Nam · Lớp 12 · ĐNB · quan tâm AI', p: 5180, e: 2010, q: 640, a: 248, en: 96, cvr: 1.9, tui: 50.8, growth: 12 },
+  { name: 'Nữ · Lớp 12 · ĐBSCL · quan tâm QTKD', p: 2140, e: 780, q: 246, a: 92, en: 34, cvr: 1.6, tui: 44.1, growth: 8 },
+];
+
+canvas.innerHTML = `
+<div class="grid grid--top">
+  <div class="card c5 simulated">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Dựng phân khúc</h2>
+      <span class="meta">kết quả cập nhật khi thêm điều kiện</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${COND.map(([g, f, op, v]) => `
+        <div style="display:grid;grid-template-columns:76px 1fr auto;gap:8px;align-items:center;
+                    border:1px solid var(--line);border-radius:var(--r-s);padding:8px 10px;font-size:12px">
+          <span style="color:var(--ink-3);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase">${g}</span>
+          <span><b>${f}</b> <span style="color:var(--ink-3)">${op}</span> ${v}</span>
+          <button class="btn" type="button" style="padding:2px 7px;font-size:11px">Bỏ</button>
+        </div>`).join('')}
+      <button class="btn" type="button" style="margin-top:4px">+ Thêm điều kiện</button>
+    </div>
+    <div class="card__hd" style="margin:18px 0 10px"><h2 style="font-size:12.5px">Năm nhóm tiêu chí</h2></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Nhóm</th><th>Tiêu chí</th><th class="num">Có dữ liệu</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Địa lý</td><td class="subtle">Vùng, tỉnh, huyện, đô thị hay nông thôn</td><td class="num">96,4%</td></tr>
+        <tr><td class="name">Học sinh</td><td class="subtle">Giới tính, khối, tuổi, học lực</td><td class="num" style="color:var(--critical)">31,2%</td></tr>
+        <tr><td class="name">Quan tâm</td><td class="subtle">Nhóm ngành, ngành cụ thể</td><td class="num">88,1%</td></tr>
+        <tr><td class="name">Kinh tế</td><td class="subtle">Khả năng học phí, nhạy cảm học bổng</td><td class="num" style="color:var(--critical)">0%</td></tr>
+        <tr><td class="name">Hành vi</td><td class="subtle">Web, sự kiện, thăm cơ sở, kênh, hồ sơ</td><td class="num">94,8%</td></tr>
+      </tbody>
+    </table></div>
+    <p class="card__note">Cột "Có dữ liệu" cho biết bao nhiêu phần trăm hồ sơ có giá trị cho tiêu chí đó. Dựng phân khúc trên tiêu chí chỉ 31% hồ sơ có dữ liệu sẽ cho kết quả sai lệch nghiêm trọng — con số này phải hiện ngay cạnh tiêu chí, không giấu trong tài liệu.</p>
+  </div>
+
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 2–3</span><h2>Kết quả phân khúc</h2>
+      <span class="meta">3.420 hồ sơ khớp · 5,9% tổng prospect</span></div>
+    ${funnel([
+      { name: 'Prospect',    n: 3420, note: 'khớp điều kiện' },
+      { name: 'Engaged',     n: 1280, note: '' },
+      { name: 'Qualified',   n: 420,  note: '' },
+      { name: 'Counselling', n: 268,  note: '' },
+      { name: 'Application', n: 160,  note: '' },
+      { name: 'Enrolled',    n: 68,   note: '' },
+    ])}
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px">
+      <div><div class="kpi__label">Conversion cuối</div><div class="kpi__val" style="font-size:24px">1,99<small>%</small></div>
+        <div class="kpi__deltas"><span>mặt bằng <b>6,54%</b></span></div></div>
+      <div><div class="kpi__label">Học phí ròng TB</div><div class="kpi__val" style="font-size:24px">51,2<small> tr</small></div>
+        <div class="kpi__deltas"><span>cao hơn mặt bằng</span></div></div>
+      <div><div class="kpi__label">Doanh thu</div><div class="kpi__val" style="font-size:24px">3,5<small> tỷ</small></div></div>
+      <div><div class="kpi__label">Tăng trưởng MoM</div><div class="kpi__val" style="font-size:24px;color:var(--good-ink)">+31<small>%</small></div></div>
+    </div>
+    <div class="callout" style="margin-top:16px">
+      <b>Conversion 1,99% thấp hơn hẳn mặt bằng 6,54%</b> — nhưng phân khúc này mới xuất hiện 4 tháng, phần lớn hồ sơ chưa đi hết chu kỳ. Đọc con số này như "nhóm này chuyển đổi kém" là sai; đúng hơn là "nhóm này chưa đủ thời gian".
+    </div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>So sánh phân khúc</h2>
+      <span class="meta">tối đa 4 phân khúc</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Phân khúc</th><th class="num">Quy mô</th><th class="num">Qualified</th>
+        <th class="num">Application</th><th class="num">Enrolled</th><th class="num">Conversion</th>
+        <th class="num">Học phí ròng</th><th class="num">Tăng trưởng</th></tr></thead>
+      <tbody>${SEG.map((s, i) => `
+        <tr${i === 0 ? ' style="font-weight:600"' : ''}>
+          <td class="name">${s.name}</td>
+          <td class="num">${fmt(s.p)}</td><td class="num">${fmt(s.q)}</td>
+          <td class="num">${fmt(s.a)}</td><td class="num">${fmt(s.en)}</td>
+          <td class="num">${pct(s.cvr, 2)}</td>
+          <td class="num">${s.tui.toFixed(1).replace('.', ',')} tr</td>
+          <td class="num ${s.growth > 20 ? 'up' : ''}">+${s.growth}%</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>
+    <p class="card__note">Ba phân khúc có conversion gần như nhau nhưng tăng trưởng chênh lệch gấp bốn lần. Với việc phân bổ ngân sách nhắm mục tiêu, tăng trưởng là tín hiệu hữu ích hơn conversion.</p>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 5</span><h2>AI tự tìm phân khúc</h2>
+      <span class="meta">nhóm đang nổi mà con người chưa nghĩ tới</span></div>
+    <div class="ai">
+      <div class="ai__item ai__item--opp">
+        <div class="ai__k" style="color:var(--good-ink)">Cơ hội đang nổi</div>
+        <p class="ai__t">Học sinh <b>nữ quan tâm AI tại Đồng Nai</b> tăng <b>31% MoM</b> nhưng chỉ chiếm <b>3,2%</b> đối tượng nhắm quảng cáo.</p>
+        <p class="ai__why">Nhóm này có tỷ lệ Engaged 37,4% so với mặt bằng 44,8% — thấp hơn, nhưng nguyên nhân là 68% nội dung quảng cáo đang chạy dùng hình ảnh và ngôn ngữ hướng nam giới cho ngành kỹ thuật.</p>
+        <div class="ai__src">1.240 hồ sơ · <button class="btn" type="button" style="padding:2px 8px;font-size:11px">Lưu thành phân khúc</button></div>
+      </div>
+      <div class="ai__item">
+        <div class="ai__k" style="color:var(--s1)">Nhóm cần chú ý</div>
+        <p class="ai__t">Học sinh <b>trường ngoài công lập ở TP.HCM</b> có học phí ròng cao nhất nhưng conversion thấp thứ hai.</p>
+        <div class="ai__src">840 hồ sơ · giá trị kỳ vọng cao, đáng ưu tiên nguồn lực tư vấn</div>
+      </div>
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--critical)">Mẫu quá nhỏ để kết luận</div>
+        <p class="ai__t">Ba phân khúc trong phiên này có dưới 30 hồ sơ. Hệ thống hiển thị số tuyệt đối nhưng <b>khóa mọi tỷ lệ</b>.</p>
+        <div class="ai__src">ngưỡng ẩn danh 30 hồ sơ · cũng là ngưỡng chặn xuất danh sách cá nhân</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><h2>Ràng buộc pháp lý của màn hình này</h2>
+      <span class="meta">cần pháp chế xác nhận trước khi thiết kế giao diện chi tiết</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Tiêu chí</th><th>Vấn đề</th><th>Khuyến nghị</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Khả năng học phí</td>
+          <td class="subtle">Suy đoán thu nhập gia đình, kết hợp với định danh người chưa thành niên</td>
+          <td class="subtle">Thay bằng hành vi quan sát được: đã xem trang học phí, đã hỏi học bổng, đã tương tác nội dung học bổng</td>
+          <td><span class="badge badge--critical">Tạm khóa</span></td></tr>
+        <tr><td class="name">Mức nhạy cảm học bổng</td>
+          <td class="subtle">Cùng bản chất với tiêu chí trên</td>
+          <td class="subtle">Thay bằng số lần tương tác với nội dung học bổng</td>
+          <td><span class="badge badge--critical">Tạm khóa</span></td></tr>
+        <tr><td class="name">Học lực, giải thưởng</td>
+          <td class="subtle">Vượt phạm vi đồng ý hiện có tại điểm thu thập</td>
+          <td class="subtle">Mở rộng nội dung đồng ý trước khi mở rộng lược đồ dữ liệu</td>
+          <td><span class="badge badge--warning">Chờ Q4</span></td></tr>
+        <tr><td class="name">Xuất danh sách cá nhân</td>
+          <td class="subtle">Dữ liệu cá nhân rời khỏi hệ thống dưới dạng tệp không kiểm soát</td>
+          <td class="subtle">Ngưỡng ẩn danh 30 hồ sơ, ghi log mọi lượt xuất, giới hạn theo vai trò</td>
+          <td><span class="badge badge--good">Đã áp dụng</span></td></tr>
+      </tbody>
+    </table></div>
+    <p class="card__note">Hai tiêu chí đang tạm khóa vẫn hiển thị trên giao diện ở trạng thái không chọn được, kèm lý do — để người dùng biết chúng tồn tại trong thiết kế và hiểu vì sao chưa dùng được, thay vì tưởng hệ thống thiếu tính năng.</p>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

@@ -97,14 +97,14 @@ export default function MarketOverview() {
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <MarketSignal
-          href={`/director/market-intelligence/${strongestRegion.id}`}
+          href="/director/market-intelligence"
           label="Độ phủ tốt nhất"
           region={strongestRegion.name}
           value={`${strongestRegion.coverage}%`}
           tone="success"
         />
         <MarketSignal
-          href={`/director/market-intelligence/${watchRegion.id}`}
+          href="/director/market-intelligence"
           label="Cần ưu tiên"
           region={watchRegion.name}
           value={watchRegion.growth}

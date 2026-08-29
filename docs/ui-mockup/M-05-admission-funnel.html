@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-05 · Admission Funnel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-05',
+  title: 'Admission Funnel & Conversion',
+  lede: 'Hồ sơ đang tắc ở bước nào, tắc bao lâu, lát cắt nào chịu trách nhiệm, và cải thiện một điểm phần trăm ở đâu thì cho tác động lớn nhất.',
+});
+
+const STAGES = [
+  { name: 'Prospect',    n: 58420, note: 'có định danh + đồng ý' },
+  { name: 'Engaged',     n: 26180, note: 'đã phản hồi hai chiều', prev: 46.1 },
+  { name: 'Qualified',   n: 12640, note: 'đúng đối tượng',        prev: 49.8 },
+  { name: 'Counselling', n:  8920, note: 'đã có phiên tư vấn',    prev: 69.4 },
+  { name: 'Application', n:  6240, note: 'đã khởi tạo hồ sơ',     prev: 74.1 },
+  { name: 'Accepted',    n:  4910, note: 'đủ điều kiện',          prev: 78.0 },
+  { name: 'Enrolled',    n:  3820, note: 'đã hoàn tất tài chính', prev: 79.6 },
+];
+
+const AGING = [
+  ['Prospect',    12480, 8940, 6120, 4680],
+  ['Engaged',      5240, 3810, 2960, 1420],
+  ['Qualified',    1980, 1240,  810,  692],
+  ['Counselling',  1140,  820,  460,  340],
+  ['Application',   980,  610,  310,  100],
+  ['Accepted',      420,  280,  190,   40],
+];
+
+const COHORT = {
+  rows: ['Tuần 24', 'Tuần 25', 'Tuần 26', 'Tuần 27', 'Tuần 28', 'Tuần 29'],
+  cols: ['+1 tuần', '+2', '+3', '+4', '+5', '+6'],
+  values: [
+    [41, 24, 18, 14, 11, 9.2],
+    [44, 26, 19, 15, 12, 9.8],
+    [39, 22, 16, 12, 9.4, 7.1],
+    [46, 28, 21, 16, 12.4, null],
+    [43, 25, 18, 13, null, null],
+    [38, 21, 15, null, null, null],
+  ],
+};
+
+const SLICES = [
+  ['Kênh số',        44.1, 46.2, 68.4, 69.1, 77.8, 76.2],
+  ['Thực địa',       58.2, 54.8, 74.1, 78.6, 81.2, 82.4],
+  ['Giới thiệu',     62.4, 61.1, 79.2, 82.4, 84.1, 86.0],
+  ['Promoter',       51.8, 52.4, 71.8, 74.2, 79.6, 80.1],
+];
+
+canvas.innerHTML = `
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Phễu bảy bước</h2>
+      <span class="meta">so với cùng kỳ 2025</span></div>
+    ${funnel(STAGES, { leak: 1 })}
+    <div class="callout" style="margin-top:14px">
+      <b>Bước Engaged là điểm rò rỉ lớn nhất.</b> Tỷ lệ Prospect → Engaged đạt 44,8%, giảm 4,7 điểm so với cùng kỳ. Nếu kéo lại được mức 46,1% của năm ngoái, phễu có thêm khoảng 760 hồ sơ ở bước Engaged và ước tính <b>+58 nhập học</b>.
+    </div>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 5</span><h2>Phân tích điểm rò rỉ</h2>
+      <span class="meta">3 giả thuyết · mỗi giả thuyết mở được bằng chứng</span></div>
+    <div class="ai">
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--critical)">Giả thuyết 1 · tin cậy 78%</div>
+        <p class="ai__t">Hồ sơ rơi ở bước Engaged tập trung ở nhóm <b>được liên hệ sau 48 giờ</b>.</p>
+        <p class="ai__why">Trong 32.240 hồ sơ không vượt qua bước này, 71% có thời gian phản hồi lần đầu trên 48 giờ. Nhóm được liên hệ trong 6 giờ có tỷ lệ Engaged 68,2%.</p>
+        <div class="ai__src">bằng chứng: 22.890 hồ sơ · <a href="M-10-sla-risk-center.html">Xem SLA</a></div>
+      </div>
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--serious)">Giả thuyết 2 · tin cậy 64%</div>
+        <p class="ai__t">Nhóm hỏi về <b>học phí</b> ở lần chạm đầu rơi nhiều gấp 1,9 lần.</p>
+        <p class="ai__why">Phân tích 8.400 hội thoại: khi câu hỏi đầu tiên là về chi phí và câu trả lời không kèm con số cụ thể, tỷ lệ tiếp tục giảm từ 52% xuống 27%.</p>
+        <div class="ai__src">bằng chứng: 8.400 hội thoại · <a href="M-16-ai-trust-model-health.html">Chất lượng tri thức</a></div>
+      </div>
+      <div class="ai__item">
+        <div class="ai__k" style="color:var(--s1)">Giả thuyết 3 · tin cậy 51%</div>
+        <p class="ai__t">Chất lượng lead từ <b>kênh TikTok</b> thấp hơn mặt bằng.</p>
+        <p class="ai__why">Tỷ lệ Prospect → Engaged của TikTok là 31,2% so với 44,8% mặt bằng. Nhưng mẫu mới 6 tuần, chưa đủ để kết luận chắc chắn.</p>
+        <div class="ai__src">mẫu nhỏ · <a href="M-12-campaign-intelligence.html">Campaign Intelligence</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 2</span><h2>Tồn đọng theo tuổi hồ sơ</h2>
+      <span class="meta">số hồ sơ đang nằm lại mỗi bước</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Bước</th><th class="num">Dưới 3 ngày</th><th class="num">3–7 ngày</th>
+        <th class="num">7–14 ngày</th><th class="num">Trên 14 ngày</th><th class="num">Trung vị</th></tr></thead>
+      <tbody>${AGING.map(([s, a, b, c, d], i) => `
+        <tr><td class="name">${s}</td>
+          <td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td><td class="num">${fmt(c)}</td>
+          <td class="num" style="${d > 1000 ? 'color:var(--critical);font-weight:650' : ''}">${fmt(d)}</td>
+          <td class="num subtle">${[2.1, 4.8, 6.2, 5.1, 3.4, 2.2][i]} ngày</td></tr>`).join('')}
+      </tbody>
+    </table></div>
+    <p class="card__note">Trung vị, không phải trung bình — một hồ sơ nằm lại 200 ngày không được phép kéo lệch bức tranh. Ô đỏ đánh dấu nhóm tồn đọng trên 14 ngày vượt ngưỡng 1.000 hồ sơ.</p>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>So sánh theo nguồn</h2>
+      <span class="meta">tỷ lệ chuyển đổi từng bước</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Nguồn</th><th class="num">P→E</th><th class="num">E→Q</th><th class="num">Q→C</th>
+        <th class="num">C→A</th><th class="num">A→Ac</th><th class="num">Ac→En</th></tr></thead>
+      <tbody>${SLICES.map(r => `
+        <tr><td class="name">${r[0]}</td>${r.slice(1).map(v =>
+          `<td class="num" style="${v < 50 ? 'color:var(--critical)' : ''}">${pct(v)}</td>`).join('')}</tr>`).join('')}
+      </tbody>
+    </table></div>
+    <p class="card__note">Lead thực địa và giới thiệu vượt kênh số ở mọi bước. Khoảng cách rộng nhất ở bước đầu: người đã gặp mặt trực tiếp phản hồi nhiều hơn hẳn. Đây là căn cứ định lượng cho việc so sánh chi phí giữa hai loại kênh tại M-12.</p>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>Nhóm theo tuần vào phễu</h2>
+      <span class="meta">tỷ lệ đã tới bước Application, theo dõi qua các tuần kế tiếp</span></div>
+    ${heat({ rows: COHORT.rows, cols: COHORT.cols, values: COHORT.values, title: 'Tuần thu lead', fmtV: v => pct(v) })}
+    <p class="card__note">Nhóm tuần 27 dẫn đầu ở mọi mốc — đây là tuần diễn ra hai buổi Career Talk quy mô lớn. Ô trống là các tuần chưa đủ thời gian quan sát, không phải giá trị bằng 0.</p>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

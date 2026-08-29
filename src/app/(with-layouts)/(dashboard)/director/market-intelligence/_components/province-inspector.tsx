@@ -164,7 +164,7 @@ export default function ProvinceInspector({
           <div className="space-y-2 text-xs">
             <div className="rounded-xl bg-brand-500/10 p-2.5">
               <span className="font-bold text-brand-500 text-xs">
-                AI-NES Intelligence
+                FAIP Intelligence
               </span>
               <p className="mt-1 text-xs leading-relaxed text-text-secondary">
                 {province.recommendation}

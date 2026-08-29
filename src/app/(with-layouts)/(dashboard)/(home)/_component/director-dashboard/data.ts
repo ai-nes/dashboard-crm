@@ -289,7 +289,7 @@ export const attentionItems: AttentionItem[] = [
     count: "68 hồ sơ",
     priority: "high",
     tone: "warning",
-    href: "/director/student-pool",
+    href: "/director/students",
   },
   {
     id: "intake-review",
@@ -298,7 +298,7 @@ export const attentionItems: AttentionItem[] = [
     count: "17 hồ sơ",
     priority: "medium",
     tone: "info",
-    href: "/director/intake-review",
+    href: "/director/students",
   },
   {
     id: "conversion",
@@ -307,7 +307,7 @@ export const attentionItems: AttentionItem[] = [
     count: "9 hồ sơ",
     priority: "medium",
     tone: "primary",
-    href: "/director/enrollment/reconciliation",
+    href: "/director/admission-funnel",
   },
   {
     id: "approvals",
@@ -316,7 +316,7 @@ export const attentionItems: AttentionItem[] = [
     count: "7 yêu cầu",
     priority: "low",
     tone: "success",
-    href: "/director/governance/approvals",
+    href: "/director/ai/next-best-action",
   },
 ];
 

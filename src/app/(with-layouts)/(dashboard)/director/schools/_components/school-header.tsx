@@ -29,7 +29,7 @@ export default function SchoolHeader({ data }: SchoolHeaderProps) {
           </div>
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <Badge color="primary">Admission account</Badge>
+              <Badge color="primary">Tài khoản tuyển sinh</Badge>
               {school.isBoardingSchool && <Badge color="violet">Trường DTNT</Badge>}
             </div>
             <h1 className="text-balance text-2xl font-semibold tracking-[-0.4px] text-text-primary lg:text-[28px] lg:leading-8">

@@ -3,6 +3,7 @@
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import { Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from "recharts";
+import Link from "next/link";
 
 import DirectorChartTooltip from "./chart-tooltip";
 import { admissionsPipeline } from "./data";
@@ -32,9 +33,14 @@ export default function AdmissionsFunnel() {
             Từ hồ sơ tiềm năng đến nhập học trong niên khóa 2026
           </p>
         </div>
-        <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-xs font-semibold text-badge-primary-text">
-          Niên khóa 2026
-        </span>
+        <div className="flex items-center gap-3">
+          <Link href="/director/admission-funnel" className="text-xs font-semibold text-brand-500 hover:text-brand-600">
+            Phân tích chi tiết
+          </Link>
+          <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-xs font-semibold text-badge-primary-text">
+            Niên khóa 2026
+          </span>
+        </div>
       </CardHeader>
 
       <div className="min-h-72 w-full flex-1 sm:min-h-80" aria-label="Biểu đồ tiến độ phễu tuyển sinh">

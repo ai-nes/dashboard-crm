@@ -15,7 +15,7 @@ export default function SchoolDirectoryList({ query, schools }: SchoolDirectoryL
   return (
     <main className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6">
       <header className="rounded-xl border border-card-border bg-card-background p-5 lg:p-6">
-        <Badge color="primary">Admission Intelligence</Badge>
+        <Badge color="primary">FAIP</Badge>
         <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">School Intelligence</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">Tìm kiếm một trường THPT để xem tiềm năng tuyển sinh, hiệu quả chuyển đổi và hành động AI đề xuất.</p>
 

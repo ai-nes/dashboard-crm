@@ -13,14 +13,15 @@ const geistInter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | AI-NES — Hệ thống quản trị tuyển sinh",
-    default: "AI-NES — Hệ thống quản trị tuyển sinh",
+    template: "%s | FAIP — FPTU Admission Intelligence Platform",
+    default: "FAIP — FPTU Admission Intelligence Platform",
   },
   description:
-    "AI-NES là hệ thống quản trị tuyển sinh thông minh, giúp theo dõi hồ sơ, điều phối tư vấn, SLA, thống kê và chuyển đổi nhập học.",
-  applicationName: "AI-NES",
+    "FAIP là nền tảng quản trị tuyển sinh thông minh của FPTU, giúp theo dõi hồ sơ, điều phối tư vấn, SLA, thống kê và chuyển đổi nhập học.",
+  applicationName: "FAIP",
   keywords: [
-    "AI-NES",
+    "FAIP",
+    "FPTU Admission Intelligence Platform",
     "tuyển sinh",
     "quản trị tuyển sinh",
     "CRM tuyển sinh",
@@ -31,12 +32,12 @@ export const metadata: Metadata = {
     follow: true,
   },
   openGraph: {
-    title: "AI-NES — Hệ thống quản trị tuyển sinh",
+    title: "FAIP — FPTU Admission Intelligence Platform",
     description:
       "Theo dõi toàn cảnh tuyển sinh, hiệu suất vận hành, SLA và chuyển đổi nhập học trên một nền tảng.",
     type: "website",
     locale: "vi_VN",
-    siteName: "AI-NES",
+    siteName: "FAIP",
   },
 };
 

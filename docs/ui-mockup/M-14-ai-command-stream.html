@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-14 · AI Command Stream</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-14',
+  title: 'AI Command Stream',
+  lede: 'Nhịp đập của hệ thống theo thời gian thực: AI đang phát hiện điều gì, trên đối tượng nào, ngay lúc này. Mọi thẻ đều truy ngược được về một bản ghi có thật.',
+});
+
+const KIND = {
+  score: ['Xác suất thay đổi', 's1'],
+  interest: ['Phát hiện mối quan tâm', 's3'],
+  risk: ['Cảnh báo rủi ro', 'critical'],
+  summary: ['Tóm tắt hội thoại', 's7'],
+  ops: ['Bất thường vận hành', 'serious'],
+  market: ['Cơ hội thị trường', 's4'],
+};
+
+const STREAM = [
+  ['14:22', 'score', 'Nguyễn Minh A. — THPT Châu Văn Liêm', 'Xác suất nhập học tăng từ 69% lên 82% sau khi phụ huynh xem trang học bổng.', 91, '18 điểm chạm · mô hình chấm điểm v4.2'],
+  ['14:19', 'ops', 'Nguồn thu thực địa', 'Không nhận được bản ghi nào trong 200 phút, vượt ngưỡng 30 phút.', 99, 'hàng đợi đồng bộ · 184 bản ghi chờ'],
+  ['14:16', 'risk', 'Phạm Thu D. — THPT Bùi Hữu Nghĩa', 'Im lặng 23 ngày trong khi xác suất vẫn ở mức 68% — cơ hội đang mất.', 84, 'lịch sử tương tác · quy tắc ngưỡng 14 ngày'],
+  ['14:11', 'interest', '6 hồ sơ tại Cần Thơ', 'Mối quan tâm chung mới xuất hiện: cơ hội thực tập năm ba tại doanh nghiệp.', 72, '14 hội thoại · bộ nhãn mối quan tâm v1.4'],
+  ['14:08', 'summary', 'Trần Minh B. — THPT Nguyễn Việt Hồng', 'Tóm tắt phiên tư vấn 31 phút: đã quyết định ngành, còn vướng điều kiện giữ học bổng.', 88, 'bản ghi hội thoại #48211'],
+  ['14:02', 'market', 'Cụm 12 trường THPT Cần Thơ', 'Opportunity Score tăng từ 88 lên 94 sau khi cập nhật dữ liệu quy mô lớp 12.', 68, 'dữ liệu thị trường mô phỏng · cần nguồn chính thức'],
+  ['13:57', 'score', 'Lê Minh C. — THPT Châu Văn Liêm', 'Xác suất giảm 6 điểm: không có tương tác hai chiều trong 9 ngày.', 79, '11 điểm chạm'],
+  ['13:54', 'risk', 'Dương Anh Q. — THPT Thới Lai', 'Hồ sơ đăng ký đình trệ 9 ngày, thiếu 2 trong 5 giấy tờ bắt buộc.', 95, 'trạng thái hồ sơ · quy tắc ngưỡng 5 ngày'],
+  ['13:48', 'interest', 'Bùi Hoài M. — THPT Nguyễn Việt Hồng', 'Phát hiện lo ngại chưa được xử lý: khoảng cách từ nhà tới cơ sở.', 66, '4 tin nhắn Zalo'],
+  ['13:41', 'ops', 'Kênh Facebook', 'Lượng lead thấp hơn 38% so với đường cơ sở cùng thứ và cùng giờ.', 81, 'so sánh 8 tuần lịch sử'],
+];
+
+canvas.innerHTML = `
+<div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+  <div class="kpi"><div class="kpi__label">Hồ sơ đang theo dõi</div><div class="kpi__val">12.640</div>
+    <div class="kpi__deltas"><span>đã qua bước Qualified</span></div></div>
+  <div class="kpi"><div class="kpi__label">Xác suất trung bình</div><div class="kpi__val">48,2<small>%</small></div>
+    <div class="kpi__deltas"><span>7 ngày <b class="up">+1,4đ</b></span></div></div>
+  <div class="kpi"><div class="kpi__label">Cần xử lý gấp</div><div class="kpi__val" style="color:var(--critical)">18</div>
+    <div class="kpi__deltas"><span>hạn dưới 4 giờ</span></div></div>
+  <div class="kpi"><div class="kpi__label">Phát hiện 24 giờ qua</div><div class="kpi__val">1.284</div>
+    <div class="kpi__deltas"><span>trung bình 53 mỗi giờ</span></div></div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c8">
+    <div class="card__hd"><span class="zone">KV 2</span><h2>Dòng phát hiện</h2>
+      <span class="meta">
+        <span class="badge badge--good" style="margin-right:8px">Đang chạy</span>
+        <button class="btn" type="button" style="padding:3px 9px;font-size:11.5px">Tạm dừng</button>
+      </span></div>
+    <div class="pills" style="margin-bottom:14px">
+      <button class="pill" aria-pressed="true" type="button">Tất cả</button>
+      ${Object.entries(KIND).map(([k, [n]]) => `<button class="pill" aria-pressed="false" type="button">${n}</button>`).join('')}
+    </div>
+    <div class="stream">
+      ${STREAM.map(([t, k, obj, body, conf, src]) => `
+        <div class="sitem">
+          <div class="sitem__t">${t}</div>
+          <div>
+            <div class="sitem__k" style="color:var(--${KIND[k][1]})">${KIND[k][0]}</div>
+            <div style="font-size:12px;color:var(--ink-2);margin-top:2px">${obj}</div>
+            <div class="sitem__b">${body}</div>
+            <div class="sitem__m">
+              mức tin cậy ${conf}%${conf < 70 ? ' <span style="color:var(--warning);font-weight:600">· dưới ngưỡng, không dùng làm kết luận</span>' : ''}
+              · nguồn: ${src} · <a href="M-08-student-360.html" style="color:var(--s1)">mở đối tượng</a>
+            </div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div style="text-align:center;padding:12px 0 0"><button class="btn" type="button">Tải thêm 40 phát hiện</button></div>
+  </div>
+
+  <div class="card c4">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>Phân bố loại phát hiện</h2>
+      <span class="meta">24 giờ qua</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${[['Xác suất thay đổi', 486, 's1'], ['Tóm tắt hội thoại', 312, 's7'],
+         ['Phát hiện mối quan tâm', 241, 's3'], ['Cảnh báo rủi ro', 148, 'critical'],
+         ['Bất thường vận hành', 62, 'serious'], ['Cơ hội thị trường', 35, 's4']]
+        .map(([n, v, c]) => `
+        <div>
+          <div style="display:flex;font-size:12px"><span>${n}</span>
+            <b style="margin-left:auto;font-family:var(--ff-num)">${v}</b></div>
+          <div class="inbar__t" style="width:auto;margin-top:5px">
+            <span class="inbar__f" style="width:${v / 486 * 100}%;background:var(--${c})"
+              data-tip="<b>${n}</b><br>${v} phát hiện"></span></div>
+        </div>`).join('')}
+    </div>
+    <div class="callout" style="margin-top:16px">
+      Dòng này <b>chỉ chạy trên sự kiện thật</b>. Trong bản mockup, các thẻ ở đây là ví dụ minh họa cấu trúc thẻ — bản chạy thật không được phép sinh nội dung mẫu, kể cả trong môi trường trình diễn, trừ khi màn hình mang nhãn dữ liệu mô phỏng.
+    </div>
+    <div class="card__hd" style="margin:16px 0 10px"><h2 style="font-size:12.5px">Khi lớp AI ngừng hoạt động</h2></div>
+    <div class="empty">
+      <b>Dòng dừng lại</b>
+      Hiển thị thời điểm phát hiện cuối cùng nhận được. Không giữ thẻ cũ trên màn hình như thể chúng vừa xuất hiện.
+    </div>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

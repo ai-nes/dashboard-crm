@@ -15,7 +15,7 @@ export default function SchoolReportHeader({ region, onRegionChange }: SchoolRep
   return (
     <header className="flex flex-col gap-5 rounded-xl border border-card-border bg-card-background p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
       <div>
-        <Badge color="primary">Admission Intelligence</Badge>
+        <Badge color="primary">FAIP</Badge>
         <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">Báo cáo trường THPT</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">Ưu tiên địa bàn và nhóm trường có tiềm năng cao để phân bổ nguồn lực tuyển sinh.</p>
       </div>

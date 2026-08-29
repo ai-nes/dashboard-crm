@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-02 · Market Intelligence Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-02',
+  title: 'Market Intelligence Map',
+  lede: 'Thị trường tuyển sinh nằm ở đâu và khu vực nào chưa được khai thác. Đây là màn hình đưa mẫu số thị trường vào hệ thống — điểm khác biệt lớn nhất so với một CRM thông thường.',
+});
+
+/* mô phỏng: [tỉnh, HS lớp 12, prospect, qualified, application, enrolled, penetration %, doanh thu tiềm năng (tỷ), sales, promoter] */
+const PROV = [
+  ['TP.HCM',       52400, 6498, 1820, 1420,  820, 12.4, 186, 14, 9],
+  ['Hà Nội',       48200, 5254,  980,  860,  450, 10.9, 168, 11, 7],
+  ['Đà Nẵng',      14600, 1431,  486,  402,  260,  9.8,  52,  5, 3],
+  ['Bình Dương',   18900, 1153,  402,  368,  230,  6.1,  62,  4, 2],
+  ['Hải Phòng',    16400, 1017,  268,  221,  140,  6.2,  54,  3, 2],
+  ['Khánh Hòa',    12100,  653,  178,  152,  128,  5.4,  38,  2, 2],
+  ['BR–Vũng Tàu',  11800,  614,  192,  174,  150,  5.2,  36,  2, 1],
+  ['Bình Định',    13200,  620,  148,  121,   96,  4.7,  40,  2, 1],
+  ['Lâm Đồng',      9800,  451,  126,  108,   92,  4.6,  28,  2, 1],
+  ['Quảng Ninh',   12600,  554,  118,  102,   88,  4.4,  36,  2, 1],
+  ['Đồng Nai',     42000, 1806,  392,  334,  200,  4.3, 128,  4, 2],
+  ['Quảng Nam',    14200,  582,  124,  110,   96,  4.1,  42,  2, 1],
+  ['Hà Tĩnh',      11400,  456,   96,   86,   76,  4.0,  32,  2, 1],
+  ['Hải Dương',    13800,  538,   92,   84,   72,  3.9,  40,  2, 1],
+  ['Nghệ An',      24800,  893,  178,  164,  142,  3.6,  74,  3, 2],
+  ['Đắk Lắk',      15600,  515,  104,   96,   88,  3.3,  46,  2, 1],
+  ['Thanh Hóa',    28400,  909,  162,  148,   81,  3.2,  84,  3, 2],
+  ['Tây Ninh',     10200,  316,   88,   80,   74,  3.1,  30,  1, 1],
+  ['Tiền Giang',   12800,  384,   94,   86,   79,  3.0,  38,  1, 1],
+  ['Cần Thơ',      14800,  414,  138,  128,  118,  2.8,  44,  1, 1],
+  ['Bình Phước',    9600,  269,   72,   66,   61,  2.8,  28,  1, 0],
+  ['Vĩnh Long',     9200,  239,   66,   62,   58,  2.6,  27,  1, 1],
+  ['Đồng Tháp',    11600,  278,   80,   76,   71,  2.4,  34,  1, 1],
+  ['An Giang',     14200,  298,   92,   88,   84,  2.1,  42,  1, 1],
+  ['Kiên Giang',   12400,  236,   74,   70,   66,  1.9,  36,  1, 0],
+];
+
+/* tổng toàn quốc (bao gồm cả các tỉnh ngoài 25 địa bàn trọng điểm) */
+const NAT = { g12: 1008000, prospect: 58420, qualified: 12640, application: 6240, enrolled: 3820 };
+
+const REG = [
+  ['TP. Hồ Chí Minh', ['TP.HCM']],
+  ['Đông Nam Bộ', ['Đồng Nai', 'Bình Dương', 'BR–Vũng Tàu', 'Tây Ninh', 'Bình Phước']],
+  ['Đồng bằng sông Cửu Long', ['Cần Thơ', 'An Giang', 'Kiên Giang', 'Đồng Tháp', 'Vĩnh Long', 'Tiền Giang']],
+  ['Nam Trung Bộ & Tây Nguyên', ['Đà Nẵng', 'Khánh Hòa', 'Quảng Nam', 'Bình Định', 'Đắk Lắk', 'Lâm Đồng']],
+  ['Bắc Bộ', ['Hà Nội', 'Hải Phòng', 'Quảng Ninh', 'Hải Dương']],
+  ['Bắc Trung Bộ', ['Nghệ An', 'Thanh Hóa', 'Hà Tĩnh']],
+];
+
+const LAYERS = {
+  pen:   { name: 'Penetration',   idx: 6, fmt: v => pct(v), cap: 'Prospect chia học sinh lớp 12 của địa bàn' },
+  size:  { name: 'Học sinh lớp 12', idx: 1, fmt: fmt,       cap: 'Quy mô thị trường — dữ liệu ngoài, cần nguồn chính thức' },
+  enr:   { name: 'Enrollment',    idx: 5, fmt: fmt,          cap: 'Số nhập học đã hoàn tất nghĩa vụ tài chính' },
+  cov:   { name: 'Coverage',      idx: 8, fmt: v => v + ' Sales', cap: 'Nhân sự đang phụ trách địa bàn' },
+};
+let layer = 'pen';
+
+const byName = Object.fromEntries(PROV.map(p => [p[0], p]));
+const totalG12 = NAT.g12, totalPro = NAT.prospect, totalEnr = NAT.enrolled;
+const focusG12 = PROV.reduce((a, p) => a + p[1], 0);
+
+canvas.innerHTML = `
+<div class="grid">
+  <div class="card c12" style="padding:11px 16px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12.5px">
+      <b>Toàn quốc</b>
+      <span style="color:var(--ink-3)">›</span><span style="color:var(--ink-3)">Vùng</span>
+      <span style="color:var(--ink-3)">›</span><span style="color:var(--ink-3)">Tỉnh / Thành</span>
+      <span style="color:var(--ink-3)">›</span><span style="color:var(--ink-3)">Quận / Huyện</span>
+      <span style="color:var(--ink-3)">›</span><span style="color:var(--ink-3)">Trường THPT</span>
+      <span style="color:var(--ink-3)">›</span><span style="color:var(--ink-3)">Học sinh</span>
+      <span style="margin-left:auto;color:var(--ink-3)">nhấn một ô để đi xuống một cấp · cấp huyện đang chờ ánh xạ đơn vị hành chính</span>
+    </div>
+  </div>
+</div>
+
+<div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+  <div class="kpi simulated">
+    <div class="kpi__label">Quy mô thị trường toàn quốc</div>
+    <div class="kpi__val">${fmt(totalG12)}</div>
+    <div class="den"><div class="den__track"><i class="den__fill" style="width:${(totalPro / totalG12 * 100).toFixed(1)}%"></i></div>
+      <div class="den__cap"><span>đã chạm ${fmt(totalPro)} prospect</span><b>${pct(totalPro / totalG12 * 100)}</b></div></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">Penetration toàn quốc</div>
+    <div class="kpi__val">${pct(totalPro / totalG12 * 100)}</div>
+    <div class="kpi__deltas"><span>cùng kỳ 2025 <b class="up">+1,8đ</b></span></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi__label">Nhập học</div>
+    <div class="kpi__val">${fmt(totalEnr)}</div>
+    <div class="kpi__deltas"><span>tỷ lệ trên thị trường <b>${pct(totalEnr / totalG12 * 100, 2)}</b></span></div>
+  </div>
+  <div class="kpi simulated">
+    <div class="kpi__label">Doanh thu tiềm năng chưa khai thác</div>
+    <div class="kpi__val">1.372<small> tỷ</small></div>
+    <div class="kpi__deltas"><span>ở mức conversion hiện tại của các địa bàn tương tự</span></div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 1–2</span><h2>Bản đồ ô vuông theo tỉnh</h2>
+      <span class="meta" id="layerCap"></span></div>
+    <div class="pills" style="margin-bottom:14px" id="layerPills"></div>
+    <div class="carto" id="carto"></div>
+    <div class="scale" style="margin-top:14px">
+      <span id="scaleLo"></span>
+      <span class="scale__ramp"><i style="background:var(--q1)"></i><i style="background:var(--q2)"></i><i style="background:var(--q3)"></i><i style="background:var(--q4)"></i><i style="background:var(--q5)"></i><i style="background:var(--q6)"></i><i style="background:var(--q7)"></i></span>
+      <span id="scaleHi"></span>
+      <span style="margin-left:auto;color:var(--ink-3)">Bản đồ ô vuông: mỗi tỉnh một ô bằng nhau, để tỉnh nhỏ không bị mất hút sau diện tích. Hiển thị 25 địa bàn trọng điểm, chiếm ${pct(focusG12 / NAT.g12 * 100, 0)} thị trường toàn quốc.</span>
+    </div>
+  </div>
+
+  <div class="card c5" id="detail"></div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>Bảng địa bàn</h2>
+      <span class="meta">sắp theo penetration tăng dần — nơi còn dư địa nhất ở trên</span></div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr>
+          <th>Tỉnh / Thành</th><th class="num">HS lớp 12</th><th class="num">Prospect</th>
+          <th class="num">Enrolled</th><th class="num">Penetration</th><th class="num">DT tiềm năng</th><th class="num">Sales</th>
+        </tr></thead>
+        <tbody>${PROV.slice().sort((a, b) => a[6] - b[6]).slice(0, 12).map(p => `
+          <tr>
+            <td class="name">${p[0]}</td>
+            <td class="num">${fmt(p[1])}</td>
+            <td class="num">${fmt(p[2])}</td>
+            <td class="num">${fmt(p[5])}</td>
+            <td class="num"><span class="inbar"><span class="inbar__t"><span class="inbar__f" style="width:${(p[6] / 12.4 * 100).toFixed(0)}%"></span></span>${pct(p[6])}</span></td>
+            <td class="num">${p[7]} tỷ</td>
+            <td class="num${p[8] <= 1 ? ' down' : ''}">${p[8]}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <p class="card__note">Mười hai địa bàn có penetration thấp nhất. Cột Sales tô đỏ khi chỉ có một hoặc không có nhân sự phụ trách — đây là tín hiệu coverage gap, không phải đánh giá nhân sự.</p>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 5</span><h2>Cơ hội AI phát hiện</h2>
+      <span class="meta">6 loại · sắp theo Opportunity Score</span></div>
+    <div class="ai">
+      <div class="ai__item ai__item--opp">
+        <div class="ai__k" style="color:var(--good-ink)">Untapped market · 94/100</div>
+        <p class="ai__t">Cụm <b>12 trường THPT tại Cần Thơ</b> — 8.400 học sinh lớp 12, penetration 2,8%.</p>
+        <div class="evidence">
+          <span class="w">Quy mô chưa khai thác<span class="wbar"><i style="width:92%"></i></span></span><span>8.165 HS</span>
+          <span class="w">Conversion tiềm năng<span class="wbar"><i style="width:74%"></i></span></span><span>6,1%</span>
+          <span class="w">Khoảng trống coverage<span class="wbar"><i style="width:88%"></i></span></span><span>1 Sales</span>
+        </div>
+        <div class="ai__src">doanh thu tiềm năng 44 tỷ · <a href="M-03-school-intelligence.html">Mở cụm trường</a></div>
+      </div>
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--critical)">Low conversion · 81/100</div>
+        <p class="ai__t"><b>Đồng Nai</b>: prospect lớn thứ ba cả nước nhưng conversion chỉ 15,5% từ Prospect sang Qualified.</p>
+        <p class="ai__why">Thị trường 42.000 học sinh, đứng thứ hai sau TP.HCM, nhưng chỉ có 4 Sales phụ trách. Thời gian phản hồi lần đầu trung vị 31 giờ.</p>
+        <div class="ai__src">nguồn: 1.806 hồ sơ · <a href="M-09-regional-performance.html">Phân tích năng lực</a></div>
+      </div>
+      <div class="ai__item">
+        <div class="ai__k" style="color:var(--s1)">Sales coverage gap · 77/100</div>
+        <p class="ai__t">Vùng <b>Đồng bằng sông Cửu Long</b> có 75.000 học sinh lớp 12 và 6 Sales — tỷ lệ phủ 62%.</p>
+        <div class="ai__src">cần thêm ~4 Sales để đạt phủ 90% · <a href="M-09-regional-performance.html">Capacity Analysis</a></div>
+      </div>
+      <div class="ai__item ai__item--rev">
+        <div class="ai__k" style="color:var(--s4)">High growth · 72/100</div>
+        <p class="ai__t"><b>Bình Dương</b> tăng 34% prospect so với cùng kỳ, dẫn đầu nhóm tỉnh công nghiệp.</p>
+        <div class="ai__src">đề xuất giữ nguyên ngân sách, tăng hoạt động tại trường</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><h2>Ba lớp dữ liệu của màn hình này đến từ đâu</h2></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Lớp</th><th>Nguồn</th><th>Trạng thái</th><th>Ảnh hưởng nếu thiếu</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Penetration · tử số</td><td class="subtle">Prospect từ lõi hệ thống</td>
+          <td><span class="badge badge--good">Sẵn sàng</span></td><td class="subtle">—</td></tr>
+        <tr><td class="name">Penetration · mẫu số</td><td class="subtle">Học sinh lớp 12 theo tỉnh, huyện, trường</td>
+          <td><span class="badge badge--critical">Chưa có nguồn</span></td>
+          <td class="subtle">Mất toàn bộ khái niệm penetration, Opportunity Score và Coverage. Đây là đường găng của dự án — xem điểm cần chốt Q2.</td></tr>
+        <tr><td class="name">Coverage</td><td class="subtle">Phân bổ nhân sự theo địa bàn + định mức năng suất</td>
+          <td><span class="badge badge--warning">Thiếu định mức</span></td>
+          <td class="subtle">Tính được số nhân sự nhưng không tính được tỷ lệ phủ — xem Q10.</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+`;
+
+/* ---------- lớp bản đồ ---------- */
+function renderLayer() {
+  const L = LAYERS[layer];
+  const vals = PROV.map(p => p[L.idx]);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const stepOf = v => 'q' + (1 + Math.min(6, Math.max(0, Math.round(((v - lo) / ((hi - lo) || 1)) * 6))));
+  document.getElementById('carto').innerHTML = REG.map(([r, names]) => `
+    <div class="carto__region">
+      <div class="carto__rlabel">${r}</div>
+      <div class="carto__tiles">${names.map(n => {
+        const p = byName[n], s = stepOf(p[L.idx]);
+        return `<button class="tile qt${s.slice(1)}" data-p="${n}" style="text-align:left;font:inherit"
+          data-tip="<b>${n}</b><br>HS lớp 12: ${fmt(p[1])}<br>Prospect: ${fmt(p[2])}<br>Penetration: ${pct(p[6])}<br>Nhập học: ${fmt(p[5])}">
+          <b>${n}</b><span>${L.fmt(p[L.idx])}</span></button>`;
+      }).join('')}</div>
+    </div>`).join('');
+  document.getElementById('scaleLo').textContent = L.name + ' thấp';
+  document.getElementById('scaleHi').textContent = 'cao';
+  document.getElementById('layerCap').textContent = L.cap;
+  document.getElementById('layerPills').innerHTML = Object.entries(LAYERS)
+    .map(([k, v]) => `<button class="pill" type="button" data-l="${k}" aria-pressed="${k === layer}">${v.name}</button>`).join('');
+  document.querySelectorAll('[data-l]').forEach(b => b.onclick = () => { layer = b.dataset.l; renderLayer(); });
+  document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => renderDetail(b.dataset.p));
+  bindTip(canvas);
+}
+
+function renderDetail(name) {
+  const p = byName[name];
+  const untapped = p[1] - p[2];
+  document.getElementById('detail').innerHTML = `
+    <div class="card__hd"><span class="zone">KV 4</span><h2>${name}</h2>
+      <span class="meta">nhấn ô khác để đổi</span></div>
+    <div class="den" style="margin-bottom:14px">
+      <div class="den__track" style="height:12px"><i class="den__fill" style="width:${p[6] / 12.4 * 100}%"
+        data-tip="<b>Đã chạm</b><br>${fmt(p[2])} / ${fmt(p[1])} học sinh lớp 12"></i></div>
+      <div class="den__cap"><span>đã chạm <b>${fmt(p[2])}</b></span><span>còn <b>${fmt(untapped)}</b> chưa chạm</span></div>
+    </div>
+    <dl class="kv">
+      <dt>Học sinh lớp 12</dt><dd>${fmt(p[1])}</dd>
+      <dt>Prospect</dt><dd>${fmt(p[2])}</dd>
+      <dt>Qualified</dt><dd>${fmt(p[3])}</dd>
+      <dt>Application</dt><dd>${fmt(p[4])}</dd>
+      <dt>Enrollment</dt><dd>${fmt(p[5])}</dd>
+      <dt>Penetration</dt><dd><b>${pct(p[6])}</b></dd>
+      <dt>Doanh thu tiềm năng</dt><dd>${p[7]} tỷ</dd>
+      <dt>Nhân sự phụ trách</dt><dd>${p[8]} Sales · ${p[9]} Promoter</dd>
+    </dl>
+    <div class="card__hd" style="margin:16px 0 10px"><h2 style="font-size:12.5px">Trường THPT trọng điểm</h2></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Trường</th><th class="num">HS lớp 12</th><th class="num">Penetration</th></tr></thead>
+      <tbody>
+        <tr><td class="name">THPT chuyên của tỉnh</td><td class="num">${fmt(Math.round(p[1] * .012))}</td><td class="num">${pct(p[6] * 2.1)}</td></tr>
+        <tr><td class="name">THPT Nguyễn Trãi</td><td class="num">${fmt(Math.round(p[1] * .018))}</td><td class="num">${pct(p[6] * 1.4)}</td></tr>
+        <tr><td class="name">THPT Lê Quý Đôn</td><td class="num">${fmt(Math.round(p[1] * .015))}</td><td class="num">${pct(p[6] * .8)}</td></tr>
+        <tr><td class="name">THPT Trần Phú</td><td class="num">${fmt(Math.round(p[1] * .014))}</td><td class="num">${pct(p[6] * .5)}</td></tr>
+      </tbody>
+    </table></div>
+    <p class="card__note">Danh sách trường mô phỏng. <a href="M-03-school-intelligence.html" style="color:var(--s1)">Mở School Intelligence →</a></p>`;
+  bindTip(canvas);
+}
+
+renderLayer();
+renderDetail('Cần Thơ');
+</script>
+</body>
+</html>

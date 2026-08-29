@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-09 · Regional & Team Performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-09',
+  title: 'Regional & Team Performance',
+  lede: 'Vùng nào đạt target, đội nào cần hỗ trợ, và quan trọng hơn: năng lực nhân sự hiện có phủ được bao nhiêu phần thị trường.',
+});
+
+const REGIONS = [
+  { n: 'TP. Hồ Chí Minh', enr: 820, tgt: 900, rev: 40.3, sales: 14, pot: 14400, cap: 12600 },
+  { n: 'Bắc Bộ',          enr: 761, tgt: 820, rev: 37.4, sales: 15, pot: 15200, cap: 13500 },
+  { n: 'Đông Nam Bộ',     enr: 714, tgt: 700, rev: 35.1, sales: 12, pot: 13800, cap: 10800 },
+  { n: 'Nam Trung Bộ',    enr: 653, tgt: 680, rev: 32.1, sales: 15, pot: 12100, cap: 13500 },
+  { n: 'Bắc Trung Bộ',    enr: 299, tgt: 400, rev: 14.7, sales: 8,  pot: 9600,  cap: 7200 },
+  { n: 'Mekong',          enr: 373, tgt: 500, rev: 18.3, sales: 6,  pot: 12000, cap: 7440 },
+];
+
+const PEOPLE = [
+  ['Trần Quốc Bảo',   'Mekong', 186, 42, 94.2, 5.2, 12.4, 68, 82],
+  ['Nguyễn Thị Hà',   'Mekong', 214, 38, 71.4, 28.6, 8.1, 41, 64],
+  ['Lê Văn Cường',    'Mekong', 148, 31, 96.1, 4.1, 14.2, 74, 88],
+  ['Phạm Minh Đức',   'Đông Nam Bộ', 162, 44, 91.8, 6.4, 13.1, 71, 79],
+  ['Võ Thị Lan',      'Đông Nam Bộ', 171, 46, 88.4, 9.2, 12.8, 66, 74],
+  ['Đỗ Hoàng Nam',    'Bắc Trung Bộ', 198, 29, 62.1, 34.2, 7.4, 38, 51],
+];
+
+canvas.innerHTML = `
+<div class="grid">
+  <div class="card c12 simulated">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Thẻ điểm theo vùng</h2>
+      <span class="meta">sắp theo mức đạt target · sáu vùng này chiếm 94,8% nhập học và 94,8% doanh thu; phần còn lại thuộc địa bàn chưa lập vùng</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      ${REGIONS.slice().sort((a, b) => (b.enr / b.tgt) - (a.enr / a.tgt)).map(r => {
+        const ach = r.enr / r.tgt * 100;
+        const col = ach >= 100 ? 'good' : ach >= 85 ? 's1' : ach >= 70 ? 'warning' : 'critical';
+        return `<div style="border:1px solid var(--line);border-radius:var(--r-s);padding:12px 13px">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <b style="font-size:13px">${r.n}</b>
+            <span style="margin-left:auto;font-family:var(--ff-num);font-weight:650;font-size:17px;color:var(--${col})">${pct(ach, 0)}</span>
+          </div>
+          <div class="den" style="margin-top:9px">
+            <div class="den__track"><i class="den__fill" style="width:${Math.min(ach, 100)}%;background:var(--${col})"
+              data-tip="<b>${r.n}</b><br>${fmt(r.enr)} / ${fmt(r.tgt)} nhập học"></i></div>
+            <div class="den__cap"><span>${fmt(r.enr)} nhập học</span><b>target ${fmt(r.tgt)}</b></div>
+          </div>
+          <div class="kpi__deltas" style="margin-top:8px">
+            <span>doanh thu <b>${r.rev.toFixed(1).replace('.', ',')} tỷ</b></span>
+            <span>${r.sales} Sales</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c7 simulated">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>Năng lực so với tiềm năng thị trường</h2>
+      <span class="meta">bảng tính mở xem được, không phải hộp đen</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Vùng</th><th class="num">Lead tiềm năng</th><th class="num">Năng lực hiện có</th>
+        <th class="num">Tỷ lệ phủ</th><th class="num">Sales</th><th class="num">Cần thêm</th></tr></thead>
+      <tbody>${REGIONS.slice().sort((a, b) => (a.cap / a.pot) - (b.cap / b.pot)).map(r => {
+        const cov = r.cap / r.pot * 100;
+        const need = Math.max(0, Math.ceil((r.pot * 0.9 - r.cap) / 900));
+        return `<tr>
+          <td class="name">${r.n}</td>
+          <td class="num">${fmt(r.pot)}</td><td class="num">${fmt(r.cap)}</td>
+          <td class="num"><span class="inbar"><span class="inbar__t"><span class="inbar__f" style="width:${cov}%;background:var(--${cov < 70 ? 'critical' : cov < 90 ? 'warning' : 'good'})"></span></span>${pct(cov, 0)}</span></td>
+          <td class="num">${r.sales}</td>
+          <td class="num" style="${need > 0 ? 'font-weight:650;color:var(--critical)' : 'color:var(--ink-3)'}">${need > 0 ? '+' + need : '—'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+    <div class="callout" style="margin-top:12px">
+      <b>Cách tính.</b> Lead tiềm năng = học sinh lớp 12 của vùng nhân tỷ lệ tiếp cận khả thi. Năng lực = số Sales nhân định mức 900 lead một người một mùa. Cần thêm = số người để đạt phủ 90%.
+      Định mức 900 hiện là <b>giả định tạm</b> — chưa có ai trong tổ chức sở hữu con số này, xem điểm cần chốt Q10.
+    </div>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 5</span><h2>Cân bằng tải</h2>
+      <span class="meta">ngưỡng 180 hồ sơ một người</span></div>
+    ${barChart({
+      data: PEOPLE.map(p => ({ label: p[0].split(' ').slice(-1)[0], load: p[2] })),
+      series: [{ key: 'load', name: 'Hồ sơ đang phụ trách', c: 's1' }], height: 190,
+    })}
+    <p class="card__note">Ba người vượt ngưỡng tải. Nguyễn Thị Hà giữ 214 hồ sơ, gấp 1,2 lần ngưỡng — trùng khớp với tỷ lệ đúng cam kết thấp nhất đội và thời gian phản hồi 28,6 giờ.</p>
+    <div class="ai__item ai__item--opp" style="margin-top:12px">
+      <div class="ai__k" style="color:var(--good-ink)">Đề xuất phân bổ lại</div>
+      <p class="ai__t">Chuyển <b>34 hồ sơ</b> có xác suất dưới 40% từ Nguyễn Thị Hà sang Lê Văn Cường.</p>
+      <div class="ai__src">tác động dự kiến: thời gian phản hồi đội giảm từ 12,6 xuống 8,4 giờ · <span class="tier tier--mid">Rủi ro trung bình</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c8">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>Hiệu suất theo tư vấn viên</h2>
+      <span class="meta">đường tham chiếu là trung vị của đội</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Tư vấn viên</th><th>Đội</th><th class="num">Hồ sơ</th><th class="num">Nhập học</th>
+        <th class="num">Đúng cam kết</th><th class="num">Phản hồi lần đầu</th><th class="num">Conversion</th>
+        <th class="num">Chấp nhận đề xuất AI</th></tr></thead>
+      <tbody>${PEOPLE.map(p => `
+        <tr>
+          <td class="name">${p[0]}</td><td class="subtle">${p[1]}</td>
+          <td class="num" style="${p[2] > 180 ? 'color:var(--critical);font-weight:650' : ''}">${p[2]}</td>
+          <td class="num">${p[3]}</td>
+          <td class="num">${pct(p[4])}</td>
+          <td class="num" style="${p[5] > 24 ? 'color:var(--critical)' : ''}">${p[5].toFixed(1).replace('.', ',')} giờ</td>
+          <td class="num">${pct(p[6])}</td>
+          <td class="num">${pct(p[8], 0)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>
+    <p class="card__note">Mọi tỷ lệ đều kèm mẫu số khi rê chuột. Số liệu cá nhân dùng để phát hiện nơi cần hỗ trợ, không dùng để xếp hạng công khai — chính sách hiển thị cho ai đang là điểm cần chốt Q12.</p>
+  </div>
+
+  <div class="card c4">
+    <div class="card__hd"><span class="zone">KV 6</span><h2>Chất lượng đầu vào</h2>
+      <span class="meta">tách năng lực khỏi may mắn</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Tư vấn viên</th><th class="num">Điểm AI TB đầu vào</th><th class="num">Conversion</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Lê Văn Cường</td><td class="num">48</td><td class="num up">14,2%</td></tr>
+        <tr><td class="name">Trần Quốc Bảo</td><td class="num">52</td><td class="num">12,4%</td></tr>
+        <tr><td class="name">Phạm Minh Đức</td><td class="num">58</td><td class="num">13,1%</td></tr>
+        <tr><td class="name">Võ Thị Lan</td><td class="num">61</td><td class="num">12,8%</td></tr>
+        <tr><td class="name">Nguyễn Thị Hà</td><td class="num">44</td><td class="num">8,1%</td></tr>
+        <tr><td class="name">Đỗ Hoàng Nam</td><td class="num">39</td><td class="num down">7,4%</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout" style="margin-top:12px">
+      Lê Văn Cường có conversion cao nhất <b>dù nhận hồ sơ chất lượng trung bình thấp</b>. Ngược lại Võ Thị Lan nhận hồ sơ tốt nhất nhưng conversion chỉ ngang mặt bằng. Không có bảng này thì hai trường hợp đó bị đọc ngược.
+    </div>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

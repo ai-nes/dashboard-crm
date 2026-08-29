@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import NextBestActionWorkspace from "./_components/next-best-action-workspace";
 
 export const metadata: Metadata = {
-  title: "Điều phối hành động AI | AI-NES Admission Intelligence",
+  title: "Điều phối hành động AI",
   description: "Phân công những hành động tuyển sinh được AI đề xuất theo mức độ ưu tiên.",
 };
 

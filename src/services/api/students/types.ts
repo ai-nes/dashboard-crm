@@ -1,5 +1,25 @@
 export type StudentJourneyStage = "Quan tâm" | "Tìm hiểu" | "Tư vấn" | "Ứng tuyển" | "Nhập học";
 
+export type StudentPriority = "Cao" | "Trung bình" | "Thấp";
+
+export interface StudentListItem {
+  id: string;
+  initials: string;
+  name: string;
+  code: string;
+  school: string;
+  province: string;
+  major: string;
+  stage: StudentJourneyStage;
+  score: number;
+  scoreDelta: number;
+  lastActivity: string;
+  nextAction: string;
+  owner: string;
+  source: string;
+  priority: StudentPriority;
+}
+
 export interface StudentJourneyEvent {
   id: string;
   date: string;
@@ -29,6 +49,9 @@ export interface Student360Data {
   insight: {
     summary: string;
     probability: number;
+    scoreDelta?: number;
+    baseline?: number;
+    confidence?: number;
     concern: string;
     decisionMaker: string;
     evidence: string[];

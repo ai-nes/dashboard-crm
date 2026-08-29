@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-01 · Admission Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-01',
+  title: 'Admission Command Center',
+  lede: 'Trang chủ của hệ thống. Ba mươi giây để biết mùa tuyển sinh đang đi đúng hướng hay không, nghẽn ở đâu, và việc gì cần quyết hôm nay.',
+});
+
+/* ---------------- dữ liệu mô phỏng ---------------- */
+const STAGES = [
+  { name: 'Prospect',    n: 58420, note: 'có định danh + đồng ý' },
+  { name: 'Engaged',     n: 26180, note: 'đã phản hồi hai chiều', prev: 46.1 },
+  { name: 'Qualified',   n: 12640, note: 'đúng đối tượng',        prev: 49.8 },
+  { name: 'Counselling', n:  8920, note: 'đã có phiên tư vấn',    prev: 69.4 },
+  { name: 'Application', n:  6240, note: 'đã khởi tạo hồ sơ',     prev: 74.1 },
+  { name: 'Accepted',    n:  4910, note: 'đủ điều kiện',          prev: 78.0 },
+  { name: 'Enrolled',    n:  3820, note: 'đã hoàn tất tài chính', prev: 79.6 },
+];
+
+const WEEKS = [
+  { label: 'T22', online: 1180, field: 620, ref: 140 }, { label: 'T23', online: 1320, field: 700, ref: 155 },
+  { label: 'T24', online: 1410, field: 980, ref: 162 }, { label: 'T25', online: 1290, field: 1240, ref: 148 },
+  { label: 'T26', online: 1520, field: 1120, ref: 171 }, { label: 'T27', online: 1680, field: 860, ref: 184 },
+  { label: 'T28', online: 1740, field: 640, ref: 190 }, { label: 'T29', online: 1610, field: 520, ref: 176 },
+  { label: 'T30', online: 1480, field: 480, ref: 168 }, { label: 'T31', online: 1390, field: 610, ref: 159 },
+  { label: 'T32', online: 1520, field: 880, ref: 181 }, { label: 'T33', online: 1350, field: 940, ref: 166 },
+];
+
+const REGIONS = [
+  ['TP. Hồ Chí Minh', [['TP.HCM', 12.4, 820]]],
+  ['Đông Nam Bộ',     [['Đồng Nai', 4.3, 200], ['Bình Dương', 6.1, 230], ['BR–Vũng Tàu', 5.2, 150], ['Tây Ninh', 3.1, 74], ['Bình Phước', 2.8, 61]]],
+  ['Đồng bằng sông Cửu Long', [['Cần Thơ', 2.8, 118], ['An Giang', 2.1, 84], ['Kiên Giang', 1.9, 66], ['Đồng Tháp', 2.4, 71], ['Vĩnh Long', 2.6, 58], ['Tiền Giang', 3.0, 79]]],
+  ['Nam Trung Bộ & Tây Nguyên', [['Đà Nẵng', 9.8, 260], ['Khánh Hòa', 5.4, 128], ['Quảng Nam', 4.1, 96], ['Đắk Lắk', 3.3, 88], ['Lâm Đồng', 4.6, 92]]],
+  ['Bắc Bộ',          [['Hà Nội', 10.9, 450], ['Hải Phòng', 6.2, 140], ['Bắc Ninh', 5.1, 94], ['Quảng Ninh', 4.4, 88], ['Hải Dương', 3.9, 72]]],
+  ['Bắc Trung Bộ',    [['Nghệ An', 3.6, 142], ['Thanh Hóa', 3.2, 81], ['Hà Tĩnh', 4.0, 76]]],
+];
+
+/* ---------------- ô chỉ số ---------------- */
+function kpi(o) {
+  return `<div class="kpi">
+    <div class="kpi__label">${o.label}${o.spark ? `<span style="margin-left:auto">${spark(o.spark, o.sc || 's1')}</span>` : ''}</div>
+    <div class="kpi__val">${o.value}${o.unit ? `<small> ${o.unit}</small>` : ''}</div>
+    ${o.den ? `<div class="den">
+        <div class="den__track"><i class="den__fill${o.denTarget ? ' den__fill--target' : ''}" style="width:${o.den}%"></i></div>
+        <div class="den__cap"><span>${o.denL}</span><b>${o.denR}</b></div>
+      </div>` : ''}
+    ${o.deltas ? `<div class="kpi__deltas">${o.deltas.map(([k, v, d]) =>
+      `<span>${k} <b class="${d}">${v}</b></span>`).join('')}</div>` : ''}
+  </div>`;
+}
+
+canvas.innerHTML = `
+
+<!-- ===== dải cảnh báo ===== -->
+<div class="grid">
+  <div class="card c12" style="padding:10px 14px">
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:12.5px">
+      <span class="badge badge--critical">3 nghiêm trọng</span>
+      <span>142 hồ sơ quá hạn cam kết phản hồi trên 24 giờ — tập trung ở đội Mekong</span>
+      <span style="color:var(--ink-3)">·</span>
+      <span>CPL kênh TikTok vượt ngưỡng 1,8 lần trong 5 ngày liên tiếp</span>
+      <span style="color:var(--ink-3)">·</span>
+      <span>Nguồn thu thực địa ngừng đồng bộ 3 giờ 20 phút</span>
+      <a href="M-10-sla-risk-center.html" class="btn" style="margin-left:auto;text-decoration:none">Mở trung tâm rủi ro</a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== tiến độ mùa ===== -->
+<div class="grid">
+  <div class="card c8 simulated">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Tiến độ mùa tuyển sinh 2026</h2>
+      <span class="meta">còn 47 ngày · cập nhật 14:20 hôm nay</span></div>
+    <div class="hero">
+      <div>
+        <div class="hero__n">3.820</div>
+        <div class="hero__l">đã nhập học · <b>76,4%</b> chỉ tiêu 5.000</div>
+      </div>
+      <div style="border-left:1px solid var(--line);padding-left:22px">
+        <div class="hero__n" style="font-size:32px;color:var(--ink-2)">4.680</div>
+        <div class="hero__l">dự báo cuối mùa · khoảng tin cậy 4.410 – 4.940</div>
+      </div>
+      <div style="border-left:1px solid var(--line);padding-left:22px">
+        <div class="hero__n" style="font-size:32px;color:var(--critical)">−320</div>
+        <div class="hero__l">thiếu so với chỉ tiêu nếu giữ tốc độ hiện tại</div>
+      </div>
+    </div>
+    <div class="den" style="margin-top:16px">
+      <div class="den__track" style="height:12px">
+        <i class="den__fill" style="width:76.4%" data-tip="<b>Thực tế</b><br>3.820 / 5.000 = 76,4%"></i>
+        <i class="den__fill den__fill--target" style="width:9.8%;opacity:.55;border-radius:0"
+           data-tip="<b>Dự báo bổ sung</b><br>+860 hồ sơ tới cuối mùa"></i>
+      </div>
+      <div class="den__cap">
+        <span>0</span>
+        <span>vạch tiến độ lý tưởng hôm nay: <b>82,0%</b></span>
+        <span>chỉ tiêu <b>5.000</b></span>
+      </div>
+    </div>
+    <p class="card__note">Mảng đặc là kết quả thật, phần gạch là dư địa còn lại của mùa. Dự báo và chỉ tiêu hiện chạy trên dữ liệu mô phỏng — xem sổ đăng ký tại <a href="M-17-data-health-sources.html" style="color:var(--s1)">M-17</a>.</p>
+  </div>
+
+  <div class="card c4 simulated">
+    <div class="card__hd"><h2>Doanh thu học phí</h2><span class="meta">tỷ đồng</span></div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div class="kpi__label">Đã ghi nhận</div>
+        <div class="kpi__val" style="font-size:30px">187,7<small> tỷ</small></div>
+        <div class="kpi__deltas"><span>YoY <b class="up">+18,2%</b></span></div>
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:12px">
+        <div class="kpi__label">Kỳ vọng cuối mùa</div>
+        <div class="kpi__val" style="font-size:30px;color:var(--ink-2)">230,2<small> tỷ</small></div>
+        <div class="den">
+          <div class="den__track"><i class="den__fill" style="width:93.6%"></i></div>
+          <div class="den__cap"><span>93,6% mục tiêu</span><b>246,0 tỷ</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== hàng chỉ số ===== -->
+<div class="kpis">
+  ${kpi({ label: 'Prospect', value: '58.420', spark: [38, 42, 46, 44, 51, 55, 58, 54, 49, 47, 52, 50],
+    den: 5.8, denL: 'penetration toàn quốc', denR: '1.008.000 HS lớp 12',
+    deltas: [['WoW', '+2,1%', 'up'], ['MoM', '+9,4%', 'up'], ['YoY', '+21,0%', 'up']] })}
+  ${kpi({ label: 'Qualified', value: '12.640', spark: [8, 9, 10, 11, 11, 12, 13, 12, 12, 12, 13, 13], sc: 's3',
+    den: 21.6, denL: 'trên tổng prospect', denR: '58.420',
+    deltas: [['WoW', '+1,4%', 'up'], ['MoM', '+6,2%', 'up'], ['YoY', '+11,8%', 'up']] })}
+  ${kpi({ label: 'Application', value: '6.240', spark: [3, 3.4, 4, 4.4, 4.8, 5.1, 5.5, 5.7, 5.9, 6.0, 6.1, 6.2], sc: 's4',
+    den: 49.4, denL: 'trên qualified', denR: '12.640',
+    deltas: [['WoW', '+3,0%', 'up'], ['MoM', '+12,1%', 'up'], ['YoY', '−4,2%', 'down']] })}
+  ${kpi({ label: 'Enrolled', value: '3.820', spark: [1.2, 1.6, 2, 2.4, 2.7, 3, 3.2, 3.4, 3.5, 3.6, 3.7, 3.8], sc: 's6',
+    den: 76.4, denL: 'trên chỉ tiêu', denR: '5.000', denTarget: true,
+    deltas: [['WoW', '+4,2%', 'up'], ['MoM', '+15,6%', 'up'], ['YoY', '+8,9%', 'up']] })}
+  ${kpi({ label: 'Conversion cuối', value: '6,54', unit: '%',
+    spark: [5.9, 6.0, 6.1, 6.2, 6.3, 6.3, 6.4, 6.4, 6.5, 6.5, 6.5, 6.5], sc: 's7',
+    den: 65.4, denL: 'so mục tiêu 10,0%', denR: '10,0%',
+    deltas: [['WoW', '+0,1đ', 'up'], ['MoM', '+0,3đ', 'up'], ['YoY', '−0,4đ', 'down']] })}
+</div>
+
+<!-- ===== phễu + bản đồ ===== -->
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 2</span><h2>Phễu tuyển sinh — 7 bước</h2>
+      <span class="meta"><a href="M-05-admission-funnel.html" style="color:var(--s1);text-decoration:none">Phân tích sâu →</a></span></div>
+    ${funnel(STAGES, { leak: 1 })}
+    <p class="card__note">Bước <b>Engaged</b> đếm phản hồi hai chiều của thí sinh, không đếm lần liên hệ đi ra. Tỷ lệ Prospect → Engaged giảm 4,7 điểm so với kỳ trước — đây là điểm rò rỉ lớn nhất của mùa.</p>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>Phân bố địa bàn</h2>
+      <span class="meta"><a href="M-02-market-intelligence-map.html" style="color:var(--s1);text-decoration:none">Mở bản đồ →</a></span></div>
+    <div class="pills" style="margin-bottom:12px">
+      <button class="pill" aria-pressed="true" type="button">Penetration</button>
+      <button class="pill" aria-pressed="false" type="button">Enrollment</button>
+      <button class="pill" aria-pressed="false" type="button">Conversion</button>
+      <button class="pill" aria-pressed="false" type="button">Coverage</button>
+    </div>
+    <div class="carto" id="carto"></div>
+    <div class="scale" style="margin-top:12px">
+      <span>Penetration thấp</span>
+      <span class="scale__ramp"><i style="background:var(--q1)"></i><i style="background:var(--q2)"></i><i style="background:var(--q3)"></i><i style="background:var(--q4)"></i><i style="background:var(--q5)"></i><i style="background:var(--q6)"></i><i style="background:var(--q7)"></i></span>
+      <span>cao</span>
+      <span style="margin-left:auto">số dưới mỗi ô là số nhập học</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== xu hướng ===== -->
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>Prospect mới theo tuần, tách theo nhóm nguồn</h2>
+      <span class="meta">12 tuần gần nhất · so với cùng kỳ 2025</span></div>
+    ${barChart({
+      data: WEEKS, stacked: true, height: 190,
+      series: [
+        { key: 'online', name: 'Kênh số', c: 's1' },
+        { key: 'field',  name: 'Thực địa', c: 's2' },
+        { key: 'ref',    name: 'Giới thiệu', c: 's3' },
+      ],
+    })}
+    <div class="legend">
+      <span><i style="background:var(--s1)"></i>Kênh số</span>
+      <span><i style="background:var(--s2)"></i>Thực địa</span>
+      <span><i style="background:var(--s3)"></i>Giới thiệu</span>
+      <span style="margin-left:auto;color:var(--ink-3)">Đỉnh tuần 25 và 32 trùng với hai đợt tư vấn tại trường THPT. Đáy tuần 30 trùng kỳ nghỉ hè của khối THPT.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== AI insight ===== -->
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>AI phát hiện hôm nay</h2>
+      <span class="meta">3 mục · sắp theo tác động ước tính · <a href="M-14-ai-command-stream.html" style="color:var(--s1);text-decoration:none">Dòng đầy đủ →</a></span></div>
+    <div class="ai" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--critical)">Rủi ro</div>
+        <p class="ai__t">Conversion tại <b>Đồng Nai</b> giảm <b>14%</b> trong 14 ngày gần đây.</p>
+        <p class="ai__why">Trùng thời điểm hai tư vấn viên phụ trách địa bàn nghỉ phép; thời gian phản hồi lần đầu tăng từ 6 giờ lên 31 giờ. Không phải biến động mùa vụ: cùng kỳ 2025 chỉ số này đi ngang.</p>
+        <div class="ai__src">nguồn: 1.284 hồ sơ · <a href="M-09-regional-performance.html">Hiệu suất vùng</a> · <a href="M-10-sla-risk-center.html">SLA</a></div>
+      </div>
+      <div class="ai__item ai__item--opp">
+        <div class="ai__k" style="color:var(--good-ink)">Cơ hội</div>
+        <p class="ai__t">Cụm <b>12 trường THPT tại Cần Thơ</b> có 8.400 học sinh lớp 12 nhưng penetration chỉ <b>2,8%</b>.</p>
+        <p class="ai__why">Không có hoạt động tại trường nào trong 45 ngày. Các trường cùng nhóm quy mô ở Vĩnh Long đạt penetration 6,1% sau hai buổi career talk trong mùa trước.</p>
+        <div class="ai__src">Opportunity Score <b style="color:var(--ink)">94/100</b> · <a href="M-02-market-intelligence-map.html">Bản đồ thị trường</a></div>
+      </div>
+      <div class="ai__item ai__item--rev">
+        <div class="ai__k" style="color:var(--s4)">Cơ hội doanh thu</div>
+        <p class="ai__t">Nếu conversion của cụm này tăng <b>3 điểm</b>, doanh thu kỳ vọng tăng <b>12,4 tỷ</b>.</p>
+        <p class="ai__why">Giả định đang dùng: học phí ròng trung bình 49,2 triệu một năm, tỷ lệ giữ chân năm nhất 94%, thời gian từ tiếp cận tới nhập học 4,5 tháng. Đổi giả định tại M-13.</p>
+        <div class="ai__src">độ tin cậy 68% · <a href="M-13-revenue-forecast.html">Mở mô phỏng kịch bản</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== executive actions ===== -->
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><span class="zone">KV 5</span><h2>Hành động đề xuất ở cấp điều hành</h2>
+      <span class="meta">mọi hành động đi qua mô hình kiểm soát tại mục 8 của đặc tả</span></div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr>
+          <th style="width:26%">Hành động</th><th style="width:30%">Căn cứ</th>
+          <th class="num">Tác động dự kiến</th><th class="num">Tin cậy</th><th>Mức rủi ro</th><th style="width:1%"></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="name">Bổ sung 4 tư vấn viên cho vùng Mekong</td>
+            <td class="subtle">Tỷ lệ phủ 62% trên 12.000 lead tiềm năng; 142 hồ sơ đang quá hạn</td>
+            <td class="num">+180 nhập học</td><td class="num">74%</td>
+            <td><span class="tier tier--mid">Trung bình</span></td>
+            <td><button class="btn" type="button">Xem căn cứ</button></td>
+          </tr>
+          <tr>
+            <td class="name">Tổ chức career talk tại cụm 12 trường Cần Thơ</td>
+            <td class="subtle">Opportunity Score 94; không có hoạt động 45 ngày</td>
+            <td class="num">+96 nhập học</td><td class="num">68%</td>
+            <td><span class="tier tier--mid">Trung bình</span></td>
+            <td><button class="btn" type="button">Lập kế hoạch</button></td>
+          </tr>
+          <tr>
+            <td class="name">Chuyển 15% ngân sách TikTok sang School Event</td>
+            <td class="subtle">CPQL TikTok 0,69 triệu so với 0,48 triệu của School Event</td>
+            <td class="num">+42 nhập học · 122 tr tái phân bổ</td><td class="num">61%</td>
+            <td><span class="tier tier--mid">Trung bình</span></td>
+            <td><button class="btn" type="button">Xem căn cứ</button></td>
+          </tr>
+          <tr>
+            <td class="name">Gửi lại thông tin học bổng cho 640 hồ sơ nguội</td>
+            <td class="subtle">Nhóm đã xem trang học phí ≥ 3 lần, im lặng trên 21 ngày</td>
+            <td class="num">+58 nhập học</td><td class="num">55%</td>
+            <td><span class="tier tier--high">Cao — cần duyệt</span></td>
+            <td><button class="btn btn--primary" type="button">Chuyển duyệt</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="card__note">Hành động mức cao gửi nội dung trực tiếp tới thí sinh và phụ huynh nên luôn dừng ở bước duyệt của con người. Dashboard chỉ phát sinh ý định; lớp trí tuệ phân loại và điều phối; phân hệ hội thoại thực thi.</p>
+  </div>
+</div>
+`;
+
+/* ---------------- dựng cartogram ---------------- */
+const allPen = REGIONS.flatMap(([, ps]) => ps.map(p => p[1]));
+const pmin = Math.min(...allPen), pmax = Math.max(...allPen);
+const stepOf = v => 'q' + (1 + Math.min(6, Math.max(0, Math.round(((v - pmin) / (pmax - pmin)) * 6))));
+document.getElementById('carto').innerHTML = REGIONS.map(([r, ps]) => `
+  <div class="carto__region">
+    <div class="carto__rlabel">${r}</div>
+    <div class="carto__tiles">${ps.map(([n, pen, enr]) => {
+      const s = stepOf(pen);
+      return `<div class="tile qt${s.slice(1)}"
+        data-tip="<b>${n}</b><br>Penetration ${pen.toFixed(1).replace('.', ',')}%<br>Nhập học ${fmt(enr)}">
+        <b>${n}</b><span>${pen.toFixed(1).replace('.', ',')}%</span></div>`;
+    }).join('')}</div>
+  </div>`).join('');
+
+bindTip(canvas);
+</script>
+</body>
+</html>

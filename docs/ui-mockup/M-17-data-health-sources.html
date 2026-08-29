@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-17 · Data Health & Sources</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-17',
+  title: 'Data Health & Sources',
+  lede: 'Màn hình bảo vệ niềm tin vào toàn bộ hệ thống. Khi một con số trông lạ, đây là nơi trả lời dữ liệu đã về đủ chưa và số đó có đáng tin không.',
+  filters: [['Năm', '2026'], ['Kỳ', '24 giờ qua'], ['Nguồn', 'Tất cả'], ['Trạng thái', 'Tất cả']],
+});
+
+canvas.innerHTML = `
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Trạng thái nguồn dữ liệu</h2>
+      <span class="meta">ngưỡng độ trễ: 30 giây cho hội thoại, 30 phút cho thực địa, 24 giờ cho chi phí</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Nguồn</th><th>Phân hệ sở hữu</th><th>Trạng thái</th><th class="num">Độ trễ hiện tại</th>
+        <th>Bản ghi cuối</th><th class="num">24 giờ qua</th><th>Màn hình phụ thuộc</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Hội thoại đa kênh</td><td class="subtle">Chatwoot Gateway</td>
+          <td><span class="badge badge--good">Bình thường</span></td><td class="num">8 giây</td>
+          <td class="subtle">12 giây trước</td><td class="num">4.284</td>
+          <td class="subtle">M-05, M-06, M-08, M-14</td></tr>
+        <tr><td class="name">Thu tại sự kiện</td><td class="subtle">Offline Capture</td>
+          <td><span class="badge badge--critical">Ngừng đồng bộ</span></td>
+          <td class="num" style="color:var(--critical);font-weight:650">200 phút</td>
+          <td class="subtle">3 giờ 20 trước</td><td class="num">312</td>
+          <td class="subtle">M-11, M-01, M-12</td></tr>
+        <tr><td class="name">Hồ sơ và trạng thái</td><td class="subtle">Frappe Core</td>
+          <td><span class="badge badge--good">Bình thường</span></td><td class="num">2 giây</td>
+          <td class="subtle">vừa xong</td><td class="num">18.940</td>
+          <td class="subtle">Toàn bộ</td></tr>
+        <tr><td class="name">Điểm số và đề xuất AI</td><td class="subtle">AI Intelligence</td>
+          <td><span class="badge badge--good">Bình thường</span></td><td class="num">4 phút</td>
+          <td class="subtle">4 phút trước</td><td class="num">1.284</td>
+          <td class="subtle">M-07, M-08, M-14, M-16</td></tr>
+        <tr><td class="name">Chi phí quảng cáo</td><td class="subtle" style="color:var(--critical)">chưa có chủ sở hữu</td>
+          <td><span class="badge badge--critical">Chưa có nguồn</span></td><td class="num subtle">—</td>
+          <td class="subtle">—</td><td class="num subtle">—</td>
+          <td class="subtle">M-12, M-01, M-13</td></tr>
+        <tr><td class="name">Quy mô thị trường lớp 12</td><td class="subtle" style="color:var(--critical)">chưa có chủ sở hữu</td>
+          <td><span class="badge badge--critical">Chưa có nguồn</span></td><td class="num subtle">—</td>
+          <td class="subtle">—</td><td class="num subtle">—</td>
+          <td class="subtle">M-02, M-03, M-09</td></tr>
+        <tr><td class="name">Học phí và học bổng</td><td class="subtle">Frappe Core · thiếu cơ chế tính</td>
+          <td><span class="badge badge--warning">Một phần</span></td><td class="num subtle">—</td>
+          <td class="subtle">chính sách v3</td><td class="num subtle">—</td>
+          <td class="subtle">M-13, M-01</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 2</span><h2>Hàng đợi lỗi</h2>
+      <span class="meta">mở được ra dữ liệu gốc để xử lý lại</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Loại lỗi</th><th class="num">Bản ghi</th><th class="num">Cũ nhất</th><th style="width:1%"></th></tr></thead>
+      <tbody>
+        <tr><td class="name">Mất kết nối khi đồng bộ</td><td class="num">128</td><td class="num">3 giờ 20</td>
+          <td><button class="btn" type="button">Thử lại</button></td></tr>
+        <tr><td class="name">Số điện thoại sai định dạng</td><td class="num">42</td><td class="num">2 ngày</td>
+          <td><button class="btn" type="button">Sửa</button></td></tr>
+        <tr><td class="name">Thiếu trường bắt buộc</td><td class="num">12</td><td class="num">1 ngày</td>
+          <td><button class="btn" type="button">Sửa</button></td></tr>
+        <tr><td class="name">Trùng khóa chống trùng</td><td class="num">2</td><td class="num">4 giờ</td>
+          <td><button class="btn" type="button">Xem</button></td></tr>
+      </tbody>
+    </table></div>
+    <div class="card__hd" style="margin:18px 0 10px"><h2 style="font-size:12.5px">Trùng lặp</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div><div class="kpi__label">Chờ duyệt</div><div class="kpi__val" style="font-size:22px">184</div></div>
+      <div><div class="kpi__label">Gộp tự động</div><div class="kpi__val" style="font-size:22px">1.246</div></div>
+      <div><div class="kpi__label">Đã tách lại</div><div class="kpi__val" style="font-size:22px">18</div></div>
+    </div>
+    <p class="card__note">18 trường hợp bị gộp nhầm rồi tách lại trong mùa. Tỷ lệ này (1,4%) là chỉ số cần theo dõi: gộp nhầm gây hậu quả nặng hơn để trùng, vì nó xóa mất lịch sử của một người.</p>
+  </div>
+
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>Độ đầy đủ dữ liệu theo nguồn thu</h2>
+      <span class="meta">tỷ lệ hồ sơ có giá trị cho trường đó</span></div>
+    ${heat({
+      rows: ['Kênh số', 'Thực địa', 'Giới thiệu', 'Promoter'],
+      cols: ['Liên hệ', 'Trường THPT', 'Ngành', 'Đồng ý', 'Địa bàn', 'Học lực', 'Gia đình'],
+      values: [
+        [99.2, 62.4, 88.1, 99.8, 94.1, 12.4, 2.1],
+        [98.4, 99.1, 96.2, 97.8, 98.6, 48.2, 18.4],
+        [96.8, 91.2, 84.4, 96.1, 92.4, 31.6, 24.2],
+        [97.2, 98.4, 94.8, 98.2, 97.1, 42.1, 14.8],
+      ],
+      title: 'Nguồn thu',
+    })}
+    <p class="card__note">Lead từ kênh số thiếu tên trường THPT ở 37,6% hồ sơ — đó là lý do màn hình School Intelligence không phủ được toàn bộ dữ liệu. Hai cột cuối gần như trống ở mọi nguồn: đây là hệ quả trực tiếp của việc API thu dữ liệu chỉ có bốn trường bắt buộc.</p>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 5</span><h2>Độ tươi của từng khối dữ liệu</h2>
+      <span class="meta">dùng để giải thích khi hai màn hình lệch số</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Khối dữ liệu</th><th>Làm mới lần cuối</th><th>Chu kỳ</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Chỉ số tổng quan</td><td class="subtle">2 phút trước</td><td class="subtle">5 phút</td></tr>
+        <tr><td class="name">Phễu và chuyển đổi</td><td class="subtle">4 phút trước</td><td class="subtle">5 phút</td></tr>
+        <tr><td class="name">Dòng phát hiện AI</td><td class="subtle">18 giây trước</td><td class="subtle">30 giây</td></tr>
+        <tr><td class="name">Hàng đợi hành động</td><td class="subtle">3 phút trước</td><td class="subtle">5 phút</td></tr>
+        <tr><td class="name">Bản đồ thị trường</td><td class="subtle">6 giờ trước</td><td class="subtle">hằng ngày</td></tr>
+        <tr><td class="name">Dự báo và doanh thu</td><td class="subtle">14 giờ trước</td><td class="subtle">hằng ngày</td></tr>
+        <tr><td class="name">Chỉ số chất lượng mô hình</td><td class="subtle">6 ngày trước</td><td class="subtle">hằng tuần</td></tr>
+      </tbody>
+    </table></div>
+    <p class="card__note">Nếu M-01 và M-05 hiển thị hai con số khác nhau cho cùng một chỉ số, nguyên nhân gần như luôn nằm ở bảng này — không phải lỗi tính toán.</p>
+  </div>
+
+  <div class="card c7 simulated">
+    <div class="card__hd"><span class="zone">KV 6</span><h2>Sổ đăng ký dữ liệu mô phỏng</h2>
+      <span class="meta">bắt buộc trong giai đoạn demo-first · mục 12.2 của đặc tả</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Khối dữ liệu</th><th>Màn hình</th><th>Vì sao đang mô phỏng</th><th>Dự kiến có thật</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Quy mô học sinh lớp 12</td><td class="subtle">M-02, M-03, M-09</td>
+          <td class="subtle">Chưa xác định nguồn — Sở, Bộ hay mua ngoài</td><td class="subtle">chờ quyết định Q2</td></tr>
+        <tr><td class="name">Target theo cấp</td><td class="subtle">M-01, M-09, M-13</td>
+          <td class="subtle">Chưa chốt đặt target ở những cấp nào</td><td class="subtle">chờ quyết định Q3</td></tr>
+        <tr><td class="name">Doanh thu và học phí ròng</td><td class="subtle">M-13, M-01, M-12</td>
+          <td class="subtle">Chưa chốt cách ghi nhận doanh thu</td><td class="subtle">chờ quyết định Q9</td></tr>
+        <tr><td class="name">Chi phí và chỉ số nền tảng</td><td class="subtle">M-12</td>
+          <td class="subtle">Chưa tích hợp API nền tảng quảng cáo</td><td class="subtle">chờ quyết định Q8</td></tr>
+        <tr><td class="name">Học lực và thông tin gia đình</td><td class="subtle">M-04, M-08</td>
+          <td class="subtle">Chưa có cơ sở pháp lý để thu thập</td><td class="subtle">chờ quyết định Q4</td></tr>
+        <tr><td class="name">Định mức năng suất</td><td class="subtle">M-09, M-02</td>
+          <td class="subtle">Chưa có ai trong tổ chức sở hữu con số này</td><td class="subtle">chờ quyết định Q10</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout" style="margin-top:12px">
+      <b>Đây là màn hình quan trọng nhất của giai đoạn demo.</b> Mỗi khối dữ liệu mô phỏng đều mang nhãn gạch chéo ngay trên khối đó ở màn hình gốc, và phải có mặt trong bảng này. Một buổi trình diễn không gắn nhãn sẽ tạo kỳ vọng sai về tiến độ, và cái giá phải trả xuất hiện vài tháng sau khi hệ thống thật không giống bản demo.
+    </div>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

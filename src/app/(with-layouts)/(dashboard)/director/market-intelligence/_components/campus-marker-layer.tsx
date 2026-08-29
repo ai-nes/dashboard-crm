@@ -32,15 +32,6 @@ export default function CampusMarkerLayer({
             onMouseEnter={() => setActiveCampus(campus)}
             onMouseLeave={() => setActiveCampus(null)}
           >
-            {/* Pulse Ripple Effect */}
-            <circle
-              className="animate-ping opacity-60"
-              cx={x}
-              cy={y}
-              fill="var(--color-brand-500, #3b82f6)"
-              r={12}
-            />
-
             {/* Ambient Aura */}
             <circle
               cx={x}

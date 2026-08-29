@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-15 · Ask Admission AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-15',
+  title: 'Ask Admission AI',
+  lede: 'Đặt câu hỏi bằng tiếng Việt trên toàn bộ dữ liệu trong phạm vi quyền của người hỏi. Trả lời kèm số liệu và nguồn, thay cho việc đặt hàng báo cáo thủ công.',
+  filters: [['Năm', '2026'], ['Kỳ', 'Từ đầu mùa'], ['Địa bàn', 'Toàn quốc'], ['Phạm vi quyền', 'Head of Admission'], ['Ngành', 'Tất cả']],
+});
+
+const MONTHS = [
+  { label: 'T3', ngheAn: 142, matBang: 128 }, { label: 'T4', ngheAn: 168, matBang: 141 },
+  { label: 'T5', ngheAn: 184, matBang: 156 }, { label: 'T6', ngheAn: 176, matBang: 162 },
+  { label: 'T7', ngheAn: 149, matBang: 171 }, { label: 'T8', ngheAn: 98, matBang: 168 },
+];
+
+canvas.innerHTML = `
+<div class="grid grid--top">
+  <div class="card c3">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>Lịch sử phiên</h2></div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      ${[['Vì sao lead Nghệ An tháng này giảm?', true],
+         ['Ngành nào có tỷ lệ nhập học trên hồ sơ nộp thấp nhất?', false],
+         ['Chi phí trên mỗi nhập học của School Event là bao nhiêu?', false],
+         ['Đội nào có thời gian phản hồi lần đầu chậm nhất?', false]]
+        .map(([q, active]) => `
+        <button class="btn" type="button" style="text-align:left;border:0;background:${active ? 'var(--surface-2)' : 'transparent'};
+                font-weight:${active ? '600' : '400'};white-space:normal;padding:8px 10px;font-size:12px">${q}</button>`).join('')}
+    </div>
+    <div class="card__hd" style="margin:18px 0 10px"><h2 style="font-size:12.5px">Câu hỏi gợi ý</h2>
+      <span class="meta">theo vai trò</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${['Vùng nào đang chậm nhất so với target?',
+         'Trường THPT nào đáng đầu tư nhất ở ĐBSCL?',
+         'Campaign nào tốn tiền nhất mà không ra nhập học?',
+         'Bao nhiêu hồ sơ điểm cao đang không có ai phụ trách?',
+         'Ngành AI còn bao nhiêu chỉ tiêu?']
+        .map(q => `<button class="btn" type="button" style="text-align:left;white-space:normal;font-size:11.5px;padding:7px 10px">${q}</button>`).join('')}
+    </div>
+  </div>
+
+  <div class="card c9">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>Đặt câu hỏi</h2>
+      <span class="meta">phạm vi đang áp dụng: toàn quốc · năm 2026 · từ đầu mùa</span></div>
+    <div style="display:flex;gap:8px;margin-bottom:18px">
+      <input type="text" value="Vì sao lead Nghệ An tháng này giảm?" readonly
+        style="flex:1;border:1px solid var(--line);border-radius:var(--r-s);padding:11px 13px;font:inherit;
+               background:var(--surface);color:var(--ink)">
+      <button class="btn btn--primary" type="button">Hỏi</button>
+    </div>
+
+    <div style="border-left:3px solid var(--s1);padding-left:16px">
+      <div class="ai__k" style="color:var(--s1)">Kết luận</div>
+      <p style="font-size:14px;line-height:1.6;margin:6px 0 0">
+        Lead Nghệ An tháng 8 đạt <b>98</b>, giảm <b>34,2%</b> so với tháng 7 và là tháng giảm mạnh nhất trong mùa.
+        Nguyên nhân chính không nằm ở nhu cầu thị trường mà ở nguồn cung hoạt động:
+        <b>tháng 8 không có hoạt động thực địa nào tại Nghệ An</b>, trong khi tháng 5 tới tháng 7 mỗi tháng có hai tới ba hoạt động.
+        Kênh số tại địa bàn này giữ nguyên mức 62 tới 71 lead mỗi tháng suốt cả mùa.
+      </p>
+
+      <div class="card__hd" style="margin:20px 0 10px"><h2 style="font-size:12.5px">Số liệu</h2></div>
+      ${lineChart({
+        data: MONTHS, height: 190,
+        series: [
+          { key: 'matBang', name: 'Mặt bằng', c: 's4', dash: true },
+          { key: 'ngheAn', name: 'Nghệ An', c: 's1' },
+        ],
+      })}
+      <div class="legend">
+        <span><i style="background:var(--s1)"></i>Lead mới tại Nghệ An</span>
+        <span><i style="background:var(--s4)"></i>Trung bình các tỉnh cùng nhóm quy mô</span>
+      </div>
+
+      <div class="tbl-wrap" style="margin-top:14px"><table class="tbl">
+        <thead><tr><th>Tháng</th><th class="num">Lead</th><th class="num">Từ kênh số</th>
+          <th class="num">Từ thực địa</th><th class="num">Số hoạt động</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Tháng 5</td><td class="num">184</td><td class="num">68</td><td class="num">116</td><td class="num">3</td></tr>
+          <tr><td class="name">Tháng 6</td><td class="num">176</td><td class="num">71</td><td class="num">105</td><td class="num">2</td></tr>
+          <tr><td class="name">Tháng 7</td><td class="num">149</td><td class="num">64</td><td class="num">85</td><td class="num">2</td></tr>
+          <tr><td class="name">Tháng 8</td><td class="num"><b>98</b></td><td class="num">62</td><td class="num" style="color:var(--critical);font-weight:650">36</td><td class="num" style="color:var(--critical);font-weight:650">0</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="card__hd" style="margin:20px 0 10px"><h2 style="font-size:12.5px">Nguồn đã dùng</h2></div>
+      <div class="ai__src" style="gap:10px">
+        <a href="M-02-market-intelligence-map.html">Dữ liệu lead theo tỉnh · 1.978 bản ghi</a> ·
+        <a href="M-11-school-field-activity.html">Lịch hoạt động thực địa · 42 hoạt động</a> ·
+        <a href="#">Truy vấn đã chạy</a> ·
+        <span>thời gian trả lời 3,2 giây</span>
+      </div>
+
+      <div style="display:flex;gap:6px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn" type="button">Ghim vào bảng của tôi</button>
+        <button class="btn" type="button">Xuất kết quả</button>
+        <button class="btn" type="button">Đặt lịch gửi hằng tuần</button>
+        <a class="btn" href="M-11-school-field-activity.html" style="text-decoration:none;margin-left:auto">Xem trên dashboard →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid--top">
+  <div class="card c6">
+    <div class="card__hd"><h2>Khi không đủ căn cứ</h2>
+      <span class="meta">hành vi bắt buộc, không phải tùy chọn</span></div>
+    <div style="border-left:3px solid var(--axis);padding-left:16px">
+      <div style="font-size:12.5px;color:var(--ink-3);margin-bottom:8px">Câu hỏi: “Tỷ lệ sinh viên bỏ học năm nhất của khóa 2025 là bao nhiêu?”</div>
+      <div class="ai__k">Trả lời</div>
+      <p style="font-size:13.5px;line-height:1.6;margin:6px 0 0">
+        Hệ thống <b>chưa có thông tin</b> về tỷ lệ bỏ học sau nhập học. Dữ liệu hiện tại dừng ở thời điểm hoàn tất nghĩa vụ tài chính đợt đầu và không nối với hệ thống quản lý đào tạo.
+      </p>
+      <p style="font-size:12px;color:var(--ink-2);margin-top:8px">
+        Không suy đoán, không đưa ra con số gần đúng. Nếu cần chỉ số này, đây là một yêu cầu tích hợp mới chứ không phải một câu hỏi chưa được hỏi đúng cách.
+      </p>
+    </div>
+    <div class="callout" style="margin-top:16px">
+      Trong 30 ngày qua, <b>11,4%</b> câu hỏi nhận câu trả lời "chưa có thông tin". Tỷ lệ này được theo dõi tại <a href="M-16-ai-trust-model-health.html" style="color:var(--s1)">M-16</a> — nếu nó quá thấp, nhiều khả năng hệ thống đang suy đoán thay vì thừa nhận giới hạn.
+    </div>
+  </div>
+
+  <div class="card c6">
+    <div class="card__hd"><h2>Phạm vi quyền ảnh hưởng tới câu trả lời</h2>
+      <span class="meta">cùng một câu hỏi, hai kết quả</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Người hỏi</th><th>Phạm vi dữ liệu</th><th class="num">Kết quả nhận được</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Head of Admission</td><td class="subtle">Toàn quốc</td><td class="num">98 lead</td></tr>
+        <tr><td class="name">Regional Manager Bắc Trung Bộ</td><td class="subtle">Vùng Bắc Trung Bộ</td><td class="num">98 lead</td></tr>
+        <tr><td class="name">Regional Manager Mekong</td><td class="subtle">Vùng Mekong</td><td class="num subtle">ngoài phạm vi</td></tr>
+        <tr><td class="name">Marketing</td><td class="subtle">Toàn quốc, đã che dữ liệu cá nhân</td><td class="num">98 lead</td></tr>
+      </tbody>
+    </table></div>
+    <p class="card__note">Khi câu hỏi vượt phạm vi quyền, hệ thống nói rõ là ngoài phạm vi thay vì trả về một con số bị cắt xén. Con số cắt xén nguy hiểm hơn không có con số, vì người đọc không biết mình đang thiếu gì.</p>
+    <div class="card__hd" style="margin:16px 0 10px"><h2 style="font-size:12.5px">Câu trả lời trả về danh sách cá nhân</h2></div>
+    <div class="empty">
+      <b>Đang chờ chính sách</b>
+      Cho phép hay chỉ trả về số tổng hợp là điểm cần chốt Q11. Trước khi chốt, hệ thống chỉ trả về số tổng hợp.
+    </div>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

@@ -1,15 +1,35 @@
 import {
+  AlphabetIcon,
+  CalendarIcon,
+  ChatIcon,
   HomeIcon,
+  InvoiceIcon,
+  LetterIcon,
   PieChartIcon,
+  TaskIcon,
   TableIcon,
   UserIcon,
+  UserGroupIcon,
   Widget4Icon,
   WindowIcon,
 } from "./icon";
+import type { ReactNode } from "react";
 
-export const NAV_DATA = [
+interface NavigationItem {
+  title: string;
+  url?: string;
+  icon?: ReactNode;
+  items?: NavigationItem[];
+}
+
+interface NavigationSection {
+  label: string;
+  items: NavigationItem[];
+}
+
+export const NAV_DATA: NavigationSection[] = [
   {
-    label: "TRUNG TÂM ĐIỀU HÀNH",
+    label: "A · ĐIỀU HÀNH & THỊ TRƯỜNG",
     items: [
       {
         title: "Tổng quan tuyển sinh",
@@ -18,72 +38,120 @@ export const NAV_DATA = [
         items: [],
       },
       {
-        title: "Doanh thu & dự báo",
-        url: "/director/revenue-forecast",
+        title: "Bản đồ thị trường",
+        url: "/director/market-intelligence",
+        icon: <PieChartIcon />,
+        items: [],
+      },
+      {
+        title: "Phân tích trường THPT",
+        url: "/director/schools",
+        icon: <UserGroupIcon />,
+        items: [],
+      },
+      {
+        title: "Khám phá người học",
+        url: "/director/demographics",
+        icon: <AlphabetIcon />,
+        items: [],
+      },
+      {
+        title: "Hiệu suất khu vực",
+        url: "/director/regional-performance",
+        icon: <PieChartIcon />,
+        items: [],
+      },
+    ],
+  },
+  {
+    label: "B · HÀNH TRÌNH & THỰC THI",
+    items: [
+      {
+        title: "Phễu tuyển sinh",
+        url: "/director/admission-funnel",
         icon: <TableIcon />,
         items: [],
       },
-    ],
-  },
-  {
-    label: "THỊ TRƯỜNG & TĂNG TRƯỞNG",
-    items: [
       {
-        title: "Thị trường tuyển sinh",
-        icon: <PieChartIcon />,
-        items: [
-          {
-            title: "Bản đồ thị trường",
-            url: "/director/market-intelligence",
-          },
-          {
-            title: "Hiệu suất khu vực",
-            url: "/director/regional-performance",
-          },
-          {
-            title: "Khám phá người học",
-            url: "/director/demographics",
-          },
-        ],
-      },
-      {
-        title: "Hiệu quả chiến dịch",
-        url: "/director/campaign-intelligence",
-        icon: <WindowIcon />,
+        title: "Quản lý cơ hội bán hàng",
+        url: "/director/sales-pipeline",
+        icon: <UserIcon />,
         items: [],
       },
-    ],
-  },
-  {
-    label: "HÀNH TRÌNH TUYỂN SINH",
-    items: [
-      {
-        title: "Hồ sơ & phễu tuyển sinh",
-        icon: <UserIcon />,
-        items: [
-          {
-            title: "Phễu tuyển sinh",
-            url: "/director/sales-pipeline",
-          },
-          {
-            title: "Phân tích trường THPT",
-            url: "/director/schools",
-          },
-          {
-            title: "Hồ sơ học sinh 360°",
-            url: "/director/students",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    label: "TRÍ TUỆ & HÀNH ĐỘNG",
-    items: [
       {
         title: "Hành động AI đề xuất",
         url: "/director/ai/next-best-action",
         icon: <Widget4Icon />,
+        items: [],
+      },
+      {
+        title: "Hồ sơ học sinh 360°",
+        url: "/director/students",
+        icon: <UserGroupIcon />,
+        items: [],
+      },
+      {
+        title: "SLA & trung tâm rủi ro",
+        url: "/director/sla",
+        icon: <TaskIcon />,
+        items: [],
+      },
+      {
+        title: "Hoạt động trường & thực địa",
+        url: "/director/school-field-activity",
+        icon: <CalendarIcon />,
+        items: [],
+      },
+    ],
+  },
+  {
+    label: "C · TĂNG TRƯỞNG & DOANH THU",
+    items: [
+      {
+        title: "Phân tích chiến dịch",
+        url: "/director/campaign-intelligence",
+        icon: <WindowIcon />,
+        items: [],
+      },
+      {
+        title: "Doanh thu & dự báo",
+        url: "/director/revenue-forecast",
+        icon: <InvoiceIcon />,
+        items: [],
+      },
+    ],
+  },
+  {
+    label: "D · AI & QUẢN TRỊ HỆ THỐNG",
+    items: [
+      {
+        title: "Luồng tín hiệu AI",
+        url: "/director/ai/command-stream",
+        icon: <Widget4Icon />,
+        items: [],
+      },
+      {
+        title: "Hỏi đáp tuyển sinh AI",
+        url: "/director/ai/ask-admission",
+        icon: <ChatIcon />,
+        items: [],
+      },
+      {
+        title: "Độ tin cậy & sức khỏe AI",
+        url: "/director/ai/trust-model-health",
+        icon: <AlphabetIcon />,
+        items: [],
+      },
+      {
+        title: "Sức khỏe dữ liệu & nguồn",
+        url: "/director/data-health",
+        icon: <TableIcon />,
+        items: [],
+      },
+      {
+        title: "Cảnh báo & đăng ký nhận tin",
+        url: "/director/alerts",
+        icon: <LetterIcon />,
         items: [],
       },
     ],

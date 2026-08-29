@@ -12,7 +12,7 @@ interface SchoolDetailPageProps {
 export async function generateMetadata({ params }: SchoolDetailPageProps): Promise<Metadata> {
   const { schoolCode } = await params;
   const school = await getSchoolById(schoolCode);
-  return { title: school ? `${school.name} | School Intelligence` : "Không tìm thấy trường | School Intelligence" };
+  return { title: school?.name ?? "Không tìm thấy trường" };
 }
 
 export default async function SchoolDetailPage({ params }: SchoolDetailPageProps) {

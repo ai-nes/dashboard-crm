@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M-03 · School Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+</head>
+<body>
+<script src="_ui.js"></script>
+<script>
+const canvas = mountShell({
+  code: 'M-03',
+  title: 'School Intelligence',
+  lede: 'Mỗi trường THPT là một tài khoản tuyển sinh được quản lý, không phải một thuộc tính của hồ sơ. Trường này tiềm năng bao nhiêu, ta khai thác được bao nhiêu, và vì sao kết quả như vậy.',
+  filters: [['Năm', '2026'], ['Kỳ', 'Từ đầu mùa'], ['Địa bàn', 'Cần Thơ'], ['Trường', 'THPT Châu Văn Liêm'], ['Ngành', 'Tất cả'], ['Kênh', 'Tất cả', true], ['Nhân sự', 'Tất cả']],
+});
+
+const YEARS = [
+  { label: '2022', prospect: 42, app: 12, enr: 8 },
+  { label: '2023', prospect: 58, app: 19, enr: 11 },
+  { label: '2024', prospect: 71, app: 24, enr: 14 },
+  { label: '2025', prospect: 96, app: 31, enr: 18 },
+  { label: '2026', prospect: 128, app: 26, enr: 21 },
+];
+
+const MAJORS = [
+  ['Công nghệ thông tin', 38], ['Trí tuệ nhân tạo', 24], ['Quản trị kinh doanh', 21],
+  ['Thiết kế đồ họa', 16], ['Ngôn ngữ Anh', 15], ['Du lịch & Khách sạn', 14],
+];
+
+canvas.innerHTML = `
+<!-- ===== header trường ===== -->
+<div class="grid grid--top">
+  <div class="card c8 simulated">
+    <div class="card__hd"><span class="zone">KV 1</span><h2>THPT Châu Văn Liêm</h2>
+      <span class="meta">Ninh Kiều, Cần Thơ · trường công lập · hạng 2/24 trong tỉnh</span></div>
+    <div class="hero">
+      <div>
+        <div class="hero__n">92<small style="font-size:20px;color:var(--ink-3)">/100</small></div>
+        <div class="hero__l">School Potential Score</div>
+      </div>
+      <div style="border-left:1px solid var(--line);padding-left:22px">
+        <div class="hero__n" style="font-size:32px">520</div>
+        <div class="hero__l">học sinh lớp 12 năm học này</div>
+      </div>
+      <div style="border-left:1px solid var(--line);padding-left:22px">
+        <div class="hero__n" style="font-size:32px">128</div>
+        <div class="hero__l">prospect · penetration <b>24,6%</b></div>
+      </div>
+      <div style="border-left:1px solid var(--line);padding-left:22px">
+        <div class="hero__n" style="font-size:32px;color:var(--s6)">21</div>
+        <div class="hero__l">đã nhập học mùa này</div>
+      </div>
+    </div>
+    <div class="den" style="margin-top:16px">
+      <div class="den__track" style="height:12px">
+        <i class="den__fill" style="width:24.6%" data-tip="<b>Đã chạm</b><br>128 / 520 học sinh lớp 12"></i>
+      </div>
+      <div class="den__cap"><span>đã chạm <b>128</b></span><span>còn <b>392</b> học sinh chưa tiếp cận</span><span>520</span></div>
+    </div>
+  </div>
+
+  <div class="card c4 simulated">
+    <div class="card__hd"><h2>Potential Score gồm những gì</h2><span class="meta">92/100</span></div>
+    <div class="evidence" style="border-top:0;padding-top:0;margin-top:0">
+      <span class="w">Quy mô lớp 12<span class="wbar"><i style="width:78%"></i></span></span><span>520 HS</span>
+      <span class="w">Lịch sử nhập học 4 mùa<span class="wbar"><i style="width:94%"></i></span></span><span>tăng đều</span>
+      <span class="w">Hồ sơ học lực<span class="wbar"><i style="width:88%"></i></span></span><span>top 10% tỉnh</span>
+      <span class="w">Phù hợp chương trình<span class="wbar"><i style="width:96%"></i></span></span><span>khối A/A1 cao</span>
+      <span class="w">Khoảng cách địa lý<span class="wbar"><i style="width:52%"></i></span></span><span>142 km</span>
+    </div>
+    <p class="card__note">Công thức mở xem được và có thể tranh luận. Quy mô lớp 12 và hồ sơ học lực hiện là dữ liệu mô phỏng — chưa có nguồn chính thức, xem <a href="M-17-data-health-sources.html" style="color:var(--s1)">M-17</a>.</p>
+  </div>
+</div>
+
+<!-- ===== kết quả theo năm + ngành ===== -->
+<div class="grid grid--top">
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 3</span><h2>Kết quả tuyển sinh theo năm</h2>
+      <span class="meta">5 mùa gần nhất</span></div>
+    ${barChart({
+      data: YEARS, height: 200,
+      series: [
+        { key: 'prospect', name: 'Prospect', c: 's1' },
+        { key: 'app', name: 'Application', c: 's4' },
+        { key: 'enr', name: 'Enrollment', c: 's6' },
+      ],
+    })}
+    <div class="legend">
+      <span><i style="background:var(--s1)"></i>Prospect</span>
+      <span><i style="background:var(--s4)"></i>Application</span>
+      <span><i style="background:var(--s6)"></i>Enrollment</span>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      <b>Nghịch lý cần chú ý.</b> Prospect năm nay tăng 33% nhưng Application giảm 16% so với 2025 — lần đầu tiên trong 5 mùa hai đường này đi ngược chiều nhau. Enrollment vẫn tăng vì phần lớn đến từ nhóm đã tiếp cận từ mùa trước.
+    </div>
+  </div>
+
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 4</span><h2>Chân dung học sinh</h2>
+      <span class="meta">128 prospect</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Ngành quan tâm</th><th class="num">Số HS</th><th class="num" style="width:38%">Tỷ trọng</th></tr></thead>
+      <tbody>${MAJORS.map(([m, n]) => `
+        <tr><td class="name">${m}</td><td class="num">${n}</td>
+          <td class="num"><span class="inbar"><span class="inbar__t"><span class="inbar__f" style="width:${n / 38 * 100}%"></span></span>${pct(n / 128 * 100, 0)}</span></td></tr>`).join('')}
+      </tbody>
+    </table></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px">
+      <div>
+        <div class="kpi__label">Giới tính</div>
+        <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:8px;gap:2px">
+          <i style="width:54%;background:var(--s1)"></i><i style="width:46%;background:var(--s5)"></i>
+        </div>
+        <div class="den__cap"><span>Nữ 54%</span><span>Nam 46%</span></div>
+      </div>
+      <div>
+        <div class="kpi__label">Học lực</div>
+        <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:8px;gap:2px">
+          <i style="width:38%;background:var(--q6)"></i><i style="width:44%;background:var(--q4)"></i><i style="width:18%;background:var(--q2)"></i>
+        </div>
+        <div class="den__cap"><span>Giỏi 38%</span><span>Khá 44%</span><span>TB 18%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== hoạt động + AI ===== -->
+<div class="grid grid--top">
+  <div class="card c5">
+    <div class="card__hd"><span class="zone">KV 5</span><h2>Hoạt động tại trường</h2>
+      <span class="meta">gần nhất cách đây 47 ngày</span></div>
+    <div class="tline">
+      <div class="tevent tevent--muted">
+        <div class="tevent__d">12/07/2026 · 47 ngày trước</div>
+        <div class="tevent__t">Tư vấn tại lớp — khối 12A1 đến 12A6</div>
+        <div class="tevent__m">Nguyễn Thị Hà · thu 34 prospect · 6 chuyển sang Qualified</div>
+      </div>
+      <div class="tevent">
+        <div class="tevent__d">28/05/2026</div>
+        <div class="tevent__t">Career Talk — Nghề nghiệp ngành CNTT</div>
+        <div class="tevent__m">Trần Quốc Bảo · 180 học sinh tham dự · thu 62 prospect · 11 nhập học</div>
+      </div>
+      <div class="tevent">
+        <div class="tevent__d">14/03/2026</div>
+        <div class="tevent__t">Open Day tại cơ sở Cần Thơ</div>
+        <div class="tevent__m">42 học sinh của trường tham dự · 8 nhập học</div>
+      </div>
+      <div class="tevent tevent--muted">
+        <div class="tevent__d">09/11/2025</div>
+        <div class="tevent__t">Parent Seminar — Học phí và học bổng</div>
+        <div class="tevent__m">64 phụ huynh tham dự · tỷ lệ nhập học nhóm này cao gấp 2,4 lần mặt bằng</div>
+      </div>
+    </div>
+    <div class="empty" style="margin-top:12px">
+      <b>Không có hoạt động nào trong 47 ngày</b>
+      Khoảng trống dài nhất kể từ mùa 2024. Lập kế hoạch tại M-11.
+    </div>
+  </div>
+
+  <div class="card c7">
+    <div class="card__hd"><span class="zone">KV 7</span><h2>AI phân tích trường</h2>
+      <span class="meta">3 phát hiện · đều dẫn về bằng chứng</span></div>
+    <div class="ai">
+      <div class="ai__item ai__item--risk">
+        <div class="ai__k" style="color:var(--critical)">Phát hiện chính</div>
+        <p class="ai__t">Trường tiềm năng cao nhưng <b>Application giảm 16%</b> trong khi Prospect tăng 33%.</p>
+        <p class="ai__why">Trong 128 prospect năm nay, 71 người dừng lại ở bước Engaged. Phân tích hội thoại của nhóm này cho thấy 44 người hỏi về học phí và học bổng nhưng chưa có phiên tư vấn nào có phụ huynh tham gia. Mùa 2025, nhóm tương đương được mời dự Parent Seminar và có tỷ lệ nộp hồ sơ 61%.</p>
+        <div class="ai__src">bằng chứng: 71 hồ sơ · <a href="M-05-admission-funnel.html">Phễu của trường</a> · <a href="M-06-sales-pipeline.html">Danh sách hồ sơ</a></div>
+      </div>
+      <div class="ai__item ai__item--opp">
+        <div class="ai__k" style="color:var(--good-ink)">Đề xuất hành động</div>
+        <p class="ai__t">Tổ chức <b>Career Talk kết hợp Parent Session</b> trong ba tuần tới.</p>
+        <div class="evidence">
+          <span class="w">Tác động dự kiến<span class="wbar"><i style="width:72%"></i></span></span><span>+9 đến +14 nhập học</span>
+          <span class="w">Độ tin cậy<span class="wbar"><i style="width:71%"></i></span></span><span>71% · 6 sự kiện tương tự</span>
+          <span class="w">Chi phí ước tính<span class="wbar"><i style="width:28%"></i></span></span><span>18 triệu</span>
+        </div>
+        <div class="ai__src">
+          <button class="btn btn--primary" type="button" style="margin-right:6px">Lập kế hoạch tại M-11</button>
+          <span class="tier tier--mid">Rủi ro trung bình</span>
+        </div>
+      </div>
+      <div class="ai__item">
+        <div class="ai__k" style="color:var(--s1)">Bối cảnh so sánh</div>
+        <p class="ai__t">Trong nhóm 6 trường cùng quy mô ở Cần Thơ, trường này xếp <b>hạng 2 về penetration</b> nhưng <b>hạng 5 về conversion</b>.</p>
+        <p class="ai__why">Nghĩa là việc tiếp cận đang tốt, việc chuyển đổi mới là chỗ mất người. Đây là loại vấn đề không giải quyết bằng thêm hoạt động thu lead.</p>
+        <div class="ai__src"><a href="M-02-market-intelligence-map.html">So sánh cụm trường</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== danh sách học sinh ===== -->
+<div class="grid">
+  <div class="card c12">
+    <div class="card__hd"><span class="zone">KV 6</span><h2>Học sinh của trường trong hệ thống</h2>
+      <span class="meta">128 hồ sơ · hiển thị 6 hồ sơ có xác suất cao nhất</span></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr>
+        <th>Học sinh</th><th>Ngành quan tâm</th><th>Bước</th><th class="num">Xác suất</th>
+        <th>Người phụ trách</th><th>Tương tác cuối</th><th>Mối lo chính</th><th style="width:1%"></th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="name">Nguyễn M. A.</td><td>Trí tuệ nhân tạo</td><td><span class="badge badge--info">Counselling</span></td>
+          <td class="num"><b>82%</b></td><td>Trần Q. Bảo</td><td class="subtle">2 ngày trước</td><td>Học phí</td>
+          <td><a class="btn" href="M-08-student-360.html" style="text-decoration:none">Mở hồ sơ</a></td></tr>
+        <tr><td class="name">Trần M. B.</td><td>Công nghệ thông tin</td><td><span class="badge badge--info">Application</span></td>
+          <td class="num"><b>79%</b></td><td>Trần Q. Bảo</td><td class="subtle">hôm qua</td><td>Học bổng</td>
+          <td><a class="btn" href="M-08-student-360.html" style="text-decoration:none">Mở hồ sơ</a></td></tr>
+        <tr><td class="name">Lê M. C.</td><td>Quản trị kinh doanh</td><td><span class="badge">Engaged</span></td>
+          <td class="num">74%</td><td>Nguyễn T. Hà</td><td class="subtle">9 ngày trước</td><td>Ký túc xá</td>
+          <td><a class="btn" href="M-08-student-360.html" style="text-decoration:none">Mở hồ sơ</a></td></tr>
+        <tr><td class="name">Phạm T. D.</td><td>Thiết kế đồ họa</td><td><span class="badge">Engaged</span></td>
+          <td class="num">68%</td><td>Nguyễn T. Hà</td><td class="subtle warning">23 ngày trước</td><td>Học phí</td>
+          <td><a class="btn" href="M-08-student-360.html" style="text-decoration:none">Mở hồ sơ</a></td></tr>
+        <tr><td class="name">Võ T. E.</td><td>Ngôn ngữ Anh</td><td><span class="badge badge--good">Accepted</span></td>
+          <td class="num">91%</td><td>Trần Q. Bảo</td><td class="subtle">4 ngày trước</td><td class="subtle">—</td>
+          <td><a class="btn" href="M-08-student-360.html" style="text-decoration:none">Mở hồ sơ</a></td></tr>
+        <tr><td class="name">Đặng V. F.</td><td>Trí tuệ nhân tạo</td><td><span class="badge">Qualified</span></td>
+          <td class="num">63%</td><td class="down">chưa phân công</td><td class="subtle">14 ngày trước</td><td>Cơ hội việc làm</td>
+          <td><a class="btn" href="M-08-student-360.html" style="text-decoration:none">Mở hồ sơ</a></td></tr>
+      </tbody>
+    </table></div>
+    <p class="card__note">Tên học sinh hiển thị dạng rút gọn theo chính sách che dữ liệu cá nhân đối với vai trò quản lý không trực tiếp tư vấn — xem mục 9 của đặc tả.</p>
+  </div>
+</div>
+`;
+bindTip(canvas);
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admission Command Center · Danh mục màn hình</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_ui.css">
+<style>
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px 72px; }
+  .masthead { background: var(--rail); color: var(--rail-ink); padding: 44px 0 40px; margin-bottom: 32px; }
+  .masthead .wrap { padding-bottom: 0; }
+  .masthead h1 { font-size: 34px; font-weight: 650; letter-spacing: -.03em; margin: 0 0 8px; color: #fff; }
+  .masthead p { font-size: 14px; line-height: 1.6; max-width: 68ch; color: var(--rail-ink-2); margin: 0; }
+  .masthead .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--s1); font-weight: 600; margin-bottom: 12px; }
+  .mstats { display: flex; gap: 34px; margin-top: 28px; flex-wrap: wrap; }
+  .mstat b { display: block; font-family: var(--ff-num); font-size: 26px; font-weight: 600; color: #fff; letter-spacing: -.02em; }
+  .mstat span { font-size: 11.5px; color: var(--rail-ink-2); }
+  .cluster { margin-bottom: 34px; }
+  .cluster__hd { display: flex; align-items: baseline; gap: 12px; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .cluster__l { font-family: var(--ff-num); font-size: 22px; font-weight: 700; color: var(--s1); line-height: 1; }
+  .cluster__hd h2 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
+  .cluster__hd p { margin: 0; font-size: 12.5px; color: var(--ink-3); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 12px; }
+  a.scard {
+    display: block; text-decoration: none; background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r); padding: 14px 15px 13px; box-shadow: var(--shadow); position: relative;
+  }
+  a.scard:hover { border-color: var(--s1); transform: translateY(-1px); }
+  a.scard code { font-family: var(--ff-num); font-size: 11px; font-weight: 600; color: var(--s1); letter-spacing: .05em; }
+  a.scard h3 { margin: 3px 0 5px; font-size: 14px; font-weight: 650; letter-spacing: -.01em; }
+  a.scard p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--ink-2); }
+  a.scard .foot { display: flex; gap: 6px; align-items: center; margin-top: 11px; flex-wrap: wrap; }
+  .ph { font-size: 10px; font-weight: 700; letter-spacing: .05em; padding: 2px 6px; border-radius: 4px; }
+  .ph1 { background: color-mix(in srgb, var(--s1) 15%, transparent); color: var(--s1); }
+  .ph2 { background: color-mix(in srgb, var(--s3) 16%, transparent); color: var(--s3); }
+  .ph3 { background: var(--surface-2); color: var(--ink-3); }
+  .persona { font-size: 11px; color: var(--ink-3); }
+  .flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .flow a { text-decoration: none; font-size: 12.5px; font-weight: 600; background: var(--surface); border: 1px solid var(--s1);
+            color: var(--s1); border-radius: 999px; padding: 5px 12px; }
+  .flow a:hover { background: var(--s1); color: #fff; }
+  .flow span { color: var(--ink-3); }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">Bản mockup giao diện · v2.0</div>
+    <h1>Admission Command Center</h1>
+    <p>Mười tám màn hình của FPTU Admission Intelligence Platform (FAIP), dựng theo tài liệu đặc tả BA-ACC-SCREEN-SPEC-v2.0.
+       Toàn bộ số liệu trên các màn hình là <b style="color:#fff">dữ liệu mô phỏng</b>; những khối phụ thuộc nguồn dữ liệu chưa có
+       đều mang nhãn gạch chéo ở góc và được ghi trong sổ đăng ký tại M-17.</p>
+    <div class="mstats">
+      <div class="mstat"><b>18</b><span>màn hình · 5 cụm chức năng</span></div>
+      <div class="mstat"><b>6</b><span>nhóm người dùng</span></div>
+      <div class="mstat"><b>4</b><span>tầng: Observe → Understand → Predict → Act</span></div>
+      <div class="mstat"><b>13</b><span>điểm cần chốt trước khi lập trình</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<div class="card" style="margin-bottom:32px">
+  <div class="card__hd"><h2>Lát cắt dọc dùng cho demo — Phase 1</h2>
+    <span class="meta">đi lần lượt năm màn hình này để thấy khác biệt so với một CRM thông thường</span></div>
+  <div class="flow">
+    <a href="M-01-admission-command-center.html">Toàn quốc</a><span>→</span>
+    <a href="M-02-market-intelligence-map.html">Một tỉnh</a><span>→</span>
+    <a href="M-03-school-intelligence.html">Một trường THPT</a><span>→</span>
+    <a href="M-08-student-360.html">Một học sinh</a><span>→</span>
+    <a href="M-07-ai-next-best-action.html">AI đề xuất hành động</a>
+  </div>
+  <p class="card__note">Mạch chuyện: mùa tuyển sinh thiếu 320 nhập học → Cần Thơ có penetration 2,8% trên 14.800 học sinh lớp 12 →
+    THPT Châu Văn Liêm tiềm năng 92/100 nhưng application giảm 16% → Nguyễn Minh A. vướng câu hỏi học phí chưa ai trả lời →
+    AI đề xuất gọi cho bố, kèm lý do và mức rủi ro cần duyệt.</p>
+</div>
+
+<div id="clusters"></div>
+
+<div class="card" style="margin-top:8px">
+  <div class="card__hd"><h2>Ghi chú kỹ thuật của bộ mockup</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:22px">
+    <div>
+      <dl class="kv">
+        <dt>Tệp dùng chung</dt><dd><code>_ui.css</code> hệ thống thiết kế · <code>_ui.js</code> khung trang và trình vẽ biểu đồ</dd>
+        <dt>Đặt tên tệp</dt><dd>Bắt đầu bằng mã màn hình, ví dụ <code>M-07-ai-next-best-action.html</code></dd>
+        <dt>Phụ thuộc</dt><dd>Không dùng thư viện ngoài. Mọi biểu đồ là SVG dựng tay.</dd>
+        <dt>Chế độ tối</dt><dd>Theo hệ điều hành, có nút chuyển thủ công trên mọi màn hình</dd>
+      </dl>
+    </div>
+    <div>
+      <dl class="kv">
+        <dt>Bảng màu dữ liệu</dt><dd>Bảng đã kiểm định cho người mù màu; thang tuần tự một sắc cho magnitude, thang phân kỳ cho polarity</dd>
+        <dt>Nhãn dữ liệu mô phỏng</dt><dd>Gạch chéo ở góc khối, cộng sổ đăng ký tại M-17 — quy tắc bắt buộc của mục 12.2</dd>
+        <dt>Chú giải và nhãn trực tiếp</dt><dd>Mọi biểu đồ từ hai chuỗi trở lên đều có chú giải; không dựa vào màu một mình</dd>
+        <dt>Đáp ứng</dt><dd>Chạy được trên máy tính và thiết bị di động; tôn trọng thiết lập giảm chuyển động</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script src="_ui.js"></script>
+<script>
+const DESC = {
+  'M-01': ['Ba mươi giây để biết mùa tuyển sinh đang đi đúng hướng hay không, nghẽn ở đâu, và việc gì cần quyết hôm nay.', 1, 'Executive · Head of Admission'],
+  'M-02': ['Thị trường nằm ở đâu và khu vực nào chưa khai thác. Màn hình đưa mẫu số thị trường vào hệ thống.', 1, 'Executive · Manager'],
+  'M-03': ['Mỗi trường THPT là một tài khoản tuyển sinh được quản lý, có Potential Score và lịch sử nhiều mùa.', 1, 'Manager · Promoter'],
+  'M-04': ['Dựng phân khúc động, so sánh phân khúc, và để AI tự tìm nhóm đang nổi mà con người chưa nghĩ tới.', 3, 'Marketing · Chiến lược'],
+  'M-05': ['Phễu bảy bước: nghẽn ở đâu, tắc bao lâu, lát cắt nào chịu trách nhiệm, cải thiện đâu thì lãi nhất.', 2, 'Head of Admission'],
+  'M-06': ['Không gian làm việc hằng ngày của tư vấn viên: bảng cơ hội, rủi ro AI đánh dấu, việc trong ngày.', 2, 'Sales · Manager'],
+  'M-07': ['Bây giờ nên làm gì, với ai, vì sao, kỳ vọng thu được gì. Nơi phân tích chuyển thành việc cụ thể.', 1, 'Sales · Promoter · Manager'],
+  'M-08': ['Đích chung của mọi drill-down: hành trình, gia đình, người ra quyết định, và điều gì đang cản trở.', 1, 'Sales · Promoter'],
+  'M-09': ['Vùng nào đạt target, đội nào cần hỗ trợ, và năng lực hiện có phủ được bao nhiêu phần thị trường.', 2, 'Regional Manager · Executive'],
+  'M-10': ['Mọi thứ đang trượt khỏi cam kết hoặc sắp mất cơ hội, gom một chỗ và xếp theo mức khẩn.', 2, 'Manager · Regional Manager'],
+  'M-11': ['Đo hiệu quả hoạt động thực địa và lập kế hoạch mới từ gợi ý của Market Map và School Intelligence.', 2, 'Promoter · Regional Manager'],
+  'M-12': ['Campaign có ra nhập học và doanh thu không. Kênh số và kênh thực địa trên cùng một thước đo.', 3, 'Marketing'],
+  'M-13': ['Cuối kỳ dự kiến bao nhiêu, thiếu bao nhiêu, và mô phỏng kịch bản để biết làm gì thì lấp được.', 3, 'Executive · Tài chính'],
+  'M-14': ['Nhịp đập của hệ thống theo thời gian thực. Mọi thẻ truy ngược được về một bản ghi có thật.', 3, 'Executive · Manager'],
+  'M-15': ['Hỏi bằng tiếng Việt trên toàn bộ dữ liệu trong phạm vi quyền. Trả lời kèm số liệu và nguồn.', 3, 'Mọi vai trò'],
+  'M-16': ['Có nên tin những gì AI nói. Màn hình đo chính lớp trí tuệ, không đo tuyển sinh.', 3, 'Executive · Quản trị'],
+  'M-17': ['Dữ liệu đã về đủ chưa và số này có đáng tin không. Kèm sổ đăng ký dữ liệu mô phỏng.', 2, 'Quản trị · Manager'],
+  'M-18': ['Đưa hệ thống tới với người dùng: ngưỡng cảnh báo, kênh nhận, lịch gửi báo cáo định kỳ.', 3, 'Mọi cấp quản lý'],
+};
+const ROLE = {
+  A: 'Xác định vị thế của trường trên thị trường và chỉ ra nơi còn dư địa',
+  B: 'Đưa từng học sinh đi qua hành trình và biến phân tích thành việc cụ thể',
+  C: 'Đánh giá con người, năng lực phủ thị trường và việc giữ cam kết',
+  D: 'Nối chi phí với doanh thu và trả lời câu hỏi cuối kỳ sẽ ra sao',
+  E: 'Giữ cho toàn hệ thống minh bạch, đáng tin và biết tự báo động',
+};
+
+document.getElementById('clusters').innerHTML = NAV.map(([letter, group, items]) => `
+  <section class="cluster">
+    <div class="cluster__hd">
+      <span class="cluster__l">${letter}</span>
+      <h2>${group}</h2>
+      <p style="margin-left:auto">${ROLE[letter]}</p>
+    </div>
+    <div class="cards">
+      ${items.map(([code, name, href]) => {
+        const [d, ph, persona] = DESC[code];
+        return `<a class="scard" href="${href}">
+          <code>${code}</code>
+          <h3>${name}</h3>
+          <p>${d}</p>
+          <div class="foot">
+            <span class="ph ph${ph}">Phase ${ph}</span>
+            <span class="persona">${persona}</span>
+          </div>
+        </a>`;
+      }).join('')}
+    </div>
+  </section>`).join('');
+
+/* nút chuyển giao diện dùng chung với các màn hình khác */
+(function () {
+  let saved = null;
+  try { saved = localStorage.getItem('acc-theme'); } catch (e) { /* bỏ qua */ }
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+})();
+</script>
+</body>
+</html>
