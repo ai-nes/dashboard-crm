@@ -51,9 +51,9 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 12 }} dy={8} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 12 }} />
             <Tooltip content={<SchoolTooltip />} cursor={{ stroke: "var(--border-color-base-300)", strokeDasharray: "4 4" }} />
-            <Line type="monotone" dataKey="prospects" name="Prospects" stroke="var(--primary-500)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-            <Line type="monotone" dataKey="applications" name="Applications" stroke="var(--primary-300)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-            <Line type="monotone" dataKey="enrollment" name="Enrollment" stroke="var(--success-500)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+            <Line isAnimationActive animationDuration={800} type="monotone" dataKey="prospects" name="Prospects" stroke="var(--primary-500)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+            <Line isAnimationActive animationDuration={950} type="monotone" dataKey="applications" name="Applications" stroke="var(--primary-300)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+            <Line isAnimationActive animationDuration={1100} type="monotone" dataKey="enrollment" name="Enrollment" stroke="var(--success-500)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
           </LineChart>
         </ChartContainer>
       </div>

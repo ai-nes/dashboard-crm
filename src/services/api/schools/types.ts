@@ -27,6 +27,17 @@ export interface SchoolActivity {
   status: "completed" | "scheduled";
 }
 
+export interface StudentSignal {
+  id: string;
+  name: string;
+  major: string;
+  stage: string;
+  probability: number;
+  owner: string;
+  lastInteraction: string;
+  concern: string;
+}
+
 export interface SchoolIntelligenceData {
   school: SchoolDirectoryRecord;
   potentialScore: number;
@@ -40,6 +51,7 @@ export interface SchoolIntelligenceData {
     enrollment: number;
   };
   performance: Record<"6m" | "year", TrendPoint[]>;
+  potentialFactors: { label: string; value: number; description: string }[];
   demographics: {
     gender: { label: string; value: number; color: string }[];
     academicProfile: { label: string; value: number }[];
@@ -51,6 +63,7 @@ export interface SchoolIntelligenceData {
     evidence: string[];
   };
   activities: SchoolActivity[];
+  studentSignals: StudentSignal[];
 }
 
 export type SchoolRegion = "Miền Bắc" | "Miền Trung" | "Miền Nam";

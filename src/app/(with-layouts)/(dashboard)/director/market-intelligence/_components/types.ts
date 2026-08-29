@@ -17,12 +17,20 @@ export type SchoolTier = "Tier 1" | "Tier 2" | "Tier 3";
 
 export interface HighSchoolItem {
   id: string;
+  directoryId?: string;
   name: string;
   district: string;
   tier: SchoolTier;
+  potentialScore: number;
   grade12Students: number;
+  prospects: number;
   penetrationRate: number; // %
   applications: number;
+  enrollmentForecast: number;
+  conversionRate: number; // %
+  lastActivity: string;
+  recommendation: string;
+  nextAction: string;
   status: "high-yield" | "active" | "untapped" | "needs-attention";
 }
 

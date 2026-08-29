@@ -8,6 +8,12 @@ import type {
   RegionKey,
 } from "./types";
 
+interface DirectorySchoolSeed {
+  id: string;
+  name: string;
+  district: string;
+}
+
 export const PERIOD_LABEL = "30 ngày gần nhất";
 
 export const REGION_CONFIGS: Record<RegionKey, RegionConfig> = {
@@ -271,7 +277,11 @@ function getRegionForProvince(name: string, code: string): RegionKey {
   return "mekong";
 }
 
-function generateMockHighSchools(provinceName: string, seed: number): HighSchoolItem[] {
+function generateMockHighSchools(
+  provinceName: string,
+  seed: number,
+  directorySchools: DirectorySchoolSeed[] = [],
+): HighSchoolItem[] {
   const schoolPrefixes = [
     { name: `THPT Chuyên ${provinceName}`, tier: "Tier 1" as const, rate: 8.4 },
     { name: `THPT Chu Văn An (${provinceName})`, tier: "Tier 1" as const, rate: 6.8 },
@@ -281,30 +291,70 @@ function generateMockHighSchools(provinceName: string, seed: number): HighSchool
     { name: `THPT Nguyễn Khuyến`, tier: "Tier 3" as const, rate: 2.8 },
   ];
 
-  return schoolPrefixes.slice(0, 4 + (seed % 3)).map((item, idx) => {
+  const schoolCount = 4 + (seed % 3);
+
+  return schoolPrefixes.slice(0, schoolCount).map((item, idx) => {
+    const directorySchool = directorySchools[idx];
     const students = 450 + ((seed * (idx + 3) * 37) % 650);
-    const penetrationRate = Math.min(12, Number((item.rate + ((seed % 15) / 10)).toFixed(1)));
+    const schoolSeed = seed + idx * 29;
+    const penetrationRate = Math.min(12, Number((item.rate + ((schoolSeed % 15) / 10)).toFixed(1)));
+    const prospects = Math.round(students * (0.18 + (schoolSeed % 18) / 100));
     const applications = Math.round((students * penetrationRate) / 100);
+    const conversionRate = Number(((applications / prospects) * 100).toFixed(1));
+    const potentialScore = Math.min(
+      98,
+      Math.max(58, Math.round(68 + penetrationRate * 2 + (schoolSeed % 14))),
+    );
+    const enrollmentForecast = Math.max(8, Math.round(applications * (0.42 + (schoolSeed % 13) / 100)));
 
     let status: HighSchoolItem["status"] = "active";
-    if (penetrationRate >= 6) status = "high-yield";
+    if (potentialScore >= 88) status = "high-yield";
     else if (penetrationRate < 3) status = "untapped";
-    else if (seed % 4 === 0) status = "needs-attention";
+    else if (schoolSeed % 4 === 0) status = "needs-attention";
+
+    const recommendation =
+      status === "high-yield"
+        ? "Nên ưu tiên khai thác trong 30 ngày tới"
+        : status === "needs-attention"
+          ? "Có tiềm năng nhưng cần tháo gỡ điểm nghẽn chuyển đổi"
+          : status === "untapped"
+            ? "Còn nhiều dung lượng chưa tiếp cận"
+            : "Duy trì nuôi dưỡng và đo thêm tín hiệu";
+
+    const nextAction =
+      status === "high-yield"
+        ? "Đặt lịch Career Talk kết hợp Parent Session"
+        : status === "needs-attention"
+          ? "Gọi lại đầu mối và gửi bộ học bổng theo nhóm ngành"
+          : status === "untapped"
+            ? "Mở điểm tư vấn lưu động tại trường"
+            : "Theo dõi thêm hoạt động và bổ sung prospect";
 
     return {
-      id: `hs-${seed}-${idx}`,
-      name: item.name,
-      district: idx === 0 ? "Trung tâm TP/Thị xã" : `Huyện trọng điểm 0${idx + 1}`,
+      id: directorySchool?.id ?? `hs-${seed}-${idx}`,
+      directoryId: directorySchool?.id,
+      name: directorySchool?.name ?? item.name,
+      district: directorySchool?.district ?? (idx === 0 ? "Trung tâm TP/Thị xã" : `Huyện trọng điểm 0${idx + 1}`),
       tier: item.tier,
+      potentialScore,
       grade12Students: students,
+      prospects,
       penetrationRate,
       applications,
+      enrollmentForecast,
+      conversionRate,
+      lastActivity: idx === 0 ? "Career Talk · 12 ngày trước" : `${14 + idx * 8} ngày trước`,
+      recommendation,
+      nextAction,
       status,
     };
   });
 }
 
-export function toProvinceMetrics(province: ProvinceGeometryDocument): ProvinceMetrics {
+export function toProvinceMetrics(
+  province: ProvinceGeometryDocument,
+  directorySchools: DirectorySchoolSeed[] = [],
+): ProvinceMetrics {
   const codeNum = Number.parseInt(province.Code, 10) || 1;
   const seed = codeNum * 43 + province.Name.length * 17;
   const regionKey = getRegionForProvince(province.Name, province.Code);
@@ -367,7 +417,7 @@ export function toProvinceMetrics(province: ProvinceGeometryDocument): ProvinceM
     keyAction = "Kích hoạt gói học bổng Ươm mầm CNTT & Bán dẫn địa phương";
   }
 
-  const highSchools = generateMockHighSchools(province.Name, seed);
+  const highSchools = generateMockHighSchools(province.Name, seed, directorySchools);
 
   return {
     code: province.Code,
