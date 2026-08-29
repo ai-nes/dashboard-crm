@@ -19,14 +19,8 @@ import {
   Search1,
   Target3,
 } from "@tailgrids/icons";
-import {
-  formatMetricValue,
-  getMetricColor,
-  METRICS_CONFIG,
-  opportunityLabel,
-  REGION_CONFIGS,
-} from "./data";
-import CampusMarkerLayer from "./campus-marker-layer";
+import { formatMetricValue, getMetricColor, METRICS_CONFIG, REGION_CONFIGS } from "./data";
+import HighSchoolMarkerLayer from "./high-school-marker-layer";
 import { ZoomInIcon, ZoomOutIcon } from "./icons";
 import type {
   MetricKey,
@@ -45,29 +39,20 @@ const MASTER_BOUNDS = {
 
 const REGION_KEYS: RegionKey[] = ["all", "north", "central", "highlands", "south", "mekong"];
 
-const METRIC_TABS: Array<{ key: MetricKey; label: string }> = [
-  { key: "opportunity", label: "Cơ hội" },
-  { key: "leads", label: "Leads" },
-  { key: "conversion", label: "Chuyển đổi" },
-  { key: "competition", label: "Cạnh tranh" },
-  { key: "revenue", label: "Doanh thu" },
-];
-
 interface MarketMapProps {
-  activeMetric: MetricKey;
   activeRegion: RegionKey;
   geoData: ProvinceFeatureCollection;
-  onMetricChange: (metric: MetricKey) => void;
   onQueryChange: (query: string) => void;
   onRegionChange: (region: RegionKey) => void;
   onReset: () => void;
   onExport: () => void;
+  onClearSelection: () => void;
   onSelectProvince: (code: string) => void;
+  onSelectSchool: (provinceCode: string, schoolId: string) => void;
   provinces: ProvinceMetrics[];
   query: string;
   selectedCode: string | null;
-  showCampuses: boolean;
-  onToggleCampuses: (show: boolean) => void;
+  selectedSchoolId: string | null;
   totalProvinces: number;
 }
 
@@ -122,20 +107,19 @@ function toMapPath(coordinates: GeoJSON.MultiPolygon["coordinates"]) {
 }
 
 export default function MarketMap({
-  activeMetric,
   activeRegion,
   geoData,
-  onMetricChange,
   onQueryChange,
   onRegionChange,
   onReset,
   onExport,
+  onClearSelection,
   onSelectProvince,
+  onSelectSchool,
   provinces,
   query,
   selectedCode,
-  showCampuses,
-  onToggleCampuses,
+  selectedSchoolId,
   totalProvinces,
 }: MarketMapProps) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
@@ -144,6 +128,10 @@ export default function MarketMap({
 
   const provinceByCode = useMemo(
     () => new Map(provinces.map((province) => [province.code, province])),
+    [provinces],
+  );
+  const totalSchools = useMemo(
+    () => provinces.reduce((total, province) => total + province.highSchools.length, 0),
     [provinces],
   );
 
@@ -159,8 +147,8 @@ export default function MarketMap({
     [geoData],
   );
 
-  const hoveredProvince = hoveredCode ? provinceByCode.get(hoveredCode) : null;
-  const config = METRICS_CONFIG[activeMetric];
+  const activeMetric: MetricKey = "opportunity";
+  const config = METRICS_CONFIG.opportunity;
 
   // Embedded region summary statistics inside map card
   const regionStats = useMemo(() => {
@@ -243,68 +231,35 @@ export default function MarketMap({
   };
 
   const getGradientCss = () => {
-    switch (activeMetric) {
-      case "opportunity":
-        return "bg-linear-to-r from-rose-500 via-amber-500 via-blue-500 via-teal-500 to-emerald-500";
-      case "leads":
-        return "bg-linear-to-r from-slate-400 via-cyan-500 via-sky-500 to-blue-600";
-      case "conversion":
-        return "bg-linear-to-r from-red-400 via-amber-400 via-teal-400 to-emerald-500";
-      case "competition":
-        return "bg-linear-to-r from-emerald-500 via-teal-500 via-amber-500 to-rose-600";
-      case "revenue":
-        return "bg-linear-to-r from-slate-400 via-amber-500 via-emerald-500 to-purple-600";
-      default:
-        return "bg-linear-to-r from-blue-200 to-blue-600";
-    }
+    return "bg-linear-to-r from-rose-500 via-amber-500 via-blue-500 via-teal-500 to-emerald-500";
   };
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl bg-card-background p-3">
+    <div className="flex h-full min-h-[640px] min-w-0 flex-col overflow-hidden rounded-2xl bg-card-background p-3 xl:min-h-0">
       {/* ========================================================================= */}
       {/* 1. LEVEL 1 HEADER: Context & Primary Metric Dimension Selector */}
       {/* ========================================================================= */}
       <div className="flex items-center justify-between gap-2 pb-2">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold tracking-tight text-text-primary">
-            Bản đồ thị trường
+            Bản đồ thị trường & trường THPT
           </h2>
           <span className="rounded-md bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-500">
-            {totalProvinces > 0 ? `${totalProvinces} Tỉnh` : "34 Tỉnh"}
+            {totalProvinces > 0 ? `${totalProvinces} tỉnh` : "34 tỉnh"}
           </span>
           <span className="hidden text-xs text-text-tertiary sm:inline">
-            • Niên khóa 2026
+            • {totalSchools} điểm trường · Niên khóa 2026
           </span>
         </div>
 
-        {/* Metric Segmented Control */}
-        <div className="flex items-center gap-1 rounded-xl bg-background-gray-primary/90 p-0.5">
-          {METRIC_TABS.map(({ key, label }) => {
-            const active = activeMetric === key;
-            return (
-              <button
-                aria-pressed={active}
-                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                  active
-                    ? "bg-card-background text-text-primary shadow-xs font-semibold"
-                    : "text-text-secondary hover:text-text-primary hover:bg-background-gray-primary"
-                }`}
-                key={key}
-                onClick={() => onMetricChange(key)}
-                type="button"
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-[11px] font-semibold text-badge-primary-text">Bản đồ Potential</span>
       </div>
 
       {/* ========================================================================= */}
       {/* 2. LEVEL 2 TOOLBAR: Filters on Left | Search & Utilities on Right */}
       {/* ========================================================================= */}
       <div className="mb-2 flex items-center justify-between gap-2 border-t border-card-surface-border/50 pt-2">
-        {/* Left: Region Filter Dropdown + Campus Toggle */}
+        {/* Left: Region Filter Dropdown */}
         <div className="flex items-center gap-1.5">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex h-7.5 items-center gap-1.5 rounded-lg bg-background-gray-primary/80 px-2.5 text-xs font-medium text-text-primary hover:bg-background-gray-primary">
@@ -336,19 +291,6 @@ export default function MarketMap({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Toggle Campuses */}
-          <button
-            aria-pressed={showCampuses}
-            className={`flex h-7.5 items-center rounded-lg px-2.5 text-xs font-medium transition-colors ${
-              showCampuses
-                ? "bg-brand-500/10 text-brand-500 font-semibold"
-                : "bg-background-gray-primary/80 text-text-secondary hover:text-text-primary"
-            }`}
-            onClick={() => onToggleCampuses(!showCampuses)}
-            type="button"
-          >
-            🎓 Campus FPT
-          </button>
         </div>
 
         {/* Right: Quick Search + Reset + Export */}
@@ -415,6 +357,12 @@ export default function MarketMap({
       {/* 3. MAP CANVAS: 100% Unobstructed SVG Viewport with Light/Dark Support */}
       {/* ========================================================================= */}
       <div className="relative flex flex-1 min-h-0 items-center justify-center overflow-hidden rounded-xl bg-background-gray-primary/40 p-1">
+        <div className="pointer-events-none absolute top-2.5 right-2.5 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-x-3 gap-y-1 rounded-lg bg-card-background/90 px-2.5 py-1.5 text-[10px] shadow-xs backdrop-blur-md">
+          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2 rounded-full bg-success-500" aria-hidden="true" />Điểm nóng</span>
+          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2 rounded-full bg-primary-500" aria-hidden="true" />Đang khai thác</span>
+          <span className="text-text-tertiary">Chọn điểm để xem trường</span>
+        </div>
+
         {/* Quick Zoom Buttons (Top-Left) */}
         <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1 rounded-lg bg-card-background/90 p-0.5 shadow-xs backdrop-blur-md">
           <button
@@ -450,6 +398,7 @@ export default function MarketMap({
         <svg
           aria-label="Bản đồ phân bố dữ liệu tuyển sinh Việt Nam"
           className="h-full w-auto max-h-full max-w-full drop-shadow-theme-sm transition-all duration-700 ease-out"
+          onClick={onClearSelection}
           preserveAspectRatio="xMidYMid meet"
           role="img"
           viewBox={computedViewBox}
@@ -543,7 +492,10 @@ export default function MarketMap({
                   filter={isSelected ? "url(#active-glow-clean)" : undefined}
                   key={path.code}
                   onBlur={() => setHoveredCode(null)}
-                  onClick={() => onSelectProvince(path.code)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelectProvince(path.code);
+                  }}
                   onFocus={() => setHoveredCode(path.code)}
                   onMouseEnter={() => setHoveredCode(path.code)}
                   onMouseLeave={() => setHoveredCode(null)}
@@ -567,37 +519,17 @@ export default function MarketMap({
             })}
           </g>
 
-          {/* Campus Pins */}
-          {showCampuses && (
-            <CampusMarkerLayer
-              onSelectCampus={(campus) => {
-                const prov = provinces.find((p) =>
-                  p.name.toLowerCase().includes(campus.city.toLowerCase()),
-                );
-                if (prov) onSelectProvince(prov.code);
-              }}
-              projectPoint={projectPoint}
-            />
-          )}
-        </svg>
+          <HighSchoolMarkerLayer
+            activeRegion={activeRegion}
+            geoData={geoData}
+            onSelectSchool={onSelectSchool}
+            projectPoint={projectPoint}
+            provinces={provinces}
+            selectedProvinceCode={selectedCode}
+            selectedSchoolId={selectedSchoolId}
+          />
 
-        {/* Hover Tooltip HUD (Works cleanly in both Light & Dark modes) */}
-        {hoveredProvince && (
-          <div className="pointer-events-none absolute bottom-2 left-1/2 z-30 min-w-48 -translate-x-1/2 rounded-xl border border-card-border bg-card-background/95 p-2 shadow-theme-md backdrop-blur-md">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-bold text-text-primary">{hoveredProvince.name}</p>
-              <span className="text-[10px] font-semibold text-brand-500">
-                {opportunityLabel(hoveredProvince.opportunity)}
-              </span>
-            </div>
-            <div className="mt-1 flex items-center justify-between gap-4 text-xs text-text-secondary">
-              <span>{config.label}</span>
-              <span className="font-bold text-text-primary">
-                {formatMetricValue(hoveredProvince, activeMetric)}
-              </span>
-            </div>
-          </div>
-        )}
+        </svg>
       </div>
 
       {/* ========================================================================= */}

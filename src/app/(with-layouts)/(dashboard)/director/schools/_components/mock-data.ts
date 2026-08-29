@@ -1,4 +1,4 @@
-import type { SchoolDirectoryRecord, SchoolIntelligenceData, TrendPoint } from "@/services/api/schools/types";
+import type { SchoolDirectoryRecord, SchoolIntelligenceData, StudentSignal, TrendPoint } from "@/services/api/schools/types";
 import { getSchoolPotentialScore } from "@/services/api/schools/school-directory";
 
 function hash(value: string) {
@@ -28,6 +28,19 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
   const applications = finalPoint.applications;
   const enrollment = finalPoint.enrollment;
   const applicationChange = -18 + (seed % 34);
+  const potentialFactors = [
+    { label: "Quy mô lớp 12", value: 74 + (seed % 21), description: "Dung lượng học sinh đủ lớn để mở rộng tệp tiếp cận." },
+    { label: "Lịch sử nhập học", value: 66 + (seed % 25), description: "Kết quả các mùa trước cho thấy khả năng tạo hồ sơ ổn định." },
+    { label: "Hồ sơ học lực", value: 70 + (seed % 22), description: "Tỷ trọng học sinh khá giỏi phù hợp nhóm ngành công nghệ." },
+    { label: "Mức độ phù hợp chương trình", value: 78 + (seed % 18), description: "Nhu cầu AI, kinh doanh và truyền thông đang tăng." },
+    { label: "Khoảng cách địa lý", value: 58 + (seed % 31), description: "Cần phối hợp sự kiện tại trường để rút ngắn điểm chạm." },
+  ];
+  const studentSignals: StudentSignal[] = [
+    { id: "student-1", name: "Nguyễn M. A.", major: "Trí tuệ nhân tạo", stage: "Đã tư vấn", probability: 86, owner: "Trần Quốc Bảo", lastInteraction: "Hôm qua · Zalo", concern: "Học phí & học bổng" },
+    { id: "student-2", name: "Trần H. N.", major: "Kỹ thuật phần mềm", stage: "Đã xem học phí", probability: 78, owner: "Lê Minh Trang", lastInteraction: "2 ngày trước · Website", concern: "Lộ trình nghề nghiệp" },
+    { id: "student-3", name: "Lê T. P.", major: "Digital Marketing", stage: "Mới quan tâm", probability: 65, owner: "Nguyễn Hoàng", lastInteraction: "4 ngày trước · Career Talk", concern: "Chưa xác định ngành" },
+    { id: "student-4", name: "Phạm K. L.", major: "Thiết kế đồ họa", stage: "Cần gọi lại", probability: 59, owner: "Trần Quốc Bảo", lastInteraction: "7 ngày trước · Cuộc gọi", concern: "Gia đình cần thêm thông tin" },
+  ];
 
   return {
     school,
@@ -42,6 +55,7 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
       enrollment: 4 + (seed % 13),
     },
     performance: { "6m": sixMonthTrend, year: annualTrend },
+    potentialFactors,
     demographics: {
       gender: [
         { label: "Nữ", value: 54 + (seed % 9), color: "var(--primary-500)" },
@@ -93,5 +107,6 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
         status: "completed",
       },
     ],
+    studentSignals,
   };
 }

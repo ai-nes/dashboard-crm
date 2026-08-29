@@ -1,226 +1,139 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, ArrowUpward } from "@tailgrids/icons";
+import { ArrowRight, Sparkle } from "@tailgrids/icons";
+import { toast } from "sonner";
+
+import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
+
 import {
   formatMetricValue,
   getOpportunityBadgeVariant,
   opportunityLabel,
   REGION_CONFIGS,
 } from "./data";
-import type { ProvinceMetrics } from "./types";
+import SchoolSpotlight from "./school-spotlight";
+import type { HighSchoolItem, ProvinceMetrics } from "./types";
 
 interface ProvinceInspectorProps {
+  onSelectSchool: (provinceCode: string, schoolId: string) => void;
   province: ProvinceMetrics | null;
-  onSelectProvince?: (code: string) => void;
+  selectedSchoolId: string | null;
 }
 
-export default function ProvinceInspector({
-  province,
-}: ProvinceInspectorProps) {
-  const [activeTab, setActiveTab] = useState<"insight" | "schools">("insight");
+const statusConfig: Record<HighSchoolItem["status"], { color: "success" | "primary" | "warning" | "error"; label: string }> = {
+  "high-yield": { color: "success", label: "Ưu tiên" },
+  active: { color: "primary", label: "Đang chạy" },
+  untapped: { color: "warning", label: "Dư địa" },
+  "needs-attention": { color: "error", label: "Cần chú ý" },
+};
 
+export default function ProvinceInspector({ onSelectSchool, province, selectedSchoolId }: ProvinceInspectorProps) {
   if (!province) {
     return (
-      <div className="flex h-full min-w-0 flex-col items-center justify-center rounded-2xl bg-card-background p-6 text-center">
-        <span className="text-3xl">🗺️</span>
-        <h3 className="mt-3 text-sm font-semibold text-text-primary">
-          Chưa chọn địa bàn
-        </h3>
-        <p className="mt-1 text-xs text-text-secondary">
-          Nhấp vào một tỉnh/thành trên bản đồ để xem phân tích 360°.
-        </p>
-      </div>
+      <aside className="flex h-full min-w-0 flex-col items-center justify-center rounded-2xl bg-card-background p-6 text-center" aria-label="Phân tích địa bàn">
+        <span className="text-3xl" aria-hidden="true">🗺️</span>
+        <h2 className="mt-3 text-sm font-semibold text-text-primary">Chưa chọn địa bàn</h2>
+        <p className="mt-1 text-xs text-text-secondary">Nhấp vào tỉnh hoặc điểm trường trên bản đồ để xem phân tích chi tiết.</p>
+      </aside>
     );
   }
 
+  const schools = [...province.highSchools].sort((left, right) => right.potentialScore - left.potentialScore);
+  const selectedSchool = selectedSchoolId
+    ? schools.find((school) => school.id === selectedSchoolId) ?? null
+    : null;
   const badgeVariant = getOpportunityBadgeVariant(province.opportunity);
   const regionLabel = REGION_CONFIGS[province.regionKey]?.label ?? province.regionKey;
 
   return (
-    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl bg-card-background p-3.5 sm:p-4">
-      {/* 1. Header with Metadata */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-brand-500">
-            MÃ: {province.code}
-          </span>
-          <span className="text-xs text-text-tertiary">
-            • {new Intl.NumberFormat("vi-VN").format(province.grade12Population)} HS Lớp 12
-          </span>
+    <aside className="flex h-full min-h-[640px] min-w-0 flex-col overflow-hidden rounded-2xl bg-card-background xl:min-h-0" aria-label={`Phân tích thị trường ${province.name}`}>
+      <header className="shrink-0 border-b border-card-border bg-background-soft-50 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold tracking-[0.12em] text-primary-500 uppercase">Thị trường · {province.code}</p>
+          <Badge color={badgeVariant}>{opportunityLabel(province.opportunity)}</Badge>
         </div>
-
-        <span
-          className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-            badgeVariant === "success"
-              ? "bg-emerald-500/10 text-emerald-500"
-              : badgeVariant === "primary"
-                ? "bg-blue-500/10 text-blue-500"
-                : badgeVariant === "warning"
-                  ? "bg-amber-500/10 text-amber-500"
-                  : "bg-rose-500/10 text-rose-500"
-          }`}
-        >
-          {opportunityLabel(province.opportunity)}
-        </span>
-      </div>
-
-      <div className="mt-1 flex items-baseline justify-between gap-2">
-        <h2 className="truncate text-2xl font-bold tracking-tight text-text-primary">
-          {province.name}
-        </h2>
-        <span className="text-xs font-medium text-text-secondary">{regionLabel}</span>
-      </div>
-
-      {/* 2. Hero Opportunity Score Bar */}
-      <div className="mt-2 rounded-xl bg-background-gray-primary/60 p-2.5 sm:p-3">
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-text-secondary">Chỉ số tiềm năng</span>
-          <span className="flex items-center gap-1 text-xs font-bold text-success-500">
-            +{province.trend}% YoY <ArrowUpward size={11} />
-          </span>
+        <div className="mt-1 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="truncate text-xl font-semibold tracking-[-0.3px] text-text-primary" title={province.name}>{province.name}</h2>
+            <p className="mt-0.5 truncate text-xs text-text-secondary">{regionLabel} · {province.highSchools.length} trường nổi bật</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-2xl font-semibold leading-none text-text-primary">{province.opportunity}</p>
+            <p className="mt-1 text-[10px] text-text-tertiary">Potential /100</p>
+          </div>
         </div>
-        <div className="mt-1 flex items-baseline gap-1.5">
-          <span className="text-2xl sm:text-3xl font-black text-text-primary">
-            {province.opportunity}
-          </span>
-          <span className="text-xs font-bold text-text-tertiary">/100 điểm</span>
-        </div>
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-background-gray-primary">
-          <div
-            className="h-full rounded-full bg-linear-to-r from-brand-500 to-emerald-500 transition-all duration-500"
-            style={{ width: `${province.opportunity}%` }}
-          />
-        </div>
-      </div>
+      </header>
 
-      {/* 3. Four Core Pillars Grid */}
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <div className="rounded-xl bg-background-gray-primary/60 p-2.5">
-          <span className="text-xs text-text-tertiary">Leads tiếp cận</span>
-          <p className="mt-0.5 text-base font-bold text-text-primary">
-            {formatMetricValue(province, "leads")}
-          </p>
-          <span className="text-[11px] text-text-tertiary">
-            Thâm nhập {province.penetrationRate}%
-          </span>
-        </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <section aria-label="Chỉ số thị trường" className="grid grid-cols-2 gap-2">
+          <MetricTile label="HS lớp 12" value={province.grade12Population.toLocaleString("vi-VN")} hint="Dung lượng" />
+          <MetricTile label="Leads" value={province.leads.toLocaleString("vi-VN")} hint={`CR ${province.conversion}%`} />
+          <MetricTile label="Đã tiếp cận" value={`${province.penetrationRate}%`} hint="Penetration" />
+          <MetricTile label="Doanh thu" value={formatMetricValue(province, "revenue")} hint={`+${province.trend}% YoY`} />
+        </section>
 
-        <div className="rounded-xl bg-background-gray-primary/60 p-2.5">
-          <span className="text-xs text-text-tertiary">Tỷ lệ chuyển đổi</span>
-          <p className="mt-0.5 text-base font-bold text-success-500">
-            {formatMetricValue(province, "conversion")}
-          </p>
-          <span className="text-[11px] text-text-tertiary">Hồ sơ xét tuyển</span>
-        </div>
-
-        <div className="rounded-xl bg-background-gray-primary/60 p-2.5">
-          <span className="text-xs text-text-tertiary">Áp lực cạnh tranh</span>
-          <p className="mt-0.5 text-base font-bold text-amber-500">
-            {formatMetricValue(province, "competition")}
-          </p>
-          <span className="text-[11px] text-text-tertiary">Đối thủ cùng vùng</span>
-        </div>
-
-        <div className="rounded-xl bg-background-gray-primary/60 p-2.5">
-          <span className="text-xs text-text-tertiary">Doanh thu dự phóng</span>
-          <p className="mt-0.5 text-base font-bold text-text-primary">
-            {formatMetricValue(province, "revenue")}
-          </p>
-          <span className="text-[11px] text-text-tertiary">Kỳ tuyển sinh này</span>
-        </div>
-      </div>
-
-      {/* 4. Tab Switcher for Bottom Section */}
-      <div className="mt-2 flex items-center gap-1 rounded-xl bg-background-gray-primary/80 p-1 text-xs">
-        <button
-          className={`flex-1 rounded-lg py-1.5 font-semibold transition-colors ${
-            activeTab === "insight"
-              ? "bg-card-background text-text-primary shadow-xs"
-              : "text-text-secondary hover:text-text-primary"
-          }`}
-          onClick={() => setActiveTab("insight")}
-          type="button"
-        >
-          Đề xuất AI
-        </button>
-        <button
-          className={`flex-1 rounded-lg py-1.5 font-semibold transition-colors ${
-            activeTab === "schools"
-              ? "bg-card-background text-text-primary shadow-xs"
-              : "text-text-secondary hover:text-text-primary"
-          }`}
-          onClick={() => setActiveTab("schools")}
-          type="button"
-        >
-          Trường THPT ({province.highSchools.length})
-        </button>
-      </div>
-
-      {/* 5. Tab Content Area */}
-      <div className="mt-2 flex-1 min-h-0 overflow-y-auto pr-0.5">
-        {activeTab === "insight" ? (
-          <div className="space-y-2 text-xs">
-            <div className="rounded-xl bg-brand-500/10 p-2.5">
-              <span className="font-bold text-brand-500 text-xs">
-                FAIP Intelligence
-              </span>
-              <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-                {province.recommendation}
-              </p>
+        <section aria-labelledby="school-list-title" className="mt-5">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <h3 id="school-list-title" className="text-sm font-semibold text-text-primary">Trường THPT trong vùng</h3>
+              <p className="mt-0.5 text-xs text-text-tertiary">Chọn một trường để mở phân tích chi tiết</p>
             </div>
+            <span className="shrink-0 text-xs font-medium text-text-tertiary">{schools.length} trường</span>
+          </div>
 
-            <div className="rounded-xl bg-background-gray-primary/50 p-2.5 text-text-secondary">
-              <div className="flex items-center justify-between text-xs font-medium text-text-tertiary">
-                <span>Hành động cốt lõi</span>
-                <span className="font-bold text-text-primary">
-                  {province.keyAction}
-                </span>
-              </div>
+          <div className="mt-3 space-y-2">
+            {schools.map((school, index) => {
+              const status = statusConfig[school.status];
+              const isSelected = selectedSchool?.id === school.id;
+
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`flex w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition ${isSelected ? "border-primary-200 bg-badge-primary-background" : "border-card-border bg-card-background hover:border-primary-200 hover:bg-background-soft-50"}`}
+                  key={school.id}
+                  onClick={() => onSelectSchool(province.code, school.id)}
+                  type="button"
+                >
+                  <span className={`flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-semibold ${isSelected ? "bg-primary-500 text-primary-text" : "bg-background-soft-100 text-text-secondary"}`}>{index + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate text-xs font-semibold text-text-primary" title={school.name}>{school.name}</span>
+                      <Badge color={status.color} className="shrink-0 text-[10px]">{status.label}</Badge>
+                    </span>
+                    <span className="mt-1 block truncate text-[11px] text-text-tertiary">{school.district} · {school.penetrationRate}% tiếp cận</span>
+                  </span>
+                  <span className="shrink-0 text-right"><span className="block text-sm font-semibold text-text-primary">{school.potentialScore}</span><span className="text-[10px] text-text-tertiary">Potential</span></span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {selectedSchool && <SchoolSpotlight provinceName={province.name} school={selectedSchool} />}
+
+        <section aria-labelledby="province-recommendation-title" className="mt-5 rounded-xl border border-card-border bg-background-soft-50 p-3.5">
+          <div className="flex items-start gap-2.5">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-badge-primary-background text-primary-500" aria-hidden="true"><Sparkle size={15} /></span>
+            <div className="min-w-0">
+              <h3 id="province-recommendation-title" className="text-xs font-semibold text-text-primary">Cơ hội khu vực</h3>
+              <p className="mt-1 text-xs leading-5 text-text-secondary">{province.recommendation}</p>
+              <p className="mt-2 flex items-start gap-1.5 text-xs font-medium text-primary-500"><ArrowRight size={13} className="mt-0.5 shrink-0" />{province.keyAction}</p>
             </div>
           </div>
-        ) : (
-          <div className="space-y-1.5">
-            {province.highSchools.map((hs) => (
-              <div
-                className="flex items-center justify-between rounded-xl bg-background-gray-primary/60 p-2 text-xs"
-                key={hs.id}
-              >
-                <div className="min-w-0 pr-2">
-                  <p className="truncate text-xs font-bold text-text-primary">
-                    {hs.name}
-                  </p>
-                  <span className="text-[11px] text-text-tertiary">
-                    {hs.district} • {hs.tier}
-                  </span>
-                </div>
-                <div className="shrink-0 text-right">
-                  <span className="text-xs font-bold text-text-primary">
-                    {hs.applications} HS
-                  </span>
-                  <span className="block text-[11px] font-semibold text-success-500">
-                    {hs.penetrationRate}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        </section>
       </div>
 
-      {/* 6. Footer Action */}
-      <div className="mt-2 pt-1">
-        <Button
-          className="h-9.5 w-full justify-center gap-2 text-xs font-bold shadow-xs"
-          onPress={() => {}}
-          size="sm"
-          variant="primary"
-        >
-          <span>Kích hoạt chiến dịch tại {province.name}</span>
+      <footer className="shrink-0 border-t border-card-border p-4">
+        <Button className="h-9.5 w-full justify-center gap-2 text-xs font-semibold" onPress={() => toast.success(`Đã tạo kế hoạch khai thác tại ${province.name}.`)} size="sm" variant="primary">
+          Kích hoạt chiến dịch tại {province.name}
           <ArrowRight size={14} />
         </Button>
-      </div>
-    </div>
+      </footer>
+    </aside>
   );
+}
+
+function MetricTile({ hint, label, value }: { hint: string; label: string; value: string }) {
+  return <div className="rounded-xl bg-background-soft-50 p-3"><p className="text-[11px] text-text-tertiary">{label}</p><p className="mt-1 truncate text-base font-semibold text-text-primary" title={value}>{value}</p><p className="mt-0.5 truncate text-[10px] text-text-tertiary">{hint}</p></div>;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/tailgrids/core/button";
@@ -7,20 +8,30 @@ import { toProvinceMetrics } from "./data";
 import MarketMap from "./market-map";
 import ProvinceInspector from "./province-inspector";
 import type {
-  MetricKey,
   ProvinceFeatureCollection,
   ProvinceGeometryDocument,
   ProvinceMetrics,
   RegionKey,
 } from "./types";
 
-export default function MarketIntelligenceDashboard() {
+interface MarketDirectorySchool {
+  id: string;
+  provinceCode: string;
+  district: string;
+  name: string;
+}
+
+interface MarketIntelligenceDashboardProps {
+  schoolDirectory: MarketDirectorySchool[];
+}
+
+export default function MarketIntelligenceDashboard({ schoolDirectory }: MarketIntelligenceDashboardProps) {
+  const router = useRouter();
   const [documents, setDocuments] = useState<ProvinceGeometryDocument[]>([]);
   const [query, setQuery] = useState("");
-  const [metric, setMetric] = useState<MetricKey>("opportunity");
   const [region, setRegion] = useState<RegionKey>("all");
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
-  const [showCampuses, setShowCampuses] = useState(true);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +53,20 @@ export default function MarketIntelligenceDashboard() {
       });
   }, []);
 
-  const provinces = useMemo(() => documents.map(toProvinceMetrics), [documents]);
+  const schoolsByProvince = useMemo(() => {
+    const map = new Map<string, MarketDirectorySchool[]>();
+
+    for (const school of schoolDirectory) {
+      map.set(school.provinceCode, [...(map.get(school.provinceCode) ?? []), school]);
+    }
+
+    return map;
+  }, [schoolDirectory]);
+
+  const provinces = useMemo(
+    () => documents.map((document) => toProvinceMetrics(document, schoolsByProvince.get(document.Code))),
+    [documents, schoolsByProvince],
+  );
 
   const geoData = useMemo<ProvinceFeatureCollection>(
     () => ({
@@ -61,11 +85,46 @@ export default function MarketIntelligenceDashboard() {
     return provinces.find((p) => p.code === selectedCode) ?? null;
   }, [provinces, selectedCode]);
 
+  const handleSelectProvince = (code: string) => {
+    setSelectedCode(code);
+    setSelectedSchoolId(null);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedCode(null);
+    setSelectedSchoolId(null);
+  };
+
+  const handleSelectSchool = (provinceCode: string, schoolId: string) => {
+    setSelectedCode(provinceCode);
+    setSelectedSchoolId(schoolId);
+
+    const school = provinces
+      .find((province) => province.code === provinceCode)
+      ?.highSchools.find((item) => item.id === schoolId);
+
+    if (school?.directoryId) {
+      router.push(`/director/schools/${school.directoryId}`);
+    }
+  };
+
+  const handleRegionChange = (nextRegion: RegionKey) => {
+    setRegion(nextRegion);
+    setSelectedSchoolId(null);
+
+    if (nextRegion === "all") return;
+
+    const firstProvince = provinces
+      .filter((province) => province.regionKey === nextRegion)
+      .sort((left, right) => right.opportunity - left.opportunity)[0];
+
+    if (firstProvince) setSelectedCode(firstProvince.code);
+  };
+
   const handleReset = () => {
-    setMetric("opportunity");
     setRegion("all");
     setQuery("");
-    setShowCampuses(true);
+    setSelectedSchoolId(null);
     const hn = documents.find((d) => d.Name.includes("Hà Nội"));
     setSelectedCode(hn?.Code ?? documents[0]?.Code ?? null);
     toast.success("Đã đặt lại bộ lọc bản đồ!");
@@ -101,43 +160,41 @@ export default function MarketIntelligenceDashboard() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-112px)] max-h-[calc(100vh-112px)] w-full flex-col overflow-hidden p-1">
+    <main className="min-w-0 px-2 py-3 lg:px-6 xl:h-[calc(100vh-112px)] xl:overflow-hidden">
       {error ? (
         <MapError />
       ) : loading ? (
-        <div className="grid h-full grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.75fr)]">
+        <div className="grid h-full grid-cols-1 gap-2 xl:min-h-0 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.75fr)]">
           <div className="h-full animate-pulse rounded-2xl bg-card-background/60" />
           <div className="h-full animate-pulse rounded-2xl bg-card-background/60" />
         </div>
       ) : (
-        <div className="grid h-full grid-cols-1 items-stretch gap-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.75fr)] overflow-hidden">
-          {/* Map Canvas Card with Embedded Header & Controls */}
+        <div className="grid min-h-[640px] min-w-0 grid-cols-1 items-stretch gap-2 xl:h-full xl:min-h-0 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.75fr)]">
           <MarketMap
-            activeMetric={metric}
             activeRegion={region}
             geoData={geoData}
             onExport={handleExport}
-            onMetricChange={setMetric}
+            onClearSelection={handleClearSelection}
             onQueryChange={setQuery}
-            onRegionChange={setRegion}
+            onRegionChange={handleRegionChange}
             onReset={handleReset}
-            onSelectProvince={setSelectedCode}
-            onToggleCampuses={setShowCampuses}
+            onSelectProvince={handleSelectProvince}
+            onSelectSchool={handleSelectSchool}
             provinces={provinces}
             query={query}
             selectedCode={selectedCode}
-            showCampuses={showCampuses}
+            selectedSchoolId={selectedSchoolId}
             totalProvinces={documents.length}
           />
 
-          {/* 360° Province Inspector Card */}
           <ProvinceInspector
-            onSelectProvince={setSelectedCode}
+            onSelectSchool={handleSelectSchool}
             province={selectedProvince}
+            selectedSchoolId={selectedSchoolId}
           />
         </div>
       )}
-    </div>
+    </main>
   );
 }
 

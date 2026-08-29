@@ -38,15 +38,9 @@ export const NAV_DATA: NavigationSection[] = [
         items: [],
       },
       {
-        title: "Bản đồ thị trường",
+        title: "Bản đồ & trường THPT",
         url: "/director/market-intelligence",
         icon: <PieChartIcon />,
-        items: [],
-      },
-      {
-        title: "Phân tích trường THPT",
-        url: "/director/schools",
-        icon: <UserGroupIcon />,
         items: [],
       },
       {
