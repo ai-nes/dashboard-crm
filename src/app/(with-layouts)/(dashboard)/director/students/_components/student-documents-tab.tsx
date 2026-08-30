@@ -45,13 +45,13 @@ export default function StudentDocumentsTab({ data }: Student360SectionProps) {
           );
 
           if (!hasFile) {
-            return <div key={document.name} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">{row}<Badge color={document.tone}>{document.status}</Badge></div>;
+            return <div key={document.name} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">{row}<Badge className="self-start sm:self-auto" color={document.tone}>{document.status}</Badge></div>;
           }
 
           return (
             <AccordionItem key={document.name} className="border-0 bg-transparent">
               <AccordionTrigger className="items-center px-0 py-4 first:pt-0 hover:no-underline">
-                <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:pr-2">{row}<Badge color={document.tone}>{document.status}</Badge></div>
+                <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:pr-2">{row}<Badge className="self-start sm:self-auto" color={document.tone}>{document.status}</Badge></div>
               </AccordionTrigger>
               <AccordionContent className="px-0 pb-4">
                 <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-card-border bg-background-gray-primary p-6 text-center">
