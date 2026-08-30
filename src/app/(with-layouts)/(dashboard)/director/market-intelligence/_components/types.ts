@@ -19,21 +19,21 @@ export type SchoolTier = "Tier 1" | "Tier 2" | "Tier 3";
 
 export interface HighSchoolItem {
   id: string;
-  directoryId?: string;
+  directoryId: string | null;
   name: string;
-  district: string;
-  tier: SchoolTier;
-  potentialScore: number;
-  grade12Students: number;
-  prospects: number;
-  penetrationRate: number; // %
-  applications: number;
-  enrollmentForecast: number;
-  conversionRate: number; // %
-  lastActivity: string;
-  recommendation: string;
-  nextAction: string;
-  classification: SchoolClassification;
+  district: string | null;
+  tier: SchoolTier | null;
+  potentialScore: number | null;
+  grade12Students: number | null;
+  prospects: number | null;
+  penetrationRate: number | null; // %
+  applications: number | null;
+  enrollmentForecast: number | null;
+  conversionRate: number | null; // %
+  lastActivity: string | null;
+  recommendation: string | null;
+  nextAction: string | null;
+  classification: SchoolClassification | null;
 }
 
 export interface FptuCampusLocation {
@@ -66,16 +66,16 @@ export interface ProvinceMetrics {
   code: string;
   name: string;
   regionKey: RegionKey;
-  opportunity: number; // 0 - 100
-  leads: number;
-  conversion: number; // %
-  competition: number; // 0 - 100
-  revenue: number; // Tỷ VND
-  grade12Population: number;
-  penetrationRate: number; // %
-  trend: number; // % YoY
-  recommendation: string;
-  keyAction: string;
+  opportunity: number | null; // 0 - 100
+  leads: number | null;
+  conversion: number | null; // %
+  competition: number | null; // 0 - 100
+  revenue: number | null; // Tỷ VND
+  grade12Population: number | null;
+  penetrationRate: number | null; // %
+  trend: number | null; // % YoY
+  recommendation: string | null;
+  keyAction: string | null;
   highSchools: HighSchoolItem[];
 }
 

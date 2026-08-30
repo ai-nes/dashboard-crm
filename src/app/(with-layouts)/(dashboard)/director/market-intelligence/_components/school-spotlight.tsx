@@ -9,7 +9,7 @@ interface SchoolSpotlightProps {
   school: HighSchoolItem;
 }
 
-const classificationConfig: Record<HighSchoolItem["classification"], { color: "success" | "primary" | "warning" | "gray"; label: string }> = {
+const classificationConfig: Record<NonNullable<HighSchoolItem["classification"]>, { color: "success" | "primary" | "warning" | "gray"; label: string }> = {
   "Trọng điểm": { color: "success", label: "Trọng điểm · Key Account" },
   "Mở rộng": { color: "primary", label: "Mở rộng" },
   "Duy trì": { color: "warning", label: "Duy trì" },
@@ -17,7 +17,7 @@ const classificationConfig: Record<HighSchoolItem["classification"], { color: "s
 };
 
 export default function SchoolSpotlight({ provinceName, school }: SchoolSpotlightProps) {
-  const status = classificationConfig[school.classification];
+  const status = school.classification ? classificationConfig[school.classification] : { color: "gray" as const, label: "Chưa phân loại" };
 
   return (
     <section aria-labelledby="selected-school-title" className="mt-5 rounded-xl border border-primary-200 bg-badge-primary-background/60 p-4">
@@ -38,44 +38,53 @@ export default function SchoolSpotlight({ provinceName, school }: SchoolSpotligh
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2">
         <div className="rounded-lg bg-card-background/80 p-2.5">
           <p className="text-[10px] text-text-tertiary">Potential</p>
-          <p className="mt-0.5 text-lg font-semibold text-text-primary">{school.potentialScore}<span className="text-xs font-medium text-text-tertiary">/100</span></p>
+          <p className="mt-0.5 text-lg font-semibold text-text-primary">{metric(school.potentialScore)}{school.potentialScore !== null && <span className="text-xs font-medium text-text-tertiary">/100</span>}</p>
         </div>
         <div className="rounded-lg bg-card-background/80 p-2.5">
           <p className="text-[10px] text-text-tertiary">Lớp 12</p>
-          <p className="mt-0.5 text-lg font-semibold text-text-primary">{school.grade12Students.toLocaleString("vi-VN")}</p>
+          <p className="mt-0.5 text-lg font-semibold text-text-primary">{metric(school.grade12Students, true)}</p>
         </div>
         <div className="rounded-lg bg-card-background/80 p-2.5">
           <p className="text-[10px] text-text-tertiary">Prospect</p>
-          <p className="mt-0.5 text-lg font-semibold text-text-primary">{school.prospects.toLocaleString("vi-VN")}</p>
+          <p className="mt-0.5 text-lg font-semibold text-text-primary">{metric(school.prospects, true)}</p>
         </div>
         <div className="rounded-lg bg-card-background/80 p-2.5">
           <p className="text-[10px] text-text-tertiary">Forecast</p>
-          <p className="mt-0.5 flex items-center gap-1 text-lg font-semibold text-success-500"><TrendUp2 size={14} />{school.enrollmentForecast}</p>
+          <p className="mt-0.5 flex items-center gap-1 text-lg font-semibold text-success-500">{school.enrollmentForecast !== null && <TrendUp2 size={14} />}{metric(school.enrollmentForecast)}</p>
         </div>
       </div>
 
       <div className="mt-4">
         <div className="flex items-center justify-between gap-3 text-xs">
           <span className="font-medium text-text-secondary">Mức độ tiếp cận</span>
-          <span className="font-semibold text-text-primary">{school.penetrationRate}% · CR {school.conversionRate}%</span>
+          <span className="font-semibold text-text-primary">{percent(school.penetrationRate)} · CR {percent(school.conversionRate)}</span>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-card-background">
-          <div className="h-full rounded-full bg-primary-500" style={{ width: `${Math.min(100, school.penetrationRate * 8)}%` }} />
+          <div className="h-full rounded-full bg-primary-500" style={{ width: `${school.penetrationRate === null ? 0 : Math.min(100, school.penetrationRate * 8)}%` }} />
         </div>
-        <p className="mt-1.5 text-[11px] text-text-tertiary">Cập nhật gần nhất: {school.lastActivity}</p>
+        <p className="mt-1.5 text-[11px] text-text-tertiary">Cập nhật gần nhất: {school.lastActivity ?? "Chưa có dữ liệu"}</p>
       </div>
 
       <div className="mt-4 border-t border-primary-200 pt-3">
         <p className="text-xs font-semibold text-primary-600">Vì sao nên chọn trường này?</p>
-        <p className="mt-1 text-xs leading-5 text-text-secondary">{school.recommendation}. Trường đang tạo ra {school.applications} hồ sơ xét tuyển.</p>
-        <div className="mt-3 flex items-start gap-2 rounded-lg bg-card-background/75 p-2.5">
+        <p className="mt-1 text-xs leading-5 text-text-secondary">{school.recommendation ?? "Chưa có dữ liệu"}{school.applications !== null ? ` Trường đang có ${school.applications} hồ sơ xét tuyển.` : ""}</p>
+        {school.nextAction && <div className="mt-3 flex items-start gap-2 rounded-lg bg-card-background/75 p-2.5">
           <ArrowRight size={14} className="mt-0.5 shrink-0 text-primary-500" aria-hidden="true" />
           <div>
             <p className="text-[10px] font-medium text-text-tertiary">Bước tiếp theo</p>
             <p className="mt-0.5 text-xs font-semibold leading-5 text-text-primary">{school.nextAction}</p>
           </div>
-        </div>
+        </div>}
       </div>
     </section>
   );
+}
+
+function metric(value: number | null, grouped = false) {
+  if (value === null) return "Chưa có dữ liệu";
+  return grouped ? value.toLocaleString("vi-VN") : String(value);
+}
+
+function percent(value: number | null) {
+  return value === null ? "Chưa có dữ liệu" : `${value}%`;
 }

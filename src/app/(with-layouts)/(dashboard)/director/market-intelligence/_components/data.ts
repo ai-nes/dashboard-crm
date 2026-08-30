@@ -438,22 +438,26 @@ export function toProvinceMetrics(
 }
 
 export function formatMetricValue(province: ProvinceMetrics, metric: MetricKey) {
-  if (metric === "opportunity") return `${province.opportunity} /100`;
-  if (metric === "leads") return new Intl.NumberFormat("vi-VN").format(province.leads);
-  if (metric === "conversion") return `${province.conversion}%`;
-  if (metric === "competition") return `${province.competition} /100`;
-  if (metric === "revenue") return `${province.revenue} tỷ`;
-  return `${province.opportunity}`;
+  const value = province[metric];
+  if (value === null) return "Chưa có dữ liệu";
+  if (metric === "opportunity") return `${value} /100`;
+  if (metric === "leads") return new Intl.NumberFormat("vi-VN").format(value);
+  if (metric === "conversion") return `${value}%`;
+  if (metric === "competition") return `${value} /100`;
+  if (metric === "revenue") return `${value} tỷ`;
+  return `${value}`;
 }
 
-export function opportunityLabel(score: number) {
+export function opportunityLabel(score: number | null) {
+  if (score === null) return "Chưa có dữ liệu";
   if (score >= 80) return "Cơ hội rất cao";
   if (score >= 65) return "Tiềm năng lớn";
   if (score >= 50) return "Đang tăng trưởng";
   return "Cần kích cầu";
 }
 
-export function getOpportunityBadgeVariant(score: number): "success" | "primary" | "warning" | "error" {
+export function getOpportunityBadgeVariant(score: number | null): "success" | "primary" | "warning" | "error" | "gray" {
+  if (score === null) return "gray";
   if (score >= 80) return "success";
   if (score >= 65) return "primary";
   if (score >= 50) return "warning";
@@ -466,13 +470,15 @@ export function getOpportunityBadgeVariant(score: number): "success" | "primary"
  */
 export function getMetricColor(
   metric: MetricKey,
-  value: number,
+  value: number | null,
   isHovered: boolean = false,
   isSelected: boolean = false,
 ): string {
   if (isSelected) {
     return "#3b82f6"; // Vibrant Electric Blue when actively selected
   }
+
+  if (value === null) return isHovered ? "#94a3b8" : "#cbd5e1";
 
   if (metric === "opportunity") {
     // Elegant Emerald & Indigo heat gradient
