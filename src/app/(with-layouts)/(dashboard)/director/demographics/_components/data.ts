@@ -1,18 +1,10 @@
-import type { ComparisonMetric, FunnelStage, RegionOpportunity, SegmentFilter } from "./types";
+import type { DataCoverageMetric, DemographicKpi, DemographicSegment, RegionOpportunity, SegmentFilter } from "./types";
 
 export const initialFilters: SegmentFilter[] = [
   { id: "gender", label: "Giới tính", value: "Nữ" },
   { id: "grade", label: "Khối lớp", value: "Lớp 12" },
   { id: "interest", label: "Quan tâm", value: "AI (Trí tuệ nhân tạo)" },
   { id: "province", label: "Tỉnh/TP", value: "Đồng Nai" },
-];
-
-export const funnelStages: FunnelStage[] = [
-  { label: "Prospects", value: "3.420", width: 100 },
-  { label: "Đã tương tác", value: "1.280", width: 74, conversion: "37,4%" },
-  { label: "Đủ điều kiện", value: "420", width: 48, conversion: "32,8%" },
-  { label: "Đã nộp hồ sơ", value: "160", width: 30, conversion: "38,1%" },
-  { label: "Đã nhập học", value: "68", width: 17, conversion: "42,5%" },
 ];
 
 export const regionOpportunities: RegionOpportunity[] = [
@@ -23,40 +15,178 @@ export const regionOpportunities: RegionOpportunity[] = [
   { rank: 5, name: "Đà Nẵng", score: 55 },
 ];
 
-export const comparisonMetrics: ComparisonMetric[] = [
-  { label: "Quy mô thị trường", primary: "3.420", secondary: "2.910", primaryWidth: 82, secondaryWidth: 70 },
-  { label: "Tỷ lệ đủ điều kiện", primary: "12,3%", secondary: "9,6%", primaryWidth: 74, secondaryWidth: 58 },
-  { label: "Tỷ lệ nộp hồ sơ", primary: "4,7%", secondary: "3,2%", primaryWidth: 68, secondaryWidth: 47 },
-  { label: "Tỷ lệ nhập học", primary: "2,0%", secondary: "1,3%", primaryWidth: 64, secondaryWidth: 42 },
+export const demographicKpis: DemographicKpi[] = [
+  { id: "prospects", label: "Tổng hồ sơ tiềm năng", value: "57.840", change: "+12,6%", helper: "so với cùng kỳ", progress: 86, tone: "primary" },
+  { id: "engaged", label: "Đã có tương tác", value: "24.360", change: "+3,8 điểm", helper: "tỷ lệ tương tác 42,1%", progress: 72, tone: "info" },
+  { id: "qualified", label: "Đủ điều kiện tư vấn", value: "8.940", change: "+1,6 điểm", helper: "36,7% từ engaged", progress: 64, tone: "success" },
+  { id: "enrolled", label: "Đã nhập học", value: "1.284", change: "+8,4%", helper: "conversion cuối 2,22%", progress: 58, tone: "warning" },
 ];
 
-export const demandTrend = [
-  { month: "T1", ai: 2160, business: 1940, design: 1280 },
-  { month: "T2", ai: 2380, business: 2010, design: 1360 },
-  { month: "T3", ai: 2520, business: 2080, design: 1410 },
-  { month: "T4", ai: 2690, business: 2110, design: 1490 },
-  { month: "T5", ai: 2840, business: 2180, design: 1530 },
-  { month: "T6", ai: 3420, business: 2260, design: 1620 },
+export const overviewDemandTrend = [
+  { month: "T1", ai: 2160, software: 2860, business: 2520, design: 1280 },
+  { month: "T2", ai: 2380, software: 2940, business: 2570, design: 1360 },
+  { month: "T3", ai: 2520, software: 3010, business: 2600, design: 1410 },
+  { month: "T4", ai: 2690, software: 3080, business: 2580, design: 1490 },
+  { month: "T5", ai: 2840, software: 3190, business: 2550, design: 1530 },
+  { month: "T6", ai: 3420, software: 3340, business: 2610, design: 1620 },
 ];
 
-export const regionPortfolio = [
-  { name: "TP.HCM", potential: 88, conversion: 7.2, prospects: 5210 },
-  { name: "Bình Dương", potential: 76, conversion: 6.4, prospects: 3980 },
-  { name: "Đồng Nai", potential: 72, conversion: 8.1, prospects: 3420 },
-  { name: "Cần Thơ", potential: 61, conversion: 4.8, prospects: 2940 },
-  { name: "Đà Nẵng", potential: 55, conversion: 5.3, prospects: 2210 },
+export const demographicSegments: DemographicSegment[] = [
+  {
+    id: "female-ai-dong-nai",
+    name: "Nữ · Lớp 12 · Đông Nam Bộ · quan tâm AI",
+    shortName: "Nữ · AI · ĐNB",
+    description: "Tăng nhanh tại Đồng Nai nhưng độ phủ truyền thông còn thấp.",
+    region: "Đồng Nai",
+    interest: "Trí tuệ nhân tạo",
+    prospects: 3420,
+    engaged: 1280,
+    qualified: 420,
+    counselling: 268,
+    applications: 160,
+    enrolled: 68,
+    conversion: 2,
+    tuition: 51.2,
+    revenue: 3.5,
+    growth: 31,
+    coverage: 3.2,
+    opportunityScore: 92,
+    tone: "primary",
+    filters: initialFilters,
+  },
+  {
+    id: "male-ai-dong-nai",
+    name: "Nam · Lớp 12 · Đông Nam Bộ · quan tâm AI",
+    shortName: "Nam · AI · ĐNB",
+    description: "Quy mô lớn, chuyển đổi ổn định và đã được khai thác tốt hơn.",
+    region: "Đồng Nai",
+    interest: "Trí tuệ nhân tạo",
+    prospects: 5180,
+    engaged: 2010,
+    qualified: 640,
+    counselling: 386,
+    applications: 248,
+    enrolled: 96,
+    conversion: 1.9,
+    tuition: 50.8,
+    revenue: 4.9,
+    growth: 12,
+    coverage: 14.8,
+    opportunityScore: 78,
+    tone: "info",
+    filters: [
+      { id: "gender", label: "Giới tính", value: "Nam" },
+      { id: "grade", label: "Khối lớp", value: "Lớp 12" },
+      { id: "interest", label: "Quan tâm", value: "AI (Trí tuệ nhân tạo)" },
+      { id: "province", label: "Tỉnh/TP", value: "Đồng Nai" },
+    ],
+  },
+  {
+    id: "female-business-mekong",
+    name: "Nữ · Lớp 12 · ĐBSCL · quan tâm Quản trị kinh doanh",
+    shortName: "Nữ · QTKD · ĐBSCL",
+    description: "Quy mô vừa, học phí ròng thấp hơn nhưng có độ phủ vùng tốt.",
+    region: "Đồng bằng sông Cửu Long",
+    interest: "Quản trị kinh doanh",
+    prospects: 2140,
+    engaged: 780,
+    qualified: 246,
+    counselling: 152,
+    applications: 92,
+    enrolled: 34,
+    conversion: 1.6,
+    tuition: 44.1,
+    revenue: 1.5,
+    growth: 8,
+    coverage: 19.4,
+    opportunityScore: 64,
+    tone: "success",
+    filters: [
+      { id: "gender", label: "Giới tính", value: "Nữ" },
+      { id: "grade", label: "Khối lớp", value: "Lớp 12" },
+      { id: "interest", label: "Quan tâm", value: "Quản trị kinh doanh" },
+      { id: "region", label: "Vùng", value: "ĐBSCL" },
+    ],
+  },
+  {
+    id: "private-hcm-business",
+    name: "Trường ngoài công lập · TP.HCM · nhóm ngành kinh doanh",
+    shortName: "Ngoài CL · Kinh doanh",
+    description: "Giá trị học phí cao nhất nhưng conversion thấp thứ hai.",
+    region: "TP. Hồ Chí Minh",
+    interest: "Kinh doanh",
+    prospects: 1840,
+    engaged: 720,
+    qualified: 235,
+    counselling: 142,
+    applications: 84,
+    enrolled: 31,
+    conversion: 1.7,
+    tuition: 58.4,
+    revenue: 1.8,
+    growth: 18,
+    coverage: 11.6,
+    opportunityScore: 81,
+    tone: "warning",
+    filters: [
+      { id: "schoolType", label: "Loại trường", value: "Ngoài công lập" },
+      { id: "province", label: "Tỉnh/TP", value: "TP. Hồ Chí Minh" },
+      { id: "interest", label: "Quan tâm", value: "Nhóm ngành kinh doanh" },
+    ],
+  },
+  {
+    id: "software-binh-duong",
+    name: "Lớp 12 · Bình Dương · quan tâm Kỹ thuật phần mềm",
+    shortName: "KTPM · Bình Dương",
+    description: "Chất lượng qualified tốt, tăng đều trong ba tháng gần nhất.",
+    region: "Bình Dương",
+    interest: "Kỹ thuật phần mềm",
+    prospects: 2960,
+    engaged: 1260,
+    qualified: 486,
+    counselling: 301,
+    applications: 194,
+    enrolled: 83,
+    conversion: 2.8,
+    tuition: 49.6,
+    revenue: 4.1,
+    growth: 21,
+    coverage: 16.2,
+    opportunityScore: 87,
+    tone: "danger",
+    filters: [
+      { id: "grade", label: "Khối lớp", value: "Lớp 12" },
+      { id: "province", label: "Tỉnh/TP", value: "Bình Dương" },
+      { id: "interest", label: "Quan tâm", value: "Kỹ thuật phần mềm" },
+    ],
+  },
 ];
 
-export const journeyCohorts = [
-  { stage: "Tương tác", current: 100, benchmark: 100 },
-  { stage: "Đủ điều kiện", current: 32.8, benchmark: 26.1 },
-  { stage: "Nộp hồ sơ", current: 12.3, benchmark: 8.9 },
-  { stage: "Nhập học", current: 5.3, benchmark: 3.6 },
+export const audienceGender = [
+  { name: "Nữ", value: 46.8, fill: "var(--brand-500)" },
+  { name: "Nam", value: 51.6, fill: "var(--info-500)" },
+  { name: "Chưa xác định", value: 1.6, fill: "var(--background-soft-300)" },
 ];
 
-export const interestHeatmap = [
-  { interest: "AI", hcm: 86, dongNai: 93, binhDuong: 74, canTho: 55 },
-  { interest: "Kỹ thuật phần mềm", hcm: 75, dongNai: 72, binhDuong: 79, canTho: 51 },
-  { interest: "Kinh doanh", hcm: 68, dongNai: 61, binhDuong: 67, canTho: 64 },
-  { interest: "Thiết kế", hcm: 57, dongNai: 48, binhDuong: 53, canTho: 42 },
+export const audienceProfiles = [
+  { label: "Học sinh lớp 12", value: 63.4, detail: "36.660 hồ sơ", color: "bg-brand-500" },
+  { label: "Trường công lập", value: 72.1, detail: "41.710 hồ sơ", color: "bg-success-500" },
+  { label: "Khu vực đô thị", value: 58.7, detail: "33.960 hồ sơ", color: "bg-info-500" },
+  { label: "Đã có ngành quan tâm", value: 88.1, detail: "50.960 hồ sơ", color: "bg-warning-500" },
+];
+
+export const regionalDemandMatrix = [
+  { interest: "Trí tuệ nhân tạo", hcm: 86, dongNai: 93, binhDuong: 74, canTho: 55, daNang: 67 },
+  { interest: "Kỹ thuật phần mềm", hcm: 75, dongNai: 72, binhDuong: 89, canTho: 61, daNang: 78 },
+  { interest: "Quản trị kinh doanh", hcm: 68, dongNai: 61, binhDuong: 67, canTho: 84, daNang: 64 },
+  { interest: "Thiết kế mỹ thuật số", hcm: 72, dongNai: 48, binhDuong: 53, canTho: 42, daNang: 76 },
+  { interest: "Công nghệ ô tô", hcm: 54, dongNai: 81, binhDuong: 77, canTho: 58, daNang: 49 },
+];
+
+export const dataCoverageMetrics: DataCoverageMetric[] = [
+  { label: "Địa lý", detail: "Tỉnh, huyện, vùng tuyển sinh", value: 96.4, tone: "success" },
+  { label: "Thông tin học sinh", detail: "Giới tính, khối, tuổi, học lực", value: 31.2, tone: "warning" },
+  { label: "Ngành quan tâm", detail: "Nhóm ngành và ngành cụ thể", value: 88.1, tone: "success" },
+  { label: "Hành vi", detail: "Web, sự kiện, campus visit", value: 94.8, tone: "success" },
+  { label: "Khả năng học phí", detail: "Tạm khóa theo chính sách dữ liệu", value: 0, tone: "danger" },
 ];

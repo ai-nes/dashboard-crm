@@ -1,22 +1,36 @@
-import { ArrowRight, ArrowUpward, InfoCircle } from "@tailgrids/icons";
+import { ArrowRight, InfoCircle } from "@tailgrids/icons";
+import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import { funnelStages, regionOpportunities } from "./data";
+import { regionOpportunities } from "./data";
+import type { DemographicSegment } from "./types";
 
-export default function SegmentAnalysis() {
+export default function SegmentAnalysis({ segment }: { segment: DemographicSegment }) {
+  const stages = [
+    { label: "Prospect", value: segment.prospects, conversion: "100%" },
+    { label: "Engaged", value: segment.engaged, conversion: `${((segment.engaged / segment.prospects) * 100).toFixed(1)}%` },
+    { label: "Qualified", value: segment.qualified, conversion: `${((segment.qualified / segment.engaged) * 100).toFixed(1)}%` },
+    { label: "Counselling", value: segment.counselling, conversion: `${((segment.counselling / segment.qualified) * 100).toFixed(1)}%` },
+    { label: "Application", value: segment.applications, conversion: `${((segment.applications / segment.counselling) * 100).toFixed(1)}%` },
+    { label: "Enrolled", value: segment.enrolled, conversion: `${((segment.enrolled / segment.applications) * 100).toFixed(1)}%` },
+  ];
+
   return (
-    <section className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
-      <Card className="min-w-0 p-0">
-        <CardHeader className="border-b border-card-border p-5"><div><CardTitle>Phễu quy mô & chuyển đổi</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Tệp nữ lớp 12 quan tâm AI tại Đồng Nai trong kỳ tuyển sinh 2026.</p></div><Badge color="primary">3.420 prospects</Badge></CardHeader>
+    <section className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
+      <Card className="min-w-0 overflow-hidden bg-background-gray-primary p-0">
+        <CardHeader className="border-b border-card-border p-5"><div><CardTitle>Hành trình chuyển đổi</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Số lượng và tỷ lệ qua từng bước của phân khúc đang chọn.</p></div><Badge color="primary">{segment.prospects.toLocaleString("vi-VN")} prospects</Badge></CardHeader>
         <div className="p-5">
-          <div className="mb-3 grid grid-cols-[minmax(150px,1fr)_68px] gap-3 text-xs font-medium text-text-tertiary sm:grid-cols-[145px_minmax(200px,1fr)_68px_66px]"><span>Giai đoạn</span><span className="hidden sm:block">Quy mô</span><span className="text-right">Số lượng</span><span className="hidden text-right sm:block">Chuyển đổi</span></div>
-          <div className="space-y-3.5">{funnelStages.map((stage, index) => <div key={stage.label} className="grid grid-cols-[minmax(150px,1fr)_68px] items-center gap-3 sm:grid-cols-[145px_minmax(200px,1fr)_68px_66px]"><span className="text-sm text-text-secondary">{stage.label}</span><div className="hidden h-3 overflow-hidden rounded-full bg-background-soft-200 sm:block"><div className={index === 0 ? "h-full rounded-full bg-primary-300" : "h-full rounded-full bg-primary-500"} style={{ width: `${stage.width}%` }} /></div><strong className="text-right text-sm text-text-primary">{stage.value}</strong><span className="hidden text-right text-xs text-success-500 sm:block">{stage.conversion ?? "—"}</span></div>)}</div>
-          <p className="mt-5 border-t border-card-border pt-4 text-xs leading-5 text-text-tertiary">Tỷ lệ nộp hồ sơ cao hơn 1,5 điểm phần trăm so với tệp nữ lớp 12 quan tâm AI toàn quốc.</p>
+          <div className="mb-3 grid grid-cols-[100px_minmax(150px,1fr)_72px_62px] gap-3 text-[10px] font-semibold tracking-wide text-text-tertiary uppercase"><span>Giai đoạn</span><span>Quy mô tương đối</span><span className="text-right">Số lượng</span><span className="text-right">Tỷ lệ</span></div>
+          <div className="space-y-3">{stages.map((stage, index) => { const width = Math.max(4, (stage.value / segment.prospects) * 100); return <div key={stage.label} className="grid grid-cols-[100px_minmax(150px,1fr)_72px_62px] items-center gap-3"><span className="text-xs font-medium text-text-secondary">{stage.label}</span><div className="h-8 overflow-hidden rounded-lg bg-card-background"><div className={`flex h-full items-center rounded-lg px-2 ${index === 0 ? "bg-primary-200" : index === stages.length - 1 ? "bg-success-500" : "bg-brand-500"}`} style={{ width: `${width}%` }}><span className={`truncate text-[10px] font-semibold ${index === 0 ? "text-primary-text" : "text-white-100"}`}>{width >= 22 ? stage.label : ""}</span></div></div><strong className="text-right text-xs text-text-primary">{stage.value.toLocaleString("vi-VN")}</strong><span className={`text-right text-xs font-semibold ${index === stages.length - 1 ? "text-success-500" : "text-text-secondary"}`}>{stage.conversion}</span></div>; })}</div>
+          <p className="mt-5 border-t border-card-border pt-4 text-xs leading-5 text-text-tertiary">Phân khúc mới xuất hiện rõ trong 4 tháng gần đây. Conversion cuối cần được đọc cùng độ dài chu kỳ, không so sánh trực tiếp với nhóm đã trưởng thành.</p>
         </div>
       </Card>
-      <Card className="min-w-0 p-0"><CardHeader className="border-b border-card-border p-5"><div><CardTitle>Xếp hạng theo địa bàn</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Chỉ số tiềm năng tổng hợp quy mô, tăng trưởng và chuyển đổi.</p></div><InfoCircle size={17} className="text-text-tertiary" aria-label="Thông tin về chỉ số tiềm năng" /></CardHeader><div className="p-3">{regionOpportunities.map((region) => <div key={region.name} className={`grid grid-cols-[24px_minmax(0,1fr)_94px_32px] items-center gap-3 rounded-lg px-2.5 py-3 ${region.selected ? "bg-badge-primary-background" : ""}`}><span className={region.selected ? "text-xs font-semibold text-badge-primary-text" : "text-xs text-text-tertiary"}>{region.rank}</span><span className={region.selected ? "truncate text-sm font-medium text-badge-primary-text" : "truncate text-sm text-text-secondary"}>{region.name}</span><div className="h-2 overflow-hidden rounded-full bg-background-soft-200"><div className={region.selected ? "h-full rounded-full bg-primary-500" : "h-full rounded-full bg-success-500"} style={{ width: `${region.score}%` }} /></div><strong className={region.selected ? "text-right text-sm text-badge-primary-text" : "text-right text-sm text-text-primary"}>{region.score}</strong></div>)}</div></Card>
-      <Card className="xl:col-span-2 p-0"><CardHeader className="border-b border-card-border p-5"><div><div className="flex flex-wrap items-center gap-2"><CardTitle>Cơ hội mới nổi</CardTitle><Badge color="success"><ArrowUpward size={13} />31% MoM</Badge></div><p className="mt-1 text-xs leading-5 text-text-tertiary">Phát hiện tự động từ thay đổi nhu cầu, quy mô thị trường và mức độ khai thác hiện tại.</p></div></CardHeader><div className="grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_auto]"><div><p className="text-base font-semibold text-text-primary">Nữ sinh quan tâm AI tại Đồng Nai tăng nhanh, nhưng audience targeting mới bao phủ 3,2% tệp.</p><p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">Nhu cầu tăng 31% so với tháng trước; tỷ lệ đủ điều kiện cao hơn mức trung bình của nhóm AI. Ưu tiên kiểm tra 12 trường có quy mô lớn trước khi điều chỉnh phân bổ nguồn lực.</p></div><a href="/director/market-intelligence" className="inline-flex h-9 items-center justify-center gap-1 self-end rounded-lg text-sm font-medium text-button-primary-outline-text hover:bg-button-primary-outline-hover-background hover:text-button-primary-outline-hover-text focus-visible:ring-4 focus-visible:ring-button-outline-focus-ring md:self-center"><span>Xem khu vực liên quan</span><ArrowRight size={16} /></a></div></Card>
+      <Card className="min-w-0 overflow-hidden bg-card-background p-0">
+        <CardHeader className="border-b border-card-border p-5"><div><CardTitle>Tiềm năng theo địa bàn</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Điểm tổng hợp quy mô, tăng trưởng và conversion.</p></div><InfoCircle size={17} className="text-text-tertiary" aria-label="Giải thích điểm tiềm năng" /></CardHeader>
+        <div className="p-3">{regionOpportunities.map((region) => <div key={region.name} className={`grid grid-cols-[24px_minmax(0,1fr)_88px_32px] items-center gap-3 rounded-xl px-3 py-3 ${region.name.includes(segment.region.split(" ")[0]) || region.selected ? "bg-background-gray-primary" : ""}`}><span className="text-xs font-semibold text-text-tertiary">{region.rank}</span><span className="truncate text-sm font-medium text-text-secondary">{region.name}</span><div className="h-2 overflow-hidden rounded-full bg-background-gray-secondary"><div className={region.selected ? "h-full rounded-full bg-brand-500" : "h-full rounded-full bg-success-500"} style={{ width: `${region.score}%` }} /></div><strong className="text-right text-xs text-text-primary">{region.score}</strong></div>)}</div>
+        <div className="border-t border-card-border p-4"><Link href="/director/market-intelligence" className="flex items-center justify-between text-xs font-semibold text-brand-500 hover:text-brand-600">Mở bản đồ thị trường<ArrowRight size={14} aria-hidden="true" /></Link></div>
+      </Card>
     </section>
   );
 }

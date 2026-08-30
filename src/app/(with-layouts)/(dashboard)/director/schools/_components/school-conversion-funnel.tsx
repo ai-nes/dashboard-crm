@@ -16,9 +16,9 @@ const STAGE_COLORS = ["var(--background-soft-300)", "var(--primary-300)", "var(-
 export default function SchoolConversionFunnel({ data }: SchoolConversionFunnelProps) {
   const stages = [
     { stage: "Lớp 12", value: data.grade12Students },
-    { stage: "Prospects", value: data.prospects },
+    { stage: "Quan tâm", value: data.prospects },
     { stage: "Hồ sơ", value: data.applications },
-    { stage: "Nhập học", value: data.enrollment },
+    { stage: "Dự kiến nhập học", value: data.enrollment },
   ];
 
   return (
@@ -26,9 +26,9 @@ export default function SchoolConversionFunnel({ data }: SchoolConversionFunnelP
       <CardHeader className="mb-4 items-start">
         <div>
           <CardTitle>Phễu chuyển đổi</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Khoảng cách từ dung lượng lớp 12 đến số nhập học dự kiến.</p>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Khoảng cách từ quy mô lớp 12 đến số nhập học dự kiến.</p>
         </div>
-        <Badge color="success">{((data.enrollment / data.prospects) * 100).toFixed(1)}% prospects → nhập học</Badge>
+        <Badge color="success">{((data.enrollment / data.prospects) * 100).toFixed(1)}% quan tâm → nhập học</Badge>
       </CardHeader>
 
       <div className="h-64 min-h-64 w-full">
@@ -56,5 +56,5 @@ export default function SchoolConversionFunnel({ data }: SchoolConversionFunnelP
 
 function FunnelTooltip({ active, payload, label }: { active?: boolean; payload?: { value?: number }[]; label?: string }) {
   if (!active || !payload?.length) return null;
-  return <div className="rounded-xl border border-card-border bg-card-background p-3 text-xs shadow-theme-md"><p className="font-semibold text-text-primary">{label}</p><p className="mt-1 text-text-secondary">{payload[0].value?.toLocaleString("vi-VN")} hồ sơ</p></div>;
+  return <div className="rounded-xl border border-card-border bg-card-background p-3 text-xs shadow-theme-md"><p className="font-semibold text-text-primary">{label}</p><p className="mt-1 text-text-secondary">{payload[0].value?.toLocaleString("vi-VN")} học sinh</p></div>;
 }

@@ -11,7 +11,7 @@ export default function StudentDemographics({
   data,
 }: StudentDemographicsProps) {
   return (
-    <Card className="h-full min-w-0 border-primary-200/60 p-5">
+    <Card className="min-w-0 border-primary-200/60 p-5">
       <CardHeader className="mb-5">
         <div>
           <CardTitle>Nhân khẩu học học sinh lớp 12</CardTitle>

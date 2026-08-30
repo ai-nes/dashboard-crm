@@ -39,9 +39,9 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
       </CardHeader>
 
       <div className="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-text-secondary">
-        <Legend color="bg-primary-500" label="Prospects" />
-        <Legend color="bg-primary-300" label="Applications" />
-        <Legend color="bg-success-500" label="Enrollment" />
+        <Legend color="bg-primary-500" label="Học sinh quan tâm" />
+        <Legend color="bg-primary-300" label="Hồ sơ ứng tuyển" />
+        <Legend color="bg-success-500" label="Dự kiến nhập học" />
       </div>
 
       <div className="h-72 min-h-72 w-full">
@@ -51,9 +51,9 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 12 }} dy={8} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 12 }} />
             <Tooltip content={<SchoolTooltip />} cursor={{ stroke: "var(--border-color-base-300)", strokeDasharray: "4 4" }} />
-            <Line isAnimationActive animationDuration={800} type="monotone" dataKey="prospects" name="Prospects" stroke="var(--primary-500)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-            <Line isAnimationActive animationDuration={950} type="monotone" dataKey="applications" name="Applications" stroke="var(--primary-300)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-            <Line isAnimationActive animationDuration={1100} type="monotone" dataKey="enrollment" name="Enrollment" stroke="var(--success-500)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+            <Line isAnimationActive animationDuration={800} type="monotone" dataKey="prospects" name="Học sinh quan tâm" stroke="var(--primary-500)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+            <Line isAnimationActive animationDuration={950} type="monotone" dataKey="applications" name="Hồ sơ ứng tuyển" stroke="var(--primary-300)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+            <Line isAnimationActive animationDuration={1100} type="monotone" dataKey="enrollment" name="Dự kiến nhập học" stroke="var(--success-500)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
           </LineChart>
         </ChartContainer>
       </div>

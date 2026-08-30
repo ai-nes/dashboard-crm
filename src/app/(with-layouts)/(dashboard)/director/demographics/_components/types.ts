@@ -4,13 +4,6 @@ export interface SegmentFilter {
   value: string;
 }
 
-export interface FunnelStage {
-  label: string;
-  value: string;
-  width: number;
-  conversion?: string;
-}
-
 export interface RegionOpportunity {
   rank: number;
   name: string;
@@ -18,10 +11,44 @@ export interface RegionOpportunity {
   selected?: boolean;
 }
 
-export interface ComparisonMetric {
+export type DemographicTone = "primary" | "info" | "success" | "warning" | "danger";
+
+export interface DemographicKpi {
+  id: string;
   label: string;
-  primary: string;
-  secondary: string;
-  primaryWidth: number;
-  secondaryWidth: number;
+  value: string;
+  change: string;
+  helper: string;
+  progress: number;
+  tone: DemographicTone;
+}
+
+export interface DemographicSegment {
+  id: string;
+  name: string;
+  shortName: string;
+  description: string;
+  region: string;
+  interest: string;
+  prospects: number;
+  engaged: number;
+  qualified: number;
+  counselling: number;
+  applications: number;
+  enrolled: number;
+  conversion: number;
+  tuition: number;
+  revenue: number;
+  growth: number;
+  coverage: number;
+  opportunityScore: number;
+  tone: DemographicTone;
+  filters: SegmentFilter[];
+}
+
+export interface DataCoverageMetric {
+  label: string;
+  detail: string;
+  value: number;
+  tone: "success" | "warning" | "danger";
 }
