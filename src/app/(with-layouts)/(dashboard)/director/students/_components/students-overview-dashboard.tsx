@@ -47,7 +47,7 @@ export default function StudentsOverviewDashboard() {
             <span className="text-xs text-text-tertiary">Dữ liệu mô phỏng · Kỳ tuyển sinh 2026</span>
           </div>
           <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">Hồ sơ học sinh 360°</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">Từ toàn cảnh tệp học sinh đến hành động tiếp theo cho từng hồ sơ. Chọn một học sinh để xem đầy đủ tín hiệu, gia đình, hồ sơ và khuyến nghị AI.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">Từ toàn cảnh tệp học sinh đến hành động tiếp theo cho từng hồ sơ.</p>
         </div>
         <Button size="sm" appearance="outline" onPress={() => toast.success("Đã tạo bản xuất danh sách học sinh mô phỏng.")}><Download1 size={16} />Xuất danh sách</Button>
       </header>

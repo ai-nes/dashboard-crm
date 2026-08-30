@@ -15,7 +15,6 @@ export const documents = [
 ];
 
 export const notes = [
-  { author: "Trần Quốc Bảo", date: "06/06/2026 · 17:05", content: "Minh An đã xác nhận Trí tuệ nhân tạo là nguyện vọng ưu tiên. Cần gửi bảng học phí rõ theo từng học kỳ trước khi gọi cho bố." },
-  { author: "Nguyễn Thu Hà", date: "04/06/2026 · 20:34", content: "Bố là người quyết định chính. Gia đình quan tâm tổng chi phí và phương án ở ký túc xá." },
-  { author: "AI Student Insight", date: "04/06/2026 · 08:00", content: "Đề xuất gọi trong khung 16:00–18:00, ưu tiên bố và chuẩn bị bảng so sánh học bổng 30%." },
+  { author: "Trần Quốc Bảo", date: "06/06/2026 · 17:05", content: "Nguyện vọng ưu tiên: Trí tuệ nhân tạo. Gửi học phí theo học kỳ trước khi gọi bố." },
+  { author: "Nguyễn Thu Hà", date: "04/06/2026 · 20:34", content: "Bố là người quyết định chính. Quan tâm: tổng chi phí và ký túc xá." },
 ];

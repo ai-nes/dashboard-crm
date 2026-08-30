@@ -88,15 +88,7 @@ function buildClassification(student: StudentListItem): Student360Data["classifi
     { label: "Chi phí" as const, value: barrier.value === "Chi phí" ? "Cần phương án học bổng" : "Chưa ghi nhận rào cản", tone: barrier.value === "Chi phí" ? "warning" as const : "success" as const },
     { label: "Địa lý" as const, value: geography.tier === "Nội thành nơi có cơ sở" ? "Thuận lợi tiếp cận" : "Cần làm rõ di chuyển", tone: geography.tier === "Nội thành nơi có cơ sở" ? "success" as const : "warning" as const },
   ];
-  const action = highInterest && highFit
-    ? barrier.value === "Chi phí"
-      ? "Liên hệ trong ngày, gửi phương án học phí và học bổng trước cuộc gọi với phụ huynh."
-      : "Theo sát trực tiếp tới bước tiếp theo và ưu tiên tư vấn viên có kinh nghiệm."
-    : !highInterest && highFit
-      ? "Chủ động khơi lại bằng nội dung đúng mối quan tâm đã quan sát được."
-      : highInterest
-        ? "Tư vấn trung thực phương thức hoặc ngành gần có tính khả thi cao hơn."
-        : "Duy trì bằng nội dung tự động, chưa tăng cường nguồn lực tư vấn trực tiếp.";
+  const action = student.nextAction;
 
   return {
     dimensions: [
@@ -106,7 +98,7 @@ function buildClassification(student: StudentListItem): Student360Data["classifi
       { id: "barrier", label: "Rào cản chính", value: barrier.value, description: barrier.description, evidence: barrier.evidence, tone: barrier.value === "Không còn rào cản chính" ? "success" : "warning" },
     ],
     combination: `Quan tâm ${interest.value.toLowerCase()} + Phù hợp ${fitShort.toLowerCase()} + Rào cản ${barrier.value.toLowerCase()}`,
-    interpretation: highInterest && highFit ? "Nhóm có khả năng chuyển đổi cao; hiệu quả phụ thuộc việc giải quyết đúng rào cản." : "Mức ưu tiên được xác định từ tổ hợp quan tâm và tính khả thi, không chỉ từ xác suất nhập học.",
+    interpretation: highInterest && highFit ? `Ưu tiên xử lý ${barrier.value.toLowerCase()}.` : `Cần xác minh thêm trước bước ${student.nextAction.toLowerCase()}.`,
     action,
     updatedAt: student.lastActivity,
     updateTrigger: `Sau tín hiệu: ${student.nextAction}`,
@@ -134,7 +126,7 @@ function buildJourney(student: StudentListItem, parent: Student360Data["parentPr
     { id: "engage", date: "02/06 · 09:30", title: "Tương tác nổi bật", description: `Tín hiệu gần nhất được ghi nhận ${student.lastActivity}`, channel: student.source.includes("Open Day") ? "Sự kiện" : "Zalo", status: "completed" },
     { id: "parent", date: "04/06 · 20:18", title: `Trao đổi với ${parent.relation.toLowerCase()}`, description: `Ghi nhận mối quan tâm chính: ${barrier.toLowerCase()}`, channel: parent.preferredChannel === "Cuộc gọi" ? "Cuộc gọi" : "Zalo", status: "completed" },
     { id: "consult", date: "06/06 · 16:42", title: "Tư vấn gần nhất", description: `Đã đối chiếu nhu cầu ngành ${student.major} và khả năng chuyển bước`, channel: "Cuộc gọi", status: "completed" },
-    { id: "next", date: "Tiếp theo", title: student.nextAction, description: "Hành động được đề xuất từ tổ hợp phân loại hiện tại", channel: "Cuộc gọi", status: "current" },
+    { id: "next", date: "Tiếp theo", title: student.nextAction, description: `${parent.preferredChannel} · ${parent.bestContactTime}`, channel: "Cuộc gọi", status: "current" },
   ];
 }
 
@@ -158,7 +150,7 @@ function buildInsight(student: StudentListItem, classification: Student360Data["
   return {
     summary: `${student.name} đang ở giai đoạn ${stage?.value.toLowerCase()}, mức quan tâm ${interest?.value.toLowerCase()} với ngành ${student.major}. Rào cản chính là ${barrier?.value.toLowerCase()}; ${parent.relation.toLowerCase()} là người đồng quyết định cần được tiếp cận đúng kênh.`,
     signalScore: student.score,
-    probability: student.score,
+    probability: Math.max(35, Math.min(96, student.score - 6)),
     scoreDelta: student.scoreDelta,
     baseline: Math.max(35, student.score - Math.max(student.scoreDelta, 0) - 28),
     confidence: student.score >= 70 ? 76 : 68,
