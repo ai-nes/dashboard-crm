@@ -83,6 +83,7 @@ function buildClassification(student: StudentListItem): Student360Data["classifi
   const geography = getGeographyTier(student.province);
   const fitFactors = [
     { label: "Ngành" as const, value: `${student.major} trong danh mục`, tone: "success" as const },
+    { label: "Hồ sơ học tập" as const, value: highFit ? "Nền tảng khả thi" : "Cần đối chiếu thêm", tone: highFit ? "success" as const : "warning" as const },
     { label: "Phương thức xét tuyển" as const, value: highFit ? "Có phương thức khả thi" : "Cần xác minh thêm", tone: highFit ? "success" as const : "warning" as const },
     { label: "Chi phí" as const, value: barrier.value === "Chi phí" ? "Cần phương án học bổng" : "Chưa ghi nhận rào cản", tone: barrier.value === "Chi phí" ? "warning" as const : "success" as const },
     { label: "Địa lý" as const, value: geography.tier === "Nội thành nơi có cơ sở" ? "Thuận lợi tiếp cận" : "Cần làm rõ di chuyển", tone: geography.tier === "Nội thành nơi có cơ sở" ? "success" as const : "warning" as const },
@@ -100,8 +101,8 @@ function buildClassification(student: StudentListItem): Student360Data["classifi
   return {
     dimensions: [
       { id: "journey", label: "Giai đoạn hành trình", value: stage.value, description: stage.description, evidence: [`Mốc ${stage.position}/7 của phễu chuẩn`, `Trạng thái CRM: ${student.stage}`], tone: "primary" },
-      { id: "interest", label: "Mức độ quan tâm", value: interest.value, description: interest.description, evidence: [`Điểm tín hiệu ${student.score}%`, `${student.scoreDelta >= 0 ? "+" : ""}${student.scoreDelta} điểm gần nhất`], tone: interest.tone },
-      { id: "fit", label: "Mức độ phù hợp", value: fit, description: "Đánh giá theo ngành, phương thức xét tuyển, chi phí và địa lý.", evidence: [`Ngành ${student.major} có trong danh mục`, fit === "Phù hợp cao" ? "Hồ sơ học tập khả thi" : "Cần xác minh thêm phương thức xét tuyển"], tone: fitTone, fitFactors },
+      { id: "interest", label: "Mức độ quan tâm", value: interest.value, description: interest.description, evidence: [`Điểm tín hiệu ${student.score}/100`, `${student.scoreDelta >= 0 ? "+" : ""}${student.scoreDelta} điểm gần nhất`], tone: interest.tone },
+      { id: "fit", label: "Mức độ phù hợp", value: fit, description: "Đánh giá theo ngành, hồ sơ học tập, phương thức xét tuyển, chi phí và địa lý.", evidence: [`Ngành ${student.major} có trong danh mục`, fit === "Phù hợp cao" ? "Hồ sơ học tập khả thi" : "Cần xác minh thêm phương thức xét tuyển"], tone: fitTone, fitFactors },
       { id: "barrier", label: "Rào cản chính", value: barrier.value, description: barrier.description, evidence: barrier.evidence, tone: barrier.value === "Không còn rào cản chính" ? "success" : "warning" },
     ],
     combination: `Quan tâm ${interest.value.toLowerCase()} + Phù hợp ${fitShort.toLowerCase()} + Rào cản ${barrier.value.toLowerCase()}`,
@@ -156,6 +157,7 @@ function buildInsight(student: StudentListItem, classification: Student360Data["
   const barrier = classification.dimensions.find((dimension) => dimension.id === "barrier");
   return {
     summary: `${student.name} đang ở giai đoạn ${stage?.value.toLowerCase()}, mức quan tâm ${interest?.value.toLowerCase()} với ngành ${student.major}. Rào cản chính là ${barrier?.value.toLowerCase()}; ${parent.relation.toLowerCase()} là người đồng quyết định cần được tiếp cận đúng kênh.`,
+    signalScore: student.score,
     probability: student.score,
     scoreDelta: student.scoreDelta,
     baseline: Math.max(35, student.score - Math.max(student.scoreDelta, 0) - 28),
