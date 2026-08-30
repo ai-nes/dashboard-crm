@@ -13,7 +13,7 @@ export default function ParentProfileCard({ data }: Student360SectionProps) {
   return (
     <Card className="h-full p-5">
       <CardHeader className="mb-5 items-start">
-        <div><CardTitle>Hồ sơ phụ huynh</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Theo dõi phụ huynh như một người đồng quyết định độc lập.</p></div>
+        <CardTitle>Hồ sơ phụ huynh</CardTitle>
         <Badge color={involvementTone[parent.involvement]}>Tham gia {parent.involvement.toLowerCase()}</Badge>
       </CardHeader>
 
@@ -29,7 +29,7 @@ export default function ParentProfileCard({ data }: Student360SectionProps) {
         <div><dt className="text-xs text-text-tertiary">Quyền liên hệ</dt><dd className="mt-1 text-sm font-medium text-success-500">{parent.consentStatus}</dd></div>
       </dl>
 
-      <div className="mt-5"><p className="text-xs font-medium text-text-tertiary">Mối quan tâm riêng của phụ huynh</p><div className="mt-2 flex flex-wrap gap-2">{parent.concerns.map((concern) => <Badge key={concern} color="warning">{concern}</Badge>)}</div></div>
+      <div className="mt-5"><p className="text-xs font-medium text-text-tertiary">Băn khoăn</p><div className="mt-2 flex flex-wrap gap-2">{parent.concerns.map((concern) => <Badge key={concern} color="warning">{concern}</Badge>)}</div></div>
     </Card>
   );
 }

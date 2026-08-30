@@ -25,6 +25,7 @@ export interface SchoolActivity {
   date: string;
   owner: string;
   status: "completed" | "scheduled";
+  outcome?: string;
 }
 
 export interface StudentSignal {
@@ -45,10 +46,47 @@ export interface SchoolEngagementHealth {
   factors: { label: string; value: number }[];
 }
 
+export type SchoolRelationshipLevel =
+  | "Chưa tiếp xúc"
+  | "Đã tiếp xúc"
+  | "Có đầu mối"
+  | "Hợp tác thường xuyên"
+  | "Đối tác chiến lược";
+
+export type SchoolClassification =
+  | "Trọng điểm"
+  | "Mở rộng"
+  | "Duy trì"
+  | "Sàng lọc";
+
+export interface SchoolQuadrantPoint {
+  id: string;
+  name: string;
+  potential: number;
+  relationship: number;
+  availableStudents: number;
+  enrollment: number;
+  isCurrent?: boolean;
+}
+
+export interface SchoolScoreBand {
+  label: string;
+  students: number;
+  share: number;
+  available?: boolean;
+}
+
+export interface SchoolChoiceBreakdown {
+  label: string;
+  students: number;
+  share: number;
+}
+
 export interface SchoolIntelligenceData {
   school: SchoolDirectoryRecord;
   potentialScore: number;
   grade12Students: number;
+  availableStudents: number;
   prospects: number;
   applications: number;
   enrollment: number;
@@ -60,6 +98,40 @@ export interface SchoolIntelligenceData {
   performance: Record<"6m" | "year", TrendPoint[]>;
   potentialFactors: { label: string; value: number; description: string }[];
   engagementHealth: SchoolEngagementHealth;
+  geography: {
+    cluster: string;
+    travelTime: string;
+    distanceTier: "Dưới 1 giờ" | "1–3 giờ" | "Trên 3 giờ";
+    competitionDensity: "Thấp" | "Trung bình" | "Cao";
+  };
+  relationship: {
+    level: SchoolRelationshipLevel;
+    score: number;
+    contact: string;
+    contactRole: string;
+    lastTouch: string;
+    nextTouch: string;
+    source: string;
+  };
+  classification: {
+    group: SchoolClassification;
+    label: string;
+    action: string;
+  };
+  quadrantPeers: SchoolQuadrantPoint[];
+  scoreBands: SchoolScoreBand[];
+  academicDistribution: {
+    p25: number;
+    p50: number;
+    p75: number;
+  };
+  postGraduationChoices: SchoolChoiceBreakdown[];
+  competitionContext: {
+    leadingChoice: string;
+    lostReason: string;
+    externalPresence: string;
+  };
+  dataFreshness: string;
   demographics: {
     gender: { label: string; value: number; color: string }[];
     academicProfile: { label: string; value: number }[];
