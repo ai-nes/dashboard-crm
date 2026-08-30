@@ -25,9 +25,9 @@ export default function EnrollmentForecast() {
       </CardHeader>
 
       <div className="mb-4 grid grid-cols-3 gap-3 border-b border-card-border pb-4">
-        <ForecastSummary label="Hiện tại" value="3,820" tone="text-text-primary" />
-        <ForecastSummary label="Dự báo" value="4,680" tone="text-brand-500" />
-        <ForecastSummary label="Chỉ tiêu" value="5,000" tone="text-text-primary" />
+        <ForecastSummary label="Hiện tại" value="3.820" tone="text-text-primary" />
+        <ForecastSummary label="Dự báo" value="4.680" tone="text-brand-500" />
+        <ForecastSummary label="Chỉ tiêu" value="5.000" tone="text-text-primary" />
       </div>
 
       <div className="min-h-72 w-full flex-1" aria-label="Biểu đồ dự báo nhập học theo niên khóa">

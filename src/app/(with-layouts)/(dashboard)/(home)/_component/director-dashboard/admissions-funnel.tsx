@@ -1,36 +1,36 @@
-"use client";
-
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import { ChartContainer } from "@/components/tailgrids/core/chart";
-import { Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from "recharts";
 import Link from "next/link";
 
-import DirectorChartTooltip from "./chart-tooltip";
 import { admissionsPipeline } from "./data";
 
-const PIPELINE_COLORS = [
-  "var(--brand-500)",
-  "var(--primary-300)",
-  "var(--info-500)",
-  "var(--primary-400)",
-  "var(--warning-500)",
-  "var(--primary-600)",
-  "var(--success-500)",
-];
+const STAGE_COLORS = {
+  prospect: "bg-brand-500",
+  engaged: "bg-info-500",
+  qualified: "bg-primary-400",
+  counselling: "bg-primary-500",
+  application: "bg-warning-500",
+  accepted: "bg-primary-600",
+  enrolled: "bg-success-500",
+} as const;
 
-const chartData = admissionsPipeline.map((stage, index) => ({
-  ...stage,
-  color: PIPELINE_COLORS[index],
-}));
+const biggestDrop = admissionsPipeline.reduce(
+  (drop, stage, index) => {
+    if (index === 0) return drop;
+    const previous = admissionsPipeline[index - 1];
+    const difference = previous.percentage - stage.percentage;
+    return difference > drop.difference ? { from: previous.label, to: stage.label, difference } : drop;
+  },
+  { from: "", to: "", difference: 0 },
+);
 
 export default function AdmissionsFunnel() {
   return (
-    <Card className="flex h-full min-w-0 flex-col overflow-hidden">
+    <Card className="flex min-h-[34rem] min-w-0 flex-col overflow-hidden">
       <CardHeader className="mb-5 items-start">
         <div>
           <CardTitle>Phễu tuyển sinh</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Từ hồ sơ tiềm năng đến nhập học trong niên khóa 2026
+            Từ hồ sơ tiềm năng đến nhập học · Niên khóa 2026
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -43,49 +43,41 @@ export default function AdmissionsFunnel() {
         </div>
       </CardHeader>
 
-      <div className="min-h-72 w-full flex-1 sm:min-h-80" aria-label="Biểu đồ tiến độ phễu tuyển sinh">
-        <ChartContainer className="h-full w-full" height="100%" width="100%" minWidth={0} minHeight={0}>
-          <BarChart
-            layout="vertical"
-            data={chartData}
-            margin={{ top: 4, right: 28, left: -4, bottom: 0 }}
-            barCategoryGap={12}
-          >
-            <CartesianGrid stroke="var(--border-color-base-100)" strokeDasharray="4 4" horizontal={false} />
-            <XAxis type="number" domain={[0, 100]} hide />
-            <YAxis
-              type="category"
-              dataKey="label"
-              width={108}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
-            />
-            <Tooltip
-              cursor={{ fill: "var(--background-gray-primary)", opacity: 0.5 }}
-              content={<DirectorChartTooltip valueSuffix="%" />}
-            />
-            <Bar
-              dataKey="percentage"
-              name="Tỷ trọng"
-              radius={[0, 7, 7, 0]}
-              background={{ fill: "var(--background-gray-secondary)" }}
-              maxBarSize={24}
-              isAnimationActive={false}
-            >
-              {chartData.map((stage) => (
-                <Cell key={stage.id} fill={stage.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ChartContainer>
+      <div className="flex-1" aria-label="Phễu tuyển sinh gồm bảy bước">
+        <div className="mb-3 grid grid-cols-[minmax(110px,1fr)_minmax(0,3fr)_64px] items-center gap-3 text-[10px] font-semibold tracking-wide text-text-tertiary uppercase sm:grid-cols-[minmax(140px,1fr)_minmax(0,3fr)_80px]">
+          <span>Giai đoạn</span>
+          <span className="text-center">Số học sinh còn lại</span>
+          <span className="text-right">Tỷ lệ</span>
+        </div>
+
+        <ol className="space-y-2.5" aria-label="Các giai đoạn tuyển sinh">
+          {admissionsPipeline.map((stage) => (
+            <li key={stage.id} className="grid grid-cols-[minmax(110px,1fr)_minmax(0,3fr)_64px] items-center gap-3 sm:grid-cols-[minmax(140px,1fr)_minmax(0,3fr)_80px]">
+              <span className="truncate text-xs font-medium text-text-secondary sm:text-sm">{stage.label}</span>
+              <div className="flex h-10 items-center justify-center">
+                <div
+                  className={`flex h-full min-w-16 items-center justify-center rounded-lg px-2 transition-[width] ${STAGE_COLORS[stage.id as keyof typeof STAGE_COLORS]}`}
+                  style={{ width: `${Math.max(stage.percentage, 16)}%` }}
+                  aria-label={`${stage.label}: ${stage.value} học sinh`}
+                >
+                  <span className="truncate text-xs font-semibold text-white-100">{stage.value}</span>
+                </div>
+              </div>
+              <span className={`text-right text-xs font-semibold ${stage.id === "enrolled" ? "text-success-500" : "text-text-secondary"}`}>{stage.percentage}%</span>
+            </li>
+          ))}
+        </ol>
       </div>
 
       <div className="mt-5 grid grid-cols-3 gap-3 border-t border-card-border pt-4">
-        <PipelineSummary label="Tổng hồ sơ tiềm năng" value="24,860" />
-        <PipelineSummary label="Đã trúng tuyển" value="4,820" />
-        <PipelineSummary label="Tỷ lệ nhập học" value="15.4%" valueClassName="text-success-500" />
+        <PipelineSummary label="Tổng hồ sơ tiềm năng" value="24.860" />
+        <PipelineSummary label="Đã trúng tuyển" value="4.820" />
+        <PipelineSummary label="Tỷ lệ nhập học" value="15,4%" valueClassName="text-success-500" />
       </div>
+
+      <p className="mt-4 border-t border-card-border pt-4 text-xs leading-5 text-text-tertiary">
+        Điểm giảm lớn nhất: <strong className="font-semibold text-text-secondary">{biggestDrop.from} → {biggestDrop.to}</strong> · giảm {biggestDrop.difference} điểm %.
+      </p>
     </Card>
   );
 }

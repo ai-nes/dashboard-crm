@@ -1,15 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { ArrowRight, Download1 } from "@tailgrids/icons";
+import Link from "next/link";
+import { toast } from "sonner";
 
+import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
-import { Select, SelectContent, SelectIndicator, SelectItem, SelectTrigger, SelectValue } from "@/components/tailgrids/core/select";
 
 export default function RegionalPerformanceHeader() {
-  const [period, setPeriod] = useState("t7");
-  return <header className="px-2 lg:px-5"><Card className="flex flex-col gap-5 p-5 xl:flex-row xl:items-center xl:justify-between">
-    <div className="min-w-0"><p className="text-sm font-medium text-primary-500">Điều hành tuyển sinh</p><h1 className="mt-1 text-2xl font-semibold tracking-[-0.4px] text-text-primary">Hiệu suất khu vực</h1><p className="mt-1 text-sm text-text-secondary">So sánh kết quả, năng lực vận hành và điểm cần can thiệp theo vùng.</p></div>
-    <div className="flex w-full flex-col gap-2 xl:w-auto xl:flex-row xl:items-center"><Select value={period} onChange={(value) => setPeriod(value as string)} aria-label="Chọn kỳ phân tích" className="w-full xl:w-auto"><SelectTrigger size="md" className="w-full min-w-52 xl:w-52"><SelectValue /><SelectIndicator /></SelectTrigger><SelectContent><SelectItem id="t7">Tháng 7, 2026</SelectItem><SelectItem id="q3">Quý 3, 2026</SelectItem><SelectItem id="year">Niên khóa 2026–2027</SelectItem></SelectContent></Select><div className="grid grid-cols-2 gap-2"><Button appearance="outline" size="md" className="w-full whitespace-nowrap">So sánh kỳ trước</Button><Button size="md" className="w-full whitespace-nowrap">Xuất báo cáo</Button></div></div>
-  </Card></header>;
+  return (
+    <header>
+      <Card className="flex flex-col gap-5 border border-card-border p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge color="primary">FAIP · Hiệu suất khu vực</Badge>
+            <span className="text-xs text-text-tertiary">Dữ liệu mô phỏng · Kỳ tuyển sinh 2026</span>
+          </div>
+          <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
+            Hiệu suất tuyển sinh theo khu vực
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
+            Theo dõi vùng đang đạt chỉ tiêu, quá tải hoặc cần hỗ trợ.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-background-soft-50 px-3 py-1.5 text-xs font-medium text-text-secondary">Toàn bộ khu vực</span>
+          <Link
+            href="/director/ai/next-best-action"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-button-primary-background px-3 text-sm font-medium text-button-primary-text transition hover:bg-button-primary-hover-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+          >
+            Xem kế hoạch can thiệp
+            <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+          <Button appearance="outline" size="sm" onPress={() => toast.success("Đã tạo báo cáo hiệu suất khu vực.")}>
+            <Download1 size={16} aria-hidden="true" />
+            Xuất báo cáo
+          </Button>
+        </div>
+      </Card>
+    </header>
+  );
 }

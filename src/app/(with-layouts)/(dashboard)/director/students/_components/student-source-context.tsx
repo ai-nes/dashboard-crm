@@ -2,6 +2,7 @@ import { MapMarker5, Shield1Check, Target3 } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { formatDateTime } from "@/utils/format-date";
 
 import type { Student360SectionProps } from "./types";
 
@@ -21,7 +22,7 @@ export default function StudentSourceContext({ data }: Student360SectionProps) {
           <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
             <SourceItem label="Lần đầu biết đến trường" value={acquisition.firstTouch} />
             <SourceItem label="Nhóm nguồn" value={acquisition.sourceGroup} />
-            <SourceItem label="Ghi nhận" value={acquisition.capturedAt} />
+            <SourceItem label="Ghi nhận" value={formatDateTime(acquisition.capturedAt)} />
             <SourceItem label="Chiến dịch" value={acquisition.campaign} />
           </dl>
         </section>
@@ -38,11 +39,11 @@ export default function StudentSourceContext({ data }: Student360SectionProps) {
         </section>
       </div>
 
-      <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-text-tertiary"><Shield1Check size={14} className="mt-0.5 shrink-0 text-success-500" aria-hidden="true" />Đồng ý liên hệ: {acquisition.consent}</p>
+      <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-text-tertiary"><Shield1Check size={14} className="mt-0.5 shrink-0 text-success-500" aria-hidden="true" />Đồng ý liên hệ: {acquisition.consent || "-"}</p>
     </Card>
   );
 }
 
 function SourceItem({ label, value }: { label: string; value: string }) {
-  return <div className="min-w-0"><dt className="text-[11px] text-text-tertiary">{label}</dt><dd className="mt-1 text-sm font-medium text-text-primary" title={value}>{value}</dd></div>;
+  return <div className="min-w-0"><dt className="text-[11px] text-text-tertiary">{label}</dt><dd className="mt-1 text-sm font-medium text-text-primary" title={value || "-"}>{value || "-"}</dd></div>;
 }

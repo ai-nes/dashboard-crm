@@ -8,16 +8,24 @@ interface SchoolHeaderProps {
   data: SchoolIntelligenceData;
 }
 
-const classificationTone: Record<SchoolClassification, { badge: "success" | "primary" | "warning" | "gray"; surface: string }> = {
-  "Trọng điểm": { badge: "success", surface: "bg-badge-success-background" },
-  "Mở rộng": { badge: "primary", surface: "bg-badge-primary-background" },
-  "Duy trì": { badge: "warning", surface: "bg-badge-warning-background" },
-  "Sàng lọc": { badge: "gray", surface: "bg-badge-neutral-background" },
+const classificationTone: Record<SchoolClassification, { badge: "success" | "primary" | "warning" | "gray"; surface: string; border: string }> = {
+  "Trọng điểm": { badge: "success", surface: "bg-badge-success-background", border: "border-success-500/25" },
+  "Mở rộng": { badge: "primary", surface: "bg-badge-primary-background", border: "border-primary-200" },
+  "Duy trì": { badge: "warning", surface: "bg-badge-warning-background", border: "border-warning-500/30" },
+  "Sàng lọc": { badge: "gray", surface: "bg-badge-neutral-background", border: "border-card-border" },
+};
+
+const classificationSummary: Record<SchoolClassification, { title: string; badge: string; action: string }> = {
+  "Trọng điểm": { title: "Trọng điểm", badge: "Tiềm năng cao · Hợp tác tốt", action: "Giữ quan hệ, tăng hoạt động" },
+  "Mở rộng": { title: "Mở rộng", badge: "Tiềm năng cao · Ít hợp tác", action: "Tạo đầu mối mới" },
+  "Duy trì": { title: "Duy trì", badge: "Tiềm năng vừa · Hợp tác tốt", action: "Giữ liên hệ đều" },
+  "Sàng lọc": { title: "Theo dõi", badge: "Tiềm năng vừa · Ít hợp tác", action: "Chưa đầu tư thêm" },
 };
 
 export default function SchoolHeader({ data }: SchoolHeaderProps) {
   const { school, classification, geography, relationship } = data;
   const tone = classificationTone[classification.group];
+  const summary = classificationSummary[classification.group];
 
   return (
     <header className="min-w-0">
@@ -40,7 +48,7 @@ export default function SchoolHeader({ data }: SchoolHeaderProps) {
             </div>
             <div className="min-w-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <Badge color="primary">School 360</Badge>
+                {classification.isKeyAccount && <Badge color="success">Trường trọng điểm</Badge>}
                 {school.isBoardingSchool && <Badge color="violet">Trường DTNT</Badge>}
                 <span className="text-xs text-text-tertiary">Mã {school.schoolCode}</span>
               </div>
@@ -55,30 +63,25 @@ export default function SchoolHeader({ data }: SchoolHeaderProps) {
             </div>
           </div>
 
-          <div className={`rounded-2xl p-4 ${tone.surface}`}>
+          <div className={`rounded-2xl border p-4 ${tone.surface} ${tone.border}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-medium text-text-secondary">Phân loại khai thác</p>
-                <p className="mt-1 text-2xl font-semibold text-text-primary">{classification.group}</p>
+                <p className="text-xs font-medium text-text-secondary">Ưu tiên</p>
+                <p className="mt-1 text-2xl font-semibold text-text-primary">{summary.title}</p>
               </div>
-              <Badge color={tone.badge}>{classification.label}</Badge>
+              <Badge color={tone.badge}>{summary.badge}</Badge>
             </div>
-            <p className="mt-3 text-sm leading-5 text-text-secondary">{classification.action}</p>
+            <p className="mt-3 text-sm leading-5 text-text-secondary">{summary.action}</p>
           </div>
         </div>
 
         <div className="grid gap-4 border-t border-card-border px-5 py-4 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
-          <HeaderFact label="Cụm địa bàn" value={geography.cluster} />
+          <HeaderFact label="Khu vực tuyển sinh" value={geography.cluster} />
           <HeaderFact label="Thời gian đến campus" value={`${geography.travelTime} · ${geography.distanceTier}`} />
-          <HeaderFact label="Mật độ cạnh tranh" value={geography.competitionDensity} />
-          <HeaderFact label="Quan hệ hiện tại" value={relationship.level} />
+          <HeaderFact label="Mức độ cạnh tranh" value={geography.competitionDensity} />
+          <HeaderFact label="Mức độ hợp tác" value={relationship.level} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-card-border bg-background-soft-50 px-5 py-3 text-xs text-text-tertiary lg:px-6">
-          <span>Dữ liệu directory: hồ sơ trường & địa chỉ</span>
-          <span>Dữ liệu quan hệ: {relationship.source}</span>
-          <span className="font-medium text-text-secondary">{data.dataFreshness}</span>
-        </div>
       </div>
     </header>
   );

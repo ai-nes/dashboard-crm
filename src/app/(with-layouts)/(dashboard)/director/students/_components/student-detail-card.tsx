@@ -10,7 +10,7 @@ interface InfoGridProps {
 }
 
 function InfoGrid({ items }: InfoGridProps) {
-  return <dl className="grid gap-x-5 gap-y-4 sm:grid-cols-2">{items.map((item) => <div key={item.label} className="min-w-0"><dt className="text-xs font-medium text-text-tertiary">{item.label}</dt><dd className="mt-1 truncate text-sm font-semibold text-text-primary" title={item.value}>{item.value}</dd></div>)}</dl>;
+  return <dl className="grid gap-x-5 gap-y-4 sm:grid-cols-2">{items.map((item) => <div key={item.label} className="min-w-0"><dt className="text-xs font-medium text-text-tertiary">{item.label}</dt><dd className="mt-1 truncate text-sm font-semibold text-text-primary" title={item.value || "-"}>{item.value || "-"}</dd></div>)}</dl>;
 }
 
 export default function StudentDetailCard({ data }: Student360SectionProps) {

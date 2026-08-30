@@ -1,7 +1,15 @@
-import "server-only";
-
 import { student360Data, studentListData } from "./data";
-import type { Student360Data, StudentListItem } from "./types";
+import type {
+  DirectorStudentsActionSummary,
+  DirectorStudentsMeta,
+  DirectorStudentsParams,
+  DirectorStudentsResponse,
+  DirectorStudentsSummary,
+  Student360Data,
+  StudentListItem,
+} from "./types";
+
+export type * from "./types";
 
 const stageMap: Record<StudentListItem["stage"], { value: string; position: number; description: string }> = {
   "Quan tâm": { value: "Đã biết đến trường", position: 2, description: "Đã để lại tín hiệu đầu tiên nhưng chưa hình thành nhu cầu rõ." },
@@ -161,8 +169,15 @@ function buildInsight(student: StudentListItem, classification: Student360Data["
   };
 }
 
-export async function getStudent360(studentId = "nguyen-minh-an"): Promise<Student360Data | null> {
-  const student = studentListData.find((item) => item.id === studentId);
+export function computeStudent360(studentId = "nguyen-minh-an"): Student360Data | null {
+  const normalized = studentId.trim().toLowerCase();
+  const student =
+    studentListData.find(
+      (item) =>
+        item.id.toLowerCase() === normalized ||
+        item.code.toLowerCase() === normalized ||
+        item.code.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() === normalized.replace(/[^a-zA-Z0-9]/g, ""),
+    ) ?? (studentId === "ENR-2026-00005" ? studentListData[0] : null);
 
   if (!student) return null;
 
@@ -225,4 +240,214 @@ export async function getStudent360(studentId = "nguyen-minh-an"): Promise<Stude
     journey: buildJourney(student, parentProfile, barrier?.value ?? "thông tin"),
     application: buildApplication(student),
   };
+}
+
+export async function getStudent360(studentId = "nguyen-minh-an"): Promise<Student360Data | null> {
+  const frappeBase = (process.env.NEXT_PUBLIC_FRAPPE_URL || "").replace(/\/+$/, "");
+  const url = `${frappeBase}/api/method/crm.api.director_students.get_director_student?student_id=${encodeURIComponent(studentId)}`;
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+
+  if (typeof window === "undefined") {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieStore = await cookies();
+      const cookieHeader = cookieStore.toString();
+      if (cookieHeader) {
+        headers["Cookie"] = cookieHeader;
+      }
+    } catch {
+      // Ignored outside request context
+    }
+  }
+
+  try {
+    const response = await fetch(url, {
+      headers,
+      ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+      cache: "no-store",
+    });
+
+    if (response.ok) {
+      const json = await response.json();
+      return (json.message || json) as Student360Data;
+    }
+
+    if (response.status === 404) {
+      return null;
+    }
+
+    const errorJson = await response.json().catch(() => null);
+    const errorMessage =
+      errorJson?.exception ||
+      errorJson?._server_messages ||
+      errorJson?.message ||
+      errorJson?.error?.message ||
+      `Lỗi HTTP ${response.status}: ${response.statusText}`;
+    throw new Error(errorMessage);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Không thể kết nối đến máy chủ Frappe CRM.");
+  }
+}
+
+function normalizeSearchValue(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll("đ", "d")
+    .replaceAll("Đ", "D")
+    .toLocaleLowerCase("vi-VN");
+}
+
+export function computeDirectorStudents(params?: DirectorStudentsParams): DirectorStudentsResponse {
+  const admissionYear = params?.admissionYear ?? 2026;
+  const page = Math.max(1, params?.page ?? 1);
+  const pageSize = Math.max(1, Math.min(params?.pageSize ?? 20, 100));
+  const rawQuery = params?.q?.trim() ?? "";
+  const query = normalizeSearchValue(rawQuery);
+  const stage = params?.stage ?? "all";
+  const province = params?.province ?? "all";
+  const sort = params?.sort ?? "score";
+  const order = params?.order ?? "desc";
+
+  const filtered = studentListData.filter((student) => {
+    const matchesQuery =
+      !query ||
+      normalizeSearchValue(
+        [student.name, student.code, student.school, student.province, student.major, student.owner].join(" "),
+      ).includes(query);
+    const matchesStage = stage === "all" || student.stage === stage;
+    const matchesProvince = province === "all" || student.province === province;
+
+    return matchesQuery && matchesStage && matchesProvince;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    let comparison = 0;
+    if (sort === "score") {
+      comparison = a.score - b.score;
+    } else if (sort === "priority") {
+      const priorityWeight: Record<string, number> = { Cao: 3, "Trung bình": 2, Thấp: 1 };
+      comparison = (priorityWeight[a.priority] ?? 0) - (priorityWeight[b.priority] ?? 0);
+    } else {
+      comparison = a.name.localeCompare(b.name, "vi");
+    }
+    return order === "desc" ? -comparison : comparison;
+  });
+
+  const total = sorted.length;
+  const totalAll = 2846;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const hasNextPage = page < totalPages;
+  const paginatedData = sorted.slice((page - 1) * pageSize, page * pageSize);
+
+  const summary: DirectorStudentsSummary = {
+    trackedStudents: totalAll,
+    trackedStudentsDeltaPercent: 12.4,
+    highIntentStudents: 486,
+    highIntentRate: 17.1,
+    actionsDueToday: 64,
+    averageEnrollmentProbability: 68,
+    averageEnrollmentProbabilityDelta: 5,
+  };
+
+  const actionSummary: DirectorStudentsActionSummary = {
+    actionsDueToday: 64,
+    decliningInteractionStudents: 18,
+    familyReadyStudents: 27,
+  };
+
+  const meta: DirectorStudentsMeta = {
+    total,
+    totalAll,
+    page,
+    pageSize,
+    totalPages,
+    hasNextPage,
+    admissionYear,
+    query: rawQuery || undefined,
+    filters: {
+      stage: stage !== "all" ? stage : undefined,
+      province: province !== "all" ? province : undefined,
+    },
+    sort: {
+      field: sort,
+      order: order as "asc" | "desc",
+    },
+    asOf: "2026-06-06T10:00:00+07:00",
+  };
+
+  return {
+    data: paginatedData,
+    summary,
+    actionSummary,
+    meta,
+  };
+}
+
+export async function getDirectorStudents(
+  params?: DirectorStudentsParams,
+): Promise<DirectorStudentsResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.pageSize) searchParams.set("pageSize", String(params.pageSize));
+  if (params?.q) searchParams.set("q", params.q);
+  if (params?.stage && params.stage !== "all") searchParams.set("stage", params.stage);
+  if (params?.province && params.province !== "all") searchParams.set("province", params.province);
+  if (params?.sort) searchParams.set("sort", params.sort);
+  if (params?.order) searchParams.set("order", params.order);
+
+  const queryStr = searchParams.toString();
+  const frappeBase = (process.env.NEXT_PUBLIC_FRAPPE_URL || "").replace(/\/+$/, "");
+  const url = `${frappeBase}/api/method/crm.api.director_students.get_director_students${queryStr ? `?${queryStr}` : ""}`;
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+
+  if (typeof window === "undefined") {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieStore = await cookies();
+      const cookieHeader = cookieStore.toString();
+      if (cookieHeader) {
+        headers["Cookie"] = cookieHeader;
+      }
+    } catch {
+      // Ignored outside request context
+    }
+  }
+
+  try {
+    const response = await fetch(url, {
+      headers,
+      ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+      cache: "no-store",
+    });
+
+    if (response.ok) {
+      const json = await response.json();
+      return (json.message || json) as DirectorStudentsResponse;
+    }
+
+    const errorJson = await response.json().catch(() => null);
+    const errorMessage =
+      errorJson?.exception ||
+      errorJson?._server_messages ||
+      errorJson?.message ||
+      errorJson?.error?.message ||
+      `Lỗi HTTP ${response.status}: ${response.statusText}`;
+    throw new Error(errorMessage);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Không thể kết nối đến máy chủ Frappe CRM.");
+  }
 }

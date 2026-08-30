@@ -2,35 +2,53 @@
 
 import { toast } from "sonner";
 
+import type {
+  DemographicSegment,
+  DirectorDemographicsSegmentData,
+} from "@/services/api/demographics/types";
 import SegmentAnalysis from "./segment-analysis";
-import SegmentBuilder from "./segment-builder";
 import SegmentComparison from "./segment-comparison";
 import SegmentDetailCharts from "./segment-detail-charts";
 import SegmentDetailHeader from "./segment-detail-header";
 import SegmentGuardrails from "./segment-guardrails";
-import SegmentKpiStrip from "./segment-kpi-strip";
-import type { DemographicSegment, SegmentFilter } from "./types";
+import SegmentNextAction from "./segment-next-action";
 
 interface SegmentDetailDashboardProps {
-  filters: SegmentFilter[];
   segment: DemographicSegment;
-  onAddFilter: (filter: SegmentFilter) => void;
+  detailData?: DirectorDemographicsSegmentData | null;
   onBack: () => void;
-  onRemoveFilter: (id: string) => void;
-  onResetFilters: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export default function SegmentDetailDashboard({ filters, segment, onAddFilter, onBack, onRemoveFilter, onResetFilters }: SegmentDetailDashboardProps) {
+export default function SegmentDetailDashboard({
+  segment,
+  detailData,
+  onBack,
+  onRefresh,
+  isRefreshing,
+}: SegmentDetailDashboardProps) {
+  const currentSegment = detailData?.segment ?? segment;
+  const benchmark = detailData?.benchmark;
+  const nextAction = detailData?.nextAction;
+  const guardrails = detailData?.guardrails;
+
   return (
     <div className="mt-4 min-w-0 space-y-6 overflow-hidden pb-8">
-      <SegmentDetailHeader segment={segment} onBack={onBack} onExport={() => toast.success("Đã tạo báo cáo chi tiết phân khúc.")} onSave={() => toast.success("Đã lưu phân khúc vào danh sách theo dõi.")} />
+      <SegmentDetailHeader
+        segment={currentSegment}
+        onBack={onBack}
+        onExport={() => toast.success("Đã tạo báo cáo chi tiết phân khúc.")}
+        onSave={() => toast.success("Đã lưu phân khúc vào danh sách theo dõi.")}
+        onRefresh={onRefresh}
+        isRefreshing={isRefreshing}
+      />
       <div className="space-y-5 px-2 lg:px-5">
-        <SegmentBuilder filters={filters} onAdd={onAddFilter} onApply={() => toast.success(`Đã cập nhật phân tích cho ${filters.length} điều kiện.`)} onRemove={onRemoveFilter} onReset={onResetFilters} />
-        <SegmentKpiStrip segment={segment} />
-        <SegmentAnalysis segment={segment} />
-        <SegmentDetailCharts segment={segment} />
-        <SegmentComparison segment={segment} />
-        <SegmentGuardrails />
+        <SegmentAnalysis segment={currentSegment} />
+        <SegmentNextAction segment={currentSegment} nextAction={nextAction} />
+        <SegmentDetailCharts segment={currentSegment} />
+        <SegmentComparison segment={currentSegment} benchmark={benchmark} />
+        <SegmentGuardrails guardrails={guardrails} />
       </div>
     </div>
   );

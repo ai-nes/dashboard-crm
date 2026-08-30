@@ -1,13 +1,11 @@
 import { ArrowUpward, CheckCircle1, TrendUp2, User2 } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
+import type { DirectorStudentsSummary } from "@/services/api/students/types";
 
-const kpis = [
-  { label: "Học sinh đang theo dõi", value: "2.846", detail: "+12,4% so với tháng trước", icon: User2, color: "primary" as const },
-  { label: "Ý định cao", value: "486", detail: "17,1% tổng tệp học sinh", icon: CheckCircle1, color: "success" as const },
-  { label: "Cần hành động hôm nay", value: "64", detail: "Theo SLA tư vấn hiện tại", icon: TrendUp2, color: "warning" as const },
-  { label: "Khả năng nhập học TB", value: "68%", detail: "+5 điểm trong 7 ngày", icon: ArrowUpward, color: "violet" as const },
-];
+interface StudentKpiStripProps {
+  summary?: DirectorStudentsSummary;
+}
 
 const iconBackground = {
   primary: "bg-badge-primary-background text-badge-primary-text",
@@ -16,7 +14,55 @@ const iconBackground = {
   violet: "bg-badge-violet-background text-badge-violet-text",
 } as const;
 
-export default function StudentKpiStrip() {
+export default function StudentKpiStrip({ summary }: StudentKpiStripProps) {
+  const trackedCount = summary?.trackedStudents != null ? summary.trackedStudents.toLocaleString("vi-VN") : "-";
+  const trackedDelta = summary?.trackedStudentsDeltaPercent != null
+    ? `${summary.trackedStudentsDeltaPercent > 0 ? "+" : ""}${summary.trackedStudentsDeltaPercent.toFixed(1).replace(".", ",")}% so với tháng trước`
+    : "Chưa có dữ liệu so sánh";
+
+  const highIntentCount = summary?.highIntentStudents != null ? summary.highIntentStudents.toLocaleString("vi-VN") : "-";
+  const highIntentRate = summary?.highIntentRate != null
+    ? `${summary.highIntentRate.toFixed(1).replace(".", ",")}% tổng tệp học sinh`
+    : "-";
+
+  const actionsDue = summary?.actionsDueToday != null ? summary.actionsDueToday.toLocaleString("vi-VN") : "-";
+
+  const avgProb = summary?.averageEnrollmentProbability != null ? `${summary.averageEnrollmentProbability}%` : "-";
+  const avgProbDelta = summary?.averageEnrollmentProbabilityDelta != null
+    ? `${summary.averageEnrollmentProbabilityDelta > 0 ? "+" : ""}${summary.averageEnrollmentProbabilityDelta} điểm trong 7 ngày`
+    : "Chưa có biến động";
+
+  const kpis = [
+    {
+      label: "Học sinh đang theo dõi",
+      value: trackedCount,
+      detail: trackedDelta,
+      icon: User2,
+      color: "primary" as const,
+    },
+    {
+      label: "Ý định cao",
+      value: highIntentCount,
+      detail: highIntentRate,
+      icon: CheckCircle1,
+      color: "success" as const,
+    },
+    {
+      label: "Cần hành động hôm nay",
+      value: actionsDue,
+      detail: "Theo SLA tư vấn hiện tại",
+      icon: TrendUp2,
+      color: "warning" as const,
+    },
+    {
+      label: "Khả năng nhập học TB",
+      value: avgProb,
+      detail: avgProbDelta,
+      icon: ArrowUpward,
+      color: "violet" as const,
+    },
+  ];
+
   return (
     <section aria-label="Tổng quan tệp học sinh" className="grid divide-y divide-card-border rounded-xl border border-card-border bg-card-background sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
       {kpis.map((item) => {
