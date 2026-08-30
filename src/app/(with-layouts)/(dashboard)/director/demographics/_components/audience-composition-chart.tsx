@@ -10,7 +10,7 @@ import OverviewTooltip from "./overview-tooltip";
 export default function AudienceCompositionChart() {
   return (
     <Card className="flex h-full min-w-0 flex-col overflow-hidden bg-card-background">
-      <CardHeader className="mb-3 items-start"><div><CardTitle>Cơ cấu người học</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Phân bố hồ sơ theo giới tính và đặc điểm nền.</p></div><span className="text-xs font-medium text-text-tertiary">N = 57.840</span></CardHeader>
+      <CardHeader className="mb-3 items-start"><div><CardTitle>Cơ cấu hồ sơ học sinh</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Phân bổ theo giới tính và đặc điểm hồ sơ.</p></div><span className="text-xs font-medium text-text-tertiary">57.840 hồ sơ</span></CardHeader>
       <div className="relative mx-auto h-52 w-full max-w-72">
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart><Tooltip content={<OverviewTooltip suffix="%" />} /><Pie data={audienceGender} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={58} outerRadius={86} paddingAngle={3} cornerRadius={6} stroke="var(--card-background)" strokeWidth={3} isAnimationActive={false} /></PieChart>

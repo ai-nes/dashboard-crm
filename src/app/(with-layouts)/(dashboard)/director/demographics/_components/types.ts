@@ -13,6 +13,18 @@ export interface RegionOpportunity {
 
 export type DemographicTone = "primary" | "info" | "success" | "warning" | "danger";
 
+export interface SegmentChannel {
+  name: string;
+  value: number;
+  fill: string;
+}
+
+export interface SegmentTrendPoint {
+  month: string;
+  current: number;
+  benchmark: number;
+}
+
 export interface DemographicKpi {
   id: string;
   label: string;
@@ -44,6 +56,8 @@ export interface DemographicSegment {
   opportunityScore: number;
   tone: DemographicTone;
   filters: SegmentFilter[];
+  channels: SegmentChannel[];
+  monthlyProspects: SegmentTrendPoint[];
 }
 
 export interface DataCoverageMetric {

@@ -13,7 +13,7 @@ export default function DemandMomentumChart() {
   return (
     <Card className="flex h-full min-w-0 flex-col overflow-hidden bg-background-gray-primary">
       <CardHeader className="mb-4 items-start">
-        <div><CardTitle>Xu hướng nhu cầu ngành học</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Quy mô prospect theo nhóm ngành trong 6 tháng gần nhất.</p></div>
+        <div><CardTitle>Xu hướng quan tâm theo ngành</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Số hồ sơ quan tâm trong 6 tháng gần đây.</p></div>
         <Badge color="success"><ArrowUpward size={13} aria-hidden="true" />AI tăng 31%</Badge>
       </CardHeader>
       <div className="mb-4 grid grid-cols-2 gap-y-4 rounded-xl bg-card-background py-3 sm:grid-cols-4 sm:gap-y-0 sm:divide-x sm:divide-card-border">
