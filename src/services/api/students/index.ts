@@ -80,6 +80,13 @@ function buildClassification(student: StudentListItem): Student360Data["classifi
   const fitShort = fit.replace("Phù hợp ", "");
   const highInterest = interest.value === "Cao";
   const highFit = fit === "Phù hợp cao";
+  const geography = getGeographyTier(student.province);
+  const fitFactors = [
+    { label: "Ngành" as const, value: `${student.major} trong danh mục`, tone: "success" as const },
+    { label: "Phương thức xét tuyển" as const, value: highFit ? "Có phương thức khả thi" : "Cần xác minh thêm", tone: highFit ? "success" as const : "warning" as const },
+    { label: "Chi phí" as const, value: barrier.value === "Chi phí" ? "Cần phương án học bổng" : "Chưa ghi nhận rào cản", tone: barrier.value === "Chi phí" ? "warning" as const : "success" as const },
+    { label: "Địa lý" as const, value: geography.tier === "Nội thành nơi có cơ sở" ? "Thuận lợi tiếp cận" : "Cần làm rõ di chuyển", tone: geography.tier === "Nội thành nơi có cơ sở" ? "success" as const : "warning" as const },
+  ];
   const action = highInterest && highFit
     ? barrier.value === "Chi phí"
       ? "Liên hệ trong ngày, gửi phương án học phí và học bổng trước cuộc gọi với phụ huynh."
@@ -94,7 +101,7 @@ function buildClassification(student: StudentListItem): Student360Data["classifi
     dimensions: [
       { id: "journey", label: "Giai đoạn hành trình", value: stage.value, description: stage.description, evidence: [`Mốc ${stage.position}/7 của phễu chuẩn`, `Trạng thái CRM: ${student.stage}`], tone: "primary" },
       { id: "interest", label: "Mức độ quan tâm", value: interest.value, description: interest.description, evidence: [`Điểm tín hiệu ${student.score}%`, `${student.scoreDelta >= 0 ? "+" : ""}${student.scoreDelta} điểm gần nhất`], tone: interest.tone },
-      { id: "fit", label: "Mức độ phù hợp", value: fit, description: `${student.major} được đánh giá theo ngành, phương thức xét tuyển và điều kiện thực tế.`, evidence: [`Ngành ${student.major} có trong danh mục`, fit === "Phù hợp cao" ? "Hồ sơ học tập khả thi" : "Cần xác minh thêm phương thức xét tuyển"], tone: fitTone },
+      { id: "fit", label: "Mức độ phù hợp", value: fit, description: "Đánh giá theo ngành, phương thức xét tuyển, chi phí và địa lý.", evidence: [`Ngành ${student.major} có trong danh mục`, fit === "Phù hợp cao" ? "Hồ sơ học tập khả thi" : "Cần xác minh thêm phương thức xét tuyển"], tone: fitTone, fitFactors },
       { id: "barrier", label: "Rào cản chính", value: barrier.value, description: barrier.description, evidence: barrier.evidence, tone: barrier.value === "Không còn rào cản chính" ? "success" : "warning" },
     ],
     combination: `Quan tâm ${interest.value.toLowerCase()} + Phù hợp ${fitShort.toLowerCase()} + Rào cản ${barrier.value.toLowerCase()}`,
@@ -119,11 +126,13 @@ function buildReadiness(student: StudentListItem, parent: Student360Data["parent
 function buildJourney(student: StudentListItem, parent: Student360Data["parentProfile"], barrier: string): Student360Data["journey"] {
   const sourceChannel: Student360Data["journey"][number]["channel"] = getSourceGroup(student.source) === "Thực địa" ? "Sự kiện" : "Website";
   return [
-    { id: "source", date: "28/05", title: student.source, description: `Ghi nhận quan tâm ban đầu tới ngành ${student.major}`, channel: sourceChannel, status: "completed" },
-    { id: "content", date: "30/05", title: `Xem nội dung ${student.major}`, description: "Đọc thông tin ngành, học phí và phương thức xét tuyển", channel: "Website", status: "completed" },
-    { id: "engage", date: "02/06", title: "Tương tác nổi bật", description: `Tín hiệu gần nhất được ghi nhận ${student.lastActivity}`, channel: student.source.includes("Open Day") ? "Sự kiện" : "Zalo", status: "completed" },
-    { id: "parent", date: "04/06", title: `Trao đổi với ${parent.relation.toLowerCase()}`, description: `Ghi nhận mối quan tâm chính: ${barrier.toLowerCase()}`, channel: parent.preferredChannel === "Cuộc gọi" ? "Cuộc gọi" : "Zalo", status: "completed" },
-    { id: "consult", date: "06/06", title: "Tư vấn gần nhất", description: `Đã đối chiếu nhu cầu ngành ${student.major} và khả năng chuyển bước`, channel: "Cuộc gọi", status: "completed" },
+    { id: "source", date: "28/05 · 09:42", title: student.source, description: `Ghi nhận quan tâm ban đầu tới ngành ${student.major}`, channel: sourceChannel, status: "completed" },
+    { id: "form", date: "28/05 · 09:46", title: "Để lại thông tin tư vấn", description: "Đồng ý nhận tư vấn và cung cấp nguyện vọng ưu tiên", channel: "Hồ sơ", status: "completed" },
+    { id: "content", date: "30/05 · 22:11", title: `Xem nội dung ${student.major}`, description: "Đọc thông tin ngành và phương thức xét tuyển", channel: "Website", status: "completed" },
+    { id: "fee", date: "31/05 · 20:05", title: "Xem trang học phí", description: "Quay lại bảng phí và chính sách học bổng", channel: "Website", status: "completed" },
+    { id: "engage", date: "02/06 · 09:30", title: "Tương tác nổi bật", description: `Tín hiệu gần nhất được ghi nhận ${student.lastActivity}`, channel: student.source.includes("Open Day") ? "Sự kiện" : "Zalo", status: "completed" },
+    { id: "parent", date: "04/06 · 20:18", title: `Trao đổi với ${parent.relation.toLowerCase()}`, description: `Ghi nhận mối quan tâm chính: ${barrier.toLowerCase()}`, channel: parent.preferredChannel === "Cuộc gọi" ? "Cuộc gọi" : "Zalo", status: "completed" },
+    { id: "consult", date: "06/06 · 16:42", title: "Tư vấn gần nhất", description: `Đã đối chiếu nhu cầu ngành ${student.major} và khả năng chuyển bước`, channel: "Cuộc gọi", status: "completed" },
     { id: "next", date: "Tiếp theo", title: student.nextAction, description: "Hành động được đề xuất từ tổ hợp phân loại hiện tại", channel: "Cuộc gọi", status: "current" },
   ];
 }

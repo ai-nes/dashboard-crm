@@ -16,7 +16,7 @@ export default function StudentSourceContext({ data }: Student360SectionProps) {
       </CardHeader>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <section aria-labelledby="student-source-heading" className="rounded-2xl bg-background-gray-primary p-4">
+        <section aria-labelledby="student-source-heading" className="rounded-2xl border border-info-500/20 bg-badge-sky-background p-4">
           <div className="flex items-center gap-2"><Target3 size={17} className="text-primary-500" aria-hidden="true" /><h3 id="student-source-heading" className="text-sm font-semibold text-text-primary">Nguồn và quy gán</h3></div>
           <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
             <div className="sm:col-span-2"><dt className="text-[11px] text-text-tertiary">Điểm chạm đầu tiên</dt><dd className="mt-1 text-sm font-semibold text-text-primary">{acquisition.firstTouch}</dd></div>
@@ -27,7 +27,7 @@ export default function StudentSourceContext({ data }: Student360SectionProps) {
           <div className="mt-4 rounded-xl bg-card-background p-3"><p className="text-[11px] font-medium text-success-500">{acquisition.attributionModel}</p><p className="mt-1 text-xs leading-5 text-text-secondary">{acquisition.consent}</p></div>
         </section>
 
-        <section aria-labelledby="student-segment-heading" className="rounded-2xl bg-background-gray-primary p-4">
+        <section aria-labelledby="student-segment-heading" className="rounded-2xl border border-primary-200 bg-badge-primary-background p-4">
           <div className="flex items-center gap-2"><MapMarker5 size={17} className="text-info-500" aria-hidden="true" /><h3 id="student-segment-heading" className="text-sm font-semibold text-text-primary">Bối cảnh phân tầng</h3></div>
           <dl className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl bg-card-background p-3"><dt className="text-[11px] text-text-tertiary">Giai đoạn học tập</dt><dd className="mt-1 text-sm font-semibold text-text-primary">{segmentation.learningStage}</dd><p className="mt-1 text-xs leading-5 text-text-secondary">{segmentation.approachGoal}</p></div>

@@ -2,24 +2,19 @@
 
 import type { Student360Data } from "@/services/api/students/types";
 
-import AiInsight from "./ai-insight";
-import ApplicationContactCard from "./application-contact-card";
 import ApplicationCard from "./application-card";
 import JourneyTimeline from "./journey-timeline";
 import ReadinessStrip from "./readiness-strip";
-import StudentApplicationTab from "./student-application-tab";
 import StudentAuditCard from "./student-audit-card";
 import StudentChartsSection from "./student-charts-section";
 import StudentClassificationCockpit from "./student-classification-cockpit";
 import StudentDetailsTab from "./student-details-tab";
 import StudentDocumentsTab from "./student-documents-tab";
-import StudentEngagementTab from "./student-engagement-tab";
 import StudentFamilyTab from "./student-family-tab";
 import StudentHeader from "./student-header";
 import StudentNotesTab from "./student-notes-tab";
 import StudentSectionHeading from "./student-section-heading";
 import StudentSectionNavigation from "./student-section-navigation";
-import StudentSignalCard from "./student-signal-card";
 import StudentSourceContext from "./student-source-context";
 
 interface Student360DashboardProps {
@@ -32,84 +27,57 @@ export default function Student360Dashboard({ data }: Student360DashboardProps) 
       <div className="px-2 pt-4 lg:px-6"><StudentHeader data={data} /></div>
       <StudentSectionNavigation />
 
-      <div className="space-y-12 px-2 pt-8 lg:px-6">
+      <div className="space-y-8 px-2 pt-6 lg:px-6">
         <section id="student-decision" aria-labelledby="student-decision-heading" className="scroll-mt-20">
           <StudentSectionHeading
-            description="Tập trung vào khả năng nhập học, rào cản và hành động có tác động lớn nhất trong 48 giờ tới."
+            description="Một màn hình để quyết định nên ưu tiên ai, cần tháo gỡ gì và hành động nào có tác động lớn nhất trong 48 giờ tới."
             headingId="student-decision-heading"
             title="Quyết định cần đưa ra hôm nay"
           />
-          <div className="grid min-w-0 items-stretch gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
-            <StudentSignalCard data={data} />
-            <AiInsight data={data} />
-          </div>
           <StudentClassificationCockpit data={data} />
-          <div className="mt-5"><ReadinessStrip data={data} /></div>
+          <div className="mt-4"><ReadinessStrip data={data} /></div>
         </section>
 
-        <section id="student-analytics" aria-labelledby="student-analytics-heading" className="scroll-mt-20 border-t border-card-border pt-9">
+        <section id="student-context" aria-labelledby="student-context-heading" className="scroll-mt-20 border-t border-card-border pt-7">
           <StudentSectionHeading
-            description="Đọc diễn biến xác suất cùng chất lượng từng kênh để hiểu động lực tăng trưởng, không chỉ nhìn một con số tổng."
-            headingId="student-analytics-heading"
-            title="Xác suất và hành vi"
-          />
-          <StudentChartsSection data={data} />
-        </section>
-
-        <section id="student-journey" aria-labelledby="student-journey-heading" className="scroll-mt-20 border-t border-card-border pt-9">
-          <StudentSectionHeading
-            description="Các mốc đã xảy ra, trạng thái ứng tuyển hiện tại và điểm chuyển tiếp cần được kích hoạt tiếp theo."
-            headingId="student-journey-heading"
-            title="Hành trình đến quyết định"
-          />
-          <div className="grid min-w-0 items-start gap-5 xl:items-stretch xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
-            <JourneyTimeline data={data} />
-            <div className="grid min-w-0 content-start gap-5 xl:flex xl:flex-col">
-              <ApplicationCard data={data} />
-              <div className="xl:flex-1">
-                <ApplicationContactCard data={data} />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="student-profile" aria-labelledby="student-profile-heading" className="scroll-mt-20 border-t border-card-border pt-9">
-          <StudentSectionHeading
-            description="Thông tin định danh và nền tảng học thuật phục vụ cá nhân hóa nội dung tư vấn."
-            headingId="student-profile-heading"
-            title="Chân dung học sinh"
+            description="Thông tin nền để cá nhân hóa tư vấn: học sinh là ai, đến từ đâu và đang được phân tầng thế nào."
+            headingId="student-context-heading"
+            title="Chân dung & nguồn tiếp cận"
           />
           <StudentDetailsTab data={data} />
           <StudentSourceContext data={data} />
-          <div className="mt-5"><StudentApplicationTab data={data} /></div>
         </section>
 
-        <section id="student-engagement" aria-labelledby="student-engagement-heading" className="scroll-mt-20 border-t border-card-border pt-9">
+        <section id="student-behavior" aria-labelledby="student-behavior-heading" className="scroll-mt-20 border-t border-card-border pt-7">
           <StudentSectionHeading
-            description="Cường độ, chất lượng và ngữ cảnh của các điểm chạm gần đây trên từng kênh."
-            headingId="student-engagement-heading"
-            title="Tương tác gần đây"
+            description="Đọc diễn biến xác suất, chất lượng kênh và các điểm chạm đã thực sự xảy ra trong hành trình."
+            headingId="student-behavior-heading"
+            title="Hành vi & hành trình"
           />
-          <StudentEngagementTab data={data} />
+          <StudentChartsSection data={data} />
+          <div className="mt-4"><JourneyTimeline data={data} /></div>
         </section>
 
-        <section id="student-family" aria-labelledby="student-family-heading" className="scroll-mt-20 border-t border-card-border pt-9">
+        <section id="student-family" aria-labelledby="student-family-heading" className="scroll-mt-20 border-t border-card-border pt-7">
           <StudentSectionHeading
-            description="Người ảnh hưởng, rào cản tài chính và lịch sử trao đổi liên quan trực tiếp đến quyết định cuối."
+            description="Phụ huynh là người đồng quyết định trong nhiều trường hợp; tập trung vào vai trò, băn khoăn và cách tiếp cận phù hợp."
             headingId="student-family-heading"
-            title="Gia đình và rào cản"
+            title="Gia đình & rào cản"
           />
           <StudentFamilyTab data={data} />
         </section>
 
-        <section id="student-records" aria-labelledby="student-records-heading" className="scroll-mt-20 border-t border-card-border pt-9">
+        <section id="student-records" aria-labelledby="student-records-heading" className="scroll-mt-20 border-t border-card-border pt-7">
           <StudentSectionHeading
-            description="Tài liệu, ghi chú nội bộ, nhắc việc và dấu vết kiểm soát được giữ nguyên trên cùng một luồng đọc."
+            description="Nhóm thông tin vận hành để hoàn tất hồ sơ, tiếp nối ghi chú và kiểm tra dấu vết xử lý."
             headingId="student-records-heading"
-            title="Tài liệu và lịch sử xử lý"
+            title="Hồ sơ & lịch sử xử lý"
           />
-          <div className="space-y-5">
-            <StudentDocumentsTab data={data} />
+          <div className="space-y-4">
+            <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(320px,0.7fr)_minmax(0,1.3fr)]">
+              <ApplicationCard data={data} />
+              <StudentDocumentsTab data={data} />
+            </div>
             <StudentNotesTab data={data} />
             <StudentAuditCard />
           </div>

@@ -17,11 +17,6 @@ export default function ApplicationCard({ data }: Student360SectionProps) {
         <div><CardTitle>Hồ sơ ứng tuyển</CardTitle><p className="mt-1 text-xs text-text-secondary">Điểm nghẽn trước khi chuyển sang bước nộp hồ sơ.</p></div>
         <div className="text-right"><p className="text-xs text-text-tertiary">Thời gian còn lại</p><p className={`mt-1 text-2xl font-semibold ${complete ? "text-success-500" : "text-warning-500"}`}>{deadline.replace("Còn ", "")}</p></div>
       </CardHeader>
-      <div className="mb-5 rounded-xl bg-background-gray-primary p-4">
-        <p className="text-xs text-text-tertiary">Tiến độ tài liệu</p>
-        <div className="mt-2 flex items-end justify-between gap-4"><strong className="text-2xl font-semibold text-text-primary">{completedDocuments}/5</strong><span className={`text-xs font-medium ${complete ? "text-success-500" : completedDocuments > 0 ? "text-warning-500" : "text-error-500"}`}>{complete ? "Đã hoàn tất" : completedDocuments > 0 ? "Đang hoàn thiện" : "Chưa bắt đầu"}</span></div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-background-soft-200"><div className={`h-full rounded-full ${complete ? "bg-success-500" : "bg-warning-500"}`} style={{ width: `${completedDocuments * 20}%` }} /></div>
-      </div>
       <dl className="divide-y divide-card-border">{data.application.map((item) => <div key={item.label} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"><dt className="text-sm text-text-secondary">{item.label}</dt><dd>{item.status ? <Badge color={statusColor[item.status]}>{item.value}</Badge> : <span className="text-sm font-medium text-text-primary">{item.value}</span>}</dd></div>)}</dl>
     </Card>
   );

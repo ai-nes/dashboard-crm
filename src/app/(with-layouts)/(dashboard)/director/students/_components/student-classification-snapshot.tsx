@@ -15,11 +15,19 @@ const toneLabels = {
   gray: "text-text-tertiary",
 } as const;
 
+const toneSurfaces = {
+  primary: "bg-badge-primary-background",
+  success: "bg-badge-success-background",
+  warning: "bg-badge-warning-background",
+  sky: "bg-badge-sky-background",
+  gray: "bg-card-background",
+} as const;
+
 export default function StudentClassificationSnapshot({ data }: Student360SectionProps) {
   const confirmed = data.classification.reviewStatus === "Đã xác nhận";
 
   return (
-    <Card className="min-w-0 bg-background-gray-primary p-4">
+    <Card className="min-w-0 bg-card-background p-4">
       <CardHeader className="items-start">
         <div>
           <CardTitle>Snapshot 4 chiều</CardTitle>
@@ -32,7 +40,7 @@ export default function StudentClassificationSnapshot({ data }: Student360Sectio
         {data.classification.dimensions.map((dimension, index) => (
           <li key={dimension.id} className="py-3 first:pt-3 last:pb-3">
             <div className="flex items-start gap-3">
-              <span className={`flex size-7 shrink-0 items-center justify-center rounded-lg bg-background-gray-primary text-[11px] font-semibold ${toneLabels[dimension.tone]}`} aria-hidden="true">
+              <span className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${toneSurfaces[dimension.tone]} text-[11px] font-semibold ${toneLabels[dimension.tone]}`} aria-hidden="true">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <div className="min-w-0 flex-1">
@@ -40,11 +48,8 @@ export default function StudentClassificationSnapshot({ data }: Student360Sectio
                   <p className="text-sm font-medium text-text-tertiary">{dimension.label}</p>
                   <Badge color={dimension.tone}>{dimension.value}</Badge>
                 </div>
-                <p className="mt-1 text-sm leading-6 text-text-secondary">{dimension.description}</p>
-                <div className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-text-tertiary">
-                  <CheckCircle1 size={13} className="mt-0.5 shrink-0 text-success-500" aria-hidden="true" />
-                  <span>{dimension.evidence.join(" · ")}</span>
-                </div>
+                <p className="mt-1 text-xs leading-5 text-text-secondary">{dimension.description}</p>
+                {dimension.fitFactors ? <ul className="mt-2 grid grid-cols-2 gap-2" aria-label="Các yếu tố đánh giá mức độ phù hợp">{dimension.fitFactors.map((factor) => <li key={factor.label} className={`min-w-0 rounded-lg px-2.5 py-2 ${toneSurfaces[factor.tone]}`}><p className="truncate text-[10px] text-text-tertiary">{factor.label}</p><p className={`mt-0.5 truncate text-[11px] font-medium ${toneLabels[factor.tone]}`}>{factor.value}</p></li>)}</ul> : <div className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-5 text-text-tertiary"><CheckCircle1 size={13} className="mt-0.5 shrink-0 text-success-500" aria-hidden="true" /><span>{dimension.evidence.join(" · ")}</span></div>}
               </div>
             </div>
           </li>

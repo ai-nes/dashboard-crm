@@ -4,12 +4,10 @@ import { Link } from "react-aria-components";
 
 const sections = [
   { id: "decision", label: "Quyết định" },
-  { id: "analytics", label: "Phân tích" },
-  { id: "journey", label: "Hành trình" },
-  { id: "profile", label: "Hồ sơ" },
-  { id: "engagement", label: "Tương tác" },
-  { id: "family", label: "Gia đình" },
-  { id: "records", label: "Tài liệu" },
+  { id: "context", label: "Chân dung & nguồn" },
+  { id: "behavior", label: "Hành vi & hành trình" },
+  { id: "family", label: "Gia đình & rào cản" },
+  { id: "records", label: "Hồ sơ & lịch sử" },
 ];
 
 export default function StudentSectionNavigation() {
