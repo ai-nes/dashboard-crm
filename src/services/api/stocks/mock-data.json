@@ -1,0 +1,1125 @@
+{
+  "watchlistRawData": {
+    "resource": "watchlist",
+    "generated_at": "2026-08-28T08:00:00.000Z",
+    "data": [
+      {
+        "id": "wl-1a2b3c4d",
+        "symbol": "AAPL",
+        "company_name": "Apple Inc.",
+        "price": {
+          "value": 228.45,
+          "currency_code": "USD"
+        },
+        "change_percent": 1.86,
+        "trend": "up",
+        "created_at": "2026-08-01T00:00:00.000Z"
+      },
+      {
+        "id": "wl-2b3c4d5e",
+        "symbol": "TSLA",
+        "company_name": "Tesla, Inc.",
+        "price": {
+          "value": 246.12,
+          "currency_code": "USD"
+        },
+        "change_percent": -2.34,
+        "trend": "down",
+        "created_at": "2026-08-01T00:00:00.000Z"
+      },
+      {
+        "id": "wl-3c4d5e6f",
+        "symbol": "NVDA",
+        "company_name": "NVIDIA Corporation",
+        "price": {
+          "value": 132.87,
+          "currency_code": "USD"
+        },
+        "change_percent": 3.42,
+        "trend": "up",
+        "created_at": "2026-08-01T00:00:00.000Z"
+      },
+      {
+        "id": "wl-4d5e6f7a",
+        "symbol": "MSFT",
+        "company_name": "Microsoft Corporation",
+        "price": {
+          "value": 468.29,
+          "currency_code": "USD"
+        },
+        "change_percent": 0.58,
+        "trend": "up",
+        "created_at": "2026-08-01T00:00:00.000Z"
+      },
+      {
+        "id": "wl-5e6f7a8b",
+        "symbol": "AMZN",
+        "company_name": "Amazon.com, Inc.",
+        "price": {
+          "value": 198.63,
+          "currency_code": "USD"
+        },
+        "change_percent": -0.92,
+        "trend": "down",
+        "created_at": "2026-08-01T00:00:00.000Z"
+      }
+    ]
+  },
+  "exchangeStockRawData": {
+    "resource": "exchange_stock",
+    "generated_at": "2026-08-28T08:00:00.000Z",
+    "categories": {
+      "trading": [
+        {
+          "id": "ex-tr-1",
+          "symbol": "AAPL",
+          "company_name": "Apple Inc.",
+          "price": {
+            "value": 228.45,
+            "currency_code": "USD"
+          },
+          "change_percent": 1.86,
+          "volume": 58230000,
+          "trend": "up"
+        },
+        {
+          "id": "ex-tr-2",
+          "symbol": "META",
+          "company_name": "Meta Platforms, Inc.",
+          "price": {
+            "value": 612.34,
+            "currency_code": "USD"
+          },
+          "change_percent": 0.74,
+          "volume": 12480000,
+          "trend": "up"
+        },
+        {
+          "id": "ex-tr-3",
+          "symbol": "NFLX",
+          "company_name": "Netflix, Inc.",
+          "price": {
+            "value": 812.9,
+            "currency_code": "USD"
+          },
+          "change_percent": -1.12,
+          "volume": 4380000,
+          "trend": "down"
+        },
+        {
+          "id": "ex-tr-4",
+          "symbol": "SPOT",
+          "company_name": "Spotify Technology S.A.",
+          "price": {
+            "value": 486.15,
+            "currency_code": "USD"
+          },
+          "change_percent": 2.03,
+          "volume": 2160000,
+          "trend": "up"
+        }
+      ],
+      "gainers": [
+        {
+          "id": "ex-ga-1",
+          "symbol": "NVDA",
+          "company_name": "NVIDIA Corporation",
+          "price": {
+            "value": 132.87,
+            "currency_code": "USD"
+          },
+          "change_percent": 3.42,
+          "volume": 96450000,
+          "trend": "up"
+        },
+        {
+          "id": "ex-ga-2",
+          "symbol": "SPOT",
+          "company_name": "Spotify Technology S.A.",
+          "price": {
+            "value": 486.15,
+            "currency_code": "USD"
+          },
+          "change_percent": 2.03,
+          "volume": 2160000,
+          "trend": "up"
+        },
+        {
+          "id": "ex-ga-3",
+          "symbol": "AAPL",
+          "company_name": "Apple Inc.",
+          "price": {
+            "value": 228.45,
+            "currency_code": "USD"
+          },
+          "change_percent": 1.86,
+          "volume": 58230000,
+          "trend": "up"
+        },
+        {
+          "id": "ex-ga-4",
+          "symbol": "MSFT",
+          "company_name": "Microsoft Corporation",
+          "price": {
+            "value": 468.29,
+            "currency_code": "USD"
+          },
+          "change_percent": 0.58,
+          "volume": 21340000,
+          "trend": "up"
+        }
+      ],
+      "losers": [
+        {
+          "id": "ex-lo-1",
+          "symbol": "TSLA",
+          "company_name": "Tesla, Inc.",
+          "price": {
+            "value": 246.12,
+            "currency_code": "USD"
+          },
+          "change_percent": -2.34,
+          "volume": 87120000,
+          "trend": "down"
+        },
+        {
+          "id": "ex-lo-2",
+          "symbol": "NFLX",
+          "company_name": "Netflix, Inc.",
+          "price": {
+            "value": 812.9,
+            "currency_code": "USD"
+          },
+          "change_percent": -1.12,
+          "volume": 4380000,
+          "trend": "down"
+        },
+        {
+          "id": "ex-lo-3",
+          "symbol": "AMZN",
+          "company_name": "Amazon.com, Inc.",
+          "price": {
+            "value": 198.63,
+            "currency_code": "USD"
+          },
+          "change_percent": -0.92,
+          "volume": 39870000,
+          "trend": "down"
+        },
+        {
+          "id": "ex-lo-4",
+          "symbol": "PYPL",
+          "company_name": "PayPal Holdings, Inc.",
+          "price": {
+            "value": 74.21,
+            "currency_code": "USD"
+          },
+          "change_percent": -0.46,
+          "volume": 15920000,
+          "trend": "down"
+        }
+      ]
+    }
+  },
+  "marketOverviewRawData": {
+    "resource": "market_overview",
+    "generated_at": "2026-08-28T08:00:00.000Z",
+    "data": [
+      {
+        "id": "mo-1",
+        "symbol": "AAPL",
+        "company_name": "Apple Inc.",
+        "quantity": 42,
+        "price": {
+          "value": 228.45,
+          "currency_code": "USD"
+        },
+        "volume": 58230000,
+        "change_24h_percent": 1.86,
+        "market_cap": {
+          "value": 3480000000000,
+          "currency_code": "USD"
+        }
+      },
+      {
+        "id": "mo-2",
+        "symbol": "TSLA",
+        "company_name": "Tesla, Inc.",
+        "quantity": 18,
+        "price": {
+          "value": 246.12,
+          "currency_code": "USD"
+        },
+        "volume": 87120000,
+        "change_24h_percent": -2.34,
+        "market_cap": {
+          "value": 789000000000,
+          "currency_code": "USD"
+        }
+      },
+      {
+        "id": "mo-3",
+        "symbol": "NVDA",
+        "company_name": "NVIDIA Corporation",
+        "quantity": 65,
+        "price": {
+          "value": 132.87,
+          "currency_code": "USD"
+        },
+        "volume": 96450000,
+        "change_24h_percent": 3.42,
+        "market_cap": {
+          "value": 3260000000000,
+          "currency_code": "USD"
+        }
+      },
+      {
+        "id": "mo-4",
+        "symbol": "MSFT",
+        "company_name": "Microsoft Corporation",
+        "quantity": 24,
+        "price": {
+          "value": 468.29,
+          "currency_code": "USD"
+        },
+        "volume": 21340000,
+        "change_24h_percent": 0.58,
+        "market_cap": {
+          "value": 3480000000000,
+          "currency_code": "USD"
+        }
+      },
+      {
+        "id": "mo-5",
+        "symbol": "AMZN",
+        "company_name": "Amazon.com, Inc.",
+        "quantity": 31,
+        "price": {
+          "value": 198.63,
+          "currency_code": "USD"
+        },
+        "volume": 39870000,
+        "change_24h_percent": -0.92,
+        "market_cap": {
+          "value": 2090000000000,
+          "currency_code": "USD"
+        }
+      }
+    ]
+  },
+  "lastStockTransactionsRawData": {
+    "resource": "stock_transaction_list",
+    "generated_at": "2026-08-28T08:00:00.000Z",
+    "data": [
+      {
+        "id": "sx-1",
+        "type": "buy",
+        "symbol": "AAPL",
+        "company_name": "Apple Inc.",
+        "quantity": 10,
+        "price": {
+          "value": 228.45,
+          "currency_code": "USD"
+        },
+        "total": {
+          "value": 2284.5,
+          "currency_code": "USD"
+        },
+        "executed_at": "2026-08-28T07:42:00.000Z"
+      },
+      {
+        "id": "sx-2",
+        "type": "sell",
+        "symbol": "TSLA",
+        "company_name": "Tesla, Inc.",
+        "quantity": 5,
+        "price": {
+          "value": 246.12,
+          "currency_code": "USD"
+        },
+        "total": {
+          "value": 1230.6,
+          "currency_code": "USD"
+        },
+        "executed_at": "2026-08-28T06:15:00.000Z"
+      },
+      {
+        "id": "sx-3",
+        "type": "buy",
+        "symbol": "NVDA",
+        "company_name": "NVIDIA Corporation",
+        "quantity": 20,
+        "price": {
+          "value": 132.87,
+          "currency_code": "USD"
+        },
+        "total": {
+          "value": 2657.4,
+          "currency_code": "USD"
+        },
+        "executed_at": "2026-08-27T21:03:00.000Z"
+      },
+      {
+        "id": "sx-4",
+        "type": "sell",
+        "symbol": "AMZN",
+        "company_name": "Amazon.com, Inc.",
+        "quantity": 8,
+        "price": {
+          "value": 198.63,
+          "currency_code": "USD"
+        },
+        "total": {
+          "value": 1589.04,
+          "currency_code": "USD"
+        },
+        "executed_at": "2026-08-27T15:37:00.000Z"
+      },
+      {
+        "id": "sx-5",
+        "type": "buy",
+        "symbol": "MSFT",
+        "company_name": "Microsoft Corporation",
+        "quantity": 6,
+        "price": {
+          "value": 468.29,
+          "currency_code": "USD"
+        },
+        "total": {
+          "value": 2809.74,
+          "currency_code": "USD"
+        },
+        "executed_at": "2026-08-27T11:20:00.000Z"
+      }
+    ]
+  },
+  "marketNewsRawData": {
+    "resource": "market_news",
+    "generated_at": "2026-08-28T08:00:00.000Z",
+    "data": [
+      {
+        "id": "news-1",
+        "headline": "Fed signals steady rates as inflation cools further into Q3",
+        "source": "Reuters",
+        "published_at": "2026-08-28T06:30:00.000Z",
+        "url": "#"
+      },
+      {
+        "id": "news-2",
+        "headline": "NVIDIA shares rally on strong data-center demand outlook",
+        "source": "Bloomberg",
+        "published_at": "2026-08-28T04:10:00.000Z",
+        "url": "#"
+      },
+      {
+        "id": "news-3",
+        "headline": "Tesla deliveries slip amid tightening EV competition in Asia",
+        "source": "CNBC",
+        "published_at": "2026-08-27T22:45:00.000Z",
+        "url": "#"
+      },
+      {
+        "id": "news-4",
+        "headline": "Apple unveils new supply chain partnership to boost margins",
+        "source": "The Wall Street Journal",
+        "published_at": "2026-08-27T18:05:00.000Z",
+        "url": "#"
+      },
+      {
+        "id": "news-5",
+        "headline": "Markets close higher as tech earnings beat expectations",
+        "source": "MarketWatch",
+        "published_at": "2026-08-27T13:20:00.000Z",
+        "url": "#"
+      }
+    ]
+  },
+  "portfolioPerformanceByRange": {
+    "1W": {
+      "chart_id": "ppc-1w-8a2c1d4e",
+      "range": "1W",
+      "generated_at": "2026-08-28T08:00:00.000Z",
+      "timezone": "Asia/Dhaka",
+      "currency": "USD",
+      "data": [
+        {
+          "id": "1w-0",
+          "label": "Mon",
+          "timestamp": "2026-01-01T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 24180,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 23900,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1w-1",
+          "label": "Tue",
+          "timestamp": "2026-01-02T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 24350,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 23980,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1w-2",
+          "label": "Wed",
+          "timestamp": "2026-01-03T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 24120,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 23860,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1w-3",
+          "label": "Thu",
+          "timestamp": "2026-01-04T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 24560,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 24100,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1w-4",
+          "label": "Fri",
+          "timestamp": "2026-01-05T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 24890,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 24260,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1w-5",
+          "label": "Sat",
+          "timestamp": "2026-01-06T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 24760,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 24190,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1w-6",
+          "label": "Sun",
+          "timestamp": "2026-01-07T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 25040,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 24380,
+            "currency_code": "USD"
+          }
+        }
+      ],
+      "summary": {
+        "total_value": 25040,
+        "value_delta_percent": 3.56,
+        "total_gain": 1140,
+        "gain_delta_percent": 2.51
+      }
+    },
+    "1M": {
+      "chart_id": "ppc-1m-4f6b9c2a",
+      "range": "1M",
+      "generated_at": "2026-08-28T08:00:00.000Z",
+      "timezone": "Asia/Dhaka",
+      "currency": "USD",
+      "data": [
+        {
+          "id": "1m-0",
+          "label": "W1",
+          "timestamp": "2026-01-01T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 22400,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 22100,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1m-1",
+          "label": "W2",
+          "timestamp": "2026-01-02T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 22850,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 22260,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1m-2",
+          "label": "W3",
+          "timestamp": "2026-01-03T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 22610,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 22190,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1m-3",
+          "label": "W4",
+          "timestamp": "2026-01-04T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 23120,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 22480,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1m-4",
+          "label": "W5",
+          "timestamp": "2026-01-05T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 23480,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 22690,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1m-5",
+          "label": "W6",
+          "timestamp": "2026-01-06T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 23290,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 22610,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1m-6",
+          "label": "W7",
+          "timestamp": "2026-01-07T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 23940,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 23020,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1m-7",
+          "label": "W8",
+          "timestamp": "2026-01-08T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 24380,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 23310,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1m-8",
+          "label": "W9",
+          "timestamp": "2026-01-09T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 24150,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 23260,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1m-9",
+          "label": "W10",
+          "timestamp": "2026-01-10T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 25040,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 23880,
+            "currency_code": "USD"
+          }
+        }
+      ],
+      "summary": {
+        "total_value": 25040,
+        "value_delta_percent": 11.79,
+        "total_gain": 2640,
+        "gain_delta_percent": 10.14
+      }
+    },
+    "3M": {
+      "chart_id": "ppc-3m-7d1e5a9f",
+      "range": "3M",
+      "generated_at": "2026-08-28T08:00:00.000Z",
+      "timezone": "Asia/Dhaka",
+      "currency": "USD",
+      "data": [
+        {
+          "id": "3m-0",
+          "label": "Wk1",
+          "timestamp": "2026-01-01T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 19800,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 19600,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-1",
+          "label": "Wk2",
+          "timestamp": "2026-01-02T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 20150,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 19740,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-2",
+          "label": "Wk3",
+          "timestamp": "2026-01-03T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 19960,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 19680,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-3",
+          "label": "Wk4",
+          "timestamp": "2026-01-04T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 20430,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 19920,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-4",
+          "label": "Wk5",
+          "timestamp": "2026-01-05T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 20880,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 20180,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-5",
+          "label": "Wk6",
+          "timestamp": "2026-01-06T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 21120,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 20340,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-6",
+          "label": "Wk7",
+          "timestamp": "2026-01-07T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 20940,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 20260,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-7",
+          "label": "Wk8",
+          "timestamp": "2026-01-08T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 21560,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 20620,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-8",
+          "label": "Wk9",
+          "timestamp": "2026-01-09T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 22010,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 20890,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-9",
+          "label": "Wk10",
+          "timestamp": "2026-01-10T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 22380,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 21120,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-10",
+          "label": "Wk11",
+          "timestamp": "2026-01-11T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 23150,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 21580,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "3m-11",
+          "label": "Wk12",
+          "timestamp": "2026-01-12T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 25040,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 22740,
+            "currency_code": "USD"
+          }
+        }
+      ],
+      "summary": {
+        "total_value": 25040,
+        "value_delta_percent": 26.47,
+        "total_gain": 5240,
+        "gain_delta_percent": 26.44
+      }
+    },
+    "1Y": {
+      "chart_id": "ppc-1y-2c8f4b6d",
+      "range": "1Y",
+      "generated_at": "2026-08-28T08:00:00.000Z",
+      "timezone": "Asia/Dhaka",
+      "currency": "USD",
+      "data": [
+        {
+          "id": "1y-0",
+          "label": "Sep",
+          "timestamp": "2026-01-01T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 16200,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 16000,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-1",
+          "label": "Oct",
+          "timestamp": "2026-01-02T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 16850,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 16220,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-2",
+          "label": "Nov",
+          "timestamp": "2026-01-03T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 16480,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 16080,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-3",
+          "label": "Dec",
+          "timestamp": "2026-01-04T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 17320,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 16480,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-4",
+          "label": "Jan",
+          "timestamp": "2026-01-05T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 17960,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 16780,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-5",
+          "label": "Feb",
+          "timestamp": "2026-01-06T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 17640,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 16620,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-6",
+          "label": "Mar",
+          "timestamp": "2026-01-07T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 18510,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 17040,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-7",
+          "label": "Apr",
+          "timestamp": "2026-01-08T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 19280,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 17420,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-8",
+          "label": "May",
+          "timestamp": "2026-01-09T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 18940,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 17280,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-9",
+          "label": "Jun",
+          "timestamp": "2026-01-10T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 20360,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 17960,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-10",
+          "label": "Jul",
+          "timestamp": "2026-01-11T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 21980,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 18640,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "1y-11",
+          "label": "Aug",
+          "timestamp": "2026-01-12T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 25040,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 19980,
+            "currency_code": "USD"
+          }
+        }
+      ],
+      "summary": {
+        "total_value": 25040,
+        "value_delta_percent": 54.57,
+        "total_gain": 8840,
+        "gain_delta_percent": 54.61
+      }
+    },
+    "All": {
+      "chart_id": "ppc-all-5b3a7e1c",
+      "range": "All",
+      "generated_at": "2026-08-28T08:00:00.000Z",
+      "timezone": "Asia/Dhaka",
+      "currency": "USD",
+      "data": [
+        {
+          "id": "all-0",
+          "label": "2021",
+          "timestamp": "2026-01-01T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 4200,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 4100,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "all-1",
+          "label": "2022",
+          "timestamp": "2026-01-02T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 6850,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 6200,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "all-2",
+          "label": "2023",
+          "timestamp": "2026-01-03T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 9480,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 8100,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "all-3",
+          "label": "2024",
+          "timestamp": "2026-01-04T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 13920,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 11400,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "all-4",
+          "label": "2025",
+          "timestamp": "2026-01-05T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 18760,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 15200,
+            "currency_code": "USD"
+          }
+        },
+        {
+          "id": "all-5",
+          "label": "2026",
+          "timestamp": "2026-01-06T00:00:00.000Z",
+          "portfolio_value": {
+            "value": 25040,
+            "currency_code": "USD"
+          },
+          "benchmark_value": {
+            "value": 19980,
+            "currency_code": "USD"
+          }
+        }
+      ],
+      "summary": {
+        "total_value": 25040,
+        "value_delta_percent": 496.19,
+        "total_gain": 20840,
+        "gain_delta_percent": 496.19
+      }
+    }
+  }
+}
