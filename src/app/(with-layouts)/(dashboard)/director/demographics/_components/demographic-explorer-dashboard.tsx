@@ -1,14 +1,52 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
+import { Button } from "@/components/tailgrids/core/button";
+import {
+  useDirectorDemographicsOverviewQuery,
+  useDirectorDemographicsSegmentQuery,
+} from "@/hooks/use-demographics-queries";
+import { demographicSegments } from "@/services/api/demographics/data";
 import DemographicsOverview from "./demographics-overview";
 import SegmentDetailDashboard from "./segment-detail-dashboard";
-import { demographicSegments } from "./data";
 
 export default function DemographicExplorerDashboard() {
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
-  const selectedSegment = demographicSegments.find((segment) => segment.id === selectedSegmentId) ?? null;
+
+  const {
+    data: overviewResponse,
+    isLoading: isOverviewLoading,
+    isFetching: isOverviewFetching,
+    isError: isOverviewError,
+    refetch: refetchOverview,
+  } = useDirectorDemographicsOverviewQuery({
+    admissionYear: 2026,
+    period: "6m",
+    scope: "all",
+  });
+
+  const {
+    data: segmentResponse,
+    isLoading: isSegmentLoading,
+    isFetching: isSegmentFetching,
+    refetch: refetchSegment,
+  } = useDirectorDemographicsSegmentQuery(
+    {
+      segment_id: selectedSegmentId ?? "",
+      admissionYear: 2026,
+    },
+    {
+      enabled: Boolean(selectedSegmentId),
+    },
+  );
+
+  const allSegments = overviewResponse?.data?.segments ?? demographicSegments;
+  const selectedSegment =
+    allSegments.find((segment) => segment.id === selectedSegmentId) ??
+    demographicSegments.find((segment) => segment.id === selectedSegmentId) ??
+    null;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -25,21 +63,89 @@ export default function DemographicExplorerDashboard() {
   }, [selectedSegmentId]);
 
   const openSegment = (segmentId: string) => {
-    const segment = demographicSegments.find((item) => item.id === segmentId);
-    if (!segment) return;
-    setSelectedSegmentId(segment.id);
+    setSelectedSegmentId(segmentId);
   };
 
+  const handleRefreshOverview = async () => {
+    try {
+      await refetchOverview();
+      toast.success("Đã làm mới dữ liệu tổng quan.");
+    } catch {
+      toast.error("Không thể làm mới dữ liệu tổng quan.");
+    }
+  };
+
+  const handleRefreshSegment = async () => {
+    try {
+      await refetchSegment();
+      toast.success("Đã làm mới dữ liệu phân khúc.");
+    } catch {
+      toast.error("Không thể làm mới dữ liệu phân khúc.");
+    }
+  };
+
+  if (isOverviewLoading && !overviewResponse) {
+    return (
+      <main id="main-content" className="min-w-0 max-w-full overflow-x-hidden p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-28 rounded-2xl bg-card-background border border-card-border" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="h-32 rounded-2xl bg-card-background border border-card-border" />
+            <div className="h-32 rounded-2xl bg-card-background border border-card-border" />
+            <div className="h-32 rounded-2xl bg-card-background border border-card-border" />
+            <div className="h-32 rounded-2xl bg-card-background border border-card-border" />
+          </div>
+          <div className="h-96 rounded-2xl bg-card-background border border-card-border" />
+        </div>
+      </main>
+    );
+  }
+
+  if (isOverviewError && !overviewResponse) {
+    return (
+      <main id="main-content" className="min-w-0 max-w-full overflow-x-hidden p-6">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-card-border bg-card-background p-12 text-center">
+          <p className="text-base font-semibold text-text-primary">Không thể tải dữ liệu phân tích người học</p>
+          <p className="mt-2 text-sm text-text-secondary">Đã xảy ra lỗi khi kết nối tới hệ thống. Vui lòng thử lại.</p>
+          <Button className="mt-6" onPress={() => refetchOverview()}>
+            Thử lại
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
   if (!selectedSegment) {
-    return <main id="main-content" className="min-w-0 max-w-full overflow-x-hidden"><DemographicsOverview onOpenSegment={openSegment} /></main>;
+    return (
+      <main id="main-content" className="min-w-0 max-w-full overflow-x-hidden">
+        <DemographicsOverview
+          data={overviewResponse?.data}
+          onOpenSegment={openSegment}
+          onRefresh={handleRefreshOverview}
+          isRefreshing={isOverviewFetching}
+        />
+      </main>
+    );
   }
 
   return (
     <main id="main-content" className="min-w-0 max-w-full overflow-x-hidden">
-      <SegmentDetailDashboard
-        segment={selectedSegment}
-        onBack={() => setSelectedSegmentId(null)}
-      />
+      {isSegmentLoading && !segmentResponse ? (
+        <div className="p-6">
+          <div className="animate-pulse space-y-6">
+            <div className="h-24 rounded-2xl bg-card-background border border-card-border" />
+            <div className="h-64 rounded-2xl bg-card-background border border-card-border" />
+          </div>
+        </div>
+      ) : (
+        <SegmentDetailDashboard
+          segment={segmentResponse?.data?.segment ?? selectedSegment}
+          detailData={segmentResponse?.data}
+          onBack={() => setSelectedSegmentId(null)}
+          onRefresh={handleRefreshSegment}
+          isRefreshing={isSegmentFetching}
+        />
+      )}
     </main>
   );
 }

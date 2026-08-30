@@ -56,6 +56,10 @@ import {
 import { computeDirectorStudents, getStudent360 } from "@/services/api/students";
 import { studentListData } from "@/services/api/students/data";
 import { getSchoolById, getSchoolReport, getSchoolDirectory, searchSchools } from "@/services/api/schools/school-directory";
+import {
+  computeDirectorDemographicsOverview,
+  computeDirectorDemographicsSegment,
+} from "@/services/api/demographics";
 
 type RouteContext = {
   params: Promise<{ resource?: string[] }>;
@@ -242,12 +246,55 @@ async function getSchoolResponse(request: NextRequest, resource: string[]) {
   return data ? json(data) : json({ error: { code: "SCHOOL_NOT_FOUND", message: "Không tìm thấy trường trong danh mục." } }, { status: 404 });
 }
 
+async function getDemographicsResponse(request: NextRequest, resource: string[]) {
+  const [, identifier] = resource;
+  const admissionYear = numberParam(request, "admissionYear", 2026, 3000);
+
+  if (!identifier || identifier === "overview") {
+    const period = request.nextUrl.searchParams.get("period") ?? "6m";
+    const scope = request.nextUrl.searchParams.get("scope") ?? "all";
+    return json(
+      computeDirectorDemographicsOverview({
+        admissionYear,
+        period,
+        scope,
+      }),
+    );
+  }
+
+  const segmentId = request.nextUrl.searchParams.get("segment_id") || (identifier !== "segments" && identifier !== "segment" ? identifier : null);
+  if (segmentId) {
+    const data = computeDirectorDemographicsSegment({
+      segment_id: segmentId,
+      admissionYear,
+    });
+    return data
+      ? json(data)
+      : json(
+          {
+            error: {
+              code: "SEGMENT_NOT_FOUND",
+              message: "Không tìm thấy phân khúc hoặc phân khúc không đủ dữ liệu để hiển thị.",
+            },
+          },
+          { status: 404 },
+        );
+  }
+
+  return json(
+    computeDirectorDemographicsOverview({
+      admissionYear,
+    }),
+  );
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
   const { resource = [] } = await context.params;
   const [domain] = resource;
 
   if (domain === "students") return getStudentResponse(request, resource);
   if (domain === "schools") return getSchoolResponse(request, resource);
+  if (domain === "demographics") return getDemographicsResponse(request, resource);
 
   const data = await getDashboardResponse(request, resource);
   return data === null

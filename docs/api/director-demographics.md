@@ -1,6 +1,9 @@
 # API cho `/director/demographics`
 
-Tài liệu này mô tả dữ liệu cần để hiển thị trang **Khám phá người học**, gồm overview toàn bộ tệp và detail của một phân khúc học sinh.
+Tài liệu này mô tả dữ liệu cần để hiển thị trang **Khám phá người học**, gồm overview toàn bộ tệp và detail của một phân khúc học sinh:
+
+- **Overview**: `GET /api/method/crm.api.director_demographics.get_director_demographics_overview`
+- **Detail**: `GET /api/method/crm.api.director_demographics.get_director_demographics_segment?segment_id=...`
 
 > Cập nhật `2026-08-31`: backend đã triển khai hai Frappe method aggregate-only cho overview/detail. API public bằng `allow_guest`, không yêu cầu JWT; browser chỉ được phép gọi cross-origin từ `http://localhost:3000` và `https://faip.pro`.
 
@@ -16,6 +19,13 @@ Frontend hiện chưa nối hai method này; dữ liệu màn hình vẫn đư�
 Backend Frappe đã có endpoint thật bên dưới. Mock handler tại [route.ts](../../src/app/api/mock/[...resource]/route.ts) vẫn chưa có nhánh `demographics`, nên `/api/mock/demographics` hiện trả lỗi `MOCK_ENDPOINT_NOT_FOUND`.
 
 ## 2. Endpoint backend
+
+Backend cung cấp hai endpoint chính:
+
+```http
+GET /api/method/crm.api.director_demographics.get_director_demographics_overview
+GET /api/method/crm.api.director_demographics.get_director_demographics_segment?segment_id={segmentId}
+```
 
 ### 2.1. Overview
 
@@ -70,7 +80,7 @@ Không cần gửi JWT. Request từ browser phải có `Origin` nằm trong all
 | `period` | enum | Không | `6m` | Khoảng thời gian trend; hiện UI hiển thị 6 tháng |
 | `scope` | string | Không | `all` | Phạm vi dữ liệu; backend hiện chỉ hỗ trợ `all` |
 
-Giá trị `period` nên hỗ trợ tối thiểu `6m`, `12m` và `season`. Nếu chưa có dữ liệu lịch sử, API phải trả `meta.dataAvailability` thay vì tự tạo số liệu.
+Backend hiện hỗ trợ `6m`, `12m` và `season`. Nếu chưa có dữ liệu lịch sử, API trả `meta.dataAvailability` thay vì tự tạo số liệu.
 
 ### 3.2. Detail request
 
@@ -81,7 +91,7 @@ Accept: application/json
 
 | Path/query | Kiểu | Bắt buộc | Mô tả |
 |---|---|---:|---|
-| `segmentId` | string | Có | ID ổn định của segment, ví dụ `female-ai-dong-nai` |
+| `segment_id` | string | Có | ID ổn định của segment, ví dụ `female-ai-dong-nai`; gateway có thể nhận `segmentId` trên path |
 | `admissionYear` | integer | Không | Kỳ tuyển sinh dùng để tính segment |
 
 `segmentId` không nên được tạo từ tên hiển thị nếu tên, địa bàn hoặc nhãn ngành có thể thay đổi. Với Frappe method trực tiếp, tham số tương ứng là `segment_id`.
@@ -118,7 +128,7 @@ Frappe bọc kết quả method trong key `message`; frontend cần đọc `json
 }
 ```
 
-Ví dụ rút gọn:
+Ví dụ rút gọn dưới đây là nội dung bên trong `message` (số liệu chỉ minh họa):
 
 ```json
 {
@@ -184,8 +194,8 @@ Ví dụ rút gọn:
         "applications": 160,
         "enrolled": 68,
         "conversion": 2,
-        "tuition": 51.2,
-        "revenue": 3.5,
+        "tuition": null,
+        "revenue": null,
         "growth": 31,
         "coverage": 3.2,
         "opportunityScore": 92,
@@ -282,7 +292,7 @@ Frappe cũng bọc payload detail trong `message`; frontend cần đọc `json.m
 }
 ```
 
-Ví dụ phần response bổ sung ngoài `segment`:
+Ví dụ phần response bổ sung ngoài `segment` (số liệu chỉ minh họa; `tuition`/`revenue` hiện là `null`):
 
 ```json
 {
@@ -297,8 +307,8 @@ Ví dụ phần response bổ sung ngoài `segment`:
       "applications": 160,
       "enrolled": 68,
       "conversion": 2,
-      "tuition": 51.2,
-      "revenue": 3.5,
+      "tuition": null,
+      "revenue": null,
       "growth": 31,
       "coverage": 3.2,
       "opportunityScore": 92
@@ -311,7 +321,7 @@ Ví dụ phần response bổ sung ngoài `segment`:
       "applications": 248,
       "enrolled": 96,
       "conversion": 1.9,
-      "tuition": 50.8,
+      "tuition": null,
       "growth": 12
     },
     "nextAction": {
@@ -441,9 +451,9 @@ Không nên trả `fill` hoặc `color` từ backend. Đây là presentation tok
 | `applications` | integer | Có | Đã nộp hồ sơ |
 | `enrolled` | integer | Có | Đã nhập học |
 | `conversion` | number | Có | Tỷ lệ `enrolled / prospects * 100` |
-| `tuition` | number | Có | Học phí ròng trung bình, đơn vị triệu đồng/học sinh nhập học |
-| `revenue` | number | Có | Doanh thu ghi nhận, đơn vị tỷ đồng |
-| `growth` | number | Có | Tăng trưởng hồ sơ so với tháng trước, đơn vị phần trăm |
+| `tuition` | number \| null | Có | Học phí ròng trung bình, đơn vị triệu đồng/học sinh nhập học; hiện `null` vì chưa có nguồn canonical |
+| `revenue` | number \| null | Có | Doanh thu ghi nhận, đơn vị tỷ đồng; hiện `null` vì chưa có nguồn canonical |
+| `growth` | number \| null | Có | Tăng trưởng hồ sơ so với tháng trước, đơn vị phần trăm; `null` nếu kỳ trước không có hồ sơ |
 | `coverage` | number | Có | Tỷ lệ độ phủ/đã tiếp cận, đơn vị phần trăm |
 | `opportunityScore` | number | Có | Điểm ưu tiên, `0..100` |
 | `tone` | enum | Có | `primary`, `info`, `success`, `warning`, `danger` |
@@ -477,6 +487,8 @@ SegmentTrendPoint = {
   benchmark: number;
 }
 ```
+
+Backend không trả field presentation `fill`; frontend tự map màu theo tên/id kênh. Giá trị được tính từ các tương tác CRM, không khẳng định đây là first-touch channel.
 
 Các dimension hiện có trong fixture gồm `gender`, `grade`, `interest`, `province`, `region` và `schoolType`. API có thể trả thêm `filterOptions` nếu UI bật lại `SegmentBuilder`:
 
@@ -553,8 +565,10 @@ Các dimension hiện có trong fixture gồm `gender`, `grade`, `interest`, `pr
 - Không trả danh sách cá nhân, tên, số điện thoại, email hoặc thuộc tính có thể tái nhận diện từ API demographics.
 - Không suy đoán thu nhập, khả năng đóng học phí hoặc mức học bổng của học sinh chưa thành niên. Các tiêu chí này đang bị khóa trong `SegmentGuardrails`.
 - Thông tin học lực/giải thưởng chỉ được dùng khi consent bao phủ đúng mục đích.
-- Server phải áp dụng quyền Director/territory trước khi tính aggregate, `sampleSize`, `meta.totalProspects` và ranking.
+- Endpoint hiện là aggregate public (`allow_guest=True`) và chỉ hỗ trợ `scope=all`; không trả PII, không có JWT/territory scope.
+- Server phải áp dụng ngưỡng `MIN_SAMPLE_SIZE = 30` trước khi đưa segment vào response và ranking.
 - `asOf` phải là ISO-8601 có timezone. Không dùng chuỗi display-ready để tính tăng trưởng hoặc so sánh kỳ.
+- `tuition` và `revenue` hiện trả `null`; không được suy luận từ tỉnh, trường hoặc phân khúc.
 
 ## 8. Những API chưa cần cho lần tải đầu
 
@@ -592,11 +606,8 @@ Status nên thống nhất:
 | Status | Code | Khi dùng |
 |---:|---|---|
 | `200` | - | Overview/detail thành công |
-| `400` | `INVALID_QUERY` | Sai kỳ, period hoặc scope |
-| `401` | `UNAUTHENTICATED` | Thiếu hoặc hết hạn access token |
-| `403` | `FORBIDDEN` | Không có quyền xem phạm vi dữ liệu |
+| `400` | `INVALID_SEGMENT_ID` / `INVALID_PERIOD` / `INVALID_SCOPE` | Thiếu segment hoặc query không hợp lệ |
 | `404` | `SEGMENT_NOT_FOUND` | Không tồn tại segment |
-| `409` | `SEGMENT_BELOW_MIN_SAMPLE` | Segment có ít hơn 30 hồ sơ |
 | `422` | `INVALID_ADMISSION_YEAR` | Kỳ tuyển sinh không hợp lệ |
 | `500` | `INTERNAL_ERROR` | Lỗi không dự kiến phía server |
 | `503` | `DEMOGRAPHICS_DATA_UNAVAILABLE` | Pipeline aggregate hoặc nguồn dữ liệu chưa sẵn sàng |
@@ -606,13 +617,13 @@ Status nên thống nhất:
 Overview:
 
 ```http
-GET /api/demographics/overview?admissionYear=2026&period=6m&scope=all
+GET /api/method/crm.api.director_demographics.get_director_demographics_overview?admissionYear=2026&period=6m&scope=all
 ```
 
 Detail khi người dùng mở một nhóm:
 
 ```http
-GET /api/demographics/segments/{segmentId}?admissionYear=2026
+GET /api/method/crm.api.director_demographics.get_director_demographics_segment?segment_id={segmentId}&admissionYear=2026
 ```
 
-Overview bắt buộc phải có `kpis`, `demand`, `audienceComposition`, `segments`, `regionOpportunities`, `regionalDemand`, `dataCoverage` và `meta.asOf`. Detail bắt buộc phải có `segment`, `benchmark`, `nextAction`, `guardrails` và `meta.sampleSize`.
+Overview bắt buộc phải có `kpis`, `demand`, `audienceComposition`, `segments`, `regionOpportunities`, `regionalDemand`, `dataCoverage` và `meta.asOf`. Detail bắt buộc phải có `segment`, `benchmark`, `nextAction`, `guardrails` và `meta.sampleSize`. Các segment dưới 30 hồ sơ không xuất hiện; khi detail gọi vào ID đó, API trả `404 SEGMENT_NOT_FOUND`.

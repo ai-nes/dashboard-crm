@@ -1,7 +1,7 @@
 import { ArrowUpward } from "@tailgrids/icons";
 
-import { demographicKpis } from "./data";
-import type { DemographicTone } from "./types";
+import { demographicKpis as defaultKpis } from "@/services/api/demographics/data";
+import type { DemographicKpi, DemographicTone } from "@/services/api/demographics/types";
 
 const toneStyles: Record<DemographicTone, { dot: string; icon: string; bar: string; text: string }> = {
   primary: { dot: "bg-brand-500", icon: "bg-badge-primary-background", bar: "bg-brand-500", text: "text-brand-500" },
@@ -11,17 +11,40 @@ const toneStyles: Record<DemographicTone, { dot: string; icon: string; bar: stri
   danger: { dot: "bg-error-500", icon: "bg-badge-error-background", bar: "bg-error-500", text: "text-error-500" },
 };
 
-export default function OverviewKpiStrip() {
+interface OverviewKpiStripProps {
+  kpis?: DemographicKpi[];
+}
+
+export default function OverviewKpiStrip({ kpis = defaultKpis }: OverviewKpiStripProps) {
   return (
     <section aria-label="Chỉ số tổng quan người học" className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {demographicKpis.map((kpi) => {
-        const tone = toneStyles[kpi.tone];
+      {kpis.map((kpi) => {
+        const tone = toneStyles[kpi.tone] ?? toneStyles.primary;
         return (
           <article key={kpi.id} className="rounded-2xl border border-card-border/70 bg-card-background p-5">
-            <div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><span className={`flex size-9 items-center justify-center rounded-xl ${tone.icon}`} aria-hidden="true"><span className={`size-2.5 rounded-full ${tone.dot}`} /></span><p className="text-sm font-medium text-text-secondary">{kpi.label}</p></div><span className={`inline-flex items-center gap-1 text-xs font-semibold ${tone.text}`}><ArrowUpward size={13} aria-hidden="true" />{kpi.change}</span></div>
-            <p className="mt-5 text-3xl font-semibold tracking-[-0.8px] text-text-primary">{kpi.value}</p>
-            <p className="mt-1 text-xs text-text-tertiary">{kpi.helper}</p>
-            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-background-gray-secondary"><div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${kpi.progress}%` }} /></div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className={`flex size-9 items-center justify-center rounded-xl ${tone.icon}`} aria-hidden="true">
+                  <span className={`size-2.5 rounded-full ${tone.dot}`} />
+                </span>
+                <p className="text-sm font-medium text-text-secondary">{kpi.label}</p>
+              </div>
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold ${tone.text}`}>
+                {kpi.change ? (
+                  <>
+                    <ArrowUpward size={13} aria-hidden="true" />
+                    {kpi.change}
+                  </>
+                ) : (
+                  "-"
+                )}
+              </span>
+            </div>
+            <p className="mt-5 text-3xl font-semibold tracking-[-0.8px] text-text-primary">{kpi.value ?? "-"}</p>
+            <p className="mt-1 text-xs text-text-tertiary">{kpi.helper ?? "-"}</p>
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-background-gray-secondary">
+              <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${kpi.progress ?? 0}%` }} />
+            </div>
           </article>
         );
       })}
