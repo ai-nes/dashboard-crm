@@ -242,6 +242,7 @@ export const student360Data: Student360Data = {
   },
   insight: {
     summary: "Minh An có nền tảng học tập tốt, tín hiệu quan tâm AI tăng rõ rệt sau Open Day. Rào cản chính là học phí; bố là người ra quyết định và cần một phương án tài chính cụ thể.",
+    signalScore: 82,
     probability: 82,
     scoreDelta: 13,
     baseline: 41,

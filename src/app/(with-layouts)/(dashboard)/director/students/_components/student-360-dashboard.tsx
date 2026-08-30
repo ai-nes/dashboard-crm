@@ -4,7 +4,6 @@ import type { Student360Data } from "@/services/api/students/types";
 
 import ApplicationCard from "./application-card";
 import JourneyTimeline from "./journey-timeline";
-import ReadinessStrip from "./readiness-strip";
 import StudentAuditCard from "./student-audit-card";
 import StudentChartsSection from "./student-charts-section";
 import StudentClassificationCockpit from "./student-classification-cockpit";
@@ -35,7 +34,6 @@ export default function Student360Dashboard({ data }: Student360DashboardProps) 
             title="Quyết định cần đưa ra hôm nay"
           />
           <StudentClassificationCockpit data={data} />
-          <div className="mt-4"><ReadinessStrip data={data} /></div>
         </section>
 
         <section id="student-context" aria-labelledby="student-context-heading" className="scroll-mt-20 border-t border-card-border pt-7">
@@ -74,7 +72,7 @@ export default function Student360Dashboard({ data }: Student360DashboardProps) 
             title="Hồ sơ & lịch sử xử lý"
           />
           <div className="space-y-4">
-            <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(320px,0.7fr)_minmax(0,1.3fr)]">
+            <div className="grid min-w-0 items-stretch gap-4 xl:grid-cols-[minmax(320px,0.7fr)_minmax(0,1.3fr)]">
               <ApplicationCard data={data} />
               <StudentDocumentsTab data={data} />
             </div>

@@ -12,7 +12,7 @@ export default function ApplicationCard({ data }: Student360SectionProps) {
   const complete = completedDocuments === 5;
 
   return (
-    <Card className={`p-5 ${complete ? "border-success-500/30" : "border-warning-500/30"}`}>
+    <Card className={`flex h-full flex-col p-5 ${complete ? "border-success-500/30" : "border-warning-500/30"}`}>
       <CardHeader className="mb-5">
         <div><CardTitle>Hồ sơ ứng tuyển</CardTitle><p className="mt-1 text-xs text-text-secondary">Điểm nghẽn trước khi chuyển sang bước nộp hồ sơ.</p></div>
         <div className="text-right"><p className="text-xs text-text-tertiary">Thời gian còn lại</p><p className={`mt-1 text-2xl font-semibold ${complete ? "text-success-500" : "text-warning-500"}`}>{deadline.replace("Còn ", "")}</p></div>

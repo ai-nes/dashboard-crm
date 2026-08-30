@@ -5,7 +5,7 @@ export type StudentPriority = "Cao" | "Trung bình" | "Thấp";
 export type StudentClassificationTone = "primary" | "success" | "warning" | "sky" | "gray";
 
 export interface StudentFitFactor {
-  label: "Ngành" | "Phương thức xét tuyển" | "Chi phí" | "Địa lý";
+  label: "Ngành" | "Hồ sơ học tập" | "Phương thức xét tuyển" | "Chi phí" | "Địa lý";
   value: string;
   tone: StudentClassificationTone;
 }
@@ -104,6 +104,7 @@ export interface Student360Data {
   };
   insight: {
     summary: string;
+    signalScore: number;
     probability: number;
     scoreDelta?: number;
     baseline?: number;
