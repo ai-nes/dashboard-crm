@@ -17,9 +17,9 @@ interface DemographicsOverviewProps {
 
 export default function DemographicsOverview({ onOpenSegment }: DemographicsOverviewProps) {
   return (
-    <div className="mt-4 min-w-0 max-w-full space-y-6 overflow-hidden pb-8">
-      <OverviewHeader onExport={() => toast.success("Đã tạo báo cáo tổng quan người học.")} onPeriodPress={() => toast.message("Đang hiển thị dữ liệu toàn quốc từ đầu mùa tuyển sinh 2026.")} />
-      <div className="min-w-0 max-w-full space-y-5 px-2 lg:px-5">
+    <div className="min-w-0 max-w-full space-y-5 overflow-hidden px-2 py-4 pb-8 lg:px-6">
+      <OverviewHeader onExport={() => toast.success("Đã tạo báo cáo tổng quan người học.")} />
+      <div className="min-w-0 max-w-full space-y-5">
         <OverviewKpiStrip />
         <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.72fr)]"><DemandMomentumChart /><AudienceCompositionChart /></div>
         <SegmentLandscapeChart onOpenSegment={onOpenSegment} />

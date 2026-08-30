@@ -2,8 +2,6 @@
 
 import AdmissionsFunnel from "./admissions-funnel";
 import AdmissionsTrend from "./admissions-trend";
-import CampusPerformanceChart from "./campus-performance-chart";
-import ConversionHealth from "./conversion-health";
 import DirectorBriefing from "./director-briefing";
 import EnrollmentForecast from "./enrollment-forecast";
 import DirectorKpiCards from "./kpi-cards";
@@ -25,20 +23,14 @@ export default function DirectorDashboard() {
           <DirectorBriefing />
         </div>
 
-        <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
-          <AdmissionsFunnel />
-          <ConversionHealth />
-        </div>
+        <AdmissionsFunnel />
 
         <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
           <AdmissionsTrend />
           <MarketOverview />
         </div>
 
-        <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
-          <CampusPerformanceChart />
-          <SourceMixChart />
-        </div>
+        <SourceMixChart />
 
         <WeeklyActivityChart />
       </div>
