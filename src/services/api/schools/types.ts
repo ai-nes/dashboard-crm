@@ -210,3 +210,69 @@ export interface SchoolReportData {
   provinces: ProvinceSchoolReport[];
   priorityList: PrioritySchoolReport[];
 }
+
+export type DataAvailabilityStatus = "available" | "partial" | "unavailable";
+
+export interface DirectorSchoolContact {
+  fullName: string | null;
+  role: string | null;
+  position: string | null;
+  relationshipStatus: string | null;
+  lastTouch: string | null;
+  nextTouch: string | null;
+}
+
+export interface DirectorSchoolActivity {
+  activityType: string | null;
+  occurredAt: string | null;
+  scheduledAt: string | null;
+  status: string | null;
+  outcome: string | null;
+  attendance: number | null;
+}
+
+export interface DirectorSchoolDetailData {
+  school: {
+    id: string;
+    provinceCode: string | null;
+    province: string | null;
+    wardCode: string | null;
+    ward: string | null;
+    schoolCode: string | null;
+    name: string;
+    address: string | null;
+    area: string | null;
+    isBoardingSchool: boolean | null;
+  };
+  potentialScore: number | null;
+  grade12Students: number | null;
+  availableStudents: number | null;
+  prospects: number | null;
+  applications: number | null;
+  enrollment: number | null;
+  relationship: {
+    level: string | null;
+    score: number | null;
+    contact: string | null;
+    contactRole: string | null;
+    lastTouch: string | null;
+    nextTouch: string | null;
+  };
+  classification: {
+    group: SchoolClassification | null;
+    isKeyAccount: boolean | null;
+    label: string | null;
+  };
+  locality: {
+    latitude: number | null;
+    longitude: number | null;
+  };
+  contacts: DirectorSchoolContact[];
+  activities: DirectorSchoolActivity[];
+  asOf: string | null;
+  dataAvailability: {
+    status?: DataAvailabilityStatus;
+    sections: Record<string, DataAvailabilityStatus>;
+    fields: Record<string, DataAvailabilityStatus>;
+  };
+}
