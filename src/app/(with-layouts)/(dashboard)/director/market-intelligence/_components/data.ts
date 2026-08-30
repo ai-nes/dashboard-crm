@@ -1,3 +1,5 @@
+import { classifySchool } from "@/services/api/schools/classification";
+
 import type {
   FptuCampusLocation,
   HighSchoolItem,
@@ -307,28 +309,26 @@ function generateMockHighSchools(
     );
     const enrollmentForecast = Math.max(8, Math.round(applications * (0.42 + (schoolSeed % 13) / 100)));
 
-    let status: HighSchoolItem["status"] = "active";
-    if (potentialScore >= 88) status = "high-yield";
-    else if (penetrationRate < 3) status = "untapped";
-    else if (schoolSeed % 4 === 0) status = "needs-attention";
+    const relationshipScore = Math.min(96, Math.round(penetrationRate * 8 + (schoolSeed % 10)));
+    const classification = classifySchool(potentialScore, relationshipScore);
 
     const recommendation =
-      status === "high-yield"
-        ? "Nên ưu tiên khai thác trong 30 ngày tới"
-        : status === "needs-attention"
-          ? "Có tiềm năng nhưng cần tháo gỡ điểm nghẽn chuyển đổi"
-          : status === "untapped"
-            ? "Còn nhiều dung lượng chưa tiếp cận"
-            : "Duy trì nuôi dưỡng và đo thêm tín hiệu";
+      classification === "Trọng điểm"
+        ? "Giữ và làm sâu quan hệ, ưu tiên khai thác trong 30 ngày tới"
+        : classification === "Mở rộng"
+          ? "Tiềm năng cao nhưng quan hệ còn mỏng, cần mở đầu mối trước"
+          : classification === "Duy trì"
+            ? "Quan hệ tốt nhưng tiềm năng vừa, giữ nhịp tối thiểu"
+            : "Tiềm năng và quan hệ đều thấp, rà soát trước khi đầu tư thêm";
 
     const nextAction =
-      status === "high-yield"
+      classification === "Trọng điểm"
         ? "Đặt lịch Career Talk kết hợp Parent Session"
-        : status === "needs-attention"
-          ? "Gọi lại đầu mối và gửi bộ học bổng theo nhóm ngành"
-          : status === "untapped"
-            ? "Mở điểm tư vấn lưu động tại trường"
-            : "Theo dõi thêm hoạt động và bổ sung prospect";
+        : classification === "Mở rộng"
+          ? "Xác định đầu mối và thử một hoạt động chi phí thấp"
+          : classification === "Duy trì"
+            ? "Gom hoạt động theo cụm để tối ưu chi phí"
+            : "Chỉ tham gia khi trường chủ động mời";
 
     return {
       id: directorySchool?.id ?? `hs-${seed}-${idx}`,
@@ -346,7 +346,7 @@ function generateMockHighSchools(
       lastActivity: idx === 0 ? "Career Talk · 12 ngày trước" : `${14 + idx * 8} ngày trước`,
       recommendation,
       nextAction,
-      status,
+      classification,
     };
   });
 }

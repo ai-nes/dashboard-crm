@@ -1,3 +1,5 @@
+import type { SchoolClassification } from "@/services/api/schools/types";
+
 export type RegionKey =
   | "all"
   | "north"
@@ -31,7 +33,7 @@ export interface HighSchoolItem {
   lastActivity: string;
   recommendation: string;
   nextAction: string;
-  status: "high-yield" | "active" | "untapped" | "needs-attention";
+  classification: SchoolClassification;
 }
 
 export interface FptuCampusLocation {

@@ -9,15 +9,15 @@ interface SchoolSpotlightProps {
   school: HighSchoolItem;
 }
 
-const statusConfig: Record<HighSchoolItem["status"], { color: "success" | "primary" | "warning" | "error"; label: string }> = {
-  "high-yield": { color: "success", label: "Ưu tiên cao" },
-  active: { color: "primary", label: "Đang khai thác" },
-  untapped: { color: "warning", label: "Còn dư địa" },
-  "needs-attention": { color: "error", label: "Cần chú ý" },
+const classificationConfig: Record<HighSchoolItem["classification"], { color: "success" | "primary" | "warning" | "gray"; label: string }> = {
+  "Trọng điểm": { color: "success", label: "Trọng điểm · Key Account" },
+  "Mở rộng": { color: "primary", label: "Mở rộng" },
+  "Duy trì": { color: "warning", label: "Duy trì" },
+  "Sàng lọc": { color: "gray", label: "Sàng lọc" },
 };
 
 export default function SchoolSpotlight({ provinceName, school }: SchoolSpotlightProps) {
-  const status = statusConfig[school.status];
+  const status = classificationConfig[school.classification];
 
   return (
     <section aria-labelledby="selected-school-title" className="mt-5 rounded-xl border border-primary-200 bg-badge-primary-background/60 p-4">
@@ -67,7 +67,7 @@ export default function SchoolSpotlight({ provinceName, school }: SchoolSpotligh
 
       <div className="mt-4 border-t border-primary-200 pt-3">
         <p className="text-xs font-semibold text-primary-600">Vì sao nên chọn trường này?</p>
-        <p className="mt-1 text-xs leading-5 text-text-secondary">{school.recommendation}. Nhóm học sinh có tín hiệu phù hợp với {school.tier.toLowerCase()} và đang tạo ra {school.applications} hồ sơ xét tuyển.</p>
+        <p className="mt-1 text-xs leading-5 text-text-secondary">{school.recommendation}. Trường đang tạo ra {school.applications} hồ sơ xét tuyển.</p>
         <div className="mt-3 flex items-start gap-2 rounded-lg bg-card-background/75 p-2.5">
           <ArrowRight size={14} className="mt-0.5 shrink-0 text-primary-500" aria-hidden="true" />
           <div>

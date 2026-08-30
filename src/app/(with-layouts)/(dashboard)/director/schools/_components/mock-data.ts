@@ -1,12 +1,16 @@
 import type {
+  ActivityGroupLabel,
   SchoolClassification,
+  SchoolContact,
   SchoolDirectoryRecord,
   SchoolIntelligenceData,
   SchoolRelationshipLevel,
-  StudentSignal,
   TrendPoint,
 } from "@/services/api/schools/types";
+import { classifySchool } from "@/services/api/schools/classification";
 import { getSchoolPotentialScore } from "@/services/api/schools/school-directory";
+
+import { getSchoolLocalityContext } from "./school-locality-data";
 
 function hash(value: string) {
   return [...value].reduce((total, character) => (total * 31 + character.charCodeAt(0)) % 100_000, 17);
@@ -27,6 +31,7 @@ function makeTrend(seed: number, labels: string[]): TrendPoint[] {
 
 export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIntelligenceData {
   const seed = hash(`${school.provinceCode}-${school.schoolCode}`);
+  const localityContext = getSchoolLocalityContext(school);
   const sixMonthTrend = makeTrend(seed, ["T9", "T10", "T11", "T12", "T1", "T2"]);
   const annualTrend = makeTrend(seed + 31, ["2023", "2024", "2025", "2026"]);
   const finalPoint = sixMonthTrend.at(-1)!;
@@ -35,7 +40,6 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
   const applications = finalPoint.applications;
   const enrollment = finalPoint.enrollment;
   const applicationChange = -18 + (seed % 34);
-  const engagementScore = 76 + (seed % 20);
   const availableStudents = Math.round(grade12Students * (0.28 + (seed % 9) / 100));
   const relationshipLevels: SchoolRelationshipLevel[] = [
     "Chưa tiếp xúc",
@@ -47,30 +51,23 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
   const relationshipIndex = seed % relationshipLevels.length;
   const relationshipScore = [16, 36, 58, 78, 94][relationshipIndex];
   const relationshipLevel = relationshipLevels[relationshipIndex];
-  const classification: SchoolClassification =
-    potentialScore >= 85 && relationshipScore >= 60
-      ? "Trọng điểm"
-      : potentialScore >= 85
-        ? "Mở rộng"
-        : relationshipScore >= 60
-          ? "Duy trì"
-          : "Sàng lọc";
+  const classification = classifySchool(potentialScore, relationshipScore);
   const classificationCopy: Record<SchoolClassification, { label: string; action: string }> = {
     "Trọng điểm": {
       label: "Tiềm năng cao · Quan hệ tốt",
-      action: "Duy trì hợp tác thường xuyên và mở rộng hoạt động theo mùa.",
+      action: "Giữ quan hệ và mở rộng hợp tác bằng hoạt động, học bổng và thỏa thuận dài hạn.",
     },
     "Mở rộng": {
       label: "Tiềm năng cao · Quan hệ còn mỏng",
-      action: "Ưu tiên mở đầu mối và thử một hoạt động chi phí thấp.",
+      action: "Tạo đầu mối và thử một hoạt động nhỏ để bắt đầu hợp tác.",
     },
     "Duy trì": {
       label: "Tiềm năng vừa · Quan hệ tốt",
-      action: "Giữ nhịp tối thiểu, gom hoạt động theo cụm để tối ưu nguồn lực.",
+      action: "Giữ liên hệ đều và gom hoạt động theo khu vực để tiết kiệm chi phí.",
     },
     "Sàng lọc": {
       label: "Tiềm năng vừa · Quan hệ còn mỏng",
-      action: "Rà soát sau mùa tuyển sinh trước khi đầu tư thêm nguồn lực.",
+      action: "Theo dõi nhu cầu của trường trước khi đầu tư thêm.",
     },
   };
   const unavailableStudents = grade12Students - availableStudents;
@@ -83,35 +80,95 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
     ...item,
     share: Math.round((item.students / grade12Students) * 100),
   }));
-  const choiceShares = [41, 21, 15, 13, 10];
+  const choiceShares = [34, 18, 15, 13, 12, 8];
   const choiceLabels = [
     "Đại học công lập địa phương",
-    "Đại học lớn ngoài địa bàn",
-    "Đại học tư thục",
-    "Cao đẳng / giáo dục nghề nghiệp",
-    "Đi làm hoặc hướng khác",
+    "Đại học lớn tại đô thị trung tâm",
+    "Đại học tư thục khác",
+    "Cao đẳng và trường nghề",
+    "Không học tiếp",
+    "Du học",
   ];
   const postGraduationChoices = choiceLabels.map((label, index) => ({
     label,
     share: choiceShares[index],
     students: Math.round((grade12Students * choiceShares[index]) / 100),
   }));
-  const academicDistribution = {
-    p25: 6.3 + (seed % 7) / 10,
-    p50: 7.1 + (seed % 6) / 10,
-    p75: 7.8 + (seed % 5) / 10,
+  const academicGap = {
+    examScore: 19.4 + (seed % 12) / 10,
+    reportCard: 21.8 + (seed % 15) / 10,
   };
   const competitionContext = {
     leadingChoice: postGraduationChoices[0].label,
     lostReason: ["Muốn học gần nhà", "Học phí phù hợp hơn", "Khoảng cách đến campus"][seed % 3],
     externalPresence: ["Có 2 đơn vị hoạt động thường xuyên", "Có 1 đơn vị hoạt động theo mùa", "Chưa ghi nhận đơn vị ngoài trường"][seed % 3],
   };
-  const geography = {
-    cluster: ["Cụm đô thị dày", "Cụm trung tâm huyện cũ", "Cụm nông thôn phân tán"][seed % 3],
-    travelTime: ["45 phút", "1 giờ 40 phút", "2 giờ 35 phút"][seed % 3],
-    distanceTier: (["Dưới 1 giờ", "1–3 giờ", "Trên 3 giờ"] as const)[seed % 3],
-    competitionDensity: (["Thấp", "Trung bình", "Cao"] as const)[(seed + 1) % 3],
+  const clusterIndex = seed % 3;
+  const geography = localityContext.isLongAn
+    ? {
+        cluster: localityContext.regionLabel,
+        clusterMeaning: "Long An là vùng vệ tinh phía Tây TP.HCM, phù hợp các hoạt động có hỗ trợ di chuyển và tư vấn cùng phụ huynh.",
+        travelTime: localityContext.travelTime,
+        distanceTier: "1–3 giờ" as const,
+        competitionDensity: "Cao" as const,
+      }
+    : {
+        cluster: ["Nhiều trường gần nhau", "Khu trung tâm cũ", "Trường xa campus"][clusterIndex],
+        clusterMeaning: [
+          "Nhiều trường gần nhau, phù hợp tổ chức sự kiện chung để chia sẻ chi phí",
+          "Các trường quanh khu trung tâm cũ, phù hợp gom lịch tư vấn và hoạt động chung",
+          "Trường đơn lẻ, chi phí tiếp cận cao mỗi lượt — nên gộp vào lịch trình dài ngày hoặc chuyển sang hình thức trực tuyến",
+        ][clusterIndex],
+        travelTime: localityContext.travelTime,
+        distanceTier: (localityContext.distanceKm < 60 ? "Dưới 1 giờ" : localityContext.distanceKm < 180 ? "1–3 giờ" : "Trên 3 giờ") as "Dưới 1 giờ" | "1–3 giờ" | "Trên 3 giờ",
+        competitionDensity: (["Thấp", "Trung bình", "Cao"] as const)[(seed + 1) % 3],
+      };
+
+  const demographics = {
+    occupationProfile: ["Công chức, viên chức", "Kinh doanh tự do, tiểu thương", "Nông nghiệp, lao động phổ thông"][seed % 3],
+    relativeIncome: (["Cao", "Trung bình", "Thấp"] as const)[clusterIndex],
+    tuitionAffordability: relationshipScore >= 60 ? "Có thể chi trả học phí đầy đủ, ít cần học bổng" : "Cần học bổng hoặc phương án trả góp để thuyết phục",
+    awayFromHomeRate: localityContext.isLongAn ? "34% học sinh nhập học ngoài tỉnh các mùa trước" : `${18 + (seed % 22)}% học sinh nhập học ngoài tỉnh các mùa trước`,
+    parentInvolvement: (["Cao", "Trung bình", "Thấp"] as const)[(seed + 2) % 3],
   };
+
+  const subjectMix = (() => {
+    const naturalScienceShare = 38 + (seed % 40);
+    const socialScienceShare = 100 - naturalScienceShare - 8;
+    const recommendedMajorGroup =
+      naturalScienceShare >= 60
+        ? "Công nghệ và kỹ thuật"
+        : socialScienceShare >= 45
+          ? "Ngôn ngữ, truyền thông, quản trị"
+          : "Đa ngành, ưu tiên hoạt động hướng nghiệp rộng";
+    return { naturalScienceShare, socialScienceShare, recommendedMajorGroup };
+  })();
+
+  const earlyForecast = {
+    grade10CutoffScore: 32 + (seed % 12),
+    priorCohortResult: `Khoá trước: ${availableStudents - 10 + (seed % 20)} học sinh khả dụng, ${relationshipScore >= 60 ? "kết quả ổn định" : "biến động nhẹ"} qua các mùa`,
+    grade11SubjectSignal: `${subjectMix.naturalScienceShare >= 55 ? "Khối 11 tiếp tục nghiêng khoa học tự nhiên" : "Khối 11 có xu hướng cân bằng hơn khối 12"}`,
+  };
+
+  const activityBaseline: { label: ActivityGroupLabel; audience: string; conversionRate: number; costPerActivity: number }[] = [
+    { label: "Cuộc thi học thuật", audience: "Khối 10, 11", conversionRate: 31, costPerActivity: 42 },
+    { label: "Ngày hội hướng nghiệp", audience: "Khối 11, 12", conversionRate: 18, costPerActivity: 28 },
+    { label: "Tư vấn tại lớp", audience: "Khối 12", conversionRate: 14, costPerActivity: 12 },
+    { label: "Tham quan cơ sở", audience: "Học sinh và phụ huynh", conversionRate: 27, costPerActivity: 55 },
+    { label: "Tập huấn giáo viên", audience: "GV hướng nghiệp", conversionRate: 6, costPerActivity: 18 },
+    { label: "Hoạt động trực tuyến", audience: "Học sinh vùng xa", conversionRate: 9, costPerActivity: 5 },
+  ];
+  const recommendedByGroup: Record<SchoolClassification, ActivityGroupLabel[]> = {
+    "Trọng điểm": ["Cuộc thi học thuật", "Ngày hội hướng nghiệp", "Tư vấn tại lớp", "Tham quan cơ sở"],
+    "Mở rộng": ["Tập huấn giáo viên", "Ngày hội hướng nghiệp"],
+    "Duy trì": ["Ngày hội hướng nghiệp", "Hoạt động trực tuyến"],
+    "Sàng lọc": ["Hoạt động trực tuyến"],
+  };
+  const activityStats = activityBaseline.map((item, index) => ({
+    ...item,
+    conversionRate: Math.max(3, item.conversionRate + (((seed + index * 7) % 9) - 4)),
+    recommended: recommendedByGroup[classification].includes(item.label),
+  }));
   const quadrantPeers = Array.from({ length: 9 }, (_, index) => {
     const peerSeed = hash(`${school.schoolCode}-${index}`);
     return {
@@ -133,19 +190,44 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
     enrollment,
     isCurrent: true,
   };
-  const potentialFactors = [
-    { label: "Quy mô lớp 12", value: 74 + (seed % 21), description: "Dung lượng học sinh đủ lớn để mở rộng tệp tiếp cận." },
-    { label: "Lịch sử nhập học", value: 66 + (seed % 25), description: "Kết quả các mùa trước cho thấy khả năng tạo hồ sơ ổn định." },
-    { label: "Hồ sơ học lực", value: 70 + (seed % 22), description: "Tỷ trọng học sinh khá giỏi phù hợp nhóm ngành công nghệ." },
-    { label: "Mức độ phù hợp chương trình", value: 78 + (seed % 18), description: "Nhu cầu AI, kinh doanh và truyền thông đang tăng." },
-    { label: "Khoảng cách địa lý", value: 58 + (seed % 31), description: "Cần phối hợp sự kiện tại trường để rút ngắn điểm chạm." },
-  ];
-  const studentSignals: StudentSignal[] = [
-    { id: "nguyen-minh-an", name: "Nguyễn Minh An", major: "Trí tuệ nhân tạo", stage: "Đã tư vấn", probability: 86, signalType: "hot", owner: "Trần Quốc Bảo", lastInteraction: "Hôm qua · Zalo", concern: "Học phí & học bổng" },
-    { id: "tran-ngoc-bao-chau", name: "Trần Ngọc Bảo Châu", major: "Kỹ thuật phần mềm", stage: "Đã xem học phí", probability: 78, signalType: "highIntent", owner: "Lê Minh Trang", lastInteraction: "2 ngày trước · Website", concern: "Lộ trình nghề nghiệp" },
-    { id: "le-gia-huy", name: "Lê Gia Huy", major: "Kinh doanh quốc tế", stage: "Đang ứng tuyển", probability: 82, signalType: "applying", owner: "Nguyễn Hoàng", lastInteraction: "Hôm nay · Hồ sơ", concern: "Tiến độ hồ sơ" },
-    { id: "pham-khanh-linh", name: "Phạm Khánh Linh", major: "Thiết kế đồ họa", stage: "Mới quan tâm", probability: 65, signalType: "highIntent", owner: "Trần Quốc Bảo", lastInteraction: "4 ngày trước · Career Talk", concern: "Chưa xác định ngành" },
-    { id: "nguyen-hoang-nam", name: "Nguyễn Hoàng Nam", major: "Digital Marketing", stage: "Cần gọi lại", probability: 59, signalType: "noActivity", owner: "Lê Minh Trang", lastInteraction: "21 ngày trước · Chưa có tương tác mới", concern: "Gia đình cần thêm thông tin" },
+
+  const hasPrimaryContact = relationshipIndex >= 2;
+  const contacts: SchoolContact[] = [
+    {
+      role: "Ban giám hiệu",
+      hasContact: hasPrimaryContact,
+      name: hasPrimaryContact ? "Nguyễn Văn Minh" : undefined,
+      lastTouch: hasPrimaryContact ? "15/05/2026 · Thăm trường" : undefined,
+      note: hasPrimaryContact ? "Phó hiệu trưởng · đầu mối phê duyệt hoạt động" : "Chưa có kênh làm việc chính thức",
+    },
+    {
+      role: "GVCN khối 12",
+      hasContact: relationshipIndex >= 1,
+      name: relationshipIndex >= 1 ? "Trần Thị Hạnh" : undefined,
+      lastTouch: relationshipIndex >= 1 ? "28/05/2026 · Zalo" : undefined,
+      note: "Người giới thiệu tự nhiên nhất tới học sinh",
+    },
+    {
+      role: "GV phụ trách hướng nghiệp",
+      hasContact: relationshipIndex >= 2,
+      name: relationshipIndex >= 2 ? "Lê Quang Huy" : undefined,
+      lastTouch: relationshipIndex >= 2 ? "20/05/2026 · Email" : undefined,
+      note: "Phối hợp nội dung, cung cấp tài liệu hướng nghiệp",
+    },
+    {
+      role: "Đoàn trường",
+      hasContact: relationshipIndex >= 3,
+      name: relationshipIndex >= 3 ? "Phạm Thu Trang" : undefined,
+      lastTouch: relationshipIndex >= 3 ? "10/05/2026 · Gặp trực tiếp" : undefined,
+      note: "Đồng tổ chức hoạt động ngoại khoá cho khối 10, 11",
+    },
+    {
+      role: "Cựu học sinh đang học",
+      hasContact: relationshipIndex >= 3,
+      name: relationshipIndex >= 3 ? "Đỗ Gia Bảo · K15" : undefined,
+      lastTouch: relationshipIndex >= 3 ? "05/05/2026 · Về trường cũ" : undefined,
+      note: "Hiệu quả cao, chi phí thấp nhất — dễ bị bỏ quên",
+    },
   ];
 
   return {
@@ -162,60 +244,34 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
       enrollment: 4 + (seed % 13),
     },
     performance: { "6m": sixMonthTrend, year: annualTrend },
-    potentialFactors,
-    engagementHealth: {
-      score: engagementScore,
-      status: engagementScore >= 88 ? "Khỏe" : engagementScore >= 75 ? "Theo dõi" : "Cần kích hoạt",
-      factors: [
-        { label: "Tương tác tư vấn", value: 79 + (seed % 18) },
-        { label: "Tương tác học sinh", value: 72 + (seed % 22) },
-        { label: "Tương tác phụ huynh", value: 64 + (seed % 27) },
-        { label: "Tham gia sự kiện", value: 70 + (seed % 23) },
-        { label: "Hoạt động hồ sơ", value: 58 + (seed % 31) },
-      ],
-    },
     geography,
+    demographics,
+    subjectMix,
+    earlyForecast,
+    activityStats,
     relationship: {
       level: relationshipLevel,
       score: relationshipScore,
-      contact: relationshipIndex >= 2 ? "Nguyễn Văn Minh" : "Chưa có đầu mối chính",
-      contactRole: relationshipIndex >= 2 ? "Phó hiệu trưởng · Người phụ trách phối hợp" : "Cần xác định người phụ trách",
+      contact: hasPrimaryContact ? "Nguyễn Văn Minh" : "Chưa có đầu mối chính",
+      contactRole: hasPrimaryContact ? "Phó hiệu trưởng · Người phụ trách phối hợp" : "Cần xác định người phụ trách",
       lastTouch: relationshipIndex >= 1 ? "15/05/2026 · Thăm trường" : "Chưa ghi nhận điểm chạm",
       nextTouch: relationshipIndex >= 2 ? "12/06/2026 · Career Talk" : "Đặt lịch giới thiệu trong 30 ngày",
       source: "Ghi nhận đội ngũ địa bàn · 15/05/2026",
     },
-    classification: { group: classification, ...classificationCopy[classification] },
+    classification: { group: classification, isKeyAccount: classification === "Trọng điểm", ...classificationCopy[classification] },
     quadrantPeers,
     scoreBands,
-    academicDistribution,
+    academicGap,
     postGraduationChoices,
     competitionContext,
-    dataFreshness: "Cập nhật 15/05/2026 · 3 nguồn dữ liệu",
-    demographics: {
-      gender: [
-        { label: "Nữ", value: 54 + (seed % 9), color: "var(--primary-500)" },
-        { label: "Nam", value: 37 + (seed % 9), color: "var(--primary-200)" },
-      ],
-      academicProfile: [
-        { label: "Giỏi (8.0–10)", value: 43 + (seed % 18) },
-        { label: "Khá (6.5–7.9)", value: 31 + (seed % 12) },
-        { label: "Trung bình (5.0–6.4)", value: 8 + (seed % 9) },
-      ],
-      majorInterests: [
-        { label: "Kinh doanh quốc tế", value: 24 + (seed % 9), change: 8 },
-        { label: "Công nghệ thông tin", value: 20 + (seed % 8), change: 5 },
-        { label: "Truyền thông đa phương tiện", value: 13 + (seed % 7), change: -2 },
-      ],
+    dataFreshness: "Cập nhật 15/05/2026 · 4 nguồn dữ liệu",
+    dataSources: {
+      directory: "Danh mục ngành giáo dục · hồ sơ trường & địa chỉ",
+      examScore: "Phổ điểm tốt nghiệp do Bộ công bố, đối chiếu thống kê của Sở",
+      reportCard: "Dữ liệu hồ sơ nội bộ các mùa trước",
+      relationship: "Ghi nhận đội ngũ địa bàn · 15/05/2026",
     },
-    insight: {
-      summary: `Trường có tiềm năng ${potentialScore >= 85 ? "cao" : "tốt"}; nhóm học sinh quan tâm tăng ổn định, nhưng cần chuyển đổi sớm trước mốc nộp hồ sơ.`,
-      recommendation: "Tổ chức Career Talk + Parent Session",
-      evidence: [
-        `Học sinh quan tâm tăng ${6 + (seed % 16)}% so với kỳ trước.`,
-        `Hồ sơ ứng tuyển ${applicationChange < 0 ? "giảm" : "tăng"} ${Math.abs(applicationChange)}% so với cùng kỳ.`,
-        "Chưa ghi nhận hoạt động tư vấn trực tiếp trong 45 ngày gần đây.",
-      ],
-    },
+    contacts,
     activities: [
       {
         id: "activity-1",
@@ -228,16 +284,16 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
       },
       {
         id: "activity-2",
-        type: "Counselling",
+        type: "Tư vấn",
         title: "Gửi danh sách học sinh cần tư vấn 1:1",
         date: "28/05/2026 · 09:30",
-        owner: "Huy L. · Admissions",
+        owner: "Huy L. · Phụ trách tuyển sinh",
         status: "completed",
         outcome: "Đã nhận danh sách học sinh quan tâm",
       },
       {
         id: "activity-3",
-        type: "School visit",
+        type: "Thăm trường",
         title: "Thăm trường & cập nhật đầu mối tư vấn",
         date: "15/05/2026 · 10:00",
         owner: "Trang N. · Phụ trách tuyển sinh",
@@ -245,6 +301,5 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
         outcome: "Đã xác nhận đầu mối phòng công tác học sinh",
       },
     ],
-    studentSignals,
   };
 }

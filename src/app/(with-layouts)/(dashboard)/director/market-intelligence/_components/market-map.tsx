@@ -252,7 +252,7 @@ export default function MarketMap({
           </span>
         </div>
 
-        <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-[11px] font-semibold text-badge-primary-text">Bản đồ Potential</span>
+        <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-[11px] font-semibold text-badge-primary-text">Xếp theo tiềm năng</span>
       </div>
 
       {/* ========================================================================= */}
@@ -358,9 +358,10 @@ export default function MarketMap({
       {/* ========================================================================= */}
       <div className="relative flex flex-1 min-h-0 items-center justify-center overflow-hidden rounded-xl bg-background-gray-primary/40 p-1">
         <div className="pointer-events-none absolute top-2.5 right-2.5 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-x-3 gap-y-1 rounded-lg bg-card-background/90 px-2.5 py-1.5 text-[10px] shadow-xs backdrop-blur-md">
-          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2 rounded-full bg-success-500" aria-hidden="true" />Điểm nóng</span>
-          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2 rounded-full bg-primary-500" aria-hidden="true" />Đang khai thác</span>
-          <span className="text-text-tertiary">Chọn điểm để xem trường</span>
+          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2.5 animate-pulse rounded-full bg-success-500" aria-hidden="true" />Trọng điểm</span>
+          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2 rounded-full bg-primary-500" aria-hidden="true" />Mở rộng</span>
+          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-1.5 rounded-full bg-warning-500" aria-hidden="true" />Duy trì</span>
+          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-1 rounded-full bg-text-tertiary" aria-hidden="true" />Sàng lọc</span>
         </div>
 
         {/* Quick Zoom Buttons (Top-Left) */}

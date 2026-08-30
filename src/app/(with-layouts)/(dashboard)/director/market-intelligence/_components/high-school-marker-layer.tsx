@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { getGeometryCenter } from "./map-geometry";
-import type { ProvinceFeatureCollection, ProvinceMetrics, RegionKey } from "./types";
+import type { HighSchoolItem, ProvinceFeatureCollection, ProvinceMetrics, RegionKey } from "./types";
 
 interface HighSchoolMarkerLayerProps {
   activeRegion: RegionKey;
@@ -31,11 +31,12 @@ const MARKER_OFFSETS: Array<[number, number]> = [
   [0, 8],
 ];
 
-function getPotentialColor(score: number) {
-  if (score >= 88) return "var(--success-500)";
-  if (score >= 78) return "var(--primary-500)";
-  return "var(--warning-500)";
-}
+const CLASSIFICATION_STYLE: Record<HighSchoolItem["classification"], { color: string; baseRadius: number; coreRadius: number; pulse: boolean }> = {
+  "Trọng điểm": { color: "var(--success-500)", baseRadius: 9, coreRadius: 5.5, pulse: true },
+  "Mở rộng": { color: "var(--primary-500)", baseRadius: 7, coreRadius: 4, pulse: false },
+  "Duy trì": { color: "var(--warning-500)", baseRadius: 5.5, coreRadius: 3, pulse: false },
+  "Sàng lọc": { color: "var(--text-tertiary)", baseRadius: 4.5, coreRadius: 2.25, pulse: false },
+};
 
 export default function HighSchoolMarkerLayer({
   activeRegion,
@@ -87,11 +88,14 @@ export default function HighSchoolMarkerLayer({
         const isSelected = selectedSchoolId === school.id;
         const isHovered = hoveredSchoolId === school.id;
         const isInSelectedProvince = selectedProvinceCode === provinceCode;
-        const markerColor = getPotentialColor(school.potentialScore);
+        const style = CLASSIFICATION_STYLE[school.classification];
+        const emphasis = isSelected || isHovered ? 1.35 : isInSelectedProvince ? 1.15 : 1;
+        const haloRadius = style.baseRadius * emphasis;
+        const coreRadius = style.coreRadius * emphasis;
 
         return (
           <g
-            aria-label={`${school.name}, ${provinceName}: ${school.potentialScore} điểm tiềm năng`}
+            aria-label={`${school.name}, ${provinceName}: nhóm ${school.classification}, ${school.potentialScore} điểm tiềm năng`}
             className="cursor-pointer outline-none focus:outline-none"
             key={school.id}
             onBlur={() => setHoveredSchoolId(null)}
@@ -111,23 +115,28 @@ export default function HighSchoolMarkerLayer({
             role="button"
             tabIndex={0}
           >
-            <title>{school.name} · Potential {school.potentialScore}/100</title>
+            <title>{school.name} · {school.classification} · {school.potentialScore}/100</title>
+            {style.pulse && (
+              <circle cx={markerX} cy={markerY} fill={style.color} fillOpacity={0.3} r={haloRadius}>
+                <animate attributeName="r" values={`${haloRadius};${haloRadius * 1.8};${haloRadius}`} dur="2.4s" repeatCount="indefinite" />
+                <animate attributeName="fill-opacity" values="0.3;0;0.3" dur="2.4s" repeatCount="indefinite" />
+              </circle>
+            )}
             <circle
               cx={markerX}
               cy={markerY}
-              fill={markerColor}
+              fill={style.color}
               fillOpacity={isSelected || isHovered ? 0.24 : 0.14}
-              r={isSelected || isHovered ? 10 : isInSelectedProvince ? 7 : 5}
+              r={haloRadius}
             />
             <circle
               cx={markerX}
               cy={markerY}
-              fill={markerColor}
-              r={isSelected || isHovered ? 4.5 : isInSelectedProvince ? 3.5 : 2.75}
+              fill={style.color}
+              r={coreRadius}
               stroke="var(--card-background)"
               strokeWidth={isSelected ? 2 : 1.5}
             />
-
           </g>
         );
       })}

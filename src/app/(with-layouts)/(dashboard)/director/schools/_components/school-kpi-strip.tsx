@@ -1,35 +1,42 @@
 import { FileText, Target3, User2, UserMultiple4 } from "@tailgrids/icons";
 
-import type { SchoolIntelligenceData } from "@/services/api/schools/types";
+import type { SchoolClassification, SchoolIntelligenceData } from "@/services/api/schools/types";
 
 interface SchoolKpiStripProps {
   data: SchoolIntelligenceData;
 }
 
 const items = [
-  { key: "potential", label: "Tiềm năng trường", icon: Target3, tone: "text-primary-500", surface: "bg-badge-primary-background" },
-  { key: "available", label: "Học sinh khả dụng", icon: UserMultiple4, tone: "text-success-500", surface: "bg-badge-success-background" },
-  { key: "relationship", label: "Quan hệ hiện tại", icon: User2, tone: "text-badge-cyan-text", surface: "bg-badge-cyan-background" },
-  { key: "enrollment", label: "Nhập học kỳ gần nhất", icon: FileText, tone: "text-warning-500", surface: "bg-badge-warning-background" },
+  { key: "potential", label: "Mức độ ưu tiên", icon: Target3, tone: "text-primary-500", surface: "bg-badge-primary-background" },
+  { key: "available", label: "Học sinh có thể tiếp cận", icon: UserMultiple4, tone: "text-success-500", surface: "bg-badge-success-background" },
+  { key: "relationship", label: "Mức độ hợp tác", icon: User2, tone: "text-badge-cyan-text", surface: "bg-badge-cyan-background" },
+  { key: "enrollment", label: "Kết quả tuyển sinh", icon: FileText, tone: "text-warning-500", surface: "bg-badge-warning-background" },
 ] as const;
+
+const priorityNotes: Record<SchoolClassification, string> = {
+  "Trọng điểm": "Ưu tiên chăm sóc sâu",
+  "Mở rộng": "Ưu tiên mở quan hệ",
+  "Duy trì": "Giữ nhịp chăm sóc",
+  "Sàng lọc": "Theo dõi trước khi đầu tư",
+};
 
 export default function SchoolKpiStrip({ data }: SchoolKpiStripProps) {
   const values: Record<(typeof items)[number]["key"], { value: string; note: string }> = {
     potential: {
       value: data.potentialScore + "/100",
-      note: data.classification.label,
+      note: priorityNotes[data.classification.group],
     },
     available: {
       value: data.availableStudents.toLocaleString("vi-VN"),
-      note: Math.round((data.availableStudents / data.grade12Students) * 100) + "% trên " + data.grade12Students.toLocaleString("vi-VN") + " học sinh lớp 12",
+      note: Math.round((data.availableStudents / data.grade12Students) * 100) + "% số học sinh lớp 12",
     },
     relationship: {
       value: data.relationship.level,
-      note: data.relationship.score + "/100 · " + data.geography.cluster,
+      note: "Điểm hợp tác: " + data.relationship.score + "/100",
     },
     enrollment: {
-      value: data.enrollment.toLocaleString("vi-VN"),
-      note: ((data.enrollment / data.availableStudents) * 100).toFixed(1) + "% trên học sinh khả dụng",
+      value: ((data.enrollment / data.availableStudents) * 100).toFixed(1) + "%",
+      note: data.enrollment.toLocaleString("vi-VN") + " / " + data.availableStudents.toLocaleString("vi-VN") + " HS có thể tiếp cận",
     },
   };
 

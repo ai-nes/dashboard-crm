@@ -20,7 +20,7 @@ export interface TrendPoint {
 
 export interface SchoolActivity {
   id: string;
-  type: "School visit" | "Career Talk" | "Workshop" | "Parent session" | "Counselling";
+  type: "Thăm trường" | "Career Talk" | "Hội thảo" | "Gặp phụ huynh" | "Tư vấn";
   title: string;
   date: string;
   owner: string;
@@ -28,22 +28,40 @@ export interface SchoolActivity {
   outcome?: string;
 }
 
-export interface StudentSignal {
-  id: string;
-  name: string;
-  major: string;
-  stage: string;
-  probability: number;
-  signalType: "hot" | "highIntent" | "noActivity" | "applying";
-  owner: string;
-  lastInteraction: string;
-  concern: string;
+export type ActivityGroupLabel =
+  | "Cuộc thi học thuật"
+  | "Ngày hội hướng nghiệp"
+  | "Tư vấn tại lớp"
+  | "Tham quan cơ sở"
+  | "Tập huấn giáo viên"
+  | "Hoạt động trực tuyến";
+
+export interface SchoolActivityStat {
+  label: ActivityGroupLabel;
+  audience: string;
+  conversionRate: number;
+  costPerActivity: number;
+  recommended: boolean;
 }
 
-export interface SchoolEngagementHealth {
-  score: number;
-  status: "Khỏe" | "Theo dõi" | "Cần kích hoạt";
-  factors: { label: string; value: number }[];
+export interface SchoolDemographics {
+  occupationProfile: string;
+  relativeIncome: "Thấp" | "Trung bình" | "Cao";
+  tuitionAffordability: string;
+  awayFromHomeRate: string;
+  parentInvolvement: "Thấp" | "Trung bình" | "Cao";
+}
+
+export interface SchoolSubjectMix {
+  naturalScienceShare: number;
+  socialScienceShare: number;
+  recommendedMajorGroup: string;
+}
+
+export interface SchoolEarlyForecast {
+  grade10CutoffScore: number;
+  priorCohortResult: string;
+  grade11SubjectSignal: string;
 }
 
 export type SchoolRelationshipLevel =
@@ -58,6 +76,21 @@ export type SchoolClassification =
   | "Mở rộng"
   | "Duy trì"
   | "Sàng lọc";
+
+export type SchoolContactRole =
+  | "Ban giám hiệu"
+  | "GVCN khối 12"
+  | "GV phụ trách hướng nghiệp"
+  | "Đoàn trường"
+  | "Cựu học sinh đang học";
+
+export interface SchoolContact {
+  role: SchoolContactRole;
+  hasContact: boolean;
+  name?: string;
+  lastTouch?: string;
+  note: string;
+}
 
 export interface SchoolQuadrantPoint {
   id: string;
@@ -96,14 +129,17 @@ export interface SchoolIntelligenceData {
     enrollment: number;
   };
   performance: Record<"6m" | "year", TrendPoint[]>;
-  potentialFactors: { label: string; value: number; description: string }[];
-  engagementHealth: SchoolEngagementHealth;
   geography: {
     cluster: string;
+    clusterMeaning: string;
     travelTime: string;
     distanceTier: "Dưới 1 giờ" | "1–3 giờ" | "Trên 3 giờ";
     competitionDensity: "Thấp" | "Trung bình" | "Cao";
   };
+  demographics: SchoolDemographics;
+  subjectMix: SchoolSubjectMix;
+  earlyForecast: SchoolEarlyForecast;
+  activityStats: SchoolActivityStat[];
   relationship: {
     level: SchoolRelationshipLevel;
     score: number;
@@ -115,15 +151,15 @@ export interface SchoolIntelligenceData {
   };
   classification: {
     group: SchoolClassification;
+    isKeyAccount: boolean;
     label: string;
     action: string;
   };
   quadrantPeers: SchoolQuadrantPoint[];
   scoreBands: SchoolScoreBand[];
-  academicDistribution: {
-    p25: number;
-    p50: number;
-    p75: number;
+  academicGap: {
+    reportCard: number;
+    examScore: number;
   };
   postGraduationChoices: SchoolChoiceBreakdown[];
   competitionContext: {
@@ -132,18 +168,14 @@ export interface SchoolIntelligenceData {
     externalPresence: string;
   };
   dataFreshness: string;
-  demographics: {
-    gender: { label: string; value: number; color: string }[];
-    academicProfile: { label: string; value: number }[];
-    majorInterests: { label: string; value: number; change: number }[];
+  dataSources: {
+    directory: string;
+    examScore: string;
+    reportCard: string;
+    relationship: string;
   };
-  insight: {
-    summary: string;
-    recommendation: string;
-    evidence: string[];
-  };
+  contacts: SchoolContact[];
   activities: SchoolActivity[];
-  studentSignals: StudentSignal[];
 }
 
 export type SchoolRegion = "Miền Bắc" | "Miền Trung" | "Miền Nam";

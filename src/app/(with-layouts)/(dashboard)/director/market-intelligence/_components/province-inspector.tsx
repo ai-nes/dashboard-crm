@@ -21,11 +21,11 @@ interface ProvinceInspectorProps {
   selectedSchoolId: string | null;
 }
 
-const statusConfig: Record<HighSchoolItem["status"], { color: "success" | "primary" | "warning" | "error"; label: string }> = {
-  "high-yield": { color: "success", label: "Ưu tiên" },
-  active: { color: "primary", label: "Đang chạy" },
-  untapped: { color: "warning", label: "Dư địa" },
-  "needs-attention": { color: "error", label: "Cần chú ý" },
+const classificationConfig: Record<HighSchoolItem["classification"], { color: "success" | "primary" | "warning" | "gray"; label: string }> = {
+  "Trọng điểm": { color: "success", label: "Trọng điểm" },
+  "Mở rộng": { color: "primary", label: "Mở rộng" },
+  "Duy trì": { color: "warning", label: "Duy trì" },
+  "Sàng lọc": { color: "gray", label: "Sàng lọc" },
 };
 
 export default function ProvinceInspector({ onSelectSchool, province, selectedSchoolId }: ProvinceInspectorProps) {
@@ -84,7 +84,7 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
 
           <div className="mt-3 space-y-2">
             {schools.map((school, index) => {
-              const status = statusConfig[school.status];
+              const status = classificationConfig[school.classification];
               const isSelected = selectedSchool?.id === school.id;
 
               return (

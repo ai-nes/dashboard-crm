@@ -1,92 +1,129 @@
 "use client";
 
-import { CheckCircle1, Target3 } from "@tailgrids/icons";
-import { CartesianGrid, ReferenceLine, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from "recharts";
+import { Target3 } from "@tailgrids/icons";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Tooltip, XAxis, YAxis } from "recharts";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
-import type { SchoolIntelligenceData, SchoolQuadrantPoint } from "@/services/api/schools/types";
+import type { SchoolClassification, SchoolIntelligenceData } from "@/services/api/schools/types";
+
+import { POTENTIAL_THRESHOLD, RELATIONSHIP_THRESHOLD } from "@/services/api/schools/classification";
 
 interface SchoolPotentialBreakdownProps {
   data: SchoolIntelligenceData;
 }
 
-const QUADRANT_META = [
-  { label: "Mở rộng", hint: "Tiềm năng cao · quan hệ còn mỏng", className: "bg-badge-primary-background text-badge-primary-text" },
-  { label: "Trọng điểm", hint: "Tiềm năng cao · quan hệ tốt", className: "bg-badge-success-background text-badge-success-text" },
-  { label: "Sàng lọc", hint: "Tiềm năng vừa · quan hệ còn mỏng", className: "bg-badge-neutral-background text-badge-neutral-text" },
-  { label: "Duy trì", hint: "Tiềm năng vừa · quan hệ tốt", className: "bg-badge-warning-background text-badge-warning-text" },
-];
+interface ScoreComparison {
+  label: string;
+  current: number;
+  target: number;
+  color: string;
+}
+
+const groupBadge: Record<SchoolClassification, "success" | "primary" | "warning" | "gray"> = {
+  "Trọng điểm": "success",
+  "Mở rộng": "primary",
+  "Duy trì": "warning",
+  "Sàng lọc": "gray",
+};
+
+const groupLabel: Record<SchoolClassification, string> = {
+  "Trọng điểm": "Trọng điểm",
+  "Mở rộng": "Mở rộng",
+  "Duy trì": "Duy trì",
+  "Sàng lọc": "Theo dõi",
+};
 
 export default function SchoolPotentialBreakdown({ data }: SchoolPotentialBreakdownProps) {
-  const current = data.quadrantPeers.find((point) => point.isCurrent);
-  const peers = data.quadrantPeers.filter((point) => !point.isCurrent);
+  const scores: ScoreComparison[] = [
+    { label: "Tiềm năng tuyển sinh", current: data.potentialScore, target: POTENTIAL_THRESHOLD, color: "var(--primary-500)" },
+    { label: "Quan hệ với trường", current: data.relationship.score, target: RELATIONSHIP_THRESHOLD, color: "var(--success-500)" },
+  ];
+  const availableShare = Math.round((data.availableStudents / data.grade12Students) * 100);
 
   return (
-    <Card className="min-w-0 overflow-hidden p-0">
-      <CardHeader className="border-b border-card-border p-5 pb-4 lg:p-6 lg:pb-4">
+    <Card className="flex h-full min-w-0 flex-col overflow-hidden p-0">
+      <CardHeader className="shrink-0 border-b border-card-border p-5 pb-4 lg:p-6 lg:pb-4">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-badge-primary-background text-badge-primary-text" aria-hidden="true"><Target3 size={18} /></span>
           <div className="min-w-0">
-            <CardTitle>Bản đồ cơ hội trường</CardTitle>
-            <p className="mt-1 text-xs leading-5 text-text-tertiary">Đặt trường vào tương quan các trường trong cùng cụm địa bàn.</p>
+            <CardTitle>Mức độ ưu tiên của trường</CardTitle>
+            <p className="mt-1 text-xs text-text-tertiary">So sánh điểm hiện tại với mốc cần đạt</p>
           </div>
         </div>
-        <Badge color="primary">Tiềm năng × quan hệ</Badge>
+        <Badge color={groupBadge[data.classification.group]}>{groupLabel[data.classification.group]}</Badge>
       </CardHeader>
 
-      <div className="p-5 lg:p-6">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-text-tertiary">
-          <span>Trục dọc: tiềm năng</span>
-          <span>Trục ngang: quan hệ · kích thước: nhập học</span>
+      <div className="flex min-h-0 flex-1 flex-col p-5 lg:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-text-primary">Điểm hiện tại và mốc cần đạt</p>
+            <p className="mt-1 text-xs text-text-tertiary">Thang điểm 100</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-3 text-[11px] text-text-tertiary">
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-primary-500" aria-hidden="true" />Hiện tại</span>
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-background-soft-300" aria-hidden="true" />Mốc cần đạt</span>
+          </div>
         </div>
 
-        <div className="relative h-72 min-h-72 w-full sm:h-80 sm:min-h-80">
-          <div className="pointer-events-none absolute inset-2 grid grid-cols-2 grid-rows-2 overflow-hidden rounded-xl text-[10px] font-medium sm:inset-3 sm:text-xs">
-            <div className="flex items-start rounded-tl-xl bg-badge-primary-background/35 p-2 text-badge-primary-text">Mở rộng</div>
-            <div className="flex items-start justify-end rounded-tr-xl bg-badge-success-background/35 p-2 text-badge-success-text">Trọng điểm</div>
-            <div className="flex items-end rounded-bl-xl bg-badge-neutral-background/35 p-2 text-text-tertiary">Sàng lọc</div>
-            <div className="flex items-end justify-end rounded-br-xl bg-badge-warning-background/35 p-2 text-badge-warning-text">Duy trì</div>
-          </div>
+        <div className="mt-4 min-h-64 w-full flex-1">
           <ChartContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-            <ScatterChart margin={{ top: 10, right: 10, bottom: 12, left: -10 }}>
-              <CartesianGrid stroke="var(--border-color-base-100)" strokeDasharray="4 4" />
-              <XAxis dataKey="relationship" type="number" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(value) => String(value)} label={{ value: "Quan hệ", position: "insideBottom", offset: -8, fill: "var(--text-tertiary)", fontSize: 11 }} />
-              <YAxis dataKey="potential" type="number" domain={[55, 100]} ticks={[60, 70, 80, 90, 100]} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(value) => String(value)} />
-              <ZAxis dataKey="availableStudents" range={[100, 560]} />
-              <ReferenceLine x={58} stroke="var(--text-tertiary)" strokeDasharray="4 4" />
-              <ReferenceLine y={82} stroke="var(--text-tertiary)" strokeDasharray="4 4" />
-              <Tooltip cursor={false} content={<QuadrantTooltip />} />
-              <Scatter name="Trường trong cụm" data={peers} fill="var(--primary-300)" fillOpacity={0.8} />
-              {current && <Scatter name="Trường đang xem" data={[current]} fill="var(--primary-500)" stroke="var(--card-background)" strokeWidth={3} />}
-            </ScatterChart>
+            <BarChart data={scores} layout="vertical" margin={{ top: 4, right: 36, bottom: 4, left: 4 }} barCategoryGap={18}>
+              <CartesianGrid horizontal={false} stroke="var(--border-color-base-100)" />
+              <XAxis type="number" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
+              <YAxis type="category" dataKey="label" width={128} axisLine={false} tickLine={false} tick={{ fill: "var(--text-secondary)", fontSize: 11 }} />
+              <Tooltip cursor={{ fill: "var(--background-soft-50)" }} content={<ScoreComparisonTooltip />} />
+              <Bar dataKey="current" name="Hiện tại" barSize={12} radius={[0, 5, 5, 0]}>
+                {scores.map((score) => <Cell key={score.label} fill={score.color} />)}
+                <LabelList dataKey="current" position="right" fill="var(--text-secondary)" fontSize={11} formatter={(value) => String(value)} />
+              </Bar>
+              <Bar dataKey="target" name="Mốc cần đạt" fill="var(--background-soft-300)" barSize={12} radius={[0, 5, 5, 0]}>
+                <LabelList dataKey="target" position="right" fill="var(--text-tertiary)" fontSize={11} formatter={(value) => String(value)} />
+              </Bar>
+            </BarChart>
           </ChartContainer>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          {QUADRANT_META.map((item) => <div key={item.label} className={"rounded-lg px-3 py-2 " + item.className}><p className="text-xs font-semibold">{item.label}</p><p className="mt-0.5 text-[11px] opacity-80">{item.hint}</p></div>)}
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          {scores.map((score) => <GapItem key={score.label} score={score} />)}
         </div>
 
-        <p className="mt-4 flex items-start gap-1.5 border-t border-card-border pt-4 text-xs leading-5 text-text-secondary">
-          <CheckCircle1 size={14} className="mt-0.5 shrink-0 text-success-500" />
-          Trường đang xem: <strong className="font-semibold text-text-primary">{data.classification.group}</strong> · đường chia là trung vị cụm · {data.availableStudents.toLocaleString("vi-VN")} học sinh khả dụng làm mẫu số ưu tiên.
-        </p>
+        <div className="mt-5 grid grid-cols-2 gap-4 border-t border-card-border pt-4">
+          <SummaryItem label="HS phù hợp để tư vấn" value={data.availableStudents.toLocaleString("vi-VN") + " HS"} />
+          <SummaryItem label="Tỷ lệ trong khối 12" value={availableShare + "%"} tone="text-success-500" />
+        </div>
       </div>
     </Card>
   );
 }
 
-function QuadrantTooltip({ active, payload }: { active?: boolean; payload?: { payload?: SchoolQuadrantPoint }[] }) {
+function GapItem({ score }: { score: ScoreComparison }) {
+  const gap = score.current - score.target;
+  const reachedTarget = gap >= 0;
+
+  return (
+    <div className="rounded-xl bg-background-soft-50 px-3 py-2.5">
+      <p className="truncate text-xs text-text-tertiary" title={score.label}>{score.label}</p>
+      <p className={`mt-1 text-lg font-semibold ${reachedTarget ? "text-success-500" : "text-warning-500"}`}>{gap > 0 ? "+" : ""}{gap} điểm</p>
+      <p className="mt-0.5 text-[11px] text-text-secondary">{reachedTarget ? "Đã đạt mốc" : "Cần cải thiện"}</p>
+    </div>
+  );
+}
+
+function ScoreComparisonTooltip({ active, payload }: { active?: boolean; payload?: { payload?: ScoreComparison }[] }) {
   const item = payload?.[0]?.payload;
   if (!active || !item) return null;
 
   return (
     <div className="rounded-xl border border-card-border bg-card-background p-3 text-xs shadow-theme-md">
-      <p className="max-w-48 font-semibold text-text-primary">{item.name}</p>
-      <p className="mt-2 text-text-secondary">Tiềm năng: <strong className="text-text-primary">{item.potential}/100</strong></p>
-      <p className="mt-1 text-text-secondary">Quan hệ: <strong className="text-text-primary">{item.relationship}/100</strong></p>
-      <p className="mt-1 text-text-secondary">Khả dụng: <strong className="text-text-primary">{item.availableStudents.toLocaleString("vi-VN")}</strong></p>
+      <p className="font-semibold text-text-primary">{item.label}</p>
+      <p className="mt-1 text-text-secondary">Hiện tại: <strong className="text-text-primary">{item.current}/100</strong></p>
+      <p className="mt-1 text-text-secondary">Mốc cần đạt: <strong className="text-text-primary">{item.target}/100</strong></p>
     </div>
   );
+}
+
+function SummaryItem({ label, value, tone = "text-text-primary" }: { label: string; value: string; tone?: string }) {
+  return <div className="min-w-0"><p className="text-xs text-text-tertiary">{label}</p><p className={`mt-1 text-lg font-semibold ${tone}`}>{value}</p></div>;
 }
