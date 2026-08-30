@@ -14,7 +14,7 @@ interface AiSchoolInsightProps {
 
 export default function AiSchoolInsight({ data }: AiSchoolInsightProps) {
   return (
-    <Card className="flex h-full min-w-0 flex-col border-violet-200/70 bg-badge-violet-background/20 p-5">
+    <Card className="flex min-w-0 flex-col border-violet-200/70 bg-badge-violet-background/20 p-5">
       <CardHeader className="mb-4">
         <div className="flex items-center gap-2">
           <span
@@ -23,7 +23,7 @@ export default function AiSchoolInsight({ data }: AiSchoolInsightProps) {
           >
             <Bolt1 size={17} />
           </span>
-          <CardTitle>AI School Insight</CardTitle>
+          <CardTitle>Phân tích AI cho trường</CardTitle>
         </div>
         <Badge color="success">Ưu tiên cao</Badge>
       </CardHeader>

@@ -2,6 +2,17 @@ export type StudentJourneyStage = "Quan tâm" | "Tìm hiểu" | "Tư vấn" | "�
 
 export type StudentPriority = "Cao" | "Trung bình" | "Thấp";
 
+export type StudentClassificationTone = "primary" | "success" | "warning" | "sky" | "gray";
+
+export interface StudentClassificationDimension {
+  id: "journey" | "interest" | "fit" | "barrier";
+  label: string;
+  value: string;
+  description: string;
+  evidence: string[];
+  tone: StudentClassificationTone;
+}
+
 export interface StudentListItem {
   id: string;
   initials: string;
@@ -46,6 +57,44 @@ export interface Student360Data {
   profile: { label: string; value: string }[];
   academics: { label: string; value: string }[];
   family: { label: string; value: string; emphasis?: boolean }[];
+  classification: {
+    dimensions: StudentClassificationDimension[];
+    combination: string;
+    interpretation: string;
+    action: string;
+    updatedAt: string;
+    updateTrigger: string;
+    reviewStatus: "Đã xác nhận" | "Chờ xác nhận";
+    reviewedBy: string;
+  };
+  acquisition: {
+    firstTouch: string;
+    sourceGroup: "Trực tuyến chủ động" | "Trực tuyến qua quảng cáo" | "Thực địa" | "Giới thiệu";
+    campaign: string;
+    capturedAt: string;
+    attributionModel: string;
+    consent: string;
+  };
+  segmentation: {
+    learningStage: string;
+    approachGoal: string;
+    geographyTier: string;
+    geographyImplication: string;
+    schoolTier: string;
+    economicContext: string;
+    economicUsage: string;
+  };
+  parentProfile: {
+    name: string;
+    relation: string;
+    involvement: "Cao" | "Trung bình" | "Thấp" | "Chưa xác định";
+    role: string;
+    concerns: string[];
+    preferredChannel: string;
+    bestContactTime: string;
+    consentStatus: string;
+    lastInteraction: string;
+  };
   insight: {
     summary: string;
     probability: number;

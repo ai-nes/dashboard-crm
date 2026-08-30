@@ -33,9 +33,16 @@ export interface StudentSignal {
   major: string;
   stage: string;
   probability: number;
+  signalType: "hot" | "highIntent" | "noActivity" | "applying";
   owner: string;
   lastInteraction: string;
   concern: string;
+}
+
+export interface SchoolEngagementHealth {
+  score: number;
+  status: "Khỏe" | "Theo dõi" | "Cần kích hoạt";
+  factors: { label: string; value: number }[];
 }
 
 export interface SchoolIntelligenceData {
@@ -52,6 +59,7 @@ export interface SchoolIntelligenceData {
   };
   performance: Record<"6m" | "year", TrendPoint[]>;
   potentialFactors: { label: string; value: number; description: string }[];
+  engagementHealth: SchoolEngagementHealth;
   demographics: {
     gender: { label: string; value: number; color: string }[];
     academicProfile: { label: string; value: number }[];

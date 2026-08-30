@@ -10,12 +10,12 @@ interface ActivityTimelineProps {
 
 export default function ActivityTimeline({ data }: ActivityTimelineProps) {
   return (
-    <Card className="h-full min-w-0 border-success-200/60 p-5">
+    <Card className="min-w-0 border-success-200/60 p-5">
       <CardHeader className="mb-5">
         <div>
-          <CardTitle>Hoạt động gần đây</CardTitle>
+          <CardTitle>Dòng thời gian hoạt động</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Lịch sử tương tác và hành động sắp tới tại trường.
+            Lịch sử tương tác và hành động tiếp theo tại trường.
           </p>
         </div>
       </CardHeader>

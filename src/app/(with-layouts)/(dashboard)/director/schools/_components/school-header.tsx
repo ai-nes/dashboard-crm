@@ -55,7 +55,7 @@ export default function SchoolHeader({ data }: SchoolHeaderProps) {
           <div className="flex shrink-0 items-center gap-4 rounded-lg bg-background-soft-50 p-4 lg:min-w-52">
             <div>
               <p className="text-xs font-medium text-text-secondary">
-                Potential Score
+                Điểm tiềm năng
               </p>
               <p className="mt-1 text-3xl leading-none font-semibold text-text-primary">
                 {potentialScore}

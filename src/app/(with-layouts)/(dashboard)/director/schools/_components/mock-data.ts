@@ -28,6 +28,7 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
   const applications = finalPoint.applications;
   const enrollment = finalPoint.enrollment;
   const applicationChange = -18 + (seed % 34);
+  const engagementScore = 76 + (seed % 20);
   const potentialFactors = [
     { label: "Quy mô lớp 12", value: 74 + (seed % 21), description: "Dung lượng học sinh đủ lớn để mở rộng tệp tiếp cận." },
     { label: "Lịch sử nhập học", value: 66 + (seed % 25), description: "Kết quả các mùa trước cho thấy khả năng tạo hồ sơ ổn định." },
@@ -36,10 +37,11 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
     { label: "Khoảng cách địa lý", value: 58 + (seed % 31), description: "Cần phối hợp sự kiện tại trường để rút ngắn điểm chạm." },
   ];
   const studentSignals: StudentSignal[] = [
-    { id: "student-1", name: "Nguyễn M. A.", major: "Trí tuệ nhân tạo", stage: "Đã tư vấn", probability: 86, owner: "Trần Quốc Bảo", lastInteraction: "Hôm qua · Zalo", concern: "Học phí & học bổng" },
-    { id: "student-2", name: "Trần H. N.", major: "Kỹ thuật phần mềm", stage: "Đã xem học phí", probability: 78, owner: "Lê Minh Trang", lastInteraction: "2 ngày trước · Website", concern: "Lộ trình nghề nghiệp" },
-    { id: "student-3", name: "Lê T. P.", major: "Digital Marketing", stage: "Mới quan tâm", probability: 65, owner: "Nguyễn Hoàng", lastInteraction: "4 ngày trước · Career Talk", concern: "Chưa xác định ngành" },
-    { id: "student-4", name: "Phạm K. L.", major: "Thiết kế đồ họa", stage: "Cần gọi lại", probability: 59, owner: "Trần Quốc Bảo", lastInteraction: "7 ngày trước · Cuộc gọi", concern: "Gia đình cần thêm thông tin" },
+    { id: "nguyen-minh-an", name: "Nguyễn Minh An", major: "Trí tuệ nhân tạo", stage: "Đã tư vấn", probability: 86, signalType: "hot", owner: "Trần Quốc Bảo", lastInteraction: "Hôm qua · Zalo", concern: "Học phí & học bổng" },
+    { id: "tran-ngoc-bao-chau", name: "Trần Ngọc Bảo Châu", major: "Kỹ thuật phần mềm", stage: "Đã xem học phí", probability: 78, signalType: "highIntent", owner: "Lê Minh Trang", lastInteraction: "2 ngày trước · Website", concern: "Lộ trình nghề nghiệp" },
+    { id: "le-gia-huy", name: "Lê Gia Huy", major: "Kinh doanh quốc tế", stage: "Đang ứng tuyển", probability: 82, signalType: "applying", owner: "Nguyễn Hoàng", lastInteraction: "Hôm nay · Hồ sơ", concern: "Tiến độ hồ sơ" },
+    { id: "pham-khanh-linh", name: "Phạm Khánh Linh", major: "Thiết kế đồ họa", stage: "Mới quan tâm", probability: 65, signalType: "highIntent", owner: "Trần Quốc Bảo", lastInteraction: "4 ngày trước · Career Talk", concern: "Chưa xác định ngành" },
+    { id: "nguyen-hoang-nam", name: "Nguyễn Hoàng Nam", major: "Digital Marketing", stage: "Cần gọi lại", probability: 59, signalType: "noActivity", owner: "Lê Minh Trang", lastInteraction: "21 ngày trước · Chưa có tương tác mới", concern: "Gia đình cần thêm thông tin" },
   ];
 
   return {
@@ -56,6 +58,17 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
     },
     performance: { "6m": sixMonthTrend, year: annualTrend },
     potentialFactors,
+    engagementHealth: {
+      score: engagementScore,
+      status: engagementScore >= 88 ? "Khỏe" : engagementScore >= 75 ? "Theo dõi" : "Cần kích hoạt",
+      factors: [
+        { label: "Tương tác tư vấn", value: 79 + (seed % 18) },
+        { label: "Tương tác học sinh", value: 72 + (seed % 22) },
+        { label: "Tương tác phụ huynh", value: 64 + (seed % 27) },
+        { label: "Tham gia sự kiện", value: 70 + (seed % 23) },
+        { label: "Hoạt động hồ sơ", value: 58 + (seed % 31) },
+      ],
+    },
     demographics: {
       gender: [
         { label: "Nữ", value: 54 + (seed % 9), color: "var(--primary-500)" },
@@ -76,8 +89,8 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
       summary: `Trường có tiềm năng ${potentialScore >= 85 ? "cao" : "tốt"}; nhóm học sinh quan tâm tăng ổn định, nhưng cần chuyển đổi sớm trước mốc nộp hồ sơ.`,
       recommendation: "Tổ chức Career Talk + Parent Session",
       evidence: [
-        `Prospects tăng ${6 + (seed % 16)}% so với kỳ trước.`,
-        `Application ${applicationChange < 0 ? "giảm" : "tăng"} ${Math.abs(applicationChange)}% so với cùng kỳ.`,
+        `Học sinh quan tâm tăng ${6 + (seed % 16)}% so với kỳ trước.`,
+        `Hồ sơ ứng tuyển ${applicationChange < 0 ? "giảm" : "tăng"} ${Math.abs(applicationChange)}% so với cùng kỳ.`,
         "Chưa ghi nhận hoạt động tư vấn trực tiếp trong 45 ngày gần đây.",
       ],
     },
@@ -87,7 +100,7 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
         type: "Career Talk",
         title: "Career Talk: Chọn ngành trong kỷ nguyên AI",
         date: "Dự kiến 12/06/2026 · 14:00",
-        owner: "Minh Trang · Promoter phụ trách",
+        owner: "Minh Trang · Phụ trách tuyển sinh",
         status: "scheduled",
       },
       {
@@ -101,9 +114,9 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
       {
         id: "activity-3",
         type: "School visit",
-        title: "School visit & cập nhật đầu mối tư vấn",
+        title: "Thăm trường & cập nhật đầu mối tư vấn",
         date: "15/05/2026 · 10:00",
-        owner: "Trang N. · Promoter phụ trách",
+        owner: "Trang N. · Phụ trách tuyển sinh",
         status: "completed",
       },
     ],
