@@ -53,7 +53,7 @@ import {
   getPortfolioPerformanceData,
   getWatchlistData,
 } from "@/services/api/stocks";
-import { getStudent360 } from "@/services/api/students";
+import { computeDirectorStudents, getStudent360 } from "@/services/api/students";
 import { studentListData } from "@/services/api/students/data";
 import { getSchoolById, getSchoolReport, getSchoolDirectory, searchSchools } from "@/services/api/schools/school-directory";
 
@@ -182,10 +182,27 @@ async function getStudentResponse(request: NextRequest, resource: string[]) {
   const query = normalizeSearchValue(request.nextUrl.searchParams.get("q")?.trim() ?? "");
 
   if (!identifier) {
-    return json({
-      data: studentListData,
-      meta: { total: studentListData.length },
-    });
+    const admissionYear = numberParam(request, "admissionYear", 2026, 3000);
+    const page = numberParam(request, "page", 1, 10000);
+    const pageSize = numberParam(request, "pageSize", 20, 100);
+    const q = request.nextUrl.searchParams.get("q") ?? undefined;
+    const stage = request.nextUrl.searchParams.get("stage") ?? undefined;
+    const province = request.nextUrl.searchParams.get("province") ?? undefined;
+    const sort = request.nextUrl.searchParams.get("sort") ?? undefined;
+    const order = (request.nextUrl.searchParams.get("order") as "asc" | "desc") ?? undefined;
+
+    return json(
+      computeDirectorStudents({
+        admissionYear,
+        page,
+        pageSize,
+        q,
+        stage,
+        province,
+        sort,
+        order,
+      }),
+    );
   }
 
   if (identifier === "suggestions") {

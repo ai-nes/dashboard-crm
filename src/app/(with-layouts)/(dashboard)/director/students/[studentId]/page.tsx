@@ -11,8 +11,7 @@ export const metadata: Metadata = {
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ studentId: string }> }) {
   const { studentId } = await params;
-  const data = await getStudent360(studentId);
-  if (!data) notFound();
+  const data = await getStudent360(studentId).catch(() => null);
 
-  return <Student360Dashboard data={data} />;
+  return <Student360Dashboard studentId={studentId} initialData={data} />;
 }

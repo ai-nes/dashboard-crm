@@ -26,9 +26,9 @@ export default function StudentDecisionScore({ data }: StudentDecisionScoreProps
       <div className="mt-5 grid min-w-0 gap-0 lg:flex-1 lg:grid-cols-[11rem_minmax(0,1fr)] lg:items-stretch">
         <div className="flex flex-col items-center justify-center text-center lg:border-r lg:border-card-border lg:pr-6">
           <p className="text-[10px] font-semibold tracking-[0.14em] text-text-tertiary uppercase">Mức độ ưu tiên</p>
-          <p className="mt-2 text-4xl leading-none font-semibold tracking-[-1px] text-primary-500">{signalScore}<span className="text-lg font-medium text-text-tertiary">/100</span></p>
+          <p className="mt-2 text-4xl leading-none font-semibold tracking-[-1px] text-primary-500">{signalScore != null ? signalScore : "-"}<span className="text-lg font-medium text-text-tertiary">/100</span></p>
           <p className="mt-2 text-xs text-text-tertiary">Điểm càng cao càng nên chăm sóc sớm</p>
-          <p className={`mt-3 text-xs font-semibold ${(data.insight.scoreDelta ?? 0) >= 0 ? "text-success-500" : "text-error-500"}`}>{(data.insight.scoreDelta ?? 0) >= 0 ? "+" : ""}{data.insight.scoreDelta ?? 0} gần nhất</p>
+          <p className={`mt-3 text-xs font-semibold ${(data.insight.scoreDelta ?? 0) >= 0 ? "text-success-500" : "text-error-500"}`}>{data.insight.scoreDelta != null ? `${data.insight.scoreDelta >= 0 ? "+" : ""}${data.insight.scoreDelta} gần nhất` : "-"}</p>
         </div>
 
         <div className="min-w-0 lg:flex lg:flex-col lg:pl-6">
