@@ -4,6 +4,12 @@ export type StudentPriority = "Cao" | "Trung bình" | "Thấp";
 
 export type StudentClassificationTone = "primary" | "success" | "warning" | "sky" | "gray";
 
+export interface StudentFitFactor {
+  label: "Ngành" | "Phương thức xét tuyển" | "Chi phí" | "Địa lý";
+  value: string;
+  tone: StudentClassificationTone;
+}
+
 export interface StudentClassificationDimension {
   id: "journey" | "interest" | "fit" | "barrier";
   label: string;
@@ -11,6 +17,7 @@ export interface StudentClassificationDimension {
   description: string;
   evidence: string[];
   tone: StudentClassificationTone;
+  fitFactors?: StudentFitFactor[];
 }
 
 export interface StudentListItem {

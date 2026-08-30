@@ -17,7 +17,7 @@ export default function ParentProfileCard({ data }: Student360SectionProps) {
         <Badge color={involvementTone[parent.involvement]}>Tham gia {parent.involvement.toLowerCase()}</Badge>
       </CardHeader>
 
-      <div className="flex items-start gap-3 rounded-xl bg-background-gray-primary p-4">
+      <div className="flex items-start gap-3 rounded-xl border border-primary-200 bg-badge-primary-background p-4">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-badge-primary-text" aria-hidden="true"><UserMultiple1 size={18} /></span>
         <div className="min-w-0"><p className="text-sm font-semibold text-text-primary">{parent.name} · {parent.relation}</p><p className="mt-1 text-xs leading-5 text-text-secondary">{parent.role}</p></div>
       </div>

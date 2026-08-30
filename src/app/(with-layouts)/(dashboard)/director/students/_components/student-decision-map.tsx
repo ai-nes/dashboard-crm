@@ -34,7 +34,7 @@ export default function StudentDecisionMap({ data }: Student360SectionProps) {
   const priorityZone = interestScore >= 70 && fit?.value === "Phù hợp cao";
 
   return (
-    <Card className="flex h-full min-w-0 flex-col bg-background-gray-primary p-4">
+    <Card className="flex h-full min-w-0 flex-col bg-card-background p-4">
       <CardHeader className="items-start">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -63,7 +63,7 @@ export default function StudentDecisionMap({ data }: Student360SectionProps) {
           <div className="absolute top-0 right-0 h-1/2 w-1/2 bg-badge-success-background" />
           <div className="absolute top-0 left-0 h-1/2 w-1/2 bg-badge-sky-background" />
           <div className="absolute right-0 bottom-0 h-1/2 w-1/2 bg-badge-warning-background" />
-          <div className="absolute bottom-0 left-0 h-1/2 w-1/2 bg-background-gray-primary" />
+          <div className="absolute bottom-0 left-0 h-1/2 w-1/2 bg-card-background" />
 
           <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-card-border" aria-hidden="true" />
           <div className="absolute inset-y-0 left-1/2 border-l border-dashed border-card-border" aria-hidden="true" />

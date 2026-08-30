@@ -16,7 +16,7 @@ export default function StudentHeader({ data }: Student360SectionProps) {
 
   return (
     <header className="overflow-hidden rounded-2xl border border-card-border bg-card-background">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-card-border bg-background-gray-primary px-5 py-3 lg:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-card-border bg-card-background px-5 py-3 lg:px-6">
         <Link href="/director/students" className="inline-flex items-center gap-1.5 text-sm font-medium text-text-secondary outline-none hover:text-primary-500 focus-visible:ring-4 focus-visible:ring-button-outline-focus-ring"><ArrowLeft size={16} />Danh sách học sinh</Link>
         <div className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-success-500" aria-hidden="true" /><span className="text-xs text-text-tertiary">Cập nhật 4 phút trước</span><Badge color="primary">Hồ sơ mô phỏng</Badge></div>
       </div>
@@ -64,6 +64,6 @@ export default function StudentHeader({ data }: Student360SectionProps) {
 }
 
 function HeaderFact({ label, value, tone }: { label: string; value: string; tone: "neutral" | "warning" | "primary" }) {
-  const toneClass = tone === "warning" ? "border-warning-500/30 bg-badge-warning-background" : tone === "primary" ? "border-primary-200 bg-badge-primary-background" : "border-card-border bg-background-soft-50";
+  const toneClass = tone === "warning" ? "border-warning-500/30 bg-badge-warning-background" : tone === "primary" ? "border-primary-200 bg-badge-primary-background" : "border-card-border bg-card-background";
   return <div className={`min-w-0 rounded-xl border p-3 ${toneClass}`}><p className="text-[11px] text-text-tertiary">{label}</p><p className="mt-1 truncate text-sm font-semibold text-text-primary" title={value}>{value}</p></div>;
 }
