@@ -8,7 +8,6 @@ import {
   PieChartIcon,
   TaskIcon,
   TableIcon,
-  UserIcon,
   UserGroupIcon,
   Widget4Icon,
   WindowIcon,
@@ -64,12 +63,6 @@ export const NAV_DATA: NavigationSection[] = [
         title: "Phễu tuyển sinh",
         url: "/director/admission-funnel",
         icon: <TableIcon />,
-        items: [],
-      },
-      {
-        title: "Quản lý cơ hội bán hàng",
-        url: "/director/sales-pipeline",
-        icon: <UserIcon />,
         items: [],
       },
       {

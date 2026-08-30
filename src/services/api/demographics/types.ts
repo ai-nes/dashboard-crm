@@ -41,6 +41,7 @@ export interface DemandSummaryItem {
   label: string;
   value: number;
   change: number | null;
+}
 
 export interface DemandOverview {
   trend: DemandTrendPoint[];
@@ -198,4 +199,3 @@ export interface DirectorDemographicsSegmentResponse {
   data: DirectorDemographicsSegmentData;
   meta: DirectorDemographicsSegmentMeta;
 }
-

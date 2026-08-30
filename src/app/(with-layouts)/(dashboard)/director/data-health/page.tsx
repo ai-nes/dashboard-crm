@@ -24,7 +24,7 @@ export default function DataHealthPage() {
           title: "Trạng thái nguồn dữ liệu",
           description: "Tình trạng đồng bộ và phạm vi màn hình bị ảnh hưởng.",
           items: [
-            { label: "CRM / Lead", detail: "Đồng bộ 2 phút trước · dùng cho M-05, M-06, M-08, M-14", value: "Khỏe", tone: "success" },
+            { label: "CRM / Lead", detail: "Đồng bộ 2 phút trước · dùng cho M-05, M-08, M-14", value: "Khỏe", tone: "success" },
             { label: "Hoạt động thực địa", detail: "Đồng bộ 11 giờ trước · dùng cho M-11, M-01, M-12", value: "Trễ", tone: "warning" },
             { label: "Model & Knowledge", detail: "Đồng bộ 1 ngày trước · dùng cho M-07, M-08, M-14, M-16", value: "Cần xem", tone: "error" },
           ],
