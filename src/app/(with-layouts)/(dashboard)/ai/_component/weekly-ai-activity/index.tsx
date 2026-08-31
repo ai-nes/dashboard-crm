@@ -72,7 +72,7 @@ export default function WeeklyAiActivity() {
               <Bar
                 dataKey="requests"
                 name="Requests"
-                fill="#5750F1"
+                fill="#F37021"
                 radius={[6, 6, 0, 0]}
                 maxBarSize={36}
               />

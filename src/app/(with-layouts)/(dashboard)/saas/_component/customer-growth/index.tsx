@@ -51,7 +51,7 @@ export default function CustomerGrowth({ granularity }: CustomerGrowthProps) {
                 cursor={{ fill: "var(--color-background-gray-secondary_alt)" }}
                 content={CustomerGrowthTooltip}
               />
-              <Bar dataKey="newSubscribers" name="New Subscribers" fill="#5750F1" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="newSubscribers" name="New Subscribers" fill="#F37021" radius={[4, 4, 0, 0]} />
               <Bar
                 dataKey="churnedSubscribers"
                 name="Churned Subscribers"

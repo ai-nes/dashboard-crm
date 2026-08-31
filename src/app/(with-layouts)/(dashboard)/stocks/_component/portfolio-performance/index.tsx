@@ -44,8 +44,8 @@ export default function PortfolioPerformance() {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
               <defs>
                 <linearGradient id="portfolio-background" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset={"5%"} stopColor="#3758F9" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#3758F9" stopOpacity={0} />
+                  <stop offset={"5%"} stopColor="#F37021" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#F37021" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis
@@ -68,11 +68,11 @@ export default function PortfolioPerformance() {
                 type="monotone"
                 dataKey="portfolio"
                 name="Portfolio"
-                stroke="#5750F1"
+                stroke="#F37021"
                 strokeWidth={2}
                 fill="url(#portfolio-background)"
                 dot={false}
-                activeDot={{ r: 4, fill: "#5750F1", stroke: "#fff", strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: "#F37021", stroke: "#fff", strokeWidth: 2 }}
               />
               <Area
                 type="monotone"
