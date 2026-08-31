@@ -1,5 +1,4 @@
 export * from "./use-media-query";
-export * from "./use-auth-queries";
 export * from "./use-ai-queries";
 export * from "./use-analytics-queries";
 export * from "./use-campaign-intelligence-queries";
