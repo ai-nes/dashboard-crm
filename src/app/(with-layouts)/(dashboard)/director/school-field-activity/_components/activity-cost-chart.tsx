@@ -4,12 +4,11 @@ import { Bar, BarChart, CartesianGrid, LabelList, Tooltip, XAxis, YAxis } from "
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
+import type { CompletedFieldActivity } from "@/services/api/director-school-field-activity";
 
-import { fieldActivities } from "./data";
-
-const chartData = [...fieldActivities]
-  .sort((first, second) => first.costPerEnrollment - second.costPerEnrollment)
-  .map((activity) => ({ name: activity.shortName, cost: activity.costPerEnrollment }));
+interface ActivityCostChartProps {
+  activities: CompletedFieldActivity[];
+}
 
 function CostTooltip({ active, label, payload }: { active?: boolean; label?: string; payload?: Array<{ value?: number }> }) {
   if (!active || !payload?.length) return null;
@@ -22,7 +21,15 @@ function CostTooltip({ active, label, payload }: { active?: boolean; label?: str
   );
 }
 
-export default function ActivityCostChart() {
+export default function ActivityCostChart({ activities }: ActivityCostChartProps) {
+  const chartData = activities
+    .map((activity) => ({
+      name: activity.shortName,
+      cost: toMillionVnd(activity.costPerEnrollment.amount, activity.costPerEnrollment.unit),
+    }))
+    .filter((activity): activity is { name: string; cost: number } => activity.cost !== null)
+    .sort((first, second) => first.cost - second.cost);
+
   return (
     <Card className="min-w-0 p-5">
       <CardHeader className="mb-4 items-start">
@@ -50,4 +57,11 @@ export default function ActivityCostChart() {
       </div>
     </Card>
   );
+}
+
+function toMillionVnd(amount: number | null, unit: CompletedFieldActivity["costPerEnrollment"]["unit"]): number | null {
+  if (amount === null) return null;
+  if (unit === "vnd") return amount / 1_000_000;
+  if (unit === "thousand_vnd") return amount / 1_000;
+  return amount;
 }

@@ -1,9 +1,17 @@
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import type { DeviceSyncOverview, FieldDataQuality } from "@/services/api/director-school-field-activity";
 
 import DeviceSyncStatus from "./device-sync-status";
 import FieldTeamDataQuality from "./field-team-data-quality";
 
-export default function FieldDataOverview() {
+interface FieldDataOverviewProps {
+  dataQuality: FieldDataQuality;
+  deviceSync: DeviceSyncOverview | null;
+}
+
+export default function FieldDataOverview({ dataQuality, deviceSync }: FieldDataOverviewProps) {
+  const unsyncedRecords = deviceSync?.totalUnsyncedRecords ?? dataQuality.unsyncedRecords;
+
   return (
     <Card className="min-w-0 p-5">
       <CardHeader className="mb-5 items-start">
@@ -11,12 +19,12 @@ export default function FieldDataOverview() {
           <CardTitle>Chất lượng dữ liệu hoạt động</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Kiểm tra dữ liệu trước khi dùng để đánh giá hiệu quả.</p>
         </div>
-        <span className="text-xs font-medium text-warning-500">184 hồ sơ cần kiểm tra</span>
+        <span className="text-xs font-medium text-warning-500">{unsyncedRecords.toLocaleString("vi-VN")} hồ sơ cần kiểm tra</span>
       </CardHeader>
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-2">
-        <FieldTeamDataQuality />
-        <DeviceSyncStatus />
+        <FieldTeamDataQuality data={dataQuality} />
+        <DeviceSyncStatus data={deviceSync} />
       </div>
     </Card>
   );

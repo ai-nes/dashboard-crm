@@ -7,15 +7,22 @@ import { toast } from "sonner";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
+import type { FieldActivityMeta } from "@/services/api/director-school-field-activity";
 
-export default function SchoolFieldActivityHeader() {
+interface SchoolFieldActivityHeaderProps {
+  meta: FieldActivityMeta;
+}
+
+export default function SchoolFieldActivityHeader({ meta }: SchoolFieldActivityHeaderProps) {
+  const statusLabel = meta.status === "available" ? "Dữ liệu CRM" : meta.status === "partial" ? "Dữ liệu một phần" : "Chưa có dữ liệu";
+
   return (
     <header>
       <Card className="flex flex-col gap-5 p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge color="primary">M-11 · Hoạt động thực địa</Badge>
-            <span className="text-xs text-text-tertiary">Dữ liệu mô phỏng · Kỳ tuyển sinh 2026</span>
+            <span className="text-xs text-text-tertiary">{statusLabel} · Kỳ tuyển sinh {meta.admissionYear}</span>
           </div>
           <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
             Hoạt động trường & thực địa
