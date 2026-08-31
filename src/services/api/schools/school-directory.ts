@@ -51,6 +51,10 @@ function isHighSchool(name: string) {
   return name.toLocaleUpperCase("vi-VN").includes("THPT");
 }
 
+function canonicalSchoolCode(value: string) {
+  return value.trim().padStart(3, "0");
+}
+
 async function loadDirectory() {
   const file = await readFile(DIRECTORY_FILE, "utf8");
   return file
@@ -60,12 +64,12 @@ async function loadDirectory() {
     .map(parseCsvRow)
     .filter((row) => row.length >= 10 && row[5] && row[6] && isHighSchool(row[6]))
     .map<SchoolDirectoryRecord>((row) => ({
-      id: `${row[1]}-${row[3]}-${row[5]}`,
+      id: `${row[1]}-${row[3]}-${canonicalSchoolCode(row[5])}`,
       provinceCode: row[1],
       province: row[2],
       districtCode: row[3],
       district: row[4],
-      schoolCode: row[5],
+      schoolCode: canonicalSchoolCode(row[5]),
       name: row[6],
       address: row[7],
       area: row[8],

@@ -23,7 +23,13 @@ const groupTone: Record<SchoolClassification, { badge: "success" | "primary" | "
 
 export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
   const { classification, relationship, geography } = data;
-  const locality = getSchoolLocalityContext(data.school);
+  const locality = getSchoolLocalityContext(
+    data.school,
+    data.locality?.latitude !== null && data.locality?.latitude !== undefined && data.locality?.longitude !== null && data.locality?.longitude !== undefined
+      ? [data.locality.latitude, data.locality.longitude]
+      : undefined,
+    data.locality,
+  );
   const tone = groupTone[classification.group];
   const hasContact = Boolean(relationship.contact && !["-", "Chưa có đầu mối chính"].includes(relationship.contact));
   const availableStudents = data.availableStudents > 0 ? `${data.availableStudents.toLocaleString("vi-VN")} HS` : "-";

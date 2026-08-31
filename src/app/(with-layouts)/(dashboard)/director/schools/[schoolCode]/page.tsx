@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { getSchoolById } from "@/services/api/schools/school-directory";
+import { getDirectorSchoolDetail } from "@/services/api/schools/school-intelligence";
 
-import { buildSchoolIntelligence } from "../_components/mock-data";
+import { toSchoolIntelligenceData } from "../_components/school-intelligence-adapter";
 import SchoolDetailPageClient from "./school-detail-page-client";
 
 interface SchoolDetailPageProps {
@@ -16,8 +17,8 @@ export const metadata: Metadata = {
 
 export default async function SchoolDetailPage({ params }: SchoolDetailPageProps) {
   const { schoolCode } = await params;
-  const directorySchool = await getSchoolById(schoolCode);
-  const initialIntelligence = directorySchool ? buildSchoolIntelligence(directorySchool) : undefined;
+  const detail = await getDirectorSchoolDetail(schoolCode);
+  if (!detail) notFound();
 
-  return <SchoolDetailPageClient initialIntelligence={initialIntelligence} schoolCode={schoolCode} />;
+  return <SchoolDetailPageClient data={toSchoolIntelligenceData(detail)} />;
 }

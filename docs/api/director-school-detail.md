@@ -62,7 +62,13 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
       "province": "Hà Nội",
       "ward": "Phường Ba Đình",
       "travelTime": null,
-      "distanceKm": null
+      "distanceKm": null,
+      "marketStats": {
+        "schools": null,
+        "grade12Students": null,
+        "outOfProvinceRate": null,
+        "fptInterestRate": null
+      }
     },
     "demographics": null,
     "subjectMix": null,
@@ -114,7 +120,9 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
       "directory": "CRM High School",
       "snapshot": "CRM High School Annual Snapshot",
       "relationship": "CRM School Stakeholder",
-      "activities": "CRM School Activity"
+      "activities": "CRM School Activity",
+      "examScore": null,
+      "reportCard": null
     },
     "dataAvailability": {
       "sections": {
@@ -156,6 +164,8 @@ Ví dụ chỉ minh hoạ shape. Scalar thiếu là `null`, collection thiếu l
 
 `potentialIndicators` là dữ liệu đầu vào cho biểu đồ phân rã điểm tiềm năng. Khi có dữ liệu, API trả tối đa một bản ghi cho mỗi mã `P1..P6`, với shape `{ "id": "P1", "label": "Quy mô khả dụng", "score": 78, "weight": 25, "status": "available" }`. `score` là điểm chỉ số đã chuẩn hoá trong `0..100` hoặc `null` nếu chưa có dữ liệu; `weight` là trọng số theo phần trăm; `status` nhận `available`, `estimated` hoặc `unavailable`. `id` không được trùng trong cùng response. Mã `P1..P6` chỉ là mã API, không hiển thị trên chart; `label` phải dùng đúng nhãn nghiệp vụ đã thống nhất. Khi chưa có nguồn được phê duyệt, trả `[]` hoặc bản ghi có `score: null` và đánh dấu `unavailable`, không quy đổi thiếu dữ liệu thành điểm `0`. Với trường trong bán kính một giờ, `P5` không áp dụng; client không hiển thị chỉ số này và phân bổ lại trọng số theo quy tắc bên dưới.
 
+Các trường phân tích mở rộng (`performance`, `geography`, `demographics`, `subjectMix`, `earlyForecast`, `activityStats`, `quadrantPeers`, `scoreBands`, `academicGap`, `postGraduationChoices`, `competitionContext`) được trả trực tiếp trong cùng response. Collection thiếu dữ liệu là `[]`, object thiếu dữ liệu là `null`; dashboard không tự sinh dữ liệu thay thế. `locality.marketStats` có shape `{ "schools": 22, "grade12Students": 11520, "outOfProvinceRate": "24%", "fptInterestRate": "14%" }` khi có snapshot địa bàn đã xác thực.
+
 `examScoreBands` là phổ phân bố điểm thi THPT của trường, dùng cho biểu đồ phổ điểm ở trang chi tiết. Khi có dữ liệu, API trả đủ cùng một bộ 5 dải điểm theo thứ tự chuẩn tăng dần: `0–2`, `2–4`, `4–6`, `6–8`, `8–10`; không tự đổi nhóm theo từng trường. Mỗi phần tử có shape `{ "label": "8–10", "students": 47, "share": 10 }`, trong đó `label` là dải điểm trên thang 0–10, `students` là số học sinh khối 12 và `share` là tỷ trọng trên tổng khối 12. Chart dùng `students` làm đại lượng chính, hiển thị `share` khi xem chi tiết và đảo thứ tự trình bày để dải cao (`8–10`) ở trên, dải thấp (`0–2`) ở dưới. Không dùng `examScoreBands` thay cho `scoreBands`: `scoreBands` là nhóm phù hợp tuyển sinh, còn `examScoreBands` là dải điểm thi; dải điểm khả thi chỉ được xác định khi có cấu hình tuyển sinh được phê duyệt. Khi chưa có nguồn điểm được phê duyệt, API trả `[]` và field tương ứng trong `dataAvailability` là `unavailable`.
 
 ### Quy tắc ngữ nghĩa của các chỉ số tiềm năng
@@ -177,7 +187,7 @@ Ví dụ chỉ minh hoạ shape. Scalar thiếu là `null`, collection thiếu l
 - KPI: annual snapshot mới nhất của đúng kỳ, `verification_status = Verified`.
 - Relationship/contact: `CRM School Stakeholder`, person display name và term hiển thị. Không trả phone, email, Person ID hoặc internal document name.
 - Activity: tối đa 50 `CRM School Activity`; nếu activity có `admission_year` thì chỉ lấy đúng kỳ đang yêu cầu, còn activity không gắn kỳ vẫn được coi là lịch sử trường. Chỉ `Planned`/`Completed` được project thành `scheduled`/`completed`. `outcome` chỉ nhận các giá trị Select có cấu trúc `Positive`, `Neutral`, `Follow-up Needed`, `No Response`, `Not Applicable`; không trả `title`, `notes` hoặc `next_action`.
-- Demographics, subject mix, outcomes, travel/distance, score bands, phổ điểm THPT (`examScoreBands`), competition và recommendation chưa có nguồn phê duyệt: giữ `null`/`[]` + `unavailable`.
+- Demographics, subject mix, outcomes, travel/distance, score bands, phổ điểm THPT (`examScoreBands`), competition và recommendation chưa có nguồn phê duyệt: giữ `null`/`[]` + `unavailable`. Showcase seed có thể ghi một context đã xác thực vào `context_raw_counts.director_school_detail` của snapshot Verified để phục vụ walkthrough; context này vẫn đi qua cùng API contract và không được frontend tự dựng.
 - Nguồn hỗ trợ lỗi hoặc bị cap làm response `partial`; lỗi nguồn trường chính trả `503`.
 
 Frontend chuẩn hoá DTO xuống các field dashboard dùng. `404` được chuyển thành Next `notFound()`; `401`, `403`, lỗi mạng và `5xx` vẫn là lỗi rõ ràng, không dùng mock fallback.
