@@ -1,17 +1,17 @@
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
-import { agingRows } from "./data";
+import { useAdmissionFunnelData } from "./admission-funnel-context";
 
 function formatNumber(value: number) {
   return value.toLocaleString("vi-VN");
 }
 
-function formatDays(value: number) {
-  return value.toLocaleString("vi-VN", { maximumFractionDigits: 1 });
+function formatDays(value: number | null) {
+  return value === null ? "—" : `${value.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} ngày`;
 }
 
 export default function FunnelAgingTable() {
-  const oldCases = agingRows.reduce((total, row) => total + row.overFourteenDays, 0);
+  const { aging } = useAdmissionFunnelData();
 
   return (
     <Card className="min-w-0 overflow-hidden p-5">
@@ -20,7 +20,7 @@ export default function FunnelAgingTable() {
           <CardTitle>Hồ sơ đang chờ xử lý</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Số hồ sơ chưa chuyển bước, chia theo thời gian chờ.</p>
         </div>
-        <span className="rounded-full bg-badge-error-background px-2.5 py-1 text-xs font-semibold text-badge-error-text">{formatNumber(oldCases)} hồ sơ &gt;14 ngày</span>
+        <span className="rounded-full bg-badge-error-background px-2.5 py-1 text-xs font-semibold text-badge-error-text">{formatNumber(aging.totalOverFourteenDays)} hồ sơ &gt;14 ngày</span>
       </CardHeader>
 
       <div className="overflow-x-auto">
@@ -36,14 +36,14 @@ export default function FunnelAgingTable() {
             </tr>
           </thead>
           <tbody>
-            {agingRows.map((row) => (
-              <tr key={row.stage} className="border-t border-card-border">
+            {aging.rows.map((row) => (
+              <tr key={row.stageId} className="border-t border-card-border">
                 <td className="py-3 font-medium text-text-primary">{row.stage}</td>
                 <td className="py-3 text-right text-text-secondary">{formatNumber(row.underThreeDays)}</td>
                 <td className="py-3 text-right text-text-secondary">{formatNumber(row.threeToSevenDays)}</td>
                 <td className="py-3 text-right text-text-secondary">{formatNumber(row.sevenToFourteenDays)}</td>
                 <td className={`py-3 text-right font-medium ${row.overFourteenDays >= 1000 ? "text-error-500" : "text-text-secondary"}`}>{formatNumber(row.overFourteenDays)}</td>
-                <td className="py-3 text-right text-text-secondary">{formatDays(row.medianDays)} ngày</td>
+                <td className="py-3 text-right text-text-secondary">{formatDays(row.medianDays)}</td>
               </tr>
             ))}
           </tbody>
