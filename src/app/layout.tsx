@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   description:
     "FAIP là nền tảng quản trị tuyển sinh thông minh của FPTU, giúp theo dõi hồ sơ, điều phối tư vấn, SLA, thống kê và chuyển đổi nhập học.",
   applicationName: "FAIP",
+  manifest: "/site.webmanifest",
   keywords: [
     "FAIP",
     "FPTU Admission Intelligence Platform",
