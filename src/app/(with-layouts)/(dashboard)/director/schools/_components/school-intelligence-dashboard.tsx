@@ -35,6 +35,10 @@ export default function SchoolIntelligenceDashboard({ data }: SchoolIntelligence
       <SchoolLocalityCard
         demographics={data.demographics}
         geography={data.geography}
+        locality={data.locality}
+        coordinates={data.locality?.latitude !== null && data.locality?.latitude !== undefined && data.locality?.longitude !== null && data.locality?.longitude !== undefined
+          ? [data.locality.latitude, data.locality.longitude]
+          : undefined}
         school={data.school}
       />
 

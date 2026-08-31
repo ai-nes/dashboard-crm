@@ -1,4 +1,4 @@
-import type { SchoolDirectoryRecord } from "@/services/api/schools/types";
+import type { DirectorSchoolLocality, SchoolDirectoryRecord } from "@/services/api/schools/types";
 
 export type LocalityCoordinate = [number, number];
 
@@ -120,15 +120,27 @@ function getLocalityPlan(distanceKm: number, travelTime: string) {
   };
 }
 
-export function getSchoolLocalityContext(school: SchoolDirectoryRecord, coordinates?: LocalityCoordinate): SchoolLocalityContext {
+export function getSchoolLocalityContext(
+  school: SchoolDirectoryRecord,
+  coordinates?: LocalityCoordinate,
+  locality?: Pick<DirectorSchoolLocality, "distanceKm" | "travelTime" | "marketStats">,
+): SchoolLocalityContext {
   const isLongAn = school.provinceCode === "49" || normalize(school.province).includes("long an");
   const normalizedDistrict = normalize(`${school.district} ${school.address}`);
   const matchedLocation = isLongAn ? LONG_AN_LOCATIONS.find((location) => location.keywords.some((keyword) => normalizedDistrict.includes(normalize(keyword)))) : undefined;
   const sourceCoordinates = coordinates ?? matchedLocation?.coordinates ?? PROVINCE_CENTERS[school.provinceCode] ?? [10.8231, 106.6297];
   const sourceLabel = isLongAn ? matchedLocation?.label ?? "Long An" : school.province;
-  const distanceKm = Math.max(8, Math.round(haversineDistance(sourceCoordinates, FPTU_HCM_CAMPUS.coordinates) * 1.25));
-  const travelTime = getTravelTime(distanceKm);
-  const mockStats = isLongAn
+  const distanceKm = locality?.distanceKm ?? Math.max(8, Math.round(haversineDistance(sourceCoordinates, FPTU_HCM_CAMPUS.coordinates) * 1.25));
+  const travelTime = locality?.travelTime ?? getTravelTime(distanceKm);
+  const hasMarketStats = Object.values(locality?.marketStats ?? {}).some((value) => value !== null && value !== undefined);
+  const mockStats = hasMarketStats
+    ? {
+        schools: locality?.marketStats.schools?.toLocaleString("vi-VN") ?? "-",
+        grade12Students: locality?.marketStats.grade12Students?.toLocaleString("vi-VN") ?? "-",
+        outOfProvinceRate: locality?.marketStats.outOfProvinceRate ?? "-",
+        fptInterestRate: locality?.marketStats.fptInterestRate ?? "-",
+      }
+    : isLongAn
     ? { schools: "42", grade12Students: "12.640", outOfProvinceRate: "34%", fptInterestRate: "18%" }
     : getMockStats(school);
   const localityPlan = getLocalityPlan(distanceKm, travelTime);

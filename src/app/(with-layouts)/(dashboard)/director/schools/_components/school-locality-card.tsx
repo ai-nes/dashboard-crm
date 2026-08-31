@@ -2,7 +2,7 @@ import { InfoTriangle } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import type { SchoolDirectoryRecord, SchoolIntelligenceData } from "@/services/api/schools/types";
+import type { DirectorSchoolLocality, SchoolDirectoryRecord, SchoolIntelligenceData } from "@/services/api/schools/types";
 
 import SchoolLocalityMap from "./school-locality-map-loader";
 import { getSchoolLocalityContext, type LocalityCoordinate } from "./school-locality-data";
@@ -10,12 +10,13 @@ import { getSchoolLocalityContext, type LocalityCoordinate } from "./school-loca
 interface SchoolLocalityCardProps {
   school: SchoolDirectoryRecord;
   coordinates?: LocalityCoordinate;
+  locality?: DirectorSchoolLocality;
   geography?: SchoolIntelligenceData["geography"];
   demographics?: SchoolIntelligenceData["demographics"];
 }
 
-export default function SchoolLocalityCard({ coordinates, demographics, geography, school }: SchoolLocalityCardProps) {
-  const context = getSchoolLocalityContext(school, coordinates);
+export default function SchoolLocalityCard({ coordinates, demographics, geography, locality, school }: SchoolLocalityCardProps) {
+  const context = getSchoolLocalityContext(school, coordinates, locality);
   const clusterLabel = geography ? getClusterLabel(geography.cluster) : "-";
   const relativeIncome = demographics?.relativeIncome ?? "-";
   const tuitionAffordability = demographics ? getAffordabilityLabel(demographics.tuitionAffordability) : "-";

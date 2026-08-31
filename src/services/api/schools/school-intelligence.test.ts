@@ -89,6 +89,36 @@ describe("school intelligence contract", () => {
     ]);
   });
 
+  it("preserves verified school-detail analytics for the dashboard adapter", () => {
+    const data = normalizeSchoolIntelligence({
+      school: { id: "56-22333-020", name: "THPT Test" },
+      potentialScore: 88,
+      performance: { "6m": [{ label: "T8", prospects: 1, applications: 1, enrollment: 1 }], year: [] },
+      geography: { cluster: "Cụm đô thị dày", travelTime: "45 phút", distanceTier: "Dưới 1 giờ", competitionDensity: "Trung bình" },
+      demographics: { relativeIncome: "Trung bình", parentInvolvement: "Trung bình" },
+      subjectMix: { naturalScienceShare: 56, socialScienceShare: 36, recommendedMajorGroup: "Công nghệ" },
+      activityStats: [{ label: "Cuộc thi học thuật", audience: "Khối 12", conversionRate: 31, costPerActivity: 42, recommended: true }],
+      scoreBands: [{ label: "Học sinh khả dụng", students: 3, share: 100, available: true }],
+      potentialIndicators: [{ id: "P1", label: "Quy mô khả dụng", score: 88, weight: 30.6, status: "available" }],
+      locality: {
+        travelTime: "45 phút",
+        distanceKm: 25,
+        source: { coordinates: { latitude: 12.2, longitude: 109.1 } },
+        marketStats: { schools: 22, grade12Students: 11520, outOfProvinceRate: "24%", fptInterestRate: "14%" },
+      },
+      dataAvailability: { sections: { outcomes: "available" } },
+    });
+
+    expect(data.potentialScore).toBe(88);
+    expect(data.performance["6m"][0].enrollment).toBe(1);
+    expect(data.geography?.travelTime).toBe("45 phút");
+    expect(data.subjectMix?.naturalScienceShare).toBe(56);
+    expect(data.activityStats[0].conversionRate).toBe(31);
+    expect(data.scoreBands[0].students).toBe(3);
+    expect(data.potentialIndicators?.[0]?.weight).toBe(30.6);
+    expect(data.locality.marketStats.grade12Students).toBe(11520);
+  });
+
   it("uses the three-part school id, forwards query and maps 404 to null", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ error: { code: "SCHOOL_NOT_FOUND" } }), { status: 404 }),
