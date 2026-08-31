@@ -117,6 +117,12 @@ export const NAV_DATA: NavigationSection[] = [
         items: [],
       },
       {
+        title: "Chatbot CRM",
+        url: "/crm-chatbot",
+        icon: <ChatIcon />,
+        items: [],
+      },
+      {
         title: "Độ tin cậy & sức khỏe AI",
         url: "/director/ai/trust-model-health",
         icon: <AlphabetIcon />,
