@@ -17,16 +17,12 @@ interface SegmentDetailDashboardProps {
   segment: DemographicSegment;
   detailData?: DirectorDemographicsSegmentData | null;
   onBack: () => void;
-  onRefresh?: () => void;
-  isRefreshing?: boolean;
 }
 
 export default function SegmentDetailDashboard({
   segment,
   detailData,
   onBack,
-  onRefresh,
-  isRefreshing,
 }: SegmentDetailDashboardProps) {
   const currentSegment = detailData?.segment ?? segment;
   const benchmark = detailData?.benchmark;
@@ -40,8 +36,6 @@ export default function SegmentDetailDashboard({
         onBack={onBack}
         onExport={() => toast.success("Đã tạo báo cáo chi tiết phân khúc.")}
         onSave={() => toast.success("Đã lưu phân khúc vào danh sách theo dõi.")}
-        onRefresh={onRefresh}
-        isRefreshing={isRefreshing}
       />
       <div className="space-y-5 px-2 lg:px-5">
         <SegmentAnalysis segment={currentSegment} />

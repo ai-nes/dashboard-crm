@@ -48,8 +48,8 @@ export default function ActivityTimeline({ data }: ActivityTimelineProps) {
           <p className="text-sm font-semibold text-text-primary">Hoạt động nên ưu tiên</p>
           <p className="mt-1 text-xs text-text-tertiary">Xếp theo tỷ lệ tạo hồ sơ nhập học</p>
 
-          <ul className="mt-4 space-y-2">
-            {data.activityStats.map((item) => <ActivityStatRow key={item.label} item={item} maxConversionRate={maxConversionRate} />)}
+            <ul className="mt-4 space-y-2">
+            {data.activityStats.length ? data.activityStats.map((item) => <ActivityStatRow key={item.label} item={item} maxConversionRate={maxConversionRate} />) : <li className="rounded-xl border border-dashed border-card-border px-3 py-4 text-sm text-text-tertiary">-</li>}
           </ul>
         </div>
       </div>

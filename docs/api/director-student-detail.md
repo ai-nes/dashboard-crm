@@ -1,6 +1,6 @@
 # API Detail Student theo `student_id`
 
-API này phục vụ trang `/director/students/{studentId}`, ví dụ `/director/students/nguyen-minh-an` hoặc mã hồ sơ `ENR-2026-00005`.
+API này phục vụ trang `/director/students/{studentId}`, ví dụ `/director/students/nguyen-minh-an` hoặc mã hồ sơ `ENR-2026-00005`. `student_id` có thể là slug nội bộ, mã hồ sơ hoặc mã học sinh nếu backend hỗ trợ resolver tương ứng.
 
 ## 1. Endpoint
 
@@ -22,13 +22,29 @@ Hoặc theo ID slug:
 GET /api/method/crm.api.director_students.get_director_student?student_id=nguyen-minh-an
 ```
 
-Handler hiện có tại [route.ts](../../src/app/api/method/[...method]/route.ts) và [mock route.ts](../../src/app/api/mock/[...resource]/route.ts). Handler gọi `getStudent360(student_id)` và trả về object `Student360Data` bọc trong `message` theo chuẩn Frappe RPC method.
+Handler hiện có tại [route.ts](../../src/app/api/method/[...method]/route.ts) và [mock route.ts](../../src/app/api/mock/[...resource]/route.ts). Handler gọi `getStudent360(student_id)` và trả về object `Student360Data` trong `message`; mock method đồng thời trải phẳng các field ra root để tương thích với client cũ.
+
+Khi `NEXT_PUBLIC_FRAPPE_URL` không được cấu hình, service dùng `computeStudent360()` từ fixture nội bộ. Khi đã cấu hình Frappe, service gọi backend thật với `cache: no-store`, forward cookie `sid` ở server và gửi `credentials: include` ở browser.
+
+### Mock local
+
+```http
+GET /api/mock/students/nguyen-minh-an
+```
+
+Mock method tương đương với RPC thật:
+
+```http
+GET /api/method/crm.api.director_students.get_director_student?student_id=nguyen-minh-an
+```
+
+Mock trả cả `message` và payload trực tiếp. Đây là dữ liệu minh họa cho local development, không phải nguồn production.
 
 ## 2. Request
 
 ```http
 GET /api/method/crm.api.director_students.get_director_student?student_id=ENR-2026-00005
-Authorization: Bearer <access-token>
+Cookie: sid=<Frappe session cookie>
 Accept: application/json
 ```
 
@@ -56,7 +72,7 @@ bui-thanh-ha
 
 ## 3. Response `200 OK`
 
-Response là `Student360Data` trực tiếp:
+Response thành công là `Student360Data` trong `message` theo chuẩn Frappe RPC. Client cũng chấp nhận payload trực tiếp để tương thích mock:
 
 ```text
 {
@@ -72,11 +88,16 @@ Response là `Student360Data` trực tiếp:
   insight: Insight,
   journey: JourneyEvent[],
   engagement: EngagementItem[],
-  application: ApplicationItem[]
+  application: ApplicationItem[],
+  probabilityTrend?: ProbabilityTrendPoint[],
+  channelPerformance?: ChannelPerformanceItem[],
+  documents?: StudentDocument[],
+  notes?: StudentNote[],
+  auditEvents?: StudentAuditEvent[]
 }
 ```
 
-> Đây là shape rút gọn để mô tả type. Response JSON thực tế phải trả đầy đủ field bắt buộc trong các object bên dưới.
+> Đây là shape rút gọn để mô tả type. Các collection tùy chọn có thể trả `[]` hoặc bỏ field khi nguồn chưa có dữ liệu; không dùng số 0 để giả lập dữ liệu chưa thu thập.
 
 ## 4. Response example
 
@@ -271,6 +292,24 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
     { "label": "Trạng thái hồ sơ", "value": "Chưa bắt đầu · 0/5 tài liệu", "status": "warning" },
     { "label": "Học bổng", "value": "Đề xuất mức 30%", "status": "success" },
     { "label": "Hạn hoàn tất", "value": "Còn 12 ngày", "status": "warning" }
+  ],
+  "probabilityTrend": [
+    { "date": "2026-05-28", "score": 41, "touches": 2 },
+    { "date": "2026-06-02", "score": 63, "touches": 9 },
+    { "date": "2026-06-06", "score": 76, "touches": 18 }
+  ],
+  "channelPerformance": [
+    { "channel": "Cuộc gọi", "touches": 2, "response": 100 },
+    { "channel": "Website", "touches": 22, "response": 82 }
+  ],
+  "documents": [
+    { "name": "Phiếu đăng ký tư vấn", "type": "Biểu mẫu", "status": "Đã nhận", "tone": "success", "date": "2026-05-28" }
+  ],
+  "notes": [
+    { "author": "Trần Quốc Bảo", "date": "2026-06-06T16:42:00+07:00", "content": "Cần gửi phương án học bổng trước cuộc gọi tiếp theo." }
+  ],
+  "auditEvents": [
+    { "actor": "Trần Quốc Bảo", "action": "Cập nhật khuyến nghị", "time": "2026-06-06T16:42:00+07:00", "status": "Đã ghi nhận", "tone": "success" }
   ]
 }
 ```
@@ -431,46 +470,60 @@ Một `dimension`:
 | `value` | string | Có | Giá trị hiển thị |
 | `status` | enum | Không | `success`, `warning`, `primary` |
 
-## 6. Field bổ sung để detail không còn hard-code
+## 6. Field mở rộng cho chart và hồ sơ xử lý
 
-Response `Student360Data` hiện đủ cho các phần chính, nhưng một số component còn đọc fixture tĩnh:
+Các field dưới đây đã có trong `Student360Data` và được frontend đọc trực tiếp. Chúng là tùy chọn để API vẫn trả được hồ sơ khi một nguồn dữ liệu chưa sẵn sàng.
 
-| Dữ liệu UI | Nguồn hard-code hiện tại | Contract nên bổ sung |
-|---|---|---|
-| Dữ liệu biểu đồ xác suất | `student-charts-section.tsx` | `behavior.probabilityTrend[]` với `date`, `probability`, `touches` |
-| Hiệu suất theo kênh | `student-charts-section.tsx` | `behavior.channelPerformance[]` với `channel`, `touches`, `response` |
-| Tổng điểm chạm/ngày hoạt động/kênh tốt nhất | `student-engagement-tab.tsx` | `engagementSummary` |
-| Danh sách tài liệu | `student-tab-data.ts` | `documents[]` với `name`, `type`, `status`, `date`, `tone`, `fileUrl?` |
-| Ghi chú tư vấn | `student-tab-data.ts` | `notes[]` với `id`, `author`, `createdAt`, `content` |
-| Nhật ký xử lý | `student-audit-card.tsx` | `auditEvents[]` với `actor`, `action`, `occurredAt`, `status`, `tone` |
+### 6.1. `probabilityTrend[]`
 
-Nếu cần API trả toàn bộ dữ liệu cho detail page, có thể mở rộng response như sau:
+Dùng cho chart `StudentChartsSection` — đường xu hướng xác suất nhập học. `score` là điểm phần trăm tại mốc thời gian, không dùng tên `probability`.
 
-```json
-{
-  "behavior": {
-    "probabilityTrend": [
-      { "date": "2026-06-06", "probability": 76, "touches": 18 }
-    ],
-    "channelPerformance": [
-      { "channel": "Website", "touches": 22, "response": 82 }
-    ]
-  },
-  "engagementSummary": {
-    "touches": 18,
-    "activeDays": 9,
-    "activeDaysDelta": 2,
-    "bestChannel": "Cuộc gọi",
-    "bestChannelResponseRate": 100,
-    "period": "30d"
-  },
-  "documents": [],
-  "notes": [],
-  "auditEvents": []
-}
-```
+| Field | Kiểu | Bắt buộc | Mô tả |
+|---|---|---:|---|
+| `date` | string | Có | Nhãn thời gian; nên là ngày ISO-8601 nếu backend có dữ liệu chuẩn |
+| `score` | number | Có | Điểm xác suất `0..100` |
+| `touches` | number | Có | Số điểm chạm tích lũy tại mốc đó |
 
-Các field bổ sung này là mở rộng production, không có trong `Student360Data` hiện tại và không bắt buộc để giữ tương thích mock.
+### 6.2. `channelPerformance[]`
+
+Dùng cho chart hiệu suất theo kênh.
+
+| Field | Kiểu | Bắt buộc | Mô tả |
+|---|---|---:|---|
+| `channel` | string | Có | Tên kênh, ví dụ `Website`, `Cuộc gọi`, `Zalo` |
+| `touches` | number | Có | Số điểm chạm của kênh |
+| `response` | number | Có | Tỷ lệ phản hồi `0..100` |
+| `fill` | string | Không | Token màu chỉ dành cho mock/UI; backend production nên bỏ qua field này |
+
+### 6.3. `documents[]`
+
+| Field | Kiểu | Bắt buộc | Mô tả |
+|---|---|---:|---|
+| `name` | string | Có | Tên tài liệu |
+| `type` | string | Có | Loại tài liệu |
+| `status` | string | Có | Trạng thái hiển thị |
+| `tone` | enum | Có | `success`, `warning`, `gray`, `primary`, `error` |
+| `date` | string | Có | Thời điểm nhận/cập nhật |
+
+### 6.4. `notes[]`
+
+| Field | Kiểu | Bắt buộc | Mô tả |
+|---|---|---:|---|
+| `author` | string | Có | Người tạo ghi chú |
+| `date` | string | Có | Thời điểm tạo |
+| `content` | string | Có | Nội dung ghi chú |
+
+### 6.5. `auditEvents[]`
+
+| Field | Kiểu | Bắt buộc | Mô tả |
+|---|---|---:|---|
+| `actor` | string | Có | Người hoặc hệ thống thực hiện |
+| `action` | string | Có | Hành động đã ghi nhận |
+| `time` | string | Có | Thời điểm thực hiện |
+| `status` | string | Có | Trạng thái hiển thị |
+| `tone` | enum | Có | `success`, `primary`, `warning`, `error` |
+
+Khi các collection tùy chọn bị bỏ qua hoặc trả `[]`, frontend giữ khung section và dùng empty state. `probabilityTrend` và `channelPerformance` hiện có fixture fallback ở mock; production nên trả dữ liệu thật để không hiển thị số minh họa.
 
 ## 7. Error response
 
@@ -498,13 +551,14 @@ Status production nên thống nhất thêm:
 | `401` | `UNAUTHENTICATED` | Thiếu hoặc hết hạn access token |
 | `403` | `FORBIDDEN` | Hồ sơ không thuộc phạm vi Director/team/territory |
 | `404` | `STUDENT_NOT_FOUND` | Không tồn tại hoặc không được phép nhìn thấy |
+| `502` | `INVALID_STUDENT_RESPONSE` | Backend trả payload không đúng contract |
 | `500` | `INTERNAL_ERROR` | Lỗi không dự kiến phía server |
 
 Vì response có phone, email và thông tin phụ huynh, server phải filter quyền truy cập trước khi trả dữ liệu. Không ghi PII đầy đủ vào log, cache public hoặc error message.
 
 ## 8. Quy ước thời gian và dữ liệu nhạy cảm
 
-- Các field thời gian hiện tại như `updatedAt`, `lastInteraction`, `journey.date` đang là chuỗi display-ready. Production nên bổ sung field ISO-8601, ví dụ `updatedAtIso`, `occurredAt`, `lastInteractionAt`.
+- Các field thời gian hiện tại như `updatedAt`, `lastInteraction`, `journey.date`, `probabilityTrend.date`, `notes.date` và `auditEvents.time` đang là chuỗi display-ready. Production nên bổ sung field ISO-8601 hoặc thống nhất format ISO cho các field này trước khi sort hoặc tính SLA.
 - Frontend có thể tiếp tục dùng chuỗi hiện tại trong giai đoạn chuyển đổi, nhưng không nên dùng chuỗi display-ready để sort hoặc tính SLA.
 - Phone/email trong mock đã được mask. Production cần áp dụng masking hoặc field-level authorization theo role.
 - `economicContext` chỉ phục vụ tư vấn hỗ trợ, không dùng làm lý do tự động giảm ưu tiên nếu chưa có policy được phê duyệt.
@@ -520,5 +574,5 @@ Frontend cần:
 1. Gửi `student_id` (ví dụ `ENR-2026-00005` hoặc `studentId` từ URL `/director/students/{studentId}`).
 2. Nhận object `Student360Data` bọc trong `response.message` (chuẩn Frappe) hoặc JSON trực tiếp.
 3. Hiển thị `student`, `classification`, `acquisition`, `segmentation`, `parentProfile`, `insight`, `journey`, `engagement` và `application`.
-4. Xử lý `404 STUDENT_NOT_FOUND` bằng trang `notFound` hoặc trạng thái không tìm thấy hồ sơ.
-5. Không gọi thêm API để render các section chính; chỉ cần mở rộng response nếu muốn thay thế các fixture đang hard-code cho chart, documents, notes và audit.
+4. Xử lý `404 STUDENT_NOT_FOUND` bằng trạng thái không tìm thấy hồ sơ; lỗi `401/403/5xx` phải hiển thị lỗi đồng bộ rõ ràng.
+5. Trả `probabilityTrend`, `channelPerformance`, `documents`, `notes` và `auditEvents` khi có dữ liệu thật. Nếu chưa có nguồn, trả `[]` hoặc bỏ field tùy chọn; không trả số minh họa và không dùng `0` thay cho dữ liệu thiếu.

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -18,7 +17,6 @@ export default function DemographicExplorerDashboard() {
   const {
     data: overviewResponse,
     isLoading: isOverviewLoading,
-    isFetching: isOverviewFetching,
     isError: isOverviewError,
     refetch: refetchOverview,
   } = useDirectorDemographicsOverviewQuery({
@@ -30,8 +28,6 @@ export default function DemographicExplorerDashboard() {
   const {
     data: segmentResponse,
     isLoading: isSegmentLoading,
-    isFetching: isSegmentFetching,
-    refetch: refetchSegment,
   } = useDirectorDemographicsSegmentQuery(
     {
       segment_id: selectedSegmentId ?? "",
@@ -64,24 +60,6 @@ export default function DemographicExplorerDashboard() {
 
   const openSegment = (segmentId: string) => {
     setSelectedSegmentId(segmentId);
-  };
-
-  const handleRefreshOverview = async () => {
-    try {
-      await refetchOverview();
-      toast.success("Đã làm mới dữ liệu tổng quan.");
-    } catch {
-      toast.error("Không thể làm mới dữ liệu tổng quan.");
-    }
-  };
-
-  const handleRefreshSegment = async () => {
-    try {
-      await refetchSegment();
-      toast.success("Đã làm mới dữ liệu phân khúc.");
-    } catch {
-      toast.error("Không thể làm mới dữ liệu phân khúc.");
-    }
   };
 
   if (isOverviewLoading && !overviewResponse) {
@@ -121,8 +99,6 @@ export default function DemographicExplorerDashboard() {
         <DemographicsOverview
           data={overviewResponse?.data}
           onOpenSegment={openSegment}
-          onRefresh={handleRefreshOverview}
-          isRefreshing={isOverviewFetching}
         />
       </main>
     );
@@ -142,8 +118,6 @@ export default function DemographicExplorerDashboard() {
           segment={segmentResponse?.data?.segment ?? selectedSegment}
           detailData={segmentResponse?.data}
           onBack={() => setSelectedSegmentId(null)}
-          onRefresh={handleRefreshSegment}
-          isRefreshing={isSegmentFetching}
         />
       )}
     </main>

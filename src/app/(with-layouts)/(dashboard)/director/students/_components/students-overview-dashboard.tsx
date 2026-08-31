@@ -1,6 +1,6 @@
 "use client";
 
-import { Download1, Reload } from "@tailgrids/icons";
+import { Download1 } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -22,7 +22,7 @@ export default function StudentsOverviewDashboard() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const { data: response, isError, error, isFetching, refetch } = useDirectorStudentsQuery({
+  const { data: response, isError, error } = useDirectorStudentsQuery({
     admissionYear: 2026,
     page,
     pageSize,
@@ -80,18 +80,6 @@ export default function StudentsOverviewDashboard() {
           <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">Từ toàn cảnh tệp học sinh đến hành động tiếp theo cho từng hồ sơ.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <Button
-            size="sm"
-            appearance="outline"
-            onPress={() => {
-              refetch();
-              toast.success("Đang làm mới dữ liệu từ CRM...");
-            }}
-            isDisabled={isFetching}
-          >
-            <Reload size={15} className={isFetching ? "animate-spin" : ""} />
-            Làm mới
-          </Button>
           <Button size="sm" appearance="outline" onPress={() => toast.success("Đã tạo bản xuất danh sách học sinh.")}>
             <Download1 size={16} />
             Xuất danh sách

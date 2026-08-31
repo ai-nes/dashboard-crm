@@ -1,6 +1,6 @@
 "use client";
 
-import { Pie, PieChart, Tooltip } from "recharts";
+import { Cell, Pie, PieChart, Tooltip } from "recharts";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
@@ -11,6 +11,12 @@ import OverviewTooltip from "./overview-tooltip";
 interface AudienceCompositionChartProps {
   audience?: AudienceComposition;
 }
+
+const GENDER_COLORS: Record<string, string> = {
+  female: "var(--brand-500)",
+  male: "var(--info-500)",
+  unknown: "var(--background-soft-300)",
+};
 
 export default function AudienceCompositionChart({ audience = defaultAudience }: AudienceCompositionChartProps) {
   const total = audience.total;
@@ -43,7 +49,11 @@ export default function AudienceCompositionChart({ audience = defaultAudience }:
               stroke="var(--card-background)"
               strokeWidth={3}
               isAnimationActive={false}
-            />
+            >
+              {gender.map((item, index) => (
+                <Cell key={`${item.id}-${index}`} fill={getGenderColor(item.id, item.fill)} />
+              ))}
+            </Pie>
           </PieChart>
         </ChartContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
@@ -54,7 +64,7 @@ export default function AudienceCompositionChart({ audience = defaultAudience }:
       <div className="mb-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-text-secondary">
         {gender.map((item) => (
           <span key={item.name} className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full" style={{ backgroundColor: item.fill || "var(--brand-500)" }} />
+            <span className="size-2 rounded-full" style={{ backgroundColor: getGenderColor(item.id, item.fill) }} />
             {item.name} {item.value}%
           </span>
         ))}
@@ -76,4 +86,8 @@ export default function AudienceCompositionChart({ audience = defaultAudience }:
       </div>
     </Card>
   );
+}
+
+function getGenderColor(id: string, color?: string): string {
+  return color || GENDER_COLORS[id] || "var(--brand-500)";
 }

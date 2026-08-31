@@ -1,35 +1,30 @@
-export type MetricTone = "primary" | "success" | "warning" | "danger" | "info";
-
-export type DirectorKpi = {
-  id: string;
-  label: string;
-  value: string;
-  target: string;
-  achievement: string;
-  change: string;
-  helper: string;
-  tone: MetricTone;
-};
-
-export type PipelineStage = {
-  id: string;
-  label: string;
-  value: string;
-  percentage: number;
-  conversion: string;
-  barClassName: string;
-};
-
-export type MarketOverviewItem = {
-  id: string;
-  name: string;
-  prospects: string;
-  enrolled: string;
-  conversion: string;
-  growth: string;
-  coverage: number;
-  tone: MetricTone;
-};
+export type {
+  ActivityPoint,
+  AdmissionsPipeline,
+  AdmissionsTrend,
+  AdmissionsTrendPoint,
+  AdmissionsTrendTotals,
+  BriefingAlert,
+  BriefingPriorityAction,
+  DirectorBriefing,
+  DirectorKpi,
+  DirectorOverviewData,
+  DirectorOverviewParams,
+  DirectorOverviewResponse,
+  EnrollmentForecast,
+  ForecastPoint,
+  ForecastSummary,
+  MarketOverviewItem,
+  MetricTone,
+  OverviewMeta,
+  PipelineBiggestDrop,
+  PipelineStage,
+  PipelineSummary,
+  SourcePerformance,
+  TrendRange,
+  WeeklyActivity,
+  WeeklyActivityPoint,
+} from "@/services/api/director-overview";
 
 export type AiInsight = {
   id: string;
@@ -55,7 +50,7 @@ export type AttentionItem = {
   description: string;
   count: string;
   priority: "high" | "medium" | "low";
-  tone: MetricTone;
+  tone: "primary" | "success" | "warning" | "danger" | "info";
   href: string;
 };
 
@@ -70,40 +65,9 @@ export type TeamPerformance = {
   trend: "up" | "down";
 };
 
-export type SourcePerformance = {
-  id: string;
-  label: string;
-  leads: string;
-  applicants: string;
-  enrolled: string;
-  share: number;
-  barClassName: string;
-  chartColor: string;
-};
-
-export type AdmissionsTrendPoint = {
-  label: string;
-  newLeads: number;
-  applicants: number;
-  enrolled: number;
-};
-
-export type ForecastPoint = {
-  label: string;
-  actual: number | null;
-  forecast: number;
-  target: number;
-};
-
 export type CampusPerformancePoint = {
   name: string;
   activeRecords: number;
   applicants: number;
   enrolled: number;
-};
-
-export type ActivityPoint = {
-  label: string;
-  interactions: number;
-  sla: number;
 };

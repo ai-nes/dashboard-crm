@@ -1,6 +1,6 @@
 import type { SchoolClassification } from "./types";
 
-export const POTENTIAL_THRESHOLD = 82;
+export const POTENTIAL_THRESHOLD = 60;
 export const RELATIONSHIP_THRESHOLD = 60;
 
 export function classifySchool(potentialScore: number, relationshipScore: number): SchoolClassification {

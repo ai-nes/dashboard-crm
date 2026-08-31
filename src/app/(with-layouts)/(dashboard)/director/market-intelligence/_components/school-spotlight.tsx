@@ -62,12 +62,12 @@ export default function SchoolSpotlight({ provinceName, school }: SchoolSpotligh
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-card-background">
           <div className="h-full rounded-full bg-primary-500" style={{ width: `${school.penetrationRate === null ? 0 : Math.min(100, school.penetrationRate * 8)}%` }} />
         </div>
-        <p className="mt-1.5 text-[11px] text-text-tertiary">Cập nhật gần nhất: {school.lastActivity ?? "Chưa có dữ liệu"}</p>
+        <p className="mt-1.5 text-[11px] text-text-tertiary">Cập nhật gần nhất: {school.lastActivity ?? "-"}</p>
       </div>
 
       <div className="mt-4 border-t border-primary-200 pt-3">
         <p className="text-xs font-semibold text-primary-600">Vì sao nên chọn trường này?</p>
-        <p className="mt-1 text-xs leading-5 text-text-secondary">{school.recommendation ?? "Chưa có dữ liệu"}{school.applications !== null ? ` Trường đang có ${school.applications} hồ sơ xét tuyển.` : ""}</p>
+        <p className="mt-1 text-xs leading-5 text-text-secondary">{school.recommendation ?? "-"}{school.applications !== null ? ` Trường đang có ${school.applications} hồ sơ xét tuyển.` : ""}</p>
         {school.nextAction && <div className="mt-3 flex items-start gap-2 rounded-lg bg-card-background/75 p-2.5">
           <ArrowRight size={14} className="mt-0.5 shrink-0 text-primary-500" aria-hidden="true" />
           <div>
@@ -81,10 +81,10 @@ export default function SchoolSpotlight({ provinceName, school }: SchoolSpotligh
 }
 
 function metric(value: number | null, grouped = false) {
-  if (value === null) return "Chưa có dữ liệu";
+  if (value === null) return "-";
   return grouped ? value.toLocaleString("vi-VN") : String(value);
 }
 
 function percent(value: number | null) {
-  return value === null ? "Chưa có dữ liệu" : `${value}%`;
+  return value === null ? "-" : `${value}%`;
 }

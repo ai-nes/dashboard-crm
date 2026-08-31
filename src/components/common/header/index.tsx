@@ -1,6 +1,7 @@
 "use client";
 
 import { MenuIcon } from "@/components/common/header/icons";
+import RefreshButton from "@/components/common/header/refresh-button";
 import ThemeToggle from "@/components/common/header/theme-toggle";
 import { UserProfileButton } from "@/components/common/header/user-profile";
 import { ThreeDots } from "@/components/common/sidebar/icon";
@@ -43,7 +44,8 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
           </div>
 
           {/* Right: Three-dot */}
-          <div className="flex flex-1 justify-end">
+          <div className="flex flex-1 items-center justify-end gap-1">
+            <RefreshButton />
             <button
               id="mobile-info-toggle"
               onClick={() => setIsDrawerOpen(!isDrawerOpen)}
@@ -69,6 +71,7 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
 
           {/* Right Side - Actions */}
           <div className="flex items-center gap-2.5">
+            <RefreshButton showLabel />
             <ThemeToggle />
             <NotificationsButton />
             <UserProfileButton />

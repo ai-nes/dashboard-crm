@@ -116,7 +116,7 @@ export default function HighSchoolMarkerLayer({
             role="button"
             tabIndex={0}
           >
-			<title>{school.name} · {school.classification ?? "Chưa phân loại"} · {school.potentialScore ?? "Chưa có dữ liệu"}{school.potentialScore === null ? "" : "/100"}</title>
+			<title>{school.name} · {school.classification ?? "Chưa phân loại"} · {school.potentialScore ?? "-"}{school.potentialScore === null ? "" : "/100"}</title>
             {style.pulse && (
               <circle cx={markerX} cy={markerY} fill={style.color} fillOpacity={0.3} r={haloRadius}>
                 <animate attributeName="r" values={`${haloRadius};${haloRadius * 1.8};${haloRadius}`} dur="2.4s" repeatCount="indefinite" />

@@ -1,20 +1,16 @@
 "use client";
 
-import { Download1, RefreshCircle1Clockwise } from "@tailgrids/icons";
+import { Download1 } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 
 interface OverviewHeaderProps {
   onExport: () => void;
-  onRefresh?: () => void;
-  isRefreshing?: boolean;
 }
 
 export default function OverviewHeader({
   onExport,
-  onRefresh,
-  isRefreshing = false,
 }: OverviewHeaderProps) {
   return (
     <header className="flex flex-col gap-5 rounded-xl border border-card-border bg-card-background p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
@@ -34,16 +30,6 @@ export default function OverviewHeader({
         <span className="rounded-full bg-background-soft-50 px-3 py-1.5 text-xs font-medium text-text-secondary">
           Toàn quốc
         </span>
-        {onRefresh && (
-          <Button size="sm" appearance="outline" onPress={onRefresh} isDisabled={isRefreshing}>
-            <RefreshCircle1Clockwise
-              size={16}
-              className={isRefreshing ? "animate-spin" : ""}
-              aria-hidden="true"
-            />
-            {isRefreshing ? "Đang tải..." : "Làm mới"}
-          </Button>
-        )}
         <Button size="sm" appearance="outline" onPress={onExport}>
           <Download1 size={16} aria-hidden="true" />
           Xuất báo cáo

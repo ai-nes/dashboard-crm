@@ -11,6 +11,67 @@ import type {
 
 export type * from "./types";
 
+export class DirectorStudentsApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "DirectorStudentsApiError";
+  }
+}
+
+function frappeCookieHeader(cookieHeader: string): string {
+  return cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => part.split("=", 1)[0] === "sid")
+    .join("; ");
+}
+
+function hasStudentsEnvelope(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const root = value as Record<string, unknown>;
+  const payload =
+    "message" in root && root.message && typeof root.message === "object"
+      ? (root.message as Record<string, unknown>)
+      : root;
+
+  return (
+    Array.isArray(payload.data) &&
+    !!payload.summary &&
+    typeof payload.summary === "object" &&
+    !!payload.actionSummary &&
+    typeof payload.actionSummary === "object" &&
+    !!payload.meta &&
+    typeof payload.meta === "object" &&
+    typeof (payload.meta as Record<string, unknown>).total === "number"
+  );
+}
+
+function hasStudent360Envelope(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const root = value as Record<string, unknown>;
+  const payload =
+    "message" in root && root.message && typeof root.message === "object"
+      ? (root.message as Record<string, unknown>)
+      : root;
+
+  return (
+    !!payload.student &&
+    typeof payload.student === "object" &&
+    typeof (payload.student as Record<string, unknown>).name === "string" &&
+    !!payload.classification &&
+    typeof payload.classification === "object" &&
+    Array.isArray((payload.classification as Record<string, unknown>).dimensions) &&
+    Array.isArray(payload.readiness) &&
+    Array.isArray(payload.family) &&
+    Array.isArray(payload.journey) &&
+    Array.isArray(payload.application)
+  );
+}
+
 const stageMap: Record<StudentListItem["stage"], { value: string; position: number; description: string }> = {
   "Quan tâm": { value: "Đã biết đến trường", position: 2, description: "Đã để lại tín hiệu đầu tiên nhưng chưa hình thành nhu cầu rõ." },
   "Tìm hiểu": { value: "Đang tìm hiểu", position: 3, description: "Đang chủ động xem nội dung và so sánh thông tin ngành học." },
@@ -242,57 +303,75 @@ export function computeStudent360(studentId = "nguyen-minh-an"): Student360Data 
   };
 }
 
-export async function getStudent360(studentId = "nguyen-minh-an"): Promise<Student360Data | null> {
-  const frappeBase = (process.env.NEXT_PUBLIC_FRAPPE_URL || "").replace(/\/+$/, "");
+export async function getStudent360(
+  studentId = "nguyen-minh-an",
+  options: { baseUrl?: string } = {},
+): Promise<Student360Data | null> {
+  const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
+
+  if (!frappeBase) {
+    return computeStudent360(studentId);
+  }
+
   const url = `${frappeBase}/api/method/crm.api.director_students.get_director_student?student_id=${encodeURIComponent(studentId)}`;
 
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
 
-  if (typeof window === "undefined") {
+  if (!options.baseUrl && typeof window === "undefined") {
     try {
       const { cookies } = await import("next/headers");
-      const cookieStore = await cookies();
-      const cookieHeader = cookieStore.toString();
+      const cookieHeader = frappeCookieHeader((await cookies()).toString());
       if (cookieHeader) {
-        headers["Cookie"] = cookieHeader;
+        headers.Cookie = cookieHeader;
       }
     } catch {
-      // Ignored outside request context
+      // Ignored outside request context (e.g., tests)
     }
   }
 
-  try {
-    const response = await fetch(url, {
-      headers,
-      ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
-      cache: "no-store",
-    });
+  const response = await fetch(url, {
+    headers,
+    ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+    cache: "no-store",
+  });
 
-    if (response.ok) {
-      const json = await response.json();
-      return (json.message || json) as Student360Data;
-    }
+  const payload = await response.json().catch(() => ({}));
+  const error = payload?.error ?? {};
 
-    if (response.status === 404) {
-      return null;
-    }
+  if (response.status === 404 && (error.code === "STUDENT_NOT_FOUND" || !error.code)) {
+    return null;
+  }
 
-    const errorJson = await response.json().catch(() => null);
+  if (!response.ok) {
+    const errorCode =
+      typeof error.code === "string"
+        ? error.code
+        : typeof payload?.exception === "string"
+          ? payload.exception
+          : "STUDENT_DATA_UNAVAILABLE";
     const errorMessage =
-      errorJson?.exception ||
-      errorJson?._server_messages ||
-      errorJson?.message ||
-      errorJson?.error?.message ||
-      `Lỗi HTTP ${response.status}: ${response.statusText}`;
-    throw new Error(errorMessage);
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Không thể kết nối đến máy chủ Frappe CRM.");
+      typeof error.message === "string"
+        ? error.message
+        : typeof payload?.message === "string"
+          ? payload.message
+          : typeof payload?.exception === "string"
+            ? payload.exception
+            : `Lỗi HTTP ${response.status}: ${response.statusText}`;
+
+    throw new DirectorStudentsApiError(response.status, errorCode, errorMessage);
   }
+
+  if (!hasStudent360Envelope(payload)) {
+    throw new DirectorStudentsApiError(
+      502,
+      "INVALID_STUDENT_RESPONSE",
+      "Phản hồi hồ sơ học sinh không hợp lệ.",
+    );
+  }
+
+  return (payload.message || payload) as Student360Data;
 }
 
 function normalizeSearchValue(value: string): string {
@@ -392,6 +471,7 @@ export function computeDirectorStudents(params?: DirectorStudentsParams): Direct
 
 export async function getDirectorStudents(
   params?: DirectorStudentsParams,
+  options: { baseUrl?: string } = {},
 ): Promise<DirectorStudentsResponse> {
   const searchParams = new URLSearchParams();
   if (params?.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
@@ -404,50 +484,65 @@ export async function getDirectorStudents(
   if (params?.order) searchParams.set("order", params.order);
 
   const queryStr = searchParams.toString();
-  const frappeBase = (process.env.NEXT_PUBLIC_FRAPPE_URL || "").replace(/\/+$/, "");
+  const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
+
+  if (!frappeBase) {
+    return computeDirectorStudents(params);
+  }
+
   const url = `${frappeBase}/api/method/crm.api.director_students.get_director_students${queryStr ? `?${queryStr}` : ""}`;
 
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
 
-  if (typeof window === "undefined") {
+  if (!options.baseUrl && typeof window === "undefined") {
     try {
       const { cookies } = await import("next/headers");
-      const cookieStore = await cookies();
-      const cookieHeader = cookieStore.toString();
+      const cookieHeader = frappeCookieHeader((await cookies()).toString());
       if (cookieHeader) {
-        headers["Cookie"] = cookieHeader;
+        headers.Cookie = cookieHeader;
       }
     } catch {
-      // Ignored outside request context
+      // Ignored outside request context (e.g., tests)
     }
   }
 
-  try {
-    const response = await fetch(url, {
-      headers,
-      ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
-      cache: "no-store",
-    });
+  const response = await fetch(url, {
+    headers,
+    ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+    cache: "no-store",
+  });
 
-    if (response.ok) {
-      const json = await response.json();
-      return (json.message || json) as DirectorStudentsResponse;
-    }
+  const payload = await response.json().catch(() => ({}));
 
-    const errorJson = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = payload?.error ?? {};
+    const errorCode =
+      typeof error.code === "string"
+        ? error.code
+        : typeof payload?.exception === "string"
+          ? payload.exception
+          : "STUDENTS_DATA_UNAVAILABLE";
     const errorMessage =
-      errorJson?.exception ||
-      errorJson?._server_messages ||
-      errorJson?.message ||
-      errorJson?.error?.message ||
-      `Lỗi HTTP ${response.status}: ${response.statusText}`;
-    throw new Error(errorMessage);
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Không thể kết nối đến máy chủ Frappe CRM.");
+      typeof error.message === "string"
+        ? error.message
+        : typeof payload?.message === "string"
+          ? payload.message
+          : typeof payload?.exception === "string"
+            ? payload.exception
+            : `Lỗi HTTP ${response.status}: ${response.statusText}`;
+
+    throw new DirectorStudentsApiError(response.status, errorCode, errorMessage);
   }
+
+  if (!hasStudentsEnvelope(payload)) {
+    throw new DirectorStudentsApiError(
+      502,
+      "INVALID_STUDENTS_RESPONSE",
+      "Phản hồi danh sách học sinh không hợp lệ.",
+    );
+  }
+
+  return (payload.message || payload) as DirectorStudentsResponse;
 }

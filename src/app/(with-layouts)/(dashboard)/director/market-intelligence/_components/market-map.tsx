@@ -14,7 +14,6 @@ import {
   ChevronDown,
   Download1,
   Filter,
-  RefreshCircle1Clockwise,
   Search1,
   Target3,
 } from "@tailgrids/icons";
@@ -45,7 +44,6 @@ interface MarketMapProps {
   geoData: ProvinceFeatureCollection;
   onQueryChange: (query: string) => void;
   onRegionChange: (region: RegionKey) => void;
-  onReset: () => void;
   onExport: () => void;
   onClearSelection: () => void;
   onSelectProvince: (code: string) => void;
@@ -113,7 +111,6 @@ export default function MarketMap({
   geoData,
   onQueryChange,
   onRegionChange,
-  onReset,
   onExport,
   onClearSelection,
   onSelectProvince,
@@ -237,7 +234,7 @@ export default function MarketMap({
             Bản đồ thị trường & trường THPT
           </h2>
           <span className="rounded-md bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-500">
-            {totalProvinces > 0 ? `${totalProvinces} tỉnh` : "Chưa có dữ liệu"}
+            {totalProvinces > 0 ? `${totalProvinces} tỉnh` : "-"}
           </span>
           <span className="hidden text-xs text-text-tertiary sm:inline">
             • {totalSchools} trường nổi bật · {admissionYear === null ? "Kỳ hiện hành" : `Niên khóa ${admissionYear}`}
@@ -317,23 +314,13 @@ export default function MarketMap({
                   >
                     <span className="font-medium text-text-primary">{p.name}</span>
                     <span className="rounded bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-500">
-                      {p.opportunity === null ? "N/A" : `${p.opportunity} đ`}
+                      {p.opportunity === null ? "-" : `${p.opportunity} đ`}
                     </span>
                   </button>
                 ))}
               </div>
             )}
           </div>
-
-          <Button
-            appearance="ghost"
-            className="h-7.5 gap-1 px-2 text-xs text-text-secondary hover:text-text-primary"
-            onPress={onReset}
-            size="sm"
-          >
-            <RefreshCircle1Clockwise size={12} />
-            <span>Đặt lại</span>
-          </Button>
 
           <Button
             className="h-7.5 gap-1 px-2.5 text-xs"
@@ -478,7 +465,7 @@ export default function MarketMap({
 
               return (
                 <path
-                  aria-label={`${path.name}: ${province ? formatMetricValue(province, activeMetric) : "Chưa có dữ liệu"}`}
+                  aria-label={`${path.name}: ${province ? formatMetricValue(province, activeMetric) : "-"}`}
                   className={`${province ? "cursor-pointer" : "cursor-default"} transition-all duration-150 focus:outline-none`}
                   d={path.d}
                   fill={fillColor}
@@ -543,19 +530,19 @@ export default function MarketMap({
             <span className="font-semibold text-text-primary">
               {formatNullableNumber(regionStats.totalLeads)}
             </span>
-            <span className="text-text-tertiary">(CR {regionStats.avgConversion === null ? "Chưa có dữ liệu" : `${regionStats.avgConversion}%`})</span>
+            <span className="text-text-tertiary">(CR {regionStats.avgConversion === null ? "-" : `${regionStats.avgConversion}%`})</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <span className="text-text-tertiary">Doanh thu:</span>
             <span className="font-semibold text-text-primary">
-              {regionStats.totalRevenue === null ? "Chưa có dữ liệu" : `${regionStats.totalRevenue} Tỷ`}
+              {regionStats.totalRevenue === null ? "-" : `${regionStats.totalRevenue} Tỷ`}
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <span className="text-brand-500 font-medium">
-              {regionStats.hotspotCount === null ? "Chưa có dữ liệu" : `${regionStats.hotspotCount}/${regionStats.count}`} Hotspots
+              {regionStats.hotspotCount === null ? "-" : `${regionStats.hotspotCount}/${regionStats.count}`} Hotspots
             </span>
           </div>
         </div>
@@ -573,5 +560,5 @@ export default function MarketMap({
 }
 
 function formatNullableNumber(value: number | null, suffix = "") {
-  return value === null ? "Chưa có dữ liệu" : `${new Intl.NumberFormat("vi-VN").format(value)}${suffix}`;
+  return value === null ? "-" : `${new Intl.NumberFormat("vi-VN").format(value)}${suffix}`;
 }

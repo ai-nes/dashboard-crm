@@ -60,6 +60,8 @@ import {
   computeDirectorDemographicsOverview,
   computeDirectorDemographicsSegment,
 } from "@/services/api/demographics";
+import { computeDirectorOverview } from "@/services/api/director-overview";
+import type { TrendRange } from "@/services/api/director-overview/types";
 
 type RouteContext = {
   params: Promise<{ resource?: string[] }>;
@@ -288,6 +290,35 @@ async function getDemographicsResponse(request: NextRequest, resource: string[])
   );
 }
 
+async function getDirectorResponse(request: NextRequest, resource: string[]) {
+  const [, identifier] = resource;
+  const admissionYear = numberParam(request, "admissionYear", 2026, 3000);
+  const scope = request.nextUrl.searchParams.get("scope") ?? "all";
+  const trendRangeParam = request.nextUrl.searchParams.get("trendRange");
+  const trendRange: TrendRange =
+    trendRangeParam === "7d" || trendRangeParam === "30d" || trendRangeParam === "year"
+      ? trendRangeParam
+      : "30d";
+
+  if (!identifier || identifier === "overview") {
+    return json(
+      computeDirectorOverview({
+        admissionYear,
+        scope,
+        trendRange,
+      }),
+    );
+  }
+
+  return json(
+    computeDirectorOverview({
+      admissionYear,
+      scope,
+      trendRange,
+    }),
+  );
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
   const { resource = [] } = await context.params;
   const [domain] = resource;
@@ -295,6 +326,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   if (domain === "students") return getStudentResponse(request, resource);
   if (domain === "schools") return getSchoolResponse(request, resource);
   if (domain === "demographics") return getDemographicsResponse(request, resource);
+  if (domain === "director") return getDirectorResponse(request, resource);
 
   const data = await getDashboardResponse(request, resource);
   return data === null

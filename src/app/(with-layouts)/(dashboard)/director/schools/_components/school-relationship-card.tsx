@@ -21,6 +21,11 @@ export default function SchoolRelationshipCard({ data }: SchoolRelationshipCardP
         title: `Liên hệ ${firstMissingContact.role}`,
         detail: "Xin tên và thông tin liên hệ để đặt lịch làm việc.",
       }
+    : !relationship.contact || relationship.contact === "-"
+      ? {
+          title: "Xác định đầu mối trường",
+          detail: "Chưa có dữ liệu đầu mối để đặt lịch làm việc.",
+        }
     : {
         title: `Tiếp tục với ${relationship.contact}`,
         detail: `Lần liên hệ tiếp theo: ${relationship.nextTouch}.`,
@@ -66,7 +71,7 @@ export default function SchoolRelationshipCard({ data }: SchoolRelationshipCardP
           </div>
 
           <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
-            {contacts.map((contact) => (
+            {contacts.length ? contacts.map((contact) => (
               <li key={contact.role} className="flex min-w-0 items-center gap-2.5 rounded-xl border border-card-border px-3 py-2.5">
                 <span className={contact.hasContact ? "shrink-0 text-success-500" : "shrink-0 text-icon-tertiary"} aria-hidden="true">
                   {contact.hasContact ? <CheckCircle1 size={16} /> : <User2 size={16} />}
@@ -77,7 +82,7 @@ export default function SchoolRelationshipCard({ data }: SchoolRelationshipCardP
                 </div>
                 <Badge color={contact.hasContact ? "success" : "gray"}>{contact.hasContact ? "Đã có" : "Cần tìm"}</Badge>
               </li>
-            ))}
+            )) : <li className="rounded-xl border border-dashed border-card-border px-3 py-4 text-sm text-text-tertiary">-</li>}
           </ul>
         </div>
       </div>

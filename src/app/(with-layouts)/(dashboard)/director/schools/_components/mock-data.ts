@@ -144,6 +144,27 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
     return { naturalScienceShare, socialScienceShare, recommendedMajorGroup };
   })();
 
+  const potentialIndicatorWeights = [25, 15, 20, 10, 10, 20];
+  const rawPotentialScores = [
+    potentialScore - 5 + (seed % 11),
+    potentialScore - 3 + (seed % 7),
+    potentialScore - 4 + (seed % 9),
+    potentialScore - 2 + (seed % 5),
+    potentialScore - 3 + (seed % 7),
+  ].map((score) => Math.min(100, Math.max(0, score)));
+  const weightedWithoutP6 = rawPotentialScores.reduce(
+    (total, score, index) => total + (score * potentialIndicatorWeights[index]) / 100,
+    0,
+  );
+  const potentialIndicators = [
+    { id: "P1" as const, label: "Quy mô khả dụng", score: rawPotentialScores[0], weight: 25 },
+    { id: "P2" as const, label: "Mật độ khả dụng", score: rawPotentialScores[1], weight: 15 },
+    { id: "P3" as const, label: "Mức khớp ngành", score: rawPotentialScores[2], weight: 20 },
+    { id: "P4" as const, label: "Khả năng chi trả", score: rawPotentialScores[3], weight: 10 },
+    { id: "P5" as const, label: "Xu hướng đi học xa", score: rawPotentialScores[4], weight: 10 },
+    { id: "P6" as const, label: "Lịch sử chuyển đổi", score: Math.min(100, Math.max(0, Math.round((potentialScore - weightedWithoutP6) / 0.2))), weight: 20 },
+  ];
+
   const earlyForecast = {
     grade10CutoffScore: 32 + (seed % 12),
     priorCohortResult: `Khoá trước: ${availableStudents - 10 + (seed % 20)} học sinh khả dụng, ${relationshipScore >= 60 ? "kết quả ổn định" : "biến động nhẹ"} qua các mùa`,
@@ -261,6 +282,7 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
     classification: { group: classification, isKeyAccount: classification === "Trọng điểm", ...classificationCopy[classification] },
     quadrantPeers,
     scoreBands,
+    potentialIndicators,
     academicGap,
     postGraduationChoices,
     competitionContext,

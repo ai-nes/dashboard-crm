@@ -439,7 +439,7 @@ export function toProvinceMetrics(
 
 export function formatMetricValue(province: ProvinceMetrics, metric: MetricKey) {
   const value = province[metric];
-  if (value === null) return "Chưa có dữ liệu";
+  if (value === null) return "-";
   if (metric === "opportunity") return `${value} /100`;
   if (metric === "leads") return new Intl.NumberFormat("vi-VN").format(value);
   if (metric === "conversion") return `${value}%`;
@@ -449,7 +449,7 @@ export function formatMetricValue(province: ProvinceMetrics, metric: MetricKey) 
 }
 
 export function opportunityLabel(score: number | null) {
-  if (score === null) return "Chưa có dữ liệu";
+  if (score === null) return "-";
   if (score >= 80) return "Cơ hội rất cao";
   if (score >= 65) return "Tiềm năng lớn";
   if (score >= 50) return "Đang tăng trưởng";

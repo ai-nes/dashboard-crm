@@ -18,7 +18,7 @@ export default function StudentKpiStrip({ summary }: StudentKpiStripProps) {
   const trackedCount = summary?.trackedStudents != null ? summary.trackedStudents.toLocaleString("vi-VN") : "-";
   const trackedDelta = summary?.trackedStudentsDeltaPercent != null
     ? `${summary.trackedStudentsDeltaPercent > 0 ? "+" : ""}${summary.trackedStudentsDeltaPercent.toFixed(1).replace(".", ",")}% so với tháng trước`
-    : "Chưa có dữ liệu so sánh";
+    : "-";
 
   const highIntentCount = summary?.highIntentStudents != null ? summary.highIntentStudents.toLocaleString("vi-VN") : "-";
   const highIntentRate = summary?.highIntentRate != null

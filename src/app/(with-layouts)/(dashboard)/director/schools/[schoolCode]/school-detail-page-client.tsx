@@ -3,19 +3,24 @@
 import { useEffect, useState } from "react";
 
 import { DirectorApiError, getDirectorSchoolDetail } from "@/services/api/schools/school-intelligence";
-import type { DirectorSchoolDetailData } from "@/services/api/schools/types";
+import type { DirectorSchoolDetailData, SchoolIntelligenceData } from "@/services/api/schools/types";
 import SchoolIntelligenceDashboard from "../_components/school-intelligence-dashboard";
+import SchoolIntelligenceApiFallback from "../_components/school-intelligence-api-fallback";
+import { toSchoolIntelligenceData } from "../_components/school-intelligence-adapter";
 
 interface Props {
+  initialIntelligence?: SchoolIntelligenceData;
   schoolCode: string;
 }
 
-export default function SchoolDetailPageClient({ schoolCode }: Props) {
+export default function SchoolDetailPageClient({ initialIntelligence, schoolCode }: Props) {
   const [data, setData] = useState<DirectorSchoolDetailData>();
   const [error, setError] = useState<string>();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialIntelligence);
 
   useEffect(() => {
+    if (initialIntelligence) return;
+
     let cancelled = false;
 
     getDirectorSchoolDetail(schoolCode)
@@ -38,13 +43,17 @@ export default function SchoolDetailPageClient({ schoolCode }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [schoolCode]);
+  }, [initialIntelligence, schoolCode]);
+
+  if (initialIntelligence) return <SchoolIntelligenceDashboard data={initialIntelligence} />;
 
   if (loading) {
     return <div className="min-h-[640px] animate-pulse rounded-2xl bg-card-background/60" />;
   }
 
-  return <SchoolIntelligenceDashboard data={data} error={error} />;
+  if (data) return <SchoolIntelligenceDashboard data={toSchoolIntelligenceData(data)} />;
+
+  return <SchoolIntelligenceApiFallback error={error} />;
 }
 
 function schoolErrorMessage(error: unknown): string {

@@ -15,8 +15,9 @@ interface Recommendation {
 
 export default function SchoolAcademicProfile({ data }: SchoolAcademicProfileProps) {
   const { subjectMix } = data;
+  const hasSubjectMix = subjectMix.naturalScienceShare > 0 || subjectMix.socialScienceShare > 0;
   const otherShare = Math.max(0, 100 - subjectMix.naturalScienceShare - subjectMix.socialScienceShare);
-  const recommendation = getRecommendation(subjectMix.naturalScienceShare, subjectMix.socialScienceShare);
+  const recommendation = getRecommendation(subjectMix.naturalScienceShare, subjectMix.socialScienceShare, hasSubjectMix);
   const groups = [
     { label: "Khoa học tự nhiên", value: subjectMix.naturalScienceShare, color: "bg-primary-500" },
     { label: "Khoa học xã hội", value: subjectMix.socialScienceShare, color: "bg-warning-500" },
@@ -45,7 +46,7 @@ export default function SchoolAcademicProfile({ data }: SchoolAcademicProfilePro
           </div>
 
           <div className="mt-5 grid gap-4">
-            {groups.map((group) => <SubjectShare key={group.label} {...group} />)}
+            {groups.map((group) => <SubjectShare key={group.label} {...group} hasData={hasSubjectMix} />)}
           </div>
         </div>
 
@@ -70,7 +71,7 @@ export default function SchoolAcademicProfile({ data }: SchoolAcademicProfilePro
   );
 }
 
-function SubjectShare({ label, value, color }: { label: string; value: number; color: string }) {
+function SubjectShare({ label, value, color, hasData }: { label: string; value: number; color: string; hasData: boolean }) {
   return (
     <div className="min-w-0">
       <div className="flex items-center justify-between gap-3">
@@ -78,7 +79,7 @@ function SubjectShare({ label, value, color }: { label: string; value: number; c
           <span className={`size-2.5 shrink-0 rounded-full ${color}`} aria-hidden="true" />
           <p className="truncate text-sm text-text-secondary">{label}</p>
         </div>
-        <strong className="shrink-0 text-base font-semibold text-text-primary">{value}%</strong>
+        <strong className="shrink-0 text-base font-semibold text-text-primary">{hasData ? `${value}%` : "-"}</strong>
       </div>
       <div className="mt-2 h-2 overflow-hidden rounded-full bg-background-soft-100" aria-hidden="true">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
@@ -87,7 +88,16 @@ function SubjectShare({ label, value, color }: { label: string; value: number; c
   );
 }
 
-function getRecommendation(naturalScienceShare: number, socialScienceShare: number): Recommendation {
+function getRecommendation(naturalScienceShare: number, socialScienceShare: number, hasData: boolean): Recommendation {
+  if (!hasData) {
+    return {
+      badge: "-",
+      title: "-",
+      reason: "Cơ cấu môn chưa được thu thập.",
+      majors: ["-"],
+    };
+  }
+
   if (naturalScienceShare >= socialScienceShare + 8) {
     return {
       badge: "Ưu tiên nhóm tự nhiên",

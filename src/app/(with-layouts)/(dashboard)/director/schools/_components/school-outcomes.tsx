@@ -33,12 +33,17 @@ interface ScoreDistributionSegment {
 
 export default function SchoolOutcomes({ data }: SchoolOutcomesProps) {
   const [hoveredSegmentKey, setHoveredSegmentKey] = useState<ScoreBandKey | null>(null);
+  const hasScoreDistribution = data.scoreBands.length > 0;
+  const hasChoiceBreakdown = data.postGraduationChoices.length > 0;
+  const chartChoices = hasChoiceBreakdown
+    ? data.postGraduationChoices
+    : [{ label: "-", share: 0, students: 0 }];
   const scoreDistribution = SCORE_BAND_KEYS.map((key, index) => {
     const source = data.scoreBands[index];
     return {
       key,
       label: SCORE_BAND_LABELS[source?.label] ?? source?.label ?? "Khác",
-      students: source?.students ?? 0,
+      students: source?.students ?? (hasScoreDistribution ? 0 : 1),
       share: source?.share ?? 0,
       color: BAND_COLORS[index],
     } satisfies ScoreDistributionSegment;
@@ -66,9 +71,9 @@ export default function SchoolOutcomes({ data }: SchoolOutcomesProps) {
               </PieChart>
             </ChartContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-2xl font-semibold text-text-primary">{centerSegment.students.toLocaleString("vi-VN")}</p>
+              <p className="text-2xl font-semibold text-text-primary">{hasScoreDistribution ? centerSegment.students.toLocaleString("vi-VN") : "-"}</p>
               <p className="mt-0.5 max-w-28 text-center text-xs leading-4 text-text-tertiary">{hoveredSegmentKey ? centerSegment.label : "HS phù hợp"}</p>
-              {hoveredSegmentKey ? <p className="mt-0.5 text-xs font-medium text-text-secondary">{centerSegment.share}% tổng số</p> : null}
+              {hoveredSegmentKey ? <p className="mt-0.5 text-xs font-medium text-text-secondary">{hasScoreDistribution ? `${centerSegment.share}% tổng số` : "-"}</p> : null}
             </div>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -78,7 +83,7 @@ export default function SchoolOutcomes({ data }: SchoolOutcomesProps) {
                   <span className="mt-1.5 size-2 shrink-0 rounded-full" style={{ backgroundColor: segment.color }} aria-hidden="true" />
                   <p className="min-w-0 text-xs leading-4 text-text-secondary">{segment.label}</p>
                 </div>
-                <p className="mt-1 pl-4 text-sm font-semibold text-text-primary">{segment.students.toLocaleString("vi-VN")} <span className="font-normal text-text-tertiary">({segment.share}%)</span></p>
+                <p className="mt-1 pl-4 text-sm font-semibold text-text-primary">{hasScoreDistribution ? segment.students.toLocaleString("vi-VN") : "-"} <span className="font-normal text-text-tertiary">({hasScoreDistribution ? `${segment.share}%` : "-"})</span></p>
               </div>
             ))}
           </div>
@@ -92,14 +97,14 @@ export default function SchoolOutcomes({ data }: SchoolOutcomesProps) {
 
           <div className="mt-3 h-56 min-h-56 w-full">
             <ChartContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-              <BarChart data={data.postGraduationChoices} layout="vertical" margin={{ top: 4, right: 36, left: 8, bottom: 0 }}>
+              <BarChart data={chartChoices} layout="vertical" margin={{ top: 4, right: 36, left: 8, bottom: 0 }}>
                 <CartesianGrid horizontal={false} stroke="var(--border-color-base-100)" />
                 <XAxis type="number" hide domain={[0, 40]} />
                 <YAxis type="category" dataKey="label" width={140} axisLine={false} tickLine={false} tick={{ fill: "var(--text-secondary)", fontSize: 11 }} />
                 <Tooltip cursor={{ fill: "var(--background-soft-50)" }} content={<ChoiceTooltip />} />
                 <Bar dataKey="share" name="Tỷ trọng" radius={[0, 6, 6, 0]} barSize={18}>
-                  {data.postGraduationChoices.map((item, index) => <Cell key={item.label} fill={CHOICE_COLORS[index]} />)}
-                  <LabelList dataKey="share" position="right" fill="var(--text-secondary)" fontSize={11} formatter={(value) => String(value) + "%"} />
+                  {chartChoices.map((item, index) => <Cell key={`${item.label}-${index}`} fill={CHOICE_COLORS[index]} />)}
+                  <LabelList dataKey="share" position="right" fill="var(--text-secondary)" fontSize={11} formatter={(value) => hasChoiceBreakdown ? String(value) + "%" : "-"} />
                 </Bar>
               </BarChart>
             </ChartContainer>

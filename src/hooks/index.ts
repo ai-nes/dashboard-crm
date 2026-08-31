@@ -9,4 +9,5 @@ export * from "./use-saas-queries";
 export * from "./use-stocks-queries";
 export * from "./use-students-queries";
 export * from "./use-demographics-queries";
+export * from "./use-director-overview-queries";
 

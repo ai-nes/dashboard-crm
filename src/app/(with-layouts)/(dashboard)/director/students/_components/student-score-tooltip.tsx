@@ -16,7 +16,7 @@ export default function StudentScoreTooltip({ active, payload, label }: Partial<
     <div className="min-w-40 rounded-lg border border-card-border bg-card-background p-3 shadow-md">
       <p className="text-xs font-semibold text-text-primary">{label}</p>
       <p className="mt-1 text-sm font-semibold text-primary-500">{item.value ?? 0}/100</p>
-      <p className="mt-2 text-xs leading-5 text-text-secondary">{item.summary ?? "Chưa có dữ liệu"}</p>
+      <p className="mt-2 text-xs leading-5 text-text-secondary">{item.summary ?? "-"}</p>
     </div>
   );
 }

@@ -109,6 +109,16 @@ export interface SchoolScoreBand {
   available?: boolean;
 }
 
+export type SchoolPotentialIndicatorId = "P1" | "P2" | "P3" | "P4" | "P5" | "P6";
+
+export interface SchoolPotentialIndicator {
+  id: SchoolPotentialIndicatorId;
+  label: string;
+  score: number | null;
+  weight: number;
+  status?: "available" | "estimated" | "unavailable";
+}
+
 export interface SchoolChoiceBreakdown {
   label: string;
   students: number;
@@ -157,6 +167,7 @@ export interface SchoolIntelligenceData {
   };
   quadrantPeers: SchoolQuadrantPoint[];
   scoreBands: SchoolScoreBand[];
+  potentialIndicators?: SchoolPotentialIndicator[];
   academicGap: {
     reportCard: number;
     examScore: number;
@@ -176,6 +187,7 @@ export interface SchoolIntelligenceData {
   };
   contacts: SchoolContact[];
   activities: SchoolActivity[];
+  dataAvailability?: DirectorSchoolDetailData["dataAvailability"];
 }
 
 export type SchoolRegion = "Miền Bắc" | "Miền Trung" | "Miền Nam";

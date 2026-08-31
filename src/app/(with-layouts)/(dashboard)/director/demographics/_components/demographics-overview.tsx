@@ -15,22 +15,16 @@ import SegmentLandscapeChart from "./segment-landscape-chart";
 interface DemographicsOverviewProps {
   data?: DirectorDemographicsOverviewData;
   onOpenSegment: (segmentId: string) => void;
-  onRefresh?: () => void;
-  isRefreshing?: boolean;
 }
 
 export default function DemographicsOverview({
   data,
   onOpenSegment,
-  onRefresh,
-  isRefreshing,
 }: DemographicsOverviewProps) {
   return (
     <div className="min-w-0 max-w-full space-y-5 overflow-hidden px-2 py-4 pb-8 lg:px-6">
       <OverviewHeader
         onExport={() => toast.success("Đã tạo báo cáo tổng quan người học.")}
-        onRefresh={onRefresh}
-        isRefreshing={isRefreshing}
       />
       <div className="min-w-0 max-w-full space-y-5">
         <OverviewKpiStrip kpis={data?.kpis} />
