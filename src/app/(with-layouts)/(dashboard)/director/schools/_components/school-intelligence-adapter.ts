@@ -86,6 +86,7 @@ export function toSchoolIntelligenceData(detail: DirectorSchoolDetailData): Scho
     },
     quadrantPeers: [],
     scoreBands: [],
+    examScoreBands: detail.examScoreBands,
     potentialIndicators: [],
     academicGap: { reportCard: 0, examScore: 0 },
     postGraduationChoices: [],

@@ -71,8 +71,8 @@ export default function SchoolRelationshipCard({ data }: SchoolRelationshipCardP
           </div>
 
           <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
-            {contacts.length ? contacts.map((contact) => (
-              <li key={contact.role} className="flex min-w-0 items-center gap-2.5 rounded-xl border border-card-border px-3 py-2.5">
+            {contacts.length ? contacts.map((contact, index) => (
+              <li key={`${contact.role}-${index}`} className="flex min-w-0 items-center gap-2.5 rounded-xl border border-card-border px-3 py-2.5">
                 <span className={contact.hasContact ? "shrink-0 text-success-500" : "shrink-0 text-icon-tertiary"} aria-hidden="true">
                   {contact.hasContact ? <CheckCircle1 size={16} /> : <User2 size={16} />}
                 </span>

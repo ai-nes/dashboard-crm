@@ -109,6 +109,16 @@ export interface SchoolScoreBand {
   available?: boolean;
 }
 
+export const SCHOOL_EXAM_SCORE_BAND_LABELS = ["0–2", "2–4", "4–6", "6–8", "8–10"] as const;
+
+export type SchoolExamScoreBandLabel = (typeof SCHOOL_EXAM_SCORE_BAND_LABELS)[number];
+
+export interface SchoolExamScoreBand {
+  label: SchoolExamScoreBandLabel;
+  students: number;
+  share: number;
+}
+
 export type SchoolPotentialIndicatorId = "P1" | "P2" | "P3" | "P4" | "P5" | "P6";
 
 export interface SchoolPotentialIndicator {
@@ -167,6 +177,7 @@ export interface SchoolIntelligenceData {
   };
   quadrantPeers: SchoolQuadrantPoint[];
   scoreBands: SchoolScoreBand[];
+  examScoreBands: SchoolExamScoreBand[];
   potentialIndicators?: SchoolPotentialIndicator[];
   academicGap: {
     reportCard: number;
@@ -281,6 +292,7 @@ export interface DirectorSchoolDetailData {
   };
   contacts: DirectorSchoolContact[];
   activities: DirectorSchoolActivity[];
+  examScoreBands: SchoolExamScoreBand[];
   asOf: string | null;
   dataAvailability: {
     status?: DataAvailabilityStatus;

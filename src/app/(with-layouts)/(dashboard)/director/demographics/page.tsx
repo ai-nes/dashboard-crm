@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import DemographicExplorerDashboard from "./_components/demographic-explorer-dashboard";
 
 export const metadata: Metadata = {
-  title: "Khám phá người học",
-  description: "Phân tích phân khúc người học và cơ hội tuyển sinh theo thị trường.",
+  title: "Phân tích nhóm lead",
+  description: "Theo dõi nguồn, chất lượng lead và nhóm cần ưu tiên trong mùa tuyển sinh.",
 };
 
 export default function DemographicsPage() {

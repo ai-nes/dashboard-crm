@@ -8,6 +8,7 @@ import SchoolLocalityCard from "./school-locality-card";
 import SchoolOutcomes from "./school-outcomes";
 import SchoolPotentialBreakdown from "./school-potential-breakdown";
 import SchoolPotentialDecomposition from "./school-potential-decomposition";
+import SchoolExamScoreDistribution from "./school-exam-score-distribution";
 import SchoolRelationshipCard from "./school-relationship-card";
 
 interface SchoolIntelligenceDashboardProps {
@@ -41,7 +42,10 @@ export default function SchoolIntelligenceDashboard({ data }: SchoolIntelligence
       <SchoolAcademicProfile data={data} />
       <SchoolRelationshipCard data={data} />
       <ActivityTimeline data={data} />
-      <SchoolPotentialDecomposition data={data} />
+      <section className="grid min-w-0 gap-5 xl:grid-cols-[1.1fr_0.9fr]" aria-label="Phân tích điểm trường">
+        <SchoolPotentialDecomposition data={data} />
+        <SchoolExamScoreDistribution data={data} />
+      </section>
     </main>
   );
 }

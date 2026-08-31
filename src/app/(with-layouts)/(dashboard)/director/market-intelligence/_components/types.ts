@@ -22,6 +22,10 @@ export interface HighSchoolItem {
   directoryId: string | null;
   name: string;
   district: string | null;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  } | null;
   tier: SchoolTier | null;
   potentialScore: number | null;
   grade12Students: number | null;
@@ -66,6 +70,7 @@ export interface ProvinceMetrics {
   code: string;
   name: string;
   regionKey: RegionKey;
+  schoolCount: number | null;
   opportunity: number | null; // 0 - 100
   leads: number | null;
   conversion: number | null; // %

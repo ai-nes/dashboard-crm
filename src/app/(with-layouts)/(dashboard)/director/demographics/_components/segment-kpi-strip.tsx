@@ -1,17 +1,18 @@
-import { ArrowUpward } from "@tailgrids/icons";
+import { ArrowDownward, ArrowUpward } from "@tailgrids/icons";
 
 import type { DemographicSegment } from "./types";
+import { formatGrowth } from "./chart-utils";
 
 export default function SegmentKpiStrip({ segment }: { segment: DemographicSegment }) {
   const tuitionDisplay = segment.tuition != null ? `${segment.tuition.toLocaleString("vi-VN")} tr` : "-";
   const revenueDisplay = segment.revenue != null ? `${segment.revenue.toLocaleString("vi-VN")} tỷ` : "-";
-  const growthDisplay = segment.growth != null ? `+${segment.growth}%` : "-";
+  const growthDisplay = formatGrowth(segment.growth);
 
   const items = [
     {
-      label: "Hồ sơ phù hợp",
+      label: "Tổng lead",
       value: segment.prospects != null ? segment.prospects.toLocaleString("vi-VN") : "-",
-      helper: segment.prospects != null ? `${((segment.prospects / 57840) * 100).toFixed(1)}% tổng hồ sơ` : "-",
+      helper: segment.prospects != null ? `${((segment.prospects / 57840) * 100).toLocaleString("vi-VN", { maximumFractionDigits: 1 })}% tổng lead` : "-",
       tone: "bg-brand-500",
     },
     {
@@ -51,10 +52,14 @@ export default function SegmentKpiStrip({ segment }: { segment: DemographicSegme
           <p className="mt-4 text-2xl font-semibold tracking-[-0.6px] text-text-primary">{item.value}</p>
           <p
             className={`mt-2 flex items-center gap-1 text-xs ${
-              index === 4 && segment.growth != null ? "font-semibold text-success-500" : "text-text-tertiary"
+              index === 4 && segment.growth != null
+                ? `font-semibold ${segment.growth >= 0 ? "text-success-500" : "text-error-500"}`
+                : "text-text-tertiary"
             }`}
           >
-            {index === 4 && segment.growth != null && <ArrowUpward size={13} aria-hidden="true" />}
+            {index === 4 && segment.growth != null ? (
+              segment.growth >= 0 ? <ArrowUpward size={13} aria-hidden="true" /> : <ArrowDownward size={13} aria-hidden="true" />
+            ) : null}
             {item.helper}
           </p>
         </article>

@@ -14,8 +14,8 @@ export interface SegmentChannel {
 
 export interface SegmentTrendPoint {
   month: string;
-  current: number;
-  benchmark: number;
+  current: number | null;
+  benchmark: number | null;
 }
 
 export interface DemographicKpi {
@@ -30,16 +30,16 @@ export interface DemographicKpi {
 
 export interface DemandTrendPoint {
   month: string;
-  ai: number;
-  software: number;
-  business: number;
-  design: number;
+  ai: number | null;
+  software: number | null;
+  business: number | null;
+  design: number | null;
 }
 
 export interface DemandSummaryItem {
   id: string;
   label: string;
-  value: number;
+  value: number | null;
   change: number | null;
 }
 
@@ -70,6 +70,8 @@ export interface AudienceComposition {
   profiles: AudienceProfile[];
 }
 
+export type ChannelAttributionModel = "first-touch" | "last-touch" | "observed-interactions";
+
 export interface DemographicSegment {
   id: string;
   name: string;
@@ -83,15 +85,16 @@ export interface DemographicSegment {
   counselling: number;
   applications: number;
   enrolled: number;
-  conversion: number;
+  conversion: number | null;
   tuition: number | null;
   revenue: number | null;
-  growth: number;
+  growth: number | null;
   coverage: number;
   opportunityScore: number;
   tone: DemographicTone;
   filters: SegmentFilter[];
   channels: SegmentChannel[];
+  channelAttributionModel?: ChannelAttributionModel;
   monthlyProspects: SegmentTrendPoint[];
 }
 
@@ -103,11 +106,23 @@ export interface RegionOpportunity {
 }
 
 export interface RegionalDemandMatrix {
+  metric?: "count" | "relative-index";
+  unit?: "contacts" | "score";
   columns: Array<{ id: string; name: string }>;
   rows: Array<{
     interest: string;
-    scores: Record<string, number>;
+    values?: Record<string, number | null>;
+    scores?: Record<string, number | null>;
   }>;
+}
+
+export interface DemographicsFilterOptions {
+  provinces: string[];
+  majors: string[];
+  stages: string[];
+  priorities: string[];
+  owners: string[];
+  sourceGroups: string[];
 }
 
 export interface DataCoverageMetric {
@@ -143,6 +158,12 @@ export interface DirectorDemographicsOverviewParams {
   admissionYear?: number;
   period?: "6m" | "12m" | "season" | string;
   scope?: "all" | string;
+  province?: string;
+  major?: string;
+  stage?: string;
+  priority?: string;
+  owner?: string;
+  sourceGroup?: string;
 }
 
 export interface DirectorDemographicsOverviewData {
@@ -153,6 +174,7 @@ export interface DirectorDemographicsOverviewData {
   regionOpportunities: RegionOpportunity[];
   regionalDemand: RegionalDemandMatrix;
   dataCoverage: DataCoverageMetric[];
+  filterOptions?: DemographicsFilterOptions;
 }
 
 export interface DirectorDemographicsOverviewMeta {
@@ -163,7 +185,7 @@ export interface DirectorDemographicsOverviewMeta {
   totalProspects: number;
   minSampleSize: number;
   dataAvailability?: {
-    trend: boolean;
+    trend: boolean | "complete" | "partial" | "unavailable";
     tuition: boolean;
     revenue: boolean;
     eligibleSegments: number;

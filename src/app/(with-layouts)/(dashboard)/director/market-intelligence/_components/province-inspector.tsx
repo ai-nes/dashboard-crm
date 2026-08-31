@@ -6,7 +6,6 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { sortByAvailableScore } from "@/services/api/market-intelligence";
 
 import {
-  formatMetricValue,
   getOpportunityBadgeVariant,
   opportunityLabel,
   REGION_CONFIGS,
@@ -65,13 +64,6 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        <section aria-label="Chỉ số thị trường" className="grid grid-cols-2 gap-2">
-          <MetricTile label="HS lớp 12" value={formatNullable(province.grade12Population, true)} hint="Dung lượng" />
-          <MetricTile label="Leads" value={formatNullable(province.leads, true)} hint={`CR ${formatPercent(province.conversion)}`} />
-          <MetricTile label="Đã tiếp cận" value={formatPercent(province.penetrationRate)} hint="Penetration" />
-          <MetricTile label="Doanh thu" value={formatMetricValue(province, "revenue")} hint={province.trend === null ? "-" : `${province.trend}% YoY`} />
-        </section>
-
         <section aria-labelledby="school-list-title" className="mt-5">
           <div className="flex items-end justify-between gap-3">
             <div>
@@ -127,15 +119,11 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
   );
 }
 
-function formatNullable(value: number | null, grouped = false) {
+function formatNullable(value: number | null) {
   if (value === null) return "-";
-  return grouped ? value.toLocaleString("vi-VN") : String(value);
+  return String(value);
 }
 
 function formatPercent(value: number | null) {
   return value === null ? "-" : `${value}%`;
-}
-
-function MetricTile({ hint, label, value }: { hint: string; label: string; value: string }) {
-  return <div className="rounded-xl bg-background-soft-50 p-3"><p className="text-[11px] text-text-tertiary">{label}</p><p className="mt-1 truncate text-base font-semibold text-text-primary" title={value}>{value}</p><p className="mt-0.5 truncate text-[10px] text-text-tertiary">{hint}</p></div>;
 }

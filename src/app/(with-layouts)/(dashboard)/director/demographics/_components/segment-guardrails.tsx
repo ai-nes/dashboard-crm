@@ -15,17 +15,23 @@ export default function SegmentGuardrails({ guardrails = defaultGuardrails }: Se
       <CardHeader className="border-b border-card-border p-5">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Giới hạn sử dụng dữ liệu</CardTitle>
+            <CardTitle>Giới hạn dữ liệu phân tích</CardTitle>
             <Badge color="success">
               <Shield1Check size={13} aria-hidden="true" />
-              Tối thiểu 30 hồ sơ
+              Tối thiểu 30 lead
             </Badge>
           </div>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Một số tiêu chí bị giới hạn để tránh dùng sai dữ liệu học sinh.
+            Một số tiêu chí không dùng để tránh suy luận sai.
           </p>
         </div>
       </CardHeader>
+      <div className="hidden border-b border-card-border bg-background-gray-primary px-5 py-2 text-[10px] font-semibold tracking-wide text-text-tertiary uppercase md:grid md:grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)_90px] md:gap-2">
+        <span>Tiêu chí</span>
+        <span>Không dùng vì</span>
+        <span>Dùng thay thế</span>
+        <span className="md:text-right">Trạng thái</span>
+      </div>
       <div className="divide-y divide-card-border">
         {guardrails.map((item) => (
           <div
@@ -43,7 +49,7 @@ export default function SegmentGuardrails({ guardrails = defaultGuardrails }: Se
       </div>
       <div className="flex items-start gap-2 border-t border-card-border bg-card-background px-5 py-3 text-xs leading-5 text-text-tertiary">
         <InfoTriangle size={15} className="mt-0.5 shrink-0 text-warning-500" aria-hidden="true" />
-        Tiêu chí bị khóa vẫn hiển thị lý do để người dùng biết cách phân tích thay thế.
+        Tiêu chí bị giới hạn vẫn có cách phân tích thay thế.
       </div>
     </Card>
   );

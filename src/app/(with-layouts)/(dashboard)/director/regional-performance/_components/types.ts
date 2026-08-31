@@ -12,10 +12,31 @@ export type RegionPerformance = {
   activeAdvisors: number;
   capacity: number;
   health: HealthTone;
-  capability: number;
+  trend: MonthlyTrend[];
+  funnel: FunnelStage[];
+  capabilities: Record<CapabilityKey, HealthTone>;
 };
 
-export type MonthlyTrend = { month: string; applications: number; enrollments: number; previousApplications: number };
-export type FunnelStage = { stage: string; north: number; central: number; south: number };
-export type CapabilityRow = { label: string; north: HealthTone; central: HealthTone; south: HealthTone };
-export type PriorityAction = { id: string; title: string; detail: string; region: string; priority: "Cao" | "Trung bình" | "Thấp"; tone: HealthTone };
+export type MonthlyTrend = {
+  month: string;
+  applications: number;
+  enrollments: number;
+  previousApplications: number;
+};
+export type FunnelStage = { stage: string; value: number };
+export type CapabilityKey =
+  | "leadGeneration"
+  | "counselling"
+  | "quality"
+  | "conversion"
+  | "campaigns"
+  | "productivity";
+export type CapabilityColumn = { key: CapabilityKey; label: string };
+export type PriorityAction = {
+  id: string;
+  title: string;
+  detail: string;
+  provinceId: string | "all";
+  priority: "Cao" | "Trung bình" | "Thấp";
+  tone: HealthTone;
+};

@@ -13,7 +13,7 @@ describe("market intelligence normalization", () => {
   it("preserves a real zero and keeps missing scalars unavailable", () => {
     const result = normalizeMarketOverview({
       provinces: [
-        { code: "01", name: "Hà Nội", opportunity: 0, leads: 0 },
+        { code: "01", name: "Hà Nội", schoolCount: 4, opportunity: 0, leads: 0 },
         { code: "02", name: "Cao Bằng" },
       ],
       dataAvailability: { sections: { provinces: "partial" } },
@@ -21,8 +21,28 @@ describe("market intelligence normalization", () => {
 
     expect(result.provinces[0].opportunity).toBe(0);
     expect(result.provinces[0].leads).toBe(0);
+    expect(result.provinces[0].schoolCount).toBe(4);
     expect(result.provinces[1].opportunity).toBeNull();
     expect(result.provinces[1].highSchools).toEqual([]);
+  });
+
+  it("normalizes school coordinates from the market response", () => {
+    const result = normalizeMarketOverview({
+      provinces: [{
+        code: "01",
+        name: "Hà Nội",
+        highSchools: [{
+          id: "school-1",
+          name: "THPT Nguyễn Trãi",
+          coordinates: { latitude: 21.03, longitude: 105.81 },
+        }],
+      }],
+    });
+
+    expect(result.provinces[0].highSchools[0].coordinates).toEqual({
+      latitude: 21.03,
+      longitude: 105.81,
+    });
   });
 
   it("sorts unavailable scores after all available scores", () => {

@@ -70,6 +70,25 @@ describe("school intelligence contract", () => {
     expect(data.dataAvailability.sections.relationship).toBe("available");
   });
 
+  it("normalizes exam score bands to the shared five-bin scale", () => {
+    const data = normalizeSchoolIntelligence({
+      school: { id: "01-001-062", name: "THPT A" },
+      examScoreBands: [
+        { label: "8-10", students: 40 },
+        { label: "4–6", students: 60 },
+      ],
+      dataAvailability: { sections: { outcomes: "partial" } },
+    });
+
+    expect(data.examScoreBands).toEqual([
+      { label: "0–2", students: 0, share: 0 },
+      { label: "2–4", students: 0, share: 0 },
+      { label: "4–6", students: 60, share: 60 },
+      { label: "6–8", students: 0, share: 0 },
+      { label: "8–10", students: 40, share: 40 },
+    ]);
+  });
+
   it("uses the three-part school id, forwards query and maps 404 to null", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ error: { code: "SCHOOL_NOT_FOUND" } }), { status: 404 }),

@@ -17,9 +17,12 @@ interface OverviewKpiStripProps {
 
 export default function OverviewKpiStrip({ kpis = defaultKpis }: OverviewKpiStripProps) {
   return (
-    <section aria-label="Chỉ số tổng quan người học" className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <section aria-label="Chỉ số tổng quan lead" className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {kpis.map((kpi) => {
         const tone = toneStyles[kpi.tone] ?? toneStyles.primary;
+        const change = kpi.change?.trim();
+        const hasChange = Boolean(change && change !== "—" && change !== "-");
+        const isPositiveChange = change?.startsWith("+") ?? false;
         return (
           <article key={kpi.id} className="rounded-2xl border border-card-border/70 bg-card-background p-5">
             <div className="flex items-start justify-between gap-3">
@@ -29,11 +32,11 @@ export default function OverviewKpiStrip({ kpis = defaultKpis }: OverviewKpiStri
                 </span>
                 <p className="text-sm font-medium text-text-secondary">{kpi.label}</p>
               </div>
-              <span className={`inline-flex items-center gap-1 text-xs font-semibold ${tone.text}`}>
-                {kpi.change ? (
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold ${hasChange ? tone.text : "text-text-tertiary"}`}>
+                {hasChange ? (
                   <>
-                    <ArrowUpward size={13} aria-hidden="true" />
-                    {kpi.change}
+                    {isPositiveChange ? <ArrowUpward size={13} aria-hidden="true" /> : null}
+                    {change}
                   </>
                 ) : (
                   "-"

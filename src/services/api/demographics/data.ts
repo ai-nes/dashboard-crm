@@ -18,8 +18,8 @@ import type {
 export const initialFilters: SegmentFilter[] = [
   { id: "gender", label: "Giới tính", value: "Nữ" },
   { id: "grade", label: "Khối lớp", value: "Lớp 12" },
-  { id: "interest", label: "Quan tâm", value: "AI (Trí tuệ nhân tạo)" },
-  { id: "province", label: "Tỉnh/TP", value: "Đồng Nai" },
+  { id: "interest", label: "Ngành quan tâm", value: "AI (Trí tuệ nhân tạo)" },
+  { id: "province", label: "Tỉnh/thành phố", value: "Đồng Nai" },
 ];
 
 export const regionOpportunities: RegionOpportunity[] = [
@@ -31,10 +31,10 @@ export const regionOpportunities: RegionOpportunity[] = [
 ];
 
 export const demographicKpis: DemographicKpi[] = [
-  { id: "prospects", label: "Tổng hồ sơ", value: "57.840", change: "+12,6%", helper: "so với cùng kỳ", progress: 86, tone: "primary" },
-  { id: "engaged", label: "Đã tương tác", value: "24.360", change: "+3,8 điểm %", helper: "42,1% tổng hồ sơ", progress: 72, tone: "info" },
-  { id: "qualified", label: "Đủ điều kiện tư vấn", value: "8.940", change: "+1,6 điểm", helper: "36,7% từ engaged", progress: 64, tone: "success" },
-  { id: "enrolled", label: "Đã nhập học", value: "1.284", change: "+8,4%", helper: "tỷ lệ nhập học 2,22%", progress: 58, tone: "warning" },
+  { id: "prospects", label: "Tổng lead", value: "57.840", change: "+12,6%", helper: "so với cùng kỳ", progress: 86, tone: "primary" },
+  { id: "engaged", label: "Đã tương tác", value: "24.360", change: "+3,8 điểm %", helper: "42,1% trên tổng lead", progress: 72, tone: "info" },
+  { id: "qualified", label: "Đủ điều kiện tư vấn", value: "8.940", change: "+1,6 điểm %", helper: "36,7% trên lead đã tương tác", progress: 64, tone: "success" },
+  { id: "enrolled", label: "Đã nhập học", value: "1.284", change: "+8,4%", helper: "2,22% trên tổng lead", progress: 58, tone: "warning" },
 ];
 
 export const demandOverviewData: DemandOverview = {
@@ -47,7 +47,7 @@ export const demandOverviewData: DemandOverview = {
     { month: "T6", ai: 3420, software: 3340, business: 2610, design: 1620 },
   ],
   summary: [
-    { id: "ai", label: "AI", value: 3420, change: 31 },
+    { id: "ai", label: "AI", value: 3420, change: 20.4 },
     { id: "software", label: "Phần mềm", value: 3340, change: 4.7 },
     { id: "business", label: "Kinh doanh", value: 2610, change: 2.4 },
     { id: "design", label: "Thiết kế", value: 1620, change: 5.9 },
@@ -62,14 +62,16 @@ export const audienceCompositionData: AudienceComposition = {
     { id: "unknown", name: "Chưa xác định", value: 1.6, fill: "var(--background-soft-300)" },
   ],
   profiles: [
-    { id: "grade-12", label: "Học sinh lớp 12", value: 63.4, count: 36660, detail: "36.660 hồ sơ", color: "bg-brand-500" },
-    { id: "public-school", label: "Trường công lập", value: 72.1, count: 41710, detail: "41.710 hồ sơ", color: "bg-success-500" },
-    { id: "urban", label: "Khu vực đô thị", value: 58.7, count: 33960, detail: "33.960 hồ sơ", color: "bg-info-500" },
-    { id: "has-interest", label: "Đã có ngành quan tâm", value: 88.1, count: 50960, detail: "50.960 hồ sơ", color: "bg-warning-500" },
+    { id: "grade-12", label: "Học sinh lớp 12", value: 63.4, count: 36660, detail: "36.660 lead", color: "bg-brand-500" },
+    { id: "public-school", label: "Trường công lập", value: 72.1, count: 41710, detail: "41.710 lead", color: "bg-success-500" },
+    { id: "urban", label: "Khu vực đô thị", value: 58.7, count: 33960, detail: "33.960 lead", color: "bg-info-500" },
+    { id: "has-interest", label: "Đã có ngành quan tâm", value: 88.1, count: 50960, detail: "50.960 lead", color: "bg-warning-500" },
   ],
 };
 
 export const regionalDemandMatrixData: RegionalDemandMatrix = {
+  metric: "relative-index",
+  unit: "score",
   columns: [
     { id: "hcm", name: "TP.HCM" },
     { id: "dong-nai", name: "Đồng Nai" },
@@ -88,17 +90,16 @@ export const regionalDemandMatrixData: RegionalDemandMatrix = {
 
 export const dataCoverageMetrics: DataCoverageMetric[] = [
   { label: "Địa lý", detail: "Tỉnh, huyện, vùng tuyển sinh", value: 96.4, tone: "success" },
-  { label: "Thông tin học sinh", detail: "Giới tính, khối, tuổi, học lực", value: 31.2, tone: "warning" },
+  { label: "Thông tin người học", detail: "Giới tính, khối lớp, tuổi, học lực", value: 31.2, tone: "warning" },
   { label: "Ngành quan tâm", detail: "Nhóm ngành và ngành cụ thể", value: 88.1, tone: "success" },
-  { label: "Hành vi", detail: "Web, sự kiện, campus visit", value: 94.8, tone: "success" },
-  { label: "Thông tin học phí", detail: "Không sử dụng theo chính sách dữ liệu", value: 0, tone: "danger" },
+  { label: "Hành vi", detail: "Website, sự kiện, tham quan trường", value: 94.8, tone: "success" },
 ];
 
 export const defaultGuardrails: SegmentGuardrail[] = [
   {
     criterion: "Khả năng học phí",
     issue: "Không suy đoán thu nhập gia đình của người chưa thành niên.",
-    replacement: "Dùng hành vi xem học phí và hỏi học bổng.",
+    replacement: "Dùng lượt xem học phí và nhu cầu học bổng.",
     status: "Tạm khóa",
     tone: "error",
   },
@@ -106,14 +107,14 @@ export const defaultGuardrails: SegmentGuardrail[] = [
     criterion: "Học lực chi tiết",
     issue: "Dữ liệu điểm chưa chuẩn hóa giữa các trường THPT.",
     replacement: "Dùng kết quả tự đánh giá và nhóm năng lực quan sát được.",
-    status: "Cần consent",
+    status: "Cần đồng ý",
     tone: "warning",
   },
   {
     criterion: "Định danh cá nhân",
     issue: "Không sử dụng danh tính cá nhân trong dashboard phân tích nhóm.",
-    replacement: "Chỉ hiển thị metric nhóm với quy mô tối thiểu 30 hồ sơ.",
-    status: "Đã bật",
+    replacement: "Chỉ hiển thị chỉ số nhóm với quy mô tối thiểu 30 lead.",
+    status: "Đang áp dụng",
     tone: "success",
   },
 ];
@@ -133,8 +134,8 @@ export const demographicSegments: DemographicSegment[] = [
     applications: 160,
     enrolled: 68,
     conversion: 2,
-    tuition: 51.2,
-    revenue: 3.5,
+    tuition: null,
+    revenue: null,
     growth: 31,
     coverage: 3.2,
     opportunityScore: 92,
@@ -146,6 +147,7 @@ export const demographicSegments: DemographicSegment[] = [
       { name: "Website", value: 22, fill: "var(--info-500)" },
       { name: "Giới thiệu", value: 16, fill: "var(--warning-500)" },
     ],
+    channelAttributionModel: "observed-interactions",
     monthlyProspects: [
       { month: "T1", current: 1960, benchmark: 2100 },
       { month: "T2", current: 2160, benchmark: 2280 },
@@ -169,8 +171,8 @@ export const demographicSegments: DemographicSegment[] = [
     applications: 248,
     enrolled: 96,
     conversion: 1.9,
-    tuition: 50.8,
-    revenue: 4.9,
+    tuition: null,
+    revenue: null,
     growth: 12,
     coverage: 14.8,
     opportunityScore: 78,
@@ -178,8 +180,8 @@ export const demographicSegments: DemographicSegment[] = [
     filters: [
       { id: "gender", label: "Giới tính", value: "Nam" },
       { id: "grade", label: "Khối lớp", value: "Lớp 12" },
-      { id: "interest", label: "Quan tâm", value: "AI (Trí tuệ nhân tạo)" },
-      { id: "province", label: "Tỉnh/TP", value: "Đồng Nai" },
+      { id: "interest", label: "Ngành quan tâm", value: "AI (Trí tuệ nhân tạo)" },
+      { id: "province", label: "Tỉnh/thành phố", value: "Đồng Nai" },
     ],
     channels: [
       { name: "Mạng xã hội", value: 42, fill: "var(--brand-500)" },
@@ -187,6 +189,7 @@ export const demographicSegments: DemographicSegment[] = [
       { name: "Website", value: 20, fill: "var(--info-500)" },
       { name: "Giới thiệu", value: 17, fill: "var(--warning-500)" },
     ],
+    channelAttributionModel: "observed-interactions",
     monthlyProspects: [
       { month: "T1", current: 3100, benchmark: 3320 },
       { month: "T2", current: 3400, benchmark: 3540 },
@@ -200,7 +203,7 @@ export const demographicSegments: DemographicSegment[] = [
     id: "female-business-mekong",
     name: "Nữ · Lớp 12 · ĐBSCL · quan tâm Quản trị kinh doanh",
     shortName: "Nữ · QTKD · ĐBSCL",
-    description: "Quy mô vừa, học phí ròng thấp hơn nhưng có độ phủ vùng tốt.",
+    description: "Quy mô vừa, độ phủ vùng tốt nhưng tăng trưởng chậm hơn.",
     region: "Đồng bằng sông Cửu Long",
     interest: "Quản trị kinh doanh",
     prospects: 2140,
@@ -210,8 +213,8 @@ export const demographicSegments: DemographicSegment[] = [
     applications: 92,
     enrolled: 34,
     conversion: 1.6,
-    tuition: 44.1,
-    revenue: 1.5,
+    tuition: null,
+    revenue: null,
     growth: 8,
     coverage: 19.4,
     opportunityScore: 64,
@@ -219,7 +222,7 @@ export const demographicSegments: DemographicSegment[] = [
     filters: [
       { id: "gender", label: "Giới tính", value: "Nữ" },
       { id: "grade", label: "Khối lớp", value: "Lớp 12" },
-      { id: "interest", label: "Quan tâm", value: "Quản trị kinh doanh" },
+      { id: "interest", label: "Ngành quan tâm", value: "Quản trị kinh doanh" },
       { id: "region", label: "Vùng", value: "ĐBSCL" },
     ],
     channels: [
@@ -228,6 +231,7 @@ export const demographicSegments: DemographicSegment[] = [
       { name: "Website", value: 22, fill: "var(--info-500)" },
       { name: "Giới thiệu", value: 18, fill: "var(--warning-500)" },
     ],
+    channelAttributionModel: "observed-interactions",
     monthlyProspects: [
       { month: "T1", current: 1730, benchmark: 1870 },
       { month: "T2", current: 1810, benchmark: 1940 },
@@ -241,7 +245,7 @@ export const demographicSegments: DemographicSegment[] = [
     id: "private-hcm-business",
     name: "Trường ngoài công lập · TP.HCM · nhóm ngành kinh doanh",
     shortName: "Ngoài CL · Kinh doanh",
-    description: "Học phí ròng cao nhất nhưng tỷ lệ nhập học thấp thứ hai.",
+    description: "Tỷ lệ nhập học thấp thứ hai nhưng quy mô đang tăng.",
     region: "TP. Hồ Chí Minh",
     interest: "Kinh doanh",
     prospects: 1840,
@@ -251,16 +255,16 @@ export const demographicSegments: DemographicSegment[] = [
     applications: 84,
     enrolled: 31,
     conversion: 1.7,
-    tuition: 58.4,
-    revenue: 1.8,
+    tuition: null,
+    revenue: null,
     growth: 18,
     coverage: 11.6,
     opportunityScore: 81,
     tone: "warning",
     filters: [
       { id: "schoolType", label: "Loại trường", value: "Ngoài công lập" },
-      { id: "province", label: "Tỉnh/TP", value: "TP. Hồ Chí Minh" },
-      { id: "interest", label: "Quan tâm", value: "Nhóm ngành kinh doanh" },
+      { id: "province", label: "Tỉnh/thành phố", value: "TP. Hồ Chí Minh" },
+      { id: "interest", label: "Ngành quan tâm", value: "Nhóm ngành kinh doanh" },
     ],
     channels: [
       { name: "Mạng xã hội", value: 35, fill: "var(--brand-500)" },
@@ -268,6 +272,7 @@ export const demographicSegments: DemographicSegment[] = [
       { name: "Website", value: 23, fill: "var(--info-500)" },
       { name: "Giới thiệu", value: 14, fill: "var(--warning-500)" },
     ],
+    channelAttributionModel: "observed-interactions",
     monthlyProspects: [
       { month: "T1", current: 1320, benchmark: 1490 },
       { month: "T2", current: 1450, benchmark: 1570 },
@@ -281,7 +286,7 @@ export const demographicSegments: DemographicSegment[] = [
     id: "software-binh-duong",
     name: "Lớp 12 · Bình Dương · quan tâm Kỹ thuật phần mềm",
     shortName: "KTPM · Bình Dương",
-    description: "Nhiều hồ sơ đủ điều kiện, tăng đều trong ba tháng gần nhất.",
+    description: "Nhiều lead đủ điều kiện, tăng đều trong ba tháng gần nhất.",
     region: "Bình Dương",
     interest: "Kỹ thuật phần mềm",
     prospects: 2960,
@@ -291,16 +296,16 @@ export const demographicSegments: DemographicSegment[] = [
     applications: 194,
     enrolled: 83,
     conversion: 2.8,
-    tuition: 49.6,
-    revenue: 4.1,
+    tuition: null,
+    revenue: null,
     growth: 21,
     coverage: 16.2,
     opportunityScore: 87,
     tone: "danger",
     filters: [
       { id: "grade", label: "Khối lớp", value: "Lớp 12" },
-      { id: "province", label: "Tỉnh/TP", value: "Bình Dương" },
-      { id: "interest", label: "Quan tâm", value: "Kỹ thuật phần mềm" },
+      { id: "province", label: "Tỉnh/thành phố", value: "Bình Dương" },
+      { id: "interest", label: "Ngành quan tâm", value: "Kỹ thuật phần mềm" },
     ],
     channels: [
       { name: "Mạng xã hội", value: 46, fill: "var(--brand-500)" },
@@ -308,6 +313,7 @@ export const demographicSegments: DemographicSegment[] = [
       { name: "Website", value: 18, fill: "var(--info-500)" },
       { name: "Giới thiệu", value: 16, fill: "var(--warning-500)" },
     ],
+    channelAttributionModel: "observed-interactions",
     monthlyProspects: [
       { month: "T1", current: 2100, benchmark: 2240 },
       { month: "T2", current: 2250, benchmark: 2380 },
@@ -338,8 +344,8 @@ export function getSegmentForFilters(filters: SegmentFilter[]): DemographicSegme
     matchingSegments.reduce((sum, segment) => sum + (segment[key] ?? 0) * segment.prospects, 0) / prospects;
   const monthlyProspects = matchingSegments[0].monthlyProspects.map((point, index) => ({
     month: point.month,
-    current: matchingSegments.reduce((sum, segment) => sum + segment.monthlyProspects[index].current, 0),
-    benchmark: matchingSegments.reduce((sum, segment) => sum + segment.monthlyProspects[index].benchmark, 0),
+    current: matchingSegments.reduce((sum, segment) => sum + (segment.monthlyProspects[index].current ?? 0), 0),
+    benchmark: matchingSegments.reduce((sum, segment) => sum + (segment.monthlyProspects[index].benchmark ?? 0), 0),
   }));
   const previousMonth = monthlyProspects[monthlyProspects.length - 2]?.current ?? 0;
   const latestMonth = monthlyProspects[monthlyProspects.length - 1]?.current ?? 0;
@@ -359,7 +365,7 @@ export function getSegmentForFilters(filters: SegmentFilter[]): DemographicSegme
     id: `custom-${filters.map((filter) => `${filter.id}-${filter.value}`).join("-")}`,
     name: filters.length > 0 ? filters.map((filter) => filter.value).join(" · ") : "Tất cả học sinh",
     shortName: filters.length > 0 ? filters.map((filter) => filter.value).slice(0, 3).join(" · ") : "Tất cả",
-    description: `Có ${prospects.toLocaleString("vi-VN")} hồ sơ phù hợp với điều kiện đang chọn.`,
+    description: `Có ${prospects.toLocaleString("vi-VN")} lead theo điều kiện đang chọn.`,
     region: filters.find((filter) => filter.id === "province" || filter.id === "region")?.value ?? "Nhiều khu vực",
     interest: filters.find((filter) => filter.id === "interest")?.value ?? "Nhiều nhóm ngành",
     prospects,
@@ -439,7 +445,7 @@ export function computeDirectorDemographicsSegment(
     priority: segment.opportunityScore >= 85 ? "high" : "normal",
     label: segment.opportunityScore >= 85 ? "Ưu tiên cao" : "Theo dõi thường quy",
     title: segment.opportunityScore >= 85 ? "Ưu tiên tiếp cận sớm" : "Duy trì nhịp chăm sóc tiêu chuẩn",
-    description: `Nhóm có ${segment.prospects.toLocaleString("vi-VN")} học sinh và đang tăng trưởng ${segment.growth}%.`,
+    description: `Nhóm có ${segment.prospects.toLocaleString("vi-VN")} lead và đang tăng trưởng ${segment.growth}%.`,
     steps: [
       {
         order: 1,
@@ -449,12 +455,12 @@ export function computeDirectorDemographicsSegment(
       {
         order: 2,
         title: "Tổ chức một hoạt động tư vấn chuyên sâu",
-        detail: `Tập trung vào nhóm ngành ${segment.interest} và giải đáp chính sách học phí/học bổng.`,
+        detail: `Tập trung vào ${segment.interest}; giải đáp học phí và học bổng.`,
       },
       {
         order: 3,
         title: "Đánh giá lại sau 30 ngày",
-        detail: "So sánh số học sinh được tiếp cận và số hồ sơ nộp/nhập học.",
+        detail: "So sánh số lead được tiếp cận, nộp hồ sơ và nhập học.",
       },
     ],
   };

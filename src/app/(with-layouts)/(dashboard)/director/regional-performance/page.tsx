@@ -4,7 +4,8 @@ import RegionalPerformanceDashboard from "./_components/regional-performance-das
 
 export const metadata: Metadata = {
   title: "Hiệu suất khu vực",
-  description: "Scorecard và phân tích năng lực đội ngũ tuyển sinh theo khu vực.",
+  description:
+    "Scorecard và phân tích năng lực đội ngũ tuyển sinh theo khu vực.",
 };
 
 export default function RegionalPerformancePage() {

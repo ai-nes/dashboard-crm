@@ -43,6 +43,7 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
       "isBoardingSchool": false
     },
     "potentialScore": null,
+    "potentialIndicators": [],
     "potentialState": null,
     "grade12Students": null,
     "availableStudents": null,
@@ -83,6 +84,7 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
     },
     "quadrantPeers": [],
     "scoreBands": [],
+    "examScoreBands": [],
     "academicGap": null,
     "postGraduationChoices": [],
     "competitionContext": null,
@@ -127,11 +129,13 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
       },
       "fields": {
         "potentialScore": "unavailable",
+        "potentialIndicators": "unavailable",
         "grade12Students": "unavailable",
         "availableStudents": "unavailable",
         "demographics": "unavailable",
         "subjectMix": "unavailable",
         "postGraduationChoices": "unavailable",
+        "examScoreBands": "unavailable",
         "competitionContext": "unavailable",
         "locality.travelTime": "unavailable"
       }
@@ -148,13 +152,32 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
 
 Ví dụ chỉ minh hoạ shape. Scalar thiếu là `null`, collection thiếu là `[]`; `0` vẫn là dữ liệu hợp lệ. `available`, `partial`, `unavailable` mô tả khả dụng theo section/field.
 
+`contacts` là danh sách các bản ghi liên hệ/đầu mối của trường, không phải map duy nhất theo `role`. Nhiều bản ghi có thể cùng một vai trò (ví dụ trường có nhiều `GV phụ trách hướng nghiệp`); client không được dùng riêng `role` làm định danh hoặc React key. `full_name = null` nghĩa là vai trò đó chưa có người liên hệ. Endpoint này chỉ đọc và hiện chưa trả contact ID; nếu cần thao tác cập nhật/xoá từng bản ghi, API phải bổ sung một định danh ổn định.
+
+`potentialIndicators` là dữ liệu đầu vào cho biểu đồ phân rã điểm tiềm năng. Khi có dữ liệu, API trả tối đa một bản ghi cho mỗi mã `P1..P6`, với shape `{ "id": "P1", "label": "Quy mô khả dụng", "score": 78, "weight": 25, "status": "available" }`. `score` là điểm chỉ số đã chuẩn hoá trong `0..100` hoặc `null` nếu chưa có dữ liệu; `weight` là trọng số theo phần trăm; `status` nhận `available`, `estimated` hoặc `unavailable`. `id` không được trùng trong cùng response. Mã `P1..P6` chỉ là mã API, không hiển thị trên chart; `label` phải dùng đúng nhãn nghiệp vụ đã thống nhất. Khi chưa có nguồn được phê duyệt, trả `[]` hoặc bản ghi có `score: null` và đánh dấu `unavailable`, không quy đổi thiếu dữ liệu thành điểm `0`. Với trường trong bán kính một giờ, `P5` không áp dụng; client không hiển thị chỉ số này và phân bổ lại trọng số theo quy tắc bên dưới.
+
+`examScoreBands` là phổ phân bố điểm thi THPT của trường, dùng cho biểu đồ phổ điểm ở trang chi tiết. Khi có dữ liệu, API trả đủ cùng một bộ 5 dải điểm theo thứ tự chuẩn tăng dần: `0–2`, `2–4`, `4–6`, `6–8`, `8–10`; không tự đổi nhóm theo từng trường. Mỗi phần tử có shape `{ "label": "8–10", "students": 47, "share": 10 }`, trong đó `label` là dải điểm trên thang 0–10, `students` là số học sinh khối 12 và `share` là tỷ trọng trên tổng khối 12. Chart dùng `students` làm đại lượng chính, hiển thị `share` khi xem chi tiết và đảo thứ tự trình bày để dải cao (`8–10`) ở trên, dải thấp (`0–2`) ở dưới. Không dùng `examScoreBands` thay cho `scoreBands`: `scoreBands` là nhóm phù hợp tuyển sinh, còn `examScoreBands` là dải điểm thi; dải điểm khả thi chỉ được xác định khi có cấu hình tuyển sinh được phê duyệt. Khi chưa có nguồn điểm được phê duyệt, API trả `[]` và field tương ứng trong `dataAvailability` là `unavailable`.
+
+### Quy tắc ngữ nghĩa của các chỉ số tiềm năng
+
+| Nhãn hiển thị | Ý nghĩa nghiệp vụ |
+|---|---|
+| Quy mô khả dụng | Số học sinh khối 12 nằm trong dải điểm khả thi. |
+| Mật độ khả dụng | Tỷ lệ học sinh khả dụng trên tổng khối 12. |
+| Mức khớp ngành | Tỷ lệ học sinh có tổ hợp môn phù hợp với nhóm ngành đào tạo. |
+| Khả năng chi trả | `100% - tỷ lệ hồ sơ cần hỗ trợ tài chính`; không dùng để giảm mức độ chăm sóc trường. |
+| Xu hướng đi học xa | Tỷ lệ học sinh nhập học ngoài tỉnh trong ba mùa gần nhất; chỉ áp dụng cho trường ngoài bán kính một giờ. |
+| Lịch sử chuyển đổi | Số nhập học bình quân có trọng số trong ba mùa gần nhất, trọng số từ gần tới xa là `0,5 - 0,3 - 0,2`. |
+
+Điểm của từng chỉ số được chuẩn hoá theo phân vị về `0..100`, không phải giá trị tuyệt đối. Đóng góp vào tổng điểm được tính bằng `điểm chỉ số × trọng số`. Với trường trong bán kính một giờ, không hiển thị/tính `Xu hướng đi học xa`; trọng số của chỉ số này được phân bổ lại cho `Quy mô khả dụng` và `Mức khớp ngành` theo tỷ trọng ban đầu. Mã nội bộ `P1..P6` không hiển thị trên chart.
+
 ## Nguồn và giới hạn
 
 - Identity/toạ độ: `CRM High School`, `CRM Province`, `CRM Ward`.
 - KPI: annual snapshot mới nhất của đúng kỳ, `verification_status = Verified`.
 - Relationship/contact: `CRM School Stakeholder`, person display name và term hiển thị. Không trả phone, email, Person ID hoặc internal document name.
 - Activity: tối đa 50 `CRM School Activity`; nếu activity có `admission_year` thì chỉ lấy đúng kỳ đang yêu cầu, còn activity không gắn kỳ vẫn được coi là lịch sử trường. Chỉ `Planned`/`Completed` được project thành `scheduled`/`completed`. `outcome` chỉ nhận các giá trị Select có cấu trúc `Positive`, `Neutral`, `Follow-up Needed`, `No Response`, `Not Applicable`; không trả `title`, `notes` hoặc `next_action`.
-- Demographics, subject mix, outcomes, travel/distance, score bands, competition và recommendation chưa có nguồn phê duyệt: giữ `null`/`[]` + `unavailable`.
+- Demographics, subject mix, outcomes, travel/distance, score bands, phổ điểm THPT (`examScoreBands`), competition và recommendation chưa có nguồn phê duyệt: giữ `null`/`[]` + `unavailable`.
 - Nguồn hỗ trợ lỗi hoặc bị cap làm response `partial`; lỗi nguồn trường chính trả `503`.
 
 Frontend chuẩn hoá DTO xuống các field dashboard dùng. `404` được chuyển thành Next `notFound()`; `401`, `403`, lỗi mạng và `5xx` vẫn là lỗi rõ ràng, không dùng mock fallback.

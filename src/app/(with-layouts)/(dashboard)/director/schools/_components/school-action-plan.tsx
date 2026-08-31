@@ -46,7 +46,7 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
         <div className="flex min-w-0 items-start gap-3">
           <span className={"flex size-9 shrink-0 items-center justify-center rounded-xl " + tone.surface + " text-badge-primary-text"} aria-hidden="true"><Calendar size={18} /></span>
           <div className="min-w-0">
-            <CardTitle>Việc cần làm</CardTitle>
+            <CardTitle>Việc ưu tiên</CardTitle>
           </div>
         </div>
         <Badge color={tone.badge}>{tone.label}</Badge>

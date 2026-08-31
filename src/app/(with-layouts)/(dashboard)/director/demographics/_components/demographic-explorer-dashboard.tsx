@@ -8,22 +8,24 @@ import {
   useDirectorDemographicsSegmentQuery,
 } from "@/hooks/use-demographics-queries";
 import { demographicSegments } from "@/services/api/demographics/data";
+import type { DirectorDemographicsOverviewParams } from "@/services/api/demographics/types";
 import DemographicsOverview from "./demographics-overview";
 import SegmentDetailDashboard from "./segment-detail-dashboard";
 
 export default function DemographicExplorerDashboard() {
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+  const [overviewParams, setOverviewParams] = useState<DirectorDemographicsOverviewParams>({
+    admissionYear: 2026,
+    period: "season",
+    scope: "all",
+  });
 
   const {
     data: overviewResponse,
     isLoading: isOverviewLoading,
     isError: isOverviewError,
     refetch: refetchOverview,
-  } = useDirectorDemographicsOverviewQuery({
-    admissionYear: 2026,
-    period: "6m",
-    scope: "all",
-  });
+  } = useDirectorDemographicsOverviewQuery(overviewParams);
 
   const {
     data: segmentResponse,
@@ -31,7 +33,7 @@ export default function DemographicExplorerDashboard() {
   } = useDirectorDemographicsSegmentQuery(
     {
       segment_id: selectedSegmentId ?? "",
-      admissionYear: 2026,
+      admissionYear: overviewParams.admissionYear ?? 2026,
     },
     {
       enabled: Boolean(selectedSegmentId),
@@ -62,6 +64,16 @@ export default function DemographicExplorerDashboard() {
     setSelectedSegmentId(segmentId);
   };
 
+  const applyOverviewFilters = (nextFilters: DirectorDemographicsOverviewParams) => {
+    setSelectedSegmentId(null);
+    setOverviewParams({
+      ...nextFilters,
+      admissionYear: nextFilters.admissionYear ?? overviewParams.admissionYear ?? 2026,
+      period: nextFilters.period ?? "season",
+      scope: nextFilters.scope ?? "all",
+    });
+  };
+
   if (isOverviewLoading && !overviewResponse) {
     return (
       <main id="main-content" className="min-w-0 max-w-full overflow-x-hidden p-6">
@@ -83,7 +95,7 @@ export default function DemographicExplorerDashboard() {
     return (
       <main id="main-content" className="min-w-0 max-w-full overflow-x-hidden p-6">
         <div className="flex flex-col items-center justify-center rounded-2xl border border-card-border bg-card-background p-12 text-center">
-          <p className="text-base font-semibold text-text-primary">Không thể tải dữ liệu phân tích người học</p>
+          <p className="text-base font-semibold text-text-primary">Không thể tải dữ liệu phân tích lead</p>
           <p className="mt-2 text-sm text-text-secondary">Đã xảy ra lỗi khi kết nối tới hệ thống. Vui lòng thử lại.</p>
           <Button className="mt-6" onPress={() => refetchOverview()}>
             Thử lại
@@ -98,6 +110,10 @@ export default function DemographicExplorerDashboard() {
       <main id="main-content" className="min-w-0 max-w-full overflow-x-hidden">
         <DemographicsOverview
           data={overviewResponse?.data}
+          meta={overviewResponse?.meta}
+          filters={overviewParams}
+          filterOptions={overviewResponse?.data?.filterOptions}
+          onApplyFilters={applyOverviewFilters}
           onOpenSegment={openSegment}
         />
       </main>
