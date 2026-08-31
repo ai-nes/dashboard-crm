@@ -46,7 +46,7 @@ export default function SchoolPotentialDecomposition({ data }: SchoolPotentialDe
 
     return {
       ...definition,
-      displayLabel: `${definition.id} · ${definition.label}`,
+      displayLabel: definition.label,
       score,
       contribution,
       scoreValue: score ?? 0,
@@ -76,7 +76,7 @@ export default function SchoolPotentialDecomposition({ data }: SchoolPotentialDe
       <CardHeader className="border-b border-card-border p-5 pb-4 lg:p-6 lg:pb-4">
         <div className="min-w-0">
           <CardTitle>Phân rã điểm tiềm năng</CardTitle>
-          <p className="mt-1 text-xs text-text-tertiary">Thấy điểm trường được hình thành từ sáu chỉ số P1–P6</p>
+          <p className="mt-1 text-xs text-text-tertiary">Các nhóm chỉ số cấu thành điểm tiềm năng của trường</p>
         </div>
         <Badge color={badgeColor}>{badgeLabel}</Badge>
       </CardHeader>
@@ -95,7 +95,7 @@ export default function SchoolPotentialDecomposition({ data }: SchoolPotentialDe
             <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 42, bottom: 4, left: 4 }} barCategoryGap={12}>
               <CartesianGrid horizontal={false} stroke="var(--border-color-base-100)" />
               <XAxis type="number" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
-              <YAxis type="category" dataKey="displayLabel" width={175} axisLine={false} tickLine={false} tick={{ fill: "var(--text-secondary)", fontSize: 11 }} />
+              <YAxis type="category" dataKey="displayLabel" width={150} axisLine={false} tickLine={false} tick={{ fill: "var(--text-secondary)", fontSize: 11 }} />
               <Tooltip cursor={{ fill: "var(--background-soft-50)" }} content={<PotentialTooltip />} />
               <Bar dataKey="scoreValue" name="Điểm chỉ số" fill="var(--primary-500)" barSize={10} radius={[0, 5, 5, 0]}>
                 <LabelList dataKey="scoreLabel" position="right" fill="var(--text-secondary)" fontSize={11} />
@@ -107,10 +107,6 @@ export default function SchoolPotentialDecomposition({ data }: SchoolPotentialDe
           </ChartContainer>
         </div>
 
-        <div className="mt-4 border-t border-card-border pt-4">
-          <p className="text-xs leading-5 text-text-secondary">Công thức: P1 × 25% + P2 × 15% + P3 × 20% + P4 × 10% + P5 × 10% + P6 × 20%</p>
-          {!hasData ? <p className="mt-2 text-xs text-text-tertiary">Chưa thu thập các chỉ số P1–P6. Khung biểu đồ vẫn được giữ để cập nhật khi có dữ liệu.</p> : null}
-        </div>
       </div>
     </Card>
   );
@@ -126,7 +122,7 @@ function PotentialTooltip({ active, payload }: { active?: boolean; payload?: { p
 
   return (
     <div className="rounded-xl border border-card-border bg-card-background p-3 text-xs shadow-theme-md">
-      <p className="font-semibold text-text-primary">{item.id} · {item.label}</p>
+      <p className="font-semibold text-text-primary">{item.label}</p>
       <p className="mt-1 text-text-secondary">Điểm chỉ số: <strong className="text-text-primary">{item.score === null ? "-" : `${item.score}/100`}</strong></p>
       <p className="mt-1 text-text-secondary">Trọng số: <strong className="text-text-primary">{item.weight}%</strong></p>
       <p className="mt-1 text-text-secondary">Đóng góp: <strong className="text-text-primary">{item.contribution === null ? "-" : `${item.contribution} điểm`}</strong></p>

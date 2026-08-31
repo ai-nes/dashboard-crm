@@ -109,6 +109,12 @@ export interface SchoolScoreBand {
   available?: boolean;
 }
 
+export interface SchoolExamScoreBand {
+  label: string;
+  students: number;
+  share: number;
+}
+
 export type SchoolPotentialIndicatorId = "P1" | "P2" | "P3" | "P4" | "P5" | "P6";
 
 export interface SchoolPotentialIndicator {
@@ -167,6 +173,7 @@ export interface SchoolIntelligenceData {
   };
   quadrantPeers: SchoolQuadrantPoint[];
   scoreBands: SchoolScoreBand[];
+  examScoreBands: SchoolExamScoreBand[];
   potentialIndicators?: SchoolPotentialIndicator[];
   academicGap: {
     reportCard: number;
@@ -281,6 +288,7 @@ export interface DirectorSchoolDetailData {
   };
   contacts: DirectorSchoolContact[];
   activities: DirectorSchoolActivity[];
+  examScoreBands: SchoolExamScoreBand[];
   asOf: string | null;
   dataAvailability: {
     status?: DataAvailabilityStatus;

@@ -29,6 +29,27 @@ function makeTrend(seed: number, labels: string[]): TrendPoint[] {
   });
 }
 
+function makeExamScoreBands(totalStudents: number, seed: number) {
+  const labels = ["0–4", "4–5", "5–6", "6–7", "7–8", "8–10"];
+  const weights = [
+    6 + (seed % 4),
+    12 + ((seed >> 2) % 5),
+    24 + ((seed >> 3) % 7),
+    28 + ((seed >> 4) % 6),
+    18 + ((seed >> 5) % 5),
+    7 + ((seed >> 6) % 4),
+  ];
+  const totalWeight = weights.reduce((total, weight) => total + weight, 0);
+  const students = weights.map((weight) => Math.floor((totalStudents * weight) / totalWeight));
+  students[students.length - 1] += totalStudents - students.reduce((total, count) => total + count, 0);
+
+  return labels.map((label, index) => ({
+    label,
+    students: students[index],
+    share: Math.round((students[index] / totalStudents) * 100),
+  }));
+}
+
 export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIntelligenceData {
   const seed = hash(`${school.provinceCode}-${school.schoolCode}`);
   const localityContext = getSchoolLocalityContext(school);
@@ -80,6 +101,7 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
     ...item,
     share: Math.round((item.students / grade12Students) * 100),
   }));
+  const examScoreBands = makeExamScoreBands(grade12Students, seed);
   const choiceShares = [34, 18, 15, 13, 12, 8];
   const choiceLabels = [
     "Đại học công lập địa phương",
@@ -282,6 +304,7 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
     classification: { group: classification, isKeyAccount: classification === "Trọng điểm", ...classificationCopy[classification] },
     quadrantPeers,
     scoreBands,
+    examScoreBands,
     potentialIndicators,
     academicGap,
     postGraduationChoices,

@@ -83,6 +83,7 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
     },
     "quadrantPeers": [],
     "scoreBands": [],
+    "examScoreBands": [],
     "academicGap": null,
     "postGraduationChoices": [],
     "competitionContext": null,
@@ -132,6 +133,7 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
         "demographics": "unavailable",
         "subjectMix": "unavailable",
         "postGraduationChoices": "unavailable",
+        "examScoreBands": "unavailable",
         "competitionContext": "unavailable",
         "locality.travelTime": "unavailable"
       }
@@ -148,13 +150,15 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
 
 Ví dụ chỉ minh hoạ shape. Scalar thiếu là `null`, collection thiếu là `[]`; `0` vẫn là dữ liệu hợp lệ. `available`, `partial`, `unavailable` mô tả khả dụng theo section/field.
 
+`examScoreBands` là phổ phân bố điểm thi THPT của trường, dùng cho biểu đồ phổ điểm ở trang chi tiết. Mỗi phần tử có shape `{ "label": "8–10", "students": 47, "share": 10 }`, trong đó `label` là khoảng điểm trên thang 0–10, `students` là số học sinh và `share` là tỷ trọng phần trăm. Khi chưa có nguồn điểm được phê duyệt, API trả `[]` và field tương ứng trong `dataAvailability` là `unavailable`.
+
 ## Nguồn và giới hạn
 
 - Identity/toạ độ: `CRM High School`, `CRM Province`, `CRM Ward`.
 - KPI: annual snapshot mới nhất của đúng kỳ, `verification_status = Verified`.
 - Relationship/contact: `CRM School Stakeholder`, person display name và term hiển thị. Không trả phone, email, Person ID hoặc internal document name.
 - Activity: tối đa 50 `CRM School Activity`; nếu activity có `admission_year` thì chỉ lấy đúng kỳ đang yêu cầu, còn activity không gắn kỳ vẫn được coi là lịch sử trường. Chỉ `Planned`/`Completed` được project thành `scheduled`/`completed`. `outcome` chỉ nhận các giá trị Select có cấu trúc `Positive`, `Neutral`, `Follow-up Needed`, `No Response`, `Not Applicable`; không trả `title`, `notes` hoặc `next_action`.
-- Demographics, subject mix, outcomes, travel/distance, score bands, competition và recommendation chưa có nguồn phê duyệt: giữ `null`/`[]` + `unavailable`.
+- Demographics, subject mix, outcomes, travel/distance, score bands, phổ điểm THPT (`examScoreBands`), competition và recommendation chưa có nguồn phê duyệt: giữ `null`/`[]` + `unavailable`.
 - Nguồn hỗ trợ lỗi hoặc bị cap làm response `partial`; lỗi nguồn trường chính trả `503`.
 
 Frontend chuẩn hoá DTO xuống các field dashboard dùng. `404` được chuyển thành Next `notFound()`; `401`, `403`, lỗi mạng và `5xx` vẫn là lỗi rõ ràng, không dùng mock fallback.

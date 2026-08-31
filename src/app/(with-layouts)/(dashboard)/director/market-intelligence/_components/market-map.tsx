@@ -23,6 +23,7 @@ import HighSchoolMarkerLayer from "./high-school-marker-layer";
 import { ZoomInIcon, ZoomOutIcon } from "./icons";
 import type {
   MetricKey,
+  MapBounds,
   ProvinceFeatureCollection,
   ProvinceMetrics,
   RegionKey,
@@ -34,6 +35,15 @@ const MASTER_BOUNDS = {
   maxLongitude: 110.2,
   minLatitude: 8.2,
   maxLatitude: 23.6,
+};
+
+// Default viewport for the active southern market: Khánh Hoà, Đắk Lắk,
+// Lâm Đồng, TP.HCM, Đồng Nai, Đồng Tháp and Tây Ninh.
+const PRIORITY_MARKET_BOUNDS: MapBounds = {
+  minLongitude: 104.9,
+  maxLongitude: 109.8,
+  minLatitude: 8.4,
+  maxLatitude: 14.1,
 };
 
 const REGION_KEYS: RegionKey[] = ["all", "north", "central", "highlands", "south", "mekong"];
@@ -105,6 +115,33 @@ function toMapPath(coordinates: GeoJSON.MultiPolygon["coordinates"]) {
     .join(" ");
 }
 
+function getBoundsViewBox(bounds: MapBounds, zoom: number) {
+  const [left, bottom] = projectPoint([bounds.minLongitude, bounds.minLatitude]);
+  const [right, top] = projectPoint([bounds.maxLongitude, bounds.maxLatitude]);
+  const padding = 30;
+  const baseMinX = Math.max(0, Math.min(left, right) - padding);
+  const baseMinY = Math.max(0, Math.min(top, bottom) - padding);
+  const baseWidth = Math.min(MASTER_VIEWBOX.width, Math.abs(right - left) + padding * 2);
+  const baseHeight = Math.min(MASTER_VIEWBOX.height, Math.abs(bottom - top) + padding * 2);
+  const centerX = baseMinX + baseWidth / 2;
+  const centerY = baseMinY + baseHeight / 2;
+  const width = Math.min(MASTER_VIEWBOX.width, baseWidth / zoom);
+  const height = Math.min(MASTER_VIEWBOX.height, baseHeight / zoom);
+  const minX = Math.max(0, Math.min(MASTER_VIEWBOX.width - width, centerX - width / 2));
+  const minY = Math.max(0, Math.min(MASTER_VIEWBOX.height - height, centerY - height / 2));
+
+  return `${minX} ${minY} ${width} ${height}`;
+}
+
+function getProvinceMapValue(province: ProvinceMetrics | undefined, metric: MetricKey) {
+  if (!province) return null;
+  if (metric !== "opportunity" || province.opportunity !== null) return province[metric];
+
+  // Some API responses only expose potential at school level. Use that
+  // available signal so the province choropleth does not fall back to gray.
+  return averageAvailable(province.highSchools.map((school) => school.potentialScore));
+}
+
 export default function MarketMap({
   activeRegion,
   admissionYear,
@@ -123,6 +160,7 @@ export default function MarketMap({
 }: MarketMapProps) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const [manualZoom, setManualZoom] = useState<number>(1);
+  const [isPriorityFocus, setIsPriorityFocus] = useState(true);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const provinceByCode = useMemo(
@@ -160,9 +198,11 @@ export default function MarketMap({
     const totalLeads = sumAvailable(filtered.map((province) => province.leads));
     const average = averageAvailable(filtered.map((province) => province.conversion));
     const avgConversion = average === null ? null : Number(average.toFixed(1));
-    const availableOpportunities = filtered.filter((province) => province.opportunity !== null);
+    const availableOpportunities = filtered
+      .map((province) => getProvinceMapValue(province, "opportunity"))
+      .filter((value): value is number => value !== null);
     const hotspotCount = availableOpportunities.length
-      ? availableOpportunities.filter((province) => province.opportunity !== null && province.opportunity >= 75).length
+      ? availableOpportunities.filter((value) => value >= 75).length
       : null;
     const totalRevenueValue = sumAvailable(filtered.map((province) => province.revenue));
     const totalRevenue = totalRevenueValue === null ? null : Number(totalRevenueValue.toFixed(1));
@@ -180,6 +220,10 @@ export default function MarketMap({
   // Dynamic animated viewBox
   const computedViewBox = useMemo(() => {
     const regionConfig = REGION_CONFIGS[activeRegion];
+    if (activeRegion === "all" && isPriorityFocus) {
+      return getBoundsViewBox(PRIORITY_MARKET_BOUNDS, manualZoom);
+    }
+
     if (activeRegion === "all" || !regionConfig) {
       const baseW = MASTER_VIEWBOX.width / manualZoom;
       const baseH = MASTER_VIEWBOX.height / manualZoom;
@@ -188,23 +232,8 @@ export default function MarketMap({
       return `${offsetX} ${offsetY} ${baseW} ${baseH}`;
     }
 
-    const [x1, y2] = projectPoint([
-      regionConfig.bounds.minLongitude,
-      regionConfig.bounds.minLatitude,
-    ]);
-    const [x2, y1] = projectPoint([
-      regionConfig.bounds.maxLongitude,
-      regionConfig.bounds.maxLatitude,
-    ]);
-
-    const pad = 30;
-    const minX = Math.max(0, Math.min(x1, x2) - pad);
-    const minY = Math.max(0, Math.min(y1, y2) - pad);
-    const width = Math.min(MASTER_VIEWBOX.width, Math.abs(x2 - x1) + pad * 2);
-    const height = Math.min(MASTER_VIEWBOX.height, Math.abs(y2 - y1) + pad * 2);
-
-    return `${minX} ${minY} ${width} ${height}`;
-  }, [activeRegion, manualZoom]);
+    return getBoundsViewBox(regionConfig.bounds, manualZoom);
+  }, [activeRegion, isPriorityFocus, manualZoom]);
 
   const searchResults = query.trim()
     ? provinces
@@ -216,6 +245,7 @@ export default function MarketMap({
   const handleZoomOut = () => setManualZoom((z) => Math.max(0.8, Number((z - 0.25).toFixed(2))));
   const handleResetZoom = () => {
     setManualZoom(1);
+    setIsPriorityFocus((isFocused) => !isFocused);
     onRegionChange("all");
   };
 
@@ -301,23 +331,26 @@ export default function MarketMap({
 
             {isSearchFocused && searchResults.length > 0 && (
               <div className="absolute top-full right-0 z-50 mt-1 max-h-48 w-48 overflow-y-auto rounded-xl bg-card-background p-1 shadow-theme-md">
-                {searchResults.map((p) => (
-                  <button
-                    className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs hover:bg-background-gray-primary"
-                    key={p.code}
-                    onClick={() => {
-                      onSelectProvince(p.code);
-                      onQueryChange("");
-                      setIsSearchFocused(false);
-                    }}
-                    type="button"
-                  >
-                    <span className="font-medium text-text-primary">{p.name}</span>
-                    <span className="rounded bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-500">
-                      {p.opportunity === null ? "-" : `${p.opportunity} đ`}
-                    </span>
-                  </button>
-                ))}
+                {searchResults.map((p) => {
+                  const opportunity = getProvinceMapValue(p, "opportunity");
+                  return (
+                    <button
+                      className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs hover:bg-background-gray-primary"
+                      key={p.code}
+                      onClick={() => {
+                        onSelectProvince(p.code);
+                        onQueryChange("");
+                        setIsSearchFocused(false);
+                      }}
+                      type="button"
+                    >
+                      <span className="font-medium text-text-primary">{p.name}</span>
+                      <span className="rounded bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-500">
+                        {opportunity === null ? "-" : `${Math.round(opportunity)} /100`}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -366,10 +399,10 @@ export default function MarketMap({
             <ZoomOutIcon className="size-3.5" />
           </button>
           <button
-            aria-label="Đặt lại góc nhìn"
+            aria-label={isPriorityFocus ? "Về toàn quốc" : "Về 7 tỉnh trọng điểm"}
             className="flex size-6 items-center justify-center rounded text-text-secondary hover:bg-background-gray-primary hover:text-text-primary"
             onClick={handleResetZoom}
-            title="Về toàn quốc"
+            title={isPriorityFocus ? "Về toàn quốc" : "Về 7 tỉnh trọng điểm"}
             type="button"
           >
             <Target3 className="size-3.5 text-brand-500" />
@@ -378,7 +411,9 @@ export default function MarketMap({
 
         {/* SVG Map */}
         <svg
-          aria-label="Bản đồ phân bố dữ liệu tuyển sinh Việt Nam"
+          aria-label={isPriorityFocus && activeRegion === "all"
+            ? "Bản đồ phân bố dữ liệu tuyển sinh tại 7 tỉnh trọng điểm phía Nam"
+            : "Bản đồ phân bố dữ liệu tuyển sinh Việt Nam"}
           className="h-full w-auto max-h-full max-w-full drop-shadow-theme-sm transition-all duration-700 ease-out"
           onClick={onClearSelection}
           preserveAspectRatio="xMidYMid meet"
@@ -460,12 +495,18 @@ export default function MarketMap({
               const province = provinceByCode.get(path.code);
               const isSelected = selectedCode === path.code;
               const isHovered = hoveredCode === path.code;
-              const metricVal = province?.[activeMetric] ?? null;
+              const metricVal = getProvinceMapValue(province, activeMetric);
+              const metricLabel =
+                province && activeMetric === "opportunity" && metricVal !== null && province.opportunity === null
+                  ? `${Math.round(metricVal)} /100`
+                  : province
+                    ? formatMetricValue(province, activeMetric)
+                    : "-";
               const fillColor = getMetricColor(activeMetric, metricVal, isHovered, isSelected);
 
               return (
                 <path
-                  aria-label={`${path.name}: ${province ? formatMetricValue(province, activeMetric) : "-"}`}
+                  aria-label={`${path.name}: ${metricLabel}`}
                   className={`${province ? "cursor-pointer" : "cursor-default"} transition-all duration-150 focus:outline-none`}
                   d={path.d}
                   fill={fillColor}
