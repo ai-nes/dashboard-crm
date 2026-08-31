@@ -47,11 +47,17 @@ export interface DirectorMarketMeta {
 export type MarketRegionKey = "all" | "north" | "central" | "highlands" | "south" | "mekong";
 export type MarketSchoolClassification = "Trọng điểm" | "Mở rộng" | "Duy trì" | "Sàng lọc" | null;
 
+export interface MarketSchoolCoordinates {
+  latitude: number;
+  longitude: number;
+}
+
 export interface DirectorMarketSchool {
   id: string;
   directoryId: string | null;
   name: string;
   district: string | null;
+  coordinates: MarketSchoolCoordinates | null;
   tier: "Tier 1" | "Tier 2" | "Tier 3" | null;
   potentialScore: number | null;
   grade12Students: number | null;

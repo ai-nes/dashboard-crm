@@ -335,6 +335,7 @@ function generateMockHighSchools(
       directoryId: directorySchool?.id,
       name: directorySchool?.name ?? item.name,
       district: directorySchool?.district ?? (idx === 0 ? "Trung tâm TP/Thị xã" : `Huyện trọng điểm 0${idx + 1}`),
+      coordinates: null,
       tier: item.tier,
       potentialScore,
       grade12Students: students,

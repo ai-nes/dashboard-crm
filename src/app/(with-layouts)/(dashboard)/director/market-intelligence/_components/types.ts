@@ -22,6 +22,10 @@ export interface HighSchoolItem {
   directoryId: string | null;
   name: string;
   district: string | null;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  } | null;
   tier: SchoolTier | null;
   potentialScore: number | null;
   grade12Students: number | null;

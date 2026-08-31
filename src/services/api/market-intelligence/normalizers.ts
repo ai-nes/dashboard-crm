@@ -8,6 +8,7 @@ import type {
   DirectorMarketSchool,
   MarketRegionKey,
   MarketMetricAvailability,
+  MarketSchoolCoordinates,
   MarketSchoolClassification,
 } from "./types";
 
@@ -28,6 +29,13 @@ function text(value: unknown): string | null {
 
 function number(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function coordinates(value: unknown): MarketSchoolCoordinates | null {
+  const source = record(value);
+  const latitude = number(source.latitude ?? source.lat);
+  const longitude = number(source.longitude ?? source.lng ?? source.lon);
+  return latitude !== null && longitude !== null ? { latitude, longitude } : null;
 }
 
 function availability(value: unknown): DataAvailability {
@@ -66,11 +74,17 @@ function normalizeSchool(value: unknown, fallbackId: string): DirectorMarketScho
   if (!name) return null;
 
   const classificationValue = text(source.classification);
+  const locality = record(source.locality);
+  const coordinateSource = source.coordinates ?? locality.coordinates ?? record(locality.source).coordinates;
   return {
     id: text(source.id) ?? fallbackId,
     directoryId,
     name,
     district: text(source.district),
+    coordinates: coordinates(coordinateSource) ?? coordinates({
+      latitude: source.latitude ?? source.lat ?? locality.latitude,
+      longitude: source.longitude ?? source.lng ?? source.lon ?? locality.longitude,
+    }),
     tier: (["Tier 1", "Tier 2", "Tier 3"] as const).find((item) => item === source.tier) ?? null,
     potentialScore: number(source.potentialScore),
     grade12Students: number(source.grade12Students),

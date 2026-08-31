@@ -26,6 +26,25 @@ describe("market intelligence normalization", () => {
     expect(result.provinces[1].highSchools).toEqual([]);
   });
 
+  it("normalizes school coordinates from the market response", () => {
+    const result = normalizeMarketOverview({
+      provinces: [{
+        code: "01",
+        name: "Hà Nội",
+        highSchools: [{
+          id: "school-1",
+          name: "THPT Nguyễn Trãi",
+          coordinates: { latitude: 21.03, longitude: 105.81 },
+        }],
+      }],
+    });
+
+    expect(result.provinces[0].highSchools[0].coordinates).toEqual({
+      latitude: 21.03,
+      longitude: 105.81,
+    });
+  });
+
   it("sorts unavailable scores after all available scores", () => {
     const rows = [
       { potentialScore: null },

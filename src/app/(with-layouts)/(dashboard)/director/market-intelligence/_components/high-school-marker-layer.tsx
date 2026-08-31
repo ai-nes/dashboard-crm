@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { getGeometryCenter } from "./map-geometry";
+import { getDistributedGeometryPoints, getGeometryCenter } from "./map-geometry";
 import { sortByAvailableScore } from "@/services/api/market-intelligence";
 import type { HighSchoolItem, ProvinceFeatureCollection, ProvinceMetrics, RegionKey } from "./types";
 
@@ -33,7 +33,7 @@ const MARKER_OFFSETS: Array<[number, number]> = [
 ];
 
 const CLASSIFICATION_STYLE: Record<NonNullable<HighSchoolItem["classification"]>, { color: string; baseRadius: number; coreRadius: number; pulse: boolean }> = {
-  "Trọng điểm": { color: "var(--success-500)", baseRadius: 9, coreRadius: 5.5, pulse: true },
+  "Trọng điểm": { color: "var(--success-500)", baseRadius: 7, coreRadius: 4, pulse: true },
   "Mở rộng": { color: "var(--primary-500)", baseRadius: 7, coreRadius: 4, pulse: false },
   "Duy trì": { color: "var(--warning-500)", baseRadius: 5.5, coreRadius: 3, pulse: false },
   "Sàng lọc": { color: "var(--text-tertiary)", baseRadius: 4.5, coreRadius: 2.25, pulse: false },
@@ -64,15 +64,23 @@ export default function HighSchoolMarkerLayer({
         if (!feature) return [];
 
         const schools = sortByAvailableScore(province.highSchools, "potentialScore");
-        const visibleSchools = schools;
+        const distributedPoints = getDistributedGeometryPoints(
+          feature.geometry.coordinates,
+          schools.length,
+        );
 
         const center = getGeometryCenter(feature.geometry.coordinates);
         const [centerX, centerY] = projectPoint(center);
-        return visibleSchools.map((school, index) => {
+        return schools.map((school, index) => {
           const [xOffset, yOffset] = MARKER_OFFSETS[index] ?? [0, 0];
+          const point: [number, number] = school.coordinates
+            ? projectPoint([school.coordinates.longitude, school.coordinates.latitude])
+            : distributedPoints[index]
+              ? projectPoint(distributedPoints[index])
+              : [centerX + xOffset, centerY + yOffset];
 
           return {
-            point: [centerX + xOffset, centerY + yOffset],
+            point,
             provinceCode: province.code,
             provinceName: province.name,
             school,
