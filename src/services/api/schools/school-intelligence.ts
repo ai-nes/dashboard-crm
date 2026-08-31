@@ -191,6 +191,9 @@ export async function getDirectorSchoolDetail(
 
   const response = await fetch(`${baseUrl}/api/method/${method}?${query.toString()}`, {
     headers,
+    // Client-side the session cookie rides along on the cross-origin request;
+    // server-side it is forwarded explicitly via the Cookie header above.
+    ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
     cache: "no-store",
   });
   const payload = await response.json().catch(() => ({}));
