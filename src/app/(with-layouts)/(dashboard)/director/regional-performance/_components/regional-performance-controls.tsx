@@ -34,16 +34,16 @@ function RegionalPerformanceControls({
           ? "min-w-40"
           : "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
       }
-      aria-label="Bộ lọc tỉnh trọng điểm"
+      aria-label="Chọn địa bàn cần xem"
     >
       <Select
         className={compact ? "w-full" : "w-full sm:max-w-md"}
         value={selectedProvinceId}
         onChange={(value) => onProvinceChange(String(value))}
-        aria-label="Chọn tỉnh đang xem"
+        aria-label="Chọn địa bàn đang xem"
       >
         <SelectLabel className={compact ? "sr-only" : undefined}>
-          Tỉnh đang xem
+          Địa bàn đang xem
         </SelectLabel>
         <SelectTrigger size="sm">
           <SelectValue />

@@ -6,6 +6,7 @@ import {
   BarChart,
   CartesianGrid,
   LabelList,
+  ReferenceLine,
   Tooltip,
   XAxis,
   YAxis,
@@ -13,11 +14,19 @@ import {
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
+import { REGIONAL_SCOPE_LABEL } from "./data";
 import type { FunnelStage, RegionPerformance } from "./types";
 
 interface OverviewChartsProps {
   provinces: RegionPerformance[];
 }
+
+type OverviewFunnelStage = FunnelStage & {
+  retainedRate: number;
+  stepConversion: number;
+  dropOff: number;
+  previousStage?: string;
+};
 
 function OverviewCharts({ provinces }: OverviewChartsProps) {
   const targetData = useMemo(
@@ -27,26 +36,51 @@ function OverviewCharts({ provinces }: OverviewChartsProps) {
   );
   const funnelData = useMemo(() => {
     const stages = provinces[0]?.funnel ?? [];
-    return stages.map((stage, index) => ({
+    const values = stages.map((stage, index) => ({
       stage: stage.stage,
       value: provinces.reduce(
         (total, province) => total + (province.funnel[index]?.value ?? 0),
         0,
       ),
     }));
+    const initialValue = values[0]?.value ?? 0;
+
+    return values.map((item, index) => {
+      const previous = values[index - 1];
+      const stepConversion = previous?.value
+        ? (item.value / previous.value) * 100
+        : 100;
+
+      return {
+        ...item,
+        retainedRate: initialValue ? (item.value / initialValue) * 100 : 0,
+        stepConversion,
+        dropOff: index === 0 ? 0 : 100 - stepConversion,
+        previousStage: previous?.stage,
+      } satisfies OverviewFunnelStage;
+    });
   }, [provinces]);
+  const largestDrop = useMemo(
+    () =>
+      funnelData.slice(1).reduce<OverviewFunnelStage | undefined>(
+        (largest, item) =>
+          !largest || item.dropOff > largest.dropOff ? item : largest,
+        undefined,
+      ),
+    [funnelData],
+  );
 
   return (
     <section
       className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2"
-      aria-label="Tổng quan hiệu suất 7 tỉnh"
+      aria-label={`Tổng quan kết quả của ${REGIONAL_SCOPE_LABEL}`}
     >
       <Card className="min-w-0 p-5">
         <CardHeader className="mb-4">
           <div>
-            <CardTitle>Mức đạt chỉ tiêu theo tỉnh</CardTitle>
+            <CardTitle>Tỷ lệ đạt chỉ tiêu theo địa bàn</CardTitle>
             <p className="mt-1 text-xs text-text-tertiary">
-              Tỷ lệ hoàn thành mục tiêu tuyển sinh trong 7 tỉnh trọng điểm.
+              Mốc đạt chỉ tiêu là 100%.
             </p>
           </div>
         </CardHeader>
@@ -62,11 +96,25 @@ function OverviewCharts({ provinces }: OverviewChartsProps) {
                 horizontal={false}
                 stroke="var(--border-color-base-100)"
               />
-              <XAxis type="number" hide domain={[0, 100]} />
+              <XAxis
+                type="number"
+                domain={[0, 100]}
+                ticks={[0, 50, 100]}
+                tickFormatter={(value) => String(value) + "%"}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "var(--text-tertiary)", fontSize: 11 }}
+                height={20}
+              />
+              <ReferenceLine
+                x={100}
+                stroke="var(--text-tertiary)"
+                strokeDasharray="4 4"
+              />
               <YAxis
                 type="category"
                 dataKey="name"
-                width={112}
+                width={124}
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
@@ -98,9 +146,9 @@ function OverviewCharts({ provinces }: OverviewChartsProps) {
       <Card className="min-w-0 p-5">
         <CardHeader className="mb-4">
           <div>
-            <CardTitle>Phễu tuyển sinh tổng quan</CardTitle>
+            <CardTitle>Hồ sơ còn lại theo giai đoạn</CardTitle>
             <p className="mt-1 text-xs text-text-tertiary">
-              Tổng số hồ sơ còn lại sau từng bước của 7 tỉnh trọng điểm.
+              Tổng hồ sơ còn lại; % tính trên hồ sơ ban đầu.
             </p>
           </div>
         </CardHeader>
@@ -116,11 +164,15 @@ function OverviewCharts({ provinces }: OverviewChartsProps) {
                 horizontal={false}
                 stroke="var(--border-color-base-100)"
               />
-              <XAxis type="number" hide />
+              <XAxis
+                type="number"
+                hide
+                domain={[0, funnelData[0]?.value ?? 0]}
+              />
               <YAxis
                 type="category"
                 dataKey="stage"
-                width={112}
+                width={124}
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
@@ -151,6 +203,16 @@ function OverviewCharts({ provinces }: OverviewChartsProps) {
             </BarChart>
           </ChartContainer>
         </div>
+        {largestDrop && (
+          <p className="mt-3 rounded-lg bg-background-soft-50 px-3 py-2 text-xs text-text-secondary">
+            <span className="font-semibold text-text-primary">
+              Điểm giảm lớn nhất:
+            </span>{" "}
+            {largestDrop.previousStage} → {largestDrop.stage} giảm{" "}
+            {largestDrop.dropOff.toFixed(1).replace(".", ",")}%, còn lại{" "}
+            {largestDrop.value.toLocaleString("vi-VN")} hồ sơ.
+          </p>
+        )}
       </Card>
     </section>
   );
@@ -183,7 +245,7 @@ function FunnelTooltip({
   payload,
 }: {
   active?: boolean;
-  payload?: { payload?: FunnelStage }[];
+  payload?: { payload?: OverviewFunnelStage }[];
 }) {
   const stage = payload?.[0]?.payload;
   if (!active || !stage) return null;
@@ -193,6 +255,14 @@ function FunnelTooltip({
       <p className="mt-1 text-text-secondary">
         {stage.value.toLocaleString("vi-VN")} hồ sơ
       </p>
+      <p className="mt-1 text-text-secondary">
+        Còn lại: {stage.retainedRate.toFixed(1).replace(".", ",")}%
+      </p>
+      {stage.previousStage && (
+        <p className="mt-1 text-text-secondary">
+          Sang bước này: {stage.stepConversion.toFixed(1).replace(".", ",")}%
+        </p>
+      )}
     </div>
   );
 }

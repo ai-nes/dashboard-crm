@@ -34,7 +34,7 @@ const MARKER_OFFSETS: Array<[number, number]> = [
 
 const CLASSIFICATION_STYLE: Record<NonNullable<HighSchoolItem["classification"]>, { color: string; baseRadius: number; coreRadius: number; pulse: boolean }> = {
   "Trọng điểm": { color: "var(--success-500)", baseRadius: 7, coreRadius: 4, pulse: true },
-  "Mở rộng": { color: "var(--primary-500)", baseRadius: 7, coreRadius: 4, pulse: false },
+  "Mở rộng": { color: "var(--info-500)", baseRadius: 7, coreRadius: 4, pulse: false },
   "Duy trì": { color: "var(--warning-500)", baseRadius: 5.5, coreRadius: 3, pulse: false },
   "Sàng lọc": { color: "var(--text-tertiary)", baseRadius: 4.5, coreRadius: 2.25, pulse: false },
 };

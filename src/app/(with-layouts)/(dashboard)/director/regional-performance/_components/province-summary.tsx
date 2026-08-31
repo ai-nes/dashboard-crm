@@ -17,9 +17,9 @@ function ProvinceSummary({ province }: { province: RegionPerformance }) {
     <Card className="p-5">
       <CardHeader className="mb-5">
         <div>
-          <CardTitle>{province.name}</CardTitle>
+          <CardTitle>Kết quả tại {province.name}</CardTitle>
           <p className="mt-1 text-xs text-text-tertiary">
-            Tổng quan hiệu suất tuyển sinh trong kỳ 2026.
+            Tóm tắt kết quả của địa bàn đang chọn.
           </p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-background-soft-50 px-3 py-1.5 text-xs font-medium text-text-secondary">
@@ -32,7 +32,7 @@ function ProvinceSummary({ province }: { province: RegionPerformance }) {
       </CardHeader>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Metric
-          label="Hồ sơ đăng ký"
+          label="Hồ sơ"
           value={numberFormatter.format(province.applications)}
           change={province.applicationChange}
         />
@@ -42,11 +42,11 @@ function ProvinceSummary({ province }: { province: RegionPerformance }) {
           change={province.enrollmentChange}
         />
         <Metric
-          label="Tỷ lệ chuyển đổi nhập học"
+          label="Tỷ lệ nhập học"
           value={`${province.conversion}%`}
         />
         <Metric
-          label="Sức tải đội ngũ"
+          label="Mức sử dụng đội ngũ"
           value={`${province.capacity}%`}
           tone={
             province.capacity > 90

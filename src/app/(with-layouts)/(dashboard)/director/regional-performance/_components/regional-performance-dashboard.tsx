@@ -22,7 +22,10 @@ export default function RegionalPerformanceDashboard() {
   if (!selectedProvince) return null;
 
   return (
-    <main className="min-w-0 space-y-5 overflow-hidden px-2 py-4 pb-8 lg:px-6">
+    <main
+      id="main-content"
+      className="min-w-0 space-y-5 overflow-hidden px-2 py-4 pb-8 lg:px-6"
+    >
       <RegionalPerformanceHeader>
         <RegionalPerformanceControls
           provinces={provinces}
@@ -31,7 +34,10 @@ export default function RegionalPerformanceDashboard() {
           compact
         />
       </RegionalPerformanceHeader>
-      <div className="space-y-5">
+      <section
+        className="space-y-5"
+        aria-label={`Tổng quan và chi tiết ${selectedProvince.name}`}
+      >
         <OverviewCharts provinces={provinces} />
         <ProvinceSummary province={selectedProvince} />
         <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
@@ -42,7 +48,7 @@ export default function RegionalPerformanceDashboard() {
           <CapabilitySummary province={selectedProvince} />
           <PriorityActions province={selectedProvince} />
         </div>
-      </div>
+      </section>
     </main>
   );
 }

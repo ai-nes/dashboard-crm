@@ -2,9 +2,10 @@
 
 import { memo, type ReactNode } from "react";
 import {
+  Bar,
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
   Tooltip,
   XAxis,
   YAxis,
@@ -17,12 +18,14 @@ import type { RegionPerformance } from "./types";
 function EnrollmentTrend({ province }: { province: RegionPerformance }) {
   return (
     <ChartCard
-      title={`Xu hướng hồ sơ & nhập học · ${province.name}`}
-      description="6 tháng gần nhất · hồ sơ đăng ký và số nhập học"
+      title={`Hồ sơ và nhập học theo tháng · ${province.name}`}
+      description="6 tháng gần nhất · kỳ này, kỳ trước và nhập học"
+      legend={<TrendLegend />}
     >
-      <LineChart
+      <ComposedChart
         data={province.trend}
-        margin={{ top: 8, right: 4, left: -18, bottom: 0 }}
+        margin={{ top: 8, right: 4, left: -12, bottom: 0 }}
+        barCategoryGap={18}
       >
         <CartesianGrid
           vertical={false}
@@ -36,37 +39,47 @@ function EnrollmentTrend({ province }: { province: RegionPerformance }) {
           tick={{ fill: "var(--text-tertiary)", fontSize: 12 }}
         />
         <YAxis
+          yAxisId="applications"
           axisLine={false}
           tickLine={false}
           tick={{ fill: "var(--text-tertiary)", fontSize: 12 }}
+          tickFormatter={(value) => Number(value).toLocaleString("vi-VN")}
+        />
+        <YAxis
+          yAxisId="enrollments"
+          orientation="right"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: "var(--text-tertiary)", fontSize: 12 }}
+          tickFormatter={(value) => Number(value).toLocaleString("vi-VN")}
         />
         <Tooltip content={<TooltipContent />} />
-        <Line
-          name="Hồ sơ đăng ký kỳ này"
-          type="monotone"
+        <Bar
+          yAxisId="applications"
+          name="Hồ sơ kỳ này"
           dataKey="applications"
-          stroke="var(--primary-500)"
-          strokeWidth={2.5}
-          dot={false}
+          fill="var(--primary-500)"
+          radius={[4, 4, 0, 0]}
+          barSize={18}
         />
-        <Line
-          name="Hồ sơ đăng ký kỳ trước"
-          type="monotone"
+        <Bar
+          yAxisId="applications"
+          name="Hồ sơ kỳ trước"
           dataKey="previousApplications"
-          stroke="var(--primary-300)"
-          strokeWidth={2}
-          strokeDasharray="5 5"
-          dot={false}
+          fill="var(--primary-300)"
+          radius={[4, 4, 0, 0]}
+          barSize={18}
         />
         <Line
-          name="Số nhập học"
+          yAxisId="enrollments"
+          name="Nhập học"
           type="monotone"
           dataKey="enrollments"
           stroke="var(--success-500)"
           strokeWidth={2.5}
           dot={false}
         />
-      </LineChart>
+      </ComposedChart>
     </ChartCard>
   );
 }
@@ -74,10 +87,12 @@ function EnrollmentTrend({ province }: { province: RegionPerformance }) {
 function ChartCard({
   title,
   description,
+  legend,
   children,
 }: {
   title: string;
   description: string;
+  legend?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -88,12 +103,32 @@ function ChartCard({
           <p className="mt-1 text-xs text-text-tertiary">{description}</p>
         </div>
       </CardHeader>
-      <div className="h-68 min-h-68 w-full">
+      {legend && <div className="mb-2">{legend}</div>}
+      <div className="h-72 min-h-72 w-full">
         <ChartContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           {children}
         </ChartContainer>
       </div>
     </Card>
+  );
+}
+
+function TrendLegend() {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[11px] text-text-tertiary">
+      <span className="inline-flex items-center gap-1.5">
+        <i aria-hidden="true" className="size-2 rounded-full bg-primary-500" />
+        Hồ sơ kỳ này
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <i aria-hidden="true" className="size-2 rounded-full bg-primary-300" />
+        Hồ sơ kỳ trước
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <i aria-hidden="true" className="size-2 rounded-full bg-success-500" />
+        Nhập học
+      </span>
+    </div>
   );
 }
 
