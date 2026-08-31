@@ -48,7 +48,7 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
     <aside className="flex h-full min-h-[640px] min-w-0 flex-col overflow-hidden rounded-2xl bg-card-background xl:min-h-0" aria-label={`Phân tích thị trường ${province.name}`}>
       <header className="shrink-0 border-b border-card-border bg-background-soft-50 p-4">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-semibold tracking-[0.12em] text-primary-500 uppercase">Thị trường · {province.code}</p>
+          <p className="text-[10px] font-semibold tracking-[0.12em] text-primary-500 uppercase">Phân tích địa bàn</p>
           <Badge color={badgeVariant}>{opportunityLabel(province.opportunity)}</Badge>
         </div>
         <div className="mt-1 flex items-end justify-between gap-3">
@@ -57,8 +57,8 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
             <p className="mt-0.5 truncate text-xs text-text-secondary">{regionLabel} · {province.highSchools.length} trường nổi bật</p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-2xl font-semibold leading-none text-text-primary">{formatNullable(province.opportunity)}</p>
-            <p className="mt-1 text-[10px] text-text-tertiary">Potential /100</p>
+            <p className="text-2xl font-semibold leading-none text-primary-600">{formatNullable(province.opportunity)}</p>
+            <p className="mt-1 text-[10px] text-text-tertiary">Điểm cơ hội /100</p>
           </div>
         </div>
       </header>
@@ -67,8 +67,8 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
         <section aria-labelledby="school-list-title" className="mt-5">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <h3 id="school-list-title" className="text-sm font-semibold text-text-primary">Trường THPT trong vùng</h3>
-              <p className="mt-0.5 text-xs text-text-tertiary">Chọn một trường để mở phân tích chi tiết</p>
+              <h3 id="school-list-title" className="text-sm font-semibold text-text-primary">Trường THPT nổi bật</h3>
+              <p className="mt-0.5 text-xs text-text-tertiary">Chọn trường để xem chi tiết</p>
             </div>
             <span className="shrink-0 text-xs font-medium text-text-tertiary">{schools.length} trường</span>
           </div>
@@ -94,7 +94,7 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
                     </span>
                     <span className="mt-1 block truncate text-[11px] text-text-tertiary">{school.district ?? "-"} · {formatPercent(school.penetrationRate)} tiếp cận</span>
                   </span>
-                  <span className="shrink-0 text-right"><span className="block text-sm font-semibold text-text-primary">{formatNullable(school.potentialScore)}</span><span className="text-[10px] text-text-tertiary">Potential</span></span>
+                  <span className="shrink-0 text-right"><span className="block text-sm font-semibold text-primary-600">{formatNullable(school.potentialScore)}</span><span className="text-[10px] text-text-tertiary">Điểm cơ hội</span></span>
                 </button>
               );
             })}
@@ -107,7 +107,7 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
           <div className="flex items-start gap-2.5">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-badge-primary-background text-primary-500" aria-hidden="true"><Sparkle size={15} /></span>
             <div className="min-w-0">
-              <h3 id="province-recommendation-title" className="text-xs font-semibold text-text-primary">Cơ hội khu vực</h3>
+              <h3 id="province-recommendation-title" className="text-xs font-semibold text-text-primary">Gợi ý tiếp cận</h3>
               <p className="mt-1 text-xs leading-5 text-text-secondary">{province.recommendation ?? "-"}</p>
               {province.keyAction && <p className="mt-2 flex items-start gap-1.5 text-xs font-medium text-primary-500"><ArrowRight size={13} className="mt-0.5 shrink-0" />{province.keyAction}</p>}
             </div>

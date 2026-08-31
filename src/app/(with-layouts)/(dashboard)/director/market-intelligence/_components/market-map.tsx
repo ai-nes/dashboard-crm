@@ -250,20 +250,27 @@ export default function MarketMap({
       {/* ========================================================================= */}
       {/* 1. LEVEL 1 HEADER: Context & Primary Metric Dimension Selector */}
       {/* ========================================================================= */}
-      <div className="flex items-center justify-between gap-2 pb-2">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-bold tracking-tight text-text-primary">
-            Bản đồ thị trường & trường THPT
-          </h2>
-          <span className="rounded-md bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-500">
-            {totalProvinces > 0 ? `${totalProvinces} tỉnh` : "-"}
+      <div className="flex items-center justify-between gap-3 pb-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-600" aria-hidden="true">
+            <Target3 size={16} />
           </span>
-          <span className="hidden text-xs text-text-tertiary sm:inline">
-            • {totalSchools} trường nổi bật · {admissionYear === null ? "Kỳ hiện hành" : `Niên khóa ${admissionYear}`}
-          </span>
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2">
+              <h2 className="truncate text-sm font-bold tracking-tight text-text-primary">
+                Cơ hội tuyển sinh theo địa bàn
+              </h2>
+              <span className="shrink-0 rounded-md bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold text-brand-600">
+                {totalProvinces > 0 ? `${totalProvinces} tỉnh` : "-"}
+              </span>
+            </div>
+            <p className="mt-0.5 truncate text-xs text-text-tertiary">
+              {totalSchools} trường nổi bật · {admissionYear === null ? "Kỳ hiện hành" : `Niên khóa ${admissionYear}`}
+            </p>
+          </div>
         </div>
 
-          <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-[11px] font-semibold text-badge-primary-text">Xếp theo điểm nhiệt</span>
+        <span className="shrink-0 rounded-full bg-badge-primary-background px-2.5 py-1 text-[11px] font-semibold text-badge-primary-text">Theo điểm cơ hội</span>
       </div>
 
       {/* ========================================================================= */}
@@ -379,10 +386,10 @@ export default function MarketMap({
       {/* ========================================================================= */}
       {/* 3. MAP CANVAS: 100% Unobstructed SVG Viewport with Light/Dark Support */}
       {/* ========================================================================= */}
-      <div className="relative flex flex-1 min-h-0 items-center justify-center overflow-hidden rounded-xl bg-background-gray-primary/40 p-1">
+      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl bg-background-soft-50 p-1 ring-1 ring-card-border/50">
         <div className="pointer-events-none absolute top-2.5 right-2.5 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-x-3 gap-y-1 rounded-lg bg-card-background/90 px-2.5 py-1.5 text-[10px] shadow-xs backdrop-blur-md">
           <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2.5 animate-pulse rounded-full bg-success-500" aria-hidden="true" />Trọng điểm</span>
-          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2 rounded-full bg-primary-500" aria-hidden="true" />Mở rộng</span>
+          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2 rounded-full bg-info-500" aria-hidden="true" />Mở rộng</span>
           <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-1.5 rounded-full bg-warning-500" aria-hidden="true" />Duy trì</span>
           <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-1 rounded-full bg-text-tertiary" aria-hidden="true" />Sàng lọc</span>
         </div>
@@ -442,19 +449,19 @@ export default function MarketMap({
           {/* Maritime Sovereign Territory */}
           <g className="maritime-sovereignty pointer-events-none select-none">
             <g transform="translate(460, 270)">
-              <circle cx={0} cy={0} r={2.5} fill="var(--color-brand-500, #3b82f6)" />
-              <circle cx={8} cy={-5} r={1.8} fill="var(--color-brand-500, #3b82f6)" />
-              <circle cx={-6} cy={6} r={1.8} fill="var(--color-brand-500, #3b82f6)" />
+              <circle cx={0} cy={0} r={2.5} fill="var(--brand-400)" />
+              <circle cx={8} cy={-5} r={1.8} fill="var(--brand-400)" />
+              <circle cx={-6} cy={6} r={1.8} fill="var(--brand-400)" />
             </g>
 
             <g transform="translate(475, 590)">
-              <circle cx={0} cy={0} r={2.5} fill="var(--color-brand-500, #3b82f6)" />
-              <circle cx={12} cy={-8} r={1.8} fill="var(--color-brand-500, #3b82f6)" />
-              <circle cx={-8} cy={14} r={2} fill="var(--color-brand-500, #3b82f6)" />
+              <circle cx={0} cy={0} r={2.5} fill="var(--brand-400)" />
+              <circle cx={12} cy={-8} r={1.8} fill="var(--brand-400)" />
+              <circle cx={-8} cy={14} r={2} fill="var(--brand-400)" />
             </g>
 
             <g transform="translate(145, 690)">
-              <circle cx={0} cy={0} r={3} fill="#10b981" />
+              <circle cx={0} cy={0} r={3} fill="var(--success-500)" />
             </g>
           </g>
 
@@ -490,7 +497,7 @@ export default function MarketMap({
                   onMouseEnter={() => setHoveredCode(path.code)}
                   onMouseLeave={() => setHoveredCode(null)}
                   role={province ? "button" : undefined}
-                  stroke={isSelected ? "var(--color-text-primary)" : isHovered ? "rgba(37,99,235,0.7)" : "var(--color-card-background, #ffffff)"}
+                  stroke={isSelected ? "var(--text-primary)" : isHovered ? "var(--primary-600)" : "var(--card-background)"}
                   strokeLinejoin="round"
                   strokeWidth={isSelected ? 1.25 : isHovered ? 1.6 : 0.75}
                   style={{
@@ -525,9 +532,14 @@ export default function MarketMap({
       {/* Heat score color legend */}
       <div className="mt-2 flex justify-end text-xs">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-text-secondary">Điểm nhiệt:</span>
+          <span className="font-medium text-text-secondary">Điểm cơ hội:</span>
           <span className="text-[11px] text-text-tertiary">Thấp</span>
-          <div className="h-1.5 w-20 rounded-full bg-linear-to-r from-rose-500 via-amber-500 via-blue-500 via-teal-500 to-emerald-500" />
+          <div
+            className="h-1.5 w-20 rounded-full"
+            style={{
+              backgroundImage: "linear-gradient(90deg, var(--red-600) 0%, var(--warning-500) 34%, var(--info-500) 67%, var(--green-600) 100%)",
+            }}
+          />
           <span className="text-[11px] text-text-tertiary">Cao</span>
         </div>
       </div>

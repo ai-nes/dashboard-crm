@@ -15,13 +15,13 @@ function PriorityActions({ province }: { province: RegionPerformance }) {
     <Card className="p-5">
       <CardHeader className="mb-4">
         <div>
-          <CardTitle>Hành động ưu tiên</CardTitle>
+          <CardTitle>Việc cần làm</CardTitle>
           <p className="mt-1 text-xs text-text-tertiary">
-            {province.name} · sắp theo mức độ ưu tiên điều hành.
+            Ưu tiên theo mức độ ảnh hưởng.
           </p>
         </div>
       </CardHeader>
-      <ol className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <ol className="grid gap-3">
         {actions.map((action) => (
           <li key={action.id} className="rounded-lg bg-background-soft-50 p-4">
             <div className="flex items-start justify-between gap-3">

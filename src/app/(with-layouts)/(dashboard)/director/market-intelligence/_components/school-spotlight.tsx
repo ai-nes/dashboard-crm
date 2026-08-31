@@ -10,7 +10,7 @@ interface SchoolSpotlightProps {
 }
 
 const classificationConfig: Record<NonNullable<HighSchoolItem["classification"]>, { color: "success" | "primary" | "warning" | "gray"; label: string }> = {
-  "Trọng điểm": { color: "success", label: "Trọng điểm · Key Account" },
+  "Trọng điểm": { color: "success", label: "Trọng điểm" },
   "Mở rộng": { color: "primary", label: "Mở rộng" },
   "Duy trì": { color: "warning", label: "Duy trì" },
   "Sàng lọc": { color: "gray", label: "Sàng lọc" },
@@ -27,7 +27,7 @@ export default function SchoolSpotlight({ provinceName, school }: SchoolSpotligh
             <Buildings11 size={16} />
           </span>
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold tracking-[0.12em] text-primary-500 uppercase">Trường đang phân tích</p>
+            <p className="text-[10px] font-semibold tracking-[0.12em] text-primary-500 uppercase">Trường đang xem</p>
             <h3 id="selected-school-title" className="mt-1 truncate text-sm font-semibold text-text-primary" title={school.name}>{school.name}</h3>
             <p className="mt-0.5 truncate text-xs text-text-secondary">{school.district} · {provinceName}</p>
           </div>
@@ -37,7 +37,7 @@ export default function SchoolSpotlight({ provinceName, school }: SchoolSpotligh
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2">
         <div className="rounded-lg bg-card-background/80 p-2.5">
-          <p className="text-[10px] text-text-tertiary">Potential</p>
+          <p className="text-[10px] text-text-tertiary">Điểm cơ hội</p>
           <p className="mt-0.5 text-lg font-semibold text-text-primary">{metric(school.potentialScore)}{school.potentialScore !== null && <span className="text-xs font-medium text-text-tertiary">/100</span>}</p>
         </div>
         <div className="rounded-lg bg-card-background/80 p-2.5">
@@ -45,11 +45,11 @@ export default function SchoolSpotlight({ provinceName, school }: SchoolSpotligh
           <p className="mt-0.5 text-lg font-semibold text-text-primary">{metric(school.grade12Students, true)}</p>
         </div>
         <div className="rounded-lg bg-card-background/80 p-2.5">
-          <p className="text-[10px] text-text-tertiary">Prospect</p>
+          <p className="text-[10px] text-text-tertiary">Hồ sơ quan tâm</p>
           <p className="mt-0.5 text-lg font-semibold text-text-primary">{metric(school.prospects, true)}</p>
         </div>
         <div className="rounded-lg bg-card-background/80 p-2.5">
-          <p className="text-[10px] text-text-tertiary">Forecast</p>
+          <p className="text-[10px] text-text-tertiary">Dự báo nhập học</p>
           <p className="mt-0.5 flex items-center gap-1 text-lg font-semibold text-success-500">{school.enrollmentForecast !== null && <TrendUp2 size={14} />}{metric(school.enrollmentForecast)}</p>
         </div>
       </div>
@@ -57,7 +57,7 @@ export default function SchoolSpotlight({ provinceName, school }: SchoolSpotligh
       <div className="mt-4">
         <div className="flex items-center justify-between gap-3 text-xs">
           <span className="font-medium text-text-secondary">Mức độ tiếp cận</span>
-          <span className="font-semibold text-text-primary">{percent(school.penetrationRate)} · CR {percent(school.conversionRate)}</span>
+          <span className="font-semibold text-text-primary">{percent(school.penetrationRate)} · Chuyển đổi {percent(school.conversionRate)}</span>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-card-background">
           <div className="h-full rounded-full bg-primary-500" style={{ width: `${school.penetrationRate === null ? 0 : Math.min(100, school.penetrationRate * 8)}%` }} />
@@ -66,7 +66,7 @@ export default function SchoolSpotlight({ provinceName, school }: SchoolSpotligh
       </div>
 
       <div className="mt-4 border-t border-primary-200 pt-3">
-        <p className="text-xs font-semibold text-primary-600">Vì sao nên chọn trường này?</p>
+        <p className="text-xs font-semibold text-primary-600">Gợi ý xử lý</p>
         <p className="mt-1 text-xs leading-5 text-text-secondary">{school.recommendation ?? "-"}{school.applications !== null ? ` Trường đang có ${school.applications} hồ sơ xét tuyển.` : ""}</p>
         {school.nextAction && <div className="mt-3 flex items-start gap-2 rounded-lg bg-card-background/75 p-2.5">
           <ArrowRight size={14} className="mt-0.5 shrink-0 text-primary-500" aria-hidden="true" />

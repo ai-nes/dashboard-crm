@@ -6,15 +6,15 @@ import type {
   RegionPerformance,
 } from "./types";
 
-export const REGIONAL_SCOPE_LABEL = "7 tỉnh trọng điểm";
+export const REGIONAL_SCOPE_LABEL = "7 địa bàn trọng điểm";
 
 export const capabilityColumns: CapabilityColumn[] = [
-  { key: "leadGeneration", label: "Tạo nguồn" },
+  { key: "leadGeneration", label: "Tạo nguồn hồ sơ" },
   { key: "counselling", label: "Tư vấn" },
-  { key: "quality", label: "Chất lượng" },
-  { key: "conversion", label: "Chuyển đổi" },
-  { key: "campaigns", label: "Chiến dịch" },
-  { key: "productivity", label: "Năng suất" },
+  { key: "quality", label: "Chất lượng hồ sơ" },
+  { key: "conversion", label: "Tỷ lệ nhập học" },
+  { key: "campaigns", label: "Hoạt động tuyển sinh" },
+  { key: "productivity", label: "Năng suất đội ngũ" },
 ];
 
 const baseTrend: MonthlyTrend[] = [

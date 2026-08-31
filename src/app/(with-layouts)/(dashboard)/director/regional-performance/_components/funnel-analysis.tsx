@@ -22,38 +22,50 @@ function FunnelAnalysis({ province }: { province: RegionPerformance }) {
     <Card className="min-w-0 p-5">
       <CardHeader className="mb-4">
         <div>
-          <CardTitle>Phễu tuyển sinh theo tỉnh</CardTitle>
+          <CardTitle>Hồ sơ qua từng giai đoạn</CardTitle>
           <p className="mt-1 text-xs text-text-tertiary">
-            {province.name} · tỷ lệ tính từ hồ sơ đăng ký ban đầu.
+            {province.name} · tính từ hồ sơ ban đầu.
           </p>
         </div>
       </CardHeader>
-      <div className="space-y-4">
-        {data.map((item) => (
-          <div
-            key={item.stage}
-            className="grid grid-cols-[minmax(80px,0.7fr)_minmax(0,2fr)_auto] items-center gap-3"
-          >
-            <span className="text-xs font-medium text-text-secondary">
-              {item.stage}
-            </span>
-            <div className="h-8 overflow-hidden rounded-md bg-background-soft-50">
+      <div className="mb-2 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.08em] text-text-tertiary">
+        <span>Giai đoạn</span>
+        <span>Còn lại</span>
+      </div>
+      <div className="space-y-3">
+        {data.map((item, index) => (
+          <div key={item.stage}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="flex size-5 shrink-0 items-center justify-center text-[11px] font-semibold text-primary-500">
+                  {index + 1}
+                </span>
+                <span className="truncate text-xs font-medium text-text-secondary">
+                  {item.stage}
+                </span>
+              </div>
+              <span className="shrink-0 text-xs font-semibold text-text-primary">
+                {item.remaining.toFixed(1).replace(".", ",")}%
+              </span>
+            </div>
+            <div className="mt-1 flex h-8 justify-center">
               <div
-                className="flex h-full min-w-20 items-center rounded-md bg-primary-500 px-3 text-xs font-semibold text-white"
-                style={{ width: `${Math.max(18, item.remaining)}%` }}
+                className={
+                  index === data.length - 1
+                    ? "mx-auto flex h-full items-center justify-center rounded-full bg-success-500 px-3 text-xs font-semibold text-white"
+                    : "mx-auto flex h-full items-center justify-center rounded-full bg-primary-500 px-3 text-xs font-semibold text-white"
+                }
+                style={{ width: String(Math.max(18, item.remaining)) + "%" }}
               >
                 {item.value.toLocaleString("vi-VN")}
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs font-semibold text-text-primary">
-                {item.remaining.toFixed(1).replace(".", ",")}%
-              </p>
-              <p className="mt-0.5 text-[11px] text-text-tertiary">
-                {item.stepConversion.toFixed(1).replace(".", ",")}% chuyển đổi
-                bước
-              </p>
-            </div>
+            <p className="mt-1 text-right text-[11px] text-text-tertiary">
+              {index === 0
+                ? "Hồ sơ ban đầu"
+                : item.stepConversion.toFixed(1).replace(".", ",") +
+                  "% sang bước sau"}
+            </p>
           </div>
         ))}
       </div>

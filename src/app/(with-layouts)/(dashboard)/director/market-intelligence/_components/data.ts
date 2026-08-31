@@ -485,18 +485,17 @@ export function getOpportunityBadgeVariant(score: number | null): "success" | "p
 }
 
 /**
- * Returns smooth, professional choropleth hex colors with high visual contrast
- * and elegant saturation, avoiding harsh traffic-light RGB.
+ * Uses four ordered status colours so low and high opportunity are immediately
+ * recognisable, while the middle range remains easy to compare.
  */
 export function getHeatColor(value: number | null, isHovered: boolean = false): string {
-  if (value === null) return isHovered ? "#94a3b8" : "#cbd5e1";
+  if (value === null) return isHovered ? "var(--text-200)" : "var(--background-gray-tertiary)";
 
-  // Heat score gradient after the province values are normalized to 0..100.
-  if (value >= 82) return isHovered ? "#059669" : "#10b981";
-  if (value >= 70) return isHovered ? "#0d9488" : "#14b8a6";
-  if (value >= 58) return isHovered ? "#2563eb" : "#3b82f6";
-  if (value >= 46) return isHovered ? "#d97706" : "#f59e0b";
-  return isHovered ? "#e11d48" : "#f43f5e";
+  // Heat score is normalized to 0..100 before it reaches this function.
+  if (value >= 76) return isHovered ? "var(--green-600)" : "var(--success-500)";
+  if (value >= 58) return "var(--info-500)";
+  if (value >= 42) return isHovered ? "var(--brand-500)" : "var(--warning-500)";
+  return isHovered ? "var(--red-600)" : "var(--error-500)";
 }
 
 export function getMetricColor(
