@@ -33,7 +33,7 @@ export default function OverviewHeader({
           {meta?.asOf ? <span className="text-xs text-text-tertiary">· Cập nhật {formatAsOf(meta.asOf)}</span> : null}
         </div>
         <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
-          Tổng quan nhóm lead
+          Tổng quan nhóm học sinh
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
           Biết nhóm nào đáng ưu tiên, nguồn nào tạo lead hợp lệ và việc cần làm tiếp theo.

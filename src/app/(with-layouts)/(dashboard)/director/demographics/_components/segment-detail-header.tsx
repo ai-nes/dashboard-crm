@@ -28,7 +28,7 @@ export default function SegmentDetailHeader({
     <header className="px-2 lg:px-5">
       <Button size="sm" appearance="ghost" className="mb-4 -ml-2" onPress={onBack}>
         <ArrowLeft size={16} aria-hidden="true" />
-        Tổng quan nhóm lead
+        Tổng quan nhóm học sinh
       </Button>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
