@@ -90,6 +90,12 @@ export async function getDirectorDemographicsOverview(
   if (params?.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
   if (params?.period) searchParams.set("period", params.period);
   if (params?.scope) searchParams.set("scope", params.scope);
+  if (params?.province) searchParams.set("province", params.province);
+  if (params?.major) searchParams.set("major", params.major);
+  if (params?.stage) searchParams.set("stage", params.stage);
+  if (params?.priority) searchParams.set("priority", params.priority);
+  if (params?.owner) searchParams.set("owner", params.owner);
+  if (params?.sourceGroup) searchParams.set("sourceGroup", params.sourceGroup);
 
   const queryStr = searchParams.toString();
   const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");

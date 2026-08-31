@@ -8,22 +8,24 @@ import {
   useDirectorDemographicsSegmentQuery,
 } from "@/hooks/use-demographics-queries";
 import { demographicSegments } from "@/services/api/demographics/data";
+import type { DirectorDemographicsOverviewParams } from "@/services/api/demographics/types";
 import DemographicsOverview from "./demographics-overview";
 import SegmentDetailDashboard from "./segment-detail-dashboard";
 
 export default function DemographicExplorerDashboard() {
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+  const [overviewParams, setOverviewParams] = useState<DirectorDemographicsOverviewParams>({
+    admissionYear: 2026,
+    period: "season",
+    scope: "all",
+  });
 
   const {
     data: overviewResponse,
     isLoading: isOverviewLoading,
     isError: isOverviewError,
     refetch: refetchOverview,
-  } = useDirectorDemographicsOverviewQuery({
-    admissionYear: 2026,
-    period: "6m",
-    scope: "all",
-  });
+  } = useDirectorDemographicsOverviewQuery(overviewParams);
 
   const {
     data: segmentResponse,
@@ -31,7 +33,7 @@ export default function DemographicExplorerDashboard() {
   } = useDirectorDemographicsSegmentQuery(
     {
       segment_id: selectedSegmentId ?? "",
-      admissionYear: 2026,
+      admissionYear: overviewParams.admissionYear ?? 2026,
     },
     {
       enabled: Boolean(selectedSegmentId),
@@ -60,6 +62,16 @@ export default function DemographicExplorerDashboard() {
 
   const openSegment = (segmentId: string) => {
     setSelectedSegmentId(segmentId);
+  };
+
+  const applyOverviewFilters = (nextFilters: DirectorDemographicsOverviewParams) => {
+    setSelectedSegmentId(null);
+    setOverviewParams({
+      ...nextFilters,
+      admissionYear: nextFilters.admissionYear ?? overviewParams.admissionYear ?? 2026,
+      period: nextFilters.period ?? "season",
+      scope: nextFilters.scope ?? "all",
+    });
   };
 
   if (isOverviewLoading && !overviewResponse) {
@@ -98,6 +110,10 @@ export default function DemographicExplorerDashboard() {
       <main id="main-content" className="min-w-0 max-w-full overflow-x-hidden">
         <DemographicsOverview
           data={overviewResponse?.data}
+          meta={overviewResponse?.meta}
+          filters={overviewParams}
+          filterOptions={overviewResponse?.data?.filterOptions}
+          onApplyFilters={applyOverviewFilters}
           onOpenSegment={openSegment}
         />
       </main>

@@ -22,9 +22,9 @@ export const audienceGenderData = audienceCompositionData.gender;
 export const audienceProfileHighlights = audienceCompositionData.profiles;
 export const regionalDemandMatrix = regionalDemandMatrixData.rows.map((row) => ({
   interest: row.interest,
-  hcm: row.scores.hcm ?? 0,
-  dongNai: row.scores["dong-nai"] ?? 0,
-  binhDuong: row.scores["binh-duong"] ?? 0,
-  canTho: row.scores["can-tho"] ?? 0,
-  daNang: row.scores["da-nang"] ?? 0,
+  hcm: row.scores?.hcm ?? 0,
+  dongNai: row.scores?.["dong-nai"] ?? 0,
+  binhDuong: row.scores?.["binh-duong"] ?? 0,
+  canTho: row.scores?.["can-tho"] ?? 0,
+  daNang: row.scores?.["da-nang"] ?? 0,
 }));

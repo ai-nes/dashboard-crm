@@ -1,6 +1,7 @@
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import type { DemographicSegment, SegmentNextAction as SegmentNextActionType } from "@/services/api/demographics/types";
+import { formatGrowth } from "./chart-utils";
 
 interface SegmentNextActionProps {
   segment: DemographicSegment;
@@ -10,11 +11,12 @@ interface SegmentNextActionProps {
 export default function SegmentNextAction({ segment, nextAction }: SegmentNextActionProps) {
   const topChannel = [...segment.channels].sort((first, second) => second.value - first.value)[0];
   const isHighPriority = nextAction ? nextAction.priority === "high" : segment.opportunityScore >= 85;
+  const growthText = formatGrowth(segment.growth);
   const primaryAction = nextAction?.title ?? (isHighPriority ? "Ưu tiên tiếp cận sớm" : "Thử nghiệm quy mô nhỏ");
   const primaryDescription =
     nextAction?.description ??
     (isHighPriority
-      ? `Nhóm có ${segment.prospects.toLocaleString("vi-VN")} học sinh và đang tăng ${segment.growth}%.`
+      ? `Nhóm có ${segment.prospects.toLocaleString("vi-VN")} học sinh; tăng trưởng gần nhất: ${growthText}.`
       : `Bắt đầu với một hoạt động nhỏ để kiểm tra nhu cầu của ${segment.prospects.toLocaleString("vi-VN")} học sinh.`);
 
   const steps = nextAction?.steps ?? [

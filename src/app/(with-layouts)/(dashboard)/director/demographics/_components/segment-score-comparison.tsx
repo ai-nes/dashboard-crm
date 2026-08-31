@@ -1,18 +1,31 @@
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import { demographicSegments } from "./data";
+import ChartEmptyState from "./chart-empty-state";
+import { formatRate, safeRate } from "./chart-utils";
 import type { DemographicSegment } from "./types";
 
 interface SegmentScoreComparisonProps {
   segment: DemographicSegment;
+  benchmark?: DemographicSegment;
 }
 
-const formatPercent = (value: number) => `${value.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%`;
+export default function SegmentScoreComparison({ segment, benchmark }: SegmentScoreComparisonProps) {
+  if (!benchmark) {
+    return (
+      <Card className="min-w-0 overflow-hidden bg-card-background">
+        <CardHeader className="mb-4">
+          <div>
+            <CardTitle>So sánh với nhóm tương tự</CardTitle>
+            <p className="mt-1 text-xs leading-5 text-text-tertiary">Chưa có nhóm đối chiếu trong cùng snapshot.</p>
+          </div>
+        </CardHeader>
+        <ChartEmptyState message="Chưa có benchmark" detail="Không dùng một nhóm mẫu khác để thay thế dữ liệu đối chiếu." />
+      </Card>
+    );
+  }
 
-export default function SegmentScoreComparison({ segment }: SegmentScoreComparisonProps) {
-  const benchmark = demographicSegments.find((item) => item.id !== segment.id && item.interest === segment.interest) ?? demographicSegments.find((item) => item.id !== segment.id) ?? demographicSegments[0];
   const metrics = [
-    { label: "Đủ điều kiện tư vấn", current: (segment.qualified / segment.prospects) * 100, benchmark: (benchmark.qualified / benchmark.prospects) * 100 },
-    { label: "Nộp hồ sơ", current: (segment.applications / segment.prospects) * 100, benchmark: (benchmark.applications / benchmark.prospects) * 100 },
+    { label: "Đủ điều kiện tư vấn", current: safeRate(segment.qualified, segment.prospects), benchmark: safeRate(benchmark.qualified, benchmark.prospects) },
+    { label: "Nộp hồ sơ", current: safeRate(segment.applications, segment.prospects), benchmark: safeRate(benchmark.applications, benchmark.prospects) },
     { label: "Nhập học", current: segment.conversion, benchmark: benchmark.conversion },
   ];
 
@@ -38,24 +51,24 @@ export default function SegmentScoreComparison({ segment }: SegmentScoreComparis
 
 interface ComparisonRowProps {
   label: string;
-  current: number;
-  benchmark: number;
+  current: number | null;
+  benchmark: number | null;
 }
 
 function ComparisonRow({ label, current, benchmark }: ComparisonRowProps) {
-  const max = Math.max(current, benchmark, 1);
+  const max = Math.max(current ?? 0, benchmark ?? 0, 1);
 
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-text-secondary">{label}</p>
-        <span className="text-sm font-semibold text-text-primary">{formatPercent(current)}</span>
+        <span className="text-sm font-semibold text-text-primary">{formatRate(current)}</span>
       </div>
       <div className="mt-2 space-y-1.5">
-        <div className="h-2 overflow-hidden rounded-full bg-background-gray-secondary"><div className="h-full rounded-full bg-brand-500" style={{ width: `${(current / max) * 100}%` }} /></div>
-        <div className="h-2 overflow-hidden rounded-full bg-background-gray-secondary"><div className="h-full rounded-full bg-background-soft-300" style={{ width: `${(benchmark / max) * 100}%` }} /></div>
+        <div className="h-2 overflow-hidden rounded-full bg-background-gray-secondary"><div className="h-full rounded-full bg-brand-500" style={{ width: `${((current ?? 0) / max) * 100}%` }} /></div>
+        <div className="h-2 overflow-hidden rounded-full bg-background-gray-secondary"><div className="h-full rounded-full bg-background-soft-300" style={{ width: `${((benchmark ?? 0) / max) * 100}%` }} /></div>
       </div>
-      <div className="mt-1.5 flex justify-between gap-3 text-[11px] text-text-tertiary"><span>Đang xem: {formatPercent(current)}</span><span>Nhóm so sánh: {formatPercent(benchmark)}</span></div>
+      <div className="mt-1.5 flex justify-between gap-3 text-[11px] text-text-tertiary"><span>Đang xem: {formatRate(current)}</span><span>Nhóm so sánh: {formatRate(benchmark)}</span></div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { ArrowLeft, Bookmark1, Download1 } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
+import { formatGrowth } from "./chart-utils";
 import type { DemographicSegment } from "./types";
 
 interface SegmentDetailHeaderProps {
@@ -19,8 +20,9 @@ export default function SegmentDetailHeader({
   onExport,
   onSave,
 }: SegmentDetailHeaderProps) {
-  const growthBadgeText = segment.growth != null ? `+${segment.growth}% so với tháng trước` : "-";
-  const isPositiveGrowth = segment.growth != null && segment.growth >= 20;
+  const growthBadgeText = segment.growth != null ? `${formatGrowth(segment.growth)} so với tháng trước` : "Chưa đủ dữ liệu tăng trưởng";
+  const isPositiveGrowth = segment.growth != null && segment.growth > 0;
+  const growthBadgeColor = segment.growth == null ? "gray" : isPositiveGrowth ? "success" : "error";
 
   return (
     <header className="px-2 lg:px-5">
@@ -34,7 +36,7 @@ export default function SegmentDetailHeader({
             <span className="text-xs font-semibold tracking-wide text-brand-500 uppercase">
               Nhóm học sinh đang xem
             </span>
-            <Badge color={isPositiveGrowth ? "success" : "primary"}>
+            <Badge color={growthBadgeColor}>
               {growthBadgeText}
             </Badge>
           </div>

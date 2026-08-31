@@ -16,6 +16,8 @@ interface DataCoverageCardProps {
 }
 
 export default function DataCoverageCard({ metrics = defaultMetrics }: DataCoverageCardProps) {
+  const overallTone = getOverallCoverageTone(metrics);
+
   return (
     <Card className="flex h-full min-w-0 flex-col bg-card-background">
       <CardHeader className="mb-4 items-start">
@@ -23,14 +25,14 @@ export default function DataCoverageCard({ metrics = defaultMetrics }: DataCover
           <CardTitle>Mức độ đầy đủ của dữ liệu</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Tỷ lệ hồ sơ có thông tin theo từng tiêu chí.</p>
         </div>
-        <Badge color="success">
-          <Shield1Check size={13} aria-hidden="true" />
-          Đang kiểm soát
+        <Badge color={overallTone === "success" ? "success" : overallTone === "warning" ? "warning" : "error"}>
+          {overallTone === "success" ? <Shield1Check size={13} aria-hidden="true" /> : <InfoTriangle size={13} aria-hidden="true" />}
+          {getOverallCoverageLabel(overallTone)}
         </Badge>
       </CardHeader>
       <div className="space-y-4">
         {metrics.map((metric) => {
-          const tone = toneStyles[metric.tone] ?? toneStyles.warning;
+          const tone = toneStyles[getCoverageTone(metric.value, metric.tone)] ?? toneStyles.warning;
           return (
             <div key={metric.label}>
               <div className="mb-1.5 flex items-start justify-between gap-3">
@@ -50,9 +52,34 @@ export default function DataCoverageCard({ metrics = defaultMetrics }: DataCover
       <div className="mt-auto pt-5">
         <div className="flex items-start gap-2 rounded-xl border border-card-border bg-background-gray-primary p-3 text-xs leading-5 text-text-tertiary">
           <InfoTriangle size={15} className="mt-0.5 shrink-0 text-warning-500" aria-hidden="true" />
-          <span>Thông tin học lực mới có ở 31,2% hồ sơ. Kết quả dùng tiêu chí này có thể chưa đại diện.</span>
+          <span>{getCoverageNote(metrics)}</span>
         </div>
       </div>
     </Card>
   );
+}
+
+function getCoverageTone(value: number, tone: DataCoverageMetric["tone"]): DataCoverageMetric["tone"] {
+  if (value <= 0) return "danger";
+  if (value < 50) return "warning";
+  return tone;
+}
+
+function getOverallCoverageTone(metrics: DataCoverageMetric[]): DataCoverageMetric["tone"] {
+  const lowestValue = Math.min(...metrics.map((metric) => metric.value), 0);
+  if (lowestValue <= 0) return "danger";
+  if (lowestValue < 50) return "warning";
+  return "success";
+}
+
+function getOverallCoverageLabel(tone: DataCoverageMetric["tone"]): string {
+  if (tone === "danger") return "Thiếu dữ liệu quan trọng";
+  if (tone === "warning") return "Cần bổ sung dữ liệu";
+  return "Đang kiểm soát";
+}
+
+function getCoverageNote(metrics: DataCoverageMetric[]): string {
+  const weakest = [...metrics].sort((first, second) => first.value - second.value)[0];
+  if (!weakest || weakest.value <= 0) return "Một số trường dữ liệu chưa có nguồn canonical; không dùng chúng để suy luận phân khúc.";
+  return `${weakest.label} mới có ở ${weakest.value}% hồ sơ. Kết quả dùng tiêu chí này có thể chưa đại diện.`;
 }

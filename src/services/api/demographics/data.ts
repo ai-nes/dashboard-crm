@@ -47,7 +47,7 @@ export const demandOverviewData: DemandOverview = {
     { month: "T6", ai: 3420, software: 3340, business: 2610, design: 1620 },
   ],
   summary: [
-    { id: "ai", label: "AI", value: 3420, change: 31 },
+    { id: "ai", label: "AI", value: 3420, change: 20.4 },
     { id: "software", label: "Phần mềm", value: 3340, change: 4.7 },
     { id: "business", label: "Kinh doanh", value: 2610, change: 2.4 },
     { id: "design", label: "Thiết kế", value: 1620, change: 5.9 },
@@ -70,6 +70,8 @@ export const audienceCompositionData: AudienceComposition = {
 };
 
 export const regionalDemandMatrixData: RegionalDemandMatrix = {
+  metric: "relative-index",
+  unit: "score",
   columns: [
     { id: "hcm", name: "TP.HCM" },
     { id: "dong-nai", name: "Đồng Nai" },
@@ -133,8 +135,8 @@ export const demographicSegments: DemographicSegment[] = [
     applications: 160,
     enrolled: 68,
     conversion: 2,
-    tuition: 51.2,
-    revenue: 3.5,
+    tuition: null,
+    revenue: null,
     growth: 31,
     coverage: 3.2,
     opportunityScore: 92,
@@ -146,6 +148,7 @@ export const demographicSegments: DemographicSegment[] = [
       { name: "Website", value: 22, fill: "var(--info-500)" },
       { name: "Giới thiệu", value: 16, fill: "var(--warning-500)" },
     ],
+    channelAttributionModel: "observed-interactions",
     monthlyProspects: [
       { month: "T1", current: 1960, benchmark: 2100 },
       { month: "T2", current: 2160, benchmark: 2280 },
@@ -169,8 +172,8 @@ export const demographicSegments: DemographicSegment[] = [
     applications: 248,
     enrolled: 96,
     conversion: 1.9,
-    tuition: 50.8,
-    revenue: 4.9,
+    tuition: null,
+    revenue: null,
     growth: 12,
     coverage: 14.8,
     opportunityScore: 78,
@@ -187,6 +190,7 @@ export const demographicSegments: DemographicSegment[] = [
       { name: "Website", value: 20, fill: "var(--info-500)" },
       { name: "Giới thiệu", value: 17, fill: "var(--warning-500)" },
     ],
+    channelAttributionModel: "observed-interactions",
     monthlyProspects: [
       { month: "T1", current: 3100, benchmark: 3320 },
       { month: "T2", current: 3400, benchmark: 3540 },
@@ -210,8 +214,8 @@ export const demographicSegments: DemographicSegment[] = [
     applications: 92,
     enrolled: 34,
     conversion: 1.6,
-    tuition: 44.1,
-    revenue: 1.5,
+    tuition: null,
+    revenue: null,
     growth: 8,
     coverage: 19.4,
     opportunityScore: 64,
@@ -228,6 +232,7 @@ export const demographicSegments: DemographicSegment[] = [
       { name: "Website", value: 22, fill: "var(--info-500)" },
       { name: "Giới thiệu", value: 18, fill: "var(--warning-500)" },
     ],
+    channelAttributionModel: "observed-interactions",
     monthlyProspects: [
       { month: "T1", current: 1730, benchmark: 1870 },
       { month: "T2", current: 1810, benchmark: 1940 },
@@ -251,8 +256,8 @@ export const demographicSegments: DemographicSegment[] = [
     applications: 84,
     enrolled: 31,
     conversion: 1.7,
-    tuition: 58.4,
-    revenue: 1.8,
+    tuition: null,
+    revenue: null,
     growth: 18,
     coverage: 11.6,
     opportunityScore: 81,
@@ -268,6 +273,7 @@ export const demographicSegments: DemographicSegment[] = [
       { name: "Website", value: 23, fill: "var(--info-500)" },
       { name: "Giới thiệu", value: 14, fill: "var(--warning-500)" },
     ],
+    channelAttributionModel: "observed-interactions",
     monthlyProspects: [
       { month: "T1", current: 1320, benchmark: 1490 },
       { month: "T2", current: 1450, benchmark: 1570 },
@@ -291,8 +297,8 @@ export const demographicSegments: DemographicSegment[] = [
     applications: 194,
     enrolled: 83,
     conversion: 2.8,
-    tuition: 49.6,
-    revenue: 4.1,
+    tuition: null,
+    revenue: null,
     growth: 21,
     coverage: 16.2,
     opportunityScore: 87,
@@ -308,6 +314,7 @@ export const demographicSegments: DemographicSegment[] = [
       { name: "Website", value: 18, fill: "var(--info-500)" },
       { name: "Giới thiệu", value: 16, fill: "var(--warning-500)" },
     ],
+    channelAttributionModel: "observed-interactions",
     monthlyProspects: [
       { month: "T1", current: 2100, benchmark: 2240 },
       { month: "T2", current: 2250, benchmark: 2380 },
@@ -338,8 +345,8 @@ export function getSegmentForFilters(filters: SegmentFilter[]): DemographicSegme
     matchingSegments.reduce((sum, segment) => sum + (segment[key] ?? 0) * segment.prospects, 0) / prospects;
   const monthlyProspects = matchingSegments[0].monthlyProspects.map((point, index) => ({
     month: point.month,
-    current: matchingSegments.reduce((sum, segment) => sum + segment.monthlyProspects[index].current, 0),
-    benchmark: matchingSegments.reduce((sum, segment) => sum + segment.monthlyProspects[index].benchmark, 0),
+    current: matchingSegments.reduce((sum, segment) => sum + (segment.monthlyProspects[index].current ?? 0), 0),
+    benchmark: matchingSegments.reduce((sum, segment) => sum + (segment.monthlyProspects[index].benchmark ?? 0), 0),
   }));
   const previousMonth = monthlyProspects[monthlyProspects.length - 2]?.current ?? 0;
   const latestMonth = monthlyProspects[monthlyProspects.length - 1]?.current ?? 0;

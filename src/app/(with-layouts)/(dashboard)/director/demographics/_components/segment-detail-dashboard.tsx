@@ -40,7 +40,7 @@ export default function SegmentDetailDashboard({
       <div className="space-y-5 px-2 lg:px-5">
         <SegmentAnalysis segment={currentSegment} />
         <SegmentNextAction segment={currentSegment} nextAction={nextAction} />
-        <SegmentDetailCharts segment={currentSegment} />
+        <SegmentDetailCharts segment={currentSegment} benchmark={benchmark} />
         <SegmentComparison segment={currentSegment} benchmark={benchmark} />
         <SegmentGuardrails guardrails={guardrails} />
       </div>
