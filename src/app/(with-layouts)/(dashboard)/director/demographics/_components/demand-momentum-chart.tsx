@@ -9,7 +9,7 @@ import { ChartContainer } from "@/components/tailgrids/core/chart";
 import { demandOverviewData as defaultDemand } from "@/services/api/demographics/data";
 import type { DemandOverview } from "@/services/api/demographics/types";
 import ChartEmptyState from "./chart-empty-state";
-import { formatCountTick, getCountAxisMax } from "./chart-utils";
+import { formatCountTick, formatRate, getCountAxisMax } from "./chart-utils";
 import OverviewTooltip from "./overview-tooltip";
 
 interface DemandMomentumChartProps {
@@ -40,7 +40,7 @@ export default function DemandMomentumChart({ demand = defaultDemand, period }: 
   const isAiPositive = aiSummary?.change != null && aiSummary.change > 0;
   const aiBadgeText =
     aiSummary?.change != null
-      ? `AI ${aiSummary.change >= 0 ? "tăng" : "giảm"} ${Math.abs(aiSummary.change)}%`
+      ? `AI ${aiSummary.change >= 0 ? "tăng" : "giảm"} ${formatRate(Math.abs(aiSummary.change))}`
       : "AI chưa đủ dữ liệu so sánh";
 
   return (
@@ -48,7 +48,7 @@ export default function DemandMomentumChart({ demand = defaultDemand, period }: 
       <CardHeader className="mb-4 items-start">
         <div>
           <CardTitle>Xu hướng quan tâm theo ngành</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Số hồ sơ quan tâm trong {periodLabel}.</p>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Số lead quan tâm đến từng ngành trong {periodLabel}.</p>
         </div>
         <Badge color={isAiPositive ? "success" : "gray"}>
           {isAiPositive && <ArrowUpward size={13} aria-hidden="true" />}

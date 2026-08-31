@@ -95,7 +95,7 @@ export default function DemographicExplorerDashboard() {
     return (
       <main id="main-content" className="min-w-0 max-w-full overflow-x-hidden p-6">
         <div className="flex flex-col items-center justify-center rounded-2xl border border-card-border bg-card-background p-12 text-center">
-          <p className="text-base font-semibold text-text-primary">Không thể tải dữ liệu phân tích người học</p>
+          <p className="text-base font-semibold text-text-primary">Không thể tải dữ liệu phân tích lead</p>
           <p className="mt-2 text-sm text-text-secondary">Đã xảy ra lỗi khi kết nối tới hệ thống. Vui lòng thử lại.</p>
           <Button className="mt-6" onPress={() => refetchOverview()}>
             Thử lại

@@ -109,8 +109,12 @@ export interface SchoolScoreBand {
   available?: boolean;
 }
 
+export const SCHOOL_EXAM_SCORE_BAND_LABELS = ["0–2", "2–4", "4–6", "6–8", "8–10"] as const;
+
+export type SchoolExamScoreBandLabel = (typeof SCHOOL_EXAM_SCORE_BAND_LABELS)[number];
+
 export interface SchoolExamScoreBand {
-  label: string;
+  label: SchoolExamScoreBandLabel;
   students: number;
   share: number;
 }

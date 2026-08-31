@@ -1,3 +1,4 @@
+import { SCHOOL_EXAM_SCORE_BAND_LABELS } from "./types";
 import type {
   DataAvailabilityStatus,
   DirectorSchoolActivity,
@@ -102,7 +103,7 @@ function normalizeExamScoreBands(value: unknown): SchoolExamScoreBand[] {
   const bands = (Array.isArray(value) ? value : [])
     .map((item) => {
       const source = record(item);
-      const label = text(source.label ?? source.range ?? source.scoreRange ?? source.score_range);
+      const label = normalizeExamScoreBandLabel(source.label ?? source.range ?? source.scoreRange ?? source.score_range);
       const students = number(source.students ?? source.studentCount ?? source.student_count ?? source.count);
       const share = number(source.share ?? source.sharePercent ?? source.share_percent);
 
@@ -115,13 +116,27 @@ function normalizeExamScoreBands(value: unknown): SchoolExamScoreBand[] {
     })
     .filter((item): item is SchoolExamScoreBand => item !== null);
 
-  const totalStudents = bands.reduce((total, band) => total + band.students, 0);
-  if (!totalStudents) return bands;
+  const bandsByLabel = new Map(bands.map((band) => [band.label, band]));
+  const completeBands = SCHOOL_EXAM_SCORE_BAND_LABELS.map(
+    (label) => bandsByLabel.get(label) ?? { label, students: 0, share: 0 },
+  );
+  const totalStudents = completeBands.reduce((total, band) => total + band.students, 0);
+  if (!totalStudents) return completeBands;
 
-  return bands.map((band) => ({
+  const shares = completeBands.map((band) => band.share || Math.round((band.students / totalStudents) * 100));
+  shares[shares.length - 1] += 100 - shares.reduce((total, share) => total + share, 0);
+
+  return completeBands.map((band, index) => ({
     ...band,
-    share: band.share || Math.round((band.students / totalStudents) * 100),
+    share: shares[index],
   }));
+}
+
+function normalizeExamScoreBandLabel(value: unknown): SchoolExamScoreBand["label"] | null {
+  const label = text(value);
+  if (!label) return null;
+
+  return SCHOOL_EXAM_SCORE_BAND_LABELS.find((item) => item === label || item.replace("–", "-") === label) ?? null;
 }
 
 export function normalizeSchoolIntelligence(value: unknown): DirectorSchoolDetailData {

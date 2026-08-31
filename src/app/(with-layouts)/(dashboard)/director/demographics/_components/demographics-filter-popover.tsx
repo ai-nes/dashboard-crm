@@ -26,7 +26,7 @@ const fallbackOptions: DemographicsFilterOptions = {
   stages: ["Quan tâm", "Tìm hiểu", "Tư vấn", "Ứng tuyển", "Nhập học"],
   priorities: ["Cao", "Trung bình", "Thấp"],
   owners: [],
-  sourceGroups: ["Trực tuyến chủ động", "Trực tuyến qua quảng cáo", "Thực địa", "Giới thiệu"],
+    sourceGroups: ["Trực tuyến chủ động", "Trực tuyến qua quảng cáo", "Thực địa", "Giới thiệu"],
 };
 
 const filterKeys = ["province", "major", "stage", "priority", "owner", "sourceGroup"] as const;
@@ -70,7 +70,7 @@ export default function DemographicsFilterPopover({
       <Button
         size="sm"
         appearance={activeCount > 0 ? "fill" : "outline"}
-        aria-label="Mở bộ lọc overview"
+        aria-label="Mở bộ lọc phân tích"
       >
         <Filter size={16} aria-hidden="true" />
         Bộ lọc
@@ -80,14 +80,14 @@ export default function DemographicsFilterPopover({
         placement="bottom end"
         className="w-[min(36rem,calc(100vw-2rem))] overflow-y-auto p-0 shadow-lg"
       >
-        <Dialog aria-label="Bộ lọc dữ liệu overview" className="p-4 outline-none sm:p-5">
+        <Dialog aria-label="Bộ lọc phân tích" className="p-4 outline-none sm:p-5">
           {({ close }) => (
             <div>
               <div className="flex items-start justify-between gap-4 border-b border-card-border pb-4">
                 <div>
                   <h2 className="text-sm font-semibold text-text-primary">Bộ lọc dữ liệu</h2>
                   <p className="mt-1 text-xs leading-5 text-text-tertiary">
-                    Áp dụng đồng thời cho toàn bộ overview và snapshot hiện tại.
+                    Áp dụng cho toàn bộ số liệu đang xem.
                   </p>
                 </div>
                 <Button size="xs" appearance="ghost" onPress={reset}>
@@ -97,7 +97,7 @@ export default function DemographicsFilterPopover({
 
               <div className="grid gap-3 py-4 sm:grid-cols-2">
                 <FilterSelect
-                  label="Khoảng báo cáo"
+                  label="Khoảng thời gian"
                   value={draft.period ?? "season"}
                   options={[
                     { value: "season", label: "Cả mùa tuyển sinh" },
@@ -107,7 +107,7 @@ export default function DemographicsFilterPopover({
                   onChange={(value) => updateDraft("period", value)}
                 />
                 <FilterSelect
-                  label="Tỉnh / thành"
+                  label="Tỉnh/thành phố"
                   value={draft.province ?? "all"}
                   options={availableOptions.provinces}
                   onChange={(value) => updateDraft("province", value)}
@@ -137,7 +137,7 @@ export default function DemographicsFilterPopover({
                   onChange={(value) => updateDraft("owner", value)}
                 />
                 <FilterSelect
-                  label="Nhóm nguồn đầu tiên"
+                  label="Nhóm nguồn thu hút"
                   value={draft.sourceGroup ?? "all"}
                   options={availableOptions.sourceGroups}
                   onChange={(value) => updateDraft("sourceGroup", value)}

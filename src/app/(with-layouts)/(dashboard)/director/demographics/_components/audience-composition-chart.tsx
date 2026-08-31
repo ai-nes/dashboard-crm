@@ -21,10 +21,10 @@ export default function AudienceCompositionChart({ audience = defaultAudience }:
     <Card className="flex h-full min-w-0 flex-col overflow-hidden bg-card-background">
       <CardHeader className="mb-3 items-start">
         <div>
-          <CardTitle>Cơ cấu tệp hồ sơ</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Tóm tắt các đặc điểm đang có trong cùng một tệp Contact.</p>
+          <CardTitle>Cơ cấu lead theo giới tính</CardTitle>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Phân bổ giới tính và các đặc điểm nổi bật của lead.</p>
         </div>
-        <span className="text-xs font-medium text-text-tertiary">{total.toLocaleString("vi-VN")} hồ sơ</span>
+        <span className="text-xs font-medium text-text-tertiary">{total.toLocaleString("vi-VN")} lead</span>
       </CardHeader>
       <div className="space-y-3">
         <div className="h-3 overflow-hidden rounded-full bg-background-gray-secondary" aria-label="Phân bổ giới tính">
@@ -47,19 +47,19 @@ export default function AudienceCompositionChart({ audience = defaultAudience }:
                 {item.name}
               </div>
               <p className="mt-1 text-sm font-semibold text-text-primary">{item.value}%</p>
-              <p className="mt-0.5 text-[10px] text-text-tertiary">{getCount(item.value, total).toLocaleString("vi-VN")} hồ sơ</p>
+              <p className="mt-0.5 text-[10px] text-text-tertiary">{getCount(item.value, total).toLocaleString("vi-VN")} lead</p>
             </div>
           ))}
         </div>
       </div>
       <div className="mt-4 space-y-3 border-t border-card-border pt-4">
-        <p className="text-xs font-semibold text-text-primary">Tín hiệu hồ sơ</p>
+        <p className="text-xs font-semibold text-text-primary">Đặc điểm nổi bật</p>
         {profiles.map((profile) => (
           <div key={profile.label}>
             <div className="flex items-center justify-between gap-3 text-xs">
               <span className="min-w-0 truncate text-text-secondary">{profile.label}</span>
               <span className="shrink-0 font-semibold text-text-primary">
-                {profile.value}% <span className="font-normal text-text-tertiary">· {profile.detail || `${profile.count?.toLocaleString("vi-VN") ?? 0} hồ sơ`}</span>
+                {profile.value}% <span className="font-normal text-text-tertiary">· {profile.detail || `${profile.count?.toLocaleString("vi-VN") ?? 0} lead`}</span>
               </span>
             </div>
           </div>

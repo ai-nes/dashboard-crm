@@ -66,6 +66,7 @@ export interface ProvinceMetrics {
   code: string;
   name: string;
   regionKey: RegionKey;
+  schoolCount: number | null;
   opportunity: number | null; // 0 - 100
   leads: number | null;
   conversion: number | null; // %

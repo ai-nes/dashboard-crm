@@ -4,10 +4,11 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } 
 
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import AcquisitionMapChartCard, { DemoLegend, DemoNote, formatDemoCurrency, formatDemoNumber } from "./acquisition-map-chart-card";
+import OverviewTooltip from "./overview-tooltip";
 import { cohortEnrollmentDemo, contactLatencyDemo, cumulativeConversionDemo, costPerEnrolledDemo, enrollmentLagDemo, handoffSuccessDemo, submissionTimingDemo } from "./acquisition-map-demo";
 
-const elapsedLabels = ["M0", "M1", "M2", "M3", "M4"];
-const weekdayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+const elapsedLabels = ["Sau 0 tháng", "Sau 1 tháng", "Sau 2 tháng", "Sau 3 tháng", "Sau 4 tháng"];
+const weekdayLabels = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
 const hourLabels = ["08h", "10h", "12h", "14h", "16h", "18h", "20h", "22h"];
 
 export function AcquisitionCohortPanels() {
@@ -28,16 +29,16 @@ function CohortEnrollmentChart() {
   return (
     <AcquisitionMapChartCard
       chartId="18"
-      title="Cohort và tỷ lệ nhập học"
-      description="Ma trận entry cohort × tháng trôi qua; cohort gần đây chưa đủ thời gian được để trống."
-      badge="Rate %"
+      title="Tỷ lệ nhập học theo tháng vào hệ thống"
+      description="So sánh tỷ lệ nhập học theo số tháng kể từ khi thu lead."
+      badge="Tỷ lệ nhập học"
       className="xl:col-span-2"
     >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[620px] border-separate border-spacing-1.5 text-xs">
           <thead>
             <tr>
-              <th className="px-2 py-2 text-left font-medium text-text-tertiary">Cohort vào</th>
+              <th className="px-2 py-2 text-left font-medium text-text-tertiary">Tháng vào hệ thống</th>
               {elapsedLabels.map((label) => <th key={label} className="px-2 py-2 text-center font-medium text-text-tertiary">{label}</th>)}
             </tr>
           </thead>
@@ -55,7 +56,7 @@ function CohortEnrollmentChart() {
           </tbody>
         </table>
       </div>
-      <DemoNote>Không coi ô trống của cohort mới là conversion bằng 0.</DemoNote>
+      <DemoNote>Dấu — = chưa đủ thời gian theo dõi, không phải kết quả bằng 0.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }
@@ -64,9 +65,9 @@ function EnrollmentLagChart() {
   return (
     <AcquisitionMapChartCard
       chartId="19"
-      title="Độ trễ đến nhập học"
-      description="Histogram chỉ tính hồ sơ đã nhập học; đường median giúp đội tuyển sinh đọc tốc độ chuyển đổi."
-      badge="Median 24 ngày"
+      title="Thời gian từ gửi biểu mẫu đến nhập học"
+      description="Số ngày từ lúc gửi biểu mẫu đến khi học sinh nhập học."
+      badge="Trung vị: 24 ngày"
     >
       <div className="h-64">
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -74,12 +75,12 @@ function EnrollmentLagChart() {
             <CartesianGrid vertical={false} stroke="var(--border-color-base-100)" strokeDasharray="4 4" />
             <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
-            <Tooltip />
-            <Bar dataKey="value" name="Số hồ sơ" fill="var(--brand-500)" radius={[5, 5, 0, 0]} barSize={30} />
+            <Tooltip content={<OverviewTooltip />} />
+            <Bar dataKey="value" name="Số học sinh đã nhập học" fill="var(--brand-500)" radius={[5, 5, 0, 0]} barSize={30} />
           </BarChart>
         </ChartContainer>
       </div>
-      <DemoNote>Median được lấy từ ngày submit đến ngày enrollment canonical, không lấy từ ngày cập nhật record.</DemoNote>
+      <DemoNote>Chỉ tính học sinh đã nhập học; dùng trung vị từ ngày gửi biểu mẫu.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }
@@ -88,9 +89,9 @@ function CumulativeConversionChart() {
   return (
     <AcquisitionMapChartCard
       chartId="20"
-      title="Đường cong chuyển đổi cộng dồn"
-      description="Step-area thể hiện conversion tích lũy qua mùa; chỉ dùng khi season đã hoàn tất."
-      badge="Complete season"
+      title="Tỷ lệ chuyển đổi tích lũy sau khi gửi biểu mẫu"
+      description="Ước tính tỷ lệ nhập học cuối mùa từ dữ liệu giữa mùa."
+      badge="Có mùa hoàn chỉnh"
     >
       <div className="h-64">
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -104,8 +105,8 @@ function CumulativeConversionChart() {
             <CartesianGrid vertical={false} stroke="var(--border-color-base-100)" strokeDasharray="4 4" />
             <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
             <YAxis domain={[0, 10]} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(value) => `${value}%`} />
-            <Tooltip />
-            <Area type="step" dataKey="value" name="Conversion cộng dồn" stroke="var(--success-500)" strokeWidth={2.5} fill="url(#acquisition-cumulative-conversion)" isAnimationActive={false} />
+            <Tooltip content={<OverviewTooltip suffix="%" />} />
+            <Area type="step" dataKey="value" name="Tỷ lệ nhập học tích lũy" stroke="var(--success-500)" strokeWidth={2.5} fill="url(#acquisition-cumulative-conversion)" isAnimationActive={false} />
           </AreaChart>
         </ChartContainer>
       </div>
@@ -113,13 +114,13 @@ function CumulativeConversionChart() {
   );
 }
 
-function ContactLatencyChart() {
+export function ContactLatencyChart() {
   return (
     <AcquisitionMapChartCard
       chartId="21"
-      title="Thời gian đến lần liên hệ đầu"
-      description="Box plot theo khung giờ submit, ẩn outlier khỏi thân chart để so median công bằng."
-      badge="Median phút"
+      title="Thời gian từ gửi biểu mẫu đến liên hệ đầu tiên"
+      description="Đo thời gian từ lúc thí sinh gửi biểu mẫu đến lần liên hệ đầu tiên."
+      badge="Trung vị (phút)"
     >
       <div className="space-y-5 pt-2">
         {contactLatencyDemo.map((item) => (
@@ -131,11 +132,11 @@ function ContactLatencyChart() {
               <div className="absolute top-1/2 h-5 -translate-y-1/2 border-l border-info-500" style={{ left: `${(item.q1 / 120) * 100}%`, width: `${((item.q3 - item.q1) / 120) * 100}%` }} />
               <span className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-500" style={{ left: `${(item.median / 120) * 100}%` }} />
             </div>
-            <span className="text-right text-xs font-semibold text-text-primary">{item.median}m</span>
+            <span className="text-right text-xs font-semibold text-text-primary">{item.median} phút</span>
           </div>
         ))}
       </div>
-      <DemoLegend items={[{ label: "Min–max", color: "bg-primary-200" }, { label: "Q1–Q3", color: "bg-info-500" }, { label: "Median", color: "bg-brand-500" }]} />
+      <DemoLegend items={[{ label: "Khoảng thấp nhất–cao nhất", color: "bg-primary-200" }, { label: "Khoảng 25%–75%", color: "bg-info-500" }, { label: "Trung vị", color: "bg-brand-500" }]} />
     </AcquisitionMapChartCard>
   );
 }
@@ -146,9 +147,9 @@ function SubmissionTimingChart() {
   return (
     <AcquisitionMapChartCard
       chartId="22"
-      title="Khung giờ gửi form"
-      description="Calendar heatmap theo giờ địa phương để chọn thời điểm follow-up và phân bổ trực."
-      badge="Timezone: Asia/Ho_Chi_Minh"
+      title="Khung giờ gửi biểu mẫu"
+      description="Xác định lúc gửi biểu mẫu nhiều nhất để bố trí trực."
+      badge="Giờ địa phương người gửi"
     >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[500px] border-separate border-spacing-1 text-xs">
@@ -176,9 +177,9 @@ function HandoffSuccessChart() {
   return (
     <AcquisitionMapChartCard
       chartId="23"
-      title="Handoff thành công theo nguồn"
-      description="Bullet chart tách contacted và confirmed; success không đồng nghĩa chỉ moved to team."
-      badge="Contacted + confirmed"
+      title="Tỷ lệ bàn giao thành công theo nguồn"
+      description="Bàn giao thành công = đã liên hệ và xác nhận đúng đối tượng."
+      badge="Tỷ lệ bàn giao"
     >
       <div className="space-y-5 pt-2">
         {handoffSuccessDemo.map((item) => (
@@ -192,7 +193,7 @@ function HandoffSuccessChart() {
           </div>
         ))}
       </div>
-      <DemoLegend items={[{ label: "Success", color: "bg-success-500" }, { label: "Contacted marker", color: "bg-text-primary" }]} />
+      <DemoLegend items={[{ label: "Bàn giao thành công", color: "bg-success-500" }, { label: "Đã liên hệ", color: "bg-text-primary" }]} />
     </AcquisitionMapChartCard>
   );
 }
@@ -203,9 +204,9 @@ function CostPerEnrolledChart() {
   return (
     <AcquisitionMapChartCard
       chartId="24"
-      title="Chi phí trên mỗi hồ sơ nhập học"
-      description="Bảng ranking giữ cả nguồn miễn phí; chỉ dùng với season đã hoàn tất và cost allocation đầy đủ."
-      badge="Nghìn đồng / enrolled"
+      title="Chi phí trên mỗi học sinh nhập học"
+      description="So sánh chi phí trung bình để có một học sinh nhập học."
+      badge="Nghìn đồng / học sinh"
       className="xl:col-span-2"
     >
       <div className="space-y-4">
@@ -217,7 +218,7 @@ function CostPerEnrolledChart() {
               <div className="h-full rounded-full bg-warning-500" style={{ width: `${max === 0 ? 0 : (item.cost / max) * 100}%` }} />
             </div>
             <span className="text-right text-xs font-semibold text-text-primary">{formatDemoCurrency(item.cost)}</span>
-            <span className="text-right text-[11px] text-text-tertiary">{formatDemoNumber(item.enrolled)} hồ sơ</span>
+            <span className="text-right text-[11px] text-text-tertiary">{formatDemoNumber(item.enrolled)} học sinh</span>
           </div>
         ))}
       </div>

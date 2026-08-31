@@ -48,14 +48,14 @@ export default function SegmentComparison({ segment, benchmark: propBenchmark }:
 
   const metrics: ComparisonMetric[] = [
     {
-      label: "Số học sinh",
+      label: "Số lead",
       current: segment.prospects,
       benchmark: benchmark.prospects,
       formatValue: (value) => value.toLocaleString("vi-VN"),
       formatDelta: (value) => value.toLocaleString("vi-VN"),
     },
     {
-      label: "Tỷ lệ đủ điều kiện",
+      label: "Tỷ lệ đủ điều kiện tư vấn",
       current: safeRate(segment.qualified, segment.prospects),
       benchmark: safeRate(benchmark.qualified, benchmark.prospects),
       formatValue: formatPercent,
@@ -63,7 +63,7 @@ export default function SegmentComparison({ segment, benchmark: propBenchmark }:
       minorThreshold: 0.5,
     },
     {
-      label: "Tỷ lệ nộp hồ sơ",
+      label: "Tỷ lệ đã nộp hồ sơ",
       current: safeRate(segment.applications, segment.prospects),
       benchmark: safeRate(benchmark.applications, benchmark.prospects),
       formatValue: formatPercent,
@@ -215,5 +215,5 @@ function formatPercent(value: number) {
 }
 
 function formatPoints(value: number) {
-  return `${formatDecimal(value)} điểm %`;
+  return `${formatDecimal(value)} điểm phần trăm`;
 }

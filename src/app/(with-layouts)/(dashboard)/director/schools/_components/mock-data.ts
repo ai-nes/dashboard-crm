@@ -1,3 +1,4 @@
+import { SCHOOL_EXAM_SCORE_BAND_LABELS } from "@/services/api/schools/types";
 import type {
   ActivityGroupLabel,
   SchoolClassification,
@@ -30,23 +31,23 @@ function makeTrend(seed: number, labels: string[]): TrendPoint[] {
 }
 
 function makeExamScoreBands(totalStudents: number, seed: number) {
-  const labels = ["0–4", "4–5", "5–6", "6–7", "7–8", "8–10"];
   const weights = [
-    6 + (seed % 4),
-    12 + ((seed >> 2) % 5),
-    24 + ((seed >> 3) % 7),
+    8 + (seed % 4),
+    18 + ((seed >> 2) % 5),
+    32 + ((seed >> 3) % 7),
     28 + ((seed >> 4) % 6),
-    18 + ((seed >> 5) % 5),
-    7 + ((seed >> 6) % 4),
+    10 + ((seed >> 5) % 4),
   ];
   const totalWeight = weights.reduce((total, weight) => total + weight, 0);
   const students = weights.map((weight) => Math.floor((totalStudents * weight) / totalWeight));
   students[students.length - 1] += totalStudents - students.reduce((total, count) => total + count, 0);
+  const shares = students.map((count) => Math.round((count / totalStudents) * 100));
+  shares[shares.length - 1] += 100 - shares.reduce((total, share) => total + share, 0);
 
-  return labels.map((label, index) => ({
+  return SCHOOL_EXAM_SCORE_BAND_LABELS.map((label, index) => ({
     label,
     students: students[index],
-    share: Math.round((students[index] / totalStudents) * 100),
+    share: shares[index],
   }));
 }
 
@@ -166,7 +167,8 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
     return { naturalScienceShare, socialScienceShare, recommendedMajorGroup };
   })();
 
-  const potentialIndicatorWeights = [25, 15, 20, 10, 10, 20];
+  const isWithinOneHour = geography.distanceTier === "Dưới 1 giờ";
+  const potentialIndicatorWeights = isWithinOneHour ? [30.6, 15, 24.4, 10, 0, 20] : [25, 15, 20, 10, 10, 20];
   const rawPotentialScores = [
     potentialScore - 5 + (seed % 11),
     potentialScore - 3 + (seed % 7),
@@ -179,13 +181,13 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
     0,
   );
   const potentialIndicators = [
-    { id: "P1" as const, label: "Quy mô khả dụng", score: rawPotentialScores[0], weight: 25 },
-    { id: "P2" as const, label: "Mật độ khả dụng", score: rawPotentialScores[1], weight: 15 },
-    { id: "P3" as const, label: "Mức khớp ngành", score: rawPotentialScores[2], weight: 20 },
-    { id: "P4" as const, label: "Khả năng chi trả", score: rawPotentialScores[3], weight: 10 },
-    { id: "P5" as const, label: "Xu hướng đi học xa", score: rawPotentialScores[4], weight: 10 },
-    { id: "P6" as const, label: "Lịch sử chuyển đổi", score: Math.min(100, Math.max(0, Math.round((potentialScore - weightedWithoutP6) / 0.2))), weight: 20 },
-  ];
+    { id: "P1" as const, label: "Quy mô khả dụng", score: rawPotentialScores[0], weight: potentialIndicatorWeights[0] },
+    { id: "P2" as const, label: "Mật độ khả dụng", score: rawPotentialScores[1], weight: potentialIndicatorWeights[1] },
+    { id: "P3" as const, label: "Mức khớp ngành", score: rawPotentialScores[2], weight: potentialIndicatorWeights[2] },
+    { id: "P4" as const, label: "Khả năng chi trả", score: rawPotentialScores[3], weight: potentialIndicatorWeights[3] },
+    { id: "P5" as const, label: "Xu hướng đi học xa", score: rawPotentialScores[4], weight: potentialIndicatorWeights[4] },
+    { id: "P6" as const, label: "Lịch sử chuyển đổi", score: Math.min(100, Math.max(0, Math.round((potentialScore - weightedWithoutP6) / (potentialIndicatorWeights[5] / 100)))), weight: potentialIndicatorWeights[5] },
+  ].filter((indicator) => indicator.id !== "P5" || !isWithinOneHour);
 
   const earlyForecast = {
     grade10CutoffScore: 32 + (seed % 12),

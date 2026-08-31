@@ -150,7 +150,20 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
 
 Ví dụ chỉ minh hoạ shape. Scalar thiếu là `null`, collection thiếu là `[]`; `0` vẫn là dữ liệu hợp lệ. `available`, `partial`, `unavailable` mô tả khả dụng theo section/field.
 
-`examScoreBands` là phổ phân bố điểm thi THPT của trường, dùng cho biểu đồ phổ điểm ở trang chi tiết. Mỗi phần tử có shape `{ "label": "8–10", "students": 47, "share": 10 }`, trong đó `label` là khoảng điểm trên thang 0–10, `students` là số học sinh và `share` là tỷ trọng phần trăm. Khi chưa có nguồn điểm được phê duyệt, API trả `[]` và field tương ứng trong `dataAvailability` là `unavailable`.
+`examScoreBands` là phổ phân bố điểm thi THPT của trường, dùng cho biểu đồ phổ điểm ở trang chi tiết. Khi có dữ liệu, API trả đủ cùng một bộ 5 dải điểm theo thứ tự chuẩn: `0–2`, `2–4`, `4–6`, `6–8`, `8–10`; không tự đổi nhóm theo từng trường. Mỗi phần tử có shape `{ "label": "8–10", "students": 47, "share": 10 }`, trong đó `label` là dải điểm trên thang 0–10, `students` là số học sinh khối 12 và `share` là tỷ trọng trên tổng khối 12. Chart dùng `students` làm đại lượng chính và hiển thị `share` khi xem chi tiết. Không dùng `examScoreBands` thay cho `scoreBands`: `scoreBands` là nhóm phù hợp tuyển sinh, còn `examScoreBands` là dải điểm thi; dải điểm khả thi chỉ được xác định khi có cấu hình tuyển sinh được phê duyệt. Khi chưa có nguồn điểm được phê duyệt, API trả `[]` và field tương ứng trong `dataAvailability` là `unavailable`.
+
+### Quy tắc ngữ nghĩa của các chỉ số tiềm năng
+
+| Nhãn hiển thị | Ý nghĩa nghiệp vụ |
+|---|---|
+| Quy mô khả dụng | Số học sinh khối 12 nằm trong dải điểm khả thi. |
+| Mật độ khả dụng | Tỷ lệ học sinh khả dụng trên tổng khối 12. |
+| Mức khớp ngành | Tỷ lệ học sinh có tổ hợp môn phù hợp với nhóm ngành đào tạo. |
+| Khả năng chi trả | `100% - tỷ lệ hồ sơ cần hỗ trợ tài chính`; không dùng để giảm mức độ chăm sóc trường. |
+| Xu hướng đi học xa | Tỷ lệ học sinh nhập học ngoài tỉnh trong ba mùa gần nhất; chỉ áp dụng cho trường ngoài bán kính một giờ. |
+| Lịch sử chuyển đổi | Số nhập học bình quân có trọng số trong ba mùa gần nhất, trọng số từ gần tới xa là `0,5 - 0,3 - 0,2`. |
+
+Điểm của từng chỉ số được chuẩn hoá theo phân vị về `0..100`, không phải giá trị tuyệt đối. Đóng góp vào tổng điểm được tính bằng `điểm chỉ số × trọng số`. Với trường trong bán kính một giờ, không hiển thị/tính `Xu hướng đi học xa`; trọng số của chỉ số này được phân bổ lại cho `Quy mô khả dụng` và `Mức khớp ngành` theo tỷ trọng ban đầu. Mã nội bộ `P1..P6` không hiển thị trên chart.
 
 ## Nguồn và giới hạn
 

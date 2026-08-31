@@ -6,6 +6,44 @@ export interface DataAvailability {
   fields: Record<string, AvailabilityStatus>;
 }
 
+export interface MarketMetricAvailability {
+  opportunity: AvailabilityStatus;
+  competition: AvailabilityStatus;
+  revenue: AvailabilityStatus;
+  grade12Population: AvailabilityStatus;
+}
+
+export interface DirectorMarketRegionSummary {
+  scope: MarketRegionKey;
+  count: number;
+  totalGrade12: number | null;
+  totalLeads: number | null;
+  avgConversion: number | null;
+  hotspotCount: number | null;
+  totalRevenue: number | null;
+  grade12Trend: number | null;
+  leadsTrend: number | null;
+  revenueTrend: number | null;
+}
+
+export interface DirectorMarketMetricConfig {
+  key: NonNullable<DirectorMarketParams["metric"]>;
+  label: string;
+  unit: string;
+  min: number | null;
+  max: number | null;
+}
+
+export interface DirectorMarketMeta {
+  admissionYear: number;
+  period: "30d";
+  region: MarketRegionKey;
+  metric: NonNullable<DirectorMarketParams["metric"]>;
+  asOf: string;
+  scope: "director";
+  sourceDataRevision: string;
+}
+
 export type MarketRegionKey = "all" | "north" | "central" | "highlands" | "south" | "mekong";
 export type MarketSchoolClassification = "Trọng điểm" | "Mở rộng" | "Duy trì" | "Sàng lọc" | null;
 
@@ -31,7 +69,9 @@ export interface DirectorMarketSchool {
 export interface DirectorMarketProvince {
   code: string;
   name: string;
+  fullName: string | null;
   regionKey: MarketRegionKey;
+  schoolCount: number | null;
   opportunity: number | null;
   leads: number | null;
   conversion: number | null;
@@ -51,6 +91,10 @@ export interface DirectorMarketOverview {
   totalSchools: number | null;
   admissionYear: number | null;
   asOf: string | null;
+  regionSummary: DirectorMarketRegionSummary | null;
+  metricConfig: DirectorMarketMetricConfig | null;
+  metricAvailability: MarketMetricAvailability;
+  meta: DirectorMarketMeta | null;
   dataAvailability: DataAvailability;
 }
 

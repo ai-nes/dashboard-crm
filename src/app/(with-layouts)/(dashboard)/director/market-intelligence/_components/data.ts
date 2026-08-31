@@ -423,6 +423,7 @@ export function toProvinceMetrics(
     code: province.Code,
     name: province.Name,
     regionKey,
+    schoolCount: highSchools.length,
     opportunity,
     leads,
     conversion,
@@ -456,6 +457,24 @@ export function opportunityLabel(score: number | null) {
   return "Cần kích cầu";
 }
 
+export function getProvinceHeatScore(
+  province: Pick<ProvinceMetrics, "schoolCount" | "highSchools">,
+): number | null {
+  const totalSchools = province.schoolCount ?? province.highSchools.length;
+  if (totalSchools <= 0) return null;
+
+  const keySchoolCount = province.highSchools.filter(
+    (school) => school.classification === "Trọng điểm",
+  ).length;
+
+  return Number((totalSchools / Math.max(1, keySchoolCount)).toFixed(2));
+}
+
+export function formatHeatScore(score: number | null) {
+  if (score === null) return "-";
+  return `${Number.isInteger(score) ? score : score.toFixed(2)}x`;
+}
+
 export function getOpportunityBadgeVariant(score: number | null): "success" | "primary" | "warning" | "error" | "gray" {
   if (score === null) return "gray";
   if (score >= 80) return "success";
@@ -468,26 +487,24 @@ export function getOpportunityBadgeVariant(score: number | null): "success" | "p
  * Returns smooth, professional choropleth hex colors with high visual contrast
  * and elegant saturation, avoiding harsh traffic-light RGB.
  */
+export function getHeatColor(value: number | null, isHovered: boolean = false): string {
+  if (value === null) return isHovered ? "#94a3b8" : "#cbd5e1";
+
+  // Heat score gradient after the province values are normalized to 0..100.
+  if (value >= 82) return isHovered ? "#059669" : "#10b981";
+  if (value >= 70) return isHovered ? "#0d9488" : "#14b8a6";
+  if (value >= 58) return isHovered ? "#2563eb" : "#3b82f6";
+  if (value >= 46) return isHovered ? "#d97706" : "#f59e0b";
+  return isHovered ? "#e11d48" : "#f43f5e";
+}
+
 export function getMetricColor(
   metric: MetricKey,
   value: number | null,
   isHovered: boolean = false,
-  isSelected: boolean = false,
 ): string {
-  if (isSelected) {
-    return "#3b82f6"; // Vibrant Electric Blue when actively selected
-  }
-
+  if (metric === "opportunity") return getHeatColor(value, isHovered);
   if (value === null) return isHovered ? "#94a3b8" : "#cbd5e1";
-
-  if (metric === "opportunity") {
-    // Elegant Emerald & Indigo heat gradient
-    if (value >= 82) return isHovered ? "#059669" : "#10b981"; // Vibrant Emerald 500
-    if (value >= 70) return isHovered ? "#0d9488" : "#14b8a6"; // Teal 500
-    if (value >= 58) return isHovered ? "#2563eb" : "#3b82f6"; // Blue 500
-    if (value >= 46) return isHovered ? "#d97706" : "#f59e0b"; // Warm Amber 500
-    return isHovered ? "#e11d48" : "#f43f5e"; // Rose 500
-  }
 
   if (metric === "leads") {
     // Deep Royal to Sky Cyan ramp

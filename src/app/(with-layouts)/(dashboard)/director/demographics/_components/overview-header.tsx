@@ -20,7 +20,7 @@ export default function OverviewHeader({
 }: OverviewHeaderProps) {
   const periodLabel = getPeriodLabel(meta?.period);
   const snapshotLabel = meta
-    ? `Kỳ tuyển sinh ${meta.admissionYear} · ${periodLabel}`
+    ? `Mùa tuyển sinh ${meta.admissionYear} · ${periodLabel}`
     : "Dữ liệu minh họa";
   const scopeLabel = meta?.scope && meta.scope !== "all" ? meta.scope : "Toàn quốc";
 
@@ -28,15 +28,15 @@ export default function OverviewHeader({
     <header className="flex flex-col gap-5 rounded-xl border border-card-border bg-card-background p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge color="primary">CRM Contact · Overview</Badge>
+          <Badge color="primary">Phân tích lead</Badge>
           <span className="text-xs text-text-tertiary">{snapshotLabel}</span>
           {meta?.asOf ? <span className="text-xs text-text-tertiary">· Cập nhật {formatAsOf(meta.asOf)}</span> : null}
         </div>
         <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
-          Tổng quan tệp Contact
+          Tổng quan nhóm lead
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
-          Nhìn nhanh Contact đang ở đâu trong hành trình, nguồn nào tạo tín hiệu tốt và đội tư vấn cần xử lý gì tiếp theo.
+          Biết nhóm nào đáng ưu tiên, nguồn nào tạo lead hợp lệ và việc cần làm tiếp theo.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -54,10 +54,10 @@ export default function OverviewHeader({
 }
 
 function getPeriodLabel(period?: string): string {
-  if (period === "season") return "toàn mùa";
-  if (period === "12m") return "12 tháng";
-  if (period === "6m") return "6 tháng";
-  return period || "toàn mùa";
+  if (period === "season") return "cả mùa";
+  if (period === "12m") return "12 tháng gần nhất";
+  if (period === "6m") return "6 tháng gần nhất";
+  return period || "cả mùa";
 }
 
 function formatAsOf(value: string): string {

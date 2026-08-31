@@ -36,10 +36,10 @@ export default function RegionalDemandHeatmap({
         <div>
           <CardTitle>Mức độ quan tâm theo ngành và địa bàn</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            {isCountMetric ? "Số hồ sơ theo ngành và địa bàn." : "Điểm chỉ số tương đối theo ngành; không phải số hồ sơ."}
+            {isCountMetric ? "Số lead theo ngành và địa bàn." : "Chỉ số tương đối theo ngành; không phải số lead."}
           </p>
         </div>
-        <span className="text-xs text-text-tertiary">{isCountMetric ? "Số hồ sơ" : "Chỉ số 0–100"}</span>
+        <span className="text-xs text-text-tertiary">{isCountMetric ? "Số lead" : "Chỉ số 0–100"}</span>
       </CardHeader>
       <div className="overflow-x-auto p-4 sm:p-5">
         <table className="w-full min-w-[680px] border-separate border-spacing-1.5 text-left text-xs">

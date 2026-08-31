@@ -22,8 +22,8 @@ export default function DataCoverageCard({ metrics = defaultMetrics }: DataCover
     <Card className="flex h-full min-w-0 flex-col bg-card-background">
       <CardHeader className="mb-4 items-start">
         <div>
-          <CardTitle>Mức độ đầy đủ của dữ liệu</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Tỷ lệ hồ sơ có thông tin theo từng tiêu chí.</p>
+          <CardTitle>Mức độ đầy đủ dữ liệu</CardTitle>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Kiểm tra trường nào còn thiếu trước khi phân tích.</p>
         </div>
         <Badge color={overallTone === "success" ? "success" : overallTone === "warning" ? "warning" : "error"}>
           {overallTone === "success" ? <Shield1Check size={13} aria-hidden="true" /> : <InfoTriangle size={13} aria-hidden="true" />}
@@ -80,6 +80,6 @@ function getOverallCoverageLabel(tone: DataCoverageMetric["tone"]): string {
 
 function getCoverageNote(metrics: DataCoverageMetric[]): string {
   const weakest = [...metrics].sort((first, second) => first.value - second.value)[0];
-  if (!weakest || weakest.value <= 0) return "Một số trường dữ liệu chưa có nguồn canonical; không dùng chúng để suy luận phân khúc.";
-  return `${weakest.label} mới có ở ${weakest.value}% hồ sơ. Kết quả dùng tiêu chí này có thể chưa đại diện.`;
+  if (!weakest || weakest.value <= 0) return "Một số trường chưa có dữ liệu chuẩn; không dùng chúng để suy luận nhóm.";
+  return `${weakest.label} mới có ở ${weakest.value}% lead. Kết quả theo tiêu chí này có thể chưa đại diện.`;
 }

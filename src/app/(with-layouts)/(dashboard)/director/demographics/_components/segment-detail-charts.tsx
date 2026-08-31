@@ -30,11 +30,11 @@ export default function SegmentDetailCharts({
         <Card className="min-w-0 overflow-hidden bg-background-gray-primary">
           <CardHeader className="mb-4">
             <div>
-              <CardTitle>Diễn biến số hồ sơ theo tháng</CardTitle>
-              <p className="mt-1 text-xs leading-5 text-text-tertiary">Nhóm đang xem và nhóm so sánh.</p>
+              <CardTitle>Diễn biến số lead theo tháng</CardTitle>
+              <p className="mt-1 text-xs leading-5 text-text-tertiary">So sánh số lead của nhóm đang xem với nhóm gần nhất.</p>
             </div>
             <span className="text-xs font-semibold text-text-secondary">
-              {segment.growth == null ? "Chưa đủ dữ liệu tăng trưởng" : `${formatGrowth(segment.growth)} tháng`}
+              {segment.growth == null ? "Chưa đủ dữ liệu tăng trưởng" : `${formatGrowth(segment.growth)} so với tháng trước`}
             </span>
           </CardHeader>
           <div className="h-72">
@@ -64,7 +64,7 @@ export default function SegmentDetailCharts({
             <CardTitle>{channelTitle}</CardTitle>
             <p className="mt-1 text-xs leading-5 text-text-tertiary">{channelDescription}</p>
           </div>
-          <span className="text-xs text-text-tertiary">Tỷ lệ (%)</span>
+          <span className="text-xs text-text-tertiary">Tỷ trọng (%)</span>
         </CardHeader>
         <div className="h-64 sm:h-72">
           {segment.channels.length > 0 ? (
@@ -74,7 +74,7 @@ export default function SegmentDetailCharts({
                 <XAxis type="number" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}%`} />
                 <YAxis type="category" dataKey="name" width={102} axisLine={false} tickLine={false} tick={{ fill: "var(--text-secondary)", fontSize: 12 }} />
                 <Tooltip content={<OverviewTooltip suffix="%" />} />
-                <Bar dataKey="value" name="Tỷ lệ học sinh" radius={[0, 6, 6, 0]} maxBarSize={28} isAnimationActive={false}>
+                <Bar dataKey="value" name="Tỷ trọng theo kênh" radius={[0, 6, 6, 0]} maxBarSize={28} isAnimationActive={false}>
                   {segment.channels.map((channel, index) => <Cell key={channel.name} fill={channel.fill ?? getChannelColor(index)} />)}
                   <LabelList dataKey="value" position="right" formatter={(value) => `${value}%`} fill="var(--text-secondary)" fontSize={12} />
                 </Bar>
@@ -96,9 +96,9 @@ function getChannelTitle(model: ChannelAttributionModel): string {
 }
 
 function getChannelDescription(model: ChannelAttributionModel): string {
-  if (model === "first-touch") return "Tỷ lệ Contact theo nguồn đầu tiên sau khi hợp nhất định danh.";
-  if (model === "last-touch") return "Tỷ lệ Contact theo nguồn cuối tại thời điểm gửi biểu mẫu.";
-  return "Tỷ lệ tương tác được ghi nhận; chưa phải mô hình quy gán first-touch hoặc last-touch.";
+  if (model === "first-touch") return "Tỷ trọng lead theo nơi biết đến trường đầu tiên.";
+  if (model === "last-touch") return "Tỷ trọng lead theo nguồn tại lúc gửi biểu mẫu.";
+  return "Tỷ trọng tương tác được ghi nhận, chưa phải nguồn đầu hay nguồn cuối.";
 }
 
 function getChannelColor(index: number): string {

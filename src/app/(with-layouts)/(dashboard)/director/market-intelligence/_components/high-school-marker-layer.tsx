@@ -64,8 +64,7 @@ export default function HighSchoolMarkerLayer({
         if (!feature) return [];
 
         const schools = sortByAvailableScore(province.highSchools, "potentialScore");
-        const visibleSchools =
-          province.code === selectedProvinceCode ? schools : schools.slice(0, 2);
+        const visibleSchools = schools;
 
         const center = getGeometryCenter(feature.geometry.coordinates);
         const [centerX, centerY] = projectPoint(center);
@@ -80,7 +79,7 @@ export default function HighSchoolMarkerLayer({
           };
         });
       });
-  }, [activeRegion, geoData, projectPoint, provinces, selectedProvinceCode]);
+  }, [activeRegion, geoData, projectPoint, provinces]);
 
   return (
     <g aria-label="Các điểm trường THPT theo tiềm năng" className="high-school-layer">

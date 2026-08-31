@@ -127,12 +127,23 @@ Ví dụ chỉ minh hoạ shape. Giá trị thực phụ thuộc quyền theo d�
 
 - Tỉnh/trường: `CRM Province`, `CRM High School`.
 - Lead/prospect: số `CRM Student` duy nhất theo tỉnh/trường và kỳ tuyển sinh.
+- `schoolCount`: tổng số trường THPT của tỉnh; khác với `highSchools`, vốn là danh sách trường nổi bật và bị giới hạn bởi `schoolLimit`.
 - Nếu nguồn `CRM Student` không đọc được, các aggregate `leads`, `prospects` và `regionSummary.totalLeads` là `null` kèm trạng thái nguồn `unavailable`; `0` chỉ có nghĩa là truy vấn thành công nhưng không có bản ghi.
 - Application, enrollment, conversion: annual snapshot mới nhất có `verification_status = Verified`.
 - Ward tạo ID canonical `{provinceCode}-{wardCode}-{schoolCode}`. Thiếu ward code làm `id`/`directoryId` của trường là `null`; frontend không tạo link detail.
 - Opportunity, competition, revenue, grade-12 population, trend và recommendation chưa có nguồn đủ thẩm quyền: trả `null` + `unavailable`. `0` vẫn là dữ liệu hợp lệ.
 - `status = partial` khi nguồn hỗ trợ lỗi/thiếu. Lỗi hoặc vượt cap ở nguồn tỉnh/trường chính trả `503`.
 - Trường nổi bật được sắp theo application giảm dần, sau đó ID/tên; mọi source read đều bị giới hạn.
+
+### Quy tắc màu tỉnh trên bản đồ
+
+Màu tỉnh không dùng `provinces[].opportunity` hoặc `highSchools[].potentialScore`. Frontend tính một điểm nhiệt từ dữ liệu trường:
+
+```text
+điểm nhiệt = schoolCount / max(1, số highSchools có classification = "Trọng điểm")
+```
+
+Điểm càng cao nghĩa là một trường trọng điểm đang phủ trên nhiều trường hơn, nên tỉnh được ưu tiên màu nóng hơn. Khi `schoolCount` không có, frontend tạm dùng số phần tử `highSchools`; khi chưa có trường trọng điểm, mẫu số được coi là `1` để tỉnh vẫn được tô màu.
 
 Geometry không đi qua API này. Client đọc asset `/market-intelligence/vietnam-provinces-2025.json` và join theo mã tỉnh.
 

@@ -44,14 +44,16 @@ export default function DemographicsOverview({
             onApply={onApplyFilters}
           />
         }
-        onExport={() => toast.success("Đã tạo báo cáo tổng quan người học.")}
+        onExport={() => toast.success("Đã tạo báo cáo phân tích lead.")}
       />
       <div className="min-w-0 max-w-full space-y-5">
         <OverviewKpiStrip kpis={data?.kpis} />
-        <SegmentLandscapeChart segments={data?.segments} onOpenSegment={onOpenSegment} />
-        <AudienceCompositionChart audience={data?.audienceComposition} />
-        <DataCoverageCard metrics={data?.dataCoverage} />
+        <div className="grid min-w-0 gap-5 xl:grid-cols-2">
+          <AudienceCompositionChart audience={data?.audienceComposition} />
+          <DataCoverageCard metrics={data?.dataCoverage} />
+        </div>
         <AcquisitionMapWorkspace />
+        <SegmentLandscapeChart segments={data?.segments} onOpenSegment={onOpenSegment} />
       </div>
     </div>
   );

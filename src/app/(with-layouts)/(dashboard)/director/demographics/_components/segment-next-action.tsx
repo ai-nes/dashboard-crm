@@ -16,14 +16,14 @@ export default function SegmentNextAction({ segment, nextAction }: SegmentNextAc
   const primaryDescription =
     nextAction?.description ??
     (isHighPriority
-      ? `Nhóm có ${segment.prospects.toLocaleString("vi-VN")} học sinh; tăng trưởng gần nhất: ${growthText}.`
-      : `Bắt đầu với một hoạt động nhỏ để kiểm tra nhu cầu của ${segment.prospects.toLocaleString("vi-VN")} học sinh.`);
+      ? `Nhóm có ${segment.prospects.toLocaleString("vi-VN")} lead; tăng trưởng gần nhất: ${growthText}.`
+      : `Bắt đầu với một hoạt động nhỏ để kiểm tra nhu cầu của ${segment.prospects.toLocaleString("vi-VN")} lead.`);
 
   const steps = nextAction?.steps ?? [
     {
       order: 1,
       title: `Tiếp cận qua ${topChannel?.name ?? "Mạng xã hội"}`,
-      detail: `${topChannel?.value ?? 38}% tương tác đầu tiên đến từ kênh này.`,
+      detail: `${topChannel?.value ?? 38}% tương tác của nhóm được ghi nhận ở kênh này.`,
     },
     {
       order: 2,
@@ -33,7 +33,7 @@ export default function SegmentNextAction({ segment, nextAction }: SegmentNextAc
     {
       order: 3,
       title: "Đánh giá lại sau 30 ngày",
-      detail: "So sánh số học sinh được tiếp cận và số hồ sơ nhập học.",
+      detail: "So sánh số lead được tiếp cận, nộp hồ sơ và nhập học.",
     },
   ];
 
@@ -42,7 +42,7 @@ export default function SegmentNextAction({ segment, nextAction }: SegmentNextAc
       <CardHeader className="border-b border-card-border p-5">
         <div>
           <CardTitle>Việc cần làm tiếp theo</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Ưu tiên dựa trên quy mô, tăng trưởng và kênh tiếp cận.</p>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Chọn việc tạo tác động lớn nhất trước.</p>
         </div>
         <Badge color={isHighPriority ? "success" : "primary"}>
           {nextAction?.label ?? (isHighPriority ? "Ưu tiên cao" : "Cần thử nghiệm")}
@@ -50,7 +50,7 @@ export default function SegmentNextAction({ segment, nextAction }: SegmentNextAc
       </CardHeader>
       <div className="p-5">
         <div className="rounded-xl bg-background-gray-primary p-4">
-          <p className="text-xs font-medium text-text-tertiary">Việc nên làm trước</p>
+          <p className="text-xs font-medium text-text-tertiary">Ưu tiên số 1</p>
           <h3 className="mt-1 text-lg font-semibold text-text-primary">{primaryAction}</h3>
           <p className="mt-1 text-sm leading-6 text-text-secondary">{primaryDescription}</p>
         </div>

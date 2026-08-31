@@ -4,6 +4,7 @@ import { Bar, CartesianGrid, ComposedChart, Line, Tooltip, XAxis, YAxis } from "
 
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import AcquisitionMapChartCard, { DemoLegend, DemoNote, formatDemoNumber } from "./acquisition-map-chart-card";
+import OverviewTooltip from "./overview-tooltip";
 import { captureModeDemo, dropoffByFieldDemo, formCompletionDemo, formFunnelDemo } from "./acquisition-map-demo";
 
 export function AcquisitionFormPanels() {
@@ -17,15 +18,15 @@ export function AcquisitionFormPanels() {
   );
 }
 
-function FormFunnelChart() {
+export function FormFunnelChart() {
   const firstValue = formFunnelDemo[0].value;
 
   return (
     <AcquisitionMapChartCard
       chartId="06"
-      title="Phễu chuyển đổi form"
-      description="Từ impression đến handoff; mỗi bước hiển thị số lượng và tỷ lệ giữ lại so với bước trước."
-      badge="Form funnel"
+      title="Phễu từ hiển thị đến bàn giao tư vấn"
+      description="Xác định chặng có tỷ lệ chuyển bước thấp nhất."
+      badge="Số lượng · tỷ lệ chuyển bước"
     >
       <div className="space-y-3">
         {formFunnelDemo.map((step, index) => (
@@ -40,7 +41,6 @@ function FormFunnelChart() {
           </div>
         ))}
       </div>
-      <DemoLegend items={[{ label: "Số còn lại", color: "bg-brand-500" }, { label: "Tỷ lệ giữ lại", color: "bg-background-soft-300" }]} />
     </AcquisitionMapChartCard>
   );
 }
@@ -49,9 +49,9 @@ function FormCompletionChart() {
   return (
     <AcquisitionMapChartCard
       chartId="07"
-      title="Tỷ lệ hoàn tất theo form"
-      description="Dot plot giúp so sánh nhanh các form cùng mục đích mà không tạo thêm một bar chart dày đặc."
-      badge="Completion rate"
+      title="Tỷ lệ hoàn tất theo biểu mẫu"
+      description="So sánh tỷ lệ hoàn tất giữa các biểu mẫu cùng mục đích."
+      badge="Tỷ lệ hoàn tất"
     >
       <div className="space-y-4 pt-2">
         {formCompletionDemo.map((item) => (
@@ -65,7 +65,7 @@ function FormCompletionChart() {
           </div>
         ))}
       </div>
-      <DemoNote>Chỉ so sánh các form có cùng mục đích và cùng khoảng thời gian.</DemoNote>
+      <DemoNote>Chỉ so sánh biểu mẫu cùng mục đích và cùng khoảng thời gian.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }
@@ -74,9 +74,9 @@ function FieldDropoffChart() {
   return (
     <AcquisitionMapChartCard
       chartId="08"
-      title="Điểm rơi theo trường form"
-      description="Pareto cho biết trường nào tạo drop-off nhiều nhất và phần cộng dồn của trải nghiệm."
-      badge="Drop-off %"
+      title="Tỷ lệ bỏ dở theo trường thông tin"
+      description="Xác định trường khiến người dùng dừng điền biểu mẫu."
+      badge="Tỷ lệ bỏ dở"
     >
       <div className="h-64">
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -85,13 +85,13 @@ function FieldDropoffChart() {
             <XAxis dataKey="field" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 10 }} interval={0} angle={-18} textAnchor="end" height={44} />
             <YAxis yAxisId="dropoff" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(value) => `${value}%`} />
             <YAxis yAxisId="cumulative" orientation="right" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(value) => `${value}%`} />
-            <Tooltip />
-            <Bar yAxisId="dropoff" dataKey="dropoff" name="Drop-off" fill="var(--warning-500)" radius={[5, 5, 0, 0]} barSize={28} />
-            <Line yAxisId="cumulative" dataKey="cumulative" name="Cộng dồn" stroke="var(--brand-500)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--brand-500)" }} />
+            <Tooltip content={<OverviewTooltip suffix="%" />} />
+            <Bar yAxisId="dropoff" dataKey="dropoff" name="Tỷ lệ bỏ dở tại trường" fill="var(--warning-500)" radius={[5, 5, 0, 0]} barSize={28} />
+            <Line yAxisId="cumulative" dataKey="cumulative" name="Tỷ lệ bỏ dở cộng dồn" stroke="var(--brand-500)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--brand-500)" }} />
           </ComposedChart>
         </ChartContainer>
       </div>
-      <DemoLegend items={[{ label: "Drop-off từng trường", color: "bg-warning-500" }, { label: "Cộng dồn", color: "bg-brand-500" }]} />
+      <DemoLegend items={[{ label: "Tại từng trường", color: "bg-warning-500" }, { label: "Cộng dồn", color: "bg-brand-500" }]} />
     </AcquisitionMapChartCard>
   );
 }
@@ -100,9 +100,9 @@ function CaptureModeChart() {
   return (
     <AcquisitionMapChartCard
       chartId="09"
-      title="Embedded và landing page"
-      description="Dumbbell đặt hai tỷ lệ trên cùng một trục để thấy khoảng cách giữa complete và valid."
-      badge="Cùng campaign"
+      title="Biểu mẫu nhúng và trang đích theo chiến dịch"
+      description="So sánh tỷ lệ hoàn tất và tỷ lệ lead hợp lệ trong cùng chiến dịch."
+      badge="Cùng chiến dịch"
     >
       <div className="space-y-6 pt-4">
         {captureModeDemo.map((item) => {
@@ -112,7 +112,7 @@ function CaptureModeChart() {
             <div key={item.label}>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-xs font-medium text-text-secondary">{item.label}</span>
-                <span className="text-xs text-text-tertiary">Valid {item.validRate}% · Complete {item.completeRate}%</span>
+                <span className="text-xs text-text-tertiary">Hợp lệ {item.validRate}% · Hoàn tất {item.completeRate}%</span>
               </div>
               <div className="relative h-7">
                 <div className="absolute top-1/2 h-1 w-full -translate-y-1/2 rounded-full bg-background-gray-primary" />
@@ -124,7 +124,7 @@ function CaptureModeChart() {
           );
         })}
       </div>
-      <DemoLegend items={[{ label: "Valid rate", color: "bg-success-500" }, { label: "Complete rate", color: "bg-brand-500" }]} />
+      <DemoLegend items={[{ label: "Tỷ lệ hợp lệ", color: "bg-success-500" }, { label: "Tỷ lệ hoàn tất", color: "bg-brand-500" }]} />
     </AcquisitionMapChartCard>
   );
 }

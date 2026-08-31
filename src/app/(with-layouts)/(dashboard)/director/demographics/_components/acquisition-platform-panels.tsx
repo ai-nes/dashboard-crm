@@ -4,6 +4,7 @@ import { Bar, CartesianGrid, ComposedChart, Line, LineChart, Tooltip, XAxis, YAx
 
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import AcquisitionMapChartCard, { DemoLegend, DemoNote, formatDemoNumber } from "./acquisition-map-chart-card";
+import OverviewTooltip from "./overview-tooltip";
 import {
   budgetByRoleDemo,
   dailySpendLeadsDemo,
@@ -26,13 +27,13 @@ export function AcquisitionPlatformPanels() {
   );
 }
 
-function PlatformLeadCostChart() {
+export function PlatformLeadCostChart() {
   return (
     <AcquisitionMapChartCard
       chartId="01"
-      title="Lead và chi phí theo nền tảng"
-      description="Đối chiếu số valid lead với CPL valid lead; referral được giữ lại dù không có spend."
-      badge="CPL: nghìn đồng"
+      title="Lead hợp lệ và chi phí theo nền tảng"
+      description="So sánh lead hợp lệ và chi phí cho mỗi lead hợp lệ."
+      badge="Chi phí/lead hợp lệ · nghìn đồng"
     >
       <div className="h-64">
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -40,14 +41,15 @@ function PlatformLeadCostChart() {
             <CartesianGrid vertical={false} stroke="var(--border-color-base-100)" strokeDasharray="4 4" />
             <XAxis dataKey="platform" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
             <YAxis yAxisId="leads" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
-            <YAxis yAxisId="cost" orientation="right" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(value) => `${value}k`} />
-            <Tooltip />
-            <Bar yAxisId="leads" dataKey="validLeads" name="Valid lead" fill="var(--brand-500)" radius={[5, 5, 0, 0]} barSize={28} />
-            <Line yAxisId="cost" dataKey="cpl" name="CPL" stroke="var(--warning-500)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--warning-500)" }} />
+            <YAxis yAxisId="cost" orientation="right" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(value) => value === 0 ? "—" : `${value}k`} />
+            <Tooltip content={<OverviewTooltip />} />
+            <Bar yAxisId="leads" dataKey="validLeads" name="Lead hợp lệ (số lượng)" fill="var(--brand-500)" radius={[5, 5, 0, 0]} barSize={28} />
+            <Line yAxisId="cost" dataKey="cpl" name="Chi phí/lead hợp lệ (nghìn đồng)" stroke="var(--warning-500)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--warning-500)" }} />
           </ComposedChart>
         </ChartContainer>
       </div>
-      <DemoLegend items={[{ label: "Valid lead", color: "bg-brand-500" }, { label: "CPL", color: "bg-warning-500" }]} />
+      <DemoLegend items={[{ label: "Lead hợp lệ", color: "bg-brand-500" }, { label: "Chi phí/lead hợp lệ", color: "bg-warning-500" }]} />
+      <DemoNote>— = nguồn không có chi phí quảng cáo trực tiếp.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }
@@ -56,9 +58,9 @@ function SeasonComparisonChart() {
   return (
     <AcquisitionMapChartCard
       chartId="02"
-      title="Nhịp lead so với cùng mùa"
-      description="Slope comparison theo tuần tuyển sinh tương ứng, tránh so lệch lịch học."
-      badge="Contact"
+      title="Lead mới so với cùng kỳ"
+      description="So sánh số lead mới theo cùng tuần của hai mùa tuyển sinh."
+      badge="Số lead mới"
     >
       <div className="space-y-3 pt-1">
         {sameSeasonDemo.map((item) => {
@@ -87,15 +89,15 @@ function DailySpendLeadsChart() {
   return (
     <AcquisitionMapChartCard
       chartId="03"
-      title="Nhịp chi tiêu và lead hằng ngày"
-      description="Hai sparkline tách nhau để đọc volume nhanh, không dùng kết luận chất lượng lead."
+      title="Chi tiêu quảng cáo và lead theo ngày"
+      description="Đối chiếu chi tiêu quảng cáo với số lead thu được từng ngày."
       badge="12 ngày"
     >
       <div className="space-y-5">
-        <MiniTrend label="Spend" value={`${dailySpendLeadsDemo.reduce((sum, item) => sum + item.spend, 0)} triệu`} dataKey="spend" color="var(--warning-500)" />
+        <MiniTrend label="Chi tiêu quảng cáo" value={`${dailySpendLeadsDemo.reduce((sum, item) => sum + item.spend, 0)} triệu`} dataKey="spend" color="var(--warning-500)" />
         <MiniTrend label="Lead" value={formatDemoNumber(dailySpendLeadsDemo.reduce((sum, item) => sum + item.leads, 0))} dataKey="leads" color="var(--brand-500)" />
       </div>
-      <DemoNote>Dữ liệu trình diễn. Khi nối API, giữ cùng timezone và ngày nghỉ/chiến dịch trong tooltip.</DemoNote>
+      <DemoNote>Chỉ dùng để xem độ trễ giữa chi tiêu và số lead; chưa kết luận hiệu quả.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }
@@ -114,7 +116,7 @@ function MiniTrend({ label, value, dataKey, color }: { label: string; value: str
           </LineChart>
         </ChartContainer>
       </div>
-      <span className="text-[11px] text-text-tertiary">01 → 12</span>
+      <span className="text-[11px] text-text-tertiary">Ngày 01–12</span>
     </div>
   );
 }
@@ -123,9 +125,9 @@ function BudgetRoleChart() {
   return (
     <AcquisitionMapChartCard
       chartId="05"
-      title="Phân bổ ngân sách theo vai trò"
-      description="Một thanh 100% để kiểm tra bốn nhóm vai trò có phủ đủ ngân sách hay không."
-      badge="100% budget"
+      title="Cơ cấu ngân sách theo vai trò"
+      description="Xem ngân sách đang phân bổ vào vai trò nào của nền tảng."
+      badge="Tỷ trọng ngân sách"
     >
       <div className="pt-8">
         <div className="flex h-12 overflow-hidden rounded-lg bg-background-gray-primary">
@@ -152,16 +154,16 @@ function TouchpointPlatformChart() {
   return (
     <AcquisitionMapChartCard
       chartId="04"
-      title="Touchpoint × nền tảng"
-      description="Heatmap volume lead theo loại touchpoint và nền tảng; cell mẫu quá nhỏ nên được làm mờ."
-      badge="Heatmap"
+      title="Điểm chạm theo nền tảng"
+      description="Số lead theo loại điểm chạm và nền tảng."
+      badge="Số lead"
       className="xl:col-span-2"
     >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[680px] border-separate border-spacing-1.5 text-xs">
           <thead>
             <tr>
-              <th className="px-2 py-2 text-left font-medium text-text-tertiary">Touchpoint</th>
+              <th className="px-2 py-2 text-left font-medium text-text-tertiary">Điểm chạm</th>
               {columns.map((column) => <th key={column} className="px-2 py-2 text-center font-medium text-text-tertiary">{column}</th>)}
             </tr>
           </thead>
@@ -179,7 +181,7 @@ function TouchpointPlatformChart() {
           </tbody>
         </table>
       </div>
-      <DemoNote>Ẩn cell dưới 10 lead theo quy tắc Acquisition Map để tránh diễn giải mẫu quá nhỏ.</DemoNote>
+      <DemoNote>Ô dưới 10 lead được ẩn để tránh đọc sai tín hiệu nhỏ.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }

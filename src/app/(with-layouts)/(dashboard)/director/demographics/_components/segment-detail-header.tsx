@@ -28,13 +28,13 @@ export default function SegmentDetailHeader({
     <header className="px-2 lg:px-5">
       <Button size="sm" appearance="ghost" className="mb-4 -ml-2" onPress={onBack}>
         <ArrowLeft size={16} aria-hidden="true" />
-        Tổng quan người học
+        Tổng quan nhóm lead
       </Button>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold tracking-wide text-brand-500 uppercase">
-              Nhóm học sinh đang xem
+              Nhóm lead đang xem
             </span>
             <Badge color={growthBadgeColor}>
               {growthBadgeText}
@@ -44,7 +44,7 @@ export default function SegmentDetailHeader({
             {segment.name}
           </h1>
           <p className="mt-2 text-sm leading-6 text-text-secondary">
-            {segment.description} Dữ liệu từ đầu mùa tuyển sinh 2026 · tối thiểu 30 hồ sơ để hiển thị.
+            {segment.description} Tối thiểu 30 lead để hiển thị.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

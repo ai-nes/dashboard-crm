@@ -4,10 +4,11 @@ import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts"
 
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import AcquisitionMapChartCard, { DemoLegend, DemoNote, formatDemoNumber } from "./acquisition-map-chart-card";
+import OverviewTooltip from "./overview-tooltip";
 import { handoffCompletenessDemo, identityMatchDemo, qualityBySourceDemo, validRateTrendDemo } from "./acquisition-map-demo";
 
-const qualityColors = ["var(--success-500)", "var(--warning-500)", "var(--error-500)", "var(--info-500)", "var(--background-soft-300)"];
-const qualityClasses = ["bg-success-500", "bg-warning-500", "bg-error-500", "bg-info-500", "bg-background-soft-300"];
+const qualityColors = ["var(--success-500)", "var(--warning-500)", "var(--error-500)", "var(--info-500)"];
+const qualityClasses = ["bg-success-500", "bg-warning-500", "bg-error-500", "bg-info-500"];
 
 export function AcquisitionQualityPanels() {
   return (
@@ -20,29 +21,30 @@ export function AcquisitionQualityPanels() {
   );
 }
 
-function QualityBySourceChart() {
+export function QualityBySourceChart() {
   return (
     <AcquisitionMapChartCard
       chartId="10"
-      title="Phân loại lead theo nguồn"
-      description="Mỗi source phải phủ đủ các class disjoint; duplicate được giữ riêng để không mất touchpoint."
-      badge="100% source"
+      title="Chất lượng lead theo nguồn"
+      description="Cơ cấu lead sau xác minh theo nguồn; trùng lặp theo dõi riêng."
+      badge="Trùng lặp tách riêng"
     >
       <div className="space-y-4 pt-2">
         {qualityBySourceDemo.map((item) => {
           const values = [item.valid, item.enrichment, item.invalid, item.outOfScope, item.duplicate];
           return (
-            <div key={item.source} className="grid grid-cols-[64px_minmax(0,1fr)_42px] items-center gap-3">
+            <div key={item.source} className="grid grid-cols-[64px_minmax(0,1fr)_94px] items-center gap-3">
               <span className="text-xs font-medium text-text-secondary">{item.source}</span>
               <div className="flex h-7 overflow-hidden rounded-md bg-background-gray-primary">
-                {values.map((value, index) => <span key={`${item.source}-${index}`} style={{ backgroundColor: qualityColors[index], width: `${value}%` }} />)}
+                {values.slice(0, 4).map((value, index) => <span key={`${item.source}-${index}`} style={{ backgroundColor: qualityColors[index], width: `${value}%` }} />)}
               </div>
-              <span className="text-right text-xs font-semibold text-text-primary">100%</span>
+              <span className="text-right text-[11px] font-semibold text-text-primary">Trùng lặp {item.duplicate}%</span>
             </div>
           );
         })}
       </div>
-      <DemoLegend items={["Valid", "Needs enrichment", "Invalid", "Out of scope", "Duplicate"].map((label, index) => ({ label, color: qualityClasses[index] }))} />
+      <DemoLegend items={["Hợp lệ", "Cần bổ sung", "Sai thông tin", "Không đúng đối tượng"].map((label, index) => ({ label, color: qualityClasses[index] }))} />
+      <DemoNote>Trùng lặp không cộng vào cơ cấu trên; hợp nhất vào hồ sơ cũ và ghi nhận thêm điểm chạm.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }
@@ -51,9 +53,9 @@ function ValidRateTrendChart() {
   return (
     <AcquisitionMapChartCard
       chartId="11"
-      title="Valid lead theo thời gian"
-      description="Tối đa bốn source line để nhận ra cảnh báo chất lượng sớm mà không làm chart rối."
-      badge="Rate %"
+      title="Tỷ lệ lead hợp lệ theo thời gian"
+      description="Theo dõi sớm nguồn có tỷ lệ lead hợp lệ giảm."
+      badge="Tỷ lệ lead hợp lệ"
     >
       <div className="h-64">
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -61,15 +63,15 @@ function ValidRateTrendChart() {
             <CartesianGrid vertical={false} stroke="var(--border-color-base-100)" strokeDasharray="4 4" />
             <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
             <YAxis domain={[0, 70]} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(value) => `${value}%`} />
-            <Tooltip />
+            <Tooltip content={<OverviewTooltip suffix="%" />} />
             <Line type="monotone" dataKey="Meta" stroke="var(--brand-500)" strokeWidth={2} dot={false} />
             <Line type="monotone" dataKey="Google" stroke="var(--info-500)" strokeWidth={2} dot={false} />
             <Line type="monotone" dataKey="TikTok" stroke="var(--warning-500)" strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="Referral" stroke="var(--success-500)" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="Giới thiệu" stroke="var(--success-500)" strokeWidth={2} dot={false} />
           </LineChart>
         </ChartContainer>
       </div>
-      <DemoLegend items={[{ label: "Meta", color: "bg-brand-500" }, { label: "Google", color: "bg-info-500" }, { label: "TikTok", color: "bg-warning-500" }, { label: "Referral", color: "bg-success-500" }]} />
+      <DemoLegend items={[{ label: "Meta", color: "bg-brand-500" }, { label: "Google", color: "bg-info-500" }, { label: "TikTok", color: "bg-warning-500" }, { label: "Giới thiệu", color: "bg-success-500" }]} />
     </AcquisitionMapChartCard>
   );
 }
@@ -78,9 +80,9 @@ function HandoffCompletenessChart() {
   return (
     <AcquisitionMapChartCard
       chartId="12"
-      title="Độ đầy đủ dữ liệu khi handoff"
-      description="Bullet list dùng denominator là các lead đã được handoff, không phải toàn bộ Contact."
-      badge="Handoff denominator"
+      title="Độ đầy đủ dữ liệu khi bàn giao"
+      description="Tỷ lệ lead bàn giao có đủ từng trường để tư vấn."
+      badge="Lead đã bàn giao"
     >
       <div className="space-y-5 pt-2">
         {handoffCompletenessDemo.map((item) => (
@@ -91,12 +93,11 @@ function HandoffCompletenessChart() {
             </div>
             <div className="relative h-3 rounded-full bg-background-gray-primary">
               <div className="absolute inset-y-0 left-0 rounded-full bg-brand-500" style={{ width: `${item.value}%` }} />
-              <span className="absolute inset-y-[-2px] left-[80%] w-px bg-text-primary/50" aria-hidden="true" />
             </div>
           </div>
         ))}
       </div>
-      <DemoNote>Vạch dọc là mục tiêu dữ liệu 80%, không phải ngưỡng đạt chất lượng lead.</DemoNote>
+      <DemoNote>Tỷ lệ = lead bàn giao có trường dữ liệu / tổng lead đã bàn giao.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }
@@ -107,9 +108,9 @@ function IdentityMatchChart() {
   return (
     <AcquisitionMapChartCard
       chartId="13"
-      title="Cách thức resolve identity"
-      description="So sánh số record theo cơ chế match và giữ riêng hàng confidence queue/unmatched."
-      badge={`${formatDemoNumber(identityMatchDemo.reduce((sum, item) => sum + item.value, 0))} record`}
+      title="Cơ chế khớp định danh"
+      description="Phân loại bản ghi theo cách khớp; khớp xác suất cần người xác nhận."
+      badge={`${formatDemoNumber(identityMatchDemo.reduce((sum, item) => sum + item.value, 0))} bản ghi`}
     >
       <div className="space-y-4 pt-2">
         {identityMatchDemo.map((item) => (
@@ -122,7 +123,7 @@ function IdentityMatchChart() {
           </div>
         ))}
       </div>
-      <DemoNote>Confidence queue là hàng cần review, không tự động merge vào Contact canonical.</DemoNote>
+      <DemoNote>“Chờ xác nhận khớp” chưa được tự động hợp nhất vào hồ sơ.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }

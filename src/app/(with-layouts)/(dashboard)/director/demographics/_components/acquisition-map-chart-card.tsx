@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
 interface AcquisitionMapChartCardProps {
@@ -22,17 +21,14 @@ export default function AcquisitionMapChartCard({
 }: AcquisitionMapChartCardProps) {
   return (
     <Card className={`min-w-0 overflow-hidden bg-card-background p-0 ${className ?? ""}`}>
-      <CardHeader className="items-start border-b border-card-border p-5">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <Badge color="primary">{chartId}</Badge>
-            <CardTitle>{title}</CardTitle>
-          </div>
+      <CardHeader className="items-start border-b border-card-border p-4">
+        <div className="min-w-0" data-chart-id={chartId}>
+          <CardTitle>{title}</CardTitle>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-text-tertiary">{description}</p>
         </div>
         {badge ? <span className="shrink-0 text-xs font-medium text-text-tertiary">{badge}</span> : null}
       </CardHeader>
-      <div className="min-w-0 p-5">{children}</div>
+      <div className="min-w-0 p-4">{children}</div>
     </Card>
   );
 }
@@ -63,6 +59,6 @@ export function formatDemoNumber(value: number): string {
 }
 
 export function formatDemoCurrency(value: number): string {
-  if (value === 0) return "Miễn phí";
-  return `${value.toLocaleString("vi-VN")}k`;
+  if (value === 0) return "Không có chi phí trực tiếp";
+  return `${value.toLocaleString("vi-VN")} nghìn`;
 }

@@ -14,18 +14,18 @@ export default function SegmentScoreComparison({ segment, benchmark }: SegmentSc
       <Card className="min-w-0 overflow-hidden bg-card-background">
         <CardHeader className="mb-4">
           <div>
-            <CardTitle>So sánh với nhóm tương tự</CardTitle>
-            <p className="mt-1 text-xs leading-5 text-text-tertiary">Chưa có nhóm đối chiếu trong cùng snapshot.</p>
+            <CardTitle>So với nhóm tương tự</CardTitle>
+            <p className="mt-1 text-xs leading-5 text-text-tertiary">Chưa có nhóm để đối chiếu.</p>
           </div>
         </CardHeader>
-        <ChartEmptyState message="Chưa có benchmark" detail="Không dùng một nhóm mẫu khác để thay thế dữ liệu đối chiếu." />
+        <ChartEmptyState message="Chưa có nhóm so sánh" detail="Cần thêm một nhóm cùng kỳ để đối chiếu." />
       </Card>
     );
   }
 
   const metrics = [
     { label: "Đủ điều kiện tư vấn", current: safeRate(segment.qualified, segment.prospects), benchmark: safeRate(benchmark.qualified, benchmark.prospects) },
-    { label: "Nộp hồ sơ", current: safeRate(segment.applications, segment.prospects), benchmark: safeRate(benchmark.applications, benchmark.prospects) },
+    { label: "Tỷ lệ nộp hồ sơ", current: safeRate(segment.applications, segment.prospects), benchmark: safeRate(benchmark.applications, benchmark.prospects) },
     { label: "Nhập học", current: segment.conversion, benchmark: benchmark.conversion },
   ];
 
@@ -33,8 +33,8 @@ export default function SegmentScoreComparison({ segment, benchmark }: SegmentSc
     <Card className="min-w-0 overflow-hidden bg-card-background">
       <CardHeader className="mb-4">
         <div>
-          <CardTitle>So sánh với nhóm tương tự</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Tỷ lệ cao hơn cho thấy kết quả tốt hơn.</p>
+        <CardTitle>So với nhóm tương tự</CardTitle>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Thanh dài hơn = tỷ lệ cao hơn.</p>
           <p className="mt-1 text-xs text-text-tertiary">Đang xem: <span className="font-medium text-text-secondary">{segment.shortName}</span> · So sánh: <span className="font-medium text-text-secondary">{benchmark.shortName}</span></p>
         </div>
       </CardHeader>
