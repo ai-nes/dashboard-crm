@@ -69,7 +69,7 @@ export default function AttentionQueue() {
 
       <div className="mt-4 flex items-center justify-between border-t border-card-border pt-4 text-xs">
         <span className="text-text-tertiary">Tổng cộng 125 mục cần theo dõi</span>
-        <Link href="/director/sla" className="font-semibold text-brand-500 hover:text-brand-600">
+        <Link href="/director/ai/next-best-action" className="font-semibold text-brand-500 hover:text-brand-600">
           Xem tất cả
         </Link>
       </div>

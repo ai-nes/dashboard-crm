@@ -37,11 +37,11 @@ export function useDirectorDemographicsOverviewQuery<TData = DirectorDemographic
   });
 }
 
-export function useDirectorDemographicsSegmentQuery<TData = DirectorDemographicsSegmentResponse>(
+export function useDirectorDemographicsSegmentQuery<TData = DirectorDemographicsSegmentResponse | null>(
   params: DirectorDemographicsSegmentParams,
   options?: Omit<
     UseQueryOptions<
-      DirectorDemographicsSegmentResponse,
+      DirectorDemographicsSegmentResponse | null,
       Error,
       TData,
       ReturnType<typeof demographicsKeys.segment>
@@ -56,4 +56,3 @@ export function useDirectorDemographicsSegmentQuery<TData = DirectorDemographics
     ...options,
   });
 }
-

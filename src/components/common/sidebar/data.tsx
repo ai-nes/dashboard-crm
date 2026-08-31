@@ -6,7 +6,6 @@ import {
   InvoiceIcon,
   LetterIcon,
   PieChartIcon,
-  TaskIcon,
   TableIcon,
   UserGroupIcon,
   Widget4Icon,
@@ -66,7 +65,7 @@ export const NAV_DATA: NavigationSection[] = [
         items: [],
       },
       {
-        title: "Hành động AI đề xuất",
+        title: "Việc cần xử lý",
         url: "/director/ai/next-best-action",
         icon: <Widget4Icon />,
         items: [],
@@ -75,12 +74,6 @@ export const NAV_DATA: NavigationSection[] = [
         title: "Hồ sơ học sinh 360°",
         url: "/director/students",
         icon: <UserGroupIcon />,
-        items: [],
-      },
-      {
-        title: "SLA & trung tâm rủi ro",
-        url: "/director/sla",
-        icon: <TaskIcon />,
         items: [],
       },
       {
