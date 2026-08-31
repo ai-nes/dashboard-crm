@@ -4,15 +4,19 @@ import { cn } from "@/utils/cn";
 import { ArrowLeft, ArrowRight } from "@tailgrids/icons";
 import { cva } from "class-variance-authority";
 import { Button } from "./button";
+import { getPaginationItems, normalizePagination } from "./pagination-utils";
 
-const wrapperStyles = cva("mx-auto flex w-full items-center justify-center max-sm:gap-5", {
-  variants: {
-    variant: {
-      default: "gap-0.5",
-      compact: "max-w-fit sm:divide-x sm:divide-button-outline-border",
+const wrapperStyles = cva(
+  "mx-auto flex w-full items-center justify-center max-sm:gap-5",
+  {
+    variants: {
+      variant: {
+        default: "gap-0.5",
+        compact: "max-w-fit sm:divide-x sm:divide-button-outline-border",
+      },
     },
   },
-});
+);
 
 const sideButtonStyles = cva(
   "hover:bg-background-gray-secondary disabled:border-border-secondary disabled:bg-background-gray-secondary_alt disabled:text-text-100 max-sm:size-10 sm:h-10",
@@ -38,9 +42,8 @@ type PropsType = {
   className?: string;
   variant?: "default" | "compact";
   sideLayout?: "full" | "label" | "icon";
+  isDisabled?: boolean;
 };
-
-const MAX_PAGES_SHOWN = 6;
 
 export function Pagination({
   currentPage,
@@ -49,11 +52,22 @@ export function Pagination({
   className,
   variant = "default",
   sideLayout = "full",
+  isDisabled = false,
 }: PropsType) {
+  const { currentPage: safeCurrentPage, totalPages: safeTotalPages } =
+    normalizePagination(currentPage, totalPages);
+  const paginationItems = getPaginationItems(safeCurrentPage, safeTotalPages);
+
+  const handlePageChange = (page: number) => {
+    if (isDisabled || page === safeCurrentPage) return;
+    onPageChange?.(page);
+  };
+
   return (
     <nav
       role="navigation"
-      aria-label="Pagination"
+      aria-label="Phân trang"
+      aria-busy={isDisabled || undefined}
       className="w-full text-sm font-medium text-text-50"
     >
       <ul className={cn(wrapperStyles({ variant }), className)}>
@@ -61,98 +75,69 @@ export function Pagination({
           <Button
             appearance="outline"
             size="sm"
-            isDisabled={currentPage === 1}
-            aria-label="Previous page"
-            onClick={() => onPageChange?.(currentPage - 1)}
+            type="button"
+            isDisabled={isDisabled || safeCurrentPage === 1}
+            aria-label="Trang trước"
+            onPress={() => handlePageChange(safeCurrentPage - 1)}
             className={cn(sideButtonStyles({ sideLayout, variant }), {
               "sm:rounded-r-none sm:border-r-0": variant === "compact",
             })}
           >
-            <ArrowLeft className={cn("shrink-0", sideLayout === "label" && "sm:hidden")} />
+            <ArrowLeft
+              aria-hidden="true"
+              className={cn("shrink-0", sideLayout === "label" && "sm:hidden")}
+            />
 
-            {sideLayout !== "icon" && <span className="max-sm:hidden">Previous</span>}
+            {sideLayout !== "icon" && (
+              <span className="max-sm:hidden">Trước</span>
+            )}
           </Button>
         </li>
 
         {/* Only for mobile view */}
         <li className="sm:hidden">
-          Page {currentPage} of {totalPages}
+          Trang {safeCurrentPage} / {safeTotalPages}
         </li>
 
-        {Array.from({ length: totalPages }, (_, index) => {
-          const isActive = currentPage === index + 1;
-
-          if (totalPages > MAX_PAGES_SHOWN) {
-            if (currentPage > 3) {
-              if (index + 1 < currentPage) {
-                return null;
-              }
-
-              if (index + 1 === currentPage + 3) {
-                return (
-                  <li key={index} className="max-sm:hidden">
-                    <PaginationEllipsis paginationVariant={variant} />
-                  </li>
-                );
-              }
-
-              if (index + 1 < currentPage + 3 || index + 1 > totalPages - 2) {
-                return (
-                  <li key={index} className="max-sm:hidden">
-                    <PaginationButton
-                      page={index + 1}
-                      isActive={isActive}
-                      onPageChange={onPageChange}
-                      paginationVariant={variant}
-                    />
-                  </li>
-                );
-              }
-            }
-
-            if (index === 3) {
-              return (
-                <li key={index} className="max-sm:hidden">
-                  <PaginationEllipsis paginationVariant={variant} />
-                </li>
-              );
-            }
-
-            /**
-             * This logic ensures pagination buttons from 1-3 and the last 3 pages are visible
-             * and the rest in the middle are hidden and replaced with and ellipsis.
-             */
-            if (index > 2 && index < totalPages - 3) {
-              return null;
-            }
-          }
-
-          return (
-            <li key={index} className="max-sm:hidden">
+        {paginationItems.map((item, index) => (
+          <li
+            key={item === "ellipsis" ? `ellipsis-${index}` : item}
+            className="max-sm:hidden"
+          >
+            {item === "ellipsis" ? (
+              <PaginationEllipsis paginationVariant={variant} />
+            ) : (
               <PaginationButton
-                page={index + 1}
-                isActive={isActive}
-                onPageChange={onPageChange}
+                page={item}
+                isActive={safeCurrentPage === item}
+                onPageChange={handlePageChange}
                 paginationVariant={variant}
+                isDisabled={isDisabled}
               />
-            </li>
-          );
-        })}
+            )}
+          </li>
+        ))}
 
         <li className="ml-auto">
           <Button
             size="sm"
             appearance="outline"
-            isDisabled={currentPage === totalPages}
-            aria-label="Next page"
-            onClick={() => onPageChange?.(currentPage + 1)}
+            type="button"
+            isDisabled={isDisabled || safeCurrentPage === safeTotalPages}
+            aria-label="Trang sau"
+            onPress={() => handlePageChange(safeCurrentPage + 1)}
             className={cn(sideButtonStyles({ sideLayout, variant }), {
               "sm:rounded-l-none sm:border-l-0": variant === "compact",
             })}
           >
-            {sideLayout !== "icon" && <span className="max-sm:hidden">Next</span>}
+            {sideLayout !== "icon" && (
+              <span className="max-sm:hidden">Sau</span>
+            )}
 
-            <ArrowRight className={cn("shrink-0", sideLayout === "label" && "sm:hidden")} />
+            <ArrowRight
+              aria-hidden="true"
+              className={cn("shrink-0", sideLayout === "label" && "sm:hidden")}
+            />
           </Button>
         </li>
       </ul>
@@ -165,37 +150,49 @@ function PaginationButton({
   isActive,
   onPageChange,
   paginationVariant,
+  isDisabled,
 }: {
   page: number;
   isActive: boolean;
   onPageChange?: (page: number) => void;
   paginationVariant: PropsType["variant"];
+  isDisabled: boolean;
 }) {
   return (
-    <button
-      aria-label={`Go to page ${page}`}
+    <Button
+      variant="primary"
+      appearance="ghost"
+      size="lg"
+      type="button"
+      isDisabled={isDisabled}
+      aria-label={`Đến trang ${page}`}
       aria-current={isActive ? "page" : undefined}
+      onPress={() => onPageChange?.(page)}
       className={cn(
         "size-10 shrink-0 rounded-lg hover:bg-background-gray-secondary_alt aria-[current=page]:bg-background-gray-secondary_alt",
         paginationVariant === "compact" &&
           "rounded-none border-y border-button-outline-border bg-button-outline-background",
       )}
-      onClick={() => onPageChange?.(page)}
     >
       {page}
-    </button>
+    </Button>
   );
 }
 
-function PaginationEllipsis({ paginationVariant }: { paginationVariant: PropsType["variant"] }) {
+function PaginationEllipsis({
+  paginationVariant,
+}: {
+  paginationVariant: PropsType["variant"];
+}) {
   return (
-    <button
-      className={cn("pointer-events-none size-10 shrink-0", {
+    <span
+      aria-hidden="true"
+      className={cn("flex size-10 shrink-0 items-center justify-center", {
         "border-y border-button-outline-border bg-button-outline-background":
           paginationVariant === "compact",
       })}
     >
-      ...
-    </button>
+      …
+    </span>
   );
 }
