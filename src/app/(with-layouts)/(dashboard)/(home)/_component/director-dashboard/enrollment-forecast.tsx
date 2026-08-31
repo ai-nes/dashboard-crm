@@ -6,9 +6,18 @@ import { ArrowUpward } from "@tailgrids/icons";
 import { Area, CartesianGrid, ComposedChart, Line, Tooltip, XAxis, YAxis } from "recharts";
 
 import DirectorChartTooltip from "./chart-tooltip";
-import { enrollmentForecast } from "./data";
+import { initialEnrollmentForecast } from "@/services/api/director-overview/data";
+import type { EnrollmentForecast } from "./types";
 
-export default function EnrollmentForecast() {
+interface EnrollmentForecastProps {
+  forecast?: EnrollmentForecast;
+}
+
+export default function EnrollmentForecastCard({ forecast = initialEnrollmentForecast }: EnrollmentForecastProps) {
+  const data = forecast ?? initialEnrollmentForecast;
+  const summary = data.summary;
+  const points = data.points;
+
   return (
     <Card className="flex h-full min-w-0 flex-col overflow-hidden bg-card-background">
       <CardHeader className="mb-4 items-start">
@@ -20,19 +29,19 @@ export default function EnrollmentForecast() {
         </div>
         <span className="flex items-center gap-1.5 rounded-full bg-badge-success-background px-2.5 py-1 text-xs font-semibold text-badge-success-text">
           <ArrowUpward size={13} aria-hidden="true" />
-          Tin cậy 72%
+          Tin cậy {summary.confidence}%
         </span>
       </CardHeader>
 
       <div className="mb-4 grid grid-cols-3 gap-3 border-b border-card-border pb-4">
-        <ForecastSummary label="Hiện tại" value="3.820" tone="text-text-primary" />
-        <ForecastSummary label="Dự báo" value="4.680" tone="text-brand-500" />
-        <ForecastSummary label="Chỉ tiêu" value="5.000" tone="text-text-primary" />
+        <ForecastSummary label="Hiện tại" value={summary.actual.toLocaleString("vi-VN")} tone="text-text-primary" />
+        <ForecastSummary label="Dự báo" value={summary.forecast.toLocaleString("vi-VN")} tone="text-brand-500" />
+        <ForecastSummary label="Chỉ tiêu" value={summary.target.toLocaleString("vi-VN")} tone="text-text-primary" />
       </div>
 
       <div className="min-h-72 w-full flex-1" aria-label="Biểu đồ dự báo nhập học theo niên khóa">
         <ChartContainer className="h-full w-full" height="100%" width="100%" minWidth={0} minHeight={0}>
-          <ComposedChart data={enrollmentForecast} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
+          <ComposedChart data={points} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
             <defs>
               <linearGradient id="director-forecast-fill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="var(--brand-500)" stopOpacity={0.2} />

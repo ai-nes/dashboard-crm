@@ -12,8 +12,79 @@ import type {
 export type * from "./types";
 export * from "./data";
 
+export class DirectorDemographicsApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "DirectorDemographicsApiError";
+  }
+}
+
+function frappeCookieHeader(cookieHeader: string): string {
+  return cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => part.split("=", 1)[0] === "sid")
+    .join("; ");
+}
+
+function hasDemographicsOverviewEnvelope(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const root = value as Record<string, unknown>;
+  const payload =
+    "message" in root && root.message && typeof root.message === "object"
+      ? (root.message as Record<string, unknown>)
+      : root;
+  const data = payload.data as Record<string, unknown> | undefined;
+  const meta = payload.meta as Record<string, unknown> | undefined;
+
+  return (
+    !!data &&
+    typeof data === "object" &&
+    Array.isArray(data.kpis) &&
+    typeof data.demand === "object" &&
+    typeof data.audienceComposition === "object" &&
+    Array.isArray(data.segments) &&
+    Array.isArray(data.regionOpportunities) &&
+    typeof data.regionalDemand === "object" &&
+    Array.isArray(data.dataCoverage) &&
+    !!meta &&
+    typeof meta === "object" &&
+    typeof meta.admissionYear === "number"
+  );
+}
+
+function hasDemographicsSegmentEnvelope(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const root = value as Record<string, unknown>;
+  const payload =
+    "message" in root && root.message && typeof root.message === "object"
+      ? (root.message as Record<string, unknown>)
+      : root;
+  const data = payload.data as Record<string, unknown> | undefined;
+  const meta = payload.meta as Record<string, unknown> | undefined;
+
+  return (
+    !!data &&
+    typeof data === "object" &&
+    typeof data.segment === "object" &&
+    data.segment !== null &&
+    typeof (data.segment as Record<string, unknown>).id === "string" &&
+    typeof data.benchmark === "object" &&
+    typeof data.nextAction === "object" &&
+    Array.isArray(data.guardrails) &&
+    !!meta &&
+    typeof meta === "object" &&
+    typeof meta.admissionYear === "number"
+  );
+}
+
 export async function getDirectorDemographicsOverview(
   params?: DirectorDemographicsOverviewParams,
+  options: { baseUrl?: string } = {},
 ): Promise<DirectorDemographicsOverviewResponse> {
   const searchParams = new URLSearchParams();
   if (params?.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
@@ -21,7 +92,7 @@ export async function getDirectorDemographicsOverview(
   if (params?.scope) searchParams.set("scope", params.scope);
 
   const queryStr = searchParams.toString();
-  const frappeBase = (process.env.NEXT_PUBLIC_FRAPPE_URL || "").replace(/\/+$/, "");
+  const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
 
   if (!frappeBase) {
     return computeDirectorDemographicsOverview(params);
@@ -35,67 +106,71 @@ export async function getDirectorDemographicsOverview(
     Accept: "application/json",
   };
 
-  if (typeof window === "undefined") {
+  if (!options.baseUrl && typeof window === "undefined") {
     try {
       const { cookies } = await import("next/headers");
-      const cookieStore = await cookies();
-      const cookieHeader = cookieStore.toString();
+      const cookieHeader = frappeCookieHeader((await cookies()).toString());
       if (cookieHeader) {
-        headers["Cookie"] = cookieHeader;
+        headers.Cookie = cookieHeader;
       }
     } catch {
-      // Ignored outside request context
+      // Ignored outside request context (e.g., tests)
     }
   }
 
-  try {
-    const response = await fetch(url, {
-      headers,
-      ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
-      cache: "no-store",
-    });
+  const response = await fetch(url, {
+    headers,
+    ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+    cache: "no-store",
+  });
 
-    if (response.ok) {
-      const json = await response.json();
-      return (json.message || json) as DirectorDemographicsOverviewResponse;
-    }
+  const payload = await response.json().catch(() => ({}));
 
-    const errorJson = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = payload?.error ?? {};
+    const errorCode =
+      typeof error.code === "string"
+        ? error.code
+        : typeof payload?.exception === "string"
+          ? payload.exception
+          : "DEMOGRAPHICS_DATA_UNAVAILABLE";
     const errorMessage =
-      errorJson?.exception ||
-      errorJson?._server_messages ||
-      errorJson?.message ||
-      errorJson?.error?.message ||
-      `Lỗi HTTP ${response.status}: ${response.statusText}`;
-    throw new Error(errorMessage);
-  } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("Lỗi fetch getDirectorDemographicsOverview, fallback sang mock data:", error);
-      return computeDirectorDemographicsOverview(params);
-    }
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Không thể kết nối đến máy chủ Frappe CRM.");
+      typeof error.message === "string"
+        ? error.message
+        : typeof payload?.message === "string"
+          ? payload.message
+          : typeof payload?.exception === "string"
+            ? payload.exception
+            : `Lỗi HTTP ${response.status}: ${response.statusText}`;
+
+    throw new DirectorDemographicsApiError(response.status, errorCode, errorMessage);
   }
+
+  if (!hasDemographicsOverviewEnvelope(payload)) {
+    throw new DirectorDemographicsApiError(
+      502,
+      "INVALID_DEMOGRAPHICS_RESPONSE",
+      "Phản hồi dữ liệu phân tích người học không hợp lệ.",
+    );
+  }
+
+  return (payload.message || payload) as DirectorDemographicsOverviewResponse;
 }
 
 export async function getDirectorDemographicsSegment(
   params: DirectorDemographicsSegmentParams,
-): Promise<DirectorDemographicsSegmentResponse> {
+  options: { baseUrl?: string } = {},
+): Promise<DirectorDemographicsSegmentResponse | null> {
   const searchParams = new URLSearchParams();
   searchParams.set("segment_id", params.segment_id);
   if (params.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
 
   const queryStr = searchParams.toString();
-  const frappeBase = (process.env.NEXT_PUBLIC_FRAPPE_URL || "").replace(/\/+$/, "");
+  const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
 
   if (!frappeBase) {
     const mockResult = computeDirectorDemographicsSegment(params);
-    if (!mockResult) {
-      throw new Error("Không tìm thấy phân khúc hoặc phân khúc không đủ dữ liệu để hiển thị.");
-    }
-    return mockResult;
+    return mockResult ?? null;
   }
 
   const url = `${frappeBase}/api/method/crm.api.director_demographics.get_director_demographics_segment${
@@ -106,49 +181,58 @@ export async function getDirectorDemographicsSegment(
     Accept: "application/json",
   };
 
-  if (typeof window === "undefined") {
+  if (!options.baseUrl && typeof window === "undefined") {
     try {
       const { cookies } = await import("next/headers");
-      const cookieStore = await cookies();
-      const cookieHeader = cookieStore.toString();
+      const cookieHeader = frappeCookieHeader((await cookies()).toString());
       if (cookieHeader) {
-        headers["Cookie"] = cookieHeader;
+        headers.Cookie = cookieHeader;
       }
     } catch {
       // Ignored outside request context
     }
   }
 
-  try {
-    const response = await fetch(url, {
-      headers,
-      ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
-      cache: "no-store",
-    });
+  const response = await fetch(url, {
+    headers,
+    ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+    cache: "no-store",
+  });
 
-    if (response.ok) {
-      const json = await response.json();
-      return (json.message || json) as DirectorDemographicsSegmentResponse;
-    }
+  const payload = await response.json().catch(() => ({}));
+  const error = payload?.error ?? {};
 
-    const errorJson = await response.json().catch(() => null);
-    const errorMessage =
-      errorJson?.exception ||
-      errorJson?._server_messages ||
-      errorJson?.message ||
-      errorJson?.error?.message ||
-      `Lỗi HTTP ${response.status}: ${response.statusText}`;
-    throw new Error(errorMessage);
-  } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("Lỗi fetch getDirectorDemographicsSegment, fallback sang mock data:", error);
-      const mockResult = computeDirectorDemographicsSegment(params);
-      if (mockResult) return mockResult;
-    }
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Không thể kết nối đến máy chủ Frappe CRM.");
+  if (response.status === 404 && (error.code === "SEGMENT_NOT_FOUND" || !error.code)) {
+    return null;
   }
+
+  if (!response.ok) {
+    const errorCode =
+      typeof error.code === "string"
+        ? error.code
+        : typeof payload?.exception === "string"
+          ? payload.exception
+          : "SEGMENT_DATA_UNAVAILABLE";
+    const errorMessage =
+      typeof error.message === "string"
+        ? error.message
+        : typeof payload?.message === "string"
+          ? payload.message
+          : typeof payload?.exception === "string"
+            ? payload.exception
+            : `Lỗi HTTP ${response.status}: ${response.statusText}`;
+
+    throw new DirectorDemographicsApiError(response.status, errorCode, errorMessage);
+  }
+
+  if (!hasDemographicsSegmentEnvelope(payload)) {
+    throw new DirectorDemographicsApiError(
+      502,
+      "INVALID_SEGMENT_RESPONSE",
+      "Phản hồi dữ liệu phân khúc người học không hợp lệ.",
+    );
+  }
+
+  return (payload.message || payload) as DirectorDemographicsSegmentResponse;
 }
 

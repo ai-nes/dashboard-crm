@@ -40,7 +40,9 @@ export default function SchoolPotentialBreakdown({ data }: SchoolPotentialBreakd
     { label: "Tiềm năng tuyển sinh", current: data.potentialScore, target: POTENTIAL_THRESHOLD, color: "var(--primary-500)" },
     { label: "Quan hệ với trường", current: data.relationship.score, target: RELATIONSHIP_THRESHOLD, color: "var(--success-500)" },
   ];
-  const availableShare = Math.round((data.availableStudents / data.grade12Students) * 100);
+  const availableShare = data.grade12Students > 0
+    ? Math.round((data.availableStudents / data.grade12Students) * 100)
+    : null;
 
   return (
     <Card className="flex h-full min-w-0 flex-col overflow-hidden p-0">
@@ -90,8 +92,8 @@ export default function SchoolPotentialBreakdown({ data }: SchoolPotentialBreakd
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-4 border-t border-card-border pt-4">
-          <SummaryItem label="HS phù hợp để tư vấn" value={data.availableStudents.toLocaleString("vi-VN") + " HS"} />
-          <SummaryItem label="Tỷ lệ trong khối 12" value={availableShare + "%"} tone="text-success-500" />
+          <SummaryItem label="HS phù hợp để tư vấn" value={data.availableStudents ? data.availableStudents.toLocaleString("vi-VN") + " HS" : "-"} />
+          <SummaryItem label="Tỷ lệ trong khối 12" value={availableShare === null ? "-" : availableShare + "%"} tone="text-success-500" />
         </div>
       </div>
     </Card>

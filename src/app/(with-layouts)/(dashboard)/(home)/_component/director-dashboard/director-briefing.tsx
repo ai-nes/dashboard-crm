@@ -4,13 +4,18 @@ import { ArrowRight, InfoTriangle } from "@tailgrids/icons";
 import Link from "next/link";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { initialDirectorBriefing } from "@/services/api/director-overview/data";
+import type { DirectorBriefing as DirectorBriefingType } from "./types";
 
-import { aiInsights, executiveActions } from "./data";
+interface DirectorBriefingProps {
+  briefing?: DirectorBriefingType;
+}
 
-const insight = aiInsights[0];
-const priorityAction = executiveActions.find((action) => action.id === "school-event") ?? executiveActions[0];
+export default function DirectorBriefing({ briefing = initialDirectorBriefing }: DirectorBriefingProps) {
+  const data = briefing ?? initialDirectorBriefing;
+  const alert = data.alert;
+  const priorityAction = data.priorityAction;
 
-export default function DirectorBriefing() {
   return (
     <Card className="flex h-full min-w-0 flex-col bg-background-gray-primary">
       <CardHeader className="mb-4 items-start">
@@ -22,7 +27,7 @@ export default function DirectorBriefing() {
       </CardHeader>
 
       <Link
-        href={insight.href}
+        href={alert.href}
         className="group block rounded-xl border border-badge-error-text/30 bg-badge-error-background/60 p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
       >
         <div className="flex items-start justify-between gap-3">
@@ -32,11 +37,11 @@ export default function DirectorBriefing() {
             </span>
             Cảnh báo chính
           </span>
-          <span className="text-lg font-semibold text-error-500">{insight.metric}</span>
+          <span className="text-lg font-semibold text-error-500">{alert.metric}</span>
         </div>
-        <p className="mt-3 text-sm font-semibold leading-5 text-text-primary">{insight.title}</p>
-        <p className="mt-1 text-xs leading-5 text-text-secondary">{insight.description}</p>
-        <p className="mt-3 border-t border-badge-error-text/30 pt-3 text-xs leading-5 text-text-secondary">{insight.evidence}</p>
+        <p className="mt-3 text-sm font-semibold leading-5 text-text-primary">{alert.title}</p>
+        <p className="mt-1 text-xs leading-5 text-text-secondary">{alert.description}</p>
+        <p className="mt-3 border-t border-badge-error-text/30 pt-3 text-xs leading-5 text-text-secondary">{alert.evidence}</p>
         <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-500">
           Xem chi tiết
           <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />

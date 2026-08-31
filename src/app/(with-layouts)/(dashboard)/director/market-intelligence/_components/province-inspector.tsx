@@ -69,7 +69,7 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
           <MetricTile label="HS lớp 12" value={formatNullable(province.grade12Population, true)} hint="Dung lượng" />
           <MetricTile label="Leads" value={formatNullable(province.leads, true)} hint={`CR ${formatPercent(province.conversion)}`} />
           <MetricTile label="Đã tiếp cận" value={formatPercent(province.penetrationRate)} hint="Penetration" />
-          <MetricTile label="Doanh thu" value={formatMetricValue(province, "revenue")} hint={province.trend === null ? "Chưa có dữ liệu" : `${province.trend}% YoY`} />
+          <MetricTile label="Doanh thu" value={formatMetricValue(province, "revenue")} hint={province.trend === null ? "-" : `${province.trend}% YoY`} />
         </section>
 
         <section aria-labelledby="school-list-title" className="mt-5">
@@ -100,7 +100,7 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
                       <span className="truncate text-xs font-semibold text-text-primary" title={school.name}>{school.name}</span>
                       <Badge color={status.color} className="shrink-0 text-[10px]">{status.label}</Badge>
                     </span>
-                    <span className="mt-1 block truncate text-[11px] text-text-tertiary">{school.district ?? "Chưa có địa bàn"} · {formatPercent(school.penetrationRate)} tiếp cận</span>
+                    <span className="mt-1 block truncate text-[11px] text-text-tertiary">{school.district ?? "-"} · {formatPercent(school.penetrationRate)} tiếp cận</span>
                   </span>
                   <span className="shrink-0 text-right"><span className="block text-sm font-semibold text-text-primary">{formatNullable(school.potentialScore)}</span><span className="text-[10px] text-text-tertiary">Potential</span></span>
                 </button>
@@ -116,7 +116,7 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
             <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-badge-primary-background text-primary-500" aria-hidden="true"><Sparkle size={15} /></span>
             <div className="min-w-0">
               <h3 id="province-recommendation-title" className="text-xs font-semibold text-text-primary">Cơ hội khu vực</h3>
-              <p className="mt-1 text-xs leading-5 text-text-secondary">{province.recommendation ?? "Chưa có dữ liệu"}</p>
+              <p className="mt-1 text-xs leading-5 text-text-secondary">{province.recommendation ?? "-"}</p>
               {province.keyAction && <p className="mt-2 flex items-start gap-1.5 text-xs font-medium text-primary-500"><ArrowRight size={13} className="mt-0.5 shrink-0" />{province.keyAction}</p>}
             </div>
           </div>
@@ -128,12 +128,12 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
 }
 
 function formatNullable(value: number | null, grouped = false) {
-  if (value === null) return "Chưa có dữ liệu";
+  if (value === null) return "-";
   return grouped ? value.toLocaleString("vi-VN") : String(value);
 }
 
 function formatPercent(value: number | null) {
-  return value === null ? "Chưa có dữ liệu" : `${value}%`;
+  return value === null ? "-" : `${value}%`;
 }
 
 function MetricTile({ hint, label, value }: { hint: string; label: string; value: string }) {

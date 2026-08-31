@@ -275,12 +275,12 @@ export const executiveActions: ExecutiveAction[] = [
 export const attentionItems: AttentionItem[] = [
   {
     id: "sla-breached",
-    label: "SLA đã vi phạm",
+    label: "Hồ sơ đã quá hạn",
     description: "Cần trưởng nhóm xử lý và ghi nhận lý do",
     count: "24 hồ sơ",
     priority: "high",
     tone: "danger",
-    href: "/director/sla",
+    href: "/director/ai/next-best-action",
   },
   {
     id: "unassigned",

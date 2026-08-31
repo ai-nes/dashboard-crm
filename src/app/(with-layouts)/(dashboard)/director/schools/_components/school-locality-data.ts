@@ -120,11 +120,11 @@ function getLocalityPlan(distanceKm: number, travelTime: string) {
   };
 }
 
-export function getSchoolLocalityContext(school: SchoolDirectoryRecord): SchoolLocalityContext {
+export function getSchoolLocalityContext(school: SchoolDirectoryRecord, coordinates?: LocalityCoordinate): SchoolLocalityContext {
   const isLongAn = school.provinceCode === "49" || normalize(school.province).includes("long an");
   const normalizedDistrict = normalize(`${school.district} ${school.address}`);
   const matchedLocation = isLongAn ? LONG_AN_LOCATIONS.find((location) => location.keywords.some((keyword) => normalizedDistrict.includes(normalize(keyword)))) : undefined;
-  const sourceCoordinates = matchedLocation?.coordinates ?? PROVINCE_CENTERS[school.provinceCode] ?? [10.8231, 106.6297];
+  const sourceCoordinates = coordinates ?? matchedLocation?.coordinates ?? PROVINCE_CENTERS[school.provinceCode] ?? [10.8231, 106.6297];
   const sourceLabel = isLongAn ? matchedLocation?.label ?? "Long An" : school.province;
   const distanceKm = Math.max(8, Math.round(haversineDistance(sourceCoordinates, FPTU_HCM_CAMPUS.coordinates) * 1.25));
   const travelTime = getTravelTime(distanceKm);

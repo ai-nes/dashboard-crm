@@ -16,9 +16,9 @@ const signals = [
     id: "sla-recovery",
     icon: InfoTriangle,
     tone: "text-red-500",
-    title: "24 hồ sơ đang quá SLA",
-    description: "Hotline toàn quốc đang có tỷ lệ SLA thấp nhất.",
-    href: "/director/sla",
+    title: "24 hồ sơ đã quá hạn",
+    description: "Cần trưởng nhóm xử lý và ghi nhận lý do.",
+    href: "/director/ai/next-best-action",
   },
   {
     id: "conversion-ready",

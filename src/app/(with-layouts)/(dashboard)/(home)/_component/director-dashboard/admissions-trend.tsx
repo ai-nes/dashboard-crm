@@ -13,11 +13,9 @@ import {
 import { useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 
-import { admissionsTrend } from "./data";
 import DirectorChartTooltip from "./chart-tooltip";
-import type { AdmissionsTrendPoint } from "./types";
-
-type TrendRange = "7d" | "30d" | "year";
+import { initialAdmissionsTrend } from "@/services/api/director-overview/data";
+import type { AdmissionsTrend, TrendRange } from "./types";
 
 const RANGE_LABELS: Record<TrendRange, string> = {
   "7d": "7 ngày qua",
@@ -25,21 +23,26 @@ const RANGE_LABELS: Record<TrendRange, string> = {
   year: "Theo niên khóa",
 };
 
-function sumTrend(data: AdmissionsTrendPoint[], key: keyof Omit<AdmissionsTrendPoint, "label">) {
-  return data.reduce((total, item) => total + item[key], 0);
+interface AdmissionsTrendProps {
+  admissionsTrend?: AdmissionsTrend;
 }
 
-export default function AdmissionsTrend() {
-  const [range, setRange] = useState<TrendRange>("30d");
-  const chartData = admissionsTrend[range];
-  const totals = useMemo(
-    () => ({
-      newLeads: sumTrend(chartData, "newLeads"),
-      applicants: sumTrend(chartData, "applicants"),
-      enrolled: sumTrend(chartData, "enrolled"),
-    }),
-    [chartData],
-  );
+export default function AdmissionsTrendCard({ admissionsTrend = initialAdmissionsTrend }: AdmissionsTrendProps) {
+  const trendData = admissionsTrend ?? initialAdmissionsTrend;
+  const [range, setRange] = useState<TrendRange>(trendData.defaultRange ?? "30d");
+
+  const currentRangeData = trendData.ranges[range] ?? initialAdmissionsTrend.ranges[range];
+  const chartData = currentRangeData.points;
+  const totals = useMemo(() => {
+    if (currentRangeData.totals) {
+      return currentRangeData.totals;
+    }
+    return {
+      newLeads: chartData.reduce((acc, p) => acc + p.newLeads, 0),
+      applicants: chartData.reduce((acc, p) => acc + p.applicants, 0),
+      enrolled: chartData.reduce((acc, p) => acc + p.enrolled, 0),
+    };
+  }, [currentRangeData, chartData]);
 
   return (
     <Card className="flex h-full min-w-0 flex-col overflow-hidden bg-card-background">

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Bookmark1, Download1, RefreshCircle1Clockwise } from "@tailgrids/icons";
+import { ArrowLeft, Bookmark1, Download1 } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -11,8 +11,6 @@ interface SegmentDetailHeaderProps {
   onBack: () => void;
   onExport: () => void;
   onSave: () => void;
-  onRefresh?: () => void;
-  isRefreshing?: boolean;
 }
 
 export default function SegmentDetailHeader({
@@ -20,8 +18,6 @@ export default function SegmentDetailHeader({
   onBack,
   onExport,
   onSave,
-  onRefresh,
-  isRefreshing = false,
 }: SegmentDetailHeaderProps) {
   const growthBadgeText = segment.growth != null ? `+${segment.growth}% so với tháng trước` : "-";
   const isPositiveGrowth = segment.growth != null && segment.growth >= 20;
@@ -50,16 +46,6 @@ export default function SegmentDetailHeader({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {onRefresh && (
-            <Button size="sm" appearance="outline" onPress={onRefresh} isDisabled={isRefreshing}>
-              <RefreshCircle1Clockwise
-                size={16}
-                className={isRefreshing ? "animate-spin" : ""}
-                aria-hidden="true"
-              />
-              {isRefreshing ? "Đang tải..." : "Làm mới"}
-            </Button>
-          )}
           <Button size="sm" appearance="outline" onPress={onExport}>
             <Download1 size={16} aria-hidden="true" />
             Xuất báo cáo

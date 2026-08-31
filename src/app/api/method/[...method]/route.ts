@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { computeDirectorOverview } from "@/services/api/director-overview";
+import type { TrendRange } from "@/services/api/director-overview/types";
 import { computeDirectorStudents, computeStudent360 } from "@/services/api/students";
 import type { DirectorStudentsParams } from "@/services/api/students/types";
 
@@ -18,6 +20,27 @@ function numberParam(request: NextRequest, name: string, fallback: number, max: 
 export async function GET(request: NextRequest, context: RouteContext) {
   const { method = [] } = await context.params;
   const methodName = method.join(".");
+
+  if (methodName === "crm.api.director_dashboard.get_director_overview") {
+    const admissionYear = numberParam(request, "admissionYear", 2026, 3000);
+    const scope = request.nextUrl.searchParams.get("scope") ?? "all";
+    const trendRangeParam = request.nextUrl.searchParams.get("trendRange");
+    const trendRange: TrendRange =
+      trendRangeParam === "7d" || trendRangeParam === "30d" || trendRangeParam === "year"
+        ? trendRangeParam
+        : "30d";
+
+    const result = computeDirectorOverview({
+      admissionYear,
+      scope,
+      trendRange,
+    });
+
+    return json({
+      message: result,
+      ...result,
+    });
+  }
 
   if (methodName === "crm.api.director_students.get_director_students") {
     const admissionYear = numberParam(request, "admissionYear", 2026, 3000);

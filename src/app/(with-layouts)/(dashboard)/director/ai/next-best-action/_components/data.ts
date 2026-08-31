@@ -1,4 +1,9 @@
-import type { RecommendedAction } from "./types";
+import type { ActionOutcome, RecommendedAction } from "./types";
+
+export const actionSlaSummary = {
+  onTimeRate: "86,2%",
+  detail: "Mốc phản hồi 8 giờ làm việc",
+};
 
 export const recommendedActions: RecommendedAction[] = [
   {
@@ -7,10 +12,13 @@ export const recommendedActions: RecommendedAction[] = [
     initials: "MA",
     school: "THPT Chu Văn An",
     interest: "Kinh doanh quốc tế",
-    recommendation: "Tư vấn học bổng phù hợp",
+    recommendation: "Tư vấn học bổng 20%",
     summary: "Đủ điều kiện học bổng 20% nhưng chưa nhận thông tin chi tiết.",
     dueLabel: "Xử lý hôm nay",
     status: "today",
+    priority: "high",
+    impact: "Tăng khả năng nhập học từ 82% lên 89%",
+    confidence: 76,
     suggestedAssignee: "Trần Minh Anh",
     evidence: [
       "Đạt học lực Giỏi 3 năm và IELTS 6.5.",
@@ -33,10 +41,13 @@ export const recommendedActions: RecommendedAction[] = [
     initials: "DM",
     school: "THPT Kim Liên",
     interest: "Kỹ thuật phần mềm",
-    recommendation: "Nhắc hoàn thiện hồ sơ",
+    recommendation: "Nhắc bổ sung chứng nhận tiếng Anh",
     summary: "Hồ sơ đang thiếu chứng nhận tiếng Anh trước hạn xét tuyển sớm.",
     dueLabel: "Trong 1 ngày",
     status: "soon",
+    priority: "high",
+    impact: "Giữ cơ hội hoàn tất hồ sơ đúng hạn",
+    confidence: 81,
     suggestedAssignee: "Lê Quang Huy",
     evidence: ["Đã hoàn thành 4/5 bước hồ sơ.", "Hạn xét tuyển sớm còn 5 ngày."],
     talkingPoints: ["Kiểm tra khả năng bổ sung chứng nhận trong hôm nay.", "Gửi lại checklist hồ sơ còn thiếu."],
@@ -48,10 +59,13 @@ export const recommendedActions: RecommendedAction[] = [
     initials: "PN",
     school: "THPT Việt Đức",
     interest: "Truyền thông đa phương tiện",
-    recommendation: "Mời tham gia campus tour",
+    recommendation: "Mời tham quan cơ sở",
     summary: "Đã quan tâm sự kiện nhưng chưa đăng ký lịch tham quan gần nhất.",
     dueLabel: "Trong 2 ngày",
     status: "soon",
+    priority: "medium",
+    impact: "Tăng khả năng chuyển sang tư vấn",
+    confidence: 69,
     suggestedAssignee: "Nguyễn Thu Hà",
     evidence: ["Xem lịch campus tour 3 lần.", "Đã lưu ngành Truyền thông đa phương tiện."],
     talkingPoints: ["Hỏi khung giờ phù hợp cuối tuần.", "Chia sẻ trải nghiệm xưởng sáng tạo tại campus."],
@@ -63,13 +77,24 @@ export const recommendedActions: RecommendedAction[] = [
     initials: "VK",
     school: "THPT Trần Phú",
     interest: "Tài chính - Ngân hàng",
-    recommendation: "Theo dõi sau tư vấn",
+    recommendation: "Xác nhận mốc nộp hồ sơ",
     summary: "Đã tư vấn chương trình, cần xác nhận lại mốc nộp hồ sơ.",
     dueLabel: "Quá hạn 1 ngày",
     status: "overdue",
+    priority: "high",
+    impact: "Giảm nguy cơ hồ sơ bị bỏ quên",
+    confidence: 72,
     suggestedAssignee: "Trần Minh Anh",
     evidence: ["Cuộc gọi tư vấn đã diễn ra 4 ngày trước.", "Chưa có điểm chạm mới sau tư vấn."],
     talkingPoints: ["Hỏi lại các câu hỏi còn mở sau tư vấn.", "Thống nhất mốc nộp hồ sơ phù hợp."],
     recentActivity: [{ label: "Cuộc gọi tư vấn chương trình", time: "4 ngày trước" }],
   },
+];
+
+export const actionOutcomes: ActionOutcome[] = [
+  { label: "Gọi phụ huynh", submitted: 142, accepted: 128, executed: 121, progressed: 74, transitionRate: 61.2 },
+  { label: "Tư vấn học bổng", submitted: 96, accepted: 91, executed: 88, progressed: 52, transitionRate: 59.1 },
+  { label: "Chuyển người phụ trách", submitted: 64, accepted: 41, executed: 41, progressed: 18, transitionRate: 43.9 },
+  { label: "Mời tham quan cơ sở", submitted: 210, accepted: 186, executed: 174, progressed: 68, transitionRate: 39.1 },
+  { label: "Gửi lại thông tin học phí", submitted: 88, accepted: 52, executed: 52, progressed: 16, transitionRate: 30.8 },
 ];

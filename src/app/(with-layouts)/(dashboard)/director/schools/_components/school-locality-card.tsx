@@ -2,18 +2,24 @@ import { InfoTriangle } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import type { SchoolIntelligenceData } from "@/services/api/schools/types";
+import type { SchoolDirectoryRecord, SchoolIntelligenceData } from "@/services/api/schools/types";
 
 import SchoolLocalityMap from "./school-locality-map-loader";
-import { getSchoolLocalityContext } from "./school-locality-data";
+import { getSchoolLocalityContext, type LocalityCoordinate } from "./school-locality-data";
 
 interface SchoolLocalityCardProps {
-  data: SchoolIntelligenceData;
+  school: SchoolDirectoryRecord;
+  coordinates?: LocalityCoordinate;
+  geography?: SchoolIntelligenceData["geography"];
+  demographics?: SchoolIntelligenceData["demographics"];
 }
 
-export default function SchoolLocalityCard({ data }: SchoolLocalityCardProps) {
-  const { school, geography, demographics } = data;
-  const context = getSchoolLocalityContext(school);
+export default function SchoolLocalityCard({ coordinates, demographics, geography, school }: SchoolLocalityCardProps) {
+  const context = getSchoolLocalityContext(school, coordinates);
+  const clusterLabel = geography ? getClusterLabel(geography.cluster) : "-";
+  const relativeIncome = demographics?.relativeIncome ?? "-";
+  const tuitionAffordability = demographics ? getAffordabilityLabel(demographics.tuitionAffordability) : "-";
+  const parentInvolvement = demographics?.parentInvolvement ?? "-";
 
   return (
     <Card className="min-w-0 overflow-hidden p-0">
@@ -54,7 +60,7 @@ export default function SchoolLocalityCard({ data }: SchoolLocalityCardProps) {
           <div className="mt-5 grid grid-cols-3 divide-x divide-card-border rounded-xl bg-background-soft-50 py-3 text-center">
             <RouteMetric label="Khoảng cách" value={`~${context.distanceKm} km`} />
             <RouteMetric label="Thời gian" value={context.travelTime} />
-            <RouteMetric label="Khu vực" value="Đông Nam Bộ" />
+            <RouteMetric label="Khu vực" value={clusterLabel} />
           </div>
 
           <div className="mt-5 rounded-xl border border-warning-200 bg-badge-warning-background p-4">
@@ -90,10 +96,10 @@ export default function SchoolLocalityCard({ data }: SchoolLocalityCardProps) {
           </div>
 
           <dl className="mt-5 grid gap-x-5 gap-y-3 border-t border-card-border pt-4 sm:grid-cols-2">
-            <DemographicItem label="Khu vực tuyển sinh" value={getClusterLabel(geography.cluster)} />
-            <DemographicItem label="Mức sống khu vực" value={demographics.relativeIncome} />
-            <DemographicItem label="Khả năng đóng học phí" value={getAffordabilityLabel(demographics.tuitionAffordability)} />
-            <DemographicItem label="Phụ huynh đồng hành" value={demographics.parentInvolvement} />
+            <DemographicItem label="Khu vực tuyển sinh" value={clusterLabel} />
+            <DemographicItem label="Mức sống khu vực" value={relativeIncome} />
+            <DemographicItem label="Khả năng đóng học phí" value={tuitionAffordability} />
+            <DemographicItem label="Phụ huynh đồng hành" value={parentInvolvement} />
           </dl>
         </aside>
       </div>

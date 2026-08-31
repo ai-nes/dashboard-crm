@@ -12,8 +12,7 @@ import { demographicSegments as defaultSegments } from "@/services/api/demograph
 import type { DemographicSegment } from "@/services/api/demographics/types";
 import OverviewTooltip from "./overview-tooltip";
 
-function priorityColor(score: number, isSelected: boolean) {
-  if (isSelected) return "var(--brand-500)";
+function priorityColor(score: number) {
   if (score >= 85) return "var(--success-500)";
   if (score >= 70) return "var(--info-500)";
   return "var(--warning-500)";
@@ -73,7 +72,7 @@ export default function SegmentLandscapeChart({
                   {rankedSegments.map((segment) => (
                     <Cell
                       key={segment.id}
-                      fill={priorityColor(segment.opportunityScore, segment.id === selectedId)}
+                      fill={priorityColor(segment.opportunityScore)}
                       stroke={segment.id === selectedId ? "var(--text-primary)" : "transparent"}
                       strokeWidth={segment.id === selectedId ? 2 : 0}
                     />

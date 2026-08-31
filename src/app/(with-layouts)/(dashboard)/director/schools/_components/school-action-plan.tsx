@@ -25,12 +25,13 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
   const { classification, relationship, geography } = data;
   const locality = getSchoolLocalityContext(data.school);
   const tone = groupTone[classification.group];
-  const hasContact = relationship.contact !== "Chưa có đầu mối chính";
+  const hasContact = Boolean(relationship.contact && !["-", "Chưa có đầu mối chính"].includes(relationship.contact));
+  const availableStudents = data.availableStudents > 0 ? `${data.availableStudents.toLocaleString("vi-VN")} HS` : "-";
 
   const steps = hasContact
     ? [
         { title: "Chốt lịch làm việc", detail: relationship.nextTouch },
-        { title: "Tổ chức hoạt động", detail: `${data.availableStudents.toLocaleString("vi-VN")} HS có thể tiếp cận` },
+        { title: "Tổ chức hoạt động", detail: `${availableStudents} có thể tiếp cận` },
         { title: "Theo dõi hồ sơ", detail: "Kiểm tra số hồ sơ mới" },
       ]
     : [
@@ -55,7 +56,7 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
         <div className="rounded-2xl border border-primary-200 bg-badge-primary-background p-4">
           <p className="text-xs font-medium text-text-tertiary">Việc cần làm ngay</p>
           <p className="mt-2 text-xl font-semibold leading-7 text-text-primary">{tone.title}</p>
-          <p className="mt-2 text-sm leading-5 text-text-secondary">{tone.detail} <strong className="font-semibold text-text-primary">{data.availableStudents.toLocaleString("vi-VN")} HS có thể tiếp cận</strong> · {locality.distanceKm} km · {locality.travelTime}.</p>
+          <p className="mt-2 text-sm leading-5 text-text-secondary">{tone.detail} <strong className="font-semibold text-text-primary">{availableStudents} có thể tiếp cận</strong> · {locality.distanceKm} km · {locality.travelTime}.</p>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-3">

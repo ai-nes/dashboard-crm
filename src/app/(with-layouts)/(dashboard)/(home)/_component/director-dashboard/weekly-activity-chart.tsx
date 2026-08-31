@@ -6,9 +6,20 @@ import { ArrowUpward } from "@tailgrids/icons";
 import { Bar, CartesianGrid, ComposedChart, Line, Tooltip, XAxis, YAxis } from "recharts";
 
 import DirectorChartTooltip from "./chart-tooltip";
-import { weeklyActivity } from "./data";
+import { initialWeeklyActivity } from "@/services/api/director-overview/data";
+import type { WeeklyActivity } from "./types";
 
-export default function WeeklyActivityChart() {
+interface WeeklyActivityChartProps {
+  weeklyActivity?: WeeklyActivity;
+}
+
+export default function WeeklyActivityChart({ weeklyActivity = initialWeeklyActivity }: WeeklyActivityChartProps) {
+  const data = weeklyActivity ?? initialWeeklyActivity;
+  const points = data.points ?? [];
+  const totalInteractions = Number.isFinite(data.totalInteractions) ? data.totalInteractions : 0;
+  const averageSla = Number.isFinite(data.averageSla) ? data.averageSla : 0;
+  const changePercent = Number.isFinite(data.changePercent) ? data.changePercent : 0;
+
   return (
     <Card className="min-w-0 bg-background-gray-primary">
       <CardHeader className="mb-4 items-start">
@@ -18,7 +29,7 @@ export default function WeeklyActivityChart() {
         </div>
         <span className="flex items-center gap-1 rounded-full bg-badge-success-background px-2.5 py-1 text-xs font-semibold text-badge-success-text">
           <ArrowUpward size={13} aria-hidden="true" />
-          12.6%
+          {changePercent}%
         </span>
       </CardHeader>
 
@@ -26,18 +37,18 @@ export default function WeeklyActivityChart() {
         <span className="flex items-center gap-2 text-text-secondary">
           <span className="size-2 rounded-full bg-brand-500" aria-hidden="true" />
           Tương tác tư vấn
-          <strong className="text-text-primary">5,240</strong>
+          <strong className="text-text-primary">{totalInteractions.toLocaleString("vi-VN")}</strong>
         </span>
         <span className="flex items-center gap-2 text-text-secondary">
           <span className="size-2 rounded-full bg-success-500" aria-hidden="true" />
           SLA trung bình
-          <strong className="text-text-primary">94.1%</strong>
+          <strong className="text-text-primary">{averageSla.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%</strong>
         </span>
       </div>
 
       <div className="h-72 w-full" aria-label="Biểu đồ nhịp vận hành tư vấn">
         <ChartContainer className="h-full w-full" height="100%" width="100%" minWidth={0} minHeight={0}>
-          <ComposedChart data={weeklyActivity} margin={{ top: 4, right: -4, left: -18, bottom: 0 }}>
+          <ComposedChart data={points} margin={{ top: 4, right: -4, left: -18, bottom: 0 }}>
             <CartesianGrid stroke="var(--border-color-base-100)" strokeDasharray="4 4" vertical={false} />
             <XAxis
               dataKey="label"

@@ -16,7 +16,7 @@ export default function StudentDecisionScore({ data }: StudentDecisionScoreProps
   const scoreProfile = ["Tương tác", "Gia đình", "Hồ sơ"].map((label) => {
     const readiness = data.readiness.find((item) => item.label === label);
 
-    return { label, value: readiness?.value ?? 0, summary: readiness?.detail ?? "Chưa có dữ liệu" };
+    return { label, value: readiness?.value ?? 0, summary: readiness?.detail ?? "-" };
   });
 
   return (

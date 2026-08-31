@@ -3,7 +3,7 @@
 import { InfoTriangle } from "@tailgrids/icons";
 import { circleMarker, latLngBounds, map as createLeafletMap, polyline, tileLayer, type Map as LeafletMap, type Polyline as LeafletPolyline } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/utils/cn";
 
@@ -41,10 +41,13 @@ export default function SchoolLocalityMap({ context, className }: SchoolLocality
   const destinationLongitude = destination[1];
   const sourceName = context.source.name;
   const routeKey = `${sourceLatitude},${sourceLongitude};${destinationLatitude},${destinationLongitude}`;
-  const fallbackRoute: LocalityCoordinate[] = [
-    [sourceLatitude, sourceLongitude],
-    [destinationLatitude, destinationLongitude],
-  ];
+  const fallbackRoute = useMemo<LocalityCoordinate[]>(
+    () => [
+      [sourceLatitude, sourceLongitude],
+      [destinationLatitude, destinationLongitude],
+    ],
+    [destinationLatitude, destinationLongitude, sourceLatitude, sourceLongitude],
+  );
   const [route, setRoute] = useState<{ key: string; coordinates: LocalityCoordinate[] }>({ key: routeKey, coordinates: fallbackRoute });
 
   useEffect(() => {
@@ -118,7 +121,7 @@ export default function SchoolLocalityMap({ context, className }: SchoolLocality
       mapRef.current = null;
       map.remove();
     };
-  }, [destinationLatitude, destinationLongitude, sourceLatitude, sourceLongitude, sourceName]);
+  }, [destinationLatitude, destinationLongitude, fallbackRoute, sourceLatitude, sourceLongitude, sourceName]);
 
   useEffect(() => {
     if (route.key === routeKey) routeLayerRef.current?.setLatLngs(route.coordinates);
