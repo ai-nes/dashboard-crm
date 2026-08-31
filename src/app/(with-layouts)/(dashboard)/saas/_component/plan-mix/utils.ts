@@ -5,7 +5,7 @@ import type { PlanMixViewModel } from "./types";
 export const PLAN_COLOR_MAP: Record<PlanKey, string> = {
   free: "#3B82F6",
   basic: "#22C55E",
-  pro: "#5750F1",
+  pro: "#F37021",
   enterprise: "#F97316",
 };
 

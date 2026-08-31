@@ -1,19 +1,19 @@
 [data-theme="dark"] {
   /* Primary */
-  --primary-50: #eff3ff;
-  --primary-100: #dae2ff;
-  --primary-200: #becdff;
-  --primary-300: #91aeff;
-  --primary-400: #5e84fc;
-  --primary-500: #3758f9;
-  --primary-600: #2237ee;
-  --primary-700: #1a25db;
-  --primary-800: #1c20b1;
-  --primary-900: #1c228c;
-  --primary-950: #161755;
+  --primary-50: #FFF3EC;
+  --primary-100: #FFE3D0;
+  --primary-200: #FFC4A1;
+  --primary-300: #FD9D67;
+  --primary-400: #F9803A;
+  --primary-500: #F37021;
+  --primary-600: #DE5713;
+  --primary-700: #B8420F;
+  --primary-800: #923614;
+  --primary-900: #762F14;
+  --primary-950: #401506;
 
   --primary-text: white;
-  --neutral-brand-color: #7592ff;
+  --neutral-brand-color: #F9803A;
 
   /* Text Color */
   --title-50: #ffffffcc;
@@ -69,8 +69,8 @@
   /* ======== Button Color For Dark =========*/
 
   /* Button Primary Color */
-  --button-primary-background: #5750f1;
-  --button-primary-hover-background: #3c35d8;
+  --button-primary-background: #F37021;
+  --button-primary-hover-background: #DE5713;
   --button-primary-text: #ffffff;
   --button-primary-focus-ring: rgba(87, 80, 241, 0.2);
 
@@ -129,8 +129,8 @@
 
   /* Button Group Primary */
   --button-group-primary-background: #ffffff00;
-  --button-group-primary-hover-background: #5750f1;
-  --button-group-primary-text: #5750f1;
+  --button-group-primary-hover-background: #F37021;
+  --button-group-primary-text: #F37021;
   --button-group-primary-hover-text: #ffffff;
 
   /* Button Group Secondary */
@@ -145,9 +145,9 @@
   --badge-neutral-icon-color: #e5e7eb;
 
   /* Badge Primary */
-  --badge-primary-background: #3758f926;
-  --badge-primary-text: #5e84fc;
-  --badge-primary-icon-color: #5e84fc;
+  --badge-primary-background: #f3702126;
+  --badge-primary-text: #F9803A;
+  --badge-primary-icon-color: #F9803A;
 
   /* Badge Error */
   --badge-error-background: #ef444426;
@@ -217,14 +217,14 @@
   --sidebar-nav-hover-background: #ffffff00;
   --sidebar-nav-secondary-hover-background: #ffffff0d;
   --sidebar-nav-hover-text: #d1d5db;
-  --sidebar-nav-active-text: #5e84fc;
-  --sidebar-nav-active-background: #3758f91f;
-  --sidebar-nav-focused-background: #3758f91f;
+  --sidebar-nav-active-text: #F9803A;
+  --sidebar-nav-active-background: #f370211f;
+  --sidebar-nav-focused-background: #f370211f;
   --sidebar-nav-default-text: #d1d5db;
   --sidebar-nav-icon: #9ca3af;
 
   /* Sidebar Badge */
-  --sidebar-badge-background: #3758f9;
+  --sidebar-badge-background: #F37021;
   --sidebar-badge-text: #ffffff;
 
   /* Sidebar Footer */
@@ -301,7 +301,7 @@
   --input-disabled-background: rgba(255, 255, 255, 0.03);
   --input-disabled-border: rgba(255, 255, 255, 0.05);
   --input-placeholder-text: #6b7280;
-  --input-primary-focus-border: #5750f1;
+  --input-primary-focus-border: #F37021;
   --input-error-focus-border: #b91c1c;
   --input-success-focus-border: #15803d;
   --input-error: #dc2626;
@@ -310,12 +310,12 @@
   /* ======== Tab Color For Dark =========*/
   --tab-background: rgba(0, 0, 0, 0.5);
   --tab-active-background: #27272a;
-  --tab-secondary-active-background: #7592ff33;
+  --tab-secondary-active-background: #F9803A33;
 
   /* ======== Checkbox Color For Dark =========*/
   --checkbox-background: #ffffff00;
-  --checkbox-checked-border: #5750f1;
-  --checkbox-checked-background: #5750f1;
+  --checkbox-checked-border: #F37021;
+  --checkbox-checked-background: #F37021;
   --checkbox-checked-icon-color: #ffffff;
 
   /* ======== Scrollbar Color For Dark =========*/
@@ -323,7 +323,7 @@
 
   /* ======== Datepicker Color For Dark =========*/
   --datepicker-background: #1f2937;
-  --datepicker-selected-background: #3758f9;
+  --datepicker-selected-background: #F37021;
   --datepicker-selected-hover-background: #ffffff0d;
 
   /* ======== Dropdowns Color For Dark =========*/
@@ -333,8 +333,8 @@
   --dropdown-divider: #353c49;
 
   /* ======== Calendar Color For Dark =========*/
-  --calendar-primary-badge: #3758f9;
-  --calendar-primary-background: #dae2ff;
+  --calendar-primary-badge: #F37021;
+  --calendar-primary-background: #FFE3D0;
   --calendar-success-badge: #22c55e;
   --calendar-success-background: #dcfce7;
   --calendar-warning-badge: #f97316;
@@ -351,21 +351,21 @@
   --pricing-active-switcher-background: #ffffff1a;
   --pricing-active-card-background: #ffffff1a;
   --pricing-button-background: #ffffff1a;
-  --pricing-icon-color: #3758f9;
-  --pricing-icon-background: #465fff1a;
+  --pricing-icon-color: #F37021;
+  --pricing-icon-background: #F370211a;
 
   /* ======== FAQ's Color For Dark =========*/
   --faq-primary-active-background: #ffffff08;
-  --faq-secondary-active-background: #dae2ff;
-  --faq-secondary-active-border: #becdff;
+  --faq-secondary-active-background: #FFE3D0;
+  --faq-secondary-active-border: #FFC4A1;
   --faq-secondary-active-title: #1f2937;
   --faq-secondary-active-text: #4b5563;
 
   /* ======== Chat List Color For Dark =========*/
   --chat-list-background-primary: #ffffff0d;
   --chat-list-background-primary-alt: #ffffff0d;
-  --chat-list-background-secondary: #3758f9;
-  --chat-list-background-secondary-alt: #3758f933;
+  --chat-list-background-secondary: #F37021;
+  --chat-list-background-secondary-alt: #F3702133;
 
   /* ======== Tooltip Color For Dark =========*/
   --tooltip-text: #ffffff;
@@ -394,8 +394,8 @@
   --modal-button-error-background: #ef4444;
 
   /* ======== Section Title Color For Dark =========*/
-  --section-title-badge: #3758f9;
-  --section-title-badge-background: #3758f926;
+  --section-title-badge: #F37021;
+  --section-title-badge-background: #f3702126;
 
   /* ======== Mobile Nav Menu Button Color For Dark =========*/
   --mobile-nav-icon: #d1d5db;
@@ -427,7 +427,7 @@
   --toggle-default-background: #52525b;
   --toggle-disabled-foreground: #ffffff66;
   --toggle-disabled-background: #1f2937;
-  --toggle-active-background: #5750f1;
+  --toggle-active-background: #F37021;
 
   /* ======== Map Color For Dark =========*/
   --map-fill: #6b7280;
@@ -487,12 +487,12 @@
   --background-gray-quaternary: #3f3f46;
 
   /* general color */
-  --brand-100: #e0e7ff;
-  --brand-200: #c7d2fe;
-  --brand-300: #a5b4fc;
-  --brand-400: #818cf8;
-  --brand-500: #5750f1;
-  --brand-600: #3c35d8;
+  --brand-100: #FFE3D0;
+  --brand-200: #FFC4A1;
+  --brand-300: #FD9D67;
+  --brand-400: #F9803A;
+  --brand-500: #F37021;
+  --brand-600: #DE5713;
   --base-white: #ffffff;
   --green-600: #16a34a;
   --red-600: #dc2626;

@@ -13,7 +13,7 @@ import CampaignVisitorsSkeleton from "./skeleton";
 import { mapCampaignVisitorsResponse } from "./utils";
 
 const SERIES = [
-  { key: "social", name: "Social", stroke: "#5750F1", dotClassName: "bg-brand-500" },
+  { key: "social", name: "Social", stroke: "#F37021", dotClassName: "bg-brand-500" },
   { key: "search", name: "Search", stroke: "#0FADCF", dotClassName: "bg-[#0FADCF]" },
   { key: "email", name: "Email", stroke: "#F97316", dotClassName: "bg-[#F97316]" },
   { key: "referral", name: "Referral", stroke: "#D8B4FE", dotClassName: "bg-purple-500" },

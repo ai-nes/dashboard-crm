@@ -102,7 +102,7 @@ export const LogoWithText = (props: IconProps) => {
             <g filter='url(#filter0_i_24777_4782)'>
                 <path
                     d='M13.511 2.546c.94-.94 2.548-.274 2.548 1.056V13.93c0 1.19-.462 2.332-1.288 3.188l-4.884 5.061c-.87.901-2.308.914-3.194.029L2.3 17.813a2.87 2.87 0 010-4.058L13.511 2.546z'
-                    fill='#5750F1'
+                    fill='#F37021'
                 />
             </g>
             <defs>
@@ -149,7 +149,7 @@ export const LogoWithText = (props: IconProps) => {
                     gradientUnits='userSpaceOnUse'
                 >
                     <stop offset={0.512083} stopColor='#322E8B' />
-                    <stop offset={1} stopColor='#5750F1' />
+                    <stop offset={1} stopColor='#F37021' />
                 </linearGradient>
             </defs>
         </svg>
@@ -195,7 +195,7 @@ export const LogoWithTextDark = (props: IconProps) => {
             <g filter='url(#filter0_i_24685_12192)'>
                 <path
                     d='M13.507 2.546c.94-.94 2.548-.274 2.548 1.056V13.93c0 1.19-.462 2.332-1.288 3.188l-4.884 5.061c-.87.901-2.308.914-3.194.029l-4.394-4.395a2.87 2.87 0 010-4.058L13.507 2.546z'
-                    fill='#5750F1'
+                    fill='#F37021'
                 />
             </g>
             <defs>
@@ -242,7 +242,7 @@ export const LogoWithTextDark = (props: IconProps) => {
                     gradientUnits='userSpaceOnUse'
                 >
                     <stop offset={0.512083} stopColor='#322E8B' />
-                    <stop offset={1} stopColor='#5750F1' />
+                    <stop offset={1} stopColor='#F37021' />
                 </linearGradient>
             </defs>
         </svg>

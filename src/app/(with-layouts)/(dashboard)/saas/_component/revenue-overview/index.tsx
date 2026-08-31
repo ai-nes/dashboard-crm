@@ -37,8 +37,8 @@ export default function RevenueOverview({ granularity }: RevenueOverviewProps) {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
               <defs>
                 <linearGradient id="saas-revenue-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#5750F1" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#5750F1" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#F37021" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#F37021" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis
@@ -61,11 +61,11 @@ export default function RevenueOverview({ granularity }: RevenueOverviewProps) {
                 type="monotone"
                 dataKey="revenue"
                 name="Revenue"
-                stroke="#5750F1"
+                stroke="#F37021"
                 strokeWidth={2}
                 fill="url(#saas-revenue-fill)"
                 dot={false}
-                activeDot={{ r: 4, fill: "#5750F1", stroke: "#fff", strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: "#F37021", stroke: "#fff", strokeWidth: 2 }}
               />
               <Area
                 type="monotone"
