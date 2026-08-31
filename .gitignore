@@ -44,3 +44,8 @@ next-env.d.ts
 .codex
 .gemini
 
+# local agent tooling / scratch
+.hs.json
+.mcp.json
+scratchpad-*.diff
+
