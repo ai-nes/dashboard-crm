@@ -1,4 +1,3 @@
-import { Button } from "@/components/tailgrids/core/button";
 import TopChannels from "./_component/top-channels";
 import TopContent from "./_component/top-content";
 import TopCountries from "./_component/top-countries";
@@ -16,10 +15,6 @@ export default function Analytics() {
             Analyze trends, track growth, and make data-driven decisions.
           </p>
         </div>
-
-        <Button variant="primary" size="md" className="px-3.5 text-sm">
-          Export
-        </Button>
       </div>
 
       <div className="space-y-5 px-2 lg:px-5">

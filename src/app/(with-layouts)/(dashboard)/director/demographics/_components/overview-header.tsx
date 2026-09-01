@@ -1,20 +1,16 @@
 "use client";
 
-import { Download1 } from "@tailgrids/icons";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
 import type { DirectorDemographicsOverviewMeta } from "@/services/api/demographics/types";
 
 interface OverviewHeaderProps {
-  onExport: () => void;
   meta?: DirectorDemographicsOverviewMeta;
   filterControl?: ReactNode;
 }
 
 export default function OverviewHeader({
-  onExport,
   meta,
   filterControl,
 }: OverviewHeaderProps) {
@@ -44,10 +40,6 @@ export default function OverviewHeader({
           {scopeLabel}
         </span>
         {filterControl}
-        <Button size="sm" appearance="outline" onPress={onExport}>
-          <Download1 size={16} aria-hidden="true" />
-          Xuất báo cáo
-        </Button>
       </div>
     </header>
   );

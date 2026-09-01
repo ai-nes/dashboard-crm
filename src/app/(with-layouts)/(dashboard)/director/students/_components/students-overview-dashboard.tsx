@@ -1,12 +1,9 @@
 "use client";
 
-import { Download1 } from "@tailgrids/icons";
 import { keepPreviousData } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import { useDirectorStudentsQuery } from "@/hooks/use-students-queries";
@@ -109,16 +106,6 @@ export default function StudentsOverviewDashboard() {
           <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
             Từ toàn cảnh tệp học sinh đến hành động tiếp theo cho từng hồ sơ.
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button
-            size="sm"
-            appearance="outline"
-            onPress={() => toast.success("Đã tạo bản xuất danh sách học sinh.")}
-          >
-            <Download1 size={16} />
-            Xuất danh sách
-          </Button>
         </div>
       </header>
 

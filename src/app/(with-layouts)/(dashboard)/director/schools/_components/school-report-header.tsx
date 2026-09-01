@@ -1,8 +1,4 @@
-import { Calendar, Download1 } from "@tailgrids/icons";
-import { toast } from "sonner";
-
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
 import { Select, SelectContent, SelectIndicator, SelectItem, SelectTrigger, SelectValue } from "@/components/tailgrids/core/select";
 import type { SchoolRegion } from "@/services/api/schools/types";
 
@@ -29,7 +25,6 @@ export default function SchoolReportHeader({ region, onRegionChange }: SchoolRep
             <SelectItem id="Miền Nam" textValue="Miền Nam">Miền Nam</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="primary" size="sm" onPress={() => toast.success("Báo cáo trường THPT đã sẵn sàng để xuất.")}><Download1 size={16} />Xuất báo cáo</Button>
       </div>
     </header>
   );

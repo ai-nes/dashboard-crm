@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, MapMarker5 } from "@tailgrids/icons";
+import { Calendar } from "@tailgrids/icons";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -88,7 +88,6 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
 
         <div className="mt-auto flex flex-wrap gap-2 pt-6">
           <Button onPress={() => toast.success("Đã tạo lịch làm việc cho " + data.school.name + ".")}><Calendar size={16} />Đặt lịch</Button>
-          <Button appearance="outline" onPress={() => toast.message("Đã mở mẫu kế hoạch khai thác theo khu vực.")}><MapMarker5 size={16} />Kế hoạch khu vực</Button>
         </div>
       </div>
     </Card>

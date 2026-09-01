@@ -1,10 +1,8 @@
 "use client";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
 import { Sparkle, TrendUp2 } from "@tailgrids/icons";
 import type { CampaignIntelligenceResponse } from "@/services/api/campaign-intelligence";
-import { toast } from "sonner";
 import { formatCompactCurrency } from "./formatters";
 
 export function RecommendationBanner({ recommendation }: Pick<CampaignIntelligenceResponse, "recommendation">) {
@@ -44,20 +42,7 @@ export function RecommendationBanner({ recommendation }: Pick<CampaignIntelligen
             </p>
           </div>
         </div>
-
-        <div className="flex shrink-0 items-center gap-3">
-          <Button
-            variant="primary"
-            appearance="fill"
-            size="md"
-            onPress={() => toast.success("Đã tạo kịch bản tái phân bổ ngân sách tối ưu.")}
-            className="w-full sm:w-auto"
-          >
-            Tạo kịch bản tối ưu
-          </Button>
-        </div>
       </div>
     </section>
   );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Bookmark1, Download1 } from "@tailgrids/icons";
+import { ArrowLeft } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -10,15 +10,11 @@ import type { DemographicSegment } from "./types";
 interface SegmentDetailHeaderProps {
   segment: DemographicSegment;
   onBack: () => void;
-  onExport: () => void;
-  onSave: () => void;
 }
 
 export default function SegmentDetailHeader({
   segment,
   onBack,
-  onExport,
-  onSave,
 }: SegmentDetailHeaderProps) {
   const growthBadgeText = segment.growth != null ? `${formatGrowth(segment.growth)} so với tháng trước` : "Chưa đủ dữ liệu tăng trưởng";
   const isPositiveGrowth = segment.growth != null && segment.growth > 0;
@@ -46,16 +42,6 @@ export default function SegmentDetailHeader({
           <p className="mt-2 text-sm leading-6 text-text-secondary">
             {segment.description} Tối thiểu 30 lead để hiển thị.
           </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" appearance="outline" onPress={onExport}>
-            <Download1 size={16} aria-hidden="true" />
-            Xuất báo cáo
-          </Button>
-          <Button size="sm" onPress={onSave}>
-            <Bookmark1 size={16} aria-hidden="true" />
-            Lưu nhóm này
-          </Button>
         </div>
       </div>
     </header>

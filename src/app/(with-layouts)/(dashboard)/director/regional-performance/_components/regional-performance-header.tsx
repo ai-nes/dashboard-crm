@@ -1,11 +1,8 @@
 "use client";
 
-import { Download1 } from "@tailgrids/icons";
 import { memo, type ReactNode } from "react";
-import { toast } from "sonner";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { REGIONAL_SCOPE_LABEL } from "./data";
 
@@ -32,16 +29,6 @@ function RegionalPerformanceHeader({ children }: { children?: ReactNode }) {
               {REGIONAL_SCOPE_LABEL}
             </span>
             {children}
-            <Button
-              appearance="outline"
-              size="sm"
-              onPress={() =>
-                toast.success("Đã tạo báo cáo hiệu suất tuyển sinh.")
-              }
-            >
-              <Download1 size={16} aria-hidden="true" />
-              Xuất báo cáo
-            </Button>
           </div>
         </div>
       </Card>

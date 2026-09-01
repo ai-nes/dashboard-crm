@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Input } from "@/components/tailgrids/core/input";
-import { Button } from "@/components/tailgrids/core/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +12,6 @@ import {
 import {
   Check,
   ChevronDown,
-  Download1,
   Filter,
   Search1,
   Target3,
@@ -67,7 +65,6 @@ interface MarketMapProps {
   geoData: ProvinceFeatureCollection;
   onQueryChange: (query: string) => void;
   onRegionChange: (region: RegionKey) => void;
-  onExport: () => void;
   onClearSelection: () => void;
   onSelectProvince: (code: string) => void;
   onSelectSchool: (provinceCode: string, schoolId: string) => void;
@@ -163,7 +160,6 @@ export default function MarketMap({
   geoData,
   onQueryChange,
   onRegionChange,
-  onExport,
   onClearSelection,
   onSelectProvince,
   onSelectSchool,
@@ -328,7 +324,7 @@ export default function MarketMap({
 
         </div>
 
-        {/* Right: Quick Search + Reset + Export */}
+        {/* Right: Quick Search */}
         <div className="flex items-center gap-1.5">
           {/* Quick Search */}
           <div className="relative w-36 sm:w-44">
@@ -371,15 +367,6 @@ export default function MarketMap({
             )}
           </div>
 
-          <Button
-            className="h-7.5 gap-1 px-2.5 text-xs"
-            onPress={onExport}
-            size="sm"
-            variant="primary"
-          >
-            <Download1 size={12} />
-            <span>Xuất</span>
-          </Button>
         </div>
       </div>
 
@@ -473,7 +460,7 @@ export default function MarketMap({
               const isHovered = hoveredCode === path.code;
               const metricVal = getProvinceMapValue(province, activeMetric);
               const metricLabel = province
-                ? `Điểm nhiệt: ${formatHeatScore(metricVal)}`
+                ? `Tỷ lệ trường trọng điểm: ${formatHeatScore(metricVal)}`
                 : "-";
               const fillColor = getHeatColor(
                 normalizeHeatScore(metricVal, heatScoreRange.min, heatScoreRange.max),
@@ -532,7 +519,7 @@ export default function MarketMap({
       {/* Heat score color legend */}
       <div className="mt-2 flex justify-end text-xs">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-text-secondary">Điểm cơ hội:</span>
+          <span className="font-medium text-text-secondary">Tỷ lệ trường trọng điểm:</span>
           <span className="text-[11px] text-text-tertiary">Thấp</span>
           <div
             className="h-1.5 w-20 rounded-full"

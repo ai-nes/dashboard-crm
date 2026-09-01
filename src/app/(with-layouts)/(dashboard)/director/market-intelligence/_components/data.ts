@@ -468,12 +468,12 @@ export function getProvinceHeatScore(
     (school) => school.classification === "Trọng điểm",
   ).length;
 
-  return Number((totalSchools / Math.max(1, keySchoolCount)).toFixed(2));
+  return Number(((keySchoolCount / totalSchools) * 100).toFixed(2));
 }
 
 export function formatHeatScore(score: number | null) {
   if (score === null) return "-";
-  return `${Number.isInteger(score) ? score : score.toFixed(2)}x`;
+  return `${Number.isInteger(score) ? score : score.toFixed(2)}%`;
 }
 
 export function getOpportunityBadgeVariant(score: number | null): "success" | "primary" | "warning" | "error" | "gray" {

@@ -61,20 +61,12 @@ export default function MarketIntelligenceDashboard({ overview, error: apiError 
     const first = sortByAvailableScore(provinces.filter((province) => province.regionKey === nextRegion), "opportunity")[0];
     setSelectedCode(first?.code ?? null);
   };
-  const exportData = () => {
-    const columns = ["code", "name", "regionKey", "grade12Population", "opportunity", "leads", "conversion", "competition", "revenue"] as const;
-    const csv = [columns.join(","), ...provinces.map((province) => columns.map((key) => province[key] === null ? "" : JSON.stringify(province[key])).join(","))].join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a"); link.href = url; link.download = `market-intelligence-${new Date().toISOString().slice(0, 10)}.csv`; link.click();
-    URL.revokeObjectURL(url);
-  };
-
   if (apiError || geometryError) return <MapError message={apiError} />;
   if (loading) return <div className="h-[640px] animate-pulse rounded-2xl bg-card-background/60" />;
   return (
     <main className="min-w-0 px-2 py-3 lg:px-6 xl:h-[calc(100vh-112px)] xl:overflow-hidden">
       <div className="grid min-h-[640px] min-w-0 grid-cols-1 items-stretch gap-2 xl:h-full xl:min-h-0 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.75fr)]">
-        <MarketMap activeRegion={region} admissionYear={overview?.admissionYear ?? null} geoData={geoData} onExport={exportData} onClearSelection={() => { setSelectedCode(null); setSelectedSchoolId(null); }} onQueryChange={setQuery} onRegionChange={changeRegion} onSelectProvince={selectProvince} onSelectSchool={selectSchool} provinces={provinces} query={query} selectedCode={selectedCode} selectedSchoolId={selectedSchoolId} totalProvinces={overview?.totalProvinces ?? documents.length} />
+        <MarketMap activeRegion={region} admissionYear={overview?.admissionYear ?? null} geoData={geoData} onClearSelection={() => { setSelectedCode(null); setSelectedSchoolId(null); }} onQueryChange={setQuery} onRegionChange={changeRegion} onSelectProvince={selectProvince} onSelectSchool={selectSchool} provinces={provinces} query={query} selectedCode={selectedCode} selectedSchoolId={selectedSchoolId} totalProvinces={overview?.totalProvinces ?? documents.length} />
         <ProvinceInspector onSelectSchool={selectSchool} province={selectedProvince} selectedSchoolId={selectedSchoolId} />
       </div>
     </main>

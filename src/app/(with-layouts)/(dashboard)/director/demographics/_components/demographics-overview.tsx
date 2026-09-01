@@ -1,7 +1,5 @@
 "use client";
 
-import { toast } from "sonner";
-
 import type {
   DemographicsFilterOptions,
   DirectorDemographicsOverviewData,
@@ -44,7 +42,6 @@ export default function DemographicsOverview({
             onApply={onApplyFilters}
           />
         }
-        onExport={() => toast.success("Đã tạo báo cáo phân tích lead.")}
       />
       <div className="min-w-0 max-w-full space-y-5">
         <OverviewKpiStrip kpis={data?.kpis} />

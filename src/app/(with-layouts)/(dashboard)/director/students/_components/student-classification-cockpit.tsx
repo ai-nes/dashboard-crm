@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle1, Envelope1, InfoTriangle, Phone, Shield1Check } from "@tailgrids/icons";
+import { CheckCircle1, InfoTriangle, Phone, Shield1Check } from "@tailgrids/icons";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -46,7 +46,7 @@ export default function StudentClassificationCockpit({ data }: Student360Section
             <div><dt className="text-[11px] text-text-tertiary">Kênh ưu tiên</dt><dd className="mt-1 text-sm font-semibold text-text-primary">{preferredChannel}</dd></div>
             <div><dt className="text-[11px] text-text-tertiary">Khung giờ</dt><dd className="mt-1 text-sm font-semibold text-text-primary">{bestContactTime}</dd></div>
           </dl>
-          <div className="relative mt-5 flex flex-wrap gap-2"><Button size="sm" onPress={() => toast.success(`Đã tạo cuộc gọi tư vấn cho ${data.student.name}.`)}><Phone size={16} aria-hidden="true" />Gọi tư vấn</Button><Button size="sm" appearance="outline" onPress={() => toast.success("Đã chuẩn bị phương án học phí và học bổng.")}><Envelope1 size={16} aria-hidden="true" />Gửi phương án</Button></div>
+          <div className="relative mt-5 flex flex-wrap gap-2"><Button size="sm" onPress={() => toast.success(`Đã tạo cuộc gọi tư vấn cho ${data.student.name}.`)}><Phone size={16} aria-hidden="true" />Gọi tư vấn</Button></div>
         </section>
       </div>
 
