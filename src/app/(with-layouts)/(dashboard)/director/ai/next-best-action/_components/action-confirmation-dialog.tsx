@@ -11,7 +11,7 @@ interface ActionConfirmationDialogProps {
   action: RecommendedAction | null;
   type: ActionConfirmationType | null;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 }
 
 const dialogCopy = {
