@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const FRAPPE_URL = (
-  process.env.NEXT_PUBLIC_FRAPPE_URL ?? "http://localhost:8000"
+  process.env.NEXT_PUBLIC_FRAPPE_URL ?? "http://localhost:8001"
 ).replace(/\/+$/, "");
 
 // Field wrapper — mirrors `.field-inner` in crm/www/login.html.
