@@ -9,11 +9,6 @@ import {
   SheetOverlay,
   SheetTitle,
 } from "@/components/tailgrids/core/sheet";
-import {
-  ScrollArea,
-  ScrollAreaViewport,
-  ScrollBar,
-} from "@/components/tailgrids/core/scroll-area";
 import { cn } from "@/utils/cn";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState } from "react";
@@ -82,19 +77,20 @@ export default function WithLayout({ children }: { children: ReactNode }) {
           <div className="flex h-full flex-col overflow-hidden border-[0.5px] border-card-surface-border bg-card-surface-area lg:rounded-2xl lg:shadow-[0_3px_6px_-2px_rgba(0,0,0,0.02),0_1px_1px_0_rgba(0,0,0,0.04)]">
             <Header onMenuClick={() => setIsMobileSheetOpen(true)} />
 
-            <main className="flex min-h-0 flex-1 overflow-hidden">
-              {isChatbotPage ? (
-                <div className="h-full w-full">{children}</div>
-              ) : (
-                <ScrollArea className="h-full min-h-0 w-full">
-                  <ScrollAreaViewport>
-                    <div className="mx-auto w-full max-w-384 pb-5">
-                      {children}
-                    </div>
-                  </ScrollAreaViewport>
-                  <ScrollBar />
-                </ScrollArea>
+            <main
+              className={cn(
+                "scrollbar-thin flex-1 min-h-0",
+                isChatbotPage ? "overflow-hidden" : "overflow-y-auto",
               )}
+            >
+              <div
+                className={cn(
+                  "mx-auto w-full",
+                  isChatbotPage ? "h-full max-w-none" : "max-w-384 pb-5",
+                )}
+              >
+                {children}
+              </div>
             </main>
           </div>
         </div>
