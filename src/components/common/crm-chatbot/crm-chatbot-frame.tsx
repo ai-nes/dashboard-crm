@@ -8,6 +8,7 @@ export default function CrmChatbotFrame() {
         title="CRM Chatbot"
         loading="lazy"
         allow="microphone"
+        scrolling="no"
         className="block size-full border-0 bg-card-background"
       />
     </section>

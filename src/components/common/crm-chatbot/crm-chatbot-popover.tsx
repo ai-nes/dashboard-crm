@@ -62,6 +62,7 @@ export default function CrmChatbotPopover() {
             src={CRM_CHATBOT_POPOVER_URL}
             title="CRM Chatbot"
             allow="microphone"
+            scrolling="no"
             tabIndex={isOpen ? 0 : -1}
             className="block size-full border-0 bg-card-background"
           />
@@ -83,7 +84,7 @@ export default function CrmChatbotPopover() {
           onClick={openChatbot}
           aria-label="Mở CRM Chatbot"
           aria-expanded={isOpen}
-          className="crm-chatbot-launcher inline-flex size-14 items-center justify-center rounded-full bg-primary-500 text-primary-text transition-colors hover:bg-primary-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+          className="crm-chatbot-launcher inline-flex size-14 items-center justify-center rounded-full bg-text-primary text-base-white transition-colors hover:bg-text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary"
         >
           <span className="flex size-6 [&>svg]:size-full">
             <ChatIcon />
