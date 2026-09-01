@@ -65,7 +65,7 @@ export default function Student360Dashboard({ studentId, initialData, data: prop
       <div className="space-y-8 px-2 pt-6 lg:px-6">
         <section id="student-decision" aria-labelledby="student-decision-heading" className="scroll-mt-20">
           <StudentSectionHeading headingId="student-decision-heading" title="Quyết định chăm sóc" />
-          <StudentClassificationCockpit data={data} />
+          <StudentClassificationCockpit data={data} analysisTargetId={targetId} />
         </section>
 
         <section id="student-context" aria-labelledby="student-context-heading" className="scroll-mt-20 border-t border-card-border pt-7">

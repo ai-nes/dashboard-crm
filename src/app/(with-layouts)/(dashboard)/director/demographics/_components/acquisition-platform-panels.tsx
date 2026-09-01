@@ -3,15 +3,10 @@
 import { Bar, CartesianGrid, ComposedChart, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 
 import { ChartContainer } from "@/components/tailgrids/core/chart";
+import type { AcquisitionMapData } from "@/services/api/demographics/types";
 import AcquisitionMapChartCard, { DemoLegend, DemoNote, formatDemoNumber } from "./acquisition-map-chart-card";
+import { useAcquisitionMapData } from "./acquisition-map-context";
 import OverviewTooltip from "./overview-tooltip";
-import {
-  budgetByRoleDemo,
-  dailySpendLeadsDemo,
-  platformLeadCostDemo,
-  sameSeasonDemo,
-  touchpointPlatformDemo,
-} from "./acquisition-map-demo";
 
 const sourceColors = ["var(--brand-500)", "var(--info-500)", "var(--success-500)", "var(--warning-500)", "var(--error-500)"];
 
@@ -28,6 +23,8 @@ export function AcquisitionPlatformPanels() {
 }
 
 export function PlatformLeadCostChart() {
+  const { platformLeadCost } = useAcquisitionMapData();
+
   return (
     <AcquisitionMapChartCard
       chartId="01"
@@ -37,7 +34,7 @@ export function PlatformLeadCostChart() {
     >
       <div className="h-64">
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
-          <ComposedChart data={platformLeadCostDemo} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+          <ComposedChart data={platformLeadCost} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border-color-base-100)" strokeDasharray="4 4" />
             <XAxis dataKey="platform" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
             <YAxis yAxisId="leads" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
@@ -55,6 +52,8 @@ export function PlatformLeadCostChart() {
 }
 
 function SeasonComparisonChart() {
+  const { leadTrendComparison } = useAcquisitionMapData();
+
   return (
     <AcquisitionMapChartCard
       chartId="02"
@@ -63,7 +62,7 @@ function SeasonComparisonChart() {
       badge="Số lead mới"
     >
       <div className="space-y-3 pt-1">
-        {sameSeasonDemo.map((item) => {
+        {leadTrendComparison.map((item) => {
           const max = Math.max(item.current, item.previous);
           return (
             <div key={item.week} className="grid grid-cols-[36px_minmax(0,1fr)_72px] items-center gap-3">
@@ -86,23 +85,27 @@ function SeasonComparisonChart() {
 }
 
 function DailySpendLeadsChart() {
+  const { dailySpendLeads } = useAcquisitionMapData();
+
   return (
     <AcquisitionMapChartCard
       chartId="03"
       title="Chi tiêu quảng cáo và lead theo ngày"
       description="Đối chiếu chi tiêu quảng cáo với số lead thu được từng ngày."
-      badge="12 ngày"
+      badge={`${dailySpendLeads.length} ngày`}
     >
       <div className="space-y-5">
-        <MiniTrend label="Chi tiêu quảng cáo" value={`${dailySpendLeadsDemo.reduce((sum, item) => sum + item.spend, 0)} triệu`} dataKey="spend" color="var(--warning-500)" />
-        <MiniTrend label="Lead" value={formatDemoNumber(dailySpendLeadsDemo.reduce((sum, item) => sum + item.leads, 0))} dataKey="leads" color="var(--brand-500)" />
+        <MiniTrend label="Chi tiêu quảng cáo" value={`${dailySpendLeads.reduce((sum, item) => sum + item.spend, 0)} triệu`} data={dailySpendLeads} dataKey="spend" color="var(--warning-500)" />
+        <MiniTrend label="Lead" value={formatDemoNumber(dailySpendLeads.reduce((sum, item) => sum + item.leads, 0))} data={dailySpendLeads} dataKey="leads" color="var(--brand-500)" />
       </div>
       <DemoNote>Chỉ dùng để xem độ trễ giữa chi tiêu và số lead; chưa kết luận hiệu quả.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }
 
-function MiniTrend({ label, value, dataKey, color }: { label: string; value: string; dataKey: string; color: string }) {
+function MiniTrend({ label, value, data, dataKey, color }: { label: string; value: string; data: AcquisitionMapData["dailySpendLeads"]; dataKey: string; color: string }) {
+  const range = data.length > 0 ? `Ngày ${data[0]?.day}–${data[data.length - 1]?.day}` : "Chưa có dữ liệu";
+
   return (
     <div className="grid grid-cols-[92px_minmax(0,1fr)_auto] items-center gap-3">
       <div>
@@ -111,17 +114,19 @@ function MiniTrend({ label, value, dataKey, color }: { label: string; value: str
       </div>
       <div className="h-14 min-w-0">
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
-          <LineChart data={dailySpendLeadsDemo} margin={{ top: 6, right: 2, left: 2, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 6, right: 2, left: 2, bottom: 0 }}>
             <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2.5} dot={false} isAnimationActive={false} />
           </LineChart>
         </ChartContainer>
       </div>
-      <span className="text-[11px] text-text-tertiary">Ngày 01–12</span>
+      <span className="text-[11px] text-text-tertiary">{range}</span>
     </div>
   );
 }
 
 function BudgetRoleChart() {
+  const { budgetByPlatformRole } = useAcquisitionMapData();
+
   return (
     <AcquisitionMapChartCard
       chartId="05"
@@ -131,7 +136,7 @@ function BudgetRoleChart() {
     >
       <div className="pt-8">
         <div className="flex h-12 overflow-hidden rounded-lg bg-background-gray-primary">
-          {budgetByRoleDemo.map((item, index) => (
+          {budgetByPlatformRole.map((item, index) => (
             <div
               key={item.label}
               className="flex items-center justify-center px-2 text-xs font-semibold text-white-100 first:rounded-l-lg last:rounded-r-lg"
@@ -142,14 +147,16 @@ function BudgetRoleChart() {
           ))}
         </div>
       </div>
-      <DemoLegend items={budgetByRoleDemo.map((item, index) => ({ label: item.label, color: colorClass(index) }))} />
+      <DemoLegend items={budgetByPlatformRole.map((item, index) => ({ label: item.label, color: colorClass(index) }))} />
     </AcquisitionMapChartCard>
   );
 }
 
 function TouchpointPlatformChart() {
-  const { columns, rows } = touchpointPlatformDemo;
-  const maximum = Math.max(...rows.flatMap((row) => row.values));
+  const { touchpointPlatformMatrix } = useAcquisitionMapData();
+  const { columns, rows } = touchpointPlatformMatrix;
+  const observedValues = rows.flatMap((row) => row.values).filter(isObservedNumber);
+  const maximum = Math.max(...observedValues, 0);
 
   return (
     <AcquisitionMapChartCard
@@ -172,8 +179,8 @@ function TouchpointPlatformChart() {
               <tr key={row.label}>
                 <th scope="row" className="whitespace-nowrap px-2 py-3 text-left font-medium text-text-secondary">{row.label}</th>
                 {row.values.map((value, index) => (
-                  <td key={`${row.label}-${columns[index]}`} className="rounded-lg px-2 py-3 text-center font-semibold text-text-primary" style={{ backgroundColor: value < 10 ? "var(--background-gray-primary)" : heatColor(value, maximum) }}>
-                    {value < 10 ? "—" : value}
+                  <td key={`${row.label}-${columns[index]}`} className="rounded-lg px-2 py-3 text-center font-semibold text-text-primary" style={{ backgroundColor: value == null || value < 10 ? "var(--background-gray-primary)" : heatColor(value, maximum) }}>
+                    {value == null || value < 10 ? "—" : value}
                   </td>
                 ))}
               </tr>
@@ -192,6 +199,10 @@ function heatColor(value: number, maximum: number): string {
   if (ratio >= 0.5) return "var(--primary-200)";
   if (ratio >= 0.25) return "var(--primary-100)";
   return "var(--background-soft-100)";
+}
+
+function isObservedNumber(value: number | null): value is number {
+  return value != null && Number.isFinite(value);
 }
 
 function colorClass(index: number): string {

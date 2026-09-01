@@ -20,6 +20,8 @@ interface DemographicsOverviewProps {
   filters: DirectorDemographicsOverviewParams;
   filterOptions?: DemographicsFilterOptions;
   onApplyFilters: (filters: DirectorDemographicsOverviewParams) => void;
+  onPageChange: (page: number) => void;
+  isSegmentsLoading?: boolean;
   onOpenSegment: (segmentId: string) => void;
 }
 
@@ -29,6 +31,8 @@ export default function DemographicsOverview({
   filters,
   filterOptions,
   onApplyFilters,
+  onPageChange,
+  isSegmentsLoading = false,
   onOpenSegment,
 }: DemographicsOverviewProps) {
   return (
@@ -49,8 +53,14 @@ export default function DemographicsOverview({
           <AudienceCompositionChart audience={data?.audienceComposition} />
           <DataCoverageCard metrics={data?.dataCoverage} />
         </div>
-        <AcquisitionMapWorkspace />
-        <SegmentLandscapeChart segments={data?.segments} onOpenSegment={onOpenSegment} />
+        <AcquisitionMapWorkspace data={data?.acquisitionMap} />
+        <SegmentLandscapeChart
+          segments={data?.segments}
+          pagination={meta}
+          isLoading={isSegmentsLoading}
+          onPageChange={onPageChange}
+          onOpenSegment={onOpenSegment}
+        />
       </div>
     </div>
   );

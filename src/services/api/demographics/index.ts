@@ -48,12 +48,19 @@ function hasDemographicsOverviewEnvelope(value: unknown): boolean {
     typeof data.demand === "object" &&
     typeof data.audienceComposition === "object" &&
     Array.isArray(data.segments) &&
+    typeof data.acquisitionMap === "object" &&
+    data.acquisitionMap !== null &&
     Array.isArray(data.regionOpportunities) &&
     typeof data.regionalDemand === "object" &&
     Array.isArray(data.dataCoverage) &&
     !!meta &&
     typeof meta === "object" &&
-    typeof meta.admissionYear === "number"
+    typeof meta.admissionYear === "number" &&
+    typeof meta.page === "number" &&
+    typeof meta.pageSize === "number" &&
+    typeof meta.total === "number" &&
+    typeof meta.totalPages === "number" &&
+    typeof meta.hasNextPage === "boolean"
   );
 }
 
@@ -88,6 +95,8 @@ export async function getDirectorDemographicsOverview(
 ): Promise<DirectorDemographicsOverviewResponse> {
   const searchParams = new URLSearchParams();
   if (params?.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
+  if (params?.page !== undefined) searchParams.set("page", String(params.page));
+  if (params?.pageSize !== undefined) searchParams.set("pageSize", String(params.pageSize));
   if (params?.period) searchParams.set("period", params.period);
   if (params?.scope) searchParams.set("scope", params.scope);
   if (params?.province) searchParams.set("province", params.province);

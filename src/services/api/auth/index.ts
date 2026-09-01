@@ -3,7 +3,7 @@ import type { CurrentUser, FrappeMessage } from "./types";
 export type * from "./types";
 
 const FRAPPE_URL = (
-  process.env.NEXT_PUBLIC_FRAPPE_URL ?? "http://localhost:8000"
+  process.env.NEXT_PUBLIC_FRAPPE_URL ?? "http://localhost:8001"
 ).replace(/\/+$/, "");
 
 /** Absolute URL of a Frappe whitelisted method. */

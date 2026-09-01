@@ -1,5 +1,6 @@
 "use client";
 
+import { keepPreviousData } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
@@ -18,14 +19,19 @@ export default function DemographicExplorerDashboard() {
     admissionYear: 2026,
     period: "season",
     scope: "all",
+    page: 1,
+    pageSize: 10,
   });
 
   const {
     data: overviewResponse,
     isLoading: isOverviewLoading,
     isError: isOverviewError,
+    isPlaceholderData: isOverviewPlaceholder,
     refetch: refetchOverview,
-  } = useDirectorDemographicsOverviewQuery(overviewParams);
+  } = useDirectorDemographicsOverviewQuery(overviewParams, {
+    placeholderData: keepPreviousData,
+  });
 
   const {
     data: segmentResponse,
@@ -71,7 +77,13 @@ export default function DemographicExplorerDashboard() {
       admissionYear: nextFilters.admissionYear ?? overviewParams.admissionYear ?? 2026,
       period: nextFilters.period ?? "season",
       scope: nextFilters.scope ?? "all",
+      page: 1,
+      pageSize: overviewParams.pageSize ?? 10,
     });
+  };
+
+  const handleSegmentPageChange = (page: number) => {
+    setOverviewParams((current) => ({ ...current, page }));
   };
 
   if (isOverviewLoading && !overviewResponse) {
@@ -114,6 +126,8 @@ export default function DemographicExplorerDashboard() {
           filters={overviewParams}
           filterOptions={overviewResponse?.data?.filterOptions}
           onApplyFilters={applyOverviewFilters}
+          onPageChange={handleSegmentPageChange}
+          isSegmentsLoading={isOverviewPlaceholder}
           onOpenSegment={openSegment}
         />
       </main>

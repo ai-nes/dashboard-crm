@@ -1,6 +1,7 @@
 import { ArrowLeft, MapMarker5 } from "@tailgrids/icons";
 import Link from "next/link";
 
+import AnalysisRunPanel from "@/components/analysis-runs/analysis-run-panel";
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { SchoolClassification, SchoolIntelligenceData } from "@/services/api/schools/types";
 
@@ -81,6 +82,15 @@ export default function SchoolHeader({ data }: SchoolHeaderProps) {
           <HeaderFact label="Mức độ cạnh tranh" value={geography.competitionDensity} />
           <HeaderFact label="Mức độ hợp tác" value={relationship.level} />
         </div>
+
+        <AnalysisRunPanel
+          key={`school-analysis-${school.id}`}
+          embedded
+          kind="school"
+          targetId={school.id}
+          title="Phân tích AI"
+          description="School 360 từ dữ liệu hiện tại của trường."
+        />
 
       </div>
     </header>
