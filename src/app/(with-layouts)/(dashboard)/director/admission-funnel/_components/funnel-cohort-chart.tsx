@@ -5,16 +5,18 @@ import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts"
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 
-import { cohortRows } from "./data";
+import { useAdmissionFunnelData } from "./admission-funnel-context";
 
 const cohortColors = ["var(--primary-500)", "var(--info-500)", "var(--success-500)"];
-const observedCohorts = cohortRows.filter((cohort) => cohort.values.every((value) => value !== null));
-const chartData = Array.from({ length: 6 }, (_, index) => ({
-  week: `Sau ${index + 1} tuần`,
-  ...Object.fromEntries(observedCohorts.map((cohort) => [cohort.label, cohort.values[index]])),
-}));
 
 export default function FunnelCohortChart() {
+  const { cohorts } = useAdmissionFunnelData();
+  const observedCohorts = cohorts.rows.filter((cohort) => cohort.values.every((value) => value !== null));
+  const chartData = cohorts.followUpWeeks.map((week, index) => ({
+    week: `Sau ${week} tuần`,
+    ...Object.fromEntries(observedCohorts.map((cohort) => [cohort.label, cohort.values[index]])),
+  }));
+
   return (
     <Card className="min-w-0 p-5">
       <CardHeader className="mb-4 items-start">
@@ -22,11 +24,11 @@ export default function FunnelCohortChart() {
           <CardTitle>Tốc độ chuyển đổi theo tuần</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Tỷ lệ tới bước đăng ký sau khi hồ sơ vào phễu.</p>
         </div>
-        <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-xs font-semibold text-badge-primary-text">3 nhóm đủ 6 tuần</span>
+        <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-xs font-semibold text-badge-primary-text">{cohorts.completeCohortCount} nhóm đủ {cohorts.followUpWeeks.length} tuần</span>
       </CardHeader>
 
       <div className="mb-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-text-secondary" aria-label="Chú thích nhóm theo tuần">
-        {observedCohorts.map((cohort, index) => <span key={cohort.label} className="inline-flex items-center gap-1.5"><i className="size-2 rounded-full" style={{ backgroundColor: cohortColors[index] }} />{cohort.label}</span>)}
+        {observedCohorts.map((cohort, index) => <span key={cohort.label} className="inline-flex items-center gap-1.5"><i className="size-2 rounded-full" style={{ backgroundColor: cohortColors[index % cohortColors.length] }} />{cohort.label}</span>)}
       </div>
 
       <div className="h-64 w-full" role="img" aria-label="Biểu đồ tốc độ chuyển đổi của ba nhóm hồ sơ theo số tuần theo dõi">
@@ -36,7 +38,7 @@ export default function FunnelCohortChart() {
             <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
             <YAxis domain={[0, 50]} ticks={[0, 10, 20, 30, 40, 50]} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(value) => `${value}%`} />
             <Tooltip content={<CohortTooltip />} />
-            {observedCohorts.map((cohort, index) => <Line key={cohort.label} name={cohort.label} type="monotone" dataKey={cohort.label} stroke={cohortColors[index]} strokeWidth={2.5} dot={{ r: 3, fill: cohortColors[index] }} activeDot={{ r: 5 }} />)}
+            {observedCohorts.map((cohort, index) => <Line key={cohort.label} name={cohort.label} type="monotone" dataKey={cohort.label} stroke={cohortColors[index % cohortColors.length]} strokeWidth={2.5} dot={{ r: 3, fill: cohortColors[index % cohortColors.length] }} activeDot={{ r: 5 }} />)}
           </LineChart>
         </ChartContainer>
       </div>

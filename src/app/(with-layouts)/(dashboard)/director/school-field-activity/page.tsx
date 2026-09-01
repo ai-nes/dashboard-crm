@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import SchoolFieldActivityDashboard from "./_components/school-field-activity-dashboard";
+import SchoolFieldActivityPageClient from "./_components/school-field-activity-page-client";
 
 export const metadata: Metadata = {
   title: "Hoạt động trường & thực địa",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function SchoolFieldActivityPage() {
-  return <SchoolFieldActivityDashboard />;
+  return <SchoolFieldActivityPageClient />;
 }

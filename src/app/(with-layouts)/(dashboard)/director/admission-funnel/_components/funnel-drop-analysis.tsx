@@ -1,19 +1,19 @@
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
-import { funnelStages } from "./data";
+import { useAdmissionFunnelData } from "./admission-funnel-context";
 
 function formatPercent(value: number) {
   return value.toLocaleString("vi-VN", { maximumFractionDigits: 1 });
 }
 
 export default function FunnelDropAnalysis() {
-  const rows = funnelStages.slice(1).map((stage, index) => {
-    const previous = funnelStages[index];
-    const dropCount = previous.count - stage.count;
-    const dropRate = (dropCount / previous.count) * 100;
-
-    return { from: previous.label, to: stage.label, dropCount, dropRate };
-  }).sort((a, b) => b.dropRate - a.dropRate).slice(0, 3);
+  const { dropOffs } = useAdmissionFunnelData();
+  const rows = dropOffs.slice(0, 3).map((dropOff) => ({
+    from: dropOff.fromLabel,
+    to: dropOff.toLabel,
+    dropCount: dropOff.dropCount,
+    dropRate: dropOff.dropRate,
+  }));
   const maxDropRate = rows[0]?.dropRate ?? 1;
 
   return (

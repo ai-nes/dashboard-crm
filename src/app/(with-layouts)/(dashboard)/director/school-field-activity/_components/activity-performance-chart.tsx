@@ -4,17 +4,21 @@ import { Bar, BarChart, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from "rec
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
+import type { CompletedFieldActivity } from "@/services/api/director-school-field-activity";
 
 import ActivityChartTooltip from "./activity-chart-tooltip";
-import { fieldActivities } from "./data";
 
-const chartData = fieldActivities.map((activity) => ({
-  name: activity.shortName,
-  leads: activity.leads,
-  enrolled: activity.enrolled,
-}));
+interface ActivityPerformanceChartProps {
+  activities: CompletedFieldActivity[];
+}
 
-export default function ActivityPerformanceChart() {
+export default function ActivityPerformanceChart({ activities }: ActivityPerformanceChartProps) {
+  const chartData = activities.map((activity) => ({
+    name: activity.shortName,
+    leads: activity.leads ?? undefined,
+    enrolled: activity.enrolled ?? undefined,
+  }));
+
   return (
     <Card className="flex h-full min-w-0 flex-col p-5">
       <CardHeader className="mb-4 items-start">
@@ -22,7 +26,7 @@ export default function ActivityPerformanceChart() {
           <CardTitle>Hồ sơ và nhập học theo hoạt động</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">So sánh số hồ sơ thu được với số học sinh đã nhập học.</p>
         </div>
-        <span className="text-xs text-text-tertiary">6 hoạt động đã kết thúc</span>
+        <span className="text-xs text-text-tertiary">{activities.length} hoạt động đã kết thúc</span>
       </CardHeader>
 
       <div className="min-h-[420px] w-full min-w-0 flex-1">

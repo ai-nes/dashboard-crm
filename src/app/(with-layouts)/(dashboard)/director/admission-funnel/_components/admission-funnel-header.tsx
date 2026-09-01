@@ -8,13 +8,31 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 
+import { useAdmissionFunnelData } from "./admission-funnel-context";
+
+function formatAsOf(value: string, timezone: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("vi-VN", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: timezone,
+  });
+}
+
 export default function AdmissionFunnelHeader() {
+  const { meta } = useAdmissionFunnelData();
+  const statusLabel = meta.status === "partial" ? "Dữ liệu một phần" : "Dữ liệu sẵn sàng";
+
   return (
     <Card className="flex flex-col gap-5 border border-card-border p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <Badge color="primary">M-05 · Phễu tuyển sinh</Badge>
-          <span className="text-xs text-text-tertiary">Dữ liệu mô phỏng · Kỳ tuyển sinh 2026</span>
+          <span className="text-xs text-text-tertiary">
+            {statusLabel} · {meta.scopeLabel} · Kỳ tuyển sinh {meta.admissionYear} · Cập nhật {formatAsOf(meta.asOf, meta.timezone)}
+          </span>
         </div>
         <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
           Phễu tuyển sinh

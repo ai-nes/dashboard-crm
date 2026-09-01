@@ -1,27 +1,19 @@
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
-import { funnelStages } from "./data";
+import { useAdmissionFunnelData } from "./admission-funnel-context";
 
-const total = funnelStages[0].count;
-
-function formatPercent(value: number) {
-  return value.toLocaleString("vi-VN", { maximumFractionDigits: 1 });
+function formatPercent(value: number | null) {
+  return value === null ? "—" : value.toLocaleString("vi-VN", { maximumFractionDigits: 1 });
 }
 
 export default function FunnelStageChart() {
-  const stages = funnelStages.map((stage, index) => {
-    const previous = funnelStages[index - 1];
-    const remainingRate = (stage.count / total) * 100;
-    const stepRate = previous ? (stage.count / previous.count) * 100 : 100;
-
-    return { ...stage, remainingRate, stepRate };
-  });
-
-  const biggestDrop = stages.slice(1).reduce((largest, stage, index) => {
-    const previous = stages[index];
-    const drop = 100 - stage.stepRate;
-    return drop > largest.drop ? { from: previous.label, to: stage.label, drop } : largest;
-  }, { from: "", to: "", drop: 0 });
+  const { stages, summary } = useAdmissionFunnelData();
+  const stageLabels = new Map(stages.map((stage) => [stage.id, stage.label]));
+  const biggestDrop = {
+    from: summary.priorityStageId ? stageLabels.get(summary.priorityStageId) ?? summary.priorityStageId : "Chưa xác định",
+    to: summary.priorityNextStageId ? stageLabels.get(summary.priorityNextStageId) ?? summary.priorityNextStageId : "Chưa xác định",
+    drop: summary.priorityDropRate,
+  };
 
   return (
     <Card className="min-w-0 p-5">
@@ -60,7 +52,11 @@ export default function FunnelStageChart() {
       <div className="mt-5 rounded-lg border border-warning-500/30 bg-badge-warning-background px-4 py-3">
         <p className="text-xs font-semibold text-badge-warning-text">Điểm giảm lớn nhất</p>
         <p className="mt-1 text-sm font-medium text-text-primary">{biggestDrop.from} → {biggestDrop.to}</p>
-        <p className="mt-1 text-xs leading-5 text-text-secondary">Mất {formatPercent(biggestDrop.drop)}% hồ sơ; chỉ {formatPercent(100 - biggestDrop.drop)}% chuyển sang bước tiếp theo.</p>
+        <p className="mt-1 text-xs leading-5 text-text-secondary">
+          {biggestDrop.drop === null
+            ? "Chưa đủ dữ liệu để xác định tỷ lệ chuyển tiếp."
+            : `Mất ${formatPercent(biggestDrop.drop)}% hồ sơ; chỉ ${formatPercent(100 - biggestDrop.drop)}% chuyển sang bước tiếp theo.`}
+        </p>
       </div>
     </Card>
   );
