@@ -1,9 +1,6 @@
 "use client";
 
-import { toast } from "sonner";
-
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import type { UpcomingFieldActivity } from "@/services/api/director-school-field-activity";
 
@@ -51,9 +48,6 @@ export default function UpcomingActivityPlan({ activities }: UpcomingActivityPla
         )) : <p className="rounded-lg border border-dashed border-card-border px-3 py-5 text-sm text-text-tertiary">Chưa có kế hoạch sắp tới.</p>}
       </div>
 
-      <Button appearance="outline" className="mt-4 w-full" size="sm" onPress={() => toast.success("Đã ghi nhận yêu cầu lập kế hoạch hoạt động mới.")}>
-        Lập kế hoạch hoạt động mới
-      </Button>
     </Card>
   );
 }

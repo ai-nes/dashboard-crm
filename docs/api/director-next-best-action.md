@@ -25,9 +25,9 @@ Nguồn tham chiếu trực tiếp:
 
 ## 2. Tình trạng API hiện tại
 
-Route chưa gọi API. Hàng đợi, outcome và các component SLA đang đọc fixture trực tiếp từ frontend. Các nút `Làm mới`, `Giao việc`, `Trì hoãn` và `Bỏ đề xuất` hiện chỉ thay đổi state cục bộ hoặc hiển thị toast; chưa có request backend.
+Backend endpoint và dashboard route đã được tích hợp. Workspace tải một snapshot qua GET để dùng chung cho hàng đợi, SLA, outcome và policy; các nút `Làm mới`, `Giao việc`, `Trì hoãn` và `Bỏ đề xuất` gọi request backend tương ứng.
 
-Contract bên dưới là contract production đề xuất. Một lần tải màn hình nên lấy một snapshot duy nhất để action queue và SLA không bị lệch thời điểm. Khi AI hoặc nguồn đánh giá không khả dụng, không được hiển thị recommendation cũ như thể đang còn hiệu lực.
+Contract bên dưới là contract production. Một lần tải màn hình nên lấy một snapshot duy nhất để action queue và SLA không bị lệch thời điểm. Khi AI hoặc nguồn đánh giá không khả dụng, không được hiển thị recommendation cũ như thể đang còn hiệu lực. Frontend không fallback sang fixture khi GET lỗi hoặc trả `ai_unavailable`; chỉ hiển thị dữ liệu snapshot đã nhận từ backend.
 
 ## 3. Endpoint đọc dữ liệu và quyền truy cập
 

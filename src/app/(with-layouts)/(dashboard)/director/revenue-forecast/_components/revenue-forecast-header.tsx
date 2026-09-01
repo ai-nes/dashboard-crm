@@ -1,9 +1,8 @@
 "use client";
 
-import { Calendar, Download1, Filter } from "@tailgrids/icons";
+import { Calendar, Filter } from "@tailgrids/icons";
 import { useState } from "react";
 
-import { Button } from "@/components/tailgrids/core/button";
 import {
   Select,
   SelectContent,
@@ -92,10 +91,6 @@ export default function RevenueForecastHeader() {
               </SelectContent>
             </Select>
 
-            <Button variant="primary" size="md" className="w-full gap-2 sm:w-auto">
-              <Download1 size={16} />
-              Xuất báo cáo
-            </Button>
           </div>
         </div>
       </div>

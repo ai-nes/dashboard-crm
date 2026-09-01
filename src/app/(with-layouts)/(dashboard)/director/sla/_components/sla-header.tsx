@@ -1,11 +1,9 @@
 "use client";
 
-import { ArrowRight, Download1 } from "@tailgrids/icons";
+import { ArrowRight } from "@tailgrids/icons";
 import Link from "next/link";
-import { toast } from "sonner";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 
 export default function SlaHeader() {
@@ -31,10 +29,6 @@ export default function SlaHeader() {
           Xem việc cần xử lý
           <ArrowRight size={16} aria-hidden="true" />
         </Link>
-        <Button appearance="outline" size="sm" onPress={() => toast.success("Đã tạo báo cáo thời hạn xử lý.")}>
-          <Download1 size={16} aria-hidden="true" />
-          Xuất báo cáo
-        </Button>
       </div>
     </Card>
   );

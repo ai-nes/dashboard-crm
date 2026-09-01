@@ -17,12 +17,14 @@ export interface SlaStatusBucket {
 }
 
 export interface SlaRiskCase {
+  studentId?: string;
   name: string;
   school: string;
-  probability: number;
+  probability: number | null;
   silentFor: string;
   owner: string;
   priority: "Cao" | "Theo dõi";
+  href?: string;
 }
 
 export interface SlaRiskReason {

@@ -1,7 +1,5 @@
 "use client";
 
-import { toast } from "sonner";
-
 import type {
   DemographicSegment,
   DirectorDemographicsSegmentData,
@@ -34,8 +32,6 @@ export default function SegmentDetailDashboard({
       <SegmentDetailHeader
         segment={currentSegment}
         onBack={onBack}
-        onExport={() => toast.success("Đã tạo báo cáo chi tiết nhóm lead.")}
-        onSave={() => toast.success("Đã lưu nhóm lead vào danh sách theo dõi.")}
       />
       <div className="space-y-5 px-2 lg:px-5">
         <SegmentAnalysis segment={currentSegment} />

@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import type { DeviceSyncOverview } from "@/services/api/director-school-field-activity";
 
 interface DeviceSyncStatusProps {
@@ -14,10 +12,6 @@ export default function DeviceSyncStatus({ data }: DeviceSyncStatusProps) {
           <h3 className="text-sm font-semibold text-text-primary">Đồng bộ thiết bị</h3>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Chưa có dữ liệu đồng bộ thiết bị.</p>
         </div>
-        <Link href="/director/data-health" className="mt-4 inline-flex text-sm font-semibold text-brand-500 hover:text-brand-600">
-          Mở tình trạng dữ liệu
-          <span className="ml-1" aria-hidden="true">→</span>
-        </Link>
       </div>
     );
   }
@@ -61,10 +55,6 @@ export default function DeviceSyncStatus({ data }: DeviceSyncStatusProps) {
         <p className="mt-1 text-xs leading-5 text-text-secondary">{data.message ?? "Chưa dùng dữ liệu chưa đồng bộ để đánh giá hiệu quả cho đến khi hoàn tất đồng bộ."}</p>
       </div>
 
-      <Link href="/director/data-health" className="mt-4 inline-flex text-sm font-semibold text-brand-500 hover:text-brand-600">
-        Mở tình trạng dữ liệu
-        <span className="ml-1" aria-hidden="true">→</span>
-      </Link>
     </div>
   );
 }
