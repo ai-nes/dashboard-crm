@@ -4,8 +4,8 @@ import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts"
 
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import AcquisitionMapChartCard, { DemoLegend, DemoNote, formatDemoNumber } from "./acquisition-map-chart-card";
+import { useAcquisitionMapData } from "./acquisition-map-context";
 import OverviewTooltip from "./overview-tooltip";
-import { handoffCompletenessDemo, identityMatchDemo, qualityBySourceDemo, validRateTrendDemo } from "./acquisition-map-demo";
 
 const qualityColors = ["var(--success-500)", "var(--warning-500)", "var(--error-500)", "var(--info-500)"];
 const qualityClasses = ["bg-success-500", "bg-warning-500", "bg-error-500", "bg-info-500"];
@@ -22,6 +22,8 @@ export function AcquisitionQualityPanels() {
 }
 
 export function QualityBySourceChart() {
+  const { leadQualityBySource } = useAcquisitionMapData();
+
   return (
     <AcquisitionMapChartCard
       chartId="10"
@@ -30,7 +32,7 @@ export function QualityBySourceChart() {
       badge="Trùng lặp tách riêng"
     >
       <div className="space-y-4 pt-2">
-        {qualityBySourceDemo.map((item) => {
+        {leadQualityBySource.map((item) => {
           const values = [item.valid, item.enrichment, item.invalid, item.outOfScope, item.duplicate];
           return (
             <div key={item.source} className="grid grid-cols-[64px_minmax(0,1fr)_94px] items-center gap-3">
@@ -50,6 +52,8 @@ export function QualityBySourceChart() {
 }
 
 function ValidRateTrendChart() {
+  const { validLeadRateTrend } = useAcquisitionMapData();
+
   return (
     <AcquisitionMapChartCard
       chartId="11"
@@ -59,7 +63,10 @@ function ValidRateTrendChart() {
     >
       <div className="h-64">
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
-          <LineChart data={validRateTrendDemo} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+          <LineChart
+            data={validLeadRateTrend.map((item) => ({ week: item.week, ...item.values }))}
+            margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+          >
             <CartesianGrid vertical={false} stroke="var(--border-color-base-100)" strokeDasharray="4 4" />
             <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} />
             <YAxis domain={[0, 70]} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} tickFormatter={(value) => `${value}%`} />
@@ -77,6 +84,8 @@ function ValidRateTrendChart() {
 }
 
 function HandoffCompletenessChart() {
+  const { handoffDataCompleteness } = useAcquisitionMapData();
+
   return (
     <AcquisitionMapChartCard
       chartId="12"
@@ -85,14 +94,14 @@ function HandoffCompletenessChart() {
       badge="Lead đã bàn giao"
     >
       <div className="space-y-5 pt-2">
-        {handoffCompletenessDemo.map((item) => (
+        {handoffDataCompleteness.map((item) => (
           <div key={item.field}>
             <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
               <span className="text-text-secondary">{item.field}</span>
-              <span className="font-semibold text-text-primary">{item.value}%</span>
+              <span className="font-semibold text-text-primary">{item.value == null ? "—" : `${item.value}%`}</span>
             </div>
             <div className="relative h-3 rounded-full bg-background-gray-primary">
-              <div className="absolute inset-y-0 left-0 rounded-full bg-brand-500" style={{ width: `${item.value}%` }} />
+              <div className="absolute inset-y-0 left-0 rounded-full bg-brand-500" style={{ width: `${item.value ?? 0}%` }} />
             </div>
           </div>
         ))}
@@ -103,21 +112,22 @@ function HandoffCompletenessChart() {
 }
 
 function IdentityMatchChart() {
-  const max = Math.max(...identityMatchDemo.map((item) => item.value));
+  const { identityMatchBreakdown } = useAcquisitionMapData();
+  const max = Math.max(...identityMatchBreakdown.map((item) => item.value), 0);
 
   return (
     <AcquisitionMapChartCard
       chartId="13"
       title="Cơ chế khớp định danh"
       description="Phân loại bản ghi theo cách khớp; khớp xác suất cần người xác nhận."
-      badge={`${formatDemoNumber(identityMatchDemo.reduce((sum, item) => sum + item.value, 0))} bản ghi`}
+      badge={`${formatDemoNumber(identityMatchBreakdown.reduce((sum, item) => sum + item.value, 0))} bản ghi`}
     >
       <div className="space-y-4 pt-2">
-        {identityMatchDemo.map((item) => (
+        {identityMatchBreakdown.map((item) => (
           <div key={item.label} className="grid grid-cols-[116px_minmax(0,1fr)_54px] items-center gap-3">
             <span className="truncate text-xs text-text-secondary">{item.label}</span>
             <div className="h-2 overflow-hidden rounded-full bg-background-gray-primary">
-              <div className="h-full rounded-full bg-info-500" style={{ width: `${(item.value / max) * 100}%` }} />
+              <div className="h-full rounded-full bg-info-500" style={{ width: `${max === 0 ? 0 : (item.value / max) * 100}%` }} />
             </div>
             <span className="text-right text-xs font-semibold text-text-primary">{formatDemoNumber(item.value)}</span>
           </div>

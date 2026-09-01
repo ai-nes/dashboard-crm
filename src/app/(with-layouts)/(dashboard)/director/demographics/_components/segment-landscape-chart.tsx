@@ -5,20 +5,42 @@ import { ArrowRight, InfoCircle } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { Pagination } from "@/components/tailgrids/core/pagination";
 import { demographicSegments as defaultSegments } from "@/services/api/demographics/data";
-import type { DemographicSegment } from "@/services/api/demographics/types";
+import type {
+  DemographicSegment,
+  DirectorDemographicsOverviewMeta,
+} from "@/services/api/demographics/types";
 import ChartEmptyState from "./chart-empty-state";
 
 interface SegmentLandscapeChartProps {
   segments?: DemographicSegment[];
+  pagination?: Pick<
+    DirectorDemographicsOverviewMeta,
+    "page" | "pageSize" | "total" | "totalPages" | "hasNextPage"
+  >;
+  isLoading?: boolean;
+  onPageChange?: (page: number) => void;
   onOpenSegment: (segmentId: string) => void;
 }
 
 export default function SegmentLandscapeChart({
   segments = defaultSegments,
+  pagination,
+  isLoading = false,
+  onPageChange,
   onOpenSegment,
 }: SegmentLandscapeChartProps) {
-  const rankedSegments = [...segments].sort((first, second) => second.opportunityScore - first.opportunityScore);
+  const rankedSegments = [...segments].sort((first, second) => {
+    const scoreDifference = second.opportunityScore - first.opportunityScore;
+    return scoreDifference || first.id.localeCompare(second.id);
+  });
+  const total = pagination?.total ?? rankedSegments.length;
+  const page = pagination?.page ?? 1;
+  const pageSize = pagination?.pageSize ?? rankedSegments.length;
+  const totalPages = pagination?.totalPages ?? 1;
+  const firstItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastItem = Math.min(page * pageSize, total);
 
   return (
     <Card className="min-w-0 overflow-hidden bg-card-background p-0">
@@ -48,12 +70,12 @@ export default function SegmentLandscapeChart({
               </tr>
             </thead>
             <tbody className="divide-y divide-card-border">
-              {rankedSegments.map((segment) => (
+              {rankedSegments.map((segment, index) => (
                 <tr key={segment.id} className="align-middle hover:bg-background-gray-primary">
                   <th scope="row" className="px-5 py-4 font-normal">
                     <div className="flex items-start gap-3">
                       <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-background-gray-primary text-xs font-semibold text-text-tertiary">
-                        {rankedSegments.indexOf(segment) + 1}
+                        {(page - 1) * pageSize + index + 1}
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
@@ -91,8 +113,43 @@ export default function SegmentLandscapeChart({
           </table>
         </div>
       )}
-      <div className="border-t border-card-border px-5 py-3 text-[11px] text-text-tertiary">
-        Điểm ưu tiên do hệ thống tính · “—” = chưa đủ dữ liệu.
+      <div className="flex flex-col gap-3 border-t border-card-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <p className="shrink-0 whitespace-nowrap text-xs text-text-secondary" aria-live="polite">
+            {total === 0 ? (
+              "Chưa có nhóm"
+            ) : (
+              <>
+                Hiển thị{" "}
+                <span className="font-semibold text-text-primary">
+                  {firstItem}–{lastItem}
+                </span>{" "}
+                trong tổng số{" "}
+                <span className="font-semibold text-text-primary">{total}</span>{" "}
+                nhóm
+              </>
+            )}
+          </p>
+          {isLoading && (
+            <span className="text-xs text-text-tertiary" role="status">
+              Đang tải trang…
+            </span>
+          )}
+        </div>
+        {total > 0 && totalPages > 1 && (
+          <div className="flex shrink-0 items-center justify-end max-sm:w-full">
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={onPageChange}
+              variant="compact"
+              isDisabled={isLoading}
+            />
+          </div>
+        )}
+        <p className="text-[11px] text-text-tertiary sm:ml-auto sm:text-right">
+          Điểm ưu tiên do hệ thống tính · “—” = chưa đủ dữ liệu.
+        </p>
       </div>
     </Card>
   );

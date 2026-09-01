@@ -255,11 +255,15 @@ async function getDemographicsResponse(request: NextRequest, resource: string[])
   if (!identifier || identifier === "overview") {
     const period = request.nextUrl.searchParams.get("period") ?? "6m";
     const scope = request.nextUrl.searchParams.get("scope") ?? "all";
+    const page = numberParam(request, "page", 1, 1000000);
+    const pageSize = numberParam(request, "pageSize", 10, 100);
     return json(
       computeDirectorDemographicsOverview({
         admissionYear,
         period,
         scope,
+        page,
+        pageSize,
       }),
     );
   }
@@ -286,6 +290,8 @@ async function getDemographicsResponse(request: NextRequest, resource: string[])
   return json(
     computeDirectorDemographicsOverview({
       admissionYear,
+      page: numberParam(request, "page", 1, 1000000),
+      pageSize: numberParam(request, "pageSize", 10, 100),
     }),
   );
 }

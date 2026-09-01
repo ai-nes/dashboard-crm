@@ -14,6 +14,7 @@ import type {
   SegmentGuardrail,
   SegmentNextAction,
 } from "./types";
+import { acquisitionMapData } from "./acquisition-map-data";
 
 export const initialFilters: SegmentFilter[] = [
   { id: "gender", label: "Giới tính", value: "Nữ" },
@@ -400,15 +401,25 @@ export function computeDirectorDemographicsOverview(
   params?: DirectorDemographicsOverviewParams,
 ): DirectorDemographicsOverviewResponse {
   const admissionYear = params?.admissionYear ?? 2026;
+  const page = Math.max(1, Math.floor(params?.page ?? 1));
+  const pageSize = Math.max(1, Math.min(Math.floor(params?.pageSize ?? 10), 100));
   const period = params?.period ?? "6m";
   const scope = params?.scope ?? "all";
+  const rankedSegments = [...demographicSegments].sort((first, second) => {
+    const scoreDifference = second.opportunityScore - first.opportunityScore;
+    return scoreDifference || first.id.localeCompare(second.id);
+  });
+  const total = rankedSegments.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const hasNextPage = page < totalPages;
 
   return {
     data: {
       kpis: demographicKpis,
       demand: demandOverviewData,
       audienceComposition: audienceCompositionData,
-      segments: demographicSegments,
+      segments: rankedSegments.slice((page - 1) * pageSize, page * pageSize),
+      acquisitionMap: acquisitionMapData,
       regionOpportunities,
       regionalDemand: regionalDemandMatrixData,
       dataCoverage: dataCoverageMetrics,
@@ -420,11 +431,17 @@ export function computeDirectorDemographicsOverview(
       asOf: "2026-06-06T10:00:00+07:00",
       totalProspects: audienceCompositionData.total,
       minSampleSize: 30,
+      page,
+      pageSize,
+      total,
+      totalPages,
+      hasNextPage,
       dataAvailability: {
         trend: true,
         tuition: false,
         revenue: false,
-        eligibleSegments: demographicSegments.length,
+        eligibleSegments: total,
+        acquisitionMap: "complete",
       },
     },
   };

@@ -17,6 +17,27 @@ describe("director demographics API contract", () => {
     expect(data.meta.admissionYear).toBe(2026);
     expect(data.data.kpis.length).toBeGreaterThan(0);
     expect(data.data.segments.length).toBeGreaterThan(0);
+    expect(data.data.acquisitionMap.formFunnel.length).toBeGreaterThan(0);
+    expect(data.data.acquisitionMap.attributionModel.firstTouch).toBe("first-touch");
+    expect(data.data.acquisitionMap.submissionTiming.timezone).toBe("Asia/Ho_Chi_Minh");
+    expect(data.meta.page).toBe(1);
+    expect(data.meta.pageSize).toBe(10);
+    expect(data.meta.total).toBeGreaterThanOrEqual(data.data.segments.length);
+  });
+
+  it("paginates segments after ranking when offline", async () => {
+    const firstPage = await getDirectorDemographicsOverview({ page: 1, pageSize: 2 });
+    const secondPage = await getDirectorDemographicsOverview({ page: 2, pageSize: 2 });
+
+    expect(firstPage.data.segments).toHaveLength(2);
+    expect(secondPage.data.segments).toHaveLength(2);
+    expect(firstPage.data.segments[0]?.opportunityScore).toBeGreaterThanOrEqual(
+      secondPage.data.segments[0]?.opportunityScore ?? 0,
+    );
+    expect(firstPage.meta.total).toBe(secondPage.meta.total);
+    expect(firstPage.meta.totalPages).toBe(3);
+    expect(firstPage.meta.hasNextPage).toBe(true);
+    expect(secondPage.meta.page).toBe(2);
   });
 
   it("calls Frappe overview endpoint with parameters and validates envelope", async () => {
@@ -36,6 +57,23 @@ describe("director demographics API contract", () => {
     );
     expect(result.data.kpis.length).toBe(mockOverview.data.kpis.length);
     expect(result.meta.admissionYear).toBe(2026);
+  });
+
+  it("passes overview pagination parameters to Frappe", async () => {
+    const mockOverview = computeDirectorDemographicsOverview({ page: 2, pageSize: 2 });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockOverview }), { status: 200 }),
+    );
+
+    await getDirectorDemographicsOverview(
+      { admissionYear: 2026, page: 2, pageSize: 2, period: "6m", scope: "all" },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_demographics.get_director_demographics_overview?admissionYear=2026&page=2&pageSize=2&period=6m&scope=all",
+      expect.objectContaining({ cache: "no-store" }),
+    );
   });
 
   it("throws DirectorDemographicsApiError on authorization failure", async () => {

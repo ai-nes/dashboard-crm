@@ -116,6 +116,180 @@ export interface RegionalDemandMatrix {
   }>;
 }
 
+export interface AcquisitionPlatformLeadCost {
+  platform: string;
+  leads: number;
+  validLeads: number;
+  spend: number;
+  cpl: number | null;
+}
+
+export interface AcquisitionSeasonComparison {
+  week: string;
+  current: number;
+  previous: number;
+}
+
+export interface AcquisitionDailySpendLeads {
+  day: string;
+  spend: number;
+  leads: number;
+}
+
+export interface AcquisitionTouchpointPlatformMatrix {
+  columns: string[];
+  rows: Array<{ label: string; values: Array<number | null> }>;
+}
+
+export interface AcquisitionBudgetRole {
+  label: string;
+  value: number;
+}
+
+export interface AcquisitionFormFunnelStep {
+  label: string;
+  value: number;
+  retention: number | null;
+}
+
+export interface AcquisitionFormCompletion {
+  id?: string;
+  label: string;
+  value: number | null;
+  denominator?: number;
+}
+
+export interface AcquisitionFormDropoff {
+  field: string;
+  dropoff: number | null;
+  cumulative: number | null;
+}
+
+export interface AcquisitionCaptureModeComparison {
+  label: string;
+  validRate: number | null;
+  completeRate: number | null;
+}
+
+export interface AcquisitionLeadQualityBySource {
+  source: string;
+  valid: number;
+  enrichment: number;
+  invalid: number;
+  outOfScope: number;
+  duplicate: number;
+}
+
+export interface AcquisitionValidRateTrendPoint {
+  week: string;
+  values: Record<string, number | null>;
+}
+
+export interface AcquisitionDataCompleteness {
+  field: string;
+  value: number | null;
+}
+
+export interface AcquisitionIdentityMatch {
+  label: string;
+  value: number;
+}
+
+export interface AcquisitionSourceCount {
+  source: string;
+  value: number;
+}
+
+export interface AcquisitionFirstVsLastSource {
+  source: string;
+  first: number;
+  last: number;
+}
+
+export interface AcquisitionAttributionFlow {
+  label: string;
+  value: number;
+}
+
+export interface AcquisitionCohortEnrollment {
+  cohort: string;
+  values: Array<number | null>;
+}
+
+export interface AcquisitionEnrollmentLagBucket {
+  range: string;
+  value: number;
+}
+
+export interface AcquisitionCumulativeConversion {
+  week: string;
+  value: number | null;
+}
+
+export interface AcquisitionContactLatency {
+  window: string;
+  min: number | null;
+  q1: number | null;
+  median: number | null;
+  q3: number | null;
+  max: number | null;
+}
+
+export interface AcquisitionSubmissionTiming {
+  weekdays: string[];
+  hours: string[];
+  values: Array<Array<number | null>>;
+  timezone: string;
+}
+
+export interface AcquisitionAttributionModel {
+  firstTouch: "first-touch";
+  lastTouch: "last-touch";
+}
+
+export interface AcquisitionHandoffSuccess {
+  source: string;
+  success: number | null;
+  contacted: number | null;
+}
+
+export interface AcquisitionCostPerEnrolled {
+  source: string;
+  cost: number | null;
+  enrolled: number;
+}
+
+export interface AcquisitionMapData {
+  attributionModel: AcquisitionAttributionModel;
+  platformLeadCost: AcquisitionPlatformLeadCost[];
+  leadTrendComparison: AcquisitionSeasonComparison[];
+  dailySpendLeads: AcquisitionDailySpendLeads[];
+  touchpointPlatformMatrix: AcquisitionTouchpointPlatformMatrix;
+  budgetByPlatformRole: AcquisitionBudgetRole[];
+  formFunnel: AcquisitionFormFunnelStep[];
+  formCompletion: AcquisitionFormCompletion[];
+  formDropoffByField: AcquisitionFormDropoff[];
+  captureModeComparison: AcquisitionCaptureModeComparison[];
+  leadQualityBySource: AcquisitionLeadQualityBySource[];
+  validLeadRateTrend: AcquisitionValidRateTrendPoint[];
+  handoffDataCompleteness: AcquisitionDataCompleteness[];
+  identityMatchBreakdown: AcquisitionIdentityMatch[];
+  firstTouchBySource: AcquisitionSourceCount[];
+  lastTouchBySource: AcquisitionSourceCount[];
+  firstVsLastSource: AcquisitionFirstVsLastSource[];
+  attributionFlow: AcquisitionAttributionFlow[];
+  cohortEnrollmentMatrix: AcquisitionCohortEnrollment[];
+  enrollmentLagHistogram: {
+    medianDays: number | null;
+    buckets: AcquisitionEnrollmentLagBucket[];
+  };
+  cumulativeConversion: AcquisitionCumulativeConversion[];
+  firstContactLatency: AcquisitionContactLatency[];
+  submissionTiming: AcquisitionSubmissionTiming;
+  handoffSuccessBySource: AcquisitionHandoffSuccess[];
+  costPerEnrolledBySource: AcquisitionCostPerEnrolled[];
+}
+
 export interface DemographicsFilterOptions {
   provinces: string[];
   majors: string[];
@@ -156,6 +330,8 @@ export interface SegmentGuardrail {
 
 export interface DirectorDemographicsOverviewParams {
   admissionYear?: number;
+  page?: number;
+  pageSize?: number;
   period?: "6m" | "12m" | "season" | string;
   scope?: "all" | string;
   province?: string;
@@ -171,6 +347,7 @@ export interface DirectorDemographicsOverviewData {
   demand: DemandOverview;
   audienceComposition: AudienceComposition;
   segments: DemographicSegment[];
+  acquisitionMap: AcquisitionMapData;
   regionOpportunities: RegionOpportunity[];
   regionalDemand: RegionalDemandMatrix;
   dataCoverage: DataCoverageMetric[];
@@ -184,11 +361,17 @@ export interface DirectorDemographicsOverviewMeta {
   asOf: string;
   totalProspects: number;
   minSampleSize: number;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
   dataAvailability?: {
     trend: boolean | "complete" | "partial" | "unavailable";
     tuition: boolean;
     revenue: boolean;
     eligibleSegments: number;
+    acquisitionMap: "complete" | "partial" | "unavailable";
   };
 }
 
