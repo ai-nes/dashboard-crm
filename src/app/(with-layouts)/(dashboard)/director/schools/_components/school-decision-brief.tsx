@@ -48,6 +48,7 @@ export default function SchoolDecisionBrief({
         label="Địa bàn"
         value={`${data.school.district}, ${data.school.province}`}
         detail={`${locality.distanceKm} km đến campus · ${locality.travelTime}`}
+        tone="gray"
       />
       <BriefItem
         icon={<TrendUp2 size={16} />}
