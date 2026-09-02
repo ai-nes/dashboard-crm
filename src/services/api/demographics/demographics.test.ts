@@ -59,6 +59,19 @@ describe("director demographics API contract", () => {
     expect(result.meta.admissionYear).toBe(2026);
   });
 
+  it("accepts the current backend overview without pagination or acquisition-map data", async () => {
+    const mockOverview = computeDirectorDemographicsOverview({ admissionYear: 2026 });
+    const { acquisitionMap: _acquisitionMap, ...data } = mockOverview.data;
+    const { page: _page, pageSize: _pageSize, total: _total, totalPages: _totalPages, hasNextPage: _hasNextPage, ...meta } = mockOverview.meta;
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: { data, meta } }), { status: 200 }),
+    );
+
+    await expect(
+      getDirectorDemographicsOverview({ admissionYear: 2026 }, { baseUrl: "http://frappe:8000" }),
+    ).resolves.toEqual(expect.objectContaining({ meta: expect.objectContaining({ admissionYear: 2026 }) }));
+  });
+
   it("passes overview pagination parameters to Frappe", async () => {
     const mockOverview = computeDirectorDemographicsOverview({ page: 2, pageSize: 2 });
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(

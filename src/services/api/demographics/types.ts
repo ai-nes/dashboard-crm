@@ -347,7 +347,7 @@ export interface DirectorDemographicsOverviewData {
   demand: DemandOverview;
   audienceComposition: AudienceComposition;
   segments: DemographicSegment[];
-  acquisitionMap: AcquisitionMapData;
+  acquisitionMap?: AcquisitionMapData;
   regionOpportunities: RegionOpportunity[];
   regionalDemand: RegionalDemandMatrix;
   dataCoverage: DataCoverageMetric[];
@@ -361,17 +361,17 @@ export interface DirectorDemographicsOverviewMeta {
   asOf: string;
   totalProspects: number;
   minSampleSize: number;
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-  hasNextPage: boolean;
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
   dataAvailability?: {
     trend: boolean | "complete" | "partial" | "unavailable";
     tuition: boolean;
     revenue: boolean;
     eligibleSegments: number;
-    acquisitionMap: "complete" | "partial" | "unavailable";
+    acquisitionMap?: "complete" | "partial" | "unavailable";
   };
 }
 

@@ -23,8 +23,8 @@ export default function SchoolFieldActivityPageClient() {
       admissionYear: 2026,
       period: "season",
       scope: "all",
-      activityLimit: 50,
-      upcomingLimit: 10,
+      activityLimit: 5,
+      upcomingLimit: 5,
       includeDevices: true,
     })
       .then((result) => {
