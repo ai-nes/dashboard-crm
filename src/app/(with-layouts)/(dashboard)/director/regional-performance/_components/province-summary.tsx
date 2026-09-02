@@ -43,15 +43,15 @@ function ProvinceSummary({ province }: { province: RegionPerformance }) {
         />
         <Metric
           label="Tỷ lệ nhập học"
-          value={`${province.conversion}%`}
+          value={formatPercent(province.conversion)}
         />
         <Metric
           label="Mức sử dụng đội ngũ"
-          value={`${province.capacity}%`}
+          value={formatPercent(province.capacity)}
           tone={
-            province.capacity > 90
+            (province.capacity ?? 0) > 90
               ? "critical"
-              : province.capacity > 80
+              : (province.capacity ?? 0) > 80
                 ? "watch"
                 : "good"
           }
@@ -78,6 +78,10 @@ function ProvinceSummary({ province }: { province: RegionPerformance }) {
   );
 }
 
+function formatPercent(value: number | null): string {
+  return value === null ? "—" : `${value}%`;
+}
+
 function Metric({
   label,
   value,
@@ -86,10 +90,10 @@ function Metric({
 }: {
   label: string;
   value: string;
-  change?: number;
+  change?: number | null;
   tone?: HealthTone;
 }) {
-  const isPositive = change === undefined || change >= 0;
+  const isPositive = change === undefined || change === null || change >= 0;
   const toneClass =
     tone === "critical"
       ? "text-error-500"
@@ -103,7 +107,7 @@ function Metric({
     <div>
       <p className="text-xs text-text-tertiary">{label}</p>
       <p className={`mt-1 text-xl font-semibold ${toneClass}`}>{value}</p>
-      {change !== undefined && (
+      {change !== undefined && change !== null && (
         <p
           className={`mt-1 text-xs font-medium ${isPositive ? "text-success-500" : "text-error-500"}`}
         >

@@ -62,10 +62,10 @@ function createTrend(
 ): MonthlyTrend[] {
   return baseTrend.map((item) => ({
     month: item.month,
-    applications: Math.round(item.applications * applicationScale),
-    enrollments: Math.round(item.enrollments * enrollmentScale),
+    applications: Math.round((item.applications ?? 0) * applicationScale),
+    enrollments: Math.round((item.enrollments ?? 0) * enrollmentScale),
     previousApplications: Math.round(
-      item.previousApplications * applicationScale,
+      (item.previousApplications ?? 0) * applicationScale,
     ),
   }));
 }
