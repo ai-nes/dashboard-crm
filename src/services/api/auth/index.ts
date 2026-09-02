@@ -7,8 +7,8 @@ const FRAPPE_URL = (
 ).replace(/\/+$/, "");
 
 /** Absolute URL of a Frappe whitelisted method. */
-function frappeMethod(path: string): string {
-  return `${FRAPPE_URL}/api/method/${path}`;
+function frappeMethod(path: string, baseUrl = FRAPPE_URL): string {
+  return `${baseUrl.replace(/\/+$/, "")}/api/method/${path}`;
 }
 
 /** Resolve a possibly site-relative Frappe asset path (e.g. an avatar) to an absolute URL. */
@@ -35,10 +35,10 @@ export function startGoogleLogin(returnTo?: string): void {
  * authenticated (guest session, or 401/403) so callers can treat "logged out"
  * as a normal state rather than an error.
  */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+async function getCurrentUserFrom(baseUrl: string): Promise<CurrentUser | null> {
   let res: Response;
   try {
-    res = await fetch(frappeMethod("crm.api.session.me"), {
+    res = await fetch(frappeMethod("crm.api.session.me", baseUrl), {
       credentials: "include",
       headers: { Accept: "application/json" },
     });
@@ -56,6 +56,16 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   >;
   if (!body.message || !body.message.user) return null;
   return body.message as CurrentUser;
+}
+
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  return getCurrentUserFrom(FRAPPE_URL);
+}
+
+/** Fetch the CSRF token bound to the browser's current Frappe session. */
+export async function getCsrfToken(baseUrl = FRAPPE_URL): Promise<string | null> {
+  const user = await getCurrentUserFrom(baseUrl);
+  return user?.csrf_token?.trim() || null;
 }
 
 export interface PasswordLoginResult {

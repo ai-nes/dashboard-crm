@@ -92,11 +92,35 @@ function frappeCookieHeader(cookieHeader: string): string {
     .join("; ");
 }
 
-async function requestHeaders(options: RequestOptions, contentType = false): Promise<Record<string, string>> {
+async function requestHeaders(
+  options: RequestOptions,
+  baseUrl: string,
+  contentType = false,
+): Promise<Record<string, string>> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (contentType) headers["Content-Type"] = "application/json";
 
-  if (!options.baseUrl && typeof window === "undefined") {
+  if (typeof window !== "undefined" && contentType) {
+    try {
+      const { getCsrfToken } = await import("../auth");
+      const csrfToken = await getCsrfToken(baseUrl);
+      if (!csrfToken) {
+        throw new AnalysisRunApiError(
+          401,
+          "CSRF_TOKEN_MISSING",
+          "Phiên đăng nhập không có mã xác thực. Vui lòng đăng nhập lại.",
+        );
+      }
+      headers["X-Frappe-CSRF-Token"] = csrfToken;
+    } catch (error) {
+      if (error instanceof AnalysisRunApiError) throw error;
+      throw new AnalysisRunApiError(
+        503,
+        "CSRF_TOKEN_UNAVAILABLE",
+        "Không thể xác thực phiên đăng nhập. Vui lòng thử lại.",
+      );
+    }
+  } else if (!options.baseUrl && typeof window === "undefined") {
     try {
       const { cookies } = await import("next/headers");
       const cookieHeader = frappeCookieHeader((await cookies()).toString());
@@ -248,7 +272,7 @@ export async function requestAnalysisRun(
         high_school: request.highSchool.trim(),
         ...(request.admissionYear !== undefined ? { admission_year: request.admissionYear } : {}),
       };
-  const headers = await requestHeaders(options, true);
+  const headers = await requestHeaders(options, baseUrl, true);
   headers["Idempotency-Key"] = createIdempotencyKey(request.kind, request.kind === "student" ? request.studentId : request.highSchool);
 
   let response: Response;
@@ -284,7 +308,7 @@ export async function getAnalysisRun(
     run_type: runKind === "student" ? "CRM Student Analysis Run" : "CRM School Analysis Run",
     run_id: runId,
   });
-  const headers = await requestHeaders(options);
+  const headers = await requestHeaders(options, baseUrl);
 
   let response: Response;
   try {
