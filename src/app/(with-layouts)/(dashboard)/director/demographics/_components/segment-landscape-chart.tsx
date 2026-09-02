@@ -46,7 +46,7 @@ export default function SegmentLandscapeChart({
     <Card className="min-w-0 overflow-hidden bg-card-background p-0">
       <CardHeader className="border-b border-card-border p-5">
         <div>
-          <CardTitle>Nhóm lead cần ưu tiên</CardTitle>
+          <CardTitle>Nhóm học sinh cần ưu tiên</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
             Xếp theo điểm ưu tiên; mở nhóm để xem chi tiết.
           </p>
@@ -60,8 +60,8 @@ export default function SegmentLandscapeChart({
           <table className="w-full min-w-[900px] text-left text-xs">
             <thead className="border-b border-card-border bg-background-gray-primary">
               <tr>
-                <th scope="col" className="min-w-[280px] px-5 py-3 font-medium text-text-tertiary">Nhóm lead</th>
-                <th scope="col" className="px-3 py-3 text-right font-medium text-text-tertiary">Tổng lead</th>
+                <th scope="col" className="min-w-[280px] px-5 py-3 font-medium text-text-tertiary">Nhóm học sinh</th>
+                <th scope="col" className="px-3 py-3 text-right font-medium text-text-tertiary">Tổng học sinh</th>
                 <th scope="col" className="px-3 py-3 text-right font-medium text-text-tertiary">Đã tương tác</th>
                 <th scope="col" className="px-3 py-3 text-right font-medium text-text-tertiary">Đã nộp hồ sơ</th>
                 <th scope="col" className="px-3 py-3 text-right font-medium text-text-tertiary">Đã nhập học</th>

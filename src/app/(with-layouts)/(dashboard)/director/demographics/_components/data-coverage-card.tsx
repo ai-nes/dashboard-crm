@@ -81,5 +81,5 @@ function getOverallCoverageLabel(tone: DataCoverageMetric["tone"]): string {
 function getCoverageNote(metrics: DataCoverageMetric[]): string {
   const weakest = [...metrics].sort((first, second) => first.value - second.value)[0];
   if (!weakest || weakest.value <= 0) return "Một số trường chưa có dữ liệu chuẩn; không dùng chúng để suy luận nhóm.";
-  return `${weakest.label} mới có ở ${weakest.value}% lead. Kết quả theo tiêu chí này có thể chưa đại diện.`;
+  return `${weakest.label} mới có ở ${weakest.value}% học sinh. Kết quả theo tiêu chí này có thể chưa đại diện.`;
 }

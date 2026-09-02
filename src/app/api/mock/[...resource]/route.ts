@@ -256,7 +256,7 @@ async function getDemographicsResponse(request: NextRequest, resource: string[])
     const period = request.nextUrl.searchParams.get("period") ?? "6m";
     const scope = request.nextUrl.searchParams.get("scope") ?? "all";
     const page = numberParam(request, "page", 1, 1000000);
-    const pageSize = numberParam(request, "pageSize", 10, 100);
+    const pageSize = numberParam(request, "pageSize", 5, 100);
     return json(
       computeDirectorDemographicsOverview({
         admissionYear,
@@ -291,7 +291,7 @@ async function getDemographicsResponse(request: NextRequest, resource: string[])
     computeDirectorDemographicsOverview({
       admissionYear,
       page: numberParam(request, "page", 1, 1000000),
-      pageSize: numberParam(request, "pageSize", 10, 100),
+      pageSize: numberParam(request, "pageSize", 5, 100),
     }),
   );
 }

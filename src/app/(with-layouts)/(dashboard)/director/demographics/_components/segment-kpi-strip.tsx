@@ -10,9 +10,9 @@ export default function SegmentKpiStrip({ segment }: { segment: DemographicSegme
 
   const items = [
     {
-      label: "Tổng lead",
+      label: "Tổng học sinh",
       value: segment.prospects != null ? segment.prospects.toLocaleString("vi-VN") : "-",
-      helper: segment.prospects != null ? `${((segment.prospects / 57840) * 100).toLocaleString("vi-VN", { maximumFractionDigits: 1 })}% tổng lead` : "-",
+      helper: segment.prospects != null ? `${((segment.prospects / 57840) * 100).toLocaleString("vi-VN", { maximumFractionDigits: 1 })}% tổng học sinh` : "-",
       tone: "bg-brand-500",
     },
     {

@@ -4,7 +4,7 @@ import DemographicExplorerDashboard from "./_components/demographic-explorer-das
 
 export const metadata: Metadata = {
   title: "Tổng quan nhóm học sinh",
-  description: "Theo dõi nguồn, chất lượng lead và nhóm cần ưu tiên trong mùa tuyển sinh.",
+  description: "Theo dõi nguồn, chất lượng học sinh và nhóm cần ưu tiên trong mùa tuyển sinh.",
 };
 
 export default function DemographicsPage() {

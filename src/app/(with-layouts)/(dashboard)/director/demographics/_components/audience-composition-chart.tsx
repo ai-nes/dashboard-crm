@@ -21,10 +21,10 @@ export default function AudienceCompositionChart({ audience = defaultAudience }:
     <Card className="flex h-full min-w-0 flex-col overflow-hidden bg-card-background">
       <CardHeader className="mb-3 items-start">
         <div>
-          <CardTitle>Cơ cấu lead theo giới tính</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Phân bổ giới tính và các đặc điểm nổi bật của lead.</p>
+          <CardTitle>Cơ cấu học sinh theo giới tính</CardTitle>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Phân bổ giới tính và các đặc điểm nổi bật của học sinh.</p>
         </div>
-        <span className="text-xs font-medium text-text-tertiary">{total.toLocaleString("vi-VN")} lead</span>
+        <span className="text-xs font-medium text-text-tertiary">{total.toLocaleString("vi-VN")} học sinh</span>
       </CardHeader>
       <div className="space-y-3">
         <div className="h-3 overflow-hidden rounded-full bg-background-gray-secondary" aria-label="Phân bổ giới tính">
@@ -47,7 +47,7 @@ export default function AudienceCompositionChart({ audience = defaultAudience }:
                 {item.name}
               </div>
               <p className="mt-1 text-sm font-semibold text-text-primary">{item.value}%</p>
-              <p className="mt-0.5 text-[10px] text-text-tertiary">{getCount(item.value, total).toLocaleString("vi-VN")} lead</p>
+              <p className="mt-0.5 text-[10px] text-text-tertiary">{getCount(item.value, total).toLocaleString("vi-VN")} học sinh</p>
             </div>
           ))}
         </div>
@@ -59,7 +59,7 @@ export default function AudienceCompositionChart({ audience = defaultAudience }:
             <div className="flex items-center justify-between gap-3 text-xs">
               <span className="min-w-0 truncate text-text-secondary">{profile.label}</span>
               <span className="shrink-0 font-semibold text-text-primary">
-                {profile.value}% <span className="font-normal text-text-tertiary">· {profile.detail || `${profile.count?.toLocaleString("vi-VN") ?? 0} lead`}</span>
+                {profile.value}% <span className="font-normal text-text-tertiary">· {profile.detail || `${profile.count?.toLocaleString("vi-VN") ?? 0} học sinh`}</span>
               </span>
             </div>
           </div>

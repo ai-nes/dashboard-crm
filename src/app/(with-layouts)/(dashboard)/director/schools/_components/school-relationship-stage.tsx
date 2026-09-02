@@ -36,7 +36,7 @@ export default function SchoolRelationshipStage({
           </p>
           <h3
             id="school-relationship-stage"
-            className="mt-1 text-xl font-semibold leading-7 text-text-primary"
+            className="mt-0.5 text-lg font-semibold leading-6 text-text-primary"
           >
             {data.relationship.level}
           </h3>
@@ -55,7 +55,7 @@ export default function SchoolRelationshipStage({
       </div>
 
       <ol
-        className="mt-6 flex items-start"
+        className="mt-4 flex items-start"
         aria-label={`Mức quan hệ hiện tại: ${data.relationship.level}`}
       >
         {relationshipSteps.map((step, index) => (
@@ -87,7 +87,7 @@ export default function SchoolRelationshipStage({
         ))}
       </ol>
 
-      <div className="mt-6 space-y-3 border-t border-card-border pt-4">
+      <div className="mt-4 grid gap-3 border-t border-card-border pt-3 sm:grid-cols-2">
         <div className="flex min-w-0 items-start gap-2.5">
           <User2
             size={16}
@@ -117,7 +117,7 @@ export default function SchoolRelationshipStage({
                 ? `Tiến tới ${nextStep.toLocaleLowerCase("vi-VN")}`
                 : "Duy trì quan hệ đối tác"}
             </p>
-            <p className="mt-0.5 text-xs leading-5 text-text-secondary">
+            <p className="sr-only">
               {data.relationship.nextTouch ||
                 "Chốt lịch làm việc tiếp theo với trường."}
             </p>

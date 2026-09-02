@@ -9,7 +9,7 @@ import type { DemographicSegment } from "./types";
 
 export default function SegmentAnalysis({ segment }: { segment: DemographicSegment }) {
   const stages = [
-    { label: "Tổng lead", value: segment.prospects },
+    { label: "Tổng học sinh", value: segment.prospects },
     { label: "Đã tương tác", value: segment.engaged },
     { label: "Đủ điều kiện tư vấn", value: segment.qualified },
     { label: "Đã tư vấn", value: segment.counselling },
@@ -24,14 +24,14 @@ export default function SegmentAnalysis({ segment }: { segment: DemographicSegme
   return (
     <section className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
       <Card className="min-w-0 overflow-hidden bg-background-gray-primary p-0">
-        <CardHeader className="border-b border-card-border p-5"><div><CardTitle>Phễu từ lead đến nhập học</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Tỷ lệ chuyển đổi giữa các bước của nhóm đang xem.</p></div><Badge color="primary">{segment.prospects.toLocaleString("vi-VN")} lead</Badge></CardHeader>
+        <CardHeader className="border-b border-card-border p-5"><div><CardTitle>Phễu từ học sinh quan tâm đến nhập học</CardTitle><p className="mt-1 text-xs leading-5 text-text-tertiary">Tỷ lệ chuyển đổi giữa các bước của nhóm đang xem.</p></div><Badge color="primary">{segment.prospects.toLocaleString("vi-VN")} học sinh</Badge></CardHeader>
         <div className="p-5">
           {!isMonotonic ? (
             <div role="status" className="mb-4 rounded-xl border border-card-border bg-background-gray-primary px-3 py-2 text-xs leading-5 text-text-secondary">
               Số liệu các bước chưa giảm dần. Các tỷ lệ ở bước bất thường được hiển thị là — để tránh diễn giải sai phễu.
             </div>
           ) : null}
-          <div className="mb-3 grid grid-cols-[100px_minmax(150px,1fr)_72px_62px] gap-3 text-[10px] font-semibold tracking-wide text-text-tertiary uppercase"><span>Bước</span><span>Tỷ lệ còn lại</span><span className="text-right">Số lead</span><span className="text-right">Tỷ lệ chuyển bước</span></div>
+          <div className="mb-3 grid grid-cols-[100px_minmax(150px,1fr)_72px_62px] gap-3 text-[10px] font-semibold tracking-wide text-text-tertiary uppercase"><span>Bước</span><span>Tỷ lệ còn lại</span><span className="text-right">Số HS</span><span className="text-right">Tỷ lệ chuyển bước</span></div>
           <div className="space-y-3">{stages.map((stage, index) => { const width = getStageWidth(stage.value, segment.prospects); return <div key={stage.label} className="grid grid-cols-[100px_minmax(150px,1fr)_72px_62px] items-center gap-3"><span className="text-xs font-medium text-text-secondary">{stage.label}</span><div className="h-8 overflow-hidden rounded-lg bg-card-background"><div className={`flex h-full items-center rounded-lg px-2 ${index === 0 ? "bg-primary-200" : index === stages.length - 1 ? "bg-success-500" : "bg-brand-500"}`} style={{ width: `${width}%` }}><span className={`truncate text-[10px] font-semibold ${index === 0 ? "text-primary-text" : "text-white-100"}`}>{width >= 22 ? stage.label : ""}</span></div></div><strong className="text-right text-xs text-text-primary">{stage.value.toLocaleString("vi-VN")}</strong><span className={`text-right text-xs font-semibold ${index === stages.length - 1 ? "text-success-500" : "text-text-secondary"}`}>{formatRate(stage.conversion)}</span></div>; })}</div>
           <p className="mt-5 border-t border-card-border pt-4 text-xs leading-5 text-text-tertiary">Tỷ lệ được tính theo bước liền trước.</p>
         </div>

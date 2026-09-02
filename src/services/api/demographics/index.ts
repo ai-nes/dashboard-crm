@@ -48,12 +48,31 @@ function hasDemographicsOverviewEnvelope(value: unknown): boolean {
     typeof data.demand === "object" &&
     typeof data.audienceComposition === "object" &&
     Array.isArray(data.segments) &&
+    !!data.acquisitionMap &&
+    typeof data.acquisitionMap === "object" &&
     Array.isArray(data.regionOpportunities) &&
     typeof data.regionalDemand === "object" &&
     Array.isArray(data.dataCoverage) &&
     !!meta &&
     typeof meta === "object" &&
-    typeof meta.admissionYear === "number"
+    typeof meta.admissionYear === "number" &&
+    typeof meta.page === "number" &&
+    Number.isInteger(meta.page) &&
+    meta.page >= 1 &&
+    typeof meta.pageSize === "number" &&
+    Number.isInteger(meta.pageSize) &&
+    meta.pageSize >= 1 &&
+    typeof meta.total === "number" &&
+    Number.isInteger(meta.total) &&
+    meta.total >= 0 &&
+    typeof meta.totalPages === "number" &&
+    Number.isInteger(meta.totalPages) &&
+    meta.totalPages >= 1 &&
+    meta.totalPages === Math.max(1, Math.ceil(meta.total / meta.pageSize)) &&
+    meta.page <= meta.totalPages &&
+    data.segments.length <= meta.pageSize &&
+    typeof meta.hasNextPage === "boolean" &&
+    meta.hasNextPage === (meta.page < meta.totalPages)
   );
 }
 

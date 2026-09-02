@@ -4,7 +4,6 @@ import {
   ChatIcon,
   HomeIcon,
   InvoiceIcon,
-  LetterIcon,
   PieChartIcon,
   TableIcon,
   UserGroupIcon,
@@ -16,6 +15,7 @@ import type { ReactNode } from "react";
 interface NavigationItem {
   title: string;
   url?: string;
+  exact?: boolean;
   icon?: ReactNode;
   items?: NavigationItem[];
 }
@@ -27,7 +27,7 @@ interface NavigationSection {
 
 export const NAV_DATA: NavigationSection[] = [
   {
-    label: "A · ĐIỀU HÀNH & THỊ TRƯỜNG",
+    label: "TỔNG QUAN",
     items: [
       {
         title: "Tổng quan tuyển sinh",
@@ -36,8 +36,25 @@ export const NAV_DATA: NavigationSection[] = [
         items: [],
       },
       {
-        title: "Bản đồ & trường THPT",
+        title: "Chatbot CRM",
+        url: "/crm-chatbot",
+        icon: <ChatIcon />,
+        items: [],
+      },
+    ],
+  },
+  {
+    label: "THỊ TRƯỜNG & NGƯỜI HỌC",
+    items: [
+      {
+        title: "Trường THPT 360°",
         url: "/director/market-intelligence",
+        icon: <PieChartIcon />,
+        items: [],
+      },
+      {
+        title: "Hiệu suất khu vực",
+        url: "/director/regional-performance",
         icon: <PieChartIcon />,
         items: [],
       },
@@ -48,15 +65,15 @@ export const NAV_DATA: NavigationSection[] = [
         items: [],
       },
       {
-        title: "Hiệu suất khu vực",
-        url: "/director/regional-performance",
-        icon: <PieChartIcon />,
+        title: "Hồ sơ học sinh 360°",
+        url: "/director/students",
+        icon: <UserGroupIcon />,
         items: [],
       },
     ],
   },
   {
-    label: "B · HÀNH TRÌNH & THỰC THI",
+    label: "VẬN HÀNH TUYỂN SINH",
     items: [
       {
         title: "Phễu tuyển sinh",
@@ -71,12 +88,6 @@ export const NAV_DATA: NavigationSection[] = [
         items: [],
       },
       {
-        title: "Hồ sơ học sinh 360°",
-        url: "/director/students",
-        icon: <UserGroupIcon />,
-        items: [],
-      },
-      {
         title: "Hoạt động trường & thực địa",
         url: "/director/school-field-activity",
         icon: <CalendarIcon />,
@@ -85,7 +96,7 @@ export const NAV_DATA: NavigationSection[] = [
     ],
   },
   {
-    label: "C · TĂNG TRƯỞNG & DOANH THU",
+    label: "TĂNG TRƯỞNG & DOANH THU",
     items: [
       {
         title: "Phân tích chiến dịch",
@@ -102,42 +113,13 @@ export const NAV_DATA: NavigationSection[] = [
     ],
   },
   {
-    label: "D · AI & QUẢN TRỊ HỆ THỐNG",
+    label: "AI, DỮ LIỆU & THIẾT LẬP",
     items: [
       {
-        title: "Luồng tín hiệu AI",
-        url: "/director/ai/command-stream",
+        title: "Trung tâm AI & dữ liệu",
+        url: "/director/ai",
+        exact: true,
         icon: <Widget4Icon />,
-        items: [],
-      },
-      {
-        title: "Hỏi đáp tuyển sinh AI",
-        url: "/director/ai/ask-admission",
-        icon: <ChatIcon />,
-        items: [],
-      },
-      {
-        title: "Chatbot CRM",
-        url: "/crm-chatbot",
-        icon: <ChatIcon />,
-        items: [],
-      },
-      {
-        title: "Độ tin cậy & sức khỏe AI",
-        url: "/director/ai/trust-model-health",
-        icon: <AlphabetIcon />,
-        items: [],
-      },
-      {
-        title: "Sức khỏe dữ liệu & nguồn",
-        url: "/director/data-health",
-        icon: <TableIcon />,
-        items: [],
-      },
-      {
-        title: "Cảnh báo & đăng ký nhận tin",
-        url: "/director/alerts",
-        icon: <LetterIcon />,
         items: [],
       },
     ],

@@ -34,7 +34,7 @@ export default function ActivityCostChart({ activities }: ActivityCostChartProps
     <Card className="min-w-0 p-5">
       <CardHeader className="mb-4 items-start">
         <div>
-          <CardTitle>Chi phí cho mỗi học sinh nhập học của 5 hoạt động gần nhất</CardTitle>
+          <CardTitle>Chi phí cho mỗi học sinh nhập học của 5 trường gần nhất</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Chi phí thấp hơn cho thấy hoạt động hiệu quả hơn về ngân sách.</p>
         </div>
       </CardHeader>

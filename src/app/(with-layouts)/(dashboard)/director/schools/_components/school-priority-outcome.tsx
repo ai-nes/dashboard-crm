@@ -33,18 +33,18 @@ export default function SchoolPriorityOutcome({
           </p>
           <h3
             id="school-priority-conclusion"
-            className="mt-1 text-xl font-semibold leading-7 text-text-primary text-pretty"
+            className="mt-0.5 text-lg font-semibold leading-6 text-text-primary text-pretty"
           >
             {conclusion.title}
           </h3>
         </div>
       </div>
 
-      <p className="mt-4 max-w-2xl text-sm leading-6 text-text-secondary text-pretty">
+      <p className="mt-2 max-w-2xl text-xs leading-5 text-text-secondary text-pretty">
         {conclusion.detail}
       </p>
 
-      <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+      <dl className="mt-3 grid gap-2 sm:grid-cols-2">
         <ScoreSignal
           label="Tiềm năng tuyển sinh"
           score={data.potentialScore}
@@ -64,7 +64,7 @@ export default function SchoolPriorityOutcome({
         />
       </dl>
 
-      <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-card-border pt-4 text-xs text-text-secondary">
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-card-border pt-3 text-xs text-text-secondary">
         <span>
           <strong className="font-semibold text-text-primary">
             {data.availableStudents.toLocaleString("vi-VN")} HS
@@ -108,10 +108,10 @@ function ScoreSignal({
         : "bg-badge-warning-background text-warning-500";
 
   return (
-    <div className="rounded-xl bg-background-soft-50 p-3.5">
+    <div className="rounded-lg bg-background-soft-50 p-2.5">
       <dt className="text-xs text-text-tertiary">{label}</dt>
-      <dd className="mt-2 flex items-baseline justify-between gap-3">
-        <span className="text-lg font-semibold text-text-primary">
+      <dd className="mt-1 flex items-baseline justify-between gap-3">
+        <span className="text-base font-semibold text-text-primary">
           {score}/100
         </span>
         <span className={"text-sm font-semibold " + toneClass}>{value}</span>

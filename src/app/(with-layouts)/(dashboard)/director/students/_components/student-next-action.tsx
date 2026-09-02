@@ -6,7 +6,7 @@ import {
   Phone,
   RefreshCircle1Clockwise,
 } from "@tailgrids/icons";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 
 import { computeAnalysisKpis } from "@/components/analysis-runs/analysis-run-meta";
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -16,6 +16,7 @@ import type { AnalysisRunSnapshot } from "@/services/api/analysis-runs";
 import type { Student360Data } from "@/services/api/students/types";
 
 interface StudentNextActionProps {
+  analysisAction?: ReactNode;
   data: Student360Data;
   run: AnalysisRunSnapshot | null;
   isAwaitingAnalysisResponse: boolean;
@@ -26,6 +27,7 @@ interface StudentNextActionProps {
 }
 
 export default function StudentNextAction({
+  analysisAction,
   data,
   run,
   isAwaitingAnalysisResponse,
@@ -70,7 +72,10 @@ export default function StudentNextAction({
         >
           Hành động tiếp theo
         </p>
-        <Badge color="primary">Hôm nay</Badge>
+        <div className="flex shrink-0 items-center gap-2">
+          {analysisAction}
+          <Badge color="primary">Hôm nay</Badge>
+        </div>
       </div>
 
       {isAwaitingAnalysisResponse ? (
