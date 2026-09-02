@@ -1,142 +1,498 @@
-# Director demographics API
+# Director demographics — Contact overview + Acquisition Map
 
-API tổng hợp dữ liệu học sinh cho Director dashboard. Backend hiện tại không trả danh tính cá nhân, không hỗ trợ bộ lọc theo thuộc tính học sinh, phân trang hoặc Acquisition Map.
+## Phạm vi
 
-## Endpoints
+API này phục vụ route `/director/demographics`. `docs/student-group` là nguồn chuẩn về ý nghĩa metric và các điều kiện để được phép vẽ biểu đồ.
+
+Route được chia thành hai lớp:
+
+1. **Contact overview**: dùng dữ liệu Contact/student 360 hiện có để giúp giám đốc nhìn quy mô, hành trình, nhóm ưu tiên, nhu cầu theo ngành × địa bàn và độ đầy đủ dữ liệu.
+2. **Acquisition Map**: lớp mở rộng cho 24 biểu đồ về nguồn, form, chất lượng lead, attribution, cohort, handoff và cost. Chỉ trả các metric khi backend có đủ event/lineage/cost tương ứng.
+
+Overview không dồn 24 biểu đồ vào một màn hình dài. UI hiện tại có phần Contact summary, sau đó chia Acquisition Map thành 5 nhóm: Nguồn & ngân sách, Form, Chất lượng, Attribution, Cohort & vận hành. Chart mặc định xếp 2 card/hàng; list/ranking là một hàng ngang có scroll khi cần; heatmap, cohort matrix và cost ranking dùng full-width.
+
+Bảng **Nhóm lead cần ưu tiên** (`data.segments`) dùng phân trang server-side. Các metric tổng quan vẫn tính trên toàn bộ tập kết quả sau filter; chỉ mảng `data.segments` là dữ liệu của trang hiện tại.
+
+Toàn bộ 24 chart hiện đọc từ cùng payload `data.acquisitionMap`, vì vậy fixture offline, mock route và response Frappe dùng chung một schema. Khi backend chưa có nguồn canonical, dataset tương ứng phải trả `null`/array rỗng theo contract; không dùng số trình diễn làm dữ liệu production. Fallback local chỉ được dùng khi không cấu hình `NEXT_PUBLIC_FRAPPE_URL`.
+
+## Endpoint
 
 ```http
 GET /api/method/crm.api.director_demographics.get_director_demographics_overview
 GET /api/method/crm.api.director_demographics.get_director_demographics_segment
 ```
 
-Frappe bọc kết quả trong `message`:
-
-```json
-{ "message": { "data": {}, "meta": {} } }
-```
-
-## Overview
-
-```http
-GET ...get_director_demographics_overview?admissionYear=2026&period=6m&scope=all
-```
-
-| Query parameter | Kiểu / mặc định | Quy tắc thực tế |
-| --- | --- | --- |
-| `admissionYear` | `string \| number`, mặc định do backend resolve | Chỉ lấy `CRM Student` của kỳ tuyển sinh đã resolve. |
-| `period` | `6m` (mặc định), `12m`, hoặc `season` | Xác định 6 hoặc 12 cửa sổ tháng tính đến tháng hiện tại; `season` hiện cũng là 12 tháng. Giá trị khác trả `400 INVALID_PERIOD`. |
-| `scope` | `all` | Giá trị duy nhất được hỗ trợ. Giá trị khác trả `400 INVALID_SCOPE`. |
-
-`page`, `pageSize`, `province`, `major`, `stage`, `priority`, `owner` và `sourceGroup` **không thuộc contract backend hiện tại**. Không dựa vào chúng để lọc hoặc phân trang.
-
-### Response `data`
-
-| Field | Schema và cách tính |
-| --- | --- |
-| `kpis` | Mảng 4 KPI: `prospects`, `engaged`, `qualified`, `enrolled`. Mỗi phần tử: `{ id, label, value, change, helper, progress, tone }`; `value` là chuỗi số có dấu chấm ngăn cách hàng nghìn, `change` là chuỗi phần trăm hoặc `"—"`, `progress` là phần trăm. |
-| `demand` | `{ trend, summary }`. `trend[]` có `{ month, ai, software, business, design }` (số lượng tạo mới theo tháng). `summary[]` có `{ id, label, value, change }`; `change` là `number` hoặc `null` khi tháng trước bằng 0. |
-| `audienceComposition` | `{ total, gender, profiles }`. `gender[]`: `{ id, name, value }`; `profiles[]`: `{ id, label, value, count }`. Luôn có `grade-12` và `has-interest`; chỉ có `public-school` khi tồn tại dữ liệu loại trường. |
-| `segments` | Mảng không phân trang các phân khúc đủ mẫu. Schema từng phần tử ở phần [Phân khúc](#phân-khúc). |
-| `regionOpportunities` | Tối đa 5 tỉnh có nhiều học sinh nhất: `{ rank, name, score, selected }`. `score` chuẩn hoá 0–100 theo tỉnh lớn nhất; overview luôn có `selected: false`. |
-| `regionalDemand` | `{ columns, rows }`. `columns[]` là `{ id, name }`; `rows[]` là `{ interest, scores }`. `scores` là chỉ số 0–100 chuẩn hoá theo tỉnh cao nhất **trong từng nhóm ngành**, không phải số hồ sơ. |
-| `dataCoverage` | Năm phần tử `{ label, detail, value, tone }`: Địa lý, Thông tin học sinh, Ngành quan tâm, Hành vi, Thông tin học phí. Mục học phí luôn `{ value: 0, tone: "danger" }` vì chưa có nguồn canonical. |
-
-### Response `meta`
-
-| Field | Ý nghĩa |
-| --- | --- |
-| `admissionYear` | Năm dạng số của kỳ đã resolve; có thể là `0` nếu không đổi được tên kỳ sang số. |
-| `period` | `6m`, `12m` hoặc `season` sau chuẩn hoá. |
-| `scope` | Luôn là `all`. |
-| `asOf` | Thời điểm backend tạo response, ISO 8601. |
-| `totalProspects` | Tổng số bản ghi học sinh của kỳ tuyển sinh. |
-| `minSampleSize` | Luôn là `30`. |
-| `dataAvailability` | `{ trend, tuition, revenue, eligibleSegments }`; `trend` là boolean theo sự hiện diện của `creation`, `tuition` và `revenue` luôn `false`, `eligibleSegments` là số phần tử trong `segments`. |
-
-Ví dụ shape đầy đủ (giá trị chỉ minh hoạ):
+Frappe bọc payload trong `message`:
 
 ```json
 {
-  "data": {
-    "kpis": [{ "id": "prospects", "label": "Tổng hồ sơ", "value": "30", "change": "—", "helper": "Tổng dữ liệu kỳ tuyển sinh", "progress": 100, "tone": "primary" }],
-    "demand": { "trend": [{ "month": "T1", "ai": 0, "software": 0, "business": 0, "design": 0 }], "summary": [{ "id": "ai", "label": "AI", "value": 0, "change": null }] },
-    "audienceComposition": { "total": 30, "gender": [{ "id": "female", "name": "Nữ", "value": 100 }], "profiles": [{ "id": "grade-12", "label": "Học sinh lớp 12", "value": 100, "count": 30 }] },
-    "segments": [],
-    "regionOpportunities": [{ "rank": 1, "name": "Cần Thơ", "score": 100, "selected": false }],
-    "regionalDemand": { "columns": [{ "id": "can-tho", "name": "Cần Thơ" }], "rows": [{ "interest": "AI", "scores": { "can-tho": 100 } }] },
-    "dataCoverage": [{ "label": "Địa lý", "detail": "Tỉnh, huyện, vùng tuyển sinh", "value": 100, "tone": "success" }]
+  "message": {
+    "data": {},
+    "meta": {}
+  }
+}
+```
+
+Trong môi trường không có `NEXT_PUBLIC_FRAPPE_URL`, frontend dùng fixture local làm fallback. Fallback chỉ để kiểm tra UI, không phải nguồn dữ liệu production.
+
+## Query parameters — overview
+
+| Parameter | Type | Default | Ý nghĩa |
+|---|---|---:|---|
+| `admissionYear` | number | `2026` | Kỳ tuyển sinh |
+| `page` | integer | `1` | Trang bắt đầu từ `1` |
+| `pageSize` | integer | `5` | Số segment tối đa mỗi trang; backend giới hạn `1..100` |
+| `period` | `season \| 6m \| 12m` | `season` | Khoảng báo cáo. Trục thời gian phải dùng school-year/corresponding week khi dữ liệu có ngày thực. |
+| `scope` | string | `all` | Phạm vi tổng quát |
+| `province` | string | — | Lọc `student.province` |
+| `major` | string | — | Lọc `student.major` |
+| `stage` | string | — | `Quan tâm`, `Tìm hiểu`, `Tư vấn`, `Ứng tuyển`, `Nhập học` |
+| `priority` | string | — | `Cao`, `Trung bình`, `Thấp` |
+| `owner` | string | — | Owner/counselor của Contact |
+| `sourceGroup` | string | — | Nhóm nguồn **first-touch** đã chuẩn hóa |
+
+Giá trị `all`, chuỗi rỗng hoặc không truyền được xem là không lọc. Các filter áp dụng đồng thời trước khi phân trang, trên toàn bộ response, cùng một snapshot và cùng một denominator.
+
+Danh sách segment phải được sort ổn định theo `opportunityScore` giảm dần, sau đó `id` tăng dần. Backend thực hiện sort trước `slice(page, pageSize)`; không phân trang trước rồi mới sort ở client.
+
+`page` là 1-based. `pageSize` nhận số nguyên trong khoảng `1..100`; giá trị ngoài khoảng trả `400 INVALID_PAGINATION`. `meta.total` là tổng số segment phù hợp sau filter, không phải số phần tử của page hiện tại. Frontend mặc định gửi `page=1&pageSize=5`.
+
+Filter được nhập trong popover của UI nhưng vẫn gửi bằng query params để API có thể cache theo đúng bộ lọc. Backend không nên âm thầm bỏ qua filter chưa hỗ trợ; nếu chưa hỗ trợ, trả lỗi contract rõ ràng hoặc trả `meta.unsupportedFilters`.
+
+## Mapping dữ liệu Contact
+
+| Dimension | Nguồn tối thiểu |
+|---|---|
+| Contact | `StudentListItem.id`, `name`, `code`, `school`, `province`, `major` |
+| Hành trình | `StudentListItem.stage` và timestamp chuyển stage nếu có |
+| Chất lượng | `Student360Data.classification.dimensions.interest`, `fit`, `barrier` |
+| Ưu tiên | `StudentListItem.priority` |
+| Tín hiệu | `StudentListItem.score` |
+| First touch | acquisition lineage đã resolve identity; không suy diễn tùy tiện từ last activity |
+| Nhóm nguồn | `Student360Data.acquisition.sourceGroup` |
+| Hành động | `nextAction`, `owner`, `lastActivity` |
+| Ứng tuyển/nhập học | event hoặc stage canonical; `Nhập học` mới được tính enrolled |
+
+Không suy diễn gender, học phí, revenue, spend, ROAS, thu nhập hay thuộc tính nhạy cảm từ dữ liệu Contact không có field canonical.
+
+## Response contract — overview
+
+### `data.kpis`
+
+UI hiển thị bốn KPI dạng strip. Đây là **mảng**, không phải object map:
+
+```json
+[
+  {
+    "id": "prospects",
+    "label": "Tổng hồ sơ",
+    "value": "2.846",
+    "change": "+12,6%",
+    "helper": "so với cùng kỳ",
+    "progress": 86,
+    "tone": "primary"
   },
-  "meta": { "admissionYear": 2026, "period": "6m", "scope": "all", "asOf": "2026-09-03T10:00:00+07:00", "totalProspects": 30, "minSampleSize": 30, "dataAvailability": { "trend": true, "tuition": false, "revenue": false, "eligibleSegments": 0 } }
-}
+  {
+    "id": "engaged",
+    "label": "Đã tương tác",
+    "value": "1.420",
+    "change": "—",
+    "helper": "49,9% tổng hồ sơ",
+    "progress": 50,
+    "tone": "info"
+  }
+]
 ```
 
-## Phân khúc
+`change` là chuỗi đã format hoặc `"—"`. Không hiển thị mũi tên tăng khi change là `"—"`, bằng 0 hoặc không có denominator hợp lệ. `progress` là số 0–100 dùng cho mức hoàn thành/coverage do backend định nghĩa; không dùng nó như tỷ lệ chuyển đổi nếu chưa ghi rõ.
 
-`segments` được nhóm theo giới tính × nhóm ngành × tỉnh (hoặc vùng nếu không có tỉnh); chỉ nhóm có ít nhất 30 học sinh được trả về. Nhóm ngành là `AI`, `Phần mềm`, `Kinh doanh`, `Thiết kế` hoặc `Khác`, suy ra từ ngành, nhóm ngành và nguyện vọng. Kết quả được sắp xếp `opportunityScore` giảm dần rồi `id` tăng dần.
+### `data.demand`
+
+Đây là chart duy nhất ở overview được dùng cho xu hướng theo kỳ. Mọi giá trị không có dữ liệu phải là `null`, không được trả `0` để giả lập lịch sử.
 
 ```json
 {
-  "id": "female-ai-can-tho",
-  "name": "Nữ · Lớp 12 · Cần Thơ · quan tâm AI",
-  "shortName": "Nữ · AI",
-  "description": "30 hồ sơ, 50.0% đã có tương tác.",
-  "region": "Cần Thơ",
-  "interest": "AI",
-  "prospects": 30,
-  "engaged": 15,
-  "qualified": 8,
-  "counselling": 4,
-  "applications": 3,
-  "enrolled": 1,
-  "conversion": 3.3,
-  "tuition": null,
-  "revenue": null,
-  "growth": null,
-  "coverage": 50.0,
-  "opportunityScore": 100,
-  "tone": "primary",
-  "filters": [{ "id": "gender", "label": "Giới tính", "value": "Nữ" }],
-  "channels": [{ "name": "Zalo", "value": 100 }],
-  "monthlyProspects": [{ "month": "T1", "current": 1, "benchmark": 2 }]
+  "trend": [
+    { "month": "T1", "ai": 2160, "software": 2860, "business": 2520, "design": 1280 },
+    { "month": "T2", "ai": null, "software": null, "business": null, "design": null }
+  ],
+  "summary": [
+    { "id": "ai", "label": "AI", "value": 2160, "change": null },
+    { "id": "software", "label": "Phần mềm", "value": 2860, "change": 4.7 }
+  ]
 }
 ```
 
-`conversion` là `enrolled / prospects × 100`; `coverage` là `engaged / prospects × 100`; `opportunityScore` chỉ dựa trên quy mô nhóm so với nhóm đủ mẫu lớn nhất. `growth` so sánh hai tháng cuối của period và là `null` nếu tháng trước bằng 0. `monthlyProspects[].benchmark` là toàn bộ học sinh cùng nhóm ngành, không phải benchmark đã loại riêng phân khúc hiện tại. `channels[].value` là tỷ trọng trên mọi CRM Interaction của nhóm; đây không phải first-touch hay last-touch attribution.
+- `value` là số Contact/hồ sơ theo kỳ; `change` là phần trăm so với kỳ tương ứng, nullable.
+- Nếu chỉ có dữ liệu ở kỳ gần nhất, trả các kỳ trước là `null` hoặc `trendStatus: "partial"`; UI phải cảnh báo “chưa đủ dữ liệu so sánh”.
+- Không hardcode domain trục Y theo fixture. Domain phải lấy theo max thực tế.
+- Nếu backend muốn dùng metric khác count, phải trả thêm `metric`/`unit` và label trên chart.
 
-## Chi tiết phân khúc
+### `data.audienceComposition`
 
-```http
-GET ...get_director_demographics_segment?segment_id=female-ai-can-tho&admissionYear=2026
+Card này không còn dùng pie chart. UI hiển thị một thanh phân đoạn giới tính và các dòng tín hiệu hồ sơ.
+
+```json
+{
+  "total": 2846,
+  "gender": [
+    { "id": "female", "name": "Nữ", "value": 46.8 },
+    { "id": "male", "name": "Nam", "value": 51.6 },
+    { "id": "unknown", "name": "Chưa xác định", "value": 1.6 }
+  ],
+  "profiles": [
+    { "id": "has-interest", "label": "Đã có ngành quan tâm", "value": 88.1, "count": 2507, "detail": "2.507 hồ sơ" }
+  ]
+}
 ```
 
-| Query parameter | Quy tắc |
-| --- | --- |
-| `segment_id` | Bắt buộc, không được rỗng. |
-| `admissionYear` | Tuỳ chọn, được resolve giống overview. |
+Các phần trăm phải cùng denominator là `total`; cho phép sai số làm tròn nhỏ nhưng tổng canonical phải được xác định. Không trả gender nếu đó là thuộc tính không có consent/canonical field.
 
-Endpoint này luôn dùng cửa sổ `6m`, độc lập với `period` của overview. Response `data` có `{ segment, benchmark, regionOpportunities, nextAction, guardrails }`; `segment` dùng schema trên. `benchmark` là phân khúc khác có cùng `interest` và `region`, nhiều `prospects` nhất; nếu không có thì chính là `segment`. `regionOpportunities` giữ tối đa 5 tỉnh và đánh dấu `selected: true` khi tên tỉnh trùng `segment.region`.
+### `data.segments`
 
-`nextAction` có `{ priority, label, title, description, steps }`; `priority` là `high` khi `opportunityScore >= 85`, ngược lại là `normal`; mỗi `steps[]` có `{ order, title, detail }`. `guardrails` luôn là mảng và hiện trả cảnh báo về việc không suy đoán khả năng học phí/thu nhập của người chưa thành niên: `{ criterion, issue, replacement, status, tone }`.
+UI hiển thị bảng xếp hạng thay cho bar chart. `data.segments` chỉ chứa các dòng của page hiện tại; thứ tự và số thứ tự trên UI phải tiếp tục theo toàn bộ tập kết quả. Mỗi dòng cần đủ số tuyệt đối để đối chiếu trên một dòng:
 
-`meta` chi tiết gồm `{ admissionYear, asOf, minSampleSize, sampleSize }`; `sampleSize` bằng `segment.prospects`.
+```json
+[
+  {
+    "id": "female-ai-dong-nai",
+    "name": "Nữ · Lớp 12 · Đông Nam Bộ · quan tâm AI",
+    "shortName": "Nữ · AI · ĐNB",
+    "description": "Tăng nhanh tại Đồng Nai nhưng độ phủ truyền thông còn thấp.",
+    "region": "Đồng Nai",
+    "interest": "Trí tuệ nhân tạo",
+    "prospects": 3420,
+    "engaged": 1280,
+    "qualified": 420,
+    "counselling": 268,
+    "applications": 160,
+    "enrolled": 68,
+    "conversion": 2.0,
+    "tuition": null,
+    "revenue": null,
+    "growth": 31.0,
+    "coverage": 3.2,
+    "opportunityScore": 92,
+    "tone": "primary",
+    "filters": [],
+    "channels": [],
+    "channelAttributionModel": "observed-interactions",
+    "monthlyProspects": []
+  }
+]
+```
 
-## Quy tắc dữ liệu và riêng tư
+Quy tắc:
 
-- API chỉ tạo projection aggregate, không trả `student_name`, email, số điện thoại hay định danh học sinh.
-- `engaged` có ít nhất một `CRM Interaction`; `qualified` là assessment `confirmed` hoặc có application thuộc `submitted`, `under review`, `accepted`, `enrolled`; `applications` là có ít nhất một application; `enrolled` dựa vào lifecycle, enrollment status hoặc application status; `counselling` nhận diện từ lifecycle/status hiện có.
-- `tuition` và `revenue` luôn `null` ở phân khúc. Không dùng response để suy luận thu nhập hoặc khả năng chi trả.
+- `conversion`, `growth`, `tuition`, `revenue` có thể `null`. `null` nghĩa là không đủ mẫu/không có nguồn canonical, không phải 0.
+- Nếu trả pipeline Contact → enrollment, các stage phải có định nghĩa và không được tăng ngược ở các bước kế tiếp. Nếu stage không phải funnel lồng nhau, đặt tên “lifecycle counts” và UI không được gọi là funnel.
+- `opportunityScore` phải có công thức/phiên bản trong API docs. Không mô tả là kết hợp quy mô + conversion + growth nếu backend chỉ tính từ quy mô.
+- `coverage` là phần trăm Contact đã có dữ liệu cần cho phân tích, không phải tỷ lệ tiếp cận nếu chưa định nghĩa.
+- `channels` chỉ được gọi là first-touch/last-touch khi `channelAttributionModel` tương ứng. Nếu backend chỉ đếm mọi interaction, trả `observed-interactions` và UI sẽ không gắn nhãn first touch.
 
-## Lỗi
+### Pagination của `data.segments`
 
-| HTTP | Code | Khi xảy ra |
-| --- | --- | --- |
-| 400 | `INVALID_PERIOD` | `period` không phải `6m`, `12m`, `season`. |
-| 400 | `INVALID_SCOPE` | `scope` khác `all`. |
-| 400 | `INVALID_SEGMENT_ID` | `segment_id` rỗng hoặc thiếu. |
-| 404 | `SEGMENT_NOT_FOUND` | Không có phân khúc trùng `segment_id`, hoặc nhóm chưa đủ 30 mẫu. |
+Pagination nằm trong `meta` của overview response:
 
-Backend đặt lỗi Frappe ở `error.code`, `error.message` và HTTP status tương ứng.
+```json
+{
+  "page": 2,
+  "pageSize": 5,
+  "total": 43,
+  "totalPages": 5,
+  "hasNextPage": true
+}
+```
 
-## Tình trạng client dashboard
+Semantics:
 
-[`src/services/api/demographics/index.ts`](../../src/services/api/demographics/index.ts) vẫn gửi các filter/phân trang nêu trên và validator overview còn yêu cầu `data.acquisitionMap` cùng `meta.page`, `pageSize`, `total`, `totalPages`, `hasNextPage`. Backend hiện tại không trả các field này, nên khi dùng `NEXT_PUBLIC_FRAPPE_URL`, overview response bị client từ chối với `INVALID_DEMOGRAPHICS_RESPONSE`. Fallback local không phải contract của backend.
+- `page`: trang thực tế đang trả, bắt đầu từ `1`;
+- `pageSize`: số dòng tối đa trong page;
+- `total`: tổng số segment sau khi áp dụng toàn bộ filter, trước phân trang;
+- `totalPages`: `max(1, ceil(total / pageSize))`;
+- `hasNextPage`: `page < totalPages`.
+
+Tất cả năm field phân trang ở trên là **bắt buộc**. Frontend từ chối response `2xx` thiếu một trong các field này với lỗi `INVALID_DEMOGRAPHICS_RESPONSE`, vì không thể hiển thị danh sách phân trang đáng tin cậy nếu chỉ có mảng của trang hiện tại.
+
+Nếu `total = 0`, trả `segments: []`, `page: 1`, `totalPages: 1` và `hasNextPage: false`. Không trả `null` cho array. Khi page hợp lệ nhưng vượt `totalPages`, backend nên trả `400 INVALID_PAGINATION` để client đồng bộ lại page; không trả một page rỗng nhưng vẫn báo như request thành công.
+
+Khi filter thay đổi, frontend reset `page=1`. Khi người dùng đổi trang, chỉ gọi lại overview endpoint với cùng filter, `page` mới và `pageSize`; không gọi `get_director_demographics_segment` cho đến khi người dùng mở một dòng.
+
+### `data.regionalDemand`
+
+Heatmap đã được tách thành card full-width để hiển thị đủ địa bàn. Contract ưu tiên là count:
+
+```json
+{
+  "metric": "count",
+  "unit": "contacts",
+  "columns": [
+    { "id": "can-tho", "name": "Cần Thơ" },
+    { "id": "hcm", "name": "TP.HCM" },
+    { "id": "ha-noi", "name": "Hà Nội" }
+  ],
+  "rows": [
+    {
+      "interest": "Trí tuệ nhân tạo",
+      "values": { "can-tho": 42, "hcm": 118, "ha-noi": 96 }
+    }
+  ]
+}
+```
+
+Contract legacy `scores` chỉ được dùng khi:
+
+```json
+{
+  "metric": "relative-index",
+  "unit": "score",
+  "rows": [{ "interest": "Trí tuệ nhân tạo", "scores": { "hcm": 93 } }]
+}
+```
+
+Nếu là `relative-index`, UI phải ghi rõ “chỉ số tương đối, không phải số hồ sơ”. Không gọi điểm chuẩn hóa là quy mô Contact. Cell không có dữ liệu trả `null`, không trả 0.
+
+### `data.dataCoverage`
+
+```json
+[
+  {
+    "label": "Thông tin học sinh",
+    "detail": "Giới tính, khối, tuổi, học lực",
+    "value": 24.7,
+    "tone": "warning"
+  }
+]
+```
+
+`tone` phải khớp value: 0 là `danger`, dưới 50 là `warning`, từ 50 trở lên mới có thể `success` nếu dữ liệu đạt tiêu chuẩn. Không trả 24.7 nhưng gắn `success`.
+
+### `data.filterOptions`
+
+Options phục vụ các select bên trong filter popover. Nếu không có, frontend chỉ dùng fallback UI và backend vẫn phải validate giá trị thực tế.
+
+```json
+{
+  "provinces": ["Cần Thơ", "Đà Nẵng", "Hà Nội"],
+  "majors": ["Kỹ thuật phần mềm", "Trí tuệ nhân tạo"],
+  "stages": ["Quan tâm", "Tìm hiểu", "Tư vấn", "Ứng tuyển", "Nhập học"],
+  "priorities": ["Cao", "Trung bình", "Thấp"],
+  "owners": ["Trần Minh Quân"],
+  "sourceGroups": ["Trực tuyến chủ động", "Thực địa"]
+}
+```
+
+### `meta`
+
+```json
+{
+  "admissionYear": 2026,
+  "period": "season",
+  "scope": "all",
+  "asOf": "2026-06-06T10:00:00+07:00",
+  "totalProspects": 2846,
+  "minSampleSize": 30,
+  "page": 1,
+  "pageSize": 5,
+  "total": 43,
+  "totalPages": 5,
+  "hasNextPage": true,
+  "dataAvailability": {
+    "trend": "partial",
+    "tuition": false,
+    "revenue": false,
+    "eligibleSegments": 5,
+    "acquisitionMap": "complete"
+  }
+}
+```
+
+`dataAvailability.trend` có thể là boolean legacy hoặc `complete | partial | unavailable`. `partial` phải khiến UI hiện cảnh báo; không biến thiếu lịch sử thành đường xu hướng bằng 0.
+
+## Response contract — segment detail
+
+```http
+GET ...get_director_demographics_segment?segment_id=female-ai-dong-nai&admissionYear=2026
+```
+
+```json
+{
+  "message": {
+    "data": {
+      "segment": {},
+      "benchmark": {},
+      "regionOpportunities": [],
+      "nextAction": {
+        "priority": "high",
+        "label": "Nên làm ngay",
+        "title": "...",
+        "description": "...",
+        "steps": []
+      },
+      "guardrails": []
+    },
+    "meta": {
+      "admissionYear": 2026,
+      "asOf": "2026-06-06T10:00:00+07:00",
+      "minSampleSize": 30,
+      "sampleSize": 3420
+    }
+  }
+}
+```
+
+- `benchmark` phải là nhóm đối chiếu thực trong **cùng snapshot, cùng filter và cùng denominator**. Không để frontend chọn benchmark từ fixture local.
+- `guardrails` luôn là array. Khi không có cảnh báo, trả `[]`.
+- Trend detail dùng `monthlyProspects[].current` và `.benchmark`; điểm không có dữ liệu là `null`.
+- Khi `growth` null, UI hiển thị “Chưa đủ dữ liệu tăng trưởng”, không hiển thị `+null%`.
+- `segment` và `benchmark` không có tuition/revenue thì trả `null`; không ép thành 0.
+
+## `data.acquisitionMap` — contract cho 24 chart
+
+Acquisition Map đã được render trong Contact overview và nhận dữ liệu từ namespace `data.acquisitionMap`. Backend phải trả namespace này trong cùng response overview, cùng `admissionYear`, filter, snapshot và định nghĩa denominator. Không trả một dataset cho từng chart bằng các nguồn/snapshot khác nhau.
+
+Shape canonical:
+
+| Dataset | Shape tối thiểu dùng bởi UI |
+|---|---|
+| `platformLeadCost[]` | `{ platform, leads, validLeads, spend, cpl }` |
+| `leadTrendComparison[]` | `{ week, current, previous }` |
+| `dailySpendLeads[]` | `{ day, spend, leads }` |
+| `touchpointPlatformMatrix` | `{ columns: string[], rows: { label, values: (number \| null)[] }[] }` |
+| `budgetByPlatformRole[]` | `{ label, value }` — tổng tỷ trọng 100% |
+| `formFunnel[]` | `{ label, value, retention }` |
+| `formCompletion[]` | `{ id?, label, value, denominator? }` |
+| `formDropoffByField[]` | `{ field, dropoff, cumulative }` |
+| `captureModeComparison[]` | `{ label, validRate, completeRate }` |
+| `leadQualityBySource[]` | `{ source, valid, enrichment, invalid, outOfScope, duplicate }` |
+| `validLeadRateTrend[]` | `{ week, values: { [source]: number \| null } }` |
+| `handoffDataCompleteness[]` | `{ field, value }` |
+| `identityMatchBreakdown[]` | `{ label, value }` |
+| `firstTouchBySource[]`, `lastTouchBySource[]` | `{ source, value }` |
+| `firstVsLastSource[]` | `{ source, first, last }` |
+| `attributionFlow[]` | `{ label, value }` |
+| `cohortEnrollmentMatrix[]` | `{ cohort, values: (number \| null)[] }` |
+| `enrollmentLagHistogram` | `{ medianDays, buckets: { range, value }[] }` |
+| `cumulativeConversion[]` | `{ week, value }` |
+| `firstContactLatency[]` | `{ window, min, q1, median, q3, max }` |
+| `submissionTiming` | `{ weekdays[], hours[], values: (number \| null)[][], timezone }` |
+| `handoffSuccessBySource[]` | `{ source, success, contacted }` |
+| `costPerEnrolledBySource[]` | `{ source, cost, enrolled }` |
+
+`data.acquisitionMap.attributionModel` bắt buộc ghi rõ model dùng cho attribution:
+
+```json
+{
+  "attributionModel": {
+    "firstTouch": "first-touch",
+    "lastTouch": "last-touch"
+  }
+}
+```
+
+Các dataset vẫn phải trả đủ key ngay cả khi chưa có dữ liệu; dùng `[]` cho collection và `null` cho metric không khả dụng. Với response Frappe, thiếu `data.acquisitionMap` là response không hợp lệ và frontend trả `INVALID_DEMOGRAPHICS_RESPONSE`.
+
+### A. Platform và cost
+
+| Chart / dạng UI | Field tối thiểu | Điều kiện |
+|---|---|---|
+| 1. Lead & cost/platform — combo bar + line | `platformLeadCost[]` | `platform`, `leads`, `validLeads`, `spend`, `cpl`; hai trục phải có label rõ |
+| 2. Lead trend current vs same season — slope comparison | `leadTrendComparison[]` | school-year/corresponding week, không so Gregorian week lệch mùa |
+| 3. Daily spend & leads — hai sparkline | `dailySpendLeads[]` | chỉ đọc volume/spend, không dùng để kết luận chất lượng |
+| 4. Touchpoint × platform × lead — heatmap full-width | `touchpointPlatformMatrix` | có touchpoint event; cell `< 10` phải null/ẩn theo docs |
+| 5. Budget by platform role — 100% stacked strip | `budgetByPlatformRole[]` | bốn role không chồng lấn và tổng phải cover 100% budget |
+
+### B. Form
+
+| Chart / dạng UI | Field tối thiểu | Điều kiện |
+|---|---|---|
+| 6. Form funnel — progress funnel ngang | `formFunnel[]` | `impression`, `form_open`, `form_complete`, `valid_lead`, `handoff`; trả count + retention từng bước |
+| 7. Completion rate by form — dot plot | `formCompletion[]` | chỉ so form cùng mục đích, trả form id/name và denominator |
+| 8. Dropoff by field — Pareto | `formDropoffByField[]` | chỉ trả khi có field-level event tracking; thiếu event thì omit/null, không suy diễn |
+| 9. Embedded vs landing page — dumbbell | `captureModeComparison[]` | cùng campaign và cùng khoảng thời gian |
+
+Form tối thiểu theo docs: name, phone, high school, major, grade và consent. Consent cần timestamp/purpose; dữ liệu dưới 18 tuổi phải có policy phù hợp.
+
+### C. Chất lượng lead và identity
+
+| Chart / dạng UI | Field tối thiểu | Điều kiện |
+|---|---|---|
+| 10. Classification by source — 100% stacked strip | `leadQualityBySource[]` | valid, needs enrichment, invalid, out-of-scope, duplicate là các class rõ ràng; duplicate giữ riêng |
+| 11. Valid rate by time — multi-line | `validLeadRateTrend[]` | tối đa 4–5 source lines, áp dụng min sample |
+| 12. Handoff completeness — bullet list | `handoffDataCompleteness[]` | denominator chỉ là lead đã handoff |
+| 13. Identity match mechanism — ranking list | `identityMatchBreakdown[]` | các mechanism phải cộng đủ số record, có confidence/queue nếu applicable |
+
+Identity cần normalize phone/email/name/school, stable id, confidence matching queue, audit split/merge, consent và season key.
+
+### D. Attribution
+
+| Chart / dạng UI | Field tối thiểu | Điều kiện |
+|---|---|---|
+| 14–15. First/last touch — một ranking có toggle | `firstTouchBySource[]`, `lastTouchBySource[]` | model ghi rõ `first-touch`/`last-touch`; cùng lead set |
+| 16. First vs last — dumbbell | `firstVsLastSource[]` | đây là chart duy nhất được đặt hai model cạnh nhau; phải có delta |
+| 17. First → last flow — flow list/Sankey | `attributionFlow[]` | chỉ trả khi touchpoint sequence complete |
+
+Offline source phải được giữ như event/school/referral; không ép thành online platform. Response phải chứa `attributionModel` trên chart hoặc dataset.
+
+### E. Cohort và lag
+
+| Chart / dạng UI | Field tối thiểu | Điều kiện |
+|---|---|---|
+| 18. Cohort enrollment matrix — heatmap full-width | `cohortEnrollmentMatrix[]` | cohort gần đây chưa đủ thời gian phải null, không phải 0 |
+| 19. Lag histogram — histogram + median | `enrollmentLagHistogram` | chỉ enrolled; có `medianDays` và line median |
+| 20. Cumulative conversion — step-area | `cumulativeConversion[]` | chỉ vẽ khi có ít nhất một complete season |
+
+### F. Handoff vận hành
+
+| Chart / dạng UI | Field tối thiểu | Điều kiện |
+|---|---|---|
+| 21. Time to first contact — box plot | `firstContactLatency[]` | median theo submit window; outlier không làm méo chart |
+| 22. Submission timing — calendar heatmap | `submissionTiming` | weekday × local hour, timezone phải trả rõ |
+| 23. Handoff success/source — bullet list | `handoffSuccessBySource[]` | success = contacted + confirmed, không chỉ là moved to team |
+| 24. Cost per enrolled — ranking list full-width | `costPerEnrolledBySource[]` | chỉ complete season; luôn giữ source miễn phí |
+
+## Quy tắc chung cho API
+
+- Rate, conversion, cost per head là non-additive; không dùng stacked/part-of-whole nếu metric không phải thành phần cộng được.
+- Rate cần tối thiểu `minSampleSize` (mặc định 30). Dưới ngưỡng trả `null` và `reason: "below_min_sample"` nếu có thể.
+- `null` dùng cho unavailable, denominator bằng 0, cohort gần đây hoặc event chưa được tracking. Chỉ dùng 0 khi đã quan sát canonical rằng giá trị thực bằng 0.
+- Mọi metric phải có denominator và snapshot. Không trộn current với benchmark khác kỳ.
+- Có `asOf` ISO-8601 kèm timezone; dùng school-year timeline cho tuyển sinh.
+- Không trả PII trong aggregate endpoint. Segment detail vẫn phải tuân privacy/under-18/consent.
+- Nguồn phải bao gồm offline/referral nếu có; không bỏ chúng chỉ vì không có spend.
+- Empty dataset trả schema hợp lệ với array rỗng/null và lý do; không làm frontend rơi vào fixture giả mà không báo.
+
+## Việc backend cần làm để khớp UI hiện tại
+
+1. Hỗ trợ filter `province`, `major`, `stage`, `priority`, `owner`, `sourceGroup` cùng với `period`/`admissionYear`.
+2. Hỗ trợ `page`/`pageSize`, sort trước phân trang và trả `meta.total`, `meta.totalPages`, `meta.hasNextPage`.
+3. Trả `data.kpis` là array đúng schema, không trả object `totalContacts/highIntentContacts/...` thay thế.
+4. Trả trend thiếu dữ liệu là `null` và `meta.dataAvailability.trend = partial/unavailable`, không điền 0 cho các kỳ chưa có record.
+5. Trả `conversion`/`growth` nullable; không tạo phần trăm từ denominator 0.
+6. Giữ pipeline stage không tăng ngược nếu UI gọi là funnel; nếu là lifecycle counts, đổi `metricName`/label để UI không diễn giải sai.
+7. Trả regional demand bằng `values` + `metric: count` cho số Contact. Chỉ trả `scores` khi thật sự là relative index.
+8. Trả `channelAttributionModel`; chỉ đặt `first-touch` khi có acquisition lineage đã resolve.
+9. Tính tone coverage theo value và trả `filterOptions` từ dữ liệu thật.
+10. Segment detail trả benchmark cùng snapshot/filter, `guardrails: []` khi rỗng và không phụ thuộc fixture frontend.
+11. Trả đủ `data.acquisitionMap` theo schema 24 dataset ở trên; dataset nào chưa có event, identity, handoff, cost hoặc enrollment canonical thì trả `[]`/`null` và cập nhật `meta.dataAvailability.acquisitionMap` thành `partial` hoặc `unavailable`.
+
+## Error contract
+
+```json
+{
+  "error": {
+    "code": "CONTACT_DEMOGRAPHICS_DATA_UNAVAILABLE",
+    "message": "Không thể tải dữ liệu Contact demographics.",
+    "details": {}
+  }
+}
+```
+
+Khuyến nghị status:
+
+- `400`: query/filter/pagination không hợp lệ (`INVALID_PAGINATION` cho `page` hoặc `pageSize`);
+- `404`: `SEGMENT_NOT_FOUND` cho segment id không tồn tại;
+- `502`: upstream schema không hợp lệ;
+- `503`: dữ liệu aggregate tạm thời unavailable.
+
+Frontend dùng `INVALID_DEMOGRAPHICS_RESPONSE` khi response 2xx thiếu field bắt buộc của contract này.
