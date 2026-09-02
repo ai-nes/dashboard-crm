@@ -1,5 +1,6 @@
 export type ActionStatus = "today" | "soon" | "overdue";
 export type ActionPriority = "high" | "medium" | "low";
+export type ActionControlLevel = "automatic" | "review" | "approval";
 
 export interface RecommendedAction {
   id: string;
@@ -17,6 +18,7 @@ export interface RecommendedAction {
   status: ActionStatus;
   priority: ActionPriority;
   impact: string;
+  controlLevel?: ActionControlLevel;
   currentProbability?: number | null;
   projectedProbability?: number | null;
   confidence: number;

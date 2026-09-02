@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowRight,
   Buildings11,
   Calendar,
   ChevronDown,
@@ -8,11 +9,13 @@ import {
   Phone,
   User2,
 } from "@tailgrids/icons";
+import Link from "next/link";
 import { useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 
+import { CONTROL_LEVEL_COLOR, CONTROL_LEVEL_LABEL } from "./control-level";
 import type { ActionPriority, RecommendedAction } from "./types";
 
 interface ActionDetailProps {
@@ -77,7 +80,21 @@ export default function ActionDetail({
             <Badge color={priorityColors[action.priority]}>
               {priorityLabels[action.priority]}
             </Badge>
+            {action.controlLevel && (
+              <Badge color={CONTROL_LEVEL_COLOR[action.controlLevel]}>
+                {CONTROL_LEVEL_LABEL[action.controlLevel]}
+              </Badge>
+            )}
           </div>
+          {action.studentId && (
+            <Link
+              href={`/director/students/${encodeURIComponent(action.studentId)}`}
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-300"
+            >
+              Mở hồ sơ 360
+              <ArrowRight size={13} aria-hidden="true" />
+            </Link>
+          )}
         </div>
         <h2 className="mt-4 text-balance text-xl leading-7 font-semibold text-text-primary">
           {action.recommendation} · {action.studentName}

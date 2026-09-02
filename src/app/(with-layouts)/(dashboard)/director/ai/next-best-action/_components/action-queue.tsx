@@ -5,6 +5,7 @@ import { ClockThree } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { cn } from "@/utils/cn";
 
+import { CONTROL_LEVEL_COLOR, CONTROL_LEVEL_LABEL } from "./control-level";
 import type { ActionPriority, RecommendedAction } from "./types";
 
 interface ActionQueueProps {
@@ -57,6 +58,11 @@ export default function ActionQueue({ actions, selectedId, onSelect }: ActionQue
               </span>
               <span className="flex flex-wrap items-center gap-2 sm:justify-self-end">
                 <Badge color={priorityColors[action.priority]}>{priorityLabels[action.priority]}</Badge>
+                {action.controlLevel && (
+                  <Badge color={CONTROL_LEVEL_COLOR[action.controlLevel]}>
+                    {CONTROL_LEVEL_LABEL[action.controlLevel]}
+                  </Badge>
+                )}
                 <span className={cn("inline-flex items-center gap-1 text-xs font-medium", statusStyles[action.status])}>
                   <ClockThree size={14} aria-hidden="true" />
                   {action.dueLabel}
