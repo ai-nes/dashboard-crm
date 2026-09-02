@@ -1,3 +1,4 @@
+import AnalysisRunPanel from "@/components/analysis-runs/analysis-run-panel";
 import type { SchoolIntelligenceData } from "@/services/api/schools/types";
 
 import ActivityTimeline from "./activity-timeline";
@@ -22,23 +23,42 @@ interface SchoolIntelligenceDashboardProps {
  * priority first, locality next, then outcomes, academic profile, relationship
  * and activity follow-up.
  */
-export default function SchoolIntelligenceDashboard({ data }: SchoolIntelligenceDashboardProps) {
+export default function SchoolIntelligenceDashboard({
+  data,
+}: SchoolIntelligenceDashboardProps) {
   return (
     <main className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6">
       <SchoolHeader data={data} />
 
-      <section className="grid min-w-0 gap-5 xl:grid-cols-[1.16fr_0.84fr]" aria-label="Ưu tiên và kế hoạch tiếp cận">
+      <section
+        className="grid min-w-0 gap-5 xl:grid-cols-[1.16fr_0.84fr]"
+        aria-label="Ưu tiên và kế hoạch tiếp cận"
+      >
         <SchoolPotentialBreakdown data={data} />
         <SchoolActionPlan data={data} />
       </section>
+
+      <AnalysisRunPanel
+        key={`school-analysis-${data.school.id}`}
+        embedded
+        kind="school"
+        targetId={data.school.id}
+        title="Phân tích AI"
+        description="School 360 từ dữ liệu hiện tại của trường."
+      />
 
       <SchoolLocalityCard
         demographics={data.demographics}
         geography={data.geography}
         locality={data.locality}
-        coordinates={data.locality?.latitude !== null && data.locality?.latitude !== undefined && data.locality?.longitude !== null && data.locality?.longitude !== undefined
-          ? [data.locality.latitude, data.locality.longitude]
-          : undefined}
+        coordinates={
+          data.locality?.latitude !== null &&
+          data.locality?.latitude !== undefined &&
+          data.locality?.longitude !== null &&
+          data.locality?.longitude !== undefined
+            ? [data.locality.latitude, data.locality.longitude]
+            : undefined
+        }
         school={data.school}
       />
 
@@ -46,7 +66,10 @@ export default function SchoolIntelligenceDashboard({ data }: SchoolIntelligence
       <SchoolAcademicProfile data={data} />
       <SchoolRelationshipCard data={data} />
       <ActivityTimeline data={data} />
-      <section className="grid min-w-0 gap-5 xl:grid-cols-[1.1fr_0.9fr]" aria-label="Phân tích điểm trường">
+      <section
+        className="grid min-w-0 gap-5 xl:grid-cols-[1.1fr_0.9fr]"
+        aria-label="Phân tích điểm trường"
+      >
         <SchoolPotentialDecomposition data={data} />
         <SchoolExamScoreDistribution data={data} />
       </section>

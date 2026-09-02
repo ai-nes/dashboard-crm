@@ -1,94 +1,105 @@
 # API cho `/director/school-field-activity`
 
-Tài liệu này mô tả API cho màn **Hoạt động trường & thực địa** của Director: kết quả hoạt động đã triển khai, kế hoạch sắp tới, chi phí/hiệu quả, chất lượng dữ liệu nhập và trạng thái đồng bộ thiết bị.
+API này cung cấp snapshot cho màn **Hoạt động trường & thực địa**: hoạt động đã hoàn tất, kế hoạch sắp tới, KPI, chất lượng dữ liệu và trạng thái đồng bộ thiết bị. Endpoint GET đã được triển khai trong Frappe CRM; xuất báo cáo và tạo kế hoạch mới chưa có API backend.
 
-## 1. Phạm vi màn hình
+## 1. Phạm vi và nguồn dữ liệu
 
-| Vùng UI | Dữ liệu cần | Nguồn hiện tại |
-|---|---|---|
-| Header | Kỳ tuyển sinh, trạng thái dữ liệu, link việc cần xử lý | Text tĩnh |
-| KPI | Số hoạt động, lead, chi phí/nhập học, conversion, bản ghi chưa đồng bộ | `activityKpis` |
-| Hiệu quả từng hoạt động | Chỉ các hoạt động đã kết thúc, lead, xác minh, qualified, nhập học, chi phí/nhập học | `fieldActivities` |
-| Kế hoạch sắp tới | Hoạt động, địa điểm, ngày, dự báo nhập học, độ tin cậy | `upcomingActivities` |
-| Chi phí mỗi học sinh nhập học | Xếp hạng chi phí/nhập học theo hoạt động đã kết thúc | Tính từ `fieldActivities` |
-| Đội ngũ nhập dữ liệu | Số bản ghi, giây/hồ sơ, tỷ lệ trùng, tỷ lệ thiếu | `teamDataQuality` |
-| Chất lượng toàn mùa | Tỷ lệ số điện thoại liên lạc được, consent, ảnh phiếu và mục tiêu | `dataQualityMetrics` |
-| Đồng bộ thiết bị | Đã đồng bộ, đang chờ, lỗi, thời điểm cập nhật cuối | `deviceSyncStatuses` |
+| Vùng UI                             | Field API             |
+| ----------------------------------- | --------------------- |
+| Header                              | `meta`                |
+| KPI                                 | `kpis`                |
+| Hiệu quả hoạt động và chart chi phí | `completedActivities` |
+| Kế hoạch sắp tới                    | `upcomingActivities`  |
+| Đội ngũ và chất lượng dữ liệu       | `dataQuality`         |
+| Đồng bộ thiết bị                    | `deviceSync`          |
 
-Nguồn tham chiếu trực tiếp:
+Nguồn tham chiếu:
 
-- [page.tsx](../../src/app/(with-layouts)/(dashboard)/director/school-field-activity/page.tsx)
-- [school-field-activity-dashboard.tsx](../../src/app/(with-layouts)/(dashboard)/director/school-field-activity/_components/school-field-activity-dashboard.tsx)
-- [types.ts](../../src/app/(with-layouts)/(dashboard)/director/school-field-activity/_components/types.ts)
-- [data.ts](../../src/app/(with-layouts)/(dashboard)/director/school-field-activity/_components/data.ts)
-- [field-data-overview.tsx](../../src/app/(with-layouts)/(dashboard)/director/school-field-activity/_components/field-data-overview.tsx)
+- [Frontend client](<../../src/app/(with-layouts)/(dashboard)/director/school-field-activity/_components/school-field-activity-page-client.tsx>)
+- [API service](../../src/services/api/director-school-field-activity/index.ts)
+- [Type frontend](../../src/services/api/director-school-field-activity/types.ts)
+- [Normalizer frontend](../../src/services/api/director-school-field-activity/normalizers.ts)
+- Backend: `E:\TVu\CRM\frappe-crm\crm\api\director_school_field_activity.py`
 
-## 2. Tình trạng API hiện tại
+File `_components/data.ts` là fixture cũ, không còn là nguồn của route.
 
-Route chưa gọi API. Các component đang import fixture trực tiếp từ `school-field-activity/_components/data.ts`; KPI, cảnh báo chất lượng dữ liệu và thông tin thiết bị chưa có snapshot từ backend.
+## 2. Tình trạng tích hợp
 
-Nút `Xuất báo cáo` và `Lập kế hoạch hoạt động mới` hiện chỉ hiển thị toast. Contract bên dưới là contract production đề xuất. Khi tích hợp, một GET nên trả cùng `asOf`, `admissionYear` và `scope` cho tất cả section để bảng hiệu quả, chart chi phí và KPI không lệch nhau.
+Route gọi `getDirectorSchoolFieldActivity` sau khi client mount. Request hiện tại của trang là:
+
+```ts
+{
+  admissionYear: 2026,
+  scope: "all",
+  period: "season",
+  activityLimit: 10,
+  upcomingLimit: 10,
+  includeDevices: true,
+}
+```
+
+`activityLimit: 10` là giới hạn hiển thị của trang, không phải default backend. API service không tự đặt default; tham số bị bỏ qua sẽ dùng default backend.
+
+Service gửi `Accept: application/json`, dùng `cache: "no-store"`, gửi `credentials: "include"` trên browser và chỉ chuyển cookie `sid` ở request server-side của Next.js. Khi tải lỗi, route hiển thị fallback thay vì dùng fixture.
 
 ## 3. Endpoint và quyền truy cập
 
 ```http
 GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.director_school_field_activity.get_director_school_field_activity
-Cookie: sid=<Frappe session cookie>
 Accept: application/json
 ```
 
-Frappe bọc response thành công trong `message`.
+Endpoint được khai báo `allow_guest=True`.
 
-Endpoint chỉ đọc nhưng chứa dữ liệu vận hành về trường, nhân sự và thiết bị. Backend phải kiểm tra quyền Director trước khi áp dụng scope; client không được tự mở rộng phạm vi.
+- Guest được đọc aggregate công khai khi `scope=all`; cookie `sid` không bắt buộc trong trường hợp này.
+- Guest dùng scope campus, territory hoặc province nhận `403 FORBIDDEN`.
+- User đăng nhập phải active và qua `require_director_access`: Administrator, canonical profile **Admissions Director**, hoặc System Manager hợp lệ theo role policy.
+- Với scope cụ thể, backend kiểm tra campus/territory của CRM Staff hoặc province được gán cho territory.
 
-Quyền tối thiểu:
-
-- `Administrator` hoặc `System Manager` có quyền phù hợp;
-- profile nghiệp vụ `Admissions Director` hoặc role được allowlist;
-- user chỉ được xem hoạt động, nhân sự và thiết bị thuộc `scope` được cấp;
-- định danh thiết bị có thể trả dạng masked/display name, không trả token, serial hoặc thông tin bảo mật.
+Backend hiện chưa có nguồn device sync. Không có token thiết bị, serial hoặc PII học sinh trong response.
 
 ## 4. Request
 
-Ví dụ:
-
 ```http
-GET /api/method/crm.api.director_school_field_activity.get_director_school_field_activity?admissionYear=2026&scope=all&period=season&activityLimit=50&upcomingLimit=10
+GET /api/method/crm.api.director_school_field_activity.get_director_school_field_activity?admissionYear=2026&scope=all&period=season&activityLimit=10&upcomingLimit=10&includeDevices=true
 ```
 
-### Query parameters
+| Tên              | Kiểu                |       Mặc định backend | Ràng buộc / hành vi                                                                                                                                |
+| ---------------- | ------------------- | ---------------------: | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admissionYear`  | string hoặc integer | Một kỳ active duy nhất | Năm 4 chữ số `2000..2100`. Nếu truyền, tìm theo `name` rồi `year_name`. Bỏ trống khi không có đúng một kỳ active trả `422 INVALID_ADMISSION_YEAR`. |
+| `scope`          | string              |                  `all` | `all`, name hoặc code của CRM Campus, CRM Territory, CRM Province. Giá trị không hợp lệ trả `400 INVALID_QUERY`.                                   |
+| `period`         | enum                |               `season` | `season`, `6m`, `12m`.                                                                                                                             |
+| `activityLimit`  | integer             |                   `50` | `1..200`; chỉ cắt mảng `completedActivities`.                                                                                                      |
+| `upcomingLimit`  | integer             |                   `10` | `1..50`; chỉ cắt mảng `upcomingActivities`.                                                                                                        |
+| `includeDevices` | boolean             |                 `true` | Chỉ nhận `true` hoặc `false`. Hiện chưa tạo dữ liệu thiết bị vì backend chưa có source.                                                            |
 
-| Tên | Kiểu | Bắt buộc | Mặc định | Ràng buộc / mô tả |
-|---|---|---:|---|---|
-| `admissionYear` | integer | Không | Kỳ active duy nhất | Năm 4 chữ số trong khoảng `2000..2100` |
-| `scope` | string | Không | `all` | `all`, campus ID, territory ID hoặc province ID được cấp quyền |
-| `period` | enum | Không | `season` | `season`, `6m`, `12m`; mọi section dùng cùng khoảng báo cáo |
-| `activityLimit` | integer | Không | `50` | `1..200`; chỉ giới hạn hoạt động đã kết thúc |
-| `upcomingLimit` | integer | Không | `10` | `1..50`; chỉ giới hạn kế hoạch sắp tới |
-| `includeDevices` | boolean | Không | `true` | `true` hoặc `false`; tắt nếu caller không có quyền vận hành thiết bị |
+Tất cả timestamp dùng `Asia/Ho_Chi_Minh`.
 
-`period` không được hiểu là số ngày rolling nếu không có timezone/school-year rule. Với `season`, backend phải dùng kỳ tuyển sinh yêu cầu và chỉ lấy hoạt động thuộc cùng kỳ.
+- `season` dùng `start_date`/ `end_date` của CRM Admission Year; nếu thiếu, fallback 01/01–31/12 của năm tuyển sinh.
+- `6m` và `12m` là rolling window 182 và 365 ngày tính đến `asOf`.
+- Hoạt động completed được đọc theo `activity_date desc, scheduled_datetime desc, name desc`, sau đó lấy `activityLimit` đầu tiên. Backend không xếp hạng, gộp hoặc khử trùng theo trường.
+- Kế hoạch chỉ gồm CRM status `Planned` hoặc `Cancelled`, thời gian từ `asOf` trở đi, và được sắp tăng dần theo ngày/ID.
 
-Nếu không truyền `admissionYear`, backend chỉ được tự chọn kỳ khi có đúng một kỳ tuyển sinh active; nếu không, trả `422 INVALID_ADMISSION_YEAR`.
+## 5. Response thành công
 
-## 5. Response `200 OK`
+Frappe bọc giá trị return của method trong `message`:
 
-Shape tổng quát:
+```ts
+type FrappeEnvelope = {
+  message: DirectorSchoolFieldActivityData;
+};
 
-```text
-{
-  message: {
-    meta: FieldActivityMeta,
-    kpis: FieldActivityKpi[],
-    completedActivities: CompletedFieldActivity[],
-    upcomingActivities: UpcomingFieldActivity[],
-    dataQuality: FieldDataQuality,
-    deviceSync: DeviceSyncOverview | null
-  }
-}
+type DirectorSchoolFieldActivityData = {
+  meta: FieldActivityMeta;
+  kpis: FieldActivityKpi[];
+  completedActivities: CompletedFieldActivity[];
+  upcomingActivities: UpcomingFieldActivity[];
+  dataQuality: FieldDataQuality;
+  deviceSync: DeviceSyncOverview | null;
+};
 ```
 
-Ví dụ response rút gọn:
+Ví dụ rút gọn phản ánh implementation hiện tại:
 
 ```json
 {
@@ -98,214 +109,126 @@ Ví dụ response rút gọn:
       "scope": "all",
       "scopeLabel": "Toàn bộ cơ sở",
       "period": "season",
-      "asOf": "2026-08-31T10:00:00+07:00",
+      "asOf": "2026-09-02T10:00:00+07:00",
       "timezone": "Asia/Ho_Chi_Minh",
       "status": "partial",
       "sources": {
         "activities": "available",
         "plans": "available",
-        "dataQuality": "available",
-        "deviceSync": "partial"
+        "dataQuality": "partial",
+        "deviceSync": "unavailable"
       },
       "warnings": [
-        "184 bản ghi chưa đồng bộ từ thiết bị Máy 04."
+        "Nguồn đồng bộ thiết bị chưa được cấu hình; không suy diễn số pending/error."
       ]
     },
     "kpis": [
       {
         "id": "activity-count",
         "label": "Hoạt động đã triển khai",
-        "value": 42,
+        "value": 1,
         "unit": "activities",
-        "change": 18,
-        "changeUnit": "percent",
-        "comparison": "same_period_previous_year",
-        "detail": "Tăng 18% so với cùng kỳ",
+        "change": null,
+        "changeUnit": null,
+        "comparison": null,
+        "shareOfProspects": null,
+        "benchmark": null,
+        "detail": null,
         "tone": "primary"
-      },
-      {
-        "id": "field-leads",
-        "label": "Hồ sơ thu được",
-        "value": 9840,
-        "unit": "leads",
-        "shareOfProspects": 16.8,
-        "detail": "16,8% tổng hồ sơ",
-        "tone": "success"
-      },
-      {
-        "id": "cost-per-enrollment",
-        "label": "Chi phí mỗi học sinh nhập học",
-        "value": 1.4,
-        "unit": "million_vnd",
-        "benchmark": {
-          "id": "digital",
-          "label": "Kênh số",
-          "value": 2.5,
-          "unit": "million_vnd"
-        },
-        "tone": "success"
-      },
-      {
-        "id": "field-conversion",
-        "label": "Tỷ lệ hồ sơ chuyển thành nhập học",
-        "value": 11.0,
-        "unit": "percent",
-        "benchmark": {
-          "id": "digital",
-          "label": "Kênh số",
-          "value": 4.1,
-          "unit": "percent"
-        },
-        "tone": "primary"
-      },
-      {
-        "id": "unsynced-records",
-        "label": "Hồ sơ chưa đồng bộ",
-        "value": 184,
-        "unit": "records",
-        "detail": "Cần kiểm tra ngay",
-        "tone": "error"
       }
     ],
     "completedActivities": [
       {
-        "id": "activity-2026-0001",
+        "id": "ACT-0001",
         "activityType": "career-talk",
-        "title": "Ngày hội hướng nghiệp — THPT Châu Văn Liêm",
-        "shortName": "THPT Châu Văn Liêm",
+        "title": "Ngày hội hướng nghiệp",
+        "shortName": "THPT Ví dụ",
         "occurredAt": "2026-05-28T08:00:00+07:00",
         "dateLabel": "28/05",
-        "locationId": "province-ct",
+        "locationId": "SCHOOL-001",
         "location": "Cần Thơ",
-        "ownerId": "USR-001",
-        "owner": "Trần Q. Bảo",
-        "cost": { "amount": 18, "unit": "million_vnd" },
-        "leads": 62,
-        "verifiedLeads": 57,
-        "verifiedRate": 91.9,
-        "qualified": 34,
-        "enrolled": 11,
-        "costPerEnrollment": { "amount": 1.6, "unit": "million_vnd" },
+        "ownerId": "STAFF-001",
+        "owner": "Người phụ trách",
+        "cost": { "amount": null, "unit": "vnd" },
+        "leads": 12,
+        "verifiedLeads": null,
+        "verifiedRate": null,
+        "qualified": null,
+        "enrolled": null,
+        "costPerEnrollment": { "amount": null, "unit": "vnd" },
         "status": "completed",
-        "dataQuality": "verified"
+        "dataQuality": "partial"
       }
     ],
-    "upcomingActivities": [
-      {
-        "id": "plan-2026-0001",
-        "activityType": "career-talk-parent-session",
-        "title": "Ngày hội hướng nghiệp + gặp phụ huynh",
-        "locationId": "school-001",
-        "location": "THPT Châu Văn Liêm",
-        "scheduledAt": "2026-09-07T08:00:00+07:00",
-        "dateLabel": "07/09",
-        "expectedEnrollment": { "min": 9, "max": 14, "unit": "students" },
-        "confidence": 71,
-        "historicalSampleSize": 4,
-        "status": "planned",
-        "source": "market-and-student-priority"
-      }
-    ],
+    "upcomingActivities": [],
     "dataQuality": {
-      "unsyncedRecords": 184,
-      "team": [
-        {
-          "userId": "USR-001",
-          "name": "Trần Quốc Bảo",
-          "records": 137,
-          "secondsPerRecord": 38,
-          "duplicateRate": 2.1,
-          "missingRate": 4.4
-        }
-      ],
+      "unsyncedRecords": 0,
+      "team": [],
       "seasonMetrics": [
         {
           "id": "reachable-phone",
           "label": "Số điện thoại liên lạc được",
-          "value": 92.4,
+          "value": null,
           "target": 95.0,
           "unit": "percent",
-          "status": "below_target"
+          "status": "unavailable"
         },
         {
           "id": "data-consent",
           "label": "Đồng ý xử lý dữ liệu",
-          "value": 97.8,
+          "value": null,
           "target": 100.0,
           "unit": "percent",
-          "status": "below_target"
+          "status": "unavailable"
         },
         {
           "id": "receipt-image",
           "label": "Có ảnh phiếu đính kèm",
-          "value": 61.2,
+          "value": null,
           "target": 80.0,
           "unit": "percent",
-          "status": "below_target"
+          "status": "unavailable"
         }
       ],
-      "attention": {
-        "userId": "USR-002",
-        "name": "Nguyễn Thị Hà",
-        "duplicateRate": 8.9,
-        "missingRate": 14.2,
-        "reason": "highest_quality_signal_gap"
-      }
+      "attention": null
     },
-    "deviceSync": {
-      "status": "partial",
-      "totalUnsyncedRecords": 184,
-      "totalErrors": 12,
-      "devices": [
-        {
-          "id": "device-04",
-          "label": "Máy 04 · Nguyễn T. Hà",
-          "activityId": "activity-2026-0003",
-          "activity": "Tư vấn tại lớp · 12/07",
-          "synced": 34,
-          "pending": 128,
-          "errors": 12,
-          "lastUpdatedAt": "2026-08-31T06:40:00+07:00",
-          "lastUpdatedLabel": "3 giờ 20 phút trước",
-          "connectionStatus": "offline"
-        }
-      ],
-      "message": "Dữ liệu vẫn an toàn trên thiết bị và sẽ tự đồng bộ khi có mạng."
-    }
+    "deviceSync": null
   }
 }
 ```
 
-Ví dụ chỉ minh hoạ một hoạt động, một kế hoạch, một dòng nhân sự và một thiết bị. Response production phải trả tất cả hoạt động/kế hoạch trong limit và đủ các metric quality cần hiển thị.
+Ví dụ chỉ minh hoạ shape; backend luôn trả đủ năm KPI và ba `seasonMetrics`.
 
-## 6. Data contract chi tiết
+## 6. Data contract
 
 ### 6.1. `meta`
 
-```typescript
+```ts
+type FieldActivityDataStatus = "available" | "partial" | "unavailable";
+
 type FieldActivityMeta = {
   admissionYear: number;
   scope: string;
   scopeLabel: string;
   period: "season" | "6m" | "12m";
-  asOf: string; // ISO-8601, có timezone
+  asOf: string;
   timezone: string;
-  status: "available" | "partial" | "unavailable";
+  status: "available" | "partial";
   sources: {
-    activities: "available" | "partial" | "unavailable";
-    plans: "available" | "partial" | "unavailable";
-    dataQuality: "available" | "partial" | "unavailable";
-    deviceSync: "available" | "partial" | "unavailable";
+    activities: FieldActivityDataStatus;
+    plans: FieldActivityDataStatus;
+    dataQuality: FieldActivityDataStatus;
+    deviceSync: FieldActivityDataStatus;
   };
-  warnings?: string[];
+  warnings: string[];
 };
 ```
 
-`asOf` là thời điểm snapshot được tạo. Khi `deviceSync` partial, các KPI phụ thuộc bản ghi chưa đồng bộ phải được đánh dấu hoặc loại khỏi denominator; không âm thầm xem pending là `0`.
+`asOf` là snapshot time. `warnings` luôn là array. Với implementation hiện tại, `sources.deviceSync` luôn `unavailable`, nên `meta.status` thường là `partial`.
 
 ### 6.2. `kpis[]`
 
-```typescript
+```ts
 type FieldActivityKpi = {
   id:
     | "activity-count"
@@ -316,79 +239,68 @@ type FieldActivityKpi = {
   label: string;
   value: number | null;
   unit: "activities" | "leads" | "million_vnd" | "percent" | "records";
-  change?: number | null;
-  changeUnit?: "percent" | "percentage_points" | "absolute";
-  comparison?: "same_period_previous_year" | "previous_period" | "benchmark";
-  shareOfProspects?: number | null;
-  benchmark?: {
-    id: string;
-    label: string;
-    value: number | null;
-    unit: "million_vnd" | "percent";
-  } | null;
-  detail?: string;
+  change: null;
+  changeUnit: null;
+  comparison: null;
+  shareOfProspects: number | null;
+  benchmark: null;
+  detail: null;
   tone: "primary" | "success" | "warning" | "error";
 };
 ```
 
-Frontend format `value`, `change` và `unit` theo locale. Không trả `1,4 tr`, `11,0%` hoặc `184 hồ sơ` như numeric contract duy nhất.
+Backend luôn trả năm KPI theo thứ tự trên và hiện chưa có dữ liệu change, benchmark hoặc detail.
 
-KPI semantics:
-
-- `activity-count`: số hoạt động đã kết thúc trong kỳ, không tính plan chưa diễn ra.
-- `field-leads`: số lead unique được attributable cho hoạt động thực địa theo attribution model đã công bố.
-- `cost-per-enrollment`: tổng chi phí hoạt động chia cho số enrollment canonical attributable cho hoạt động; đơn vị `million_vnd`.
-- `field-conversion`: `enrolled / leads * 100` theo cùng attribution và snapshot.
-- `unsynced-records`: tổng record đang pending hoặc lỗi đồng bộ, không phải số lead chắc chắn bị mất.
-
-Nếu denominator bằng `0` hoặc nguồn chưa đủ để tính, trả `null` và trạng thái nguồn tương ứng, không trả `0`.
+- KPI được tính từ **toàn bộ** completed activities trong period, trước khi áp dụng `activityLimit`.
+- `field-leads` ưu tiên số student unique từ CRM Student Engagement Event; nếu không có attribution, fallback `prospect_count` và activity có `dataQuality: "partial"`.
+- `cost-per-enrollment` đổi tổng cost sang VND, chia enrollment rồi trả `million_vnd`. Thiếu cost ở bất kỳ activity nào hoặc không có enrollment trả `null`.
+- `field-conversion = enrolled / leads * 100`.
+- `unsynced-records` hiện là `null`, vì chưa có device-sync source.
 
 ### 6.3. `completedActivities[]`
 
-```typescript
+```ts
+type FieldActivityAmount = {
+  amount: number | null;
+  unit: "vnd" | "thousand_vnd" | "million_vnd";
+};
+
 type CompletedFieldActivity = {
   id: string;
   activityType: string;
   title: string;
   shortName: string;
   occurredAt: string;
-  dateLabel?: string;
+  dateLabel: string | null;
   locationId: string | null;
   location: string;
   ownerId: string | null;
   owner: string | null;
-  cost: {
-    amount: number | null;
-    unit: "vnd" | "thousand_vnd" | "million_vnd";
-  };
+  cost: FieldActivityAmount;
   leads: number | null;
   verifiedLeads: number | null;
   verifiedRate: number | null;
   qualified: number | null;
   enrolled: number | null;
-  costPerEnrollment: {
-    amount: number | null;
-    unit: "vnd" | "thousand_vnd" | "million_vnd";
-  };
+  costPerEnrollment: FieldActivityAmount;
   status: "completed";
   dataQuality: "verified" | "partial" | "unavailable";
 };
 ```
 
-Quy ước:
+`activityType` là code raw từ CRM School Activity; frontend chưa map code này thành label tiếng Việt. `cost` lấy lần lượt từ `activity_cost/activity_cost_unit` hoặc `cost_amount/cost_unit`; nếu thiếu, API trả `{ amount: null, unit: "vnd" }`.
 
-- Chỉ `status = completed` mới được đưa vào bảng hiệu quả và chart chi phí.
-- `verifiedRate = verifiedLeads / leads * 100`; `verifiedLeads` phải là số lead unique đã qua rule xác minh.
-- `qualified` và `enrolled` phải dùng canonical lifecycle/application event; không dùng số lần tham dự hoặc form submit trùng.
-- `costPerEnrollment` phải tính từ số đầy đủ trước khi làm tròn, không suy ra từ giá trị display.
-- `activityType` là mã ổn định; frontend map label tiếng Việt.
-- Hoạt động chưa đồng bộ toàn phần không được dùng để kết luận hoạt động kém hiệu quả. Trả `dataQuality = partial` và metadata nguồn nếu cần.
+Khi attribution có CRM Student:
 
-UI hiện tại sắp xếp theo `costPerEnrollment` tăng dần ở chart chi phí. Backend không cần trả chart color hoặc class CSS.
+- `verifiedLeads`: student có `consent_state=granted`;
+- `qualified`: lifecycle `mql`, `applicant` hoặc `enrolled`;
+- `enrolled`: lifecycle `enrolled` hoặc CRM Admission Application status `enrolled`.
+
+`costPerEnrollment` giữ unit của `cost`. UI đổi sang million VND trước khi vẽ chart chi phí.
 
 ### 6.4. `upcomingActivities[]`
 
-```typescript
+```ts
 type UpcomingFieldActivity = {
   id: string;
   activityType: string;
@@ -396,69 +308,56 @@ type UpcomingFieldActivity = {
   locationId: string | null;
   location: string;
   scheduledAt: string;
-  dateLabel?: string;
+  dateLabel: string | null;
   expectedEnrollment: {
     min: number | null;
     max: number | null;
     unit: "students";
   };
-  confidence: number | null; // 0..100
+  confidence: number | null;
   historicalSampleSize: number | null;
-  status: "planned" | "confirmed" | "cancelled";
-  source: "market-and-student-priority" | "historical-activity" | "manual" | "mixed";
-  evidence?: string[];
+  status: "planned" | "cancelled";
+  source: string;
+  evidence: string[];
 };
 ```
 
-`expectedEnrollment` là khoảng dự báo, không phải số enrollment thực tế. `confidence` phải đi kèm `historicalSampleSize`; nếu số mẫu nhỏ hoặc thiếu hoạt động tương tự, backend nên trả confidence thấp/null và warning. Không dùng plan đã `cancelled` để tính KPI hoặc forecast tổng.
-
-Kế hoạch phải được sắp xếp theo `scheduledAt` tăng dần. `dateLabel` chỉ phục vụ hiển thị.
+Backend trả `planned` cho CRM status `Planned` và `cancelled` cho `Cancelled`. UI lọc cancelled trước khi hiển thị. `source` lấy từ `forecast_source`, default `manual`; normalizer frontend fallback giá trị không nhận diện về `manual`. `evidence` chứa `evidence_reference` nếu có.
 
 ### 6.5. `dataQuality`
 
-```typescript
+```ts
 type FieldDataQuality = {
   unsyncedRecords: number;
   team: Array<{
     userId: string;
     name: string;
     records: number;
-    secondsPerRecord: number | null;
-    duplicateRate: number | null;
-    missingRate: number | null;
+    secondsPerRecord: null;
+    duplicateRate: null;
+    missingRate: null;
   }>;
   seasonMetrics: Array<{
-    id: string;
+    id: "reachable-phone" | "data-consent" | "receipt-image";
     label: string;
     value: number | null;
-    target: number | null;
+    target: number;
     unit: "percent";
     status: "meets_target" | "below_target" | "unavailable";
   }>;
-  attention?: {
-    userId: string;
-    name: string;
-    duplicateRate: number | null;
-    missingRate: number | null;
-    reason: string;
-  } | null;
+  attention: null;
 };
 ```
 
-Semantics:
+`team.records` là tổng leads theo owner của completed activities trong scope/period. Backend chưa đo thời gian nhập, duplicate, missing rate hoặc attention, nên các field đó là `null`.
 
-- `duplicateRate` là tỷ lệ bản ghi bị xác định trùng trong số bản ghi người đó nhập, theo identity resolution version đang dùng.
-- `missingRate` là tỷ lệ bản ghi thiếu một hoặc nhiều field bắt buộc của hoạt động thực địa.
-- `secondsPerRecord` là thời gian trung bình nhập một record; nếu thiếu timestamp bắt đầu/kết thúc, trả `null`.
-- `seasonMetrics.value` và `target` dùng cùng denominator đã công bố; không trộn toàn mùa với kỳ đang chọn.
-- `attention` chỉ là tín hiệu cần hướng dẫn/quy trình, không phải đánh giá năng lực hoặc xếp hạng nhân sự.
-- Không trả raw phone, email, ảnh phiếu hoặc nội dung nhạy cảm trong overview. Link sang Data Health/Student 360 dùng quyền riêng.
+`seasonMetrics` luôn có ba metric: phone/consent được tính từ student attributed trong scope/period; `receipt-image` luôn unavailable. `dataQuality.unsyncedRecords` hiện được giữ ở `0` để tương thích UI dù chưa có device source; không được hiểu là đã quan sát thấy không có record pending.
 
 ### 6.6. `deviceSync`
 
-```typescript
+```ts
 type DeviceSyncOverview = {
-  status: "available" | "partial" | "unavailable";
+  status: FieldActivityDataStatus;
   totalUnsyncedRecords: number;
   totalErrors: number;
   devices: Array<{
@@ -470,138 +369,65 @@ type DeviceSyncOverview = {
     pending: number;
     errors: number;
     lastUpdatedAt: string | null;
-    lastUpdatedLabel?: string;
+    lastUpdatedLabel: string | null;
     connectionStatus: "online" | "offline" | "unknown";
   }>;
-  message?: string;
+  message: string | null;
 };
 ```
 
-`synced`, `pending` và `errors` phải được định nghĩa rõ theo record đồng bộ. `pending` là record chưa nhận ACK thành công; `errors` là record có lần đồng bộ thất bại cần retry hoặc xử lý. Tổng `totalUnsyncedRecords` phải nhất quán với rule đã công bố, thường là `pending + errors` sau khi loại duplicate.
+Đây là shape frontend-ready cho nguồn tương lai. Hiện CRM schema chưa có DocType device sync; GET luôn trả `deviceSync: null`, `meta.sources.deviceSync: "unavailable"` và warning tương ứng.
 
-Khi một thiết bị offline:
+## 7. Chuẩn hoá ở frontend
 
-- trả `connectionStatus = offline` và `lastUpdatedAt`;
-- không biến record pending thành `0`;
-- không dùng record chưa đồng bộ để làm giảm conversion, tăng duplicate hoặc đánh giá owner;
-- nếu nguồn device không đọc được, trả `deviceSync = null` hoặc `status = unavailable`, không tạo số giả.
+`getDirectorSchoolFieldActivity` nhận envelope `message`, `data` hoặc payload unwrapped. Normalizer cũng chấp nhận alias snake_case như `completed_activities`, `data_quality` và `device_sync`.
 
-## 7. Công thức và attribution
+- Response 2xx chỉ được chấp nhận khi có `meta` và mảng `kpis`; nếu không, service ném client-side `502 INVALID_FIELD_ACTIVITY_RESPONSE`.
+- KPI/activity sai shape bị loại; integer được làm tròn không âm, percentage bị clamp `0..100`.
+- Section thiếu được normalise về array/object rỗng hoặc giá trị nullable.
+- Formatting tiền, tỷ lệ và locale được thực hiện ở component UI.
+- Thiếu `NEXT_PUBLIC_FRAPPE_URL` hoặc lỗi kết nối được service biểu diễn thành client-side `503 DIRECTOR_SCHOOL_FIELD_ACTIVITY_UNAVAILABLE`.
 
-Các aggregate phải dùng cùng một attribution model và snapshot:
+## 8. Error contract
 
-```text
-verifiedRate = verified unique leads / unique leads * 100
-fieldConversion = attributable enrolled / attributable leads * 100
-costPerEnrollment = activity cost / attributable enrolled
-shareOfProspects = attributable field leads / total prospects * 100
-```
-
-Backend phải công bố `attributionModel` nếu lead có nhiều điểm chạm, ví dụ `first-touch`, `last-touch` hoặc `observed-interactions`. Không gọi là lead của hoạt động thực địa nếu chỉ có một interaction nhưng chưa resolve identity/lineage.
-
-Chi phí cần có currency/unit rõ ràng. Fixture hiện dùng `million_vnd`; production không được suy diễn đơn vị từ label.
-
-## 8. Quy tắc dữ liệu và privacy
-
-- Tất cả section phải dùng cùng `admissionYear`, `scope`, `period`, `asOf` và timezone.
-- Không lấy số lượng record của page hiện tại làm KPI toàn mùa.
-- `null` dành cho unavailable, denominator bằng `0`, chưa đủ quan sát hoặc chưa xác minh; `0` chỉ dùng khi giá trị thực đã được quan sát là 0.
-- Activity, lead và enrollment phải deduplicate theo ID canonical; không đếm lại khi một thiết bị retry đồng bộ.
-- Không hiển thị hoạt động chưa hoàn tất trong bảng ranking hiệu quả.
-- Dữ liệu pending/error phải được tách khỏi actual và có data availability marker.
-- Không trả thông tin bảo mật thiết bị, token đồng bộ hoặc PII không cần thiết.
-- Dữ liệu quality của nhân sự chỉ nên dùng để cải thiện quy trình nhập và phải có audit/permission phù hợp.
-
-## 9. API action bổ sung
-
-### 9.1. Xuất báo cáo
-
-Nút `Xuất báo cáo` hiện chỉ hiển thị toast. Nếu triển khai, dùng endpoint riêng với cùng query/snapshot:
-
-```http
-GET /api/method/crm.api.director_school_field_activity.export_director_school_field_activity?admissionYear=2026&scope=all&period=season&format=xlsx
-```
-
-Endpoint trả file CSV/XLSX hoặc job export có `requestId`; không đưa dữ liệu export lớn vào response JSON của overview.
-
-### 9.2. Lập kế hoạch hoạt động mới
-
-Nút `Lập kế hoạch hoạt động mới` hiện chưa có form. Khi triển khai, dùng command riêng thay vì ghi trực tiếp từ dashboard:
-
-```http
-POST /api/method/crm.api.director_school_field_activity.create_field_activity_plan
-Cookie: sid=<Frappe session cookie>
-Content-Type: application/json
-Accept: application/json
-Idempotency-Key: <unique-command-key>
-```
-
-Request tối thiểu:
+Backend đặt custom error ở top-level Frappe response:
 
 ```json
 {
-  "activityType": "career-talk",
-  "title": "Ngày hội hướng nghiệp + gặp phụ huynh",
-  "locationId": "school-001",
-  "scheduledAt": "2026-09-07T08:00:00+07:00",
-  "ownerId": "USR-001",
-  "admissionYear": 2026,
-  "scope": "all",
-  "expectedEnrollment": { "min": 9, "max": 14 },
-  "idempotencyKey": "plan-01J-create-school-001-20260907"
+  "error": {
+    "code": "INVALID_QUERY",
+    "message": "Tham số period không hợp lệ."
+  },
+  "http_status_code": 400
 }
 ```
 
-Backend phải validate permission trên trường/địa điểm, người phụ trách, thời gian trùng lịch, kỳ tuyển sinh và range dự báo. Response nên trả plan ID, trạng thái, version và audit event. Nếu form cho phép sửa dự báo hoặc owner sau này, cần optimistic concurrency và `expectedVersion`.
+Frappe có thể thêm field lỗi framework. Client đọc `error` ở top-level hoặc bên trong `message`; endpoint không tự tạo `details` hay `requestId`.
 
-## 10. Error contract
+| HTTP | Code                                         | Khi dùng                                                             |
+| ---: | -------------------------------------------- | -------------------------------------------------------------------- |
+|  400 | `INVALID_QUERY`                              | `scope`, `period`, limit hoặc `includeDevices` không hợp lệ          |
+|  401 | `UNAUTHENTICATED`                            | Request không phải Guest hợp lệ nhưng user thiếu hoặc không active   |
+|  403 | `FORBIDDEN`                                  | Guest dùng scope cụ thể hoặc user không được cấp scope               |
+|  404 | `ADMISSION_YEAR_NOT_FOUND`                   | `admissionYear` hợp lệ về format nhưng không tồn tại                 |
+|  422 | `INVALID_ADMISSION_YEAR`                     | Năm sai format/range hoặc không có đúng một kỳ active khi bỏ tham số |
+|  503 | `DIRECTOR_SCHOOL_FIELD_ACTIVITY_UNAVAILABLE` | Không đọc được nguồn CRM School Activity bắt buộc                    |
 
-Lỗi đọc dữ liệu:
+`502 INVALID_FIELD_ACTIVITY_RESPONSE` chỉ do frontend service tạo khi response 2xx không qua validation tối thiểu.
 
-```json
-{
-  "message": {
-    "error": {
-      "code": "DIRECTOR_SCHOOL_FIELD_ACTIVITY_UNAVAILABLE",
-      "message": "Không thể tải dữ liệu hoạt động trường và thực địa.",
-      "details": {}
-    },
-    "meta": {
-      "requestId": "req_01J..."
-    }
-  }
-}
-```
+## 9. API chưa triển khai
 
-Lỗi mutation dùng cùng format và thêm `planId`/`currentVersion` khi phù hợp.
+Hai nút **Xuất báo cáo** và **Lập kế hoạch hoạt động mới** hiện chỉ hiển thị toast. Backend chưa có:
 
-| HTTP | Code | Khi dùng |
-|---:|---|---|
-| `400` | `INVALID_QUERY` / `INVALID_ACTIVITY_PLAN` | Query/body sai format |
-| `401` | `UNAUTHENTICATED` | Thiếu hoặc hết hạn session |
-| `403` | `FORBIDDEN` | User không có quyền xem scope hoặc tạo plan |
-| `404` | `ADMISSION_YEAR_NOT_FOUND` / `LOCATION_NOT_FOUND` | Kỳ hoặc trường/địa điểm không tồn tại |
-| `409` | `SCHEDULE_CONFLICT` | Hoạt động trùng lịch/owner/device allocation |
-| `409` | `DUPLICATE_IDEMPOTENCY_KEY` | Command key đã dùng cho payload khác |
-| `422` | `INVALID_ADMISSION_YEAR` / `INVALID_DATE_RANGE` | Kỳ, thời gian hoặc range dự báo không hợp lệ |
-| `502` | `INVALID_FIELD_ACTIVITY_RESPONSE` | Upstream trả schema không hợp lệ |
-| `503` | `DIRECTOR_SCHOOL_FIELD_ACTIVITY_UNAVAILABLE` | Không đọc được nguồn hoạt động hoặc aggregate chính |
+- `export_director_school_field_activity`
+- `create_field_activity_plan`
 
-Nếu chỉ nguồn device sync lỗi, không nhất thiết trả `503` cho toàn bộ overview; trả `meta.status = partial`, `sources.deviceSync = unavailable` và giữ các section còn hợp lệ.
+Không gọi hoặc coi hai path trên là production contract. Khi triển khai, cần bổ sung endpoint, authorization, validation và test riêng trước khi cập nhật tài liệu này.
 
-## 11. Request tối thiểu để tích hợp
+## 10. Request tối thiểu để tích hợp
 
 ```http
-GET /api/method/crm.api.director_school_field_activity.get_director_school_field_activity?admissionYear=2026&scope=all&period=season
+GET /api/method/crm.api.director_school_field_activity.get_director_school_field_activity?admissionYear=2026&scope=all&period=season&activityLimit=10&upcomingLimit=10&includeDevices=true
 ```
 
-Response tối thiểu phải có:
-
-1. `meta.admissionYear`, `meta.scopeLabel`, `meta.period`, `meta.asOf`, `meta.status` và `meta.sources`.
-2. `kpis` cho 5 chỉ số đang hiển thị.
-3. `completedActivities` với các field để render performance chart và cost chart.
-4. `upcomingActivities` với khoảng dự báo và confidence.
-5. `dataQuality.team`, `dataQuality.seasonMetrics` và `unsyncedRecords`.
-6. `deviceSync` hoặc marker unavailable/partial nếu caller có quyền xem thiết bị.
-
-Các mutation export/plan là API riêng. Khi backend sẵn sàng, frontend không nên tiếp tục lấy số liệu từ fixture, hard-code cảnh báo `184` hoặc dùng dữ liệu chưa đồng bộ để kết luận hiệu quả hoạt động.
+Frontend cần xử lý `meta.status`, `meta.warnings`, giá trị `null` trong KPI/metric và `deviceSync: null`. Không suy luận số liệu đồng bộ hoặc chi phí từ fixture khi API trả unavailable.
