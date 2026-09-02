@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  ArrowRight,
-  ArrowUpward,
-  CheckCircle1,
-  Target3,
-} from "@tailgrids/icons";
+import { ArrowUpward, CheckCircle1, Target3 } from "@tailgrids/icons";
 import { useState } from "react";
 import {
   Bar,
@@ -76,7 +71,7 @@ export default function ScenarioSimulation() {
   const formatBillions = (value: number) =>
     `${value.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}B`;
   const scenarioMeta = [
-    { label: "Phạm vi", value: meta.scopeLabel, note: "scope đang áp dụng" },
+    { label: "Phạm vi", value: meta.scopeLabel, note: "đang áp dụng" },
     {
       label: "Kỳ dữ liệu",
       value: String(meta.admissionYear),
@@ -85,7 +80,7 @@ export default function ScenarioSimulation() {
     {
       label: "Mục tiêu",
       value: money(scenarioSimulation.targetRevenue),
-      note: "doanh thu mục tiêu",
+      note: "chỉ tiêu khoản thu",
     },
     {
       label: "Trạng thái",
@@ -188,9 +183,9 @@ export default function ScenarioSimulation() {
               note="người"
             />
             <ScenarioMetric
-              label="Doanh thu dự kiến"
+              label="Khoản thu dự kiến"
               value={activeScenario.revenue}
-              note="doanh thu thuần"
+              note="khoản thu thuần"
               tone="text-brand-500"
             />
             <ScenarioMetric
@@ -231,7 +226,7 @@ export default function ScenarioSimulation() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold text-text-secondary">
-                So sánh doanh thu dự kiến
+                So sánh khoản thu dự kiến
               </p>
               <p className="mt-1 text-[11px] text-text-tertiary">
                 Đường gạch là mục tiêu {money(scenarioSimulation.targetRevenue)}
@@ -243,7 +238,7 @@ export default function ScenarioSimulation() {
           </div>
           <div
             className="mt-3 h-48 w-full"
-            aria-label="Biểu đồ so sánh doanh thu theo kịch bản"
+            aria-label="Biểu đồ so sánh khoản thu theo kịch bản"
           >
             <ChartContainer
               className="h-full w-full"
@@ -282,7 +277,7 @@ export default function ScenarioSimulation() {
                 />
                 <Bar
                   dataKey="revenueValue"
-                  name="Doanh thu dự kiến"
+                  name="Khoản thu dự kiến"
                   radius={[6, 6, 0, 0]}
                   maxBarSize={46}
                   isAnimationActive={false}
@@ -350,9 +345,8 @@ export default function ScenarioSimulation() {
           />
           Dữ liệu mô phỏng niên khóa {meta.admissionYear}
         </span>
-        <span className="inline-flex items-center gap-1 font-semibold text-brand-500">
-          Lưu kịch bản
-          <ArrowRight size={13} aria-hidden="true" />
+        <span className="text-text-tertiary">
+          Chọn một kịch bản để so sánh với mốc cơ sở.
         </span>
       </div>
     </Card>

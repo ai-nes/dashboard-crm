@@ -8,7 +8,7 @@ import Link from "next/link";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
-import { negativeDrivers, positiveDrivers } from "./data";
+import { positiveDrivers } from "./data";
 import { percent, useRevenueForecastData } from "./revenue-forecast-context";
 
 export default function AiForecastExplanation() {

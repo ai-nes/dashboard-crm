@@ -3,41 +3,6 @@ import { ArrowUpward, CheckCircle1 } from "@tailgrids/icons";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { useRevenueForecastData } from "./revenue-forecast-context";
 
-const ACTIVITIES = [
-  {
-    id: "source-opened",
-    title: "Mở nguồn tuyển sinh mới",
-    date: "Hôm nay, 11:15",
-    value: "+8 trường",
-    status: "Đã đồng bộ",
-    positive: true,
-  },
-  {
-    id: "forecast-updated",
-    title: "AI cập nhật dự báo niên khóa",
-    date: "Hôm nay, 10:55",
-    value: "+4.2%",
-    status: "Đã phân tích",
-    positive: true,
-  },
-  {
-    id: "reconciled",
-    title: "Đối soát tự động hoàn tất",
-    date: "Hôm nay, 10:20",
-    value: "1,284 hồ sơ",
-    status: "Đã hoàn tất",
-    positive: true,
-  },
-  {
-    id: "scholarship-approved",
-    title: "Danh mục học bổng được phê duyệt",
-    date: "Hôm qua, 16:35",
-    value: "3 yêu cầu",
-    status: "Đã duyệt",
-    positive: false,
-  },
-];
-
 export default function RevenueActivity() {
   const { activities } = useRevenueForecastData();
   const ACTIVITIES = activities.map((activity) => ({

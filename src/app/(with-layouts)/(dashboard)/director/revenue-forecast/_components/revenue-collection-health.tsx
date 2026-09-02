@@ -10,6 +10,12 @@ import {
 export default function RevenueCollectionHealth() {
   const { collectionHealth } = useRevenueForecastData();
   const rate = collectionHealth.onTimeRate ?? 0;
+  const statusTone =
+    collectionHealth.status === "stable"
+      ? "bg-badge-success-background text-badge-success-text"
+      : collectionHealth.status === "watch"
+        ? "bg-badge-warning-background text-badge-warning-text"
+        : "bg-badge-error-background text-badge-error-text";
   return (
     <Card className="min-w-0 bg-background-gray-primary">
       <CardHeader className="items-start">
@@ -19,7 +25,9 @@ export default function RevenueCollectionHealth() {
             Theo dõi khoản thu và giao dịch đã xử lý
           </p>
         </div>
-        <span className="rounded-full bg-badge-success-background px-2 py-1 text-[11px] font-semibold text-badge-success-text">
+        <span
+          className={`rounded-full px-2 py-1 text-[11px] font-semibold ${statusTone}`}
+        >
           {collectionHealth.status === "stable"
             ? "Ổn định"
             : collectionHealth.status === "watch"
@@ -35,9 +43,6 @@ export default function RevenueCollectionHealth() {
             {percent(rate)}
           </p>
         </div>
-        <span className="rounded-full bg-badge-success-background px-2 py-1 text-[11px] font-semibold text-badge-success-text">
-          +2.8%
-        </span>
       </div>
 
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-card-border">
@@ -51,7 +56,7 @@ export default function RevenueCollectionHealth() {
         <HealthMetric
           label="Giao dịch đã đối soát"
           value={`${collectionHealth.reconciledCount.toLocaleString("vi-VN")} / ${collectionHealth.transactionCount.toLocaleString("vi-VN")}`}
-          note={`${percent(rate)} giao dịch`}
+          note="tỷ lệ thu đúng hạn hiển thị ở trên"
         />
         <HealthMetric
           label="Khoản đang chờ thu"
@@ -74,8 +79,8 @@ export default function RevenueCollectionHealth() {
           aria-hidden="true"
         />
         <span>
-          Tiến độ thu học phí đang đúng kế hoạch; chưa phát hiện khoản bất
-          thường.
+          {collectionHealth.warnings[0] ??
+            "Chưa ghi nhận cảnh báo từ dữ liệu thu và đối soát."}
         </span>
       </div>
     </Card>

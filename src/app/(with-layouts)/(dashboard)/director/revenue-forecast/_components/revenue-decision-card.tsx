@@ -3,21 +3,6 @@ import { ArrowRight, InfoTriangle } from "@tailgrids/icons";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { money, useRevenueForecastData } from "./revenue-forecast-context";
 
-const DECISIONS = [
-  {
-    id: "retention",
-    title: "Khóa lịch chăm sóc nhóm đã nộp hồ sơ",
-    note: "+18B doanh thu có thể bảo vệ",
-    tone: "bg-badge-success-background text-badge-success-text",
-  },
-  {
-    id: "discount",
-    title: "Rà soát nhóm giảm trừ vượt ngưỡng",
-    note: "Giảm 6B chiết khấu dự kiến",
-    tone: "bg-badge-warning-background text-badge-warning-text",
-  },
-];
-
 export default function RevenueDecisionCard() {
   const { decisions } = useRevenueForecastData();
   const DECISIONS = decisions.map((decision, index) => ({
@@ -37,7 +22,7 @@ export default function RevenueDecisionCard() {
         <div>
           <CardTitle className="text-base">Điểm cần quyết định</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Đòn bẩy có thể tác động forecast
+            Đòn bẩy có thể tác động đến dự báo
           </p>
         </div>
         <span className="rounded-full bg-badge-primary-background px-2 py-1 text-[11px] font-semibold text-badge-primary-text">
@@ -46,7 +31,7 @@ export default function RevenueDecisionCard() {
       </CardHeader>
 
       <div className="mt-5 rounded-xl bg-card-background p-3.5">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-badge-warning-background text-badge-warning-text">
               <InfoTriangle size={14} aria-hidden="true" />
@@ -60,7 +45,7 @@ export default function RevenueDecisionCard() {
               </span>
             </span>
           </div>
-          <span className="shrink-0 text-lg font-semibold text-success-500">
+          <span className="break-words text-lg font-semibold leading-6 text-success-500">
             {DECISIONS[0] ? DECISIONS[0].note : "—"}
           </span>
         </div>
@@ -95,7 +80,7 @@ export default function RevenueDecisionCard() {
       </div>
 
       <div className="mt-4 border-t border-card-border pt-4 text-xs font-semibold text-brand-500">
-        Mở trung tâm hành động →
+        Xem trung tâm hành động →
       </div>
     </Card>
   );

@@ -18,7 +18,7 @@ export default function FunnelCohortChart() {
   }));
 
   return (
-    <Card className="min-w-0 p-5">
+    <Card className="min-w-0 p-5 xl:h-full">
       <CardHeader className="mb-4 items-start">
         <div>
           <CardTitle>Tốc độ chuyển đổi theo tuần</CardTitle>

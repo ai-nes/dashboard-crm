@@ -23,7 +23,7 @@ export default function ActivityPerformanceChart({ activities }: ActivityPerform
     <Card className="flex h-full min-w-0 flex-col p-5">
       <CardHeader className="mb-4 items-start">
         <div>
-          <CardTitle>Hồ sơ và nhập học theo hoạt động</CardTitle>
+          <CardTitle>Hồ sơ và nhập học của 5 hoạt động gần nhất</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">So sánh số hồ sơ thu được với số học sinh đã nhập học.</p>
         </div>
         <span className="text-xs text-text-tertiary">{activities.length} hoạt động đã kết thúc</span>

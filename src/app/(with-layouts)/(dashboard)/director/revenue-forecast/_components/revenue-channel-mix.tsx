@@ -8,14 +8,6 @@ import { ChartContainer } from "@/components/tailgrids/core/chart";
 import RevenueChartTooltip from "./chart-tooltip";
 import { useRevenueForecastData } from "./revenue-forecast-context";
 
-const CHANNEL_MIX = [
-  { label: "Facebook Ads", value: 31 },
-  { label: "Website / biểu mẫu", value: 24 },
-  { label: "Tư vấn tại trường", value: 22 },
-  { label: "Zalo OA", value: 15 },
-  { label: "Khác", value: 8 },
-];
-
 export default function RevenueChannelMix() {
   const { channelMix } = useRevenueForecastData();
   const CHANNEL_MIX = channelMix.items.map((item) => ({
@@ -29,19 +21,19 @@ export default function RevenueChannelMix() {
     <Card className="min-w-0 bg-background-gray-primary">
       <CardHeader className="items-start">
         <div>
-          <CardTitle className="text-base">Cơ cấu nguồn hồ sơ</CardTitle>
+          <CardTitle className="text-base">Nguồn người quan tâm</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Đóng góp theo kênh tuyển sinh
+            Tỷ trọng người quan tâm theo kênh tuyển sinh
           </p>
         </div>
         <span className="rounded-full bg-badge-primary-background px-2 py-1 text-[11px] font-semibold text-badge-primary-text">
-          {channelMix.totalLeads.toLocaleString("vi-VN")} hồ sơ
+          {channelMix.totalLeads.toLocaleString("vi-VN")} người quan tâm
         </span>
       </CardHeader>
 
       <div
         className="mt-4 h-44 w-full"
-        aria-label="Biểu đồ cơ cấu nguồn thu theo kênh"
+        aria-label="Biểu đồ nguồn người quan tâm theo kênh"
       >
         <ChartContainer
           className="h-full w-full"

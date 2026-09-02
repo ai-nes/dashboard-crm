@@ -3,41 +3,6 @@ import { ArrowDownward, ArrowUpward, CheckCircle1 } from "@tailgrids/icons";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { money, useRevenueForecastData } from "./revenue-forecast-context";
 
-const TRANSACTIONS = [
-  {
-    id: "tuition-hcm",
-    title: "Học phí nhập học · TP. Hồ Chí Minh",
-    date: "Hôm nay, 10:42",
-    amount: "+12.4B",
-    status: "Đã ghi nhận",
-    income: true,
-  },
-  {
-    id: "deposit-dong-nai",
-    title: "Đặt cọc nhập học · Đồng Nai",
-    date: "Hôm nay, 09:18",
-    amount: "+4.8B",
-    status: "Đã đối soát",
-    income: true,
-  },
-  {
-    id: "scholarship",
-    title: "Phê duyệt học bổng · Niên khóa 2026",
-    date: "Hôm qua, 16:35",
-    amount: "-2.1B",
-    status: "Đã duyệt",
-    income: false,
-  },
-  {
-    id: "refund",
-    title: "Hoàn phí hồ sơ · Khu vực khác",
-    date: "Hôm qua, 14:06",
-    amount: "-0.6B",
-    status: "Đã xử lý",
-    income: false,
-  },
-];
-
 export default function RevenueTransactions() {
   const { transactions } = useRevenueForecastData();
   const TRANSACTIONS = transactions.map((row) => ({
@@ -48,11 +13,19 @@ export default function RevenueTransactions() {
     status: row.reconciled ? "Đã đối soát" : row.status,
     income: row.direction === "income",
   }));
+  const netChange = transactions.reduce(
+    (total, transaction) =>
+      total +
+      (transaction.direction === "income"
+        ? transaction.amount
+        : -transaction.amount),
+    0,
+  );
   return (
     <Card className="min-w-0 overflow-hidden">
       <CardHeader className="items-start">
         <div>
-          <CardTitle className="text-base">Giao dịch doanh thu</CardTitle>
+          <CardTitle className="text-base">Giao dịch khoản thu</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
             Các khoản thu chi mới nhất trong niên khóa
           </p>
@@ -97,8 +70,15 @@ export default function RevenueTransactions() {
       </div>
 
       <div className="mt-4 flex items-center justify-between border-t border-card-border pt-4 text-xs">
-        <span className="text-text-tertiary">Tổng biến động hôm nay</span>
-        <span className="font-semibold text-success-500">+17.2B</span>
+        <span className="text-text-tertiary">
+          Biến động theo giao dịch hiển thị
+        </span>
+        <span
+          className={`font-semibold ${netChange >= 0 ? "text-success-500" : "text-error-500"}`}
+        >
+          {netChange >= 0 ? "+" : "-"}
+          {money(Math.abs(netChange))}
+        </span>
       </div>
     </Card>
   );

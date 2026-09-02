@@ -26,13 +26,19 @@ export default function RevenueForecastChart() {
     forecast: point.forecast == null ? null : billions(point.forecast),
     target: point.target == null ? null : billions(point.target),
   }));
+  const lastActualLabel = [...forecast.points]
+    .reverse()
+    .find((point) => point.actual != null)?.label;
+  const firstForecastLabel = forecast.points.find(
+    (point) => point.forecast != null,
+  )?.label;
   return (
     <Card className="min-w-0 overflow-hidden">
       <CardHeader className="mb-4 items-start">
         <div>
-          <CardTitle>Dự báo doanh thu theo kỳ</CardTitle>
+          <CardTitle>Dự báo khoản thu theo kỳ</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Doanh thu thực tế, dự báo AI và chỉ tiêu niên khóa
+            Khoản thu đã ghi nhận, dự báo AI và chỉ tiêu niên khóa
           </p>
         </div>
         <span className="flex items-center gap-1.5 rounded-full bg-badge-success-background px-2.5 py-1 text-xs font-semibold text-badge-success-text">
@@ -78,13 +84,15 @@ export default function RevenueForecastChart() {
                 />
               </linearGradient>
             </defs>
-            <ReferenceArea
-              x1="T8"
-              x2="T10"
-              fill="var(--brand-500)"
-              fillOpacity={0.04}
-              strokeOpacity={0}
-            />
+            {firstForecastLabel && (
+              <ReferenceArea
+                x1={firstForecastLabel}
+                x2={forecast.points.at(-1)?.label}
+                fill="var(--brand-500)"
+                fillOpacity={0.04}
+                strokeOpacity={0}
+              />
+            )}
             <CartesianGrid
               stroke="var(--border-color-base-100)"
               strokeDasharray="4 4"
@@ -111,16 +119,18 @@ export default function RevenueForecastChart() {
               }}
               content={<RevenueChartTooltip valueSuffix="B" />}
             />
-            <ReferenceLine
-              x="T8"
-              stroke="var(--brand-500)"
-              strokeDasharray="3 5"
-              strokeOpacity={0.7}
-            />
+            {lastActualLabel && (
+              <ReferenceLine
+                x={lastActualLabel}
+                stroke="var(--brand-500)"
+                strokeDasharray="3 5"
+                strokeOpacity={0.7}
+              />
+            )}
             <Area
               type="monotone"
               dataKey="actual"
-              name="Thực tế"
+              name="Đã ghi nhận"
               stroke="var(--brand-500)"
               strokeWidth={2.5}
               fill="url(#revenue-forecast-fill)"
@@ -165,7 +175,7 @@ export default function RevenueForecastChart() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-text-tertiary">
-        <LegendItem label="Thực tế" className="bg-brand-500" />
+        <LegendItem label="Đã ghi nhận" className="bg-brand-500" />
         <LegendItem
           label="Dự báo AI"
           className="border-t border-dashed border-brand-500"

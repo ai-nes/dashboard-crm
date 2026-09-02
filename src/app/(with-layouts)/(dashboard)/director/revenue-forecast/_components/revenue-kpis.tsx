@@ -20,7 +20,7 @@ export default function RevenueKpis() {
   const revenueKpis: RevenueKpi[] = [
     {
       id: "forecast-revenue",
-      label: "Dự báo doanh thu",
+      label: "Dự kiến khoản thu thuần",
       value: money(summary.forecastRevenue),
       target: money(summary.revenueTarget),
       achievement: percent(
@@ -34,7 +34,7 @@ export default function RevenueKpis() {
     },
     {
       id: "actual-revenue",
-      label: "Doanh thu thực tế",
+      label: "Khoản thu đã ghi nhận",
       value: money(summary.actualRevenue),
       target: money(summary.revenueTarget),
       achievement: percent(
@@ -43,7 +43,7 @@ export default function RevenueKpis() {
           : null,
       ),
       change: "—",
-      helper: "đã ghi nhận",
+      helper: "theo giao dịch đã ghi nhận",
       tone: "info",
     },
     {
@@ -62,7 +62,7 @@ export default function RevenueKpis() {
     },
     {
       id: "revenue-gap",
-      label: "Khoảng thiếu chỉ tiêu",
+      label: "Khoảng còn thiếu so với chỉ tiêu",
       value: money(summary.revenueGap),
       target: money(summary.revenueTarget),
       achievement: percent(
@@ -91,6 +91,7 @@ export default function RevenueKpis() {
 
 function CompactRevenueKpi({ kpi }: { kpi: RevenueKpi }) {
   const tone = TONE_STYLES[kpi.tone];
+  const hasChange = kpi.change !== "—";
   const isPositive = !kpi.change.startsWith("-");
 
   return (
@@ -113,16 +114,18 @@ function CompactRevenueKpi({ kpi }: { kpi: RevenueKpi }) {
       </p>
 
       <div className="mt-auto flex min-w-0 items-center gap-1.5 pt-3 text-xs">
-        <span
-          className={`inline-flex shrink-0 items-center gap-0.5 font-medium ${isPositive ? "text-success-500" : "text-error-500"}`}
-        >
-          {kpi.change}
-          {isPositive ? (
-            <ArrowUpward size={13} aria-hidden="true" />
-          ) : (
-            <ArrowDownward size={13} aria-hidden="true" />
-          )}
-        </span>
+        {hasChange && (
+          <span
+            className={`inline-flex shrink-0 items-center gap-0.5 font-medium ${isPositive ? "text-success-500" : "text-error-500"}`}
+          >
+            {kpi.change}
+            {isPositive ? (
+              <ArrowUpward size={13} aria-hidden="true" />
+            ) : (
+              <ArrowDownward size={13} aria-hidden="true" />
+            )}
+          </span>
+        )}
         <span className="truncate text-text-tertiary">{kpi.helper}</span>
       </div>
     </div>

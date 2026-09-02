@@ -29,7 +29,7 @@ export default function RevenueSignals() {
         <div>
           <CardTitle className="text-base">Tín hiệu gần đây</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Các yếu tố đang tác động forecast
+            Các yếu tố đang tác động đến dự báo
           </p>
         </div>
         <span className="rounded-full bg-badge-warning-background px-2 py-1 text-[11px] font-semibold text-badge-warning-text">

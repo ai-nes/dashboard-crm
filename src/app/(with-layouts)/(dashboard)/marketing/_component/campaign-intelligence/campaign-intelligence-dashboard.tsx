@@ -40,10 +40,11 @@ export default function CampaignIntelligenceDashboard() {
     return (
       <section className="rounded-xl border border-card-border bg-card-background px-6 py-12 text-center">
         <h2 className="text-lg font-semibold text-text-primary">
-          Không thể tải dữ liệu campaign
+          Không thể tải dữ liệu chiến dịch
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
-          Hãy thử lại để cập nhật attribution và doanh thu xác nhận.
+          Hãy thử lại để cập nhật dữ liệu phân bổ nguồn và khoản thu đã đối
+          soát.
         </p>
         <Button className="mx-auto mt-5" onPress={() => refetch()}>
           Thử lại
@@ -54,7 +55,7 @@ export default function CampaignIntelligenceDashboard() {
 
   return (
     <div className="space-y-5">
-      <CampaignHeader />
+      <CampaignHeader generatedAt={data.generatedAt} />
       <RecommendationBanner recommendation={data.recommendation} />
       <KpiStrip summary={data.summary} />
 
@@ -79,8 +80,8 @@ export default function CampaignIntelligenceDashboard() {
       </div>
 
       <p className="px-1 text-xs leading-5 text-text-tertiary">
-        Tất cả chỉ số so sánh với kỳ trước. Doanh thu xác nhận được tính từ
-        enrollment đã được đối soát trong CRM.
+        Tất cả chỉ số so sánh với kỳ trước. Doanh thu xác nhận được tính từ học
+        sinh đã xác nhận nhập học và khoản thu đã đối soát trong CRM.
       </p>
     </div>
   );

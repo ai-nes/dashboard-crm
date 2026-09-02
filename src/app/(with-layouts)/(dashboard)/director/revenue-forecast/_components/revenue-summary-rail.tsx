@@ -18,7 +18,7 @@ export default function RevenueSummaryRail() {
         <div>
           <CardTitle className="text-base">Tổng quan tài chính</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Bức tranh doanh thu niên khóa 2026
+            Bức tranh khoản thu của niên khóa
           </p>
         </div>
         <span className="rounded-full bg-badge-primary-background px-2 py-1 text-[11px] font-semibold text-badge-primary-text">
@@ -27,7 +27,7 @@ export default function RevenueSummaryRail() {
       </CardHeader>
 
       <div className="mt-7">
-        <p className="text-xs text-text-tertiary">Doanh thu thuần dự báo</p>
+        <p className="text-xs text-text-tertiary">Khoản thu thuần dự kiến</p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
           <p className="text-[38px] leading-none font-semibold tracking-[-1.5px] text-text-primary">
             {money(summary.forecastRevenue)}
@@ -60,23 +60,6 @@ export default function RevenueSummaryRail() {
           note="đang trong ngưỡng tốt"
           valueClassName="text-badge-success-text"
         />
-      </div>
-
-      <div className="mt-6 rounded-xl bg-card-background p-3.5">
-        <p className="text-[11px] font-medium text-text-tertiary">
-          Mốc kế tiếp
-        </p>
-        <div className="mt-2 flex items-end justify-between gap-3">
-          <div>
-            <p className="text-xl font-semibold text-text-primary">T9</p>
-            <p className="mt-1 text-[11px] text-text-tertiary">420B dự báo</p>
-          </div>
-          <span className="text-right text-[11px] text-text-tertiary">
-            còn 2 kỳ
-            <br />
-            để đạt mục tiêu
-          </span>
-        </div>
       </div>
 
       <div className="mt-auto flex items-center gap-2 border-t border-card-border pt-5 text-xs text-badge-success-text">

@@ -1,33 +1,5 @@
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import {
-  money,
-  percent,
-  useRevenueForecastData,
-} from "./revenue-forecast-context";
-
-const TARGETS = [
-  {
-    id: "tuition",
-    label: "Thu học phí",
-    value: "346B / 420B",
-    progress: 82.4,
-    tone: "bg-brand-500",
-  },
-  {
-    id: "deposit",
-    label: "Đặt cọc nhập học",
-    value: "74B / 96B",
-    progress: 77,
-    tone: "bg-info-500",
-  },
-  {
-    id: "application",
-    label: "Phí hồ sơ",
-    value: "18B / 24B",
-    progress: 75,
-    tone: "bg-success-500",
-  },
-];
+import { money, useRevenueForecastData } from "./revenue-forecast-context";
 
 export default function RevenueTargetPlan() {
   const { meta, targetPlan } = useRevenueForecastData();

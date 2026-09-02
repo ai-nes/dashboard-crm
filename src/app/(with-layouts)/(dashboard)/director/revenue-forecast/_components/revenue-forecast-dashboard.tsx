@@ -19,6 +19,8 @@ import RevenueTransactions from "./revenue-transactions";
 import { getRevenueForecast } from "@/services/api/director-revenue-forecast";
 import { useQuery } from "@tanstack/react-query";
 import { RevenueForecastDataProvider } from "./revenue-forecast-context";
+import { Button } from "@/components/tailgrids/core/button";
+import { Skeleton } from "@/components/tailgrids/core/skeleton";
 
 export default function RevenueForecastDashboard() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -26,9 +28,30 @@ export default function RevenueForecastDashboard() {
     queryFn: getRevenueForecast,
   });
 
-  if (isLoading) return <div className="mt-4 min-h-[720px]" />;
-  if (isError || !data)
-    return <div className="mt-4 min-h-[720px]" onClick={() => refetch()} />;
+  if (isLoading) {
+    return (
+      <div className="mt-4 space-y-5 px-2 lg:px-6">
+        <Skeleton className="h-40 rounded-xl" />
+        <Skeleton className="h-32 rounded-xl" />
+        <Skeleton className="h-96 rounded-xl" />
+      </div>
+    );
+  }
+  if (isError || !data) {
+    return (
+      <section className="mt-4 rounded-xl border border-card-border bg-card-background px-6 py-12 text-center">
+        <h2 className="text-lg font-semibold text-text-primary">
+          Không thể tải dữ liệu dự báo khoản thu
+        </h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
+          Hãy thử lại để cập nhật dữ liệu tuyển sinh, khoản thu và đối soát.
+        </p>
+        <Button className="mx-auto mt-5" onPress={() => refetch()}>
+          Thử lại
+        </Button>
+      </section>
+    );
+  }
 
   return (
     <RevenueForecastDataProvider data={data}>

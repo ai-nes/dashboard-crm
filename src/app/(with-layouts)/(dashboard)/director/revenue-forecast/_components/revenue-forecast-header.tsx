@@ -1,37 +1,19 @@
 "use client";
 
-import { Calendar } from "@tailgrids/icons";
-import { useState } from "react";
+import { useRevenueForecastData } from "./revenue-forecast-context";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectIndicator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
-
-type Scope = "all" | "hcm" | "dong-nai" | "north";
-
-const SCOPE_LABELS: Record<Scope, string> = {
-  all: "Tất cả khu vực",
-  hcm: "TP. Hồ Chí Minh",
-  "dong-nai": "Đồng Nai",
-  north: "Miền Bắc",
-};
-
-const PERIOD_LABELS = {
-  "this-month": "Tháng này",
-  "this-quarter": "Quý này",
-  "admission-year": "Niên khóa 2026",
-};
-
-type Period = keyof typeof PERIOD_LABELS;
+const PRIORITY_PROVINCES = [
+  "Khánh Hòa",
+  "Đắk Lắk",
+  "Lâm Đồng",
+  "TP. Hồ Chí Minh",
+  "Đồng Nai",
+  "Đồng Tháp",
+  "Tây Ninh",
+] as const;
 
 export default function RevenueForecastHeader() {
-  const [scope, setScope] = useState<Scope>("all");
-  const [period, setPeriod] = useState<Period>("admission-year");
+  const { meta } = useRevenueForecastData();
 
   return (
     <header className="min-w-0 px-2 lg:px-6">
@@ -41,60 +23,31 @@ export default function RevenueForecastHeader() {
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="flex items-center gap-1.5 rounded-full bg-badge-primary-background px-2.5 py-1 text-xs font-medium text-badge-primary-text">
                 <span className="size-1.5 rounded-full bg-badge-primary-icon-color" />
-                Mô hình tài chính tuyển sinh
+                Dự báo khoản thu tuyển sinh
               </span>
               <span className="text-xs text-text-tertiary">
                 Cập nhật 2 phút trước
               </span>
             </div>
             <h1 className="mb-1 text-[28px] leading-8 font-medium text-text-primary">
-              Doanh thu & dự báo
+              Khoản thu & dự báo tuyển sinh
             </h1>
             <p className="max-w-2xl text-sm leading-5 text-text-tertiary">
-              Theo dõi doanh thu thực tế, dự báo cuối kỳ và mô phỏng các đòn bẩy
-              tăng trưởng tuyển sinh.
+              Đối chiếu khoản thu đã ghi nhận, dự báo cuối niên khóa và các kịch
+              bản cải thiện kết quả tuyển sinh.
             </p>
           </div>
 
           <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 xl:shrink-0">
-            <Select
-              className="w-full sm:w-auto"
-              value={scope}
-              onChange={(value) => setScope(value as Scope)}
-              aria-label="Lọc doanh thu theo khu vực"
+            <span
+              className="rounded-lg border border-card-border bg-card-background px-3 py-2 text-xs font-medium text-text-secondary"
+              title={PRIORITY_PROVINCES.join(", ")}
             >
-              <SelectTrigger size="sm" className="w-full min-w-36 sm:w-auto">
-                <SelectValue />
-                <SelectIndicator />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(SCOPE_LABELS).map(([id, label]) => (
-                  <SelectItem key={id} id={id} textValue={label}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              className="w-full sm:w-auto"
-              value={period}
-              onChange={(value) => setPeriod(value as Period)}
-              aria-label="Lọc doanh thu theo thời gian"
-            >
-              <SelectTrigger size="sm" className="w-full min-w-36 sm:w-auto">
-                <Calendar size={16} className="shrink-0 text-icon-tertiary" />
-                <SelectValue />
-                <SelectIndicator />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(PERIOD_LABELS).map(([id, label]) => (
-                  <SelectItem key={id} id={id} textValue={label}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              Phạm vi: 7 tỉnh trọng điểm
+            </span>
+            <span className="rounded-lg border border-card-border bg-card-background px-3 py-2 text-xs font-medium text-text-secondary">
+              Niên khóa {meta.admissionYear}
+            </span>
           </div>
         </div>
       </div>

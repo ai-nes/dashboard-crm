@@ -31,7 +31,7 @@ export default function RevenueModel() {
       label: "Học phí niêm yết",
       value: money(model.grossRevenue),
       amount: billions(model.grossRevenue),
-      note: "doanh thu gộp",
+      note: "khoản thu gộp dự kiến",
       tone: "primary" as RevenueMetricTone,
     },
     {
@@ -54,7 +54,7 @@ export default function RevenueModel() {
   const MODEL_DONUT = [
     {
       id: "net",
-      label: "Doanh thu thuần",
+      label: "Khoản thu thuần dự kiến",
       value: billions(model.netRevenue),
       color: "var(--brand-500)",
     },
@@ -69,9 +69,9 @@ export default function RevenueModel() {
     <Card className="flex min-w-0 flex-col bg-background-gray-primary">
       <CardHeader className="mb-1 items-start">
         <div>
-          <CardTitle>Mô hình doanh thu</CardTitle>
+          <CardTitle>Mô hình khoản thu</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Biên doanh thu sau học bổng và chiết khấu
+            Khoản thu dự kiến sau học bổng và các khoản miễn giảm
           </p>
         </div>
         <span className="rounded-full bg-badge-success-background px-2.5 py-1 text-xs font-semibold text-badge-success-text">
@@ -118,7 +118,7 @@ export default function RevenueModel() {
             {money(model.netRevenue)}
           </span>
           <span className="mt-1 text-[11px] text-text-tertiary">
-            doanh thu thuần
+            khoản thu thuần dự kiến
           </span>
         </div>
       </div>

@@ -18,14 +18,27 @@ export default function RevenueByRegion() {
     actual: billions(row.actual),
     forecast: billions(row.forecast),
   }));
-  const largest = regions[0];
+  const largest = regions.reduce<(typeof regions)[number] | undefined>(
+    (current, region) =>
+      !current || (region.share ?? 0) > (current.share ?? 0) ? region : current,
+    undefined,
+  );
+  const strongestGrowth = regions.reduce<(typeof regions)[number] | undefined>(
+    (current, region) =>
+      !current ||
+      (region.forecast ?? 0) - (region.actual ?? 0) >
+        (current.forecast ?? 0) - (current.actual ?? 0)
+        ? region
+        : current,
+    undefined,
+  );
   return (
     <Card className="min-w-0 overflow-hidden">
       <CardHeader className="mb-4 items-start">
         <div>
-          <CardTitle>Doanh thu theo vùng</CardTitle>
+          <CardTitle>Khoản thu theo khu vực</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Đóng góp thực tế và phần doanh thu dự báo cuối kỳ
+            Khoản thu đã ghi nhận và dự kiến đến cuối kỳ
           </p>
         </div>
         <div className="flex items-center gap-4 text-[11px] text-text-tertiary">
@@ -105,8 +118,8 @@ export default function RevenueByRegion() {
         <RegionSummary
           label="Tăng mạnh nhất"
           value={
-            largest
-              ? `${billions((largest.forecast ?? 0) - (largest.actual ?? 0)).toLocaleString("vi-VN")}B · ${largest.label}`
+            strongestGrowth
+              ? `${billions((strongestGrowth.forecast ?? 0) - (strongestGrowth.actual ?? 0)).toLocaleString("vi-VN")}B · ${strongestGrowth.label}`
               : "—"
           }
           tone="text-brand-500"

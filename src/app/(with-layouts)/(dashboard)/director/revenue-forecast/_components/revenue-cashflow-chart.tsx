@@ -12,15 +12,6 @@ import {
   useRevenueForecastData,
 } from "./revenue-forecast-context";
 
-const CASHFLOW = [
-  { label: "T3", gross: 48, reductions: 5 },
-  { label: "T4", gross: 58, reductions: 6 },
-  { label: "T5", gross: 61, reductions: 7 },
-  { label: "T6", gross: 57, reductions: 6 },
-  { label: "T7", gross: 55, reductions: 6 },
-  { label: "T8", gross: 46, reductions: 5 },
-];
-
 export default function RevenueCashflowChart() {
   const { cashflow } = useRevenueForecastData();
   const CASHFLOW = cashflow.points.map((point) => ({
@@ -32,9 +23,9 @@ export default function RevenueCashflowChart() {
     <Card className="min-w-0 overflow-hidden">
       <CardHeader className="items-start">
         <div>
-          <CardTitle>Thu thực tế & giảm trừ</CardTitle>
+          <CardTitle>Khoản thu đã ghi nhận & giảm trừ</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            So sánh dòng tiền vào với học bổng và chiết khấu
+            So sánh khoản thu ghi nhận với học bổng và các khoản miễn giảm
           </p>
         </div>
         <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-[11px] font-semibold text-badge-primary-text">
@@ -115,11 +106,16 @@ export default function RevenueCashflowChart() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-card-border pt-4 text-[11px] text-text-tertiary">
-        <LegendItem label="Tổng thu" className="bg-brand-500" />
+        <LegendItem label="Khoản thu ghi nhận" className="bg-brand-500" />
         <LegendItem label="Giảm trừ" className="bg-warning-500" />
-        <span className="ml-auto font-semibold text-success-500">
-          Thuần +8.1%
-        </span>
+        {cashflow.changeVsPrevious != null && (
+          <span
+            className={`ml-auto font-semibold ${cashflow.changeVsPrevious >= 0 ? "text-success-500" : "text-error-500"}`}
+          >
+            Thuần {cashflow.changeVsPrevious >= 0 ? "+" : ""}
+            {cashflow.changeVsPrevious}%
+          </span>
+        )}
       </div>
     </Card>
   );
