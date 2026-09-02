@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Filter } from "@tailgrids/icons";
+import { Calendar } from "@tailgrids/icons";
 import { useState } from "react";
 
 import {
@@ -43,11 +43,16 @@ export default function RevenueForecastHeader() {
                 <span className="size-1.5 rounded-full bg-badge-primary-icon-color" />
                 Mô hình tài chính tuyển sinh
               </span>
-              <span className="text-xs text-text-tertiary">Cập nhật 2 phút trước</span>
+              <span className="text-xs text-text-tertiary">
+                Cập nhật 2 phút trước
+              </span>
             </div>
-            <h1 className="mb-1 text-[28px] leading-8 font-medium text-text-primary">Doanh thu & dự báo</h1>
+            <h1 className="mb-1 text-[28px] leading-8 font-medium text-text-primary">
+              Doanh thu & dự báo
+            </h1>
             <p className="max-w-2xl text-sm leading-5 text-text-tertiary">
-              Theo dõi doanh thu thực tế, dự báo cuối kỳ và mô phỏng các đòn bẩy tăng trưởng tuyển sinh.
+              Theo dõi doanh thu thực tế, dự báo cuối kỳ và mô phỏng các đòn bẩy
+              tăng trưởng tuyển sinh.
             </p>
           </div>
 
@@ -90,21 +95,8 @@ export default function RevenueForecastHeader() {
                 ))}
               </SelectContent>
             </Select>
-
           </div>
         </div>
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-card-border bg-background-gray-primary px-4 py-3 text-xs text-text-tertiary">
-        <span className="flex items-center gap-2 font-medium text-text-secondary">
-          <Filter size={14} className="text-icon-tertiary" />
-          Bộ lọc đang áp dụng
-        </span>
-        <span>Niên khóa 2026</span>
-        <span className="hidden h-3 w-px bg-card-border sm:block" />
-        <span>{SCOPE_LABELS[scope]}</span>
-        <span className="hidden h-3 w-px bg-card-border sm:block" />
-        <span>{PERIOD_LABELS[period]}</span>
       </div>
     </header>
   );
