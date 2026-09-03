@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { Button } from "@/components/tailgrids/core/button";
 import type { StudentNoteItem } from "@/services/api/students/types";
 import { formatDateTime } from "@/utils/format-date";
 
@@ -18,7 +19,7 @@ import {
   parseStudentActivityDate,
   type ActivityTimeFilter,
 } from "./student-activity-utils";
-import StudentCreateNoteSheet from "./student-create-note-sheet";
+import StudentCreateNoteDialog from "./student-create-note-dialog";
 import StudentInlineEditableRichText from "./student-inline-editable-rich-text";
 import type { StudentNoteRecord } from "./types";
 
@@ -27,6 +28,8 @@ interface StudentNotesTabProps {
   notes: StudentNoteRecord[];
   onCreateNote: (note: StudentNoteItem) => void;
   onUpdateNote: (id: string, content: string) => void;
+  onDeleteNote?: (id: string) => void;
+  isCreating?: boolean;
 }
 
 export default function StudentNotesTab({
@@ -34,6 +37,8 @@ export default function StudentNotesTab({
   notes,
   onCreateNote,
   onUpdateNote,
+  onDeleteNote,
+  isCreating = false,
 }: StudentNotesTabProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<ActivityTimeFilter>("all");
@@ -41,7 +46,7 @@ export default function StudentNotesTab({
   const [expandedNoteIds, setExpandedNoteIds] = useState<Set<string>>(
     () => new Set(notes.map((note) => note.id)),
   );
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const visibleNotes = useMemo(
     () => notes.filter((note) => note.author !== "AI Student Insight"),
@@ -88,7 +93,7 @@ export default function StudentNotesTab({
         searchLabel="Tìm ghi chú"
         expansionMode={expansionMode}
         onExpansionModeChange={handleExpansionModeChange}
-        onCreate={() => setSheetOpen(true)}
+        onCreate={() => setDialogOpen(true)}
         createLabel="Thêm ghi chú"
       />
 
@@ -118,7 +123,10 @@ export default function StudentNotesTab({
                   key={note.id}
                   title={
                     <>
-                      <strong className="font-semibold text-text-primary">Ghi chú</strong> bởi {note.author}
+                      <strong className="font-semibold text-text-primary">
+                        Ghi chú
+                      </strong>{" "}
+                      của {note.author}
                     </>
                   }
                   timestamp={formatDateTime(note.date)}
@@ -131,6 +139,18 @@ export default function StudentNotesTab({
                     onCommit={(content) => onUpdateNote(note.id, content)}
                     placeholder="Nhập nội dung ghi chú..."
                   />
+                  {onDeleteNote && (
+                    <div className="mt-3 flex justify-end border-t border-card-border/40 pt-2">
+                      <Button
+                        appearance="ghost"
+                        size="xs"
+                        className="font-medium text-error-500 hover:bg-error-500/10"
+                        onPress={() => onDeleteNote(note.id)}
+                      >
+                        Xóa ghi chú
+                      </Button>
+                    </div>
+                  )}
                 </StudentActivityCard>
               ))}
             </StudentActivityGroup>
@@ -138,11 +158,12 @@ export default function StudentNotesTab({
         </div>
       )}
 
-      <StudentCreateNoteSheet
-        isOpen={sheetOpen}
-        onOpenChange={setSheetOpen}
+      <StudentCreateNoteDialog
+        isOpen={dialogOpen}
+        onOpenChange={setDialogOpen}
         studentName={studentName}
         onCreate={onCreateNote}
+        isSubmitting={isCreating}
       />
     </div>
   );

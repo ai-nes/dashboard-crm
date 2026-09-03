@@ -37,6 +37,7 @@ const statusFilterOptions: ActivityFilterOption[] = [
   { id: "todo", label: taskStatusLabel.todo },
   { id: "in-progress", label: taskStatusLabel["in-progress"] },
   { id: "done", label: taskStatusLabel.done },
+  { id: "canceled", label: taskStatusLabel.canceled },
 ];
 
 const priorityFilterOptions: ActivityFilterOption[] = [

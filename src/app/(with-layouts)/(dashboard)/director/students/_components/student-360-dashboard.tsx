@@ -120,7 +120,13 @@ function getStudentTabs(
     {
       id: "activities",
       label: "Các hoạt động",
-      content: <StudentActivitiesTab data={data} initialTaskId={initialTaskId} />,
+      content: (
+        <StudentActivitiesTab
+          data={data}
+          studentId={analysisTargetId}
+          initialTaskId={initialTaskId}
+        />
+      ),
     },
     {
       id: "profile",

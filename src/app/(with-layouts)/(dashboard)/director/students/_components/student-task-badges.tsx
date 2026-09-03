@@ -1,18 +1,20 @@
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { StudentTaskItem, StudentTaskType } from "@/services/api/students/types";
 
-type BadgeColor = "gray" | "warning" | "success";
+type BadgeColor = "gray" | "warning" | "success" | "error";
 
 export const taskStatusLabel: Record<StudentTaskItem["status"], string> = {
   todo: "Cần làm",
   "in-progress": "Đang xử lý",
   done: "Hoàn thành",
+  canceled: "Đã hủy",
 };
 
 export const taskStatusColor: Record<StudentTaskItem["status"], BadgeColor> = {
   todo: "gray",
   "in-progress": "warning",
   done: "success",
+  canceled: "error",
 };
 
 export const taskTypeLabel: Record<StudentTaskType, string> = {

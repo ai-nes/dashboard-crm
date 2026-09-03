@@ -66,7 +66,7 @@ export default function StudentAllActivitiesFeed({
         date: parseStudentActivityDate(note.date),
         title: (
           <>
-            <strong className="font-semibold text-text-primary">Ghi chú</strong> bởi {note.author}
+            <strong className="font-semibold text-text-primary">Ghi chú</strong> của {note.author}
           </>
         ),
         timestamp: formatDateTime(note.date),

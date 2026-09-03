@@ -84,13 +84,14 @@ export interface StudentTaskItem {
   assignee: string;
   dueDate: string;
   dueTime?: string;
-  status: "todo" | "in-progress" | "done";
+  status: "todo" | "in-progress" | "done" | "canceled";
   priority: StudentPriority;
   taskType?: StudentTaskType;
   notes?: string;
 }
 
 export interface StudentNoteItem {
+  name?: string;
   author: string;
   date: string;
   content: string;

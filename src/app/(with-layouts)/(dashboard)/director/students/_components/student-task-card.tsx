@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Check, ChevronDown, ChevronRight } from "@tailgrids/icons";
+import { Calendar, Check, ChevronDown, ChevronRight, Trash1 } from "@tailgrids/icons";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -30,13 +30,19 @@ import {
 interface StudentTaskCardProps {
   task: StudentTaskItem;
   onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
+  onDeleteTask?: (id: string) => void;
   defaultExpanded?: boolean;
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
 }
 
 const priorityOptions: StudentTaskItem["priority"][] = ["Cao", "Trung bình", "Thấp"];
-const statusOptions: StudentTaskItem["status"][] = ["todo", "in-progress", "done"];
+const statusOptions: StudentTaskItem["status"][] = [
+  "todo",
+  "in-progress",
+  "done",
+  "canceled",
+];
 const taskTypeOptions: StudentTaskType[] = ["call", "email", "todo"];
 
 function toDateInputValue(value: string): string {
@@ -56,7 +62,7 @@ function fromDateInputValue(value: string): string {
 }
 
 export function isTaskOverdue(task: StudentTaskItem): boolean {
-  if (task.status === "done") return false;
+  if (task.status === "done" || task.status === "canceled") return false;
   const dueDate = toDateInputValue(task.dueDate);
   if (!dueDate) return false;
   return new Date(`${dueDate}T${task.dueTime || "23:59"}`).getTime() < Date.now();
@@ -70,6 +76,7 @@ function formatTaskDeadline(task: StudentTaskItem): string {
 export default function StudentTaskCard({
   task,
   onUpdateTask,
+  onDeleteTask,
   defaultExpanded = true,
   expanded: expandedProp,
   onExpandedChange,
@@ -99,15 +106,30 @@ export default function StudentTaskCard({
             · {task.assignee || "Chưa phân công"}
           </span>
         </button>
-        <span
-          className={cn(
-            "inline-flex shrink-0 items-center gap-1 text-sm",
-            overdue ? "font-medium text-badge-cyan-text" : "text-text-tertiary",
+        <div className="flex shrink-0 items-center gap-2">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 text-sm",
+              overdue ? "font-medium text-badge-cyan-text" : "text-text-tertiary",
+            )}
+          >
+            <Calendar size={14} aria-hidden="true" />
+            {overdue ? "Quá hạn" : "Hạn"}: {formatTaskDeadline(task)}
+          </span>
+          {onDeleteTask && (
+            <Button
+              iconOnly
+              size="sm"
+              variant="ghost"
+              appearance="ghost"
+              aria-label={`Xóa task ${task.title}`}
+              className="text-text-tertiary hover:text-error-500"
+              onPress={() => onDeleteTask(task.id)}
+            >
+              <Trash1 size={15} aria-hidden="true" />
+            </Button>
           )}
-        >
-          <Calendar size={14} aria-hidden="true" />
-          {overdue ? "Quá hạn" : "Hạn"}: {formatTaskDeadline(task)}
-        </span>
+        </div>
       </div>
 
       {!expanded && (
@@ -115,14 +137,13 @@ export default function StudentTaskCard({
           <TaskQuickStatusButton
             status={task.status}
             overdue={overdue}
-            onPress={() =>
-              onUpdateTask(task.id, { status: task.status === "done" ? "todo" : "done" })
-            }
+            onPress={() => onUpdateTask(task.id, { status: getNextQuickStatus(task.status) })}
           />
           <span
             className={cn(
               "min-w-0 truncate text-base font-semibold text-text-primary",
-              task.status === "done" && "text-text-tertiary line-through",
+              (task.status === "done" || task.status === "canceled") &&
+                "text-text-tertiary line-through",
             )}
           >
             {task.title}
@@ -136,14 +157,12 @@ export default function StudentTaskCard({
             <TaskQuickStatusButton
               status={task.status}
               overdue={overdue}
-              onPress={() =>
-                onUpdateTask(task.id, { status: task.status === "done" ? "todo" : "done" })
-              }
+              onPress={() => onUpdateTask(task.id, { status: getNextQuickStatus(task.status) })}
             />
             <StudentInlineEditableText
               value={task.title}
               onCommit={(title) => onUpdateTask(task.id, { title })}
-              strikethrough={task.status === "done"}
+              strikethrough={task.status === "done" || task.status === "canceled"}
               textClassName="text-lg font-semibold sm:text-xl"
               className="min-w-0 flex-1"
             />
@@ -316,7 +335,13 @@ function TaskQuickStatusButton({ status, overdue, onPress }: TaskQuickStatusButt
       iconOnly
       size="sm"
       onPress={onPress}
-      aria-label={status === "done" ? "Đánh dấu chưa hoàn thành" : "Đánh dấu hoàn thành"}
+      aria-label={
+        status === "done"
+          ? "Đánh dấu chưa hoàn thành"
+          : status === "canceled"
+            ? "Khôi phục task"
+            : "Đánh dấu hoàn thành"
+      }
       className={cn(
         "size-10 shrink-0 rounded-full",
         status !== "done" && "bg-card-background text-text-secondary",
@@ -326,4 +351,10 @@ function TaskQuickStatusButton({ status, overdue, onPress }: TaskQuickStatusButt
       <Check size={18} />
     </Button>
   );
+}
+
+function getNextQuickStatus(
+  status: StudentTaskItem["status"],
+): StudentTaskItem["status"] {
+  return status === "done" || status === "canceled" ? "todo" : "done";
 }

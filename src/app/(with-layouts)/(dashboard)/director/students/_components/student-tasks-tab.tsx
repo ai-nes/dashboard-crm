@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { StudentTaskItem } from "@/services/api/students/types";
 
-import StudentCreateTaskSheet from "./student-create-task-sheet";
+import StudentCreateTaskDialog from "./student-create-task-dialog";
 import StudentTaskFilters, {
   type TaskExpansionMode,
   type TaskPriorityFilter,
@@ -97,7 +97,7 @@ export default function StudentTasksTab({
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(
     () => new Set(tasks.map((task) => task.id)),
   );
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!initialTaskId) return;
@@ -155,7 +155,7 @@ export default function StudentTasksTab({
         onPriorityFilterChange={setPriorityFilter}
         expansionMode={expansionMode}
         onExpansionModeChange={handleExpansionModeChange}
-        onCreateTask={() => setSheetOpen(true)}
+        onCreateTask={() => setDialogOpen(true)}
       />
 
       {filteredTasks.length === 0 ? (
@@ -196,9 +196,9 @@ export default function StudentTasksTab({
         </div>
       )}
 
-      <StudentCreateTaskSheet
-        isOpen={sheetOpen}
-        onOpenChange={setSheetOpen}
+      <StudentCreateTaskDialog
+        isOpen={dialogOpen}
+        onOpenChange={setDialogOpen}
         studentName={studentName}
         assignee={assignee}
         onCreate={handleCreateTask}

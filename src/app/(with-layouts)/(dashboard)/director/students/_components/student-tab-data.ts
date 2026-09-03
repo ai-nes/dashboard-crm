@@ -1,6 +1,5 @@
 import type {
   StudentCallRecord,
-  StudentNoteItem,
   StudentTaskItem,
   StudentZaloMessage,
 } from "@/services/api/students/types";
@@ -21,11 +20,6 @@ export const documents = [
   { name: "Chứng chỉ tiếng Anh", type: "Tài liệu học tập", status: "Chờ bổ sung", tone: "warning" as const, date: "Còn thiếu" },
   { name: "CCCD / giấy tờ tùy thân", type: "Hồ sơ nhập học", status: "Chưa bắt đầu", tone: "gray" as const, date: "—" },
   { name: "Minh chứng đối tượng học bổng", type: "Học bổng", status: "Chưa bắt đầu", tone: "gray" as const, date: "—" },
-];
-
-export const notes: StudentNoteItem[] = [
-  { author: mockAssignee, date: "06/06/2026 · 17:05", content: "Nguyện vọng ưu tiên: Trí tuệ nhân tạo. Gửi học phí theo học kỳ trước khi gọi bố." },
-  { author: mockAssignee, date: "04/06/2026 · 20:34", content: "Bố là người quyết định chính. Quan tâm: tổng chi phí và ký túc xá." },
 ];
 
 export const tasks: StudentTaskItem[] = [
