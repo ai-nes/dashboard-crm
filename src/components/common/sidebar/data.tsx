@@ -4,12 +4,11 @@ import {
   ChatIcon,
   HomeIcon,
   InvoiceIcon,
-  PieChartIcon,
-  TableIcon,
+  TaskIcon,
   UserGroupIcon,
   Widget4Icon,
-  WindowIcon,
 } from "./icon";
+import { Buildings11, MapMarker5, Target3 } from "@tailgrids/icons";
 import type { ReactNode } from "react";
 
 interface NavigationItem {
@@ -36,28 +35,29 @@ export const NAV_DATA: NavigationSection[] = [
         items: [],
       },
       {
+        title: "Việc cần xử lý",
+        url: "/director/ai/next-best-action",
+        icon: <TaskIcon />,
+        items: [],
+      },
+      {
         title: "Chatbot CRM",
         url: "/crm-chatbot",
         icon: <ChatIcon />,
         items: [],
       },
+      {
+        title: "Trung tâm AI & dữ liệu",
+        url: "/director/ai",
+        exact: true,
+        icon: <Widget4Icon />,
+        items: [],
+      },
     ],
   },
   {
-    label: "THỊ TRƯỜNG & NGƯỜI HỌC",
+    label: "HỌC SINH & TRƯỜNG THPT",
     items: [
-      {
-        title: "Trường THPT 360°",
-        url: "/director/market-intelligence",
-        icon: <PieChartIcon />,
-        items: [],
-      },
-      {
-        title: "Hiệu suất khu vực",
-        url: "/director/regional-performance",
-        icon: <PieChartIcon />,
-        items: [],
-      },
       {
         title: "Khám phá người học",
         url: "/director/demographics",
@@ -70,42 +70,31 @@ export const NAV_DATA: NavigationSection[] = [
         icon: <UserGroupIcon />,
         items: [],
       },
+      {
+        title: "Trường THPT 360°",
+        url: "/director/market-intelligence",
+        icon: <Buildings11 size={18} />,
+        items: [],
+      },
+      {
+        title: "Hiệu suất khu vực",
+        url: "/director/regional-performance",
+        icon: <MapMarker5 size={18} />,
+        items: [],
+      },
     ],
   },
   {
-    label: "VẬN HÀNH TUYỂN SINH",
+    label: "MARKETING",
     items: [
       {
         title: "Phễu tuyển sinh",
         url: "/director/admission-funnel",
-        icon: <TableIcon />,
+        icon: <Target3 size={18} />,
         items: [],
       },
       {
-        title: "Việc cần xử lý",
-        url: "/director/ai/next-best-action",
-        icon: <Widget4Icon />,
-        items: [],
-      },
-      {
-        title: "Hoạt động trường & thực địa",
-        url: "/director/school-field-activity",
-        icon: <CalendarIcon />,
-        items: [],
-      },
-    ],
-  },
-  {
-    label: "TĂNG TRƯỞNG & DOANH THU",
-    items: [
-      {
-        title: "Phân tích chiến dịch",
-        url: "/director/campaign-intelligence",
-        icon: <WindowIcon />,
-        items: [],
-      },
-      {
-        title: "Doanh thu & dự báo",
+        title: "Phân tích xu hướng",
         url: "/director/revenue-forecast",
         icon: <InvoiceIcon />,
         items: [],
@@ -113,15 +102,18 @@ export const NAV_DATA: NavigationSection[] = [
     ],
   },
   {
-    label: "AI, DỮ LIỆU & THIẾT LẬP",
+    label: "VẬN HÀNH TUYỂN SINH",
     items: [
       {
-        title: "Trung tâm AI & dữ liệu",
-        url: "/director/ai",
-        exact: true,
-        icon: <Widget4Icon />,
+        title: "Hoạt động & chiến dịch",
+        url: "/director/activity-campaign",
+        icon: <CalendarIcon />,
         items: [],
       },
     ],
+  },
+  {
+    label: "BÁO CÁO",
+    items: [],
   },
 ];

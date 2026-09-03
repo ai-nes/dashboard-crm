@@ -46,6 +46,26 @@ export default function StudentNextAction({
       .join(" · ") || "-";
   const preferredChannel = data.parentProfile?.preferredChannel || "-";
   const bestContactTime = data.parentProfile?.bestContactTime || "-";
+  const steps = [
+    {
+      title: "Gọi tư vấn",
+      detail:
+        preferredChannel !== "-"
+          ? `Ưu tiên ${preferredChannel}${bestContactTime !== "-" ? ` · ${bestContactTime}` : ""}`
+          : "Kết nối để xác nhận nhu cầu hiện tại",
+    },
+    {
+      title: "Làm rõ nhu cầu",
+      detail:
+        barrier !== "-"
+          ? `Trao đổi về ${barrier.toLowerCase()}`
+          : "Xác định mối quan tâm cần hỗ trợ",
+    },
+    {
+      title: "Cập nhật hồ sơ",
+      detail: "Ghi nhận phản hồi và chốt lần theo dõi tiếp theo",
+    },
+  ];
   const claims = useMemo(
     () => run?.stages.flatMap((stage) => stage.claims) ?? [],
     [run],
@@ -123,11 +143,6 @@ export default function StudentNextAction({
           <h3 className="max-w-xl text-2xl leading-8 font-semibold tracking-[-0.4px] text-text-primary">
             {classification.action || "Chưa có hành động cụ thể"}
           </h3>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-text-secondary">
-            {barrier !== "-"
-              ? `Mục tiêu: xử lý ${barrier.toLowerCase()} trước cuộc gọi.`
-              : "Mục tiêu: chuẩn bị phương án tư vấn trước cuộc gọi."}
-          </p>
         </div>
       )}
 
@@ -141,7 +156,7 @@ export default function StudentNextAction({
         </p>
       )}
 
-      <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-5 border-y border-card-border py-4">
+      <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-5 border-y border-card-border py-4 sm:grid-cols-3">
         <div>
           <dt className="text-[11px] text-text-tertiary">Rào cản cần xử lý</dt>
           <dd className="mt-1 text-sm font-semibold text-warning-500">
@@ -163,13 +178,31 @@ export default function StudentNextAction({
             {preferredChannel}
           </dd>
         </div>
-        <div>
-          <dt className="text-[11px] text-text-tertiary">Khung giờ</dt>
-          <dd className="mt-1 text-sm font-semibold text-text-primary">
-            {bestContactTime}
-          </dd>
-        </div>
       </dl>
+
+      <div className="mt-5">
+        <h3 className="text-sm font-semibold text-text-primary">
+          3 bước tiếp theo
+        </h3>
+        <ol className="mt-2 grid gap-2 sm:grid-cols-3">
+          {steps.map((step, index) => (
+            <li key={step.title} className="flex min-w-0 items-start gap-2">
+              <span className={stepTone(index)}>{index + 1}</span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-text-primary">
+                  {step.title}
+                </p>
+                <p
+                  className="mt-0.5 line-clamp-2 text-xs leading-4 text-text-secondary"
+                  title={step.detail}
+                >
+                  {step.detail}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
 
       <div className="relative mt-5 flex flex-wrap gap-2">
         <Button size="sm" onPress={onCall}>
@@ -179,6 +212,14 @@ export default function StudentNextAction({
       </div>
     </section>
   );
+}
+
+function stepTone(index: number) {
+  if (index === 0)
+    return "flex size-6 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-xs font-semibold text-badge-primary-text";
+  if (index === 1)
+    return "flex size-6 shrink-0 items-center justify-center rounded-full bg-badge-warning-background text-xs font-semibold text-badge-warning-text";
+  return "flex size-6 shrink-0 items-center justify-center rounded-full bg-badge-success-background text-xs font-semibold text-badge-success-text";
 }
 
 function ActionResultSkeleton() {
