@@ -196,7 +196,7 @@ async function callTaskApi<T>(
 
   let response: Response;
   try {
-    response = await fetch(url, requestInit);
+    response = await fetch(url.toString(), requestInit);
   } catch {
     throw new CrmTaskApiError(
       503,

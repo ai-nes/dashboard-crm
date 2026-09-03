@@ -82,6 +82,7 @@ export interface StudentTaskItem {
   id: string;
   title: string;
   assignee: string;
+  assigneeId?: string;
   dueDate: string;
   dueTime?: string;
   status: "todo" | "in-progress" | "done" | "canceled";

@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart2, TrendUp2 } from "@tailgrids/icons";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -20,18 +20,12 @@ import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import { formatDate } from "@/utils/format-date";
 
-import StudentChartInspectorSheet from "./student-chart-inspector-sheet";
 import type { ChannelChartItem, TrendChartItem } from "./student-chart-types";
 import StudentChartTooltip from "./student-chart-tooltip";
 import type { Student360SectionProps } from "./types";
 
 export default function StudentChartsSection({ data }: Student360SectionProps) {
   const chartId = data.student.code.toLowerCase().replace(/[^a-z0-9]/g, "-");
-
-  // State cho Slide-over Inspector Drawer (Hướng 2)
-  const [inspectorOpen, setInspectorOpen] = useState(false);
-  const [selectedChannel, setSelectedChannel] = useState<ChannelChartItem | null>(null);
-  const [selectedMilestone, setSelectedMilestone] = useState<TrendChartItem | null>(null);
 
   // Đảm bảo lấy điểm xác suất và điểm đầu chuẩn xác từ dữ liệu hồ sơ
   const probability = data.insight?.probability ?? data.insight?.signalScore ?? 82;
@@ -184,18 +178,6 @@ export default function StudentChartsSection({ data }: Student360SectionProps) {
         )
       : 0;
 
-  const handleOpenChannelInspector = (channel: ChannelChartItem) => {
-    setSelectedChannel(channel);
-    setSelectedMilestone(null);
-    setInspectorOpen(true);
-  };
-
-  const handleOpenMilestoneInspector = (milestone: TrendChartItem) => {
-    setSelectedMilestone(milestone);
-    setSelectedChannel(null);
-    setInspectorOpen(true);
-  };
-
   return (
     <section
       aria-label="Biểu đồ phân tích học sinh"
@@ -221,17 +203,11 @@ export default function StudentChartsSection({ data }: Student360SectionProps) {
           />
           <ChartStat label="Ngưỡng" value="70%" tone="text-warning-500" />
         </div>
-        <div className="h-64 min-h-64 w-full cursor-pointer">
+        <div className="h-64 min-h-64 w-full">
           <ChartContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <AreaChart
               data={trendData}
               margin={{ top: 10, right: 8, left: -18, bottom: 0 }}
-              onClick={(state) => {
-                const payload = (state as unknown as { activePayload?: Array<{ payload?: unknown }> })?.activePayload?.[0]?.payload as TrendChartItem | undefined;
-                if (payload) {
-                  handleOpenMilestoneInspector(payload);
-                }
-              }}
             >
               <defs>
                 <linearGradient id={`student-probability-${chartId}`} x1="0" y1="0" x2="0" y2="1">
@@ -260,6 +236,7 @@ export default function StudentChartsSection({ data }: Student360SectionProps) {
                 }}
               />
               <Tooltip
+                offset={{ x: 16, y: -16 }}
                 cursor={{ stroke: "var(--success-500)", strokeDasharray: "4 4" }}
                 content={StudentChartTooltip}
               />
@@ -274,14 +251,13 @@ export default function StudentChartsSection({ data }: Student360SectionProps) {
                   r: 4,
                   fill: "var(--success-500)",
                   strokeWidth: 0,
-                  className: "cursor-pointer transition-transform hover:scale-125",
+                  className: "transition-transform hover:scale-125",
                 }}
                 activeDot={{
                   r: 6,
                   fill: "var(--success-500)",
                   stroke: "var(--card-background)",
                   strokeWidth: 2,
-                  className: "cursor-pointer",
                 }}
               />
             </AreaChart>
@@ -300,18 +276,12 @@ export default function StudentChartsSection({ data }: Student360SectionProps) {
             <BarChart2 size={17} />
           </span>
         </CardHeader>
-        <div className="h-64 min-h-64 w-full cursor-pointer">
+        <div className="h-64 min-h-64 w-full">
           <ChartContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <BarChart
               data={channels}
               layout="vertical"
               margin={{ top: 4, right: 8, left: 4, bottom: 0 }}
-              onClick={(state) => {
-                const payload = (state as unknown as { activePayload?: Array<{ payload?: unknown }> })?.activePayload?.[0]?.payload as ChannelChartItem | undefined;
-                if (payload) {
-                  handleOpenChannelInspector(payload);
-                }
-              }}
             >
               <CartesianGrid horizontal={false} />
               <XAxis type="number" hide domain={[0, 24]} />
@@ -324,6 +294,7 @@ export default function StudentChartsSection({ data }: Student360SectionProps) {
                 tick={{ fill: "var(--text-tertiary)", fontSize: 11 }}
               />
               <Tooltip
+                offset={{ x: 16, y: -16 }}
                 cursor={{ fill: "var(--background-soft-50)" }}
                 content={StudentChartTooltip}
               />
@@ -332,13 +303,12 @@ export default function StudentChartsSection({ data }: Student360SectionProps) {
                 name="Điểm chạm"
                 radius={[0, 5, 5, 0]}
                 barSize={18}
-                className="cursor-pointer"
               >
                 {channels.map((entry) => (
                   <Cell
                     key={entry.channel}
                     fill={entry.fill || "var(--primary-500)"}
-                    className="cursor-pointer transition-opacity hover:opacity-80"
+                    className="transition-opacity hover:opacity-80"
                   />
                 ))}
               </Bar>
@@ -357,15 +327,6 @@ export default function StudentChartsSection({ data }: Student360SectionProps) {
         </div>
       </Card>
 
-      {/* Slide-over Sheet kiểm tra chi tiết theo Hướng 2 (Linear / Figma style) */}
-      <StudentChartInspectorSheet
-        isOpen={inspectorOpen}
-        onOpenChange={setInspectorOpen}
-        channel={selectedChannel}
-        milestone={selectedMilestone}
-        studentName={data.student.name}
-        studentMajor={data.student.major}
-      />
     </section>
   );
 }

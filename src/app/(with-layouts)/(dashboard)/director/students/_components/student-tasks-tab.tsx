@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import type { SessionUser } from "@/services/api/auth";
 import type { StudentTaskItem } from "@/services/api/students/types";
 
 import StudentCreateTaskDialog from "./student-create-task-dialog";
@@ -20,8 +21,14 @@ interface StudentTasksTabProps {
   studentName: string;
   assignee: string;
   tasks: StudentTaskItem[];
-  onCreateTask: (task: StudentTaskItem) => void;
+  onCreateTask: (task: StudentTaskItem) => Promise<void>;
   onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
+  onDeleteTask: (id: string) => void;
+  assignees: SessionUser[];
+  currentUserId?: string;
+  isLoadingAssignees?: boolean;
+  isCreating?: boolean;
+  isLoading?: boolean;
   initialTaskId?: string;
 }
 
@@ -87,6 +94,12 @@ export default function StudentTasksTab({
   tasks,
   onCreateTask,
   onUpdateTask,
+  onDeleteTask,
+  assignees,
+  currentUserId,
+  isLoadingAssignees = false,
+  isCreating = false,
+  isLoading = false,
   initialTaskId,
 }: StudentTasksTabProps) {
   const [search, setSearch] = useState("");
@@ -137,8 +150,8 @@ export default function StudentTasksTab({
     });
   };
 
-  const handleCreateTask = (task: StudentTaskItem) => {
-    onCreateTask(task);
+  const handleCreateTask = async (task: StudentTaskItem) => {
+    await onCreateTask(task);
     setExpandedTaskIds((current) => new Set(current).add(task.id));
   };
 
@@ -158,7 +171,9 @@ export default function StudentTasksTab({
         onCreateTask={() => setDialogOpen(true)}
       />
 
-      {filteredTasks.length === 0 ? (
+      {isLoading ? (
+        <p className="py-2 text-xs text-text-tertiary">Đang tải task...</p>
+      ) : filteredTasks.length === 0 ? (
         <p className="py-2 text-xs text-text-tertiary">Chưa có task nào phù hợp.</p>
       ) : (
         <div className="space-y-6">
@@ -186,6 +201,7 @@ export default function StudentTasksTab({
                     key={task.id}
                     task={task}
                     onUpdateTask={onUpdateTask}
+                    onDeleteTask={onDeleteTask}
                     expanded={expandedTaskIds.has(task.id)}
                     onExpandedChange={(expanded) => handleTaskExpandedChange(task.id, expanded)}
                   />
@@ -201,7 +217,11 @@ export default function StudentTasksTab({
         onOpenChange={setDialogOpen}
         studentName={studentName}
         assignee={assignee}
+        assignees={assignees}
+        currentUserId={currentUserId}
+        isLoadingAssignees={isLoadingAssignees}
         onCreate={handleCreateTask}
+        isSubmitting={isCreating}
       />
     </div>
   );

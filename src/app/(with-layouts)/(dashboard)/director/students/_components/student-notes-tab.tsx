@@ -21,12 +21,18 @@ import {
 } from "./student-activity-utils";
 import StudentCreateNoteDialog from "./student-create-note-dialog";
 import StudentInlineEditableRichText from "./student-inline-editable-rich-text";
-import type { StudentNoteRecord } from "./types";
+import type {
+  StudentNoteCreationOptions,
+  StudentNoteRecord,
+} from "./types";
 
 interface StudentNotesTabProps {
   studentName: string;
   notes: StudentNoteRecord[];
-  onCreateNote: (note: StudentNoteItem) => void;
+  onCreateNote: (
+    note: StudentNoteItem,
+    options: StudentNoteCreationOptions,
+  ) => Promise<void>;
   onUpdateNote: (id: string, content: string) => void;
   onDeleteNote?: (id: string) => void;
   isCreating?: boolean;

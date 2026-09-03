@@ -9,6 +9,7 @@ import type {
   StudentPriority,
   StudentTaskItem,
 } from "@/services/api/students/types";
+import type { SessionUser } from "@/services/api/auth";
 
 const priorityToApi: Record<StudentPriority, CRMTaskPriority> = {
   Cao: "High",
@@ -36,6 +37,18 @@ const statusFromApi: Record<CRMTaskStatus, StudentTaskItem["status"]> = {
   Done: "done",
   Canceled: "canceled",
 };
+
+export function studentTaskStatusToCrmStatus(
+  status: StudentTaskItem["status"],
+): CRMTaskStatus {
+  return statusToApi[status];
+}
+
+export function crmTaskStatusToStudentStatus(
+  status: CRMTaskStatus,
+): StudentTaskItem["status"] {
+  return statusFromApi[status];
+}
 
 function normalizeDateParts(value?: string): {
   date: string;
@@ -81,16 +94,21 @@ function toFrappeDateTime(date: string, time?: string): string | undefined {
 export function crmTaskToStudentTask(
   task: CRMTask,
   fallbackAssignee: string,
+  assignees: SessionUser[] = [],
 ): StudentTaskItem {
   const due = normalizeDateParts(task.dueDate);
+  const assignedUser = assignees.find(
+    (user) => user.name === task.assignedTo || user.email === task.assignedTo,
+  );
 
   return {
     id: task.name,
     title: task.title,
-    assignee: task.assignedTo || fallbackAssignee,
+    assignee: assignedUser?.full_name || task.assignedTo || fallbackAssignee,
+    assigneeId: task.assignedTo,
     dueDate: due.date,
     dueTime: due.time,
-    status: task.status ? statusFromApi[task.status] : "todo",
+    status: task.status ? crmTaskStatusToStudentStatus(task.status) : "todo",
     priority: task.priority ? priorityFromApi[task.priority] : "Trung bình",
     taskType: "todo",
     notes: task.description || undefined,
@@ -108,7 +126,7 @@ export function studentTaskToCreatePayload(
     title: task.title,
     description: task.notes,
     priority: priorityToApi[task.priority],
-    status: statusToApi[task.status],
+    status: studentTaskStatusToCrmStatus(task.status),
     dueDate: toFrappeDateTime(task.dueDate, task.dueTime),
     ...(assignedTo ? { assignedTo } : {}),
   };
@@ -126,7 +144,9 @@ export function studentTaskToUpdatePayload(
   if (updates.priority !== undefined) {
     payload.priority = priorityToApi[updates.priority];
   }
-  if (updates.status !== undefined) payload.status = statusToApi[updates.status];
+  if (updates.status !== undefined) {
+    payload.status = studentTaskStatusToCrmStatus(updates.status);
+  }
 
   if (updates.dueDate !== undefined || updates.dueTime !== undefined) {
     const nextTask = { ...currentTask, ...updates };

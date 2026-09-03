@@ -4,18 +4,22 @@ import { CheckCircle1, ClockThree } from "@tailgrids/icons";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 
-import { Badge } from "@/components/tailgrids/core/badge";
 import type {
-  Student360Data,
   StudentCallRecord,
   StudentNoteItem,
   StudentTaskItem,
   StudentZaloMessage,
 } from "@/services/api/students/types";
+import type { StudentAuditLog } from "@/services/api/student-audit";
 import { formatDateTime } from "@/utils/format-date";
 
 import StudentActivityCard from "./student-activity-card";
 import StudentActivityGroup from "./student-activity-group";
+import {
+  getStudentAuditActor,
+  getStudentAuditTone,
+  StudentAuditEventDetails,
+} from "./student-audit-event";
 import { StudentCallDetails } from "./student-calls-tab";
 import {
   groupActivitiesWithOverdue,
@@ -42,12 +46,13 @@ interface StudentAllActivitiesFeedProps {
   tasks: StudentTaskItem[];
   zaloMessages: StudentZaloMessage[];
   calls: StudentCallRecord[];
-  auditEvents: NonNullable<Student360Data["auditEvents"]>;
+  auditEvents: StudentAuditLog[];
   onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
   onOpenZalo: () => void;
 }
 
-const richTextClassName = "text-sm leading-6 text-text-secondary [&_a]:text-primary-500 [&_a]:underline [&_p]:my-1";
+const richTextClassName =
+  "text-sm leading-6 text-text-secondary [&_a]:text-primary-500 [&_a]:underline [&_p]:my-1";
 
 export default function StudentAllActivitiesFeed({
   notes,
@@ -66,11 +71,17 @@ export default function StudentAllActivitiesFeed({
         date: parseStudentActivityDate(note.date),
         title: (
           <>
-            <strong className="font-semibold text-text-primary">Ghi chú</strong> của {note.author}
+            <strong className="font-semibold text-text-primary">Ghi chú</strong>{" "}
+            của {note.author}
           </>
         ),
         timestamp: formatDateTime(note.date),
-        body: <div className={richTextClassName} dangerouslySetInnerHTML={{ __html: note.content }} />,
+        body: (
+          <div
+            className={richTextClassName}
+            dangerouslySetInnerHTML={{ __html: note.content }}
+          />
+        ),
       }));
 
     const taskItems: ActivityFeedItem[] = tasks.map((task) => ({
@@ -100,7 +111,8 @@ export default function StudentAllActivitiesFeed({
           date: parseStudentActivityDate(latestMessage.time),
           title: (
             <>
-              <strong className="font-semibold text-text-primary">Zalo</strong> · {threadKey}
+              <strong className="font-semibold text-text-primary">Zalo</strong>{" "}
+              · {threadKey}
             </>
           ),
           timestamp: formatDateTime(latestMessage.time),
@@ -114,7 +126,8 @@ export default function StudentAllActivitiesFeed({
       date: parseStudentActivityDate(call.time),
       title: (
         <>
-          <strong className="font-semibold text-text-primary">Cuộc gọi</strong> · {call.topic || "Liên hệ"}
+          <strong className="font-semibold text-text-primary">Cuộc gọi</strong>{" "}
+          · {call.topic || "Liên hệ"}
         </>
       ),
       timestamp: formatDateTime(call.time),
@@ -123,30 +136,35 @@ export default function StudentAllActivitiesFeed({
     }));
 
     const logItems: ActivityFeedItem[] = auditEvents.map((event) => ({
-      id: `log-${event.actor}-${event.time}`,
-      date: parseStudentActivityDate(event.time),
-      icon: event.tone === "success" ? <CheckCircle1 size={14} /> : <ClockThree size={14} />,
+      id: `log-${event.eventId}`,
+      date: parseStudentActivityDate(event.occurredAt),
+      icon:
+        getStudentAuditTone(event) === "success" ? (
+          <CheckCircle1 size={14} />
+        ) : (
+          <ClockThree size={14} />
+        ),
       iconClassName:
-        event.tone === "success"
+        getStudentAuditTone(event) === "success"
           ? "bg-badge-success-background text-success-500"
           : "bg-badge-primary-background text-badge-primary-text",
       title: (
         <>
-          <strong className="font-semibold text-text-primary">Nhật ký</strong> · {event.actor || "-"}
+          <strong className="font-semibold text-text-primary">Nhật ký</strong> ·{" "}
+          {getStudentAuditActor(event)}
         </>
       ),
-      timestamp: formatDateTime(event.time),
-      body: (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-text-secondary">{event.action}</p>
-          <Badge color={event.tone}>{event.status}</Badge>
-        </div>
-      ),
+      timestamp: formatDateTime(event.occurredAt),
+      body: <StudentAuditEventDetails event={event} />,
     }));
 
-    return [...noteItems, ...taskItems, ...zaloItems, ...callItems, ...logItems].sort(
-      (a, b) => b.date.getTime() - a.date.getTime(),
-    );
+    return [
+      ...noteItems,
+      ...taskItems,
+      ...zaloItems,
+      ...callItems,
+      ...logItems,
+    ].sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [notes, tasks, zaloMessages, calls, auditEvents]);
 
   const groupedItems = useMemo(
@@ -160,7 +178,11 @@ export default function StudentAllActivitiesFeed({
   );
 
   if (items.length === 0) {
-    return <p className="py-2 text-xs text-text-tertiary">Chưa có hoạt động nào cho học sinh này.</p>;
+    return (
+      <p className="py-2 text-xs text-text-tertiary">
+        Chưa có hoạt động nào cho học sinh này.
+      </p>
+    );
   }
 
   return (
@@ -184,7 +206,10 @@ export default function StudentAllActivitiesFeed({
                 defaultExpanded={false}
                 onExpandedChange={onOpenZalo}
               >
-                <StudentZaloSummary messages={item.zaloMessages} onOpen={onOpenZalo} />
+                <StudentZaloSummary
+                  messages={item.zaloMessages}
+                  onOpen={onOpenZalo}
+                />
               </StudentActivityCard>
             ) : item.task ? (
               <StudentTaskCard

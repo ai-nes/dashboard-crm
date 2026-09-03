@@ -1,154 +1,229 @@
 "use client";
 
-import { CheckCircle1, ClockThree } from "@tailgrids/icons";
+import { ChevronDown, ChevronRight } from "@tailgrids/icons";
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import type { Student360Data } from "@/services/api/students/types";
+import { Button } from "@/components/tailgrids/core/button";
+import type { StudentAuditLog } from "@/services/api/student-audit";
 import { formatDateTime } from "@/utils/format-date";
 
-import StudentActivityCard from "./student-activity-card";
-import StudentActivityGroup from "./student-activity-group";
-import StudentActivityToolbar, {
-  ActivityFilterSelect,
-  type ActivityExpansionMode,
-} from "./student-activity-toolbar";
 import {
-  activityTimeFilterOptions,
+  getStudentAuditActor,
+  getStudentAuditActivityDescription,
+} from "./student-audit-event";
+import StudentAuditFilters, {
+  type AuditActionFilter,
+} from "./student-audit-filters";
+import StudentAuditItem from "./student-audit-item";
+import {
   groupActivitiesByDate,
   matchesActivityTimeFilter,
   parseStudentActivityDate,
   type ActivityTimeFilter,
 } from "./student-activity-utils";
-
-type StudentAuditEvent = NonNullable<Student360Data["auditEvents"]>[number];
-
-const EMPTY_AUDIT_EVENTS: StudentAuditEvent[] = [];
+import type { ActivityExpansionMode } from "./student-activity-toolbar";
 
 interface StudentAuditCardProps {
-  data?: Student360Data;
+  events: StudentAuditLog[];
+  isLoading?: boolean;
+  error?: Error | null;
 }
 
-export default function StudentAuditCard({ data }: StudentAuditCardProps) {
-  const events = data?.auditEvents ?? EMPTY_AUDIT_EVENTS;
+export default function StudentAuditCard({
+  events,
+  isLoading = false,
+  error,
+}: StudentAuditCardProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<ActivityTimeFilter>("all");
-  const [expansionMode, setExpansionMode] = useState<ActivityExpansionMode>("collapse");
-  const [expandedEventIds, setExpandedEventIds] = useState<Set<string>>(
-    () => new Set(events.map((event) => getAuditEventId(event))),
-  );
+  const [actionFilter, setActionFilter] = useState<AuditActionFilter>("all");
+  const [expansionMode, setExpansionMode] =
+    useState<ActivityExpansionMode>("collapse");
 
   const filteredEvents = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return events.filter((event) => {
-      const matchesTime = matchesActivityTimeFilter(event.time, timeFilter);
-      const matchesSearch =
-        !query ||
-        [event.action, event.actor, event.status].some((value) =>
-          value.toLowerCase().includes(query),
+
+    return events
+      .filter((event) => {
+        const matchesTime = matchesActivityTimeFilter(
+          event.occurredAt,
+          timeFilter,
         );
-      return matchesTime && matchesSearch;
-    });
-  }, [events, timeFilter, search]);
+
+        const matchesAction =
+          actionFilter === "all" ||
+          (actionFilter === "created" && event.action === "created") ||
+          (actionFilter === "updated" && event.action === "updated") ||
+          (actionFilter === "deleted" && event.action === "deleted");
+
+        const matchesSearch =
+          !query ||
+          [
+            event.action,
+            event.changeType,
+            event.fieldLabel,
+            event.fieldname,
+            event.owner,
+            event.ownerFullName,
+            event.source,
+            event.sourceName,
+            getStudentAuditActivityDescription(event),
+          ].some((value) => value?.toLowerCase().includes(query));
+
+        return matchesTime && matchesAction && matchesSearch;
+      })
+      .sort(
+        (first, second) =>
+          parseStudentActivityDate(second.occurredAt).getTime() -
+          parseStudentActivityDate(first.occurredAt).getTime(),
+      );
+  }, [actionFilter, events, search, timeFilter]);
 
   const groupedEvents = useMemo(
-    () => groupActivitiesByDate(filteredEvents, (event) => parseStudentActivityDate(event.time)),
+    () =>
+      groupActivitiesByDate(filteredEvents, (event) =>
+        parseStudentActivityDate(event.occurredAt),
+      ),
     [filteredEvents],
+  );
+
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(
+    () => new Set(groupedEvents.map((g) => g.id)),
   );
 
   const handleExpansionModeChange = (mode: ActivityExpansionMode) => {
     setExpansionMode(mode);
-    setExpandedEventIds(new Set(mode === "expand" ? events.map(getAuditEventId) : []));
+    setExpandedGroupIds(
+      new Set(mode === "expand" ? groupedEvents.map((g) => g.id) : []),
+    );
   };
 
-  const handleEventExpandedChange = (id: string, expanded: boolean) => {
-    setExpandedEventIds((current) => {
+  const handleGroupExpandedChange = (groupId: string, expanded: boolean) => {
+    setExpandedGroupIds((current) => {
       const next = new Set(current);
-      if (expanded) next.add(id);
-      else next.delete(id);
+      if (expanded) next.add(groupId);
+      else next.delete(groupId);
       return next;
     });
   };
 
+  const hasActiveFilters =
+    search.trim() !== "" || timeFilter !== "all" || actionFilter !== "all";
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setTimeFilter("all");
+    setActionFilter("all");
+  };
+
   return (
-    <div className="space-y-4">
-      <StudentActivityToolbar
+    <div className="space-y-6">
+      {/* Filters & Search Toolbar */}
+      <StudentAuditFilters
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Tìm nhật ký..."
-        searchLabel="Tìm nhật ký"
+        timeFilter={timeFilter}
+        onTimeFilterChange={setTimeFilter}
+        actionFilter={actionFilter}
+        onActionFilterChange={setActionFilter}
         expansionMode={expansionMode}
         onExpansionModeChange={handleExpansionModeChange}
       />
 
-      <div className="w-full max-w-md">
-        <ActivityFilterSelect
-          ariaLabel="Lọc theo thời gian"
-          triggerLabel="Tất cả thời gian"
-          value={timeFilter}
-          options={activityTimeFilterOptions}
-          onChange={(value) => setTimeFilter(value as ActivityTimeFilter)}
-        />
-      </div>
-
-      {events.length === 0 ? (
-        <p className="py-2 text-xs text-text-tertiary">Chưa có bản ghi nhật ký mới.</p>
+      {/* Loading / Error / Empty States */}
+      {isLoading ? (
+        <p className="py-2 text-xs text-text-tertiary">Đang tải nhật ký...</p>
+      ) : error ? (
+        <p className="py-2 text-xs text-error-600">
+          Không thể tải nhật ký: {error.message}
+        </p>
+      ) : events.length === 0 ? (
+        <p className="py-2 text-xs text-text-tertiary">
+          Chưa có bản ghi nhật ký nào.
+        </p>
       ) : filteredEvents.length === 0 ? (
-        <p className="py-2 text-xs text-text-tertiary">Không tìm thấy nhật ký phù hợp.</p>
-      ) : (
-        <div className="space-y-6">
-          {groupedEvents.map((group) => (
-            <StudentActivityGroup
-              key={group.id}
-              id={`audit-group-${group.id}`}
-              label={group.label}
-              count={group.items.length}
+        <div className="space-y-3 py-2">
+          <p className="text-xs text-text-tertiary">
+            Không tìm thấy nhật ký phù hợp với bộ lọc.
+          </p>
+          {hasActiveFilters && (
+            <Button
+              size="sm"
+              variant="primary"
+              appearance="outline"
+              onPress={handleResetFilters}
             >
-              {group.items.map((event) => {
-                const eventId = getAuditEventId(event);
-                return (
-                  <StudentActivityCard
-                    key={eventId}
-                    icon={event.tone === "success" ? <CheckCircle1 size={14} /> : <ClockThree size={14} />}
-                    iconClassName={
-                      event.tone === "success"
-                        ? "bg-badge-success-background text-success-500"
-                        : "bg-badge-primary-background text-badge-primary-text"
+              Đặt lại bộ lọc
+            </Button>
+          )}
+        </div>
+      ) : (
+        /* Timeline Conversations / Groups */
+        <div className="space-y-8">
+          {groupedEvents.map((group) => {
+            const expanded = expandedGroupIds.has(group.id);
+            const latestEvent = group.items[0];
+
+            return (
+              <section
+                key={group.id}
+                aria-labelledby={`audit-group-${group.id}-heading`}
+              >
+                {/* Collapsible Section Header */}
+                <div className="flex flex-col gap-2 border-b border-card-border pb-3 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleGroupExpandedChange(group.id, !expanded)
                     }
-                    title={
-                      <>
-                        <strong className="font-semibold text-text-primary">Nhật ký</strong> · {event.actor || "-"}
-                      </>
-                    }
-                    timestamp={formatDateTime(event.time)}
-                    preview={<AuditEventPreview event={event} />}
-                    expanded={expandedEventIds.has(eventId)}
-                    onExpandedChange={(expanded) => handleEventExpandedChange(eventId, expanded)}
+                    aria-expanded={expanded}
+                    aria-labelledby={`audit-group-${group.id}-heading`}
+                    className="flex min-w-0 items-center gap-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm text-text-secondary">{event.action}</p>
-                      <Badge color={event.tone}>{event.status}</Badge>
-                    </div>
-                  </StudentActivityCard>
-                );
-              })}
-            </StudentActivityGroup>
-          ))}
+                    <span
+                      className="shrink-0 text-text-tertiary"
+                      aria-hidden="true"
+                    >
+                      {expanded ? (
+                        <ChevronDown size={16} />
+                      ) : (
+                        <ChevronRight size={16} />
+                      )}
+                    </span>
+                    <span
+                      id={`audit-group-${group.id}-heading`}
+                      className="truncate text-base font-semibold text-text-primary"
+                    >
+                      {group.label}
+                    </span>
+                    <Badge color="sky">{group.items.length} bản ghi</Badge>
+                  </button>
+                  <time className="pl-9 text-sm text-text-tertiary sm:pl-0">
+                    {formatDateTime(latestEvent.occurredAt)}
+                  </time>
+                </div>
+
+                {/* Timeline Items List */}
+                {expanded ? (
+                  <ol className="relative mt-5 ml-3 space-y-7 border-l border-card-border pl-6">
+                    {group.items.map((event) => (
+                      <StudentAuditItem key={event.eventId} event={event} />
+                    ))}
+                  </ol>
+                ) : (
+                  <div className="mt-3 pl-9">
+                    <p className="line-clamp-2 text-sm leading-6 text-text-secondary">
+                      {getStudentAuditActor(latestEvent)}{" "}
+                      {getStudentAuditActivityDescription(latestEvent)}
+                    </p>
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
-    </div>
-  );
-}
-
-function getAuditEventId(event: StudentAuditEvent): string {
-  return `${event.actor}-${event.time}-${event.action}`;
-}
-
-function AuditEventPreview({ event }: { event: StudentAuditEvent }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <p className="text-sm text-text-secondary">{event.action}</p>
-      <Badge color={event.tone}>{event.status}</Badge>
     </div>
   );
 }

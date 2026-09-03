@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/tailgrids/core/select";
-import type { StudentTaskItem, StudentTaskType } from "@/services/api/students/types";
+import type { StudentTaskItem } from "@/services/api/students/types";
 import { cn } from "@/utils/cn";
 import { formatDate } from "@/utils/format-date";
 
@@ -23,7 +23,6 @@ import StudentInlineEditableText from "./student-inline-editable-text";
 import {
   StudentTaskPriority,
   StudentTaskStatusBadge,
-  taskTypeLabel,
   taskStatusLabel,
 } from "./student-task-badges";
 
@@ -37,14 +36,15 @@ interface StudentTaskCardProps {
 }
 
 const priorityOptions: StudentTaskItem["priority"][] = ["Cao", "Trung bình", "Thấp"];
-const statusOptions: StudentTaskItem["status"][] = [
-  "todo",
-  "in-progress",
-  "done",
-  "canceled",
+const statusOptions: Array<{
+  value: StudentTaskItem["status"];
+  label: string;
+}> = [
+  { value: "todo", label: taskStatusLabel.todo },
+  { value: "in-progress", label: taskStatusLabel["in-progress"] },
+  { value: "done", label: taskStatusLabel.done },
+  { value: "canceled", label: taskStatusLabel.canceled },
 ];
-const taskTypeOptions: StudentTaskType[] = ["call", "email", "todo"];
-
 function toDateInputValue(value: string): string {
   const ddmmyyyy = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (ddmmyyyy) {
@@ -195,9 +195,12 @@ export default function StudentTaskCard({
             <FieldGroup label="Trạng thái">
               <Select
                 value={task.status}
-                onChange={(key) =>
-                  onUpdateTask(task.id, { status: String(key) as StudentTaskItem["status"] })
-                }
+                onChange={(key) => {
+                  const nextStatus = statusOptions.find(
+                    (option) => option.value === String(key),
+                  )?.value;
+                  if (nextStatus) onUpdateTask(task.id, { status: nextStatus });
+                }}
                 aria-label="Trạng thái task"
               >
                 <SelectTrigger
@@ -211,47 +214,12 @@ export default function StudentTaskCard({
                 <SelectContent className="min-w-44">
                   {statusOptions.map((option) => (
                     <SelectItem
-                      key={option}
-                      id={option}
-                      textValue={taskStatusLabel[option]}
+                      key={option.value}
+                      id={option.value}
+                      textValue={option.label}
                       className="py-2 whitespace-nowrap"
                     >
-                      <StudentTaskStatusBadge status={option} />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FieldGroup>
-
-            <FieldGroup label="Loại task">
-              <Select
-                value={task.taskType ?? "todo"}
-                onChange={(key) =>
-                  onUpdateTask(task.id, {
-                    taskType: String(key) as StudentTaskType,
-                  })
-                }
-                aria-label="Loại task"
-              >
-                <SelectTrigger
-                  size="sm"
-                  className="w-fit border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus:ring-0"
-                >
-                  <span className="whitespace-nowrap text-sm font-semibold text-text-primary">
-                    {taskTypeLabel[task.taskType ?? "todo"]}
-                  </span>
-                  <SelectValue className="sr-only" />
-                  <SelectIndicator className="ml-1 text-text-primary" />
-                </SelectTrigger>
-                <SelectContent className="min-w-44">
-                  {taskTypeOptions.map((option) => (
-                    <SelectItem
-                      key={option}
-                      id={option}
-                      textValue={taskTypeLabel[option]}
-                      className="py-2 whitespace-nowrap"
-                    >
-                      <span className="text-sm text-text-primary">{taskTypeLabel[option]}</span>
+                      <StudentTaskStatusBadge status={option.value} />
                     </SelectItem>
                   ))}
                 </SelectContent>

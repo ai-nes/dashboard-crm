@@ -108,8 +108,8 @@ export default function StudentChartInspectorSheet({
               <div className="rounded-xl border border-card-border/60 bg-background-soft-50/70 p-3.5 dark:bg-card-background/50">
                 <p className="text-xs text-text-tertiary">Đánh giá ngưỡng</p>
                 <div className="mt-1">
-                  <Badge color={milestone.score >= 70 ? "success" : "warning"} size="sm">
-                    {milestone.score >= 70 ? "Vượt ngưỡng ưu tiên (70%)" : "Cần nuôi dưỡng thêm"}
+                  <Badge color={(milestone.score ?? 0) >= 70 ? "success" : "warning"} size="sm">
+                    {(milestone.score ?? 0) >= 70 ? "Vượt ngưỡng ưu tiên (70%)" : "Cần nuôi dưỡng thêm"}
                   </Badge>
                 </div>
                 <p className="mt-1 text-[11px] text-text-tertiary">Mục tiêu tuyển sinh</p>

@@ -29,8 +29,8 @@ import { TextField } from "@/components/tailgrids/core/text-field";
 import type {
   StudentPriority,
   StudentTaskItem,
-  StudentTaskType,
 } from "@/services/api/students/types";
+import type { SessionUser } from "@/services/api/auth";
 import { formatDate } from "@/utils/format-date";
 import { Close } from "@tailgrids/icons";
 import {
@@ -38,65 +38,83 @@ import {
   Modal as AriaModal,
 } from "react-aria-components";
 
-import { taskTypeLabel } from "./student-task-badges";
-
 interface StudentCreateTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   studentName: string;
   assignee: string;
-  onCreate: (task: StudentTaskItem) => void;
+  assignees: SessionUser[];
+  currentUserId?: string;
+  isLoadingAssignees?: boolean;
+  onCreate: (task: StudentTaskItem) => Promise<void>;
+  isSubmitting?: boolean;
 }
 
 const priorityOptions: StudentPriority[] = ["Cao", "Trung bình", "Thấp"];
-const taskTypeOptions: StudentTaskType[] = ["call", "email", "todo"];
 
 export default function StudentCreateTaskDialog({
   isOpen,
   onOpenChange,
   studentName,
   assignee,
+  assignees,
+  currentUserId,
+  isLoadingAssignees = false,
   onCreate,
+  isSubmitting = false,
 }: StudentCreateTaskDialogProps) {
   const formId = useId();
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState<StudentPriority>("Trung bình");
-  const [taskType, setTaskType] = useState<StudentTaskType>("todo");
+  const [assigneeId, setAssigneeId] = useState("");
   const [notes, setNotes] = useState("");
+  const dueDateInputId = `${formId}-due-date`;
+  const selectedAssigneeId = assigneeId || currentUserId || "";
+  const selectedAssignee = assignees.find(
+    (user) => user.name === selectedAssigneeId,
+  );
 
   const isValid =
     title.trim().length > 0 &&
     dueDate.trim().length > 0 &&
     dueTime.trim().length > 0;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isValid) return;
 
     const [year, month, day] = dueDate.split("-");
 
-    onCreate({
-      id: `task-${formId}-${Date.now()}`,
-      title: title.trim(),
-      assignee,
-      dueDate:
-        year && month && day ? `${day}/${month}/${year}` : formatDate(dueDate),
-      dueTime,
-      status: "todo",
-      priority,
-      taskType,
-      notes:
-        notes.replace(/<[^>]*>/g, "").trim().length > 0 ? notes : undefined,
-    });
-    toast.success(`Đã tạo task cho ${studentName}.`);
-    setTitle("");
-    setDueDate("");
-    setDueTime("");
-    setPriority("Trung bình");
-    setTaskType("todo");
-    setNotes("");
-    onOpenChange(false);
+    try {
+      await onCreate({
+        id: `task-${formId}-${Date.now()}`,
+        title: title.trim(),
+        dueDate:
+          year && month && day
+            ? `${day}/${month}/${year}`
+            : formatDate(dueDate),
+        dueTime,
+        status: "todo",
+        priority,
+        assigneeId: selectedAssigneeId || undefined,
+        assignee: selectedAssignee?.full_name || assignee,
+        notes:
+          notes.replace(/<[^>]*>/g, "").trim().length > 0 ? notes : undefined,
+      });
+      toast.success(`Đã tạo task cho ${studentName}.`);
+      setTitle("");
+      setDueDate("");
+      setDueTime("");
+      setPriority("Trung bình");
+      setAssigneeId("");
+      setNotes("");
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể tạo task.",
+      );
+    }
   };
 
   return (
@@ -120,24 +138,26 @@ export default function StudentCreateTaskDialog({
               <DialogTitle className="text-xl leading-7">
                 Task cho {studentName}
               </DialogTitle>
-              <DialogDescription className="text-text-tertiary">
-                Tạo công việc tiếp theo và gán cho người phụ trách
+              <DialogDescription className="text-sm leading-5 text-text-tertiary">
+                Tạo công việc tiếp theo và chọn người phụ trách
               </DialogDescription>
             </DialogHeader>
-            <DialogBody className="max-h-[calc(100vh-11rem)] overflow-y-auto px-6 py-5">
-              <TextField className="gap-2">
-                <Label>Tên task</Label>
+            <DialogBody className="max-h-[calc(100vh-11rem)] space-y-5 overflow-y-auto px-6 py-5">
+              <TextField className="gap-2" required>
+                <Label>Tên task *</Label>
                 <Input
+                  autoFocus
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Nhập tên task..."
                 />
               </TextField>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <TextField className="gap-2">
-                  <Label>Hạn xử lý</Label>
+                  <Label>Hạn xử lý *</Label>
                   <Input
+                    id={dueDateInputId}
                     type="date"
                     value={dueDate}
                     onChange={(event) => setDueDate(event.target.value)}
@@ -145,7 +165,7 @@ export default function StudentCreateTaskDialog({
                 </TextField>
 
                 <TextField className="gap-2">
-                  <Label>Giờ xử lý</Label>
+                  <Label>Giờ xử lý *</Label>
                   <Input
                     type="time"
                     value={dueTime}
@@ -154,59 +174,55 @@ export default function StudentCreateTaskDialog({
                 </TextField>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Select
-                  value={taskType}
+                  value={priority}
                   onChange={(key) =>
-                    setTaskType(String(key) as StudentTaskType)
+                    setPriority(String(key) as StudentPriority)
                   }
                 >
-                  <SelectLabel>Loại task</SelectLabel>
+                  <SelectLabel>Mức ưu tiên</SelectLabel>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                     <SelectIndicator />
                   </SelectTrigger>
                   <SelectContent className="min-w-44">
-                    {taskTypeOptions.map((option) => (
-                      <SelectItem
-                        key={option}
-                        id={option}
-                        textValue={taskTypeLabel[option]}
-                      >
-                        {taskTypeLabel[option]}
+                    {priorityOptions.map((option) => (
+                      <SelectItem key={option} id={option} textValue={option}>
+                        {option}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
 
-                <div className="flex flex-col gap-2">
-                  <Select
-                    value={priority}
-                    onChange={(key) =>
-                      setPriority(String(key) as StudentPriority)
-                    }
-                  >
-                    <SelectLabel>Mức ưu tiên</SelectLabel>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                      <SelectIndicator />
-                    </SelectTrigger>
-                    <SelectContent className="min-w-44">
-                      {priorityOptions.map((option) => (
-                        <SelectItem key={option} id={option} textValue={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="rounded-lg bg-background-gray-secondary/60 px-3 py-2.5">
-                <p className="text-xs text-text-tertiary">Người phụ trách</p>
-                <p className="mt-1 text-sm font-semibold text-text-primary">
-                  {assignee}
-                </p>
+                <Select
+                  value={selectedAssigneeId}
+                  placeholder={
+                    isLoadingAssignees ? "Đang tải..." : "Chọn người phụ trách"
+                  }
+                  onChange={(key) => setAssigneeId(String(key))}
+                  isDisabled={isLoadingAssignees || assignees.length === 0}
+                >
+                  <SelectLabel>Người phụ trách</SelectLabel>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                    <SelectIndicator />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56 min-w-[18rem]">
+                    {assignees.map((option) => (
+                      <SelectItem
+                        key={option.name}
+                        id={option.name}
+                        textValue={option.full_name}
+                        className="py-2"
+                      >
+                        <span className="truncate font-medium text-text-primary">
+                          {option.full_name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -222,8 +238,11 @@ export default function StudentCreateTaskDialog({
               <Button appearance="outline" onPress={() => onOpenChange(false)}>
                 Hủy
               </Button>
-              <Button onPress={handleSubmit} isDisabled={!isValid}>
-                Tạo task
+              <Button
+                onPress={handleSubmit}
+                isDisabled={!isValid || isSubmitting}
+              >
+                {isSubmitting ? "Đang lưu..." : "Tạo task"}
               </Button>
             </DialogFooter>
           </AriaDialog>
