@@ -42,8 +42,8 @@ export interface AnalysisReportItem {
 }
 
 /**
- * Báo cáo 360 chỉ có ba khối: Tóm tắt, Rủi ro, Khuyến nghị & Cơ hội.
- * `recommendations` xếp khuyến nghị trước, cơ hội (`kind: "opportunity"`) sau.
+ * Báo cáo 360 có ba khối hiển thị: Tóm tắt, Rủi ro và Cơ hội.
+ * `recommendations` vẫn chứa cả item khuyến nghị và cơ hội từ response.
  */
 export interface AnalysisReport {
   title?: string | null;

@@ -1,9 +1,29 @@
 import type {
   AnalysisClaimKind,
   AnalysisReport,
+  AnalysisReportItem,
   AnalysisRunStage,
   AnalysisRunStatus,
 } from "@/services/api/analysis-runs";
+
+/**
+ * Pick the most reliable report item while preserving response order on ties.
+ * Items without a confidence score remain a safe fallback when no scored item
+ * exists, so a valid response is never hidden only because confidence is null.
+ */
+export function getHighestConfidenceReportItem(
+  items: AnalysisReportItem[],
+): AnalysisReportItem | null {
+  if (items.length === 0) return null;
+
+  return items.reduce((selected, item) => {
+    if (selected === null) return item;
+
+    const selectedConfidence = selected.confidence ?? -1;
+    const itemConfidence = item.confidence ?? -1;
+    return itemConfidence > selectedConfidence ? item : selected;
+  }, null as AnalysisReportItem | null);
+}
 
 export function getRichReport(
   stages: AnalysisRunStage[],

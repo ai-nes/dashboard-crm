@@ -9,18 +9,25 @@ import type {
 } from "@/services/api/analysis-runs";
 import { cn } from "@/utils/cn";
 
-import { formatClaimConfidence } from "./analysis-run-meta";
+import {
+  formatClaimConfidence,
+  getHighestConfidenceReportItem,
+} from "./analysis-run-meta";
 
 interface AnalysisRichReportProps {
   report: AnalysisReport;
 }
 
-/** Bản đầy đủ ba khối: Tóm tắt · Rủi ro · Khuyến nghị & Cơ hội. */
+/** Báo cáo ba khối: Tóm tắt · Rủi ro · Cơ hội. */
 export default function AnalysisRichReport({ report }: AnalysisRichReportProps) {
+  const highestRisk = getHighestConfidenceReportItem(report.risks);
+  const highestOpportunity = getHighestConfidenceReportItem(
+    report.recommendations.filter((item) => item.kind === "opportunity"),
+  );
   const shortTitle =
     report.title ??
-    report.risks[0]?.headline ??
-    report.recommendations[0]?.headline ??
+    highestRisk?.headline ??
+    highestOpportunity?.headline ??
     "Tổng quan hồ sơ";
 
   return (
@@ -42,14 +49,14 @@ export default function AnalysisRichReport({ report }: AnalysisRichReportProps) 
       <ReportSection
         title="Rủi ro"
         tone="warning"
-        items={report.risks}
+        item={highestRisk}
         emptyText="Chưa phát hiện rủi ro nổi bật trên dữ liệu hiện có."
       />
       <ReportSection
-        title="Khuyến nghị & Cơ hội"
-        tone="primary"
-        items={report.recommendations}
-        emptyText="Chưa có khuyến nghị cho lần phân tích này."
+        title="Cơ hội"
+        tone="success"
+        item={highestOpportunity}
+        emptyText="Chưa ghi nhận cơ hội nổi bật từ dữ liệu hiện có."
       />
     </section>
   );
@@ -58,32 +65,31 @@ export default function AnalysisRichReport({ report }: AnalysisRichReportProps) 
 function ReportSection({
   title,
   tone,
-  items,
+  item,
   emptyText,
 }: {
   title: string;
-  tone: "primary" | "warning";
-  items: AnalysisReportItem[];
+  tone: "primary" | "warning" | "success";
+  item: AnalysisReportItem | null;
   emptyText: string;
 }) {
-  const toneStyles =
-    tone === "warning"
-      ? "border-warning-200 bg-warning-50/70 dark:border-warning-800 dark:bg-warning-950/20"
-      : "border-primary-200 bg-primary-50/60 dark:border-primary-800 dark:bg-primary-950/20";
+  const toneStyles = {
+    primary:
+      "border-primary-200 bg-primary-50/60 dark:border-primary-800 dark:bg-primary-950/20",
+    warning:
+      "border-warning-200 bg-warning-50/70 dark:border-warning-800 dark:bg-warning-950/20",
+    success:
+      "border-success-200 bg-badge-success-background dark:border-success-800",
+  }[tone];
 
   return (
     <section className={cn("rounded-xl border p-4", toneStyles)} aria-label={title}>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
         <h3 className="text-base font-semibold text-text-primary">{title}</h3>
-        <Badge color={tone === "warning" ? "warning" : "primary"} size="sm">
-          {items.length}
-        </Badge>
       </div>
-      {items.length > 0 ? (
+      {item ? (
         <ul className="mt-3 space-y-2 border-t border-card-border pt-3">
-          {items.map((item, index) => (
-            <ReportItemRow key={`${title}-${index}-${item.headline.slice(0, 32)}`} item={item} />
-          ))}
+          <ReportItemRow item={item} />
         </ul>
       ) : (
         <p className="mt-3 border-t border-card-border pt-3 text-sm leading-6 text-text-tertiary">

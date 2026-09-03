@@ -105,7 +105,7 @@ function getStudentTabs(
   return [
     {
       id: "decision",
-      label: "Hành động tiếp theo",
+      label: "Phân tích Học sinh 360",
       content: (
         <StudentClassificationCockpit
           data={data}

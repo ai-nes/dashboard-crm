@@ -7,6 +7,8 @@ import { Button } from "@/components/tailgrids/core/button";
 import type { AnalysisReport, AnalysisReportItem } from "@/services/api/analysis-runs";
 import { cn } from "@/utils/cn";
 
+import { getHighestConfidenceReportItem } from "./analysis-run-meta";
+
 interface AnalysisReportCockpitProps {
   report: AnalysisReport;
   onOpenDetails: () => void;
@@ -15,25 +17,16 @@ interface AnalysisReportCockpitProps {
 
 /**
  * Shared, data-first surface for Student 360 and School 360. Ba khối cố định:
- * Tóm tắt, Rủi ro chính, Khuyến nghị tiếp theo. Chi tiết đầy đủ nằm trong drawer.
+ * Tóm tắt, Rủi ro và Cơ hội. Chi tiết đầy đủ nằm trong drawer.
  */
 export default function AnalysisReportCockpit({
   report,
   onOpenDetails,
   action,
 }: AnalysisReportCockpitProps) {
-  const primaryRisk = report.risks[0];
-  const primaryRecommendation = report.recommendations.find(
-    (item) => item.kind === "recommendation",
-  );
-  const primaryOpportunity = report.recommendations.find(
-    (item) => item.kind === "opportunity",
-  );
-  const nextMove = primaryRecommendation ?? primaryOpportunity;
-  const extraRisks = Math.max(report.risks.length - 1, 0);
-  const extraMoves = Math.max(
-    report.recommendations.length - (nextMove ? 1 : 0),
-    0,
+  const primaryRisk = getHighestConfidenceReportItem(report.risks);
+  const primaryOpportunity = getHighestConfidenceReportItem(
+    report.recommendations.filter((item) => item.kind === "opportunity"),
   );
 
   return (
@@ -57,19 +50,13 @@ export default function AnalysisReportCockpit({
           heading={primaryRisk?.headline}
           body={primaryRisk?.detail}
           emptyText="Chưa phát hiện rủi ro nổi bật trên dữ liệu hiện có."
-          moreCount={extraRisks}
         />
         <SignalBlock
-          label={
-            nextMove?.kind === "opportunity"
-              ? "Cơ hội"
-              : "Khuyến nghị tiếp theo"
-          }
-          tone={nextMove?.kind === "opportunity" ? "success" : "primary"}
-          heading={nextMove?.headline}
-          body={nextMove?.detail}
-          emptyText="Chưa có khuyến nghị cho lần phân tích này."
-          moreCount={extraMoves}
+          label="Cơ hội"
+          tone="success"
+          heading={primaryOpportunity?.headline}
+          body={primaryOpportunity?.detail}
+          emptyText="Chưa ghi nhận cơ hội nổi bật từ dữ liệu hiện có."
         />
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-card-border px-5 py-4">
@@ -94,14 +81,12 @@ function SignalBlock({
   heading,
   body,
   emptyText,
-  moreCount = 0,
 }: {
   label: string;
   tone: "primary" | "warning" | "success";
   heading?: string | null;
   body?: AnalysisReportItem["detail"] | null;
   emptyText?: string;
-  moreCount?: number;
 }) {
   const toneClass = {
     primary: "text-primary-700 dark:text-primary-300",
@@ -111,14 +96,7 @@ function SignalBlock({
 
   return (
     <div className="min-w-0 px-5 py-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className={cn("text-xs font-semibold", toneClass)}>{label}</p>
-        {moreCount > 0 && (
-          <span className="text-[11px] font-medium text-text-tertiary">
-            +{moreCount} mục khác
-          </span>
-        )}
-      </div>
+      <p className={cn("text-xs font-semibold", toneClass)}>{label}</p>
       {heading ? (
         <p className="mt-2 text-sm leading-6 font-semibold text-text-primary text-pretty">
           {heading}

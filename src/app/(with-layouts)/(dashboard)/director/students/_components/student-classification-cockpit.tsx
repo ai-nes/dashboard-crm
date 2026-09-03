@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCircle1Clockwise, Sparkle } from "@tailgrids/icons";
+import { Phone, RefreshCircle1Clockwise, Sparkle } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -10,6 +10,7 @@ import { Card } from "@/components/tailgrids/core/card";
 import { useAnalysisRun } from "@/hooks/use-analysis-run";
 
 import StudentDecisionScore from "./student-decision-score";
+import StudentNextBestActions from "./student-next-best-actions";
 import StudentNextAction from "./student-next-action";
 import type { Student360SectionProps } from "./types";
 
@@ -53,40 +54,56 @@ export default function StudentClassificationCockpit({
           <StudentDecisionScore data={data} />
         </Card>
 
+        <StudentNextBestActions
+          analysisAction={
+            <Button
+              appearance="outline"
+              isDisabled={
+                !analysisTargetId.trim() ||
+                requestMutation.isPending ||
+                Boolean(isAnalysisActive)
+              }
+              onPress={handleAnalysisRequest}
+              size="xs"
+            >
+              {isAnalysisActive || run ? (
+                <RefreshCircle1Clockwise
+                  className={
+                    isAnalysisActive ? "motion-safe:animate-spin" : undefined
+                  }
+                  size={14}
+                  aria-hidden="true"
+                />
+              ) : (
+                <Sparkle size={14} aria-hidden="true" />
+              )}
+              {analysisButtonLabel}
+            </Button>
+          }
+          callAction={
+            <Button
+              onPress={() =>
+                toast.success(
+                  `Đã tạo cuộc gọi tư vấn cho ${data.student.name}.`,
+                )
+              }
+              size="sm"
+            >
+              <Phone size={16} aria-hidden="true" />
+              Gọi tư vấn
+            </Button>
+          }
+          data={data}
+          studentId={analysisTargetId}
+        />
+      </div>
+
+      <div className="mt-4">
         <Card className="min-w-0 overflow-hidden p-0">
           <StudentNextAction
-            analysisAction={
-              <Button
-                appearance="outline"
-                isDisabled={
-                  !analysisTargetId.trim() ||
-                  requestMutation.isPending ||
-                  Boolean(isAnalysisActive)
-                }
-                onPress={handleAnalysisRequest}
-                size="xs"
-              >
-                {isAnalysisActive || run ? (
-                  <RefreshCircle1Clockwise
-                    className={
-                      isAnalysisActive ? "motion-safe:animate-spin" : undefined
-                    }
-                    size={14}
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Sparkle size={14} aria-hidden="true" />
-                )}
-                {analysisButtonLabel}
-              </Button>
-            }
             analysisError={analysisError}
-            data={data}
             isAnalysisActive={Boolean(isAnalysisActive)}
             isAwaitingAnalysisResponse={requestMutation.isPending && !run}
-            onCall={() =>
-              toast.success(`Đã tạo cuộc gọi tư vấn cho ${data.student.name}.`)
-            }
             onOpenAnalysisDetails={() => setIsAnalysisDrawerOpen(true)}
             run={run}
           />
@@ -100,7 +117,7 @@ export default function StudentClassificationCockpit({
           onOpenChange={setIsAnalysisDrawerOpen}
           run={run}
           targetId={analysisTargetId}
-          title="Phân tích Hồ sơ học sinh 360"
+          title="Phân tích Học sinh 360"
         />
       )}
     </>

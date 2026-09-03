@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { AnalysisRunSnapshot } from "@/services/api/analysis-runs";
 
-import { getDeepAnalysisNotice, getRichReport } from "./analysis-run-meta";
+import {
+  getDeepAnalysisNotice,
+  getHighestConfidenceReportItem,
+  getRichReport,
+} from "./analysis-run-meta";
 
 function stage(
   overrides: Partial<AnalysisRunSnapshot["stages"][number]>,
@@ -92,5 +96,49 @@ describe("getDeepAnalysisNotice", () => {
     } as unknown as AnalysisRunSnapshot;
 
     expect(getDeepAnalysisNotice(run)).toBeNull();
+  });
+});
+
+describe("getHighestConfidenceReportItem", () => {
+  it("selects the report item with the highest confidence", () => {
+    const result = getHighestConfidenceReportItem([
+      {
+        kind: "risk",
+        headline: "Độ tin cậy thấp hơn",
+        detail: "Chi tiết",
+        confidence: 0.72,
+        provenanceIds: [],
+      },
+      {
+        kind: "risk",
+        headline: "Độ tin cậy cao nhất",
+        detail: "Chi tiết",
+        confidence: 0.91,
+        provenanceIds: [],
+      },
+    ]);
+
+    expect(result?.headline).toBe("Độ tin cậy cao nhất");
+  });
+
+  it("keeps response order when confidence is tied or missing", () => {
+    const result = getHighestConfidenceReportItem([
+      {
+        kind: "opportunity",
+        headline: "Cơ hội đầu tiên",
+        detail: "Chi tiết",
+        confidence: null,
+        provenanceIds: [],
+      },
+      {
+        kind: "opportunity",
+        headline: "Cơ hội thứ hai",
+        detail: "Chi tiết",
+        confidence: null,
+        provenanceIds: [],
+      },
+    ]);
+
+    expect(result?.headline).toBe("Cơ hội đầu tiên");
   });
 });

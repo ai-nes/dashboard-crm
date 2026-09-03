@@ -147,9 +147,6 @@ export default function SegmentLandscapeChart({
             />
           </div>
         )}
-        <p className="text-[11px] text-text-tertiary sm:ml-auto sm:text-right">
-          Điểm ưu tiên do hệ thống tính · “—” = chưa đủ dữ liệu.
-        </p>
       </div>
     </Card>
   );
