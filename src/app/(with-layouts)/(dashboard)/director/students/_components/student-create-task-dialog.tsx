@@ -14,7 +14,7 @@ import {
 } from "@/components/tailgrids/core/dialog";
 import { Input } from "@/components/tailgrids/core/input";
 import { Label } from "@/components/tailgrids/core/label";
-import { Backdrop, OverlayWrapper } from "@/components/tailgrids/core/overlay";
+import { Backdrop } from "@/components/tailgrids/core/overlay";
 import { RichTextEditor } from "@/components/tailgrids/core/rich-text-editor";
 import {
   Select,
@@ -118,136 +118,134 @@ export default function StudentCreateTaskDialog({
   };
 
   return (
-    <OverlayWrapper isOpen={isOpen} onOpenChange={onOpenChange}>
-      <Backdrop>
-        <AriaModal className="fixed top-1/2 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] data-entering:scale-95 data-entering:opacity-0 data-exiting:scale-95 data-exiting:opacity-0 motion-reduce:transition-none motion-reduce:data-entering:scale-100 motion-reduce:data-entering:opacity-100 motion-reduce:data-exiting:scale-100 motion-reduce:data-exiting:opacity-100 max-sm:max-w-[calc(100%-2rem)]">
-          <AriaDialog
-            aria-label={`Tạo task cho ${studentName}`}
-            className="relative flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-xl border border-border-primary bg-background-white-primary shadow-lg outline-none"
+    <Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+      <AriaModal className="fixed top-1/2 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] data-entering:scale-95 data-entering:opacity-0 data-exiting:scale-95 data-exiting:opacity-0 motion-reduce:transition-none motion-reduce:data-entering:scale-100 motion-reduce:data-entering:opacity-100 motion-reduce:data-exiting:scale-100 motion-reduce:data-exiting:opacity-100 max-sm:max-w-[calc(100%-2rem)]">
+        <AriaDialog
+          aria-label={`Tạo task cho ${studentName}`}
+          className="relative flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-xl border border-border-primary bg-background-white-primary shadow-lg outline-none"
+        >
+          <DialogClose
+            iconOnly
+            size="sm"
+            variant="ghost"
+            aria-label="Đóng"
+            className="absolute top-4 right-4 z-10 text-text-100 opacity-70 hover:bg-transparent hover:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-500"
           >
-            <DialogClose
-              iconOnly
-              size="sm"
-              variant="ghost"
-              aria-label="Đóng"
-              className="absolute top-4 right-4 z-10 text-text-100 opacity-70 hover:bg-transparent hover:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-500"
-            >
-              <Close />
-            </DialogClose>
-            <DialogHeader className="border-b border-card-border px-6 py-5 pr-14">
-              <DialogTitle className="text-xl leading-7">
-                Task cho {studentName}
-              </DialogTitle>
-              <DialogDescription className="text-sm leading-5 text-text-tertiary">
-                Tạo công việc tiếp theo và chọn người phụ trách
-              </DialogDescription>
-            </DialogHeader>
-            <DialogBody className="max-h-[calc(100vh-11rem)] space-y-5 overflow-y-auto px-6 py-5">
-              <TextField className="gap-2" required>
-                <Label>Tên task *</Label>
+            <Close />
+          </DialogClose>
+          <DialogHeader className="border-b border-card-border px-6 py-5 pr-14">
+            <DialogTitle className="text-xl leading-7">
+              Task cho {studentName}
+            </DialogTitle>
+            <DialogDescription className="text-sm leading-5 text-text-tertiary">
+              Tạo công việc tiếp theo và chọn người phụ trách
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody className="max-h-[calc(100vh-11rem)] space-y-5 overflow-y-auto px-6 py-5">
+            <TextField className="gap-2" required>
+              <Label>Tên task *</Label>
+              <Input
+                autoFocus
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Nhập tên task..."
+              />
+            </TextField>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <TextField className="gap-2">
+                <Label>Hạn xử lý *</Label>
                 <Input
-                  autoFocus
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Nhập tên task..."
+                  id={dueDateInputId}
+                  type="date"
+                  value={dueDate}
+                  onChange={(event) => setDueDate(event.target.value)}
                 />
               </TextField>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <TextField className="gap-2">
-                  <Label>Hạn xử lý *</Label>
-                  <Input
-                    id={dueDateInputId}
-                    type="date"
-                    value={dueDate}
-                    onChange={(event) => setDueDate(event.target.value)}
-                  />
-                </TextField>
-
-                <TextField className="gap-2">
-                  <Label>Giờ xử lý *</Label>
-                  <Input
-                    type="time"
-                    value={dueTime}
-                    onChange={(event) => setDueTime(event.target.value)}
-                  />
-                </TextField>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Select
-                  value={priority}
-                  onChange={(key) =>
-                    setPriority(String(key) as StudentPriority)
-                  }
-                >
-                  <SelectLabel>Mức ưu tiên</SelectLabel>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                    <SelectIndicator />
-                  </SelectTrigger>
-                  <SelectContent className="min-w-44">
-                    {priorityOptions.map((option) => (
-                      <SelectItem key={option} id={option} textValue={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={selectedAssigneeId}
-                  placeholder={
-                    isLoadingAssignees ? "Đang tải..." : "Chọn người phụ trách"
-                  }
-                  onChange={(key) => setAssigneeId(String(key))}
-                  isDisabled={isLoadingAssignees || assignees.length === 0}
-                >
-                  <SelectLabel>Người phụ trách</SelectLabel>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                    <SelectIndicator />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-56 min-w-[18rem]">
-                    {assignees.map((option) => (
-                      <SelectItem
-                        key={option.name}
-                        id={option.name}
-                        textValue={option.full_name}
-                        className="py-2"
-                      >
-                        <span className="truncate font-medium text-text-primary">
-                          {option.full_name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label>Ghi chú task</Label>
-                <RichTextEditor
-                  value={notes}
-                  onChange={setNotes}
-                  placeholder="Mô tả chi tiết công việc cần làm..."
+              <TextField className="gap-2">
+                <Label>Giờ xử lý *</Label>
+                <Input
+                  type="time"
+                  value={dueTime}
+                  onChange={(event) => setDueTime(event.target.value)}
                 />
-              </div>
-            </DialogBody>
-            <DialogFooter className="border-t border-card-border px-6 py-4">
-              <Button appearance="outline" onPress={() => onOpenChange(false)}>
-                Hủy
-              </Button>
-              <Button
-                onPress={handleSubmit}
-                isDisabled={!isValid || isSubmitting}
+              </TextField>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Select
+                value={priority}
+                onChange={(key) =>
+                  setPriority(String(key) as StudentPriority)
+                }
               >
-                {isSubmitting ? "Đang lưu..." : "Tạo task"}
-              </Button>
-            </DialogFooter>
-          </AriaDialog>
-        </AriaModal>
-      </Backdrop>
-    </OverlayWrapper>
+                <SelectLabel>Mức ưu tiên</SelectLabel>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                  <SelectIndicator />
+                </SelectTrigger>
+                <SelectContent className="min-w-44">
+                  {priorityOptions.map((option) => (
+                    <SelectItem key={option} id={option} textValue={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={selectedAssigneeId}
+                placeholder={
+                  isLoadingAssignees ? "Đang tải..." : "Chọn người phụ trách"
+                }
+                onChange={(key) => setAssigneeId(String(key))}
+                isDisabled={isLoadingAssignees || assignees.length === 0}
+              >
+                <SelectLabel>Người phụ trách</SelectLabel>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                  <SelectIndicator />
+                </SelectTrigger>
+                <SelectContent className="max-h-56 min-w-[18rem]">
+                  {assignees.map((option) => (
+                    <SelectItem
+                      key={option.name}
+                      id={option.name}
+                      textValue={option.full_name}
+                      className="py-2"
+                    >
+                      <span className="truncate font-medium text-text-primary">
+                        {option.full_name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label>Ghi chú task</Label>
+              <RichTextEditor
+                value={notes}
+                onChange={setNotes}
+                placeholder="Mô tả chi tiết công việc cần làm..."
+              />
+            </div>
+          </DialogBody>
+          <DialogFooter className="border-t border-card-border px-6 py-4">
+            <Button appearance="outline" onPress={() => onOpenChange(false)}>
+              Hủy
+            </Button>
+            <Button
+              onPress={handleSubmit}
+              isDisabled={!isValid || isSubmitting}
+            >
+              {isSubmitting ? "Đang lưu..." : "Tạo task"}
+            </Button>
+          </DialogFooter>
+        </AriaDialog>
+      </AriaModal>
+    </Backdrop>
   );
 }
