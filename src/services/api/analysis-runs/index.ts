@@ -292,19 +292,32 @@ function parseJson(value: unknown): unknown {
 }
 
 function parseProvenance(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter(
+  const parsed = parseJson(value);
+  return Array.isArray(parsed)
+    ? parsed.filter(
         (source): source is string =>
           typeof source === "string" && Boolean(source.trim()),
       )
     : [];
 }
 
+function parseTextList(value: unknown): string[] {
+  let list = value;
+  if (typeof list === "string") list = parseJson(list);
+  if (!Array.isArray(list)) return [];
+
+  return list.flatMap((item) => {
+    const value = text(item);
+    return value ? [value] : [];
+  });
+}
+
 function parseReportItems(
   value: unknown,
   defaultKind: AnalysisReportItem["kind"],
 ): AnalysisReportItem[] {
-  const items = Array.isArray(value) ? value : [];
+  const parsed = parseJson(value);
+  const items = Array.isArray(parsed) ? parsed : [];
   return items.flatMap((value): AnalysisReportItem[] => {
     const item = asRecord(value);
     if (!item)
@@ -355,7 +368,8 @@ function parseReportItems(
 function parseReport(value: unknown): AnalysisReport | null {
   const report = asRecord(parseJson(value));
   if (!report) return null;
-  // Recommendations lead; opportunities and legacy recommended_actions follow.
+  // Preserve response order. The UI groups items by kind without dropping or
+  // reordering any item from the report.
   const recommendations = [
     ...parseReportItems(report.recommendations, "recommendation"),
     ...parseReportItems(
@@ -363,7 +377,13 @@ function parseReport(value: unknown): AnalysisReport | null {
       "recommendation",
     ),
     ...parseReportItems(report.opportunities, "opportunity"),
-  ].sort((a, b) => Number(a.kind === "opportunity") - Number(b.kind === "opportunity"));
+  ];
+  const missingEvidence = parseTextList(
+    report.missingEvidence ??
+      report.missing_evidence ??
+      report.evidenceGaps ??
+      report.evidence_gaps,
+  );
   const normalized: AnalysisReport = {
     title: text(report.title ?? report.short_title ?? report.headline),
     summary: text(
@@ -371,10 +391,12 @@ function parseReport(value: unknown): AnalysisReport | null {
     ),
     risks: parseReportItems(report.risks, "risk"),
     recommendations,
+    missingEvidence,
   };
   return normalized.summary ||
     normalized.risks.length > 0 ||
-    normalized.recommendations.length > 0
+    normalized.recommendations.length > 0 ||
+    missingEvidence.length > 0
     ? normalized
     : null;
 }
@@ -391,7 +413,9 @@ function normalizeStage(
       fallback,
     ),
     status: normalizeStatus(stage.status),
-    claims: parseClaims(stage.claims),
+    claims: parseClaims(
+      stage.claims ?? stage.visibleClaims ?? stage.visible_claims,
+    ),
     report: parseReport(
       stage.report ?? stage.report_json ?? stage.analysis_report,
     ),

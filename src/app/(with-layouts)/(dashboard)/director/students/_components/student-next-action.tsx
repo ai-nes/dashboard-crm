@@ -107,10 +107,10 @@ export default function StudentNextAction({
 function AnalysisTextSkeleton() {
   return (
     <div className="mt-6 space-y-3" role="status" aria-live="polite">
-      {["w-20", "w-16", "w-20"].map((labelWidth) => (
+      {["w-20", "w-16", "w-20"].map((labelWidth, index) => (
         <div
           className="space-y-2 rounded-lg border border-card-border p-3"
-          key={labelWidth}
+          key={`skeleton-${index}`}
         >
           <Skeleton className={`h-3 ${labelWidth}`} />
           <Skeleton className="h-4 w-full" />

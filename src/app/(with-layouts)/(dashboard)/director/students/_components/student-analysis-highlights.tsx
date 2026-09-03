@@ -29,7 +29,7 @@ export default function StudentAnalysisHighlights({
         <AnalysisHighlight
           label="Tóm tắt"
           tone="primary"
-          detail={report.title ?? "Tổng quan hồ sơ học sinh"}
+          detail={report.summary ?? report.title ?? "Tổng quan hồ sơ học sinh"}
           emptyText="Chưa có tóm tắt cho lần phân tích này."
         />
       </div>

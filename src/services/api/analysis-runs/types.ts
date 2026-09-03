@@ -41,15 +41,13 @@ export interface AnalysisReportItem {
   provenanceIds: string[];
 }
 
-/**
- * Báo cáo 360 có ba khối hiển thị: Tóm tắt, Rủi ro và Cơ hội.
- * `recommendations` vẫn chứa cả item khuyến nghị và cơ hội từ response.
- */
+/** Báo cáo 360 đã được chuẩn hóa từ response của từng analysis stage. */
 export interface AnalysisReport {
   title?: string | null;
   summary: string | null;
   risks: AnalysisReportItem[];
   recommendations: AnalysisReportItem[];
+  missingEvidence?: string[];
 }
 
 export interface AnalysisRunStage {

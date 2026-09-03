@@ -21,7 +21,7 @@ import type {
 
 import AnalysisClaimsView from "./analysis-claims-view";
 import AnalysisRichReport from "./analysis-rich-report";
-import { getRichReport, statusMeta } from "./analysis-run-meta";
+import { stageLabels, statusMeta } from "./analysis-run-meta";
 import AnalysisStageRail from "./analysis-stage-rail";
 
 interface AnalysisDrawerProps {
@@ -40,7 +40,8 @@ export default function AnalysisDrawer({
   title,
   kind,
 }: AnalysisDrawerProps) {
-  const report = getRichReport(run.stages);
+  const reportStages = run.stages.filter((stage) => stage.report);
+  const hasClaims = run.stages.some((stage) => stage.claims.length > 0);
   return (
     <SheetOverlay isOpen={isOpen} onOpenChange={onOpenChange}>
       <SheetContent
@@ -84,9 +85,14 @@ export default function AnalysisDrawer({
 
         <div className="space-y-4 px-5 py-5 sm:px-6">
           <AnalysisStageRail stages={run.stages} />
-          {report ? (
-            <AnalysisRichReport report={report} />
-          ) : (
+          {reportStages.map((stage) => (
+            <AnalysisRichReport
+              key={`${stage.id ?? stage.stageKind}-report`}
+              report={stage.report!}
+              stageLabel={stageLabels[stage.stageKind]}
+            />
+          ))}
+          {(!reportStages.length || hasClaims) && (
             <AnalysisClaimsView stages={run.stages} />
           )}
 

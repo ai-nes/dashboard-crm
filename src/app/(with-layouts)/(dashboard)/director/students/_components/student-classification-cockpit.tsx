@@ -1,13 +1,15 @@
 "use client";
 
 import { Phone, RefreshCircle1Clockwise, Sparkle } from "@tailgrids/icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { useAnalysisRun } from "@/hooks/use-analysis-run";
+import { studentWorklistKeys } from "@/hooks/use-student-worklist-queries";
 
 import StudentDecisionScore from "./student-decision-score";
 import StudentNextBestActions from "./student-next-best-actions";
@@ -27,8 +29,18 @@ export default function StudentClassificationCockpit({
     "student",
     analysisTargetId,
   );
+  const queryClient = useQueryClient();
   const isAnalysisActive =
     run?.status === "queued" || run?.status === "running";
+
+  useEffect(() => {
+    if (run?.status !== "completed" || !analysisTargetId.trim()) return;
+
+    void queryClient.invalidateQueries({
+      queryKey: studentWorklistKeys.actions(analysisTargetId),
+    });
+  }, [analysisTargetId, queryClient, run?.status]);
+
   const analysisError = requestMutation.error ?? runQuery.error;
   const handleAnalysisRequest = () => {
     if (

@@ -25,9 +25,13 @@ export default function AnalysisReportCockpit({
   action,
 }: AnalysisReportCockpitProps) {
   const primaryRisk = getHighestConfidenceReportItem(report.risks);
+  const primaryRecommendation = getHighestConfidenceReportItem(
+    report.recommendations.filter((item) => item.kind === "recommendation"),
+  );
   const primaryOpportunity = getHighestConfidenceReportItem(
     report.recommendations.filter((item) => item.kind === "opportunity"),
   );
+  const nextMove = primaryRecommendation ?? primaryOpportunity;
 
   return (
     <section
@@ -52,11 +56,15 @@ export default function AnalysisReportCockpit({
           emptyText="Chưa phát hiện rủi ro nổi bật trên dữ liệu hiện có."
         />
         <SignalBlock
-          label="Cơ hội"
-          tone="success"
-          heading={primaryOpportunity?.headline}
-          body={primaryOpportunity?.detail}
-          emptyText="Chưa ghi nhận cơ hội nổi bật từ dữ liệu hiện có."
+          label={
+            nextMove?.kind === "opportunity"
+              ? "Cơ hội"
+              : "Khuyến nghị tiếp theo"
+          }
+          tone={nextMove?.kind === "opportunity" ? "success" : "primary"}
+          heading={nextMove?.headline}
+          body={nextMove?.detail}
+          emptyText="Chưa có khuyến nghị hoặc cơ hội nổi bật từ dữ liệu hiện có."
         />
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-card-border px-5 py-4">
@@ -66,7 +74,7 @@ export default function AnalysisReportCockpit({
           className="-ml-2 text-primary-700 hover:bg-primary-50 hover:text-primary-800 dark:text-primary-300 dark:hover:bg-primary-900/40"
           onPress={onOpenDetails}
         >
-          Xem đầy đủ 3 phần
+          Xem toàn bộ kết quả
           <ArrowRight size={14} aria-hidden="true" />
         </Button>
         {action}
