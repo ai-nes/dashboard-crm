@@ -8,6 +8,7 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import type { SchoolChoiceBreakdown, SchoolIntelligenceData } from "@/services/api/schools/types";
+import ScoreDistributionTooltip from "./score-distribution-tooltip";
 
 interface SchoolOutcomesProps {
   data: SchoolIntelligenceData;
@@ -65,6 +66,7 @@ export default function SchoolOutcomes({ data }: SchoolOutcomesProps) {
           <div className="relative mt-4 h-56 min-h-56 w-full">
             <ChartContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <PieChart>
+                <Tooltip content={<ScoreDistributionTooltip />} />
                 <Pie data={scoreDistribution} dataKey="students" nameKey="label" cx="50%" cy="50%" innerRadius={62} outerRadius={92} paddingAngle={3} stroke="var(--card-background)" strokeWidth={3} onMouseEnter={(_, index) => setHoveredSegmentKey(scoreDistribution[index]?.key ?? null)} onMouseLeave={() => setHoveredSegmentKey(null)}>
                   {scoreDistribution.map((segment) => <Cell key={segment.key} fill={segment.color} />)}
                 </Pie>

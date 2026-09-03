@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight } from "@tailgrids/icons";
-import { Cell, Pie, PieChart } from "recharts";
+import { Cell, Pie, PieChart, Tooltip } from "recharts";
 
 import { Button } from "@/components/tailgrids/core/button";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
@@ -11,6 +11,7 @@ import type {
 } from "@/services/api/analysis-runs";
 
 import { claimKindMeta, computeAnalysisKpis } from "./analysis-run-meta";
+import AnalysisSignalProfileTooltip from "./analysis-signal-profile-tooltip";
 
 interface AnalysisSignalProfileProps {
   stages: AnalysisRunStage[];
@@ -68,6 +69,7 @@ export default function AnalysisSignalProfile({
         >
           <ChartContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <PieChart>
+              <Tooltip content={<AnalysisSignalProfileTooltip totalClaims={kpis.totalClaims} />} />
               <Pie
                 data={data}
                 dataKey="value"

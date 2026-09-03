@@ -48,7 +48,7 @@ export default function SegmentComparison({ segment, benchmark: propBenchmark }:
 
   const metrics: ComparisonMetric[] = [
     {
-      label: "Số lead",
+      label: "Số học sinh",
       current: segment.prospects,
       benchmark: benchmark.prospects,
       formatValue: (value) => value.toLocaleString("vi-VN"),

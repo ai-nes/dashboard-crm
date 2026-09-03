@@ -24,7 +24,7 @@ export default function OverviewHeader({
     <header className="flex flex-col gap-5 rounded-xl border border-card-border bg-card-background p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge color="primary">Phân tích lead</Badge>
+          <Badge color="primary">Phân tích học sinh</Badge>
           <span className="text-xs text-text-tertiary">{snapshotLabel}</span>
           {meta?.asOf ? <span className="text-xs text-text-tertiary">· Cập nhật {formatAsOf(meta.asOf)}</span> : null}
         </div>
@@ -32,7 +32,7 @@ export default function OverviewHeader({
           Tổng quan nhóm học sinh
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
-          Biết nhóm nào đáng ưu tiên, nguồn nào tạo lead hợp lệ và việc cần làm tiếp theo.
+          Biết nhóm nào đáng ưu tiên, nguồn nào tạo học sinh hợp lệ và việc cần làm tiếp theo.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">

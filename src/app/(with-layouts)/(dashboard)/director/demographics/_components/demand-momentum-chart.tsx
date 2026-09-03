@@ -48,7 +48,7 @@ export default function DemandMomentumChart({ demand = defaultDemand, period }: 
       <CardHeader className="mb-4 items-start">
         <div>
           <CardTitle>Xu hướng quan tâm theo ngành</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Số lead quan tâm đến từng ngành trong {periodLabel}.</p>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Số học sinh quan tâm đến từng ngành trong {periodLabel}.</p>
         </div>
         <Badge color={isAiPositive ? "success" : "gray"}>
           {isAiPositive && <ArrowUpward size={13} aria-hidden="true" />}

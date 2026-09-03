@@ -4,8 +4,9 @@ import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import { getUsedDevicesData } from "@/services/api/analytics";
 import { useQuery } from "@tanstack/react-query";
-import { Cell, Label, Pie, PieChart } from "recharts";
+import { Cell, Label, Pie, PieChart, Tooltip } from "recharts";
 import UsedDevicesSkeleton from "./skeleton";
+import UsedDevicesTooltip from "./tooltip";
 import { mapUsedDevicesResponse } from "./utils";
 
 export default function UsedDevices() {
@@ -35,6 +36,7 @@ export default function UsedDevices() {
             aspect={undefined}
           >
             <PieChart>
+              <Tooltip content={<UsedDevicesTooltip />} />
               <Pie
                 data={usedDevices.devices}
                 cx="50%"

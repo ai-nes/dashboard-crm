@@ -2,9 +2,17 @@
 
 import { useMemo, useState } from "react";
 
-import { getDistributedGeometryPoints, getGeometryCenter } from "./map-geometry";
+import {
+  getDistributedGeometryPoints,
+  getGeometryCenter,
+} from "./map-geometry";
 import { sortByAvailableScore } from "@/services/api/market-intelligence";
-import type { HighSchoolItem, ProvinceFeatureCollection, ProvinceMetrics, RegionKey } from "./types";
+import { SCHOOL_CLASSIFICATION_VISUALS } from "./school-classification-visuals";
+import type {
+  ProvinceFeatureCollection,
+  ProvinceMetrics,
+  RegionKey,
+} from "./types";
 
 interface HighSchoolMarkerLayerProps {
   activeRegion: RegionKey;
@@ -32,15 +40,6 @@ const MARKER_OFFSETS: Array<[number, number]> = [
   [0, 8],
 ];
 
-const CLASSIFICATION_STYLE: Record<NonNullable<HighSchoolItem["classification"]>, { color: string; baseRadius: number; coreRadius: number; pulse: boolean }> = {
-  "Trọng điểm": { color: "var(--success-500)", baseRadius: 7, coreRadius: 4, pulse: true },
-  "Mở rộng": { color: "var(--info-500)", baseRadius: 7, coreRadius: 4, pulse: false },
-  "Duy trì": { color: "var(--warning-500)", baseRadius: 5.5, coreRadius: 3, pulse: false },
-  "Sàng lọc": { color: "var(--text-tertiary)", baseRadius: 4.5, coreRadius: 2.25, pulse: false },
-};
-
-const UNCLASSIFIED_STYLE = { color: "var(--text-tertiary)", baseRadius: 4.5, coreRadius: 2.25, pulse: false };
-
 export default function HighSchoolMarkerLayer({
   activeRegion,
   geoData,
@@ -58,12 +57,18 @@ export default function HighSchoolMarkerLayer({
     );
 
     return provinces
-      .filter((province) => activeRegion === "all" || province.regionKey === activeRegion)
+      .filter(
+        (province) =>
+          activeRegion === "all" || province.regionKey === activeRegion,
+      )
       .flatMap((province) => {
         const feature = featuresByCode.get(province.code);
         if (!feature) return [];
 
-        const schools = sortByAvailableScore(province.highSchools, "potentialScore");
+        const schools = sortByAvailableScore(
+          province.highSchools,
+          "potentialScore",
+        );
         const distributedPoints = getDistributedGeometryPoints(
           feature.geometry.coordinates,
           schools.length,
@@ -74,7 +79,10 @@ export default function HighSchoolMarkerLayer({
         return schools.map((school, index) => {
           const [xOffset, yOffset] = MARKER_OFFSETS[index] ?? [0, 0];
           const point: [number, number] = school.coordinates
-            ? projectPoint([school.coordinates.longitude, school.coordinates.latitude])
+            ? projectPoint([
+                school.coordinates.longitude,
+                school.coordinates.latitude,
+              ])
             : distributedPoints[index]
               ? projectPoint(distributedPoints[index])
               : [centerX + xOffset, centerY + yOffset];
@@ -90,20 +98,25 @@ export default function HighSchoolMarkerLayer({
   }, [activeRegion, geoData, projectPoint, provinces]);
 
   return (
-    <g aria-label="Các điểm trường THPT theo tiềm năng" className="high-school-layer">
+    <g
+      aria-label="Các điểm trường THPT theo tiềm năng"
+      className="high-school-layer"
+    >
       {markers.map(({ point, provinceCode, provinceName, school }) => {
         const [markerX, markerY] = point;
         const isSelected = selectedSchoolId === school.id;
         const isHovered = hoveredSchoolId === school.id;
         const isInSelectedProvince = selectedProvinceCode === provinceCode;
-        const style = school.classification ? CLASSIFICATION_STYLE[school.classification] : UNCLASSIFIED_STYLE;
-        const emphasis = isSelected || isHovered ? 1.35 : isInSelectedProvince ? 1.15 : 1;
-        const haloRadius = style.baseRadius * emphasis;
-        const coreRadius = style.coreRadius * emphasis;
+        const classification = school.classification ?? "Sàng lọc";
+        const style = SCHOOL_CLASSIFICATION_VISUALS[classification];
+        const emphasis =
+          isSelected || isHovered ? 1.35 : isInSelectedProvince ? 1.15 : 1;
+        const haloRadius = style.markerRadius * emphasis;
+        const coreRadius = style.markerCoreRadius * emphasis;
 
         return (
           <g
-            aria-label={`${school.name}, ${provinceName}: nhóm ${school.classification ?? "chưa phân loại"}, ${school.potentialScore ?? "chưa có"} điểm tiềm năng`}
+            aria-label={`${school.name}, ${provinceName}: ${classification}, ${school.potentialScore ?? "chưa có"} điểm tiềm năng`}
             className="cursor-pointer outline-none focus:outline-none"
             key={school.id}
             onBlur={() => setHoveredSchoolId(null)}
@@ -123,24 +136,44 @@ export default function HighSchoolMarkerLayer({
             role="button"
             tabIndex={0}
           >
-			<title>{school.name} · {school.classification ?? "Chưa phân loại"} · {school.potentialScore ?? "-"}{school.potentialScore === null ? "" : "/100"}</title>
-            {style.pulse && (
-              <circle cx={markerX} cy={markerY} fill={style.color} fillOpacity={0.3} r={haloRadius}>
-                <animate attributeName="r" values={`${haloRadius};${haloRadius * 1.8};${haloRadius}`} dur="2.4s" repeatCount="indefinite" />
-                <animate attributeName="fill-opacity" values="0.3;0;0.3" dur="2.4s" repeatCount="indefinite" />
+            <title>
+              {school.name} · {classification} ·{" "}
+              {school.potentialScore ?? "-"}
+              {school.potentialScore === null ? "" : "/100"}
+            </title>
+            {classification === "Trọng điểm" && (
+              <circle
+                cx={markerX}
+                cy={markerY}
+                fill={style.markerColor}
+                fillOpacity={0.3}
+                r={haloRadius}
+              >
+                <animate
+                  attributeName="r"
+                  values={`${haloRadius};${haloRadius * 1.8};${haloRadius}`}
+                  dur="2.4s"
+                  repeatCount="indefinite"
+                />
+                <animate
+                  attributeName="fill-opacity"
+                  values="0.3;0;0.3"
+                  dur="2.4s"
+                  repeatCount="indefinite"
+                />
               </circle>
             )}
             <circle
               cx={markerX}
               cy={markerY}
-              fill={style.color}
+              fill={style.markerColor}
               fillOpacity={isSelected || isHovered ? 0.24 : 0.14}
               r={haloRadius}
             />
             <circle
               cx={markerX}
               cy={markerY}
-              fill={style.color}
+              fill={style.markerColor}
               r={coreRadius}
               stroke="var(--card-background)"
               strokeWidth={isSelected ? 2 : 1.5}

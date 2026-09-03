@@ -13,12 +13,8 @@ export function AcquisitionCohortPanels() {
   return (
     <div className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-2">
       <CohortEnrollmentChart />
-      <EnrollmentLagChart />
-      <CumulativeConversionChart />
       <ContactLatencyChart />
       <SubmissionTimingChart />
-      <HandoffSuccessChart />
-      <CostPerEnrolledChart />
     </div>
   );
 }
@@ -30,7 +26,7 @@ function CohortEnrollmentChart() {
     <AcquisitionMapChartCard
       chartId="18"
       title="Tỷ lệ nhập học theo tháng vào hệ thống"
-      description="So sánh tỷ lệ nhập học theo số tháng kể từ khi thu lead."
+      description="So sánh tỷ lệ nhập học theo số tháng kể từ khi ghi nhận học sinh."
       badge="Tỷ lệ nhập học"
       className="xl:col-span-2"
     >
@@ -61,7 +57,7 @@ function CohortEnrollmentChart() {
   );
 }
 
-function EnrollmentLagChart() {
+export function EnrollmentLagChart() {
   const { enrollmentLagHistogram } = useAcquisitionMapData();
 
   return (
@@ -87,7 +83,7 @@ function EnrollmentLagChart() {
   );
 }
 
-function CumulativeConversionChart() {
+export function CumulativeConversionChart() {
   const { cumulativeConversion } = useAcquisitionMapData();
 
   return (
@@ -185,7 +181,7 @@ function SubmissionTimingChart() {
   );
 }
 
-function HandoffSuccessChart() {
+export function HandoffSuccessChart() {
   const { handoffSuccessBySource } = useAcquisitionMapData();
 
   return (
@@ -212,7 +208,7 @@ function HandoffSuccessChart() {
   );
 }
 
-function CostPerEnrolledChart() {
+export function CostPerEnrolledChart() {
   const { costPerEnrolledBySource } = useAcquisitionMapData();
   const max = Math.max(...costPerEnrolledBySource.map((item) => item.cost ?? 0), 0);
 

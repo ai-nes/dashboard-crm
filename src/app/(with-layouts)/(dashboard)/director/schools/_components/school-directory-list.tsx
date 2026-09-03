@@ -16,7 +16,7 @@ export default function SchoolDirectoryList({ query, schools }: SchoolDirectoryL
     <main className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6">
       <header className="rounded-xl border border-card-border bg-card-background p-5 lg:p-6">
         <Badge color="primary">FAIP</Badge>
-        <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">School Intelligence</h1>
+        <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">Phân tích trường THPT</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">Tìm kiếm một trường THPT để xem tiềm năng tuyển sinh, hiệu quả chuyển đổi và hành động AI đề xuất.</p>
 
         <form className="mt-5 flex flex-col gap-2 sm:flex-row" action="/director/schools">
@@ -30,7 +30,7 @@ export default function SchoolDirectoryList({ query, schools }: SchoolDirectoryL
       </header>
 
       <section aria-label="Kết quả tìm kiếm">
-        <div className="mb-3 flex items-center justify-between gap-4"><h2 className="text-sm font-semibold text-text-primary">{query ? `Kết quả cho “${query}”` : "Trường THPT trong directory"}</h2><p className="text-xs text-text-tertiary">Hiển thị tối đa {schools.length} kết quả</p></div>
+        <div className="mb-3 flex items-center justify-between gap-4"><h2 className="text-sm font-semibold text-text-primary">{query ? `Kết quả cho “${query}”` : "Danh sách trường THPT"}</h2><p className="text-xs text-text-tertiary">Hiển thị tối đa {schools.length} kết quả</p></div>
         {schools.length ? (
           <div className="grid gap-3">
             {schools.map((school) => (
@@ -40,7 +40,7 @@ export default function SchoolDirectoryList({ query, schools }: SchoolDirectoryL
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-badge-primary-background text-badge-primary-text" aria-hidden="true"><Buildings11 size={18} /></span>
                     <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-text-primary">{school.name}</h3><p className="mt-1 truncate text-xs text-text-secondary">{school.district}, {school.province} · Mã trường {school.schoolCode}</p>{school.address && <p className="mt-1 truncate text-xs text-text-tertiary">{school.address}</p>}</div>
                   </div>
-                  <Link href={`/director/schools/${school.id}`} className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-button-primary-background px-3.5 text-sm font-medium text-button-primary-text transition hover:bg-button-primary-hover-background focus-visible:outline-4 focus-visible:outline-button-primary-focus-ring">Xem intelligence <ArrowRight size={16} /></Link>
+                  <Link href={`/director/schools/${school.id}`} className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-button-primary-background px-3.5 text-sm font-medium text-button-primary-text transition hover:bg-button-primary-hover-background focus-visible:outline-4 focus-visible:outline-button-primary-focus-ring">Xem phân tích <ArrowRight size={16} /></Link>
                 </div>
               </Card>
             ))}

@@ -10,6 +10,7 @@ import type {
   SchoolIntelligenceData,
   SchoolRelationshipLevel,
 } from "@/services/api/schools/types";
+import { SCHOOL_CLASSIFICATION_STRATEGIES } from "@/services/api/schools/classification";
 
 const relationshipLevels: SchoolRelationshipLevel[] = [
   "Chưa tiếp xúc",
@@ -47,6 +48,8 @@ export function toSchoolIntelligenceData(detail: DirectorSchoolDetailData): Scho
   const demographics = detail.demographics;
   const subjectMix = detail.subjectMix;
   const earlyForecast = detail.earlyForecast;
+  const classificationGroup = detail.classification.group ?? "Sàng lọc";
+  const classificationStrategy = SCHOOL_CLASSIFICATION_STRATEGIES[classificationGroup];
 
   return {
     school,
@@ -101,10 +104,11 @@ export function toSchoolIntelligenceData(detail: DirectorSchoolDetailData): Scho
       source: detail.dataSources.relationship ?? unavailable,
     },
     classification: {
-      group: detail.classification.group ?? "Sàng lọc",
-      isKeyAccount: detail.classification.isKeyAccount ?? false,
-      label: detail.classification.label ?? unavailable,
-      action: unavailable,
+      group: classificationGroup,
+      isKeyAccount:
+        detail.classification.isKeyAccount ?? classificationGroup === "Trọng điểm",
+      label: detail.classification.label ?? classificationStrategy.summary,
+      action: classificationStrategy.action,
     },
     quadrantPeers: toQuadrantPeers(detail),
     scoreBands: toScoreBands(detail),

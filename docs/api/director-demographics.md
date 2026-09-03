@@ -41,7 +41,7 @@ Trong môi trường không có `NEXT_PUBLIC_FRAPPE_URL`, frontend dùng fixture
 |---|---|---:|---|
 | `admissionYear` | number | `2026` | Kỳ tuyển sinh |
 | `page` | integer | `1` | Trang bắt đầu từ `1` |
-| `pageSize` | integer | `10` | Số segment tối đa mỗi trang; backend giới hạn `1..100` |
+| `pageSize` | integer | `5` | Số segment tối đa mỗi trang; backend giới hạn `1..100` |
 | `period` | `season \| 6m \| 12m` | `season` | Khoảng báo cáo. Trục thời gian phải dùng school-year/corresponding week khi dữ liệu có ngày thực. |
 | `scope` | string | `all` | Phạm vi tổng quát |
 | `province` | string | — | Lọc `student.province` |
@@ -55,7 +55,7 @@ Giá trị `all`, chuỗi rỗng hoặc không truyền được xem là không 
 
 Danh sách segment phải được sort ổn định theo `opportunityScore` giảm dần, sau đó `id` tăng dần. Backend thực hiện sort trước `slice(page, pageSize)`; không phân trang trước rồi mới sort ở client.
 
-`page` là 1-based. `pageSize` nhận số nguyên trong khoảng `1..100`; giá trị ngoài khoảng trả `400 INVALID_PAGINATION`. `meta.total` là tổng số segment phù hợp sau filter, không phải số phần tử của page hiện tại.
+`page` là 1-based. `pageSize` nhận số nguyên trong khoảng `1..100`; giá trị ngoài khoảng trả `400 INVALID_PAGINATION`. `meta.total` là tổng số segment phù hợp sau filter, không phải số phần tử của page hiện tại. Frontend mặc định gửi `page=1&pageSize=5`.
 
 Filter được nhập trong popover của UI nhưng vẫn gửi bằng query params để API có thể cache theo đúng bộ lọc. Backend không nên âm thầm bỏ qua filter chưa hỗ trợ; nếu chưa hỗ trợ, trả lỗi contract rõ ràng hoặc trả `meta.unsupportedFilters`.
 
@@ -197,7 +197,7 @@ Pagination nằm trong `meta` của overview response:
 ```json
 {
   "page": 2,
-  "pageSize": 10,
+  "pageSize": 5,
   "total": 43,
   "totalPages": 5,
   "hasNextPage": true
@@ -211,6 +211,8 @@ Semantics:
 - `total`: tổng số segment sau khi áp dụng toàn bộ filter, trước phân trang;
 - `totalPages`: `max(1, ceil(total / pageSize))`;
 - `hasNextPage`: `page < totalPages`.
+
+Tất cả năm field phân trang ở trên là **bắt buộc**. Frontend từ chối response `2xx` thiếu một trong các field này với lỗi `INVALID_DEMOGRAPHICS_RESPONSE`, vì không thể hiển thị danh sách phân trang đáng tin cậy nếu chỉ có mảng của trang hiện tại.
 
 Nếu `total = 0`, trả `segments: []`, `page: 1`, `totalPages: 1` và `hasNextPage: false`. Không trả `null` cho array. Khi page hợp lệ nhưng vượt `totalPages`, backend nên trả `400 INVALID_PAGINATION` để client đồng bộ lại page; không trả một page rỗng nhưng vẫn báo như request thành công.
 
@@ -291,7 +293,7 @@ Options phục vụ các select bên trong filter popover. Nếu không có, fro
   "totalProspects": 2846,
   "minSampleSize": 30,
   "page": 1,
-  "pageSize": 10,
+  "pageSize": 5,
   "total": 43,
   "totalPages": 5,
   "hasNextPage": true,

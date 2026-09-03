@@ -52,6 +52,16 @@ export interface MarketSchoolCoordinates {
   longitude: number;
 }
 
+export type MarketSchoolParticipationType = "event" | "campaign";
+
+/** A field event or campaign that a school has taken part in. */
+export interface MarketSchoolParticipation {
+  id: string;
+  name: string;
+  type: MarketSchoolParticipationType;
+  occurredAt: string | null;
+}
+
 export interface DirectorMarketSchool {
   id: string;
   directoryId: string | null;
@@ -70,6 +80,7 @@ export interface DirectorMarketSchool {
   recommendation: string | null;
   nextAction: string | null;
   classification: MarketSchoolClassification;
+  participations: MarketSchoolParticipation[];
 }
 
 export interface DirectorMarketProvince {

@@ -2,9 +2,15 @@
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow } from "@/components/tailgrids/core/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRoot,
+  TableRow,
+} from "@/components/tailgrids/core/table";
 import type { CampaignRecord } from "@/services/api/campaign-intelligence";
-import { useState } from "react";
 import { formatCompactCurrency, formatNumber } from "./formatters";
 import { PlatformIcon } from "./icons";
 
@@ -15,17 +21,17 @@ const healthConfig = {
 };
 
 export function CampaignTable({ campaigns }: { campaigns: CampaignRecord[] }) {
-  const [selectedId, setSelectedId] = useState(campaigns[0]?.id);
-
   return (
     <Card className="flex h-full flex-col overflow-hidden p-0">
       <CardHeader className="flex flex-row items-center justify-between border-b border-card-border px-5 py-4">
         <div>
-          <CardTitle>Hiệu quả theo campaign</CardTitle>
-          <p className="mt-0.5 text-xs text-text-tertiary">Doanh thu xác nhận và hiệu quả phân bổ</p>
+          <CardTitle>Hiệu quả theo chiến dịch</CardTitle>
+          <p className="mt-0.5 text-xs text-text-tertiary">
+            Doanh thu xác nhận và hiệu quả phân bổ
+          </p>
         </div>
         <span className="text-xs font-medium text-text-tertiary">
-          {campaigns.length} campaigns
+          {campaigns.length} chiến dịch
         </span>
       </CardHeader>
 
@@ -33,27 +39,30 @@ export function CampaignTable({ campaigns }: { campaigns: CampaignRecord[] }) {
         <TableRoot className="h-full w-full rounded-none border-none">
           <TableHeader>
             <TableRow>
-              <TableHead className="px-4 py-3.5 text-left">Kênh / Chiến dịch</TableHead>
+              <TableHead className="px-4 py-3.5 text-left">
+                Kênh / Chiến dịch
+              </TableHead>
               <TableHead className="px-3 py-3.5 text-right">Chi phí</TableHead>
-              <TableHead className="px-3 py-3.5 text-right">Qualified</TableHead>
+              <TableHead className="px-3 py-3.5 text-right">
+                Đủ điều kiện
+              </TableHead>
               <TableHead className="px-3 py-3.5 text-right">Nhập học</TableHead>
-              <TableHead className="px-3 py-3.5 text-right">Doanh thu</TableHead>
+              <TableHead className="px-3 py-3.5 text-right">
+                Doanh thu
+              </TableHead>
               <TableHead className="px-3 py-3.5 text-right">ROAS</TableHead>
-              <TableHead className="px-4 py-3.5 text-center">Trạng thái</TableHead>
+              <TableHead className="px-4 py-3.5 text-center">
+                Trạng thái
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {campaigns.map((campaign) => {
               const status = healthConfig[campaign.health];
-              const selected = selectedId === campaign.id;
-
               return (
                 <TableRow
                   key={campaign.id}
-                  onClick={() => setSelectedId(campaign.id)}
-                  className={`cursor-pointer transition-colors hover:bg-background-soft-50 dark:hover:bg-background-soft-100 ${
-                    selected ? "bg-primary-50/40 dark:bg-primary-950/20" : ""
-                  }`}
+                  className="transition-colors hover:bg-background-soft-50 dark:hover:bg-background-soft-100"
                 >
                   <TableCell className="px-4 py-4.5">
                     <div className="flex items-center gap-3">
@@ -94,7 +103,11 @@ export function CampaignTable({ campaigns }: { campaigns: CampaignRecord[] }) {
                     </span>
                   </TableCell>
                   <TableCell className="px-4 py-4.5 text-center whitespace-nowrap">
-                    <Badge color={status.color} size="sm" className="whitespace-nowrap">
+                    <Badge
+                      color={status.color}
+                      size="sm"
+                      className="whitespace-nowrap"
+                    >
                       {status.label}
                     </Badge>
                   </TableCell>
@@ -107,4 +120,3 @@ export function CampaignTable({ campaigns }: { campaigns: CampaignRecord[] }) {
     </Card>
   );
 }
-

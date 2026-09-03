@@ -348,6 +348,7 @@ function generateMockHighSchools(
       recommendation,
       nextAction,
       classification,
+      participations: [],
     };
   });
 }

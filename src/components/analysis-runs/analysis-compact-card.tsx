@@ -3,7 +3,6 @@
 import { ArrowRight, RefreshCircle1Clockwise, Sparkle } from "@tailgrids/icons";
 import { useMemo } from "react";
 
-import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import type {
   AnalysisRunKind,
@@ -12,11 +11,10 @@ import type {
 import { cn } from "@/utils/cn";
 
 import {
-  computeAnalysisKpis,
-  formatClaimConfidence,
-  statusMeta,
+  getDeepAnalysisNotice,
+  getRichReport,
 } from "./analysis-run-meta";
-import AnalysisSignalProfile from "./analysis-signal-profile";
+import AnalysisReportCockpit from "./analysis-report-cockpit";
 
 interface AnalysisCompactCardProps {
   kind: AnalysisRunKind;
@@ -42,22 +40,8 @@ export default function AnalysisCompactCard({
   onOpenDrawer,
   embedded = false,
 }: AnalysisCompactCardProps) {
-  const kpis = useMemo(() => computeAnalysisKpis(run.stages), [run.stages]);
-  const claims = useMemo(
-    () => run.stages.flatMap((stage) => stage.claims),
-    [run.stages],
-  );
-  const topRecommendation = useMemo(
-    () => claims.find((c) => c.claimKind === "recommendation") ?? claims[0],
-    [claims],
-  );
-  const supportingInsight = useMemo(
-    () => claims.find((claim) => claim.claimKind === "inference"),
-    [claims],
-  );
-  const confidenceInfo = topRecommendation
-    ? formatClaimConfidence(topRecommendation.confidence)
-    : null;
+  const report = useMemo(() => getRichReport(run.stages), [run.stages]);
+  const deepAnalysisNotice = useMemo(() => getDeepAnalysisNotice(run), [run]);
 
   const requestLabel = isPending
     ? "Đang gửi"
@@ -82,26 +66,9 @@ export default function AnalysisCompactCard({
             <Sparkle size={16} />
           </div>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3
-                id={`${kind}-analysis-heading`}
-                className="text-sm font-semibold text-text-primary"
-              >
-                {title}
-              </h3>
-              <Badge color={statusMeta[run.status].color} size="sm">
-                {isActive && (
-                  <span
-                    className="size-1.5 rounded-full bg-primary-500 motion-safe:animate-ping"
-                    aria-hidden="true"
-                  />
-                )}
-                {statusMeta[run.status].label}
-              </Badge>
-            </div>
-            <p className="mt-0.5 text-xs text-text-tertiary">
-              Kết quả từ dữ liệu hiện tại.
-            </p>
+            <h3 id={`${kind}-analysis-heading`} className="text-sm font-semibold text-text-primary">
+              {title}
+            </h3>
           </div>
         </div>
 
@@ -122,55 +89,31 @@ export default function AnalysisCompactCard({
           </Button>
 
           <Button size="sm" onPress={onOpenDrawer}>
-            <span>Xem tín hiệu</span>
+            <span>Xem báo cáo</span>
             <ArrowRight size={15} aria-hidden="true" />
           </Button>
         </div>
       </div>
 
-      {topRecommendation ? (
-        <div className="mt-5 grid min-w-0 border-t border-card-border lg:grid-cols-[minmax(15rem,0.7fr)_minmax(0,1.3fr)] lg:gap-6">
-          <AnalysisSignalProfile
-            onOpenDrawer={onOpenDrawer}
-            stages={run.stages}
-          />
+      {deepAnalysisNotice && (
+        <p
+          className="mt-4 rounded-lg border border-warning-200 bg-badge-warning-background px-3 py-2 text-xs leading-5 text-warning-700"
+          role="status"
+        >
+          {deepAnalysisNotice}
+        </p>
+      )}
 
-          <section
-            className="min-w-0 border-t border-card-border py-5 lg:border-t-0 lg:py-6"
-            aria-labelledby={`${kind}-recommendation-heading`}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-text-primary">
-                Đề xuất tiếp theo
-              </p>
-              {confidenceInfo && (
-                <Badge color={confidenceInfo.color} size="sm">
-                  {confidenceInfo.label}
-                </Badge>
-              )}
-            </div>
-            <h4
-              id={`${kind}-recommendation-heading`}
-              className="mt-3 max-w-3xl text-lg leading-7 font-semibold text-text-primary text-pretty"
-            >
-              {topRecommendation.statement}
-            </h4>
-            {supportingInsight && (
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-text-secondary text-pretty">
-                <span className="font-medium text-text-primary">
-                  Tín hiệu chính:{" "}
-                </span>
-                {supportingInsight.statement}
-              </p>
-            )}
-            <p className="mt-4 text-xs text-text-tertiary">
-              {kpis.sourcedCount}/{kpis.totalClaims} tín hiệu có nguồn đối soát.
-            </p>
-          </section>
+      {report ? (
+        <div className="mt-5">
+          <AnalysisReportCockpit
+            report={report}
+            onOpenDetails={onOpenDrawer}
+          />
         </div>
       ) : (
         <div className="mt-5 border-t border-card-border pt-5 text-sm leading-6 text-text-secondary">
-          Lần phân tích này chưa có đề xuất trong phạm vi được phép xem.
+          Lần phân tích này chưa tạo được báo cáo có cấu trúc. Mở chi tiết để kiểm tra trạng thái và tín hiệu đã ghi nhận.
         </div>
       )}
     </div>

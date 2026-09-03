@@ -16,8 +16,8 @@ export default function SegmentNextAction({ segment, nextAction }: SegmentNextAc
   const primaryDescription =
     nextAction?.description ??
     (isHighPriority
-      ? `Nhóm có ${segment.prospects.toLocaleString("vi-VN")} lead; tăng trưởng gần nhất: ${growthText}.`
-      : `Bắt đầu với một hoạt động nhỏ để kiểm tra nhu cầu của ${segment.prospects.toLocaleString("vi-VN")} lead.`);
+      ? `Nhóm có ${segment.prospects.toLocaleString("vi-VN")} học sinh; tăng trưởng gần nhất: ${growthText}.`
+      : `Bắt đầu với một hoạt động nhỏ để kiểm tra nhu cầu của ${segment.prospects.toLocaleString("vi-VN")} học sinh.`);
 
   const steps = nextAction?.steps ?? [
     {
@@ -33,7 +33,7 @@ export default function SegmentNextAction({ segment, nextAction }: SegmentNextAc
     {
       order: 3,
       title: "Đánh giá lại sau 30 ngày",
-      detail: "So sánh số lead được tiếp cận, nộp hồ sơ và nhập học.",
+      detail: "So sánh số học sinh được tiếp cận, nộp hồ sơ và nhập học.",
     },
   ];
 

@@ -22,19 +22,12 @@ const groupBadge: Record<
   "Sàng lọc": "gray",
 };
 
-const groupLabel: Record<SchoolClassification, string> = {
-  "Trọng điểm": "Trọng điểm",
-  "Mở rộng": "Mở rộng",
-  "Duy trì": "Duy trì",
-  "Sàng lọc": "Theo dõi",
-};
-
 export default function SchoolPotentialBreakdown({
   data,
 }: SchoolPotentialBreakdownProps) {
   return (
     <Card className="min-w-0 overflow-hidden p-0">
-      <CardHeader className="border-b border-card-border p-5 pb-4 lg:p-6 lg:pb-4">
+      <CardHeader className="border-b border-card-border px-4 py-3 lg:px-5">
         <div className="flex min-w-0 items-start gap-3">
           <div className="min-w-0">
             <CardTitle>Mức độ ưu tiên của trường</CardTitle>
@@ -44,15 +37,15 @@ export default function SchoolPotentialBreakdown({
           </div>
         </div>
         <Badge color={groupBadge[data.classification.group]}>
-          {groupLabel[data.classification.group]}
+          {data.classification.group}
         </Badge>
       </CardHeader>
 
       <div className="grid min-w-0 divide-y divide-card-border lg:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)] lg:divide-x lg:divide-y-0">
-        <div className="p-5 lg:p-6">
+        <div className="p-4 lg:p-5">
           <SchoolPriorityOutcome data={data} />
         </div>
-        <div className="p-5 lg:p-6">
+        <div className="p-4 lg:p-5">
           <SchoolRelationshipStage data={data} />
         </div>
       </div>

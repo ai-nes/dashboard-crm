@@ -30,7 +30,7 @@ export default function SegmentDetailHeader({
         <div className="max-w-3xl">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold tracking-wide text-brand-500 uppercase">
-              Nhóm lead đang xem
+              Nhóm học sinh đang xem
             </span>
             <Badge color={growthBadgeColor}>
               {growthBadgeText}
@@ -40,7 +40,7 @@ export default function SegmentDetailHeader({
             {segment.name}
           </h1>
           <p className="mt-2 text-sm leading-6 text-text-secondary">
-            {segment.description} Tối thiểu 30 lead để hiển thị.
+            {segment.description} Tối thiểu 30 học sinh để hiển thị.
           </p>
         </div>
       </div>

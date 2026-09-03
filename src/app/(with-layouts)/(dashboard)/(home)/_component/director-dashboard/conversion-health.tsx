@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import { CheckCircle1, InfoTriangle } from "@tailgrids/icons";
 import { PolarAngleAxis, RadialBar, RadialBarChart, Tooltip } from "recharts";
+import DirectorChartTooltip from "./chart-tooltip";
 
 const FORECAST_STATS = [
   { label: "Đã nhập học", value: "3,820", note: "76.4% mục tiêu", progress: 76.4, color: "bg-success-500", noteColor: "text-success-500" },
@@ -38,7 +39,7 @@ export default function ConversionHealth() {
             data={[{ name: "Đạt chỉ tiêu", value: 76.4, fill: "var(--success-500)" }]}
           >
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
-            <Tooltip cursor={false} />
+            <Tooltip content={<DirectorChartTooltip valueSuffix="% mục tiêu" />} cursor={false} />
             <RadialBar
               background={{ fill: "var(--background-gray-secondary)" }}
               dataKey="value"

@@ -3,7 +3,8 @@
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 
 import { ChartContainer } from "@/components/tailgrids/core/chart";
-import AcquisitionMapChartCard, { DemoLegend, DemoNote, formatDemoNumber } from "./acquisition-map-chart-card";
+import { AcquisitionAttributionPanels } from "./acquisition-attribution-panels";
+import AcquisitionMapChartCard, { DemoLegend, DemoNote } from "./acquisition-map-chart-card";
 import { useAcquisitionMapData } from "./acquisition-map-context";
 import OverviewTooltip from "./overview-tooltip";
 
@@ -16,19 +17,18 @@ export function AcquisitionQualityPanels() {
       <QualityBySourceChart />
       <ValidRateTrendChart />
       <HandoffCompletenessChart />
-      <IdentityMatchChart />
+      <AcquisitionAttributionPanels />
     </div>
   );
 }
-
 export function QualityBySourceChart() {
   const { leadQualityBySource } = useAcquisitionMapData();
 
   return (
     <AcquisitionMapChartCard
       chartId="10"
-      title="Chất lượng lead theo nguồn"
-      description="Cơ cấu lead sau xác minh theo nguồn; trùng lặp theo dõi riêng."
+      title="Chất lượng học sinh theo nguồn"
+      description="Cơ cấu học sinh sau xác minh theo nguồn; trùng lặp được theo dõi riêng."
       badge="Trùng lặp tách riêng"
     >
       <div className="space-y-4 pt-2">
@@ -50,16 +50,15 @@ export function QualityBySourceChart() {
     </AcquisitionMapChartCard>
   );
 }
-
 function ValidRateTrendChart() {
   const { validLeadRateTrend } = useAcquisitionMapData();
 
   return (
     <AcquisitionMapChartCard
       chartId="11"
-      title="Tỷ lệ lead hợp lệ theo thời gian"
-      description="Theo dõi sớm nguồn có tỷ lệ lead hợp lệ giảm."
-      badge="Tỷ lệ lead hợp lệ"
+      title="Tỷ lệ học sinh hợp lệ theo thời gian"
+      description="Theo dõi sớm nguồn có tỷ lệ học sinh hợp lệ giảm."
+      badge="Tỷ lệ học sinh hợp lệ"
     >
       <div className="h-64">
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
@@ -89,51 +88,29 @@ function HandoffCompletenessChart() {
   return (
     <AcquisitionMapChartCard
       chartId="12"
-      title="Độ đầy đủ dữ liệu khi bàn giao"
-      description="Tỷ lệ lead bàn giao có đủ từng trường để tư vấn."
-      badge="Lead đã bàn giao"
+      title="Độ đầy đủ hồ sơ khi bàn giao"
+      description="Tỷ lệ học sinh có đủ từng trường thông tin để tư vấn hiệu quả."
+      badge="Học sinh đã bàn giao"
     >
       <div className="space-y-5 pt-2">
         {handoffDataCompleteness.map((item) => (
           <div key={item.field}>
             <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
               <span className="text-text-secondary">{item.field}</span>
-              <span className="font-semibold text-text-primary">{item.value == null ? "—" : `${item.value}%`}</span>
+              <span className="font-semibold text-text-primary">
+                {item.value == null ? "—" : `${item.value}%`}
+              </span>
             </div>
             <div className="relative h-3 rounded-full bg-background-gray-primary">
-              <div className="absolute inset-y-0 left-0 rounded-full bg-brand-500" style={{ width: `${item.value ?? 0}%` }} />
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-brand-500"
+                style={{ width: `${item.value ?? 0}%` }}
+              />
             </div>
           </div>
         ))}
       </div>
-      <DemoNote>Tỷ lệ = lead bàn giao có trường dữ liệu / tổng lead đã bàn giao.</DemoNote>
-    </AcquisitionMapChartCard>
-  );
-}
-
-function IdentityMatchChart() {
-  const { identityMatchBreakdown } = useAcquisitionMapData();
-  const max = Math.max(...identityMatchBreakdown.map((item) => item.value), 0);
-
-  return (
-    <AcquisitionMapChartCard
-      chartId="13"
-      title="Cơ chế khớp định danh"
-      description="Phân loại bản ghi theo cách khớp; khớp xác suất cần người xác nhận."
-      badge={`${formatDemoNumber(identityMatchBreakdown.reduce((sum, item) => sum + item.value, 0))} bản ghi`}
-    >
-      <div className="space-y-4 pt-2">
-        {identityMatchBreakdown.map((item) => (
-          <div key={item.label} className="grid grid-cols-[116px_minmax(0,1fr)_54px] items-center gap-3">
-            <span className="truncate text-xs text-text-secondary">{item.label}</span>
-            <div className="h-2 overflow-hidden rounded-full bg-background-gray-primary">
-              <div className="h-full rounded-full bg-info-500" style={{ width: `${max === 0 ? 0 : (item.value / max) * 100}%` }} />
-            </div>
-            <span className="text-right text-xs font-semibold text-text-primary">{formatDemoNumber(item.value)}</span>
-          </div>
-        ))}
-      </div>
-      <DemoNote>“Chờ xác nhận khớp” chưa được tự động hợp nhất vào hồ sơ.</DemoNote>
+      <DemoNote>Tỷ lệ = số học sinh có trường dữ liệu / tổng số học sinh đã bàn giao.</DemoNote>
     </AcquisitionMapChartCard>
   );
 }

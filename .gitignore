@@ -43,6 +43,7 @@ next-env.d.ts
 .agents
 .codex
 .gemini
+.claude
 
 # local agent tooling / scratch
 .hs.json

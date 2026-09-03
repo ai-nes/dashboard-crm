@@ -6,6 +6,7 @@ import type {
   DirectorDemographicsOverviewMeta,
   DirectorDemographicsOverviewParams,
 } from "@/services/api/demographics/types";
+import DetailTabs, { type DetailTabItem } from "@/components/common/detail-tabs";
 import AudienceCompositionChart from "./audience-composition-chart";
 import AcquisitionMapWorkspace from "./acquisition-map-workspace";
 import DataCoverageCard from "./data-coverage-card";
@@ -35,6 +36,55 @@ export default function DemographicsOverview({
   isSegmentsLoading = false,
   onOpenSegment,
 }: DemographicsOverviewProps) {
+  const tabs: DetailTabItem[] = [
+    {
+      id: "overview",
+      label: "Tổng quan",
+      content: (
+        <div className="space-y-5">
+          <OverviewKpiStrip kpis={data?.kpis} />
+          <div className="grid min-w-0 gap-5 xl:grid-cols-2">
+            <AudienceCompositionChart audience={data?.audienceComposition} />
+            <DataCoverageCard metrics={data?.dataCoverage} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "sources",
+      label: "Nguồn & ngân sách",
+      content: <AcquisitionMapWorkspace data={data?.acquisitionMap} section="sources" />,
+    },
+    {
+      id: "forms",
+      label: "Biểu mẫu",
+      content: <AcquisitionMapWorkspace data={data?.acquisitionMap} section="forms" />,
+    },
+    {
+      id: "quality",
+      label: "Chất lượng học sinh",
+      content: <AcquisitionMapWorkspace data={data?.acquisitionMap} section="quality" />,
+    },
+    {
+      id: "operations",
+      label: "Cohort & vận hành",
+      content: <AcquisitionMapWorkspace data={data?.acquisitionMap} section="operations" />,
+    },
+    {
+      id: "segments",
+      label: "Phân khúc học sinh",
+      content: (
+        <SegmentLandscapeChart
+          segments={data?.segments}
+          pagination={meta}
+          isLoading={isSegmentsLoading}
+          onPageChange={onPageChange}
+          onOpenSegment={onOpenSegment}
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="min-w-0 max-w-full space-y-5 overflow-hidden px-2 py-4 pb-8 lg:px-6">
       <OverviewHeader
@@ -47,21 +97,7 @@ export default function DemographicsOverview({
           />
         }
       />
-      <div className="min-w-0 max-w-full space-y-5">
-        <OverviewKpiStrip kpis={data?.kpis} />
-        <div className="grid min-w-0 gap-5 xl:grid-cols-2">
-          <AudienceCompositionChart audience={data?.audienceComposition} />
-          <DataCoverageCard metrics={data?.dataCoverage} />
-        </div>
-        <AcquisitionMapWorkspace data={data?.acquisitionMap} />
-        <SegmentLandscapeChart
-          segments={data?.segments}
-          pagination={meta}
-          isLoading={isSegmentsLoading}
-          onPageChange={onPageChange}
-          onOpenSegment={onOpenSegment}
-        />
-      </div>
+      <DetailTabs ariaLabel="Nội dung tổng quan nhóm học sinh" defaultSelectedKey="overview" tabs={tabs} />
     </div>
   );
 }

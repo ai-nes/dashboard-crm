@@ -30,8 +30,8 @@ export default function SegmentDetailCharts({
         <Card className="min-w-0 overflow-hidden bg-background-gray-primary">
           <CardHeader className="mb-4">
             <div>
-              <CardTitle>Diễn biến số lead theo tháng</CardTitle>
-              <p className="mt-1 text-xs leading-5 text-text-tertiary">So sánh số lead của nhóm đang xem với nhóm gần nhất.</p>
+              <CardTitle>Diễn biến số học sinh theo tháng</CardTitle>
+              <p className="mt-1 text-xs leading-5 text-text-tertiary">So sánh số học sinh của nhóm đang xem với nhóm gần nhất.</p>
             </div>
             <span className="text-xs font-semibold text-text-secondary">
               {segment.growth == null ? "Chưa đủ dữ liệu tăng trưởng" : `${formatGrowth(segment.growth)} so với tháng trước`}
@@ -96,8 +96,8 @@ function getChannelTitle(model: ChannelAttributionModel): string {
 }
 
 function getChannelDescription(model: ChannelAttributionModel): string {
-  if (model === "first-touch") return "Tỷ trọng lead theo nơi biết đến trường đầu tiên.";
-  if (model === "last-touch") return "Tỷ trọng lead theo nguồn tại lúc gửi biểu mẫu.";
+  if (model === "first-touch") return "Tỷ trọng học sinh theo nơi biết đến trường đầu tiên.";
+  if (model === "last-touch") return "Tỷ trọng học sinh theo nguồn tại lúc gửi biểu mẫu.";
   return "Tỷ trọng tương tác được ghi nhận, chưa phải nguồn đầu hay nguồn cuối.";
 }
 

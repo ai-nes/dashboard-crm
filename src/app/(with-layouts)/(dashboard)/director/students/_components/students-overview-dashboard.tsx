@@ -95,7 +95,7 @@ export default function StudentsOverviewDashboard() {
       <header className="flex flex-col gap-5 rounded-xl border border-card-border bg-card-background p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge color="primary">FAIP · Student 360°</Badge>
+            <Badge color="primary">FAIP · Hồ sơ học sinh 360°</Badge>
             <span className="text-xs text-text-tertiary">
               Dữ liệu tuyển sinh · Kỳ {meta?.admissionYear ?? 2026}
             </span>

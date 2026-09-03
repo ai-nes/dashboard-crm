@@ -28,6 +28,98 @@ export interface DirectorNextBestActionMeta {
   warnings: string[] | null;
 }
 
+export type ActionType =
+  | "CALL"
+  | "EMAIL"
+  | "MESSAGE"
+  | "COUNSELING"
+  | "MEETING"
+  | "EVENT_INVITE"
+  | "CAMPUS_VISIT"
+  | "DOCUMENT_REQUEST"
+  | "APPLICATION_SUPPORT"
+  | "PARENT_CONTACT"
+  | "HANDOFF";
+
+export const ACTION_TYPES: readonly ActionType[] = [
+  "CALL",
+  "EMAIL",
+  "MESSAGE",
+  "COUNSELING",
+  "MEETING",
+  "EVENT_INVITE",
+  "CAMPUS_VISIT",
+  "DOCUMENT_REQUEST",
+  "APPLICATION_SUPPORT",
+  "PARENT_CONTACT",
+  "HANDOFF",
+];
+
+export type NbaDisposition = "ACT" | "WAIT";
+
+/**
+ * camelCase mirror of the `action-package:v2` superset in
+ * `crm-agents/docs/action-ui-contract.md`. Every field is optional — a builder
+ * emits only its type's keys, and a field may be absent when the decision
+ * context lacked the signal.
+ */
+export interface NbaPackageSeed {
+  packageVersion?: string;
+  objective?: string;
+  // CALL / shared conversational
+  opening?: string;
+  talkingPoints?: string[];
+  questions?: string[];
+  objections?: string[];
+  desiredOutcome?: string;
+  nextStep?: string;
+  // EMAIL
+  templateVersion?: string;
+  recipientRef?: string;
+  subject?: string;
+  body?: string;
+  cta?: string;
+  // MESSAGE
+  channel?: string;
+  keyPoints?: string[];
+  // COUNSELING
+  topic?: string;
+  agenda?: string[];
+  guidancePoints?: string[];
+  concernsToAddress?: string[];
+  // MEETING
+  purpose?: string;
+  attendeesHint?: string[];
+  prepChecklist?: string[];
+  // EVENT_INVITE
+  eventRef?: string;
+  whyRelevant?: string;
+  inviteMessage?: string;
+  followUpStep?: string;
+  // CAMPUS_VISIT
+  visitGoal?: string;
+  itineraryPoints?: string[];
+  logisticsNotes?: string;
+  whoToInvolve?: string[];
+  // DOCUMENT_REQUEST
+  missingDocuments?: string[];
+  deadline?: string;
+  requestMessage?: string;
+  consequenceIfMissing?: string;
+  // APPLICATION_SUPPORT
+  blockingSteps?: string[];
+  supportActions?: string[];
+  // PARENT_CONTACT
+  parentRef?: string;
+  reason?: string;
+  sensitivities?: string[];
+  // HANDOFF
+  toRole?: string;
+  contextSummary?: string;
+  openItems?: string[];
+  expectedResponseTime?: string;
+}
+
 export interface DirectorNextBestActionItem {
   id: string;
   studentId: string;
@@ -62,6 +154,14 @@ export interface DirectorNextBestActionItem {
   generatedAt: string;
   expiresAt: string | null;
   version: number;
+  // Additive per-type card fields — absent on older backends.
+  actionType: ActionType | null;
+  disposition: NbaDisposition;
+  packageSeed: NbaPackageSeed | null;
+  whyNow: string | null;
+  approach: string | null;
+  expectedOutcome: string | null;
+  evidenceRefIds: string[];
 }
 
 export interface DirectorNextBestActionQueue {

@@ -3,7 +3,15 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { SchoolDirectoryRecord, SchoolRegion, SchoolReportData } from "./types";
+import { getDirectorMarketIntelligence } from "@/services/api/market-intelligence";
+import type { MarketRegionKey } from "@/services/api/market-intelligence/types";
+
+import type {
+  PrioritySchoolReport,
+  SchoolDirectoryRecord,
+  SchoolRegion,
+  SchoolReportData,
+} from "./types";
 
 const DIRECTORY_FILE = path.join(
   process.cwd(),
@@ -96,8 +104,74 @@ function getSchoolRegion(province: string): SchoolRegion {
   return "Miền Nam";
 }
 
+const MARKET_REGION_TO_SCHOOL_REGION: Record<MarketRegionKey, SchoolRegion> = {
+  all: "Miền Nam",
+  north: "Miền Bắc",
+  central: "Miền Trung",
+  highlands: "Miền Trung",
+  south: "Miền Nam",
+  mekong: "Miền Nam",
+};
+
+/**
+ * Priority schools sourced from the Frappe market-intelligence overview, whose
+ * ids are the canonical `provinceCode-wardCode-schoolCode` that
+ * `get_director_school_detail` resolves. Returns `null` when the endpoint is
+ * unavailable (unauthenticated, offline) so the caller can fall back to the
+ * static directory — the disjoint CSV ids 404 on the detail page.
+ */
+async function getPrioritySchoolsFromMarket(): Promise<PrioritySchoolReport[] | null> {
+  try {
+    const overview = await getDirectorMarketIntelligence({
+      includeSchools: true,
+      schoolLimit: 60,
+    });
+    const rows: PrioritySchoolReport[] = [];
+    for (const province of overview.provinces) {
+      const region = MARKET_REGION_TO_SCHOOL_REGION[province.regionKey] ?? "Miền Nam";
+      for (const school of province.highSchools) {
+        if (!school.id) continue;
+        const schoolCode = school.id.split("-").at(-1) ?? "";
+        const potentialSeed =
+          [...school.id].reduce((total, ch) => (total * 31 + ch.charCodeAt(0)) % 100_000, 17) % 25;
+        rows.push({
+          school: {
+            id: school.id,
+            provinceCode: school.id.split("-")[0] ?? province.code,
+            province: province.name,
+            districtCode: "",
+            district: school.district ?? "",
+            schoolCode,
+            name: school.name,
+            address: "",
+            area: "",
+            isBoardingSchool: false,
+          },
+          region,
+          potentialScore: school.potentialScore ?? 72 + potentialSeed,
+          grade12Students: school.grade12Students ?? 0,
+          enrollmentForecast: school.enrollmentForecast ?? 0,
+        });
+      }
+    }
+    if (rows.length === 0) return null;
+    return rows
+      .sort(
+        (a, b) =>
+          b.potentialScore - a.potentialScore ||
+          b.enrollmentForecast - a.enrollmentForecast,
+      )
+      .slice(0, 60);
+  } catch {
+    return null;
+  }
+}
+
 export async function getSchoolReport(): Promise<SchoolReportData> {
-  const schools = await getSchoolDirectory();
+  const [schools, marketPriorityList] = await Promise.all([
+    getSchoolDirectory(),
+    getPrioritySchoolsFromMarket(),
+  ]);
   const provinceMap = new Map<string, { region: SchoolRegion; scores: number[] }>();
   const regionMap = new Map<SchoolRegion, number[]>();
 
@@ -118,14 +192,16 @@ export async function getSchoolReport(): Promise<SchoolReportData> {
     const scores = regionMap.get(region) ?? [];
     return { region, schools: scores.length, prioritySchools: scores.filter((score) => score >= 88).length, averagePotential: average(scores) };
   });
-  const priorityList = schools
-    .map((school) => {
-      const potentialScore = getSchoolPotentialScore(school);
-      const seed = potentialScore + school.schoolCode.charCodeAt(0);
-      return { school, region: getSchoolRegion(school.province), potentialScore, grade12Students: 360 + (seed % 540), enrollmentForecast: 12 + (seed % 31) };
-    })
-    .sort((a, b) => b.potentialScore - a.potentialScore || b.enrollmentForecast - a.enrollmentForecast)
-    .slice(0, 60);
+  const priorityList =
+    marketPriorityList ??
+    schools
+      .map((school) => {
+        const potentialScore = getSchoolPotentialScore(school);
+        const seed = potentialScore + school.schoolCode.charCodeAt(0);
+        return { school, region: getSchoolRegion(school.province), potentialScore, grade12Students: 360 + (seed % 540), enrollmentForecast: 12 + (seed % 31) };
+      })
+      .sort((a, b) => b.potentialScore - a.potentialScore || b.enrollmentForecast - a.enrollmentForecast)
+      .slice(0, 60);
   const allScores = schools.map(getSchoolPotentialScore);
 
   return { totalSchools: schools.length, totalProvinces: provinces.length, prioritySchools: allScores.filter((score) => score >= 88).length, averagePotential: average(allScores), regions, provinces, priorityList };

@@ -1,3 +1,4 @@
+import type { MarketSchoolParticipation } from "@/services/api/market-intelligence";
 import type { SchoolClassification } from "@/services/api/schools/types";
 
 export type RegionKey =
@@ -38,6 +39,7 @@ export interface HighSchoolItem {
   recommendation: string | null;
   nextAction: string | null;
   classification: SchoolClassification | null;
+  participations: MarketSchoolParticipation[];
 }
 
 export interface FptuCampusLocation {
