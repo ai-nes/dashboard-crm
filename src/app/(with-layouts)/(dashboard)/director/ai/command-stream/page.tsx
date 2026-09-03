@@ -11,8 +11,8 @@ export default function AiCommandStreamPage() {
   return (
     <DirectorWorkspacePage
       code="M-14"
-      title="AI Command Stream"
-      description="Theo dõi nhịp đập của hệ thống AI: phát hiện mới, mức độ tin cậy, trạng thái xử lý và đối tượng tạo ra tín hiệu."
+      title="Luồng tín hiệu AI"
+      description="Theo dõi tín hiệu mới, độ tin cậy, trạng thái xử lý và nguồn tạo tín hiệu."
       metrics={[
         { label: "Phát hiện hôm nay", value: "37", detail: "Từ 12 nguồn dữ liệu", tone: "primary" },
         { label: "Đang chờ xử lý", value: "12", detail: "5 phát hiện mức độ cao", tone: "warning" },
@@ -24,9 +24,9 @@ export default function AiCommandStreamPage() {
           title: "Dòng phát hiện",
           description: "Các tín hiệu mới nhất cần người dùng xem hoặc phê duyệt.",
           items: [
-            { label: "Hồ sơ Nguyễn Minh A. có ý định cao", detail: "Nguồn: Student 360 · phát hiện 4 phút trước", value: "87%", tone: "success" },
-            { label: "Độ phủ Cần Thơ thấp hơn tiềm năng", detail: "Nguồn: Market Intelligence · phát hiện 18 phút trước", value: "91%", tone: "warning" },
-            { label: "Mekong có dấu hiệu quá tải", detail: "Nguồn: Regional Performance · phát hiện 31 phút trước", value: "84%", tone: "error" },
+            { label: "Hồ sơ Nguyễn Minh A. có khả năng nhập học cao", detail: "Nguồn: Hồ sơ học sinh 360° · phát hiện 4 phút trước", value: "87%", tone: "success" },
+            { label: "Độ phủ tại Cần Thơ thấp hơn tiềm năng", detail: "Nguồn: Phân tích thị trường · phát hiện 18 phút trước", value: "91%", tone: "warning" },
+            { label: "Khu vực Mekong có dấu hiệu quá tải", detail: "Nguồn: Hiệu suất khu vực · phát hiện 31 phút trước", value: "84%", tone: "error" },
           ],
         },
         {
@@ -48,7 +48,7 @@ export default function AiCommandStreamPage() {
           ],
         },
       ]}
-      notice="Dòng AI hiện là khung quan sát. Phần realtime, retry và audit log sẽ cần chốt cơ chế sự kiện trước khi tích hợp."
+      notice="Luồng tín hiệu cần có cơ chế cập nhật thời gian thực, xử lý lại dữ liệu và nhật ký kiểm tra trước khi đưa vào vận hành."
     />
   );
 }
