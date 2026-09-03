@@ -105,6 +105,12 @@ export const NAV_DATA: NavigationSection[] = [
     label: "VẬN HÀNH TUYỂN SINH",
     items: [
       {
+        title: "Quản lý task",
+        url: "/director/tasks",
+        icon: <TaskIcon />,
+        items: [],
+      },
+      {
         title: "Hoạt động & chiến dịch",
         url: "/director/activity-campaign",
         icon: <CalendarIcon />,

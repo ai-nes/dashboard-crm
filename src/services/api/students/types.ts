@@ -2,6 +2,46 @@ export type StudentJourneyStage = "Quan tâm" | "Tìm hiểu" | "Tư vấn" | "�
 
 export type StudentPriority = "Cao" | "Trung bình" | "Thấp";
 
+export type StudentTaskType = "call" | "email" | "todo";
+
+export type StudentZaloDirection = "inbound" | "outbound";
+
+export type StudentZaloMessageStatus = "sent" | "delivered" | "read" | "failed";
+
+export interface StudentZaloMessage {
+  id: string;
+  time: string;
+  senderName: string;
+  senderRole?: string;
+  recipientName: string;
+  recipientRole?: string;
+  content: string;
+  direction: StudentZaloDirection;
+  status?: StudentZaloMessageStatus;
+  conversationTitle?: string;
+  attachmentName?: string;
+}
+
+export type StudentCallDirection = "inbound" | "outbound" | "missed";
+
+export type StudentCallOutcome = "connected" | "missed" | "no-answer" | "callback";
+
+export interface StudentCallRecord {
+  id: string;
+  time: string;
+  direction: StudentCallDirection;
+  outcome: StudentCallOutcome;
+  callerName: string;
+  receiverName: string;
+  callerRole?: string;
+  receiverRole?: string;
+  phoneNumber?: string;
+  durationSeconds?: number;
+  topic?: string;
+  summary?: string;
+  recordingUrl?: string;
+}
+
 export type StudentClassificationTone = "primary" | "success" | "warning" | "sky" | "gray";
 
 export interface StudentFitFactor {
@@ -36,6 +76,24 @@ export interface StudentListItem {
   owner: string;
   source: string;
   priority: StudentPriority;
+}
+
+export interface StudentTaskItem {
+  id: string;
+  title: string;
+  assignee: string;
+  dueDate: string;
+  dueTime?: string;
+  status: "todo" | "in-progress" | "done";
+  priority: StudentPriority;
+  taskType?: StudentTaskType;
+  notes?: string;
+}
+
+export interface StudentNoteItem {
+  author: string;
+  date: string;
+  content: string;
 }
 
 export interface StudentJourneyEvent {
@@ -120,7 +178,10 @@ export interface Student360Data {
   probabilityTrend?: { date: string; score: number; touches: number }[];
   channelPerformance?: { channel: string; touches: number; response: number; fill?: string }[];
   documents?: { name: string; type: string; status: string; tone: "success" | "warning" | "gray" | "primary" | "error"; date: string }[];
-  notes?: { author: string; date: string; content: string }[];
+  notes?: StudentNoteItem[];
+  tasks?: StudentTaskItem[];
+  zaloMessages?: StudentZaloMessage[];
+  calls?: StudentCallRecord[];
   auditEvents?: { actor: string; action: string; time: string; status: string; tone: "success" | "primary" | "warning" | "error" }[];
 }
 
