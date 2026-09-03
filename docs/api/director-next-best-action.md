@@ -52,7 +52,7 @@ Quyền tối thiểu:
 Ví dụ:
 
 ```http
-GET /api/method/crm.api.director_next_best_action.get_director_next_best_action?admissionYear=2026&scope=all&queueFilter=all&page=1&pageSize=20&outcomePeriod=30d
+GET /api/method/crm.api.director_next_best_action.get_director_next_best_action?admissionYear=2026&scope=all&queueFilter=all&page=1&pageSize=8&outcomePeriod=30d
 ```
 
 ### Query parameters
@@ -63,7 +63,7 @@ GET /api/method/crm.api.director_next_best_action.get_director_next_best_action?
 | `scope` | string | Không | `all` | `all`, campus ID hoặc territory ID được user cấp quyền |
 | `queueFilter` | enum | Không | `all` | `all` hoặc `urgent`; `urgent` gồm `today` và `overdue` |
 | `page` | integer | Không | `1` | `>= 1` |
-| `pageSize` | integer | Không | `20` | `1..100` |
+| `pageSize` | integer | Không | `8` | `1..100` |
 | `outcomePeriod` | enum | Không | `30d` | Hiện hỗ trợ `30d`; có thể mở rộng `7d`, `90d`, `season` |
 
 Hàng đợi phải được sắp xếp ổn định theo mức độ khẩn, hạn xử lý, priority và điểm xếp hạng. Frontend không nên dùng tên hiển thị để sort hoặc tính trạng thái quá hạn.
@@ -157,7 +157,7 @@ Ví dụ response rút gọn:
       },
       "pagination": {
         "page": 1,
-        "pageSize": 20,
+        "pageSize": 8,
         "total": 4,
         "hasNext": false
       }
@@ -609,7 +609,7 @@ Lỗi command dùng cùng format và thêm `actionId`/`currentVersion` khi phù 
 Đọc snapshot:
 
 ```http
-GET /api/method/crm.api.director_next_best_action.get_director_next_best_action?admissionYear=2026&scope=all&queueFilter=all&page=1&pageSize=20&outcomePeriod=30d
+GET /api/method/crm.api.director_next_best_action.get_director_next_best_action?admissionYear=2026&scope=all&queueFilter=all&page=1&pageSize=8&outcomePeriod=30d
 ```
 
 Response tối thiểu phải có:

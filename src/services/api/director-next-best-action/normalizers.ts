@@ -1,3 +1,9 @@
+import {
+  ACTION_TYPES,
+  type ActionType,
+  type NbaDisposition,
+  type NbaPackageSeed,
+} from "./types";
 import type {
   ActionCommand,
   ActionCommandResponse,
@@ -82,6 +88,64 @@ function enumValue<T extends string>(
 ): T {
   if (!allowed.includes(value as T)) throw new Error(`${path} is invalid`);
   return value as T;
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() !== "" ? value : null;
+}
+
+function optionalStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out = value.filter(
+    (item): item is string => typeof item === "string" && item.trim() !== "",
+  );
+  return out.length > 0 ? out : undefined;
+}
+
+/**
+ * snake_case → camelCase for the top-level keys of a record. The backend
+ * already sends the package seed camelCased; this keeps the client correct if a
+ * snake_case key ever slips through.
+ */
+export function camelizeKeys(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value)) {
+    out[key.replace(/_+([a-z0-9])/g, (_, char: string) => char.toUpperCase())] =
+      item;
+  }
+  return out;
+}
+
+/**
+ * Loose projection of a raw package seed: keep non-empty strings and
+ * string-arrays, drop everything else. Cards read named fields; unknown extras
+ * are harmless. Returns `null` when nothing usable survives.
+ */
+export function normalizePackageSeed(raw: unknown): NbaPackageSeed | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const camel = camelizeKeys(raw as Record<string, unknown>);
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(camel)) {
+    if (typeof value === "string") {
+      if (value.trim() !== "") out[key] = value;
+      continue;
+    }
+    const items = optionalStringArray(value);
+    if (items) out[key] = items;
+  }
+  return Object.keys(out).length > 0 ? (out as NbaPackageSeed) : null;
+}
+
+function normalizeActionType(value: unknown): ActionType | null {
+  return ACTION_TYPES.includes(value as ActionType)
+    ? (value as ActionType)
+    : null;
+}
+
+function normalizeDisposition(value: unknown): NbaDisposition {
+  return value === "WAIT" ? "WAIT" : "ACT";
 }
 
 function normalizeMeta(value: unknown): DirectorNextBestActionMeta {
@@ -200,6 +264,13 @@ function normalizeAction(
     generatedAt: textString(action.generatedAt, `${path}.generatedAt`),
     expiresAt: nullableString(action.expiresAt, `${path}.expiresAt`),
     version: requiredNumber(action.version, `${path}.version`),
+    actionType: normalizeActionType(action.actionType),
+    disposition: normalizeDisposition(action.disposition),
+    packageSeed: normalizePackageSeed(action.packageSeed),
+    whyNow: optionalString(action.whyNow),
+    approach: optionalString(action.approach),
+    expectedOutcome: optionalString(action.expectedOutcome),
+    evidenceRefIds: optionalStringArray(action.evidenceRefIds) ?? [],
   };
 }
 

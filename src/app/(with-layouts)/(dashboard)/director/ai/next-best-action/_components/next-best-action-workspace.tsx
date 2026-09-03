@@ -15,10 +15,10 @@ import {
 import ActionConfirmationDialog, {
   type ActionConfirmationType,
 } from "./action-confirmation-dialog";
+import ActionCardHost from "./action-card-host";
 import ActionControlPolicy, {
   type ActionControlPolicyRow,
 } from "./action-control-policy";
-import ActionDetail from "./action-detail";
 import ActionOutcomeChart from "./action-outcome-chart";
 import ActionQueue from "./action-queue";
 import NextBestActionHeader from "./next-best-action-header";
@@ -32,7 +32,7 @@ import type {
 } from "../../../sla/_components/types";
 import type { RecommendedAction } from "./types";
 
-const queryPageSize = 100;
+const PAGE_SIZE = 8;
 
 function formatNumber(value: number, maximumFractionDigits = 0): string {
   return value.toLocaleString("vi-VN", { maximumFractionDigits });
@@ -114,6 +114,7 @@ function adaptSnapshot(data: DirectorNextBestActionData | undefined) {
 
 export default function NextBestActionWorkspace() {
   const [filter, setFilter] = useState<"all" | "today">("all");
+  const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<{
     action: RecommendedAction;
@@ -123,11 +124,11 @@ export default function NextBestActionWorkspace() {
   const queryParams = useMemo(
     () => ({
       queueFilter: filter === "today" ? ("urgent" as const) : ("all" as const),
-      page: 1,
-      pageSize: queryPageSize,
+      page,
+      pageSize: PAGE_SIZE,
       outcomePeriod: "30d",
     }),
-    [filter],
+    [filter, page],
   );
   const { data, error, refetch } = useDirectorNextBestActionQuery(queryParams);
   const snapshot = useMemo(() => adaptSnapshot(data), [data]);
@@ -138,6 +139,18 @@ export default function NextBestActionWorkspace() {
   const totalActions = data?.queue.pagination.total ?? 0;
   const allCount = data?.queue.counts.all ?? 0;
   const urgentCount = data?.queue.counts.urgent ?? 0;
+  const pageCount = Math.max(1, Math.ceil(totalActions / PAGE_SIZE));
+
+  function changeFilter(next: "all" | "today") {
+    setFilter(next);
+    setPage(1);
+    setSelectedId(null);
+  }
+
+  function goToPage(next: number) {
+    setPage(Math.min(Math.max(1, next), pageCount));
+    setSelectedId(null);
+  }
 
   useEffect(() => {
     if (error) toast.error(error.message);
@@ -178,7 +191,12 @@ export default function NextBestActionWorkspace() {
             : `Đã bỏ đề xuất cho ${action.studentName}.`;
       toast.success(message);
       setPendingAction(null);
-      await refetch();
+      // A command can empty the last page (its only row moved out of the
+      // queue). Step back so the queue never lands on a blank page.
+      const refreshed = await refetch();
+      const freshTotal = refreshed.data?.queue.pagination.total ?? 0;
+      const lastPage = Math.max(1, Math.ceil(freshTotal / PAGE_SIZE));
+      if (page > lastPage) goToPage(lastPage);
     } catch (commandError) {
       toast.error(
         commandError instanceof Error
@@ -211,7 +229,7 @@ export default function NextBestActionWorkspace() {
             size="sm"
             appearance={filter === "all" ? "fill" : "outline"}
             aria-pressed={filter === "all"}
-            onPress={() => setFilter("all")}
+            onPress={() => changeFilter("all")}
           >
             Tất cả ({allCount})
           </Button>
@@ -219,7 +237,7 @@ export default function NextBestActionWorkspace() {
             size="sm"
             appearance={filter === "today" ? "fill" : "outline"}
             aria-pressed={filter === "today"}
-            onPress={() => setFilter("today")}
+            onPress={() => changeFilter("today")}
           >
             Hôm nay & quá hạn ({urgentCount})
           </Button>
@@ -255,8 +273,33 @@ export default function NextBestActionWorkspace() {
               selectedId={selectedAction?.id ?? null}
               onSelect={setSelectedId}
             />
+            {pageCount > 1 && (
+              <div className="flex items-center justify-between gap-3 border-t border-card-border px-5 py-3">
+                <span className="text-xs text-text-tertiary">
+                  Trang {page}/{pageCount}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    appearance="outline"
+                    size="sm"
+                    isDisabled={page <= 1}
+                    onPress={() => goToPage(page - 1)}
+                  >
+                    Trước
+                  </Button>
+                  <Button
+                    appearance="outline"
+                    size="sm"
+                    isDisabled={!data?.queue.pagination.hasNext}
+                    onPress={() => goToPage(page + 1)}
+                  >
+                    Sau
+                  </Button>
+                </div>
+              </div>
+            )}
           </section>
-          <ActionDetail
+          <ActionCardHost
             action={selectedAction}
             onAssign={(action) => setPendingAction({ action, type: "assign" })}
             onDefer={(action) => setPendingAction({ action, type: "defer" })}

@@ -8,9 +8,16 @@ export type AnalysisRunStatus =
   | "failed"
   | "dead_lettered";
 
-export type AnalysisStageKind = "student_360" | "next_best_action" | "school_360";
+export type AnalysisStageKind =
+  | "student_360"
+  | "next_best_action"
+  | "school_360";
 
-export type AnalysisClaimKind = "fact" | "inference" | "uncertainty" | "recommendation";
+export type AnalysisClaimKind =
+  | "fact"
+  | "inference"
+  | "uncertainty"
+  | "recommendation";
 
 export type AnalysisVisibilityLabel = "shareable" | "source_scoped";
 
@@ -22,11 +29,35 @@ export interface AnalysisClaim {
   confidence: number | null;
 }
 
+export type AnalysisReportItemKind = "risk" | "recommendation" | "opportunity";
+
+export interface AnalysisReportItem {
+  kind: AnalysisReportItemKind;
+  /** Câu tiêu đề in đậm: nói thẳng mối lo hoặc việc cần làm. */
+  headline: string;
+  /** Đoạn "vì sao": đi từ bằng chứng tới kết luận. */
+  detail: string;
+  confidence: number | null;
+  provenanceIds: string[];
+}
+
+/**
+ * Báo cáo 360 chỉ có ba khối: Tóm tắt, Rủi ro, Khuyến nghị & Cơ hội.
+ * `recommendations` xếp khuyến nghị trước, cơ hội (`kind: "opportunity"`) sau.
+ */
+export interface AnalysisReport {
+  title?: string | null;
+  summary: string | null;
+  risks: AnalysisReportItem[];
+  recommendations: AnalysisReportItem[];
+}
+
 export interface AnalysisRunStage {
   id?: string;
   stageKind: AnalysisStageKind;
   status: AnalysisRunStatus;
   claims: AnalysisClaim[];
+  report: AnalysisReport | null;
   terminalReason: string | null;
   policyRevision: string | null;
   modelRevision: string | null;

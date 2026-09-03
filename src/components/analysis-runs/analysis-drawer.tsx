@@ -20,7 +20,8 @@ import type {
 } from "@/services/api/analysis-runs";
 
 import AnalysisClaimsView from "./analysis-claims-view";
-import { statusMeta } from "./analysis-run-meta";
+import AnalysisRichReport from "./analysis-rich-report";
+import { getRichReport, statusMeta } from "./analysis-run-meta";
 import AnalysisStageRail from "./analysis-stage-rail";
 
 interface AnalysisDrawerProps {
@@ -39,6 +40,7 @@ export default function AnalysisDrawer({
   title,
   kind,
 }: AnalysisDrawerProps) {
+  const report = getRichReport(run.stages);
   return (
     <SheetOverlay isOpen={isOpen} onOpenChange={onOpenChange}>
       <SheetContent
@@ -82,7 +84,11 @@ export default function AnalysisDrawer({
 
         <div className="space-y-4 px-5 py-5 sm:px-6">
           <AnalysisStageRail stages={run.stages} />
-          <AnalysisClaimsView stages={run.stages} />
+          {report ? (
+            <AnalysisRichReport report={report} />
+          ) : (
+            <AnalysisClaimsView stages={run.stages} />
+          )}
 
           <Collapsible className="max-w-none rounded-xl border-card-border bg-background-soft-50 data-expanded:pb-0">
             <CollapsibleTrigger className="p-4 text-sm font-semibold text-text-primary sm:p-4">

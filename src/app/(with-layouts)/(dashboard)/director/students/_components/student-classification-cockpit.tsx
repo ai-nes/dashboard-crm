@@ -7,7 +7,6 @@ import {
   Sparkle,
 } from "@tailgrids/icons";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -104,13 +103,11 @@ export default function StudentClassificationCockpit({
         </div>
 
         <StudentNextAction
+          analysisTargetId={analysisTargetId}
           analysisError={analysisError}
           data={data}
           isAnalysisActive={Boolean(isAnalysisActive)}
           isAwaitingAnalysisResponse={requestMutation.isPending && !run}
-          onCall={() =>
-            toast.success(`Đã tạo cuộc gọi tư vấn cho ${data.student.name}.`)
-          }
           onOpenAnalysisDetails={() => setIsAnalysisDrawerOpen(true)}
           run={run}
         />

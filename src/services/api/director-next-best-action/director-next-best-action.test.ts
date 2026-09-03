@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   applyActionCommand,
+  camelizeKeys,
   getDirectorNextBestAction,
   normalizeDirectorNextBestAction,
+  normalizePackageSeed,
 } from "./index";
 
 afterEach(() => vi.restoreAllMocks());
@@ -192,5 +194,69 @@ describe("director next best action API contract", () => {
         "Idempotency-Key": "director-nba:test-1",
       }),
     );
+  });
+});
+
+describe("per-type action card fields", () => {
+  it("keeps an older payload without the additive fields valid", () => {
+    const result = normalizeDirectorNextBestAction({ message: snapshot });
+    const action = result.queue.actions[0];
+
+    expect(action?.actionType).toBeNull();
+    expect(action?.disposition).toBe("ACT");
+    expect(action?.packageSeed).toBeNull();
+    expect(action?.whyNow).toBeNull();
+    expect(action?.evidenceRefIds).toEqual([]);
+  });
+
+  it("surfaces the typed package and rationale when present", () => {
+    const enriched = structuredClone(snapshot);
+    enriched.queue.actions[0] = {
+      ...enriched.queue.actions[0],
+      actionType: "DOCUMENT_REQUEST",
+      disposition: "ACT",
+      packageSeed: {
+        missingDocuments: ["CCCD", "Học bạ"],
+        deadline: "Còn 2 ngày",
+        requestMessage: "Vui lòng bổ sung giấy tờ còn thiếu.",
+      },
+      whyNow: "Hạn nộp còn 2 ngày",
+      approach: "Nhắn tin kèm checklist",
+      expectedOutcome: "Nhận đủ giấy tờ trước hạn",
+      evidenceRefIds: ["EV-1"],
+    } as (typeof enriched.queue.actions)[0];
+
+    const action = normalizeDirectorNextBestAction({ message: enriched }).queue
+      .actions[0];
+
+    expect(action?.actionType).toBe("DOCUMENT_REQUEST");
+    expect(action?.packageSeed?.missingDocuments).toEqual(["CCCD", "Học bạ"]);
+    expect(action?.whyNow).toBe("Hạn nộp còn 2 ngày");
+    expect(action?.evidenceRefIds).toEqual(["EV-1"]);
+  });
+
+  it("rejects an unknown actionType and drops an empty seed", () => {
+    const enriched = structuredClone(snapshot);
+    enriched.queue.actions[0] = {
+      ...enriched.queue.actions[0],
+      actionType: "NOT_A_TYPE",
+      packageSeed: { objective: "", notes: 5 },
+    } as (typeof enriched.queue.actions)[0];
+
+    const action = normalizeDirectorNextBestAction({ message: enriched }).queue
+      .actions[0];
+
+    expect(action?.actionType).toBeNull();
+    expect(action?.packageSeed).toBeNull();
+  });
+
+  it("camelizes a snake_case seed key defensively", () => {
+    expect(camelizeKeys({ talking_points: ["a"], objective: "o" })).toEqual({
+      talkingPoints: ["a"],
+      objective: "o",
+    });
+    expect(
+      normalizePackageSeed({ missing_documents: ["CCCD"], blank: "  " }),
+    ).toEqual({ missingDocuments: ["CCCD"] });
   });
 });

@@ -1,8 +1,49 @@
 import type {
   AnalysisClaimKind,
+  AnalysisReport,
   AnalysisRunStage,
   AnalysisRunStatus,
 } from "@/services/api/analysis-runs";
+
+export function getRichReport(
+  stages: AnalysisRunStage[],
+): AnalysisReport | null {
+  return stages.find((stage) => stage.report)?.report ?? null;
+}
+
+const TERMINAL_REASON_LABELS: Record<string, string> = {
+  evidence_access_denied: "quyền truy cập dữ liệu nguồn bị từ chối",
+  source_revision_superseded: "dữ liệu hồ sơ đã thay đổi giữa chừng",
+  source_digest_mismatch: "dữ liệu hồ sơ đã thay đổi giữa chừng",
+  stage_timeout: "quá thời gian xử lý",
+  dead_lettered: "đã thử lại nhiều lần không thành công",
+};
+
+/**
+ * A non-blocking notice when the deep-analysis (Next Best Action) stage did not
+ * complete but the overview (360) stage did — so the dashboard can still render
+ * the 360 report and explain why the actionable follow-up is missing, instead
+ * of showing a hard error. Returns `null` for school runs and for runs where
+ * the NBA stage completed.
+ */
+export function getDeepAnalysisNotice(run: {
+  status: AnalysisRunStatus;
+  stages: AnalysisRunStage[];
+}): string | null {
+  if (run.status === "queued" || run.status === "running") return null;
+  const nba = run.stages.find((stage) => stage.stageKind === "next_best_action");
+  const overview = run.stages.find(
+    (stage) => stage.stageKind === "student_360",
+  );
+  if (!nba || nba.status === "completed") return null;
+  if (!overview || overview.status !== "completed") return null;
+  const reason = nba.terminalReason
+    ? (TERMINAL_REASON_LABELS[nba.terminalReason] ?? nba.terminalReason)
+    : null;
+  return reason
+    ? `Phân tích chuyên sâu (Hành động tiếp theo) chưa sẵn sàng — ${reason}.`
+    : "Phân tích chuyên sâu (Hành động tiếp theo) chưa sẵn sàng.";
+}
 
 export const statusMeta: Record<
   AnalysisRunStatus,

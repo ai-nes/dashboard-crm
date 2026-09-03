@@ -54,9 +54,12 @@ export default function ActionQueue({ actions, selectedId, onSelect }: ActionQue
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-medium leading-5 text-text-primary">{action.recommendation}</span>
-                <span className="mt-1 block truncate text-xs text-text-secondary">Giao cho: {action.suggestedAssignee}</span>
+                <span className="mt-1 block truncate text-xs text-text-secondary">
+                  {action.state === "assigned" ? "Đã giao" : "Đề xuất"}: {action.suggestedAssignee}
+                </span>
               </span>
               <span className="flex flex-wrap items-center gap-2 sm:justify-self-end">
+                {action.state === "assigned" && <Badge color="success">Đã giao</Badge>}
                 <Badge color={priorityColors[action.priority]}>{priorityLabels[action.priority]}</Badge>
                 {action.controlLevel && (
                   <Badge color={CONTROL_LEVEL_COLOR[action.controlLevel]}>
