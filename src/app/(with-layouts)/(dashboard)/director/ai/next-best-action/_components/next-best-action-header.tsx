@@ -1,17 +1,23 @@
 "use client";
 
+import { RefreshCircle1Clockwise } from "@tailgrids/icons";
+import { toast } from "sonner";
+
 import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import type { DirectorNextBestActionMeta } from "@/services/api/director-next-best-action";
 
 interface NextBestActionHeaderProps {
   meta?: DirectorNextBestActionMeta;
   responseWindowHours?: number;
+  onRefresh?: () => void | Promise<void>;
 }
 
 export default function NextBestActionHeader({
   meta,
   responseWindowHours = 8,
+  onRefresh,
 }: NextBestActionHeaderProps) {
   const dataLabel = !meta
     ? "Đang tải dữ liệu"
@@ -40,6 +46,17 @@ export default function NextBestActionHeader({
           Ưu tiên hồ sơ theo hạn xử lý và xem ngay việc cần làm tiếp theo.
         </p>
       </div>
+      <Button
+        appearance="outline"
+        size="sm"
+        onPress={
+          onRefresh ??
+          (() => toast.success("Đã làm mới danh sách việc cần xử lý."))
+        }
+      >
+        <RefreshCircle1Clockwise size={16} aria-hidden="true" />
+        Làm mới
+      </Button>
     </Card>
   );
 }
