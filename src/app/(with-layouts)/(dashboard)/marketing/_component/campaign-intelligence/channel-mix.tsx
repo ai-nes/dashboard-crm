@@ -1,26 +1,34 @@
 "use client";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/tailgrids/core/chart";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/tailgrids/core/chart";
 import type { CampaignRecord } from "@/services/api/campaign-intelligence";
 import { Cell, Pie, PieChart } from "recharts";
 import { formatCompactCurrency } from "./formatters";
 import { PlatformIcon } from "./icons";
 
 const CHART_COLORS = [
-  "#2563eb", // Primary Blue (School Event)
-  "#10b981", // Emerald (Facebook)
-  "#f59e0b", // Amber (Google)
-  "#06b6d4", // Cyan (TikTok)
-  "#ec4899", // Pink (Zalo)
+  "var(--brand-500)",
+  "var(--success-500)",
+  "var(--warning-500)",
+  "var(--info-500)",
+  "var(--badge-pink-icon-color)",
 ];
 
 export function ChannelMix({ campaigns }: { campaigns: CampaignRecord[] }) {
-  const totalRevenue = campaigns.reduce((sum, campaign) => sum + campaign.confirmedRevenue, 0);
+  const totalRevenue = campaigns.reduce(
+    (sum, campaign) => sum + campaign.confirmedRevenue,
+    0,
+  );
   const data = campaigns.map((campaign, index) => ({
     ...campaign,
     fill: CHART_COLORS[index % CHART_COLORS.length],
-    percentage: totalRevenue > 0 ? (campaign.confirmedRevenue / totalRevenue) * 100 : 0,
+    percentage:
+      totalRevenue > 0 ? (campaign.confirmedRevenue / totalRevenue) * 100 : 0,
   }));
 
   return (
@@ -28,7 +36,9 @@ export function ChannelMix({ campaigns }: { campaigns: CampaignRecord[] }) {
       <CardHeader className="flex flex-row items-center justify-between border-b border-card-border px-5 py-4">
         <div>
           <CardTitle>Cơ cấu doanh thu theo kênh</CardTitle>
-          <p className="mt-0.5 text-xs text-text-tertiary">Tỷ trọng doanh thu xác nhận thực tế</p>
+          <p className="mt-0.5 text-xs text-text-tertiary">
+            Tỷ trọng doanh thu xác nhận thực tế
+          </p>
         </div>
         <span className="text-xs font-semibold tabular-nums text-text-primary">
           Tổng: {formatCompactCurrency(totalRevenue)}
@@ -37,7 +47,13 @@ export function ChannelMix({ campaigns }: { campaigns: CampaignRecord[] }) {
 
       {/* Donut Chart Section */}
       <div className="relative min-h-[210px] flex-1 p-4">
-        <ChartContainer className="size-full" height="100%" width="100%" minWidth={0} minHeight={0}>
+        <ChartContainer
+          className="size-full"
+          height="100%"
+          width="100%"
+          minWidth={0}
+          minHeight={0}
+        >
           <PieChart>
             <ChartTooltip
               content={
@@ -85,7 +101,10 @@ export function ChannelMix({ campaigns }: { campaigns: CampaignRecord[] }) {
       {/* Channels Breakdown List */}
       <div className="space-y-2.5 border-t border-card-border p-5">
         {data.map((campaign) => (
-          <div key={campaign.id} className="flex items-center justify-between gap-3 text-xs">
+          <div
+            key={campaign.id}
+            className="flex items-center justify-between gap-3 text-xs"
+          >
             <div className="flex min-w-0 items-center gap-2.5">
               {/* Distinct Color Dot for 1-to-1 mapping with Donut slice */}
               <span
@@ -113,6 +132,3 @@ export function ChannelMix({ campaigns }: { campaigns: CampaignRecord[] }) {
     </Card>
   );
 }
-
-
-

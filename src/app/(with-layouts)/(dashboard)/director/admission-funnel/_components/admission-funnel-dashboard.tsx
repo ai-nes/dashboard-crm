@@ -49,16 +49,18 @@ export default function AdmissionFunnelDashboard() {
       <main id="main-content" className="min-w-0 space-y-5 overflow-x-hidden px-2 py-4 pb-8 lg:px-6">
         <AdmissionFunnelHeader />
         <FunnelSummary />
-        <FunnelStageChart />
-        <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(22rem,2fr)]">
+          <FunnelStageChart />
+          <FunnelPriorityActions />
+        </div>
+        <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:items-stretch xl:grid-cols-2">
           <FunnelDropAnalysis />
           <FunnelAgingTable />
         </div>
-        <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:items-stretch xl:grid-cols-2">
           <FunnelSourceChart />
           <FunnelCohortChart />
         </div>
-        <FunnelPriorityActions />
       </main>
     </AdmissionFunnelDataProvider>
   );

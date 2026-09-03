@@ -13,13 +13,17 @@ const STAGE_BAR_COLORS = [
   "bg-emerald-500",
 ];
 
-export function CampaignFunnel({ funnel }: Pick<CampaignIntelligenceResponse, "funnel">) {
+export function CampaignFunnel({
+  funnel,
+}: Pick<CampaignIntelligenceResponse, "funnel">) {
   return (
     <Card className="flex h-full flex-col p-0">
       <CardHeader className="flex flex-row items-center justify-between border-b border-card-border px-5 py-4">
         <div>
-          <CardTitle>Full funnel chuyển đổi</CardTitle>
-          <p className="mt-0.5 text-xs text-text-tertiary">Conversion qua từng điểm chạm</p>
+          <CardTitle>Hành trình chuyển đổi tuyển sinh</CardTitle>
+          <p className="mt-0.5 text-xs text-text-tertiary">
+            Tỷ lệ chuyển đổi giữa các bước tuyển sinh
+          </p>
         </div>
         <Badge color="primary" size="sm">
           {funnel.length} giai đoạn
@@ -79,4 +83,3 @@ export function CampaignFunnel({ funnel }: Pick<CampaignIntelligenceResponse, "f
     </Card>
   );
 }
-

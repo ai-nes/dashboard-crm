@@ -9,13 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/tailgrids/core/dropdown";
-import {
-  Check,
-  ChevronDown,
-  Filter,
-  Search1,
-  Target3,
-} from "@tailgrids/icons";
+import { Check, ChevronDown, Filter, Search1, Target3 } from "@tailgrids/icons";
 import {
   formatHeatScore,
   getHeatColor,
@@ -23,6 +17,10 @@ import {
   REGION_CONFIGS,
 } from "./data";
 import HighSchoolMarkerLayer from "./high-school-marker-layer";
+import SchoolEngagementFilter, {
+  type SchoolEngagementOption,
+  type SchoolMarkerFilters,
+} from "./school-engagement-filter";
 import { ZoomInIcon, ZoomOutIcon } from "./icons";
 import type {
   MetricKey,
@@ -66,12 +64,15 @@ interface MarketMapProps {
   onQueryChange: (query: string) => void;
   onRegionChange: (region: RegionKey) => void;
   onClearSelection: () => void;
+  onEngagementChange: (filters: SchoolMarkerFilters) => void;
   onSelectProvince: (code: string) => void;
   onSelectSchool: (provinceCode: string, schoolId: string) => void;
   provinces: ProvinceMetrics[];
   query: string;
   selectedCode: string | null;
+  schoolFilters: SchoolMarkerFilters;
   selectedSchoolId: string | null;
+  engagementOptions: SchoolEngagementOption[];
   totalProvinces: number;
 }
 
@@ -117,7 +118,10 @@ function toMapPath(coordinates: GeoJSON.MultiPolygon["coordinates"]) {
       polygon.map((ring) => {
         const points = ring.map(projectPoint);
         return points
-          .map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`)
+          .map(
+            ([x, y], index) =>
+              `${index === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`,
+          )
           .join(" ")
           .concat(" Z");
       }),
@@ -126,31 +130,53 @@ function toMapPath(coordinates: GeoJSON.MultiPolygon["coordinates"]) {
 }
 
 function getBoundsViewBox(bounds: MapBounds, zoom: number) {
-  const [left, bottom] = projectPoint([bounds.minLongitude, bounds.minLatitude]);
+  const [left, bottom] = projectPoint([
+    bounds.minLongitude,
+    bounds.minLatitude,
+  ]);
   const [right, top] = projectPoint([bounds.maxLongitude, bounds.maxLatitude]);
   const padding = 30;
   const baseMinX = Math.max(0, Math.min(left, right) - padding);
   const baseMinY = Math.max(0, Math.min(top, bottom) - padding);
-  const baseWidth = Math.min(MASTER_VIEWBOX.width, Math.abs(right - left) + padding * 2);
-  const baseHeight = Math.min(MASTER_VIEWBOX.height, Math.abs(bottom - top) + padding * 2);
+  const baseWidth = Math.min(
+    MASTER_VIEWBOX.width,
+    Math.abs(right - left) + padding * 2,
+  );
+  const baseHeight = Math.min(
+    MASTER_VIEWBOX.height,
+    Math.abs(bottom - top) + padding * 2,
+  );
   const centerX = baseMinX + baseWidth / 2;
   const centerY = baseMinY + baseHeight / 2;
   const width = Math.min(MASTER_VIEWBOX.width, baseWidth / zoom);
   const height = Math.min(MASTER_VIEWBOX.height, baseHeight / zoom);
-  const minX = Math.max(0, Math.min(MASTER_VIEWBOX.width - width, centerX - width / 2));
-  const minY = Math.max(0, Math.min(MASTER_VIEWBOX.height - height, centerY - height / 2));
+  const minX = Math.max(
+    0,
+    Math.min(MASTER_VIEWBOX.width - width, centerX - width / 2),
+  );
+  const minY = Math.max(
+    0,
+    Math.min(MASTER_VIEWBOX.height - height, centerY - height / 2),
+  );
 
   return `${minX} ${minY} ${width} ${height}`;
 }
 
-function getProvinceMapValue(province: ProvinceMetrics | undefined, metric: MetricKey) {
+function getProvinceMapValue(
+  province: ProvinceMetrics | undefined,
+  metric: MetricKey,
+) {
   if (!province) return null;
-  return metric === "opportunity" ? getProvinceHeatScore(province) : province[metric];
+  return metric === "opportunity"
+    ? getProvinceHeatScore(province)
+    : province[metric];
 }
 
 function normalizeHeatScore(score: number | null, min: number, max: number) {
   if (score === null) return null;
-  if (max <= min) return 50;
+  // A single shared score still has meaning on the absolute 0–100 heat scale.
+  // Treating it as the midpoint incorrectly colors 100% coverage as yellow.
+  if (max <= min) return Math.min(100, Math.max(0, score));
   return ((score - min) / (max - min)) * 100;
 }
 
@@ -161,12 +187,15 @@ export default function MarketMap({
   onQueryChange,
   onRegionChange,
   onClearSelection,
+  onEngagementChange,
   onSelectProvince,
   onSelectSchool,
   provinces,
   query,
   selectedCode,
+  schoolFilters,
   selectedSchoolId,
+  engagementOptions,
   totalProvinces,
 }: MarketMapProps) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
@@ -179,11 +208,18 @@ export default function MarketMap({
     [provinces],
   );
   const totalSchools = useMemo(
-    () => provinces.reduce((total, province) => total + province.highSchools.length, 0),
+    () =>
+      provinces.reduce(
+        (total, province) => total + province.highSchools.length,
+        0,
+      ),
     [provinces],
   );
   const provinceHeatScores = useMemo(
-    () => provinces.map((province) => getProvinceHeatScore(province)).filter((score): score is number => score !== null),
+    () =>
+      provinces
+        .map((province) => getProvinceHeatScore(province))
+        .filter((score): score is number => score !== null),
     [provinces],
   );
   const heatScoreRange = useMemo(
@@ -228,13 +264,19 @@ export default function MarketMap({
 
   const searchResults = query.trim()
     ? provinces
-        .filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()))
+        .filter((p) =>
+          p.name.toLowerCase().includes(query.trim().toLowerCase()),
+        )
         .slice(0, 5)
     : [];
-  const selectedPriorityProvince = PRIORITY_PROVINCES.find((province) => province.code === selectedCode);
+  const selectedPriorityProvince = PRIORITY_PROVINCES.find(
+    (province) => province.code === selectedCode,
+  );
 
-  const handleZoomIn = () => setManualZoom((z) => Math.min(2.0, Number((z + 0.25).toFixed(2))));
-  const handleZoomOut = () => setManualZoom((z) => Math.max(0.8, Number((z - 0.25).toFixed(2))));
+  const handleZoomIn = () =>
+    setManualZoom((z) => Math.min(2.0, Number((z + 0.25).toFixed(2))));
+  const handleZoomOut = () =>
+    setManualZoom((z) => Math.max(0.8, Number((z - 0.25).toFixed(2))));
   const handleResetZoom = () => {
     setManualZoom(1);
     setIsPriorityFocus((isFocused) => !isFocused);
@@ -248,7 +290,10 @@ export default function MarketMap({
       {/* ========================================================================= */}
       <div className="flex items-center justify-between gap-3 pb-2">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-600" aria-hidden="true">
+          <span
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-600"
+            aria-hidden="true"
+          >
             <Target3 size={16} />
           </span>
           <div className="min-w-0">
@@ -261,12 +306,17 @@ export default function MarketMap({
               </span>
             </div>
             <p className="mt-0.5 truncate text-xs text-text-tertiary">
-              {totalSchools} trường nổi bật · {admissionYear === null ? "Kỳ hiện hành" : `Niên khóa ${admissionYear}`}
+              {totalSchools} trường nổi bật ·{" "}
+              {admissionYear === null
+                ? "Kỳ hiện hành"
+                : `Niên khóa ${admissionYear}`}
             </p>
           </div>
         </div>
 
-        <span className="shrink-0 rounded-full bg-badge-primary-background px-2.5 py-1 text-[11px] font-semibold text-badge-primary-text">Theo điểm cơ hội</span>
+        <span className="shrink-0 rounded-full bg-badge-primary-background px-2.5 py-1 text-[11px] font-semibold text-badge-primary-text">
+          Theo điểm cơ hội
+        </span>
       </div>
 
       {/* ========================================================================= */}
@@ -278,7 +328,9 @@ export default function MarketMap({
           <DropdownMenu>
             <DropdownMenuTrigger className="flex h-7.5 items-center gap-1.5 rounded-lg bg-background-gray-primary/80 px-2.5 text-xs font-medium text-text-primary hover:bg-background-gray-primary">
               <Filter className="text-text-tertiary" size={12} />
-              <span>{selectedPriorityProvince?.label ?? "7 tỉnh trọng điểm"}</span>
+              <span>
+                {selectedPriorityProvince?.label ?? "7 tỉnh trọng điểm"}
+              </span>
               <ChevronDown className="text-text-tertiary" size={11} />
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -297,7 +349,9 @@ export default function MarketMap({
                 }}
               >
                 <span>Tất cả 7 tỉnh</span>
-                {!selectedPriorityProvince && <Check className="text-brand-500" size={13} />}
+                {!selectedPriorityProvince && (
+                  <Check className="text-brand-500" size={13} />
+                )}
               </DropdownMenuItem>
 
               <DropdownMenuSeparator className="my-1" />
@@ -315,16 +369,21 @@ export default function MarketMap({
                     onAction={() => onSelectProvince(provinceOption.code)}
                   >
                     <span>{provinceOption.label}</span>
-                    {isSelected && <Check className="text-brand-500" size={13} />}
+                    {isSelected && (
+                      <Check className="text-brand-500" size={13} />
+                    )}
                   </DropdownMenuItem>
                 );
               })}
             </DropdownMenuContent>
           </DropdownMenu>
-
+          <SchoolEngagementFilter
+            onChange={onEngagementChange}
+            options={engagementOptions}
+            value={schoolFilters}
+          />
         </div>
 
-        {/* Right: Quick Search */}
         <div className="flex items-center gap-1.5">
           {/* Quick Search */}
           <div className="relative w-36 sm:w-44">
@@ -356,7 +415,9 @@ export default function MarketMap({
                       }}
                       type="button"
                     >
-                      <span className="font-medium text-text-primary">{p.name}</span>
+                      <span className="font-medium text-text-primary">
+                        {p.name}
+                      </span>
                       <span className="rounded bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-500">
                         {formatHeatScore(heatScore)}
                       </span>
@@ -366,7 +427,6 @@ export default function MarketMap({
               </div>
             )}
           </div>
-
         </div>
       </div>
 
@@ -375,10 +435,34 @@ export default function MarketMap({
       {/* ========================================================================= */}
       <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl bg-background-soft-50 p-1 ring-1 ring-card-border/50">
         <div className="pointer-events-none absolute top-2.5 right-2.5 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-x-3 gap-y-1 rounded-lg bg-card-background/90 px-2.5 py-1.5 text-[10px] shadow-xs backdrop-blur-md">
-          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2.5 animate-pulse rounded-full bg-success-500" aria-hidden="true" />Trọng điểm</span>
-          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-2 rounded-full bg-info-500" aria-hidden="true" />Mở rộng</span>
-          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-1.5 rounded-full bg-warning-500" aria-hidden="true" />Duy trì</span>
-          <span className="flex items-center gap-1.5 text-text-secondary"><span className="size-1 rounded-full bg-text-tertiary" aria-hidden="true" />Sàng lọc</span>
+          <span className="flex items-center gap-1.5 text-text-secondary">
+            <span
+              className="size-2.5 animate-pulse rounded-full bg-success-500"
+              aria-hidden="true"
+            />
+            Trọng điểm
+          </span>
+          <span className="flex items-center gap-1.5 text-text-secondary">
+            <span
+              className="size-2 rounded-full bg-info-500"
+              aria-hidden="true"
+            />
+            Mở rộng
+          </span>
+          <span className="flex items-center gap-1.5 text-text-secondary">
+            <span
+              className="size-1.5 rounded-full bg-warning-500"
+              aria-hidden="true"
+            />
+            Duy trì
+          </span>
+          <span className="flex items-center gap-1.5 text-text-secondary">
+            <span
+              className="size-1 rounded-full bg-text-tertiary"
+              aria-hidden="true"
+            />
+            Sàng lọc
+          </span>
         </div>
 
         {/* Quick Zoom Buttons (Top-Left) */}
@@ -402,7 +486,9 @@ export default function MarketMap({
             <ZoomOutIcon className="size-3.5" />
           </button>
           <button
-            aria-label={isPriorityFocus ? "Về toàn quốc" : "Về 7 tỉnh trọng điểm"}
+            aria-label={
+              isPriorityFocus ? "Về toàn quốc" : "Về 7 tỉnh trọng điểm"
+            }
             className="flex size-6 items-center justify-center rounded text-text-secondary hover:bg-background-gray-primary hover:text-text-primary"
             onClick={handleResetZoom}
             title={isPriorityFocus ? "Về toàn quốc" : "Về 7 tỉnh trọng điểm"}
@@ -414,9 +500,11 @@ export default function MarketMap({
 
         {/* SVG Map */}
         <svg
-          aria-label={isPriorityFocus && activeRegion === "all"
-            ? "Bản đồ phân bố dữ liệu tuyển sinh tại 7 tỉnh trọng điểm phía Nam"
-            : "Bản đồ phân bố dữ liệu tuyển sinh Việt Nam"}
+          aria-label={
+            isPriorityFocus && activeRegion === "all"
+              ? "Bản đồ phân bố dữ liệu tuyển sinh tại 7 tỉnh trọng điểm phía Nam"
+              : "Bản đồ phân bố dữ liệu tuyển sinh Việt Nam"
+          }
           className="h-full w-auto max-h-full max-w-full drop-shadow-theme-sm transition-all duration-700 ease-out"
           onClick={onClearSelection}
           preserveAspectRatio="xMidYMid meet"
@@ -424,8 +512,18 @@ export default function MarketMap({
           viewBox={computedViewBox}
         >
           <defs>
-            <filter id="active-glow-clean" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+            <filter
+              id="active-glow-clean"
+              x="-20%"
+              y="-20%"
+              width="140%"
+              height="140%"
+            >
+              <feGaussianBlur
+                in="SourceGraphic"
+                stdDeviation="2.5"
+                result="blur"
+              />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -463,7 +561,11 @@ export default function MarketMap({
                 ? `Tỷ lệ trường trọng điểm: ${formatHeatScore(metricVal)}`
                 : "-";
               const fillColor = getHeatColor(
-                normalizeHeatScore(metricVal, heatScoreRange.min, heatScoreRange.max),
+                normalizeHeatScore(
+                  metricVal,
+                  heatScoreRange.min,
+                  heatScoreRange.max,
+                ),
                 isHovered,
               );
 
@@ -484,12 +586,19 @@ export default function MarketMap({
                   onMouseEnter={() => setHoveredCode(path.code)}
                   onMouseLeave={() => setHoveredCode(null)}
                   role={province ? "button" : undefined}
-                  stroke={isSelected ? "var(--text-primary)" : isHovered ? "var(--primary-600)" : "var(--card-background)"}
+                  stroke={
+                    isSelected
+                      ? "var(--text-primary)"
+                      : isHovered
+                        ? "var(--primary-600)"
+                        : "var(--card-background)"
+                  }
                   strokeLinejoin="round"
                   strokeWidth={isSelected ? 1.25 : isHovered ? 1.6 : 0.75}
                   style={{
                     transformOrigin: "center",
-                    transform: isHovered && !isSelected ? "scale(1.008)" : undefined,
+                    transform:
+                      isHovered && !isSelected ? "scale(1.008)" : undefined,
                   }}
                   tabIndex={province ? 0 : -1}
                   onKeyDown={(e) => {
@@ -512,19 +621,21 @@ export default function MarketMap({
             selectedProvinceCode={selectedCode}
             selectedSchoolId={selectedSchoolId}
           />
-
         </svg>
       </div>
 
       {/* Heat score color legend */}
       <div className="mt-2 flex justify-end text-xs">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-text-secondary">Tỷ lệ trường trọng điểm:</span>
+          <span className="font-medium text-text-secondary">
+            Tỷ lệ trường trọng điểm:
+          </span>
           <span className="text-[11px] text-text-tertiary">Thấp</span>
           <div
             className="h-1.5 w-20 rounded-full"
             style={{
-              backgroundImage: "linear-gradient(90deg, var(--red-600) 0%, var(--warning-500) 34%, var(--info-500) 67%, var(--green-600) 100%)",
+              backgroundImage:
+                "linear-gradient(90deg, var(--red-600) 0%, var(--warning-500) 34%, var(--info-500) 67%, var(--green-600) 100%)",
             }}
           />
           <span className="text-[11px] text-text-tertiary">Cao</span>

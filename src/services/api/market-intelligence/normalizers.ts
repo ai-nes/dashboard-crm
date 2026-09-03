@@ -10,6 +10,7 @@ import type {
   MarketMetricAvailability,
   MarketSchoolCoordinates,
   MarketSchoolClassification,
+  MarketSchoolParticipation,
 } from "./types";
 
 const statuses = new Set(["available", "partial", "unavailable"]);
@@ -36,6 +37,25 @@ function coordinates(value: unknown): MarketSchoolCoordinates | null {
   const latitude = number(source.latitude ?? source.lat);
   const longitude = number(source.longitude ?? source.lng ?? source.lon);
   return latitude !== null && longitude !== null ? { latitude, longitude } : null;
+}
+
+function normalizeParticipations(value: unknown): MarketSchoolParticipation[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.map((item) => {
+    const source = record(item);
+    const id = text(source.id ?? source.eventId ?? source.event_id ?? source.campaignId ?? source.campaign_id);
+    const name = text(source.name ?? source.title);
+    const type = text(source.type ?? source.participationType ?? source.participation_type);
+    if (!id || !name || (type !== "event" && type !== "campaign")) return null;
+
+    return {
+      id,
+      name,
+      type,
+      occurredAt: text(source.occurredAt ?? source.occurred_at ?? source.startedAt ?? source.started_at),
+    };
+  }).filter((item): item is MarketSchoolParticipation => item !== null);
 }
 
 function availability(value: unknown): DataAvailability {
@@ -99,6 +119,9 @@ function normalizeSchool(value: unknown, fallbackId: string): DirectorMarketScho
     classification: classifications.has(classificationValue ?? "")
       ? (classificationValue as MarketSchoolClassification)
       : null,
+    participations: normalizeParticipations(
+      source.participations ?? source.eventParticipations ?? source.event_participations ?? source.activities,
+    ),
   };
 }
 

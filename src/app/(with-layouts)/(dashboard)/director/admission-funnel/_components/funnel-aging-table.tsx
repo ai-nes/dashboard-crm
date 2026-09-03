@@ -14,7 +14,7 @@ export default function FunnelAgingTable() {
   const { aging } = useAdmissionFunnelData();
 
   return (
-    <Card className="min-w-0 overflow-hidden p-5">
+    <Card className="min-w-0 overflow-hidden p-5 xl:h-full">
       <CardHeader className="mb-5 items-start">
         <div>
           <CardTitle>Hồ sơ đang chờ xử lý</CardTitle>

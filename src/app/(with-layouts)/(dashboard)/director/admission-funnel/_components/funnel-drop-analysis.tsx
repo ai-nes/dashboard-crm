@@ -17,7 +17,7 @@ export default function FunnelDropAnalysis() {
   const maxDropRate = rows[0]?.dropRate ?? 1;
 
   return (
-    <Card className="min-w-0 p-5">
+    <Card className="min-w-0 p-5 xl:h-full">
       <CardHeader className="mb-5 items-start">
         <div>
           <CardTitle>Hồ sơ giảm qua từng bước</CardTitle>

@@ -402,7 +402,7 @@ export function computeDirectorDemographicsOverview(
 ): DirectorDemographicsOverviewResponse {
   const admissionYear = params?.admissionYear ?? 2026;
   const page = Math.max(1, Math.floor(params?.page ?? 1));
-  const pageSize = Math.max(1, Math.min(Math.floor(params?.pageSize ?? 10), 100));
+  const pageSize = Math.max(1, Math.min(Math.floor(params?.pageSize ?? 5), 100));
   const period = params?.period ?? "6m";
   const scope = params?.scope ?? "all";
   const rankedSegments = [...demographicSegments].sort((first, second) => {

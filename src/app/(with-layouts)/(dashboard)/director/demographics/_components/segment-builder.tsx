@@ -48,7 +48,7 @@ export default function SegmentBuilder({ filters, onAdd, onApply, onRemove, onRe
           <Button size="sm" onPress={onApply}>Xem kết quả</Button>
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-card-border pt-3 text-xs text-text-tertiary"><span><span className="mr-1.5 inline-block size-1.5 rounded-full bg-success-500" />Đủ dữ liệu để phân tích</span><span>Tối thiểu để hiển thị: <strong className="font-medium text-text-secondary">30 lead</strong></span><span>Lead có dữ liệu: <strong className="font-medium text-text-secondary">94,8%</strong></span></div>
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-card-border pt-3 text-xs text-text-tertiary"><span><span className="mr-1.5 inline-block size-1.5 rounded-full bg-success-500" />Đủ dữ liệu để phân tích</span><span>Tối thiểu để hiển thị: <strong className="font-medium text-text-secondary">30 học sinh</strong></span><span>Học sinh có dữ liệu: <strong className="font-medium text-text-secondary">94,8%</strong></span></div>
     </section>
   );
 }

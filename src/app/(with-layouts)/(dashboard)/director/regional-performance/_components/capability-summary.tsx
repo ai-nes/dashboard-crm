@@ -3,7 +3,7 @@
 import { memo } from "react";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import { capabilityColumns } from "./data";
+import type { CapabilityColumn } from "./types";
 import type { HealthTone, RegionPerformance } from "./types";
 
 const toneClass: Record<HealthTone, string> = {
@@ -22,11 +22,17 @@ const toneTextClass: Record<HealthTone, string> = {
   critical: "text-error-500",
 };
 
-function CapabilitySummary({ province }: { province: RegionPerformance }) {
+function CapabilitySummary({
+  province,
+  capabilityColumns,
+}: {
+  province: RegionPerformance;
+  capabilityColumns: CapabilityColumn[];
+}) {
   const capacityTone: HealthTone =
-    province.capacity > 90
+    (province.capacity ?? 0) > 90
       ? "critical"
-      : province.capacity > 80
+      : (province.capacity ?? 0) > 80
         ? "watch"
         : "good";
 
@@ -44,7 +50,7 @@ function CapabilitySummary({ province }: { province: RegionPerformance }) {
         <div className="rounded-lg bg-background-soft-50 p-3">
           <p className="text-xs text-text-tertiary">Đang phụ trách</p>
           <p className="mt-1 text-lg font-semibold text-text-primary">
-            {province.activeAdvisors} người
+            {province.activeAdvisors ?? "—"} người
           </p>
         </div>
         <div className="rounded-lg bg-background-soft-50 p-3">
@@ -54,7 +60,7 @@ function CapabilitySummary({ province }: { province: RegionPerformance }) {
               "mt-1 text-lg font-semibold " + toneTextClass[capacityTone]
             }
           >
-            {province.capacity}%
+            {province.capacity ?? "—"}%
           </p>
         </div>
       </div>
@@ -62,7 +68,7 @@ function CapabilitySummary({ province }: { province: RegionPerformance }) {
         <div className="flex items-center justify-between gap-3 text-xs">
           <span className="text-text-secondary">Công suất đang dùng</span>
           <span className={"font-semibold " + toneTextClass[capacityTone]}>
-            {province.capacity}%
+            {province.capacity ?? "—"}%
           </span>
         </div>
         <div
@@ -71,7 +77,9 @@ function CapabilitySummary({ province }: { province: RegionPerformance }) {
         >
           <div
             className={"h-full rounded-full " + toneClass[capacityTone]}
-            style={{ width: String(Math.min(100, province.capacity)) + "%" }}
+            style={{
+              width: String(Math.min(100, province.capacity ?? 0)) + "%",
+            }}
           />
         </div>
       </div>

@@ -18,7 +18,7 @@ export default function SegmentGuardrails({ guardrails = defaultGuardrails }: Se
             <CardTitle>Giới hạn dữ liệu phân tích</CardTitle>
             <Badge color="success">
               <Shield1Check size={13} aria-hidden="true" />
-              Tối thiểu 30 lead
+              Tối thiểu 30 học sinh
             </Badge>
           </div>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">

@@ -361,6 +361,7 @@ export interface DirectorDemographicsOverviewMeta {
   asOf: string;
   totalProspects: number;
   minSampleSize: number;
+  /** Pagination of data.segments. Required for the overview response. */
   page: number;
   pageSize: number;
   total: number;
@@ -371,7 +372,7 @@ export interface DirectorDemographicsOverviewMeta {
     tuition: boolean;
     revenue: boolean;
     eligibleSegments: number;
-    acquisitionMap: "complete" | "partial" | "unavailable";
+    acquisitionMap?: "complete" | "partial" | "unavailable";
   };
 }
 

@@ -6,11 +6,12 @@ export type RegionPerformance = {
   applications: number;
   enrollments: number;
   targetAchievement: number;
-  conversion: number;
-  applicationChange: number;
-  enrollmentChange: number;
-  activeAdvisors: number;
-  capacity: number;
+  enrollmentTarget?: number;
+  conversion: number | null;
+  applicationChange: number | null;
+  enrollmentChange: number | null;
+  activeAdvisors: number | null;
+  capacity: number | null;
   health: HealthTone;
   trend: MonthlyTrend[];
   funnel: FunnelStage[];
@@ -19,11 +20,11 @@ export type RegionPerformance = {
 
 export type MonthlyTrend = {
   month: string;
-  applications: number;
-  enrollments: number;
-  previousApplications: number;
+  applications: number | null;
+  enrollments: number | null;
+  previousApplications: number | null;
 };
-export type FunnelStage = { stage: string; value: number };
+export type FunnelStage = { id?: string; stage: string; value: number };
 export type CapabilityKey =
   | "leadGeneration"
   | "counselling"

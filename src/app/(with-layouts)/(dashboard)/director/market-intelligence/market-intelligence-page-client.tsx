@@ -13,7 +13,7 @@ const REQUEST = {
   region: "all" as const,
   metric: "opportunity" as const,
   includeSchools: true,
-  schoolLimit: 6,
+  schoolLimit: 5,
 };
 
 export default function MarketIntelligencePageClient() {

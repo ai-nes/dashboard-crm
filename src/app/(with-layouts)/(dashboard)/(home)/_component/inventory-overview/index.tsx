@@ -12,8 +12,9 @@ import { ChartContainer } from "@/components/tailgrids/core/chart";
 import { getInventoryOverviewData } from "@/services/api/home";
 import { MenuDotsIcon } from "@/utils/icon";
 import { useQuery } from "@tanstack/react-query";
-import { Pie, PieChart } from "recharts";
+import { Pie, PieChart, Tooltip } from "recharts";
 import InventoryOverviewSkeleton from "./skeleton";
+import InventoryOverviewTooltip from "./tooltip";
 import { mapInventoryOverviewResponse } from "./utils";
 
 export default function InventoryOverview() {
@@ -65,6 +66,7 @@ export default function InventoryOverview() {
               aspect={undefined}
             >
               <PieChart>
+                <Tooltip content={<InventoryOverviewTooltip availablePercent={inventoryOverview?.availablePercent ?? 0} />} />
                 <Pie
                   cx="50%"
                   cy="100%"

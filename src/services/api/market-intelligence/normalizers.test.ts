@@ -71,11 +71,11 @@ describe("market intelligence normalization", () => {
     );
 
     await expect(getDirectorMarketIntelligence(
-      { admissionYear: 2026, period: "30d", region: "all", includeSchools: true, schoolLimit: 6 },
+      { admissionYear: 2026, period: "30d", region: "all", includeSchools: true, schoolLimit: 5 },
       { baseUrl: "http://frappe:8000" },
     )).resolves.toEqual(expect.objectContaining({ provinces: [] }));
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.director_market_intelligence.get_director_market_intelligence_overview?admissionYear=2026&period=30d&region=all&includeSchools=true&schoolLimit=6",
+      "http://frappe:8000/api/method/crm.api.director_market_intelligence.get_director_market_intelligence_overview?admissionYear=2026&period=30d&region=all&includeSchools=true&schoolLimit=5",
       expect.objectContaining({ cache: "no-store" }),
     );
   });

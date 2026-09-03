@@ -8,7 +8,10 @@ import type {
   SchoolRelationshipLevel,
   TrendPoint,
 } from "@/services/api/schools/types";
-import { classifySchool } from "@/services/api/schools/classification";
+import {
+  classifySchool,
+  SCHOOL_CLASSIFICATION_STRATEGIES,
+} from "@/services/api/schools/classification";
 import { getSchoolPotentialScore } from "@/services/api/schools/school-directory";
 
 import { getSchoolLocalityContext } from "./school-locality-data";
@@ -74,24 +77,7 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
   const relationshipScore = [16, 36, 58, 78, 94][relationshipIndex];
   const relationshipLevel = relationshipLevels[relationshipIndex];
   const classification = classifySchool(potentialScore, relationshipScore);
-  const classificationCopy: Record<SchoolClassification, { label: string; action: string }> = {
-    "Trọng điểm": {
-      label: "Tiềm năng cao · Quan hệ tốt",
-      action: "Giữ quan hệ và mở rộng hợp tác bằng hoạt động, học bổng và thỏa thuận dài hạn.",
-    },
-    "Mở rộng": {
-      label: "Tiềm năng cao · Quan hệ còn mỏng",
-      action: "Tạo đầu mối và thử một hoạt động nhỏ để bắt đầu hợp tác.",
-    },
-    "Duy trì": {
-      label: "Tiềm năng vừa · Quan hệ tốt",
-      action: "Giữ liên hệ đều và gom hoạt động theo khu vực để tiết kiệm chi phí.",
-    },
-    "Sàng lọc": {
-      label: "Tiềm năng vừa · Quan hệ còn mỏng",
-      action: "Theo dõi nhu cầu của trường trước khi đầu tư thêm.",
-    },
-  };
+  const classificationCopy = SCHOOL_CLASSIFICATION_STRATEGIES[classification];
   const unavailableStudents = grade12Students - availableStudents;
   const aboveFitStudents = Math.round(grade12Students * 0.22);
   const scoreBands = [
@@ -303,7 +289,12 @@ export function buildSchoolIntelligence(school: SchoolDirectoryRecord): SchoolIn
       nextTouch: relationshipIndex >= 2 ? "12/06/2026 · Career Talk" : "Đặt lịch giới thiệu trong 30 ngày",
       source: "Ghi nhận đội ngũ địa bàn · 15/05/2026",
     },
-    classification: { group: classification, isKeyAccount: classification === "Trọng điểm", ...classificationCopy[classification] },
+    classification: {
+      group: classification,
+      isKeyAccount: classification === "Trọng điểm",
+      label: classificationCopy.summary,
+      action: classificationCopy.action,
+    },
     quadrantPeers,
     scoreBands,
     examScoreBands,

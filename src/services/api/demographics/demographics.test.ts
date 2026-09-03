@@ -21,7 +21,7 @@ describe("director demographics API contract", () => {
     expect(data.data.acquisitionMap.attributionModel.firstTouch).toBe("first-touch");
     expect(data.data.acquisitionMap.submissionTiming.timezone).toBe("Asia/Ho_Chi_Minh");
     expect(data.meta.page).toBe(1);
-    expect(data.meta.pageSize).toBe(10);
+    expect(data.meta.pageSize).toBe(5);
     expect(data.meta.total).toBeGreaterThanOrEqual(data.data.segments.length);
   });
 
@@ -57,6 +57,25 @@ describe("director demographics API contract", () => {
     );
     expect(result.data.kpis.length).toBe(mockOverview.data.kpis.length);
     expect(result.meta.admissionYear).toBe(2026);
+  });
+
+  it("rejects an overview response without pagination metadata", async () => {
+    const mockOverview = computeDirectorDemographicsOverview({ admissionYear: 2026 });
+    const meta = Object.fromEntries(
+      Object.entries(mockOverview.meta).filter(([key]) => !["page", "pageSize", "total", "totalPages", "hasNextPage"].includes(key)),
+    );
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: { data: mockOverview.data, meta } }), { status: 200 }),
+    );
+
+    await expect(
+      getDirectorDemographicsOverview({ admissionYear: 2026 }, { baseUrl: "http://frappe:8000" }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<DirectorDemographicsApiError>>({
+        status: 502,
+        code: "INVALID_DEMOGRAPHICS_RESPONSE",
+      }),
+    );
   });
 
   it("passes overview pagination parameters to Frappe", async () => {

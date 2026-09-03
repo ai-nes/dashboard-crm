@@ -3,7 +3,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/tailgrids/core/collapsible";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tailgrids/core/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/tailgrids/core/tooltip";
 import { cn } from "@/utils/cn";
 import { AltArrowUpIcon } from "@/utils/icon";
 import Link from "next/link";
@@ -16,6 +20,7 @@ export interface NavItemProps {
   icon?: React.ReactNode;
   label: string;
   href?: string;
+  exact?: boolean;
   items?: Array<{ title: string; url?: string }>;
   collapsed?: boolean;
   onItemClick?: () => void;
@@ -26,15 +31,22 @@ export default function NavItem({
   icon,
   label,
   href,
+  exact = false,
   items,
   collapsed,
   onItemClick,
 }: NavItemProps) {
   const pathname = usePathname();
 
-  const isActive = href ? isPathActive(href, pathname) : false;
+  const isActive = href
+    ? exact
+      ? pathname === href
+      : isPathActive(href, pathname)
+    : false;
 
-  const hasActiveChild = items?.some((item) => item.url && isPathActive(item.url, pathname));
+  const hasActiveChild = items?.some(
+    (item) => item.url && isPathActive(item.url, pathname),
+  );
 
   // Collapsed: icon-only button centered, no dropdown
   if (collapsed) {
@@ -96,7 +108,9 @@ export default function NavItem({
 
         <CollapsibleContent className="space-y-1 pr-0 group-data-expanded:mt-2">
           {items.map((item) => {
-            const isChildActive = item.url ? isPathActive(item.url, pathname) : false;
+            const isChildActive = item.url
+              ? isPathActive(item.url, pathname)
+              : false;
 
             return (
               <div key={item.title} className="px-0">

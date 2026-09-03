@@ -3,10 +3,15 @@
 import { memo } from "react";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import { priorityActions } from "./data";
-import type { RegionPerformance } from "./types";
+import type { PriorityAction, RegionPerformance } from "./types";
 
-function PriorityActions({ province }: { province: RegionPerformance }) {
+function PriorityActions({
+  province,
+  priorityActions,
+}: {
+  province: RegionPerformance;
+  priorityActions: PriorityAction[];
+}) {
   const actions = priorityActions.filter(
     (action) =>
       action.provinceId === province.id || action.provinceId === "all",

@@ -8,21 +8,24 @@ function formatPercent(value: number | null) {
 
 export default function FunnelSourceChart() {
   const { sourcePerformance } = useAdmissionFunnelData();
-  const rows = sourcePerformance.map((source) => ({
-    ...source,
-    firstStepRate: source.stepRates[0],
-  })).sort((a, b) => (b.finalRate ?? -1) - (a.finalRate ?? -1));
+  const rows = sourcePerformance
+    .map((source) => ({
+      ...source,
+      firstStepRate: source.stepRates[0],
+    }))
+    .sort((a, b) => (b.finalRate ?? -1) - (a.finalRate ?? -1))
+    .slice(0, 5);
 
   return (
-    <Card className="min-w-0 p-5">
+    <Card className="min-w-0 p-5 xl:h-full">
       <CardHeader className="mb-5 items-start">
         <div>
-          <CardTitle>Hiệu quả từng nguồn tuyển sinh</CardTitle>
+          <CardTitle>5 nguồn tuyển sinh hiệu quả nhất</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Tỷ lệ hồ sơ nhập học trên tổng hồ sơ của mỗi nguồn.</p>
         </div>
       </CardHeader>
 
-      <div className="grid gap-x-6 gap-y-4 lg:grid-cols-2" role="img" aria-label="Biểu đồ xếp hạng tỷ lệ nhập học theo nguồn">
+      <div className="grid gap-4" role="img" aria-label="Biểu đồ xếp hạng năm nguồn có tỷ lệ nhập học cao nhất">
         {rows.map((row, index) => (
           <div key={row.id}>
             <div className="flex items-center justify-between gap-3">

@@ -41,7 +41,7 @@ export default function StudentKpiStrip({ summary }: StudentKpiStripProps) {
       color: "primary" as const,
     },
     {
-      label: "Ý định cao",
+      label: "Khả năng nhập học cao",
       value: highIntentCount,
       detail: highIntentRate,
       icon: CheckCircle1,
@@ -50,12 +50,12 @@ export default function StudentKpiStrip({ summary }: StudentKpiStripProps) {
     {
       label: "Cần hành động hôm nay",
       value: actionsDue,
-      detail: "Theo SLA tư vấn hiện tại",
+      detail: "Theo thời hạn tư vấn hiện tại",
       icon: TrendUp2,
       color: "warning" as const,
     },
     {
-      label: "Khả năng nhập học TB",
+      label: "Khả năng nhập học trung bình",
       value: avgProb,
       detail: avgProbDelta,
       icon: ArrowUpward,

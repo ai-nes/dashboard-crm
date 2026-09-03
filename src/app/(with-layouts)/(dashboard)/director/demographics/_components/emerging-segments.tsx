@@ -21,7 +21,7 @@ export default function EmergingSegments({
     <Card className="min-w-0 overflow-hidden bg-background-gray-primary p-0">
       <CardHeader className="border-b border-card-border p-5">
         <div>
-          <CardTitle>Nhóm lead nên xem</CardTitle>
+          <CardTitle>Nhóm học sinh nên xem</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Xếp theo số lượng, tỷ lệ nhập học và tăng trưởng.</p>
         </div>
         <Badge color="success">
@@ -42,7 +42,7 @@ export default function EmergingSegments({
               <p className="truncate text-sm font-semibold text-text-primary">{segment.name}</p>
               <p className="mt-1 truncate text-xs text-text-tertiary">{segment.description}</p>
             </div>
-            <Summary label="Số lead" value={segment.prospects != null ? segment.prospects.toLocaleString("vi-VN") : "-"} />
+            <Summary label="Số học sinh" value={segment.prospects != null ? segment.prospects.toLocaleString("vi-VN") : "-"} />
             <Summary label="Tỷ lệ nhập học" value={segment.conversion != null ? `${segment.conversion}%` : "-"} />
             <Summary
               label="Tăng trưởng tháng"
