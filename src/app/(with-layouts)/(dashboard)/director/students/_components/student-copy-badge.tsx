@@ -38,13 +38,12 @@ export default function StudentCopyBadge({
       className="h-6 max-w-full rounded-full bg-background-soft-50 px-2 text-xs text-text-secondary"
       onPress={() => void copyValue()}
       size="xs"
-      title={`${label}: ${value}`}
       variant="primary"
     >
       {isCopied ? (
-        <CheckCircle1 size={13} aria-hidden="true" />
+        <CheckCircle1 size={13} aria-hidden />
       ) : (
-        <Icon size={13} aria-hidden="true" />
+        <Icon size={13} aria-hidden />
       )}
       <span className="truncate">{isCopied ? "Đã sao chép" : children}</span>
     </Button>

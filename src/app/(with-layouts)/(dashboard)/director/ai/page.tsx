@@ -35,9 +35,8 @@ export default async function AiCenterPage({
   searchParams,
 }: PageProps<"/director/ai">) {
   const { tab } = await searchParams;
-  const activeTab = isAiCenterTab(typeof tab === "string" ? tab : undefined)
-    ? tab
-    : "signals";
+  const tabValue = typeof tab === "string" ? tab : undefined;
+  const activeTab: AiCenterTab = isAiCenterTab(tabValue) ? tabValue : "signals";
   const ActivePage = TAB_PAGES[activeTab];
 
   return (
