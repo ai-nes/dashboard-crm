@@ -8,7 +8,6 @@ import SchoolAcademicProfile from "./school-academic-profile";
 import SchoolActionPlan from "./school-action-plan";
 import SchoolHeader from "./school-header";
 import SchoolOutcomes from "./school-outcomes";
-import SchoolPotentialDecomposition from "./school-potential-decomposition";
 import SchoolExamScoreDistribution from "./school-exam-score-distribution";
 import SchoolRelationshipCard from "./school-relationship-card";
 
@@ -44,12 +43,7 @@ function getSchoolTabs(data: SchoolIntelligenceData): DetailTabItem[] {
     {
       id: "overview",
       label: "Hành động tiếp theo",
-      content: (
-        <div className="grid min-w-0 gap-5 xl:grid-cols-2">
-          <SchoolPotentialDecomposition data={data} />
-          <SchoolActionPlan data={data} />
-        </div>
-      ),
+      content: <SchoolActionPlan data={data} />,
     },
     {
       id: "outcomes",

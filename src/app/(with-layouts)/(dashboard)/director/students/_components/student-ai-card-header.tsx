@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCircle1Clockwise } from "@tailgrids/icons";
+import { RefreshCircle1Clockwise, Sparkle } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { cn } from "@/utils/cn";
 
@@ -27,8 +27,13 @@ export default function StudentAICardHeader({
         </h3>
         <div className="flex items-center gap-2">
           {rightAction}
-          <Badge color="primary" size="sm" className="font-semibold tracking-wide">
-            + AI
+          <Badge
+            color="primary"
+            size="sm"
+            className="inline-flex items-center gap-1 font-semibold tracking-wide"
+          >
+            <Sparkle size={12} aria-hidden="true" />
+            AI
           </Badge>
         </div>
       </div>
@@ -55,4 +60,3 @@ export default function StudentAICardHeader({
     </div>
   );
 }
-
