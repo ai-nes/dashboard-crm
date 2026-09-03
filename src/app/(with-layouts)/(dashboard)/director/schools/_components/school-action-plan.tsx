@@ -4,7 +4,9 @@ import { Calendar, RefreshCircle1Clockwise, Sparkle } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import AnalysisActivityFeed from "@/components/analysis-runs/analysis-activity-feed";
 import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
+import AnalysisReportCockpit from "@/components/analysis-runs/analysis-report-cockpit";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
@@ -71,6 +73,9 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
   const isAnalysisActive =
     run?.status === "queued" || run?.status === "running";
   const analysisError = requestMutation.error ?? runQuery.error;
+  const report =
+    run?.stages.find((stage) => stage.stageKind === "school_360")?.report ??
+    null;
   const handleAnalysis = () => {
     if (run && !isAnalysisActive) {
       setIsAnalysisDrawerOpen(true);
@@ -169,21 +174,30 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
             Chưa thể hoàn tất phân tích. Bạn có thể thử lại.
           </p>
         )}
-        <div>
-          <h3 className="max-w-xl text-2xl leading-8 font-semibold tracking-[-0.4px] text-text-primary">
-            {tone.title}
-          </h3>
-          <p
-            className="mt-3 max-w-xl text-sm leading-6 text-text-secondary"
-            title={`${tone.detail} ${availableStudents} có thể tiếp cận · ${locality.distanceKm} km · ${locality.travelTime}.`}
-          >
-            {tone.detail}{" "}
-            <strong className="font-semibold text-text-primary">
-              {availableStudents} có thể tiếp cận
-            </strong>{" "}
-            · {locality.distanceKm} km
-          </p>
-        </div>
+        {isAnalysisActive && run ? (
+          <AnalysisActivityFeed run={run} title="Phân tích School 360" />
+        ) : report ? (
+          <AnalysisReportCockpit
+            report={report}
+            onOpenDetails={() => setIsAnalysisDrawerOpen(true)}
+          />
+        ) : (
+          <div>
+            <h3 className="max-w-xl text-2xl leading-8 font-semibold tracking-[-0.4px] text-text-primary">
+              {tone.title}
+            </h3>
+            <p
+              className="mt-3 max-w-xl text-sm leading-6 text-text-secondary"
+              title={`${tone.detail} ${availableStudents} có thể tiếp cận · ${locality.distanceKm} km · ${locality.travelTime}.`}
+            >
+              {tone.detail}{" "}
+              <strong className="font-semibold text-text-primary">
+                {availableStudents} có thể tiếp cận
+              </strong>{" "}
+              · {locality.distanceKm} km
+            </p>
+          </div>
+        )}
 
         <div className="mt-7 grid grid-cols-2 gap-x-5 gap-y-5 border-y border-card-border py-4 sm:grid-cols-3">
           <InfoItem label="Mức độ hợp tác" value={relationship.level} />
@@ -194,29 +208,31 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
           <InfoItem label="Người phụ trách" value={relationship.contact} />
         </div>
 
-        <div className="mt-5">
-          <h3 className="text-sm font-semibold text-text-primary">
-            3 bước tiếp theo
-          </h3>
-          <ol className="mt-2 grid gap-2 sm:grid-cols-3">
-            {steps.map((step, index) => (
-              <li key={step.title} className="flex min-w-0 items-start gap-2">
-                <span className={stepTone(index)}>{index + 1}</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-text-primary">
-                    {step.title}
-                  </p>
-                  <p
-                    className="mt-0.5 line-clamp-2 text-xs leading-4 text-text-secondary"
-                    title={step.detail}
-                  >
-                    {step.detail}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
+        {!isAnalysisActive && !report && (
+          <div className="mt-5">
+            <h3 className="text-sm font-semibold text-text-primary">
+              3 bước tiếp theo
+            </h3>
+            <ol className="mt-2 grid gap-2 sm:grid-cols-3">
+              {steps.map((step, index) => (
+                <li key={step.title} className="flex min-w-0 items-start gap-2">
+                  <span className={stepTone(index)}>{index + 1}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-text-primary">
+                      {step.title}
+                    </p>
+                    <p
+                      className="mt-0.5 line-clamp-2 text-xs leading-4 text-text-secondary"
+                      title={step.detail}
+                    >
+                      {step.detail}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
 
         <div className="mt-auto flex flex-wrap gap-2 pt-3">
           <Button
