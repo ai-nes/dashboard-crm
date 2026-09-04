@@ -11,6 +11,7 @@ import {
 } from "@/components/tailgrids/core/tabs";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { useStudentAuditLogsQuery } from "@/hooks/use-student-audit-query";
+import { useStudentChatwootInteractionsQuery } from "@/hooks/use-students-queries";
 import {
   useCreateCrmTaskMutation,
   useCrmTasksQuery,
@@ -26,6 +27,7 @@ import {
 } from "@/hooks/use-crm-notes-queries";
 import type { StudentAuditLog } from "@/services/api/student-audit";
 import type {
+  StudentChatwootInteractionsResponse,
   StudentNoteItem,
   StudentTaskItem,
 } from "@/services/api/students/types";
@@ -50,6 +52,7 @@ import type {
 
 interface StudentActivitiesTabProps extends Student360SectionProps {
   studentId: string;
+  initialChatwootInteractions?: StudentChatwootInteractionsResponse | null;
   initialTaskId?: string;
 }
 
@@ -87,6 +90,7 @@ function getFollowUpTaskTitle(content: string): string {
 export default function StudentActivitiesTab({
   data,
   studentId,
+  initialChatwootInteractions,
   initialTaskId,
 }: StudentActivitiesTabProps) {
   const { user } = useAuth();
@@ -123,6 +127,12 @@ export default function StudentActivitiesTab({
 
   // Dùng ID canonical từ URL (e.g. ENR-2026-00005), không dùng mã hiển thị/nội bộ từ payload student.
   const studentDocname = studentId.trim();
+  const chatwootInteractionsQuery = useStudentChatwootInteractionsQuery(
+    studentDocname,
+    {
+      initialData: initialChatwootInteractions ?? undefined,
+    },
+  );
 
   // Gọi Frappe RPC crm.api.note.list_notes
   const { data: crmNotesData } = useCrmNotesQuery({
@@ -205,7 +215,8 @@ export default function StudentActivitiesTab({
 
     return [...pendingCreatedTasks, ...visibleServerTasks];
   }, [createdTasks, deletedTaskIds, serverTasks, taskOverrides]);
-  const zaloMessages = data.zaloMessages ?? [];
+  const zaloMessages =
+    chatwootInteractionsQuery.data?.zalo_messages ?? data.zaloMessages ?? [];
   const calls = data.calls ?? [];
   const auditEvents = studentAuditQuery.data?.logs ?? EMPTY_AUDIT_LOGS;
 

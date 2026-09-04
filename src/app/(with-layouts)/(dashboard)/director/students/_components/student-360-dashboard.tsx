@@ -5,7 +5,10 @@ import DetailTabs, {
   type DetailTabItem,
 } from "@/components/common/detail-tabs";
 import { useStudent360Query } from "@/hooks/use-students-queries";
-import type { Student360Data } from "@/services/api/students/types";
+import type {
+  StudentChatwootInteractionsResponse,
+  Student360Data,
+} from "@/services/api/students/types";
 
 import JourneyTimeline from "./journey-timeline";
 import StudentActivitiesTab from "./student-activities-tab";
@@ -20,6 +23,7 @@ import StudentSourceContext from "./student-source-context";
 interface Student360DashboardProps {
   studentId?: string;
   initialData?: Student360Data | null;
+  initialChatwootInteractions?: StudentChatwootInteractionsResponse | null;
   data?: Student360Data;
   initialTab?: string;
   initialTaskId?: string;
@@ -28,6 +32,7 @@ interface Student360DashboardProps {
 export default function Student360Dashboard({
   studentId,
   initialData,
+  initialChatwootInteractions,
   data: propData,
   initialTab,
   initialTaskId,
@@ -94,7 +99,12 @@ export default function Student360Dashboard({
         <DetailTabs
           ariaLabel="Các phần trong hồ sơ học sinh"
           defaultSelectedKey={getInitialTab(initialTab)}
-          tabs={getStudentTabs(data, targetId, initialTaskId)}
+          tabs={getStudentTabs(
+            data,
+            targetId,
+            initialChatwootInteractions,
+            initialTaskId,
+          )}
         />
       </div>
     </main>
@@ -104,6 +114,7 @@ export default function Student360Dashboard({
 function getStudentTabs(
   data: Student360Data,
   analysisTargetId: string,
+  initialChatwootInteractions?: StudentChatwootInteractionsResponse | null,
   initialTaskId?: string,
 ): DetailTabItem[] {
   return [
@@ -129,6 +140,7 @@ function getStudentTabs(
         <StudentActivitiesTab
           data={data}
           studentId={analysisTargetId}
+          initialChatwootInteractions={initialChatwootInteractions}
           initialTaskId={initialTaskId}
         />
       ),
