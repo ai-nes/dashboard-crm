@@ -38,6 +38,7 @@ import {
   zaloMessages as mockZaloMessages,
 } from "./student-tab-data";
 import StudentNotesTab from "./student-notes-tab";
+import StudentDeleteTaskDialog from "./student-delete-task-dialog";
 import StudentTasksTab from "./student-tasks-tab";
 import {
   crmTaskToStudentTask,
@@ -193,6 +194,9 @@ export default function StudentActivitiesTab({
   >({});
   const [deletedTaskIds, setDeletedTaskIds] = useState<Set<string>>(
     () => new Set(),
+  );
+  const [taskToDelete, setTaskToDelete] = useState<StudentTaskItem | null>(
+    null,
   );
   const tasks = useMemo(() => {
     const serverIds = new Set(serverTasks.map((task) => task.id));
@@ -377,18 +381,24 @@ export default function StudentActivitiesTab({
     }
   };
 
-  const handleDeleteTask = async (id: string) => {
+  const handleRequestDeleteTask = (id: string) => {
     const task = tasks.find((current) => current.id === id);
-    if (!task || !window.confirm(`Xóa task “${task.title}”?`)) return;
+    if (task) setTaskToDelete(task);
+  };
 
-    setDeletedTaskIds((prev) => new Set(prev).add(id));
+  const handleConfirmDeleteTask = async () => {
+    const task = taskToDelete;
+    if (!task) return;
+
+    setDeletedTaskIds((prev) => new Set(prev).add(task.id));
     try {
-      await deleteTaskMutation.mutateAsync(id);
+      await deleteTaskMutation.mutateAsync(task.id);
+      setTaskToDelete(null);
       toast.success("Đã xóa task.");
     } catch (error) {
       setDeletedTaskIds((prev) => {
         const next = new Set(prev);
-        next.delete(id);
+        next.delete(task.id);
         return next;
       });
       toast.error(
@@ -443,7 +453,7 @@ export default function StudentActivitiesTab({
           tasks={tasks}
           onCreateTask={handleCreateTask}
           onUpdateTask={handleUpdateTask}
-          onDeleteTask={handleDeleteTask}
+          onDeleteTask={handleRequestDeleteTask}
           assignees={taskAssignees}
           currentUserId={currentUserId}
           isLoadingAssignees={taskAssigneesQuery.isPending}
@@ -465,6 +475,14 @@ export default function StudentActivitiesTab({
       <TabContent value="calls">
         <StudentCallsTab calls={calls} />
       </TabContent>
+      <StudentDeleteTaskDialog
+        task={taskToDelete}
+        isDeleting={deleteTaskMutation.isPending}
+        onOpenChange={(open) => {
+          if (!open && !deleteTaskMutation.isPending) setTaskToDelete(null);
+        }}
+        onConfirm={handleConfirmDeleteTask}
+      />
     </TabRoot>
   );
 }

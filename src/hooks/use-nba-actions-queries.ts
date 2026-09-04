@@ -11,7 +11,11 @@ import {
   listNbaActionTypes,
   listNbaActions,
   listNbaTimeSlots,
+  createNbaAction,
+  deleteNbaAction,
+  getNbaAction,
   updateNbaAction,
+  type CreateNbaActionPayload,
   type ListNbaActionTypesResponse,
   type ListNbaActionsParams,
   type ListNbaActionsResponse,
@@ -42,6 +46,18 @@ export function useNbaActionsQuery<TData = ListNbaActionsResponse>(
   return useQuery({
     queryKey: nbaActionsKeys.list(params),
     queryFn: () => listNbaActions(params),
+    ...options,
+  });
+}
+
+export function useNbaActionQuery(
+  name: string,
+  options?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getNbaAction>>, Error>, "queryKey" | "queryFn">,
+) {
+  return useQuery({
+    queryKey: ["nba-actions", "action", name] as const,
+    queryFn: () => getNbaAction(name),
+    enabled: Boolean(name),
     ...options,
   });
 }
@@ -94,5 +110,23 @@ export function useUpdateNbaActionMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: nbaActionsKeys.all });
     },
+  });
+}
+
+export function useCreateNbaActionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateNbaActionPayload) => createNbaAction(payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: nbaActionsKeys.all }),
+  });
+}
+
+export function useDeleteNbaActionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (name: string) => deleteNbaAction(name),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: nbaActionsKeys.all }),
   });
 }

@@ -1,6 +1,8 @@
 import {
   ACTION_TIME_SLOTS,
   type ActionTimeSlot,
+  type ActionChannel,
+  type ActionExecutionType,
   type ListNbaActionTypesResponse,
   type ListNbaActionsResponse,
   type ListNbaTimeSlotsResponse,
@@ -41,7 +43,8 @@ function booleanValue(value: unknown, fallback = false): boolean {
 }
 
 function numberValue(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) ? number : fallback;
 }
 
 function normalizeTimeSlots(value: unknown): ActionTimeSlot[] {
@@ -57,6 +60,33 @@ function normalizeTimeSlots(value: unknown): ActionTimeSlot[] {
       : value;
   if (!Array.isArray(parsed)) return [];
   return ACTION_TIME_SLOTS.filter((slot) => parsed.includes(slot));
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  const parsed =
+    typeof value === "string"
+      ? (() => {
+          try {
+            return JSON.parse(value) as unknown;
+          } catch {
+            return [];
+          }
+        })()
+      : value;
+
+  return Array.isArray(parsed)
+    ? parsed.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function normalizeChannel(value: unknown): ActionChannel | null {
+  return typeof value === "string" && ["NONE", "CALL", "EMAIL", "MESSAGE"].includes(value)
+    ? (value as ActionChannel)
+    : null;
+}
+
+function normalizeExecutionType(value: unknown): ActionExecutionType {
+  return value === "AI_ASSISTED" ? "AI_ASSISTED" : "MANUAL";
 }
 
 function normalizeAction(value: unknown, fallbackName = ""): NbaAction {
@@ -78,13 +108,18 @@ function normalizeAction(value: unknown, fallbackName = ""): NbaAction {
     actionType: nullableString(action.action_type ?? action.actionType),
     description: nullableString(action.description),
     purpose: nullableString(action.purpose),
-    defaultChannel: nullableString(
-      action.default_channel ?? action.defaultChannel,
-    ),
+    defaultChannel: normalizeChannel(action.default_channel ?? action.defaultChannel),
+    allowedActors: normalizeStringArray(action.allowed_actors ?? action.allowedActors),
     allowedTimeSlots: normalizeTimeSlots(
       action.allowed_time_slots ?? action.allowedTimeSlots,
     ),
+    requiresApproval: booleanValue(action.requires_approval ?? action.requiresApproval),
+    autoExecute: booleanValue(action.auto_execute ?? action.autoExecute),
+    executionType: normalizeExecutionType(action.execution_type ?? action.executionType),
+    aiAllowed: booleanValue(action.ai_allowed ?? action.aiAllowed),
     enabled: booleanValue(action.enabled, true),
+    sortOrder: numberValue(action.sort_order ?? action.sortOrder, 0),
+    modified: nullableString(action.modified),
   };
 }
 

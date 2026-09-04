@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { SearchIcon } from "@/components/common/header/icons";
-import { NAV_DATA } from "@/components/common/sidebar/data";
+import { getNavigationDataForRoles } from "@/components/common/sidebar/data";
 import { filterNavigationByRoles } from "@/components/common/sidebar/utils";
 import {
   InputGroup,
@@ -40,11 +40,14 @@ export default function SearchBar() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Parse NAV_DATA into searchable items grouped by section
+  // Parse role-aware navigation into searchable items grouped by section
   const { itemsBySection } = useMemo(() => {
     const sectionsMap: Record<string, SearchItem[]> = {};
 
-    filterNavigationByRoles(NAV_DATA, user?.roles ?? []).forEach((section) => {
+    filterNavigationByRoles(
+      getNavigationDataForRoles(user?.roles ?? []),
+      user?.roles ?? [],
+    ).forEach((section) => {
       const sectionLabel = section.label || "PAGES";
 
       section.items.forEach((item) => {

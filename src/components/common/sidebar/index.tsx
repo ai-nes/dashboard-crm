@@ -8,7 +8,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Key } from "react-aria-components";
-import { NAV_DATA } from "./data";
+import { getNavigationDataForRoles } from "./data";
 import { CloseIcon, SidebarExpandedIcon, ThreeDots } from "./icon";
 import NavItem from "./nav-item";
 import {
@@ -30,7 +30,11 @@ export default function Sidebar({
   const { user } = useAuth();
   const pathname = usePathname();
   const visibleNavData = useMemo(
-    () => filterNavigationByRoles(NAV_DATA, user?.roles ?? []),
+    () =>
+      filterNavigationByRoles(
+        getNavigationDataForRoles(user?.roles ?? []),
+        user?.roles ?? [],
+      ),
     [user?.roles],
   );
 

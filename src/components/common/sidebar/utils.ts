@@ -1,5 +1,5 @@
 import { NAV_DATA } from "./data";
-import type { NavigationSection } from "./data";
+import type { NavigationItem, NavigationSection } from "./data";
 import { getEffectiveCrmRoles } from "../auth/rbac";
 
 /**
@@ -13,6 +13,14 @@ export function isPathActive(href: string, pathname: string): boolean {
   }
 
   return pathname === href || pathname.startsWith(href + "/");
+}
+
+function isNavigationItemActive(
+  item: Pick<NavigationItem, "url" | "exact">,
+  pathname: string,
+): boolean {
+  if (!item.url) return false;
+  return item.exact ? pathname === item.url : isPathActive(item.url, pathname);
 }
 
 /**
@@ -30,8 +38,8 @@ export function findActiveGroupKeyInNavigation(
   for (const section of navigation) {
     for (const item of section.items) {
       if (item.items && item.items.length > 0) {
-        const hasMatch = item.items.some(
-          (child) => child.url && isPathActive(child.url, pathname),
+        const hasMatch = item.items.some((child) =>
+          isNavigationItemActive(child, pathname),
         );
         if (hasMatch) return item.title;
       }

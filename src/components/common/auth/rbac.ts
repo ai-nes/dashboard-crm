@@ -165,6 +165,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/director/alerts", roles: ALERT_ROLES },
   { path: "/director/data-health", roles: DATA_HEALTH_ROLES },
   { path: "/director/admin/nba-actions", roles: NBA_ACTIONS_READ_ROLES },
+  { path: "/director/admin/action-recommendations", roles: NBA_ACTIONS_READ_ROLES },
   {
     path: "/director/campaign-intelligence",
     roles: CAMPAIGN_INTELLIGENCE_ROLES,

@@ -4,30 +4,26 @@ import { getPaginationItems, normalizePagination } from "./pagination-utils";
 
 describe("pagination helpers", () => {
   it("keeps every page when the page count is small", () => {
-    expect(getPaginationItems(3, 7)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(getPaginationItems(3, 5)).toEqual([1, 2, 3, 4, 5]);
   });
 
   it("keeps the first and last page when the current page is in the middle", () => {
     expect(getPaginationItems(10, 20)).toEqual([
       1,
       "ellipsis",
-      8,
       9,
       10,
       11,
-      12,
       "ellipsis",
       20,
     ]);
   });
 
   it("moves the visible window toward the current edge", () => {
-    expect(getPaginationItems(1, 20)).toEqual([1, 2, 3, 4, 5, "ellipsis", 20]);
+    expect(getPaginationItems(1, 20)).toEqual([1, 2, 3, "ellipsis", 20]);
     expect(getPaginationItems(20, 20)).toEqual([
       1,
       "ellipsis",
-      16,
-      17,
       18,
       19,
       20,

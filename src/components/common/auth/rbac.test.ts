@@ -5,8 +5,28 @@ import {
   getDefaultRouteForRoles,
   getRecognizedRoles,
 } from "./rbac";
-import { filterNavigationByRoles } from "../sidebar/utils";
-import { NAV_DATA, type NavigationSection } from "../sidebar/data";
+import {
+  filterNavigationByRoles,
+  findActiveGroupKeyInNavigation,
+} from "../sidebar/utils";
+import {
+  DIRECTOR_NAV_DATA,
+  NAV_DATA,
+  getNavigationDataForRoles,
+  type NavigationSection,
+} from "../sidebar/data";
+
+function getNavigationUrls(navigation: NavigationSection[]): string[] {
+  return navigation.flatMap((section) =>
+    section.items.flatMap((item) =>
+      item.items?.length
+        ? item.items.flatMap((child) => (child.url ? [child.url] : []))
+        : item.url
+          ? [item.url]
+          : [],
+    ),
+  );
+}
 
 describe("dashboard RBAC", () => {
   it("matches only canonical role names", () => {
@@ -69,10 +89,52 @@ describe("dashboard RBAC", () => {
     expect(filterNavigationByRoles(navigation, ["sale"])).toEqual([]);
   });
 
+  it("keeps the director workspace flat and free of configuration", () => {
+    const directorNavigation = filterNavigationByRoles(
+      getNavigationDataForRoles(["Admissions Director"]),
+      ["Admissions Director"],
+    );
+    const primaryItems = directorNavigation.flatMap((section) =>
+      section.items.map((item) => item.title),
+    );
+
+    expect(primaryItems).toEqual([
+      "Tổng quan tuyển sinh",
+      "Việc cần xử lý",
+      "Chatbot CRM",
+      "Trung tâm AI & dữ liệu",
+      "Khám phá người học",
+      "Hồ sơ học sinh 360°",
+      "Trường THPT 360°",
+      "Hiệu suất khu vực",
+      "Phễu tuyển sinh",
+      "Phân tích xu hướng",
+      "Thông minh chiến dịch",
+      "Quản lý task",
+      "Hoạt động & chiến dịch",
+      "Hiệu suất SLA",
+      "Hoạt động trường",
+    ]);
+    expect(directorNavigation).toEqual(
+      filterNavigationByRoles(DIRECTOR_NAV_DATA, ["Admissions Director"]),
+    );
+    expect(getNavigationUrls(directorNavigation)).toHaveLength(15);
+    expect(primaryItems).not.toContain("Cấu hình Action NBA");
+    expect(
+      findActiveGroupKeyInNavigation("/director/ai", directorNavigation),
+    ).toBeNull();
+    expect(
+      findActiveGroupKeyInNavigation(
+        "/director/ai/next-best-action",
+        directorNavigation,
+      ),
+    ).toBeNull();
+  });
+
   it("keeps System Manager on the small administration workspace", () => {
-    const systemManagerItems = filterNavigationByRoles(NAV_DATA, [
-      "System Manager",
-    ]).flatMap((section) => section.items.map((item) => item.url));
+    const systemManagerItems = getNavigationUrls(
+      filterNavigationByRoles(NAV_DATA, ["System Manager"]),
+    );
 
     expect(systemManagerItems).toEqual([
       "/",
@@ -95,8 +157,8 @@ describe("dashboard RBAC", () => {
       canAccessDashboardPath("/director/students", ["System Manager", "Sale"]),
     ).toBe(false);
     expect(
-      filterNavigationByRoles(NAV_DATA, ["System Manager", "Sale"]).flatMap(
-        (section) => section.items.map((item) => item.url),
+      getNavigationUrls(
+        filterNavigationByRoles(NAV_DATA, ["System Manager", "Sale"]),
       ),
     ).toEqual(systemManagerItems);
   });

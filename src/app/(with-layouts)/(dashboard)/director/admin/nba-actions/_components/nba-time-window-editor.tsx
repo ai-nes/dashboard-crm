@@ -1,11 +1,10 @@
 "use client";
 
-import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Toggle } from "@/components/tailgrids/core/toggle";
+import { Select, SelectContent, SelectIndicator, SelectItem, SelectTrigger } from "@/components/tailgrids/core/select";
 import type { ActionTimeSlot } from "@/services/api/nba-actions";
 
 import {
-  ACTION_TIME_SLOT_HINTS,
   ACTION_TIME_SLOT_LABELS,
   ACTION_TIME_SLOTS,
 } from "./types";
@@ -16,7 +15,7 @@ interface NbaTimeWindowEditorProps {
   disabled?: boolean;
   isSaving?: boolean;
   onUnlimitedChange: (isUnlimited: boolean) => void;
-  onSlotChange: (slot: ActionTimeSlot, isSelected: boolean) => void;
+  onSlotsChange: (slots: ActionTimeSlot[]) => void;
 }
 
 export default function NbaTimeWindowEditor({
@@ -25,24 +24,23 @@ export default function NbaTimeWindowEditor({
   disabled = false,
   isSaving = false,
   onUnlimitedChange,
-  onSlotChange,
+  onSlotsChange,
 }: NbaTimeWindowEditorProps) {
   const isUnlimited = allowedTimeSlots.length === 0;
   const isAllDay =
     availableTimeSlots.length === ACTION_TIME_SLOTS.length &&
     availableTimeSlots.every((slot) => allowedTimeSlots.includes(slot));
+  const selectedSlots = isUnlimited ? [] : allowedTimeSlots;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-lg border border-card-border bg-background-gray-primary p-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-2.5">
+      <div className="flex flex-col gap-1.5 rounded-lg border border-card-border bg-background-gray-primary px-2.5 py-1.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-text-primary">Không giới hạn giờ</p>
-          <p className="mt-1 text-xs leading-5 text-text-secondary">
-            Cho phép AI đề xuất Action ở mọi thời điểm.
-          </p>
+          <p className="text-xs font-medium text-text-primary">Cho phép gợi ý cả ngày</p>
+          <p className="mt-0.5 text-[11px] leading-4 text-text-secondary">Tắt để chọn các khung giờ cụ thể.</p>
         </div>
         <Toggle
-          size="md"
+          size="sm"
           label={isUnlimited ? "Đang bật" : "Đang tắt"}
           checked={isUnlimited}
           disabled={disabled || isSaving}
@@ -50,45 +48,33 @@ export default function NbaTimeWindowEditor({
         />
       </div>
 
-      <fieldset disabled={disabled || isSaving || isUnlimited}>
-        <legend className="mb-2 text-sm font-medium text-text-primary">
-          Khung giờ được phép
-        </legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {availableTimeSlots.map((slot) => {
-            const isSelected = allowedTimeSlots.includes(slot);
-            const isLastSelected = isSelected && allowedTimeSlots.length === 1;
+      <label className="space-y-1">
+        <span className="text-xs font-medium text-input-label-text">Giới hạn theo khung giờ</span>
+        <Select
+          selectionMode="multiple"
+          value={selectedSlots}
+          onChange={(value) => {
+            const nextSlots = Array.isArray(value) ? value.filter((item): item is ActionTimeSlot => availableTimeSlots.includes(item as ActionTimeSlot)) : [];
+            onSlotsChange(nextSlots);
+          }}
+          isDisabled={disabled || isSaving || isUnlimited}
+          aria-label="Giới hạn theo khung giờ"
+        >
+        <SelectTrigger size="sm" className="h-auto min-h-8.5 w-full flex-wrap justify-between gap-1 pr-2.5 pl-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              {isUnlimited ? <span className="text-sm text-text-tertiary">Không giới hạn giờ</span> : selectedSlots.length === 0 ? <span className="text-sm text-text-tertiary">Chọn khung giờ</span> : selectedSlots.map((slot) => <span key={slot} className="rounded-md bg-badge-primary-background px-1.5 py-0.5 text-xs font-medium text-text-primary">{ACTION_TIME_SLOT_LABELS[slot]}</span>)}
+            </div>
+            <SelectIndicator />
+          </SelectTrigger>
+          <SelectContent className="min-w-(--trigger-width)">
+            {availableTimeSlots.map((slot) => <SelectItem key={slot} id={slot} textValue={ACTION_TIME_SLOT_LABELS[slot]}>{ACTION_TIME_SLOT_LABELS[slot]}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </label>
 
-            return (
-              <Checkbox
-                key={slot}
-                size="md"
-                isSelected={isSelected}
-                isDisabled={isLastSelected}
-                onChange={(selected) => onSlotChange(slot, selected)}
-                className="w-full rounded-lg border border-card-border bg-button-primary-outline-background px-3 py-3 transition data-[selected=true]:border-primary-500/60 data-[selected=true]:bg-badge-primary-background hover:border-border-secondary-alt"
-              >
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-text-primary">
-                    {ACTION_TIME_SLOT_LABELS[slot]}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-text-tertiary">
-                    {ACTION_TIME_SLOT_HINTS[slot]}
-                  </span>
-                </span>
-              </Checkbox>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      <div className="flex items-center justify-between gap-3 text-xs">
+      <div className="flex items-center justify-between gap-3 border-t border-card-border pt-2.5 text-xs">
         <p className="leading-5 text-text-secondary">
-          {isUnlimited
-            ? "Đang áp dụng cho cả ngày, không giới hạn khung giờ."
-            : isAllDay
-              ? "Đang chọn đủ 4 khung giờ trong ngày."
-              : `Đang chọn ${allowedTimeSlots.length}/${availableTimeSlots.length} khung giờ.`}
+          {isUnlimited ? "Hành động này có thể được gợi ý cả ngày." : isAllDay ? "Đã chọn đủ 4 khung giờ trong ngày." : `Đã chọn ${allowedTimeSlots.length}/${availableTimeSlots.length} khung giờ.`}
         </p>
         {isSaving && (
           <span className="shrink-0 text-primary-500" role="status">
