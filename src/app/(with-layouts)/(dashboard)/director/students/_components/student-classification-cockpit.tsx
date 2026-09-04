@@ -5,13 +5,11 @@ import {
   RefreshCircle1Clockwise,
   Sparkle,
 } from "@tailgrids/icons";
-import { useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
 import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
 import { Button } from "@/components/tailgrids/core/button";
 import { useAnalysisRun } from "@/hooks/use-analysis-run";
-import { studentWorklistKeys } from "@/hooks/use-student-worklist-queries";
 import { cn } from "@/utils/cn";
 
 import StudentAskAIDialog from "./student-ask-ai-dialog";
@@ -20,6 +18,7 @@ import StudentContactInsightsCard from "./student-contact-insights-card";
 import StudentPositiveFeedbackCard from "./student-positive-feedback-card";
 import StudentRecentInteractionsCard from "./student-recent-interactions-card";
 import StudentSentimentGaugeCard from "./student-sentiment-gauge-card";
+import StudentNextBestActions from "./student-next-best-actions";
 import type { Student360SectionProps } from "./types";
 
 interface StudentClassificationCockpitProps extends Student360SectionProps {
@@ -39,20 +38,11 @@ export default function StudentClassificationCockpit({
     "student",
     analysisTargetId,
   );
-  const queryClient = useQueryClient();
   const isAnalysisActive =
     run?.status === "queued" ||
     run?.status === "running" ||
     requestMutation.isPending;
   const analysisError = requestMutation.error ?? runQuery.error;
-
-  useEffect(() => {
-    if (run?.status !== "completed" || !analysisTargetId.trim()) return;
-
-    void queryClient.invalidateQueries({
-      queryKey: studentWorklistKeys.actions(analysisTargetId),
-    });
-  }, [analysisTargetId, queryClient, run?.status]);
 
   const handleAnalysisRequest = () => {
     if (
@@ -132,17 +122,24 @@ export default function StudentClassificationCockpit({
 
         {isOverviewOpen && (
           <div className="space-y-4">
-            {/* Card 1: Contact insights */}
-            <StudentContactInsightsCard
-              data={data}
-              reportTitle={report?.title}
-              policyRevision={
-                nbaStage?.policyRevision ?? student360Stage?.policyRevision
-              }
-              isRefreshing={Boolean(isAnalysisActive)}
-              onRefresh={handleAnalysisRequest}
-              onOpenAskAI={() => setIsAskDialogOpen(true)}
-            />
+            <div className="space-y-4">
+              {/* Supporting contact context */}
+              <StudentContactInsightsCard
+                data={data}
+                reportTitle={report?.title}
+                policyRevision={
+                  nbaStage?.policyRevision ?? student360Stage?.policyRevision
+                }
+                isRefreshing={Boolean(isAnalysisActive)}
+                onRefresh={handleAnalysisRequest}
+                onOpenAskAI={() => setIsAskDialogOpen(true)}
+              />
+
+              <StudentNextBestActions
+                data={data}
+                studentId={analysisTargetId}
+              />
+            </div>
 
             {/* Card 2: Recent interactions */}
             <StudentRecentInteractionsCard

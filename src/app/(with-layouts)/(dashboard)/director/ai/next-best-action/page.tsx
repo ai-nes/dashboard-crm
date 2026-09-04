@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import NextBestActionWorkspace from "./_components/next-best-action-workspace";
 
 export const metadata: Metadata = {
-  title: "Việc cần xử lý",
-  description: "Ưu tiên hồ sơ theo hạn xử lý và thực hiện việc cần làm tiếp theo.",
+  title: "Đề xuất hành động",
+  description:
+    "Xem xét các đề xuất Next Best Action có căn cứ cho từng học sinh.",
 };
 
 export default function NextBestActionPage() {

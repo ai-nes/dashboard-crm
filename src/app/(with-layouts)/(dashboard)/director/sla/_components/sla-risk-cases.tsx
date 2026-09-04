@@ -18,9 +18,9 @@ export default function SlaRiskCases({ riskCases }: SlaRiskCasesProps) {
     <Card className="min-w-0 overflow-hidden p-0">
       <CardHeader className="items-start border-b-[0.5px] border-card-border p-5">
         <div>
-          <CardTitle>Hồ sơ có nguy cơ bỏ lỡ</CardTitle>
+          <CardTitle>Hồ sơ cần ưu tiên chăm sóc</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Điểm tiềm năng cao nhưng chưa có hoạt động mới.
+            Có tín hiệu quan tâm nhưng chưa có tương tác mới.
           </p>
         </div>
         <Badge color="error">{rows.length} hồ sơ</Badge>
@@ -35,8 +35,7 @@ export default function SlaRiskCases({ riskCases }: SlaRiskCasesProps) {
           <thead className="border-b-[0.5px] border-card-border bg-background-soft-50 text-xs text-text-tertiary">
             <tr>
               <th className="px-5 py-3 font-medium">Hồ sơ</th>
-              <th className="px-3 py-3 font-medium">Điểm tiềm năng</th>
-              <th className="px-3 py-3 font-medium">Chưa hoạt động</th>
+              <th className="px-3 py-3 font-medium">Chưa có tương tác</th>
               <th className="px-3 py-3 font-medium">Phụ trách</th>
               <th className="px-5 py-3 text-right font-medium" />
             </tr>
@@ -51,11 +50,6 @@ export default function SlaRiskCases({ riskCases }: SlaRiskCasesProps) {
                   <p className="mt-0.5 text-xs text-text-tertiary">
                     {riskCase.school}
                   </p>
-                </td>
-                <td className="px-3 py-3.5 font-semibold tabular-nums text-text-primary">
-                  {riskCase.probability === null
-                    ? "—"
-                    : `${riskCase.probability}/100`}
                 </td>
                 <td className="px-3 py-3.5 font-medium text-error-500">
                   {riskCase.silentFor}
@@ -99,17 +93,9 @@ export default function SlaRiskCases({ riskCases }: SlaRiskCasesProps) {
                 {riskCase.priority}
               </Badge>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-xs">
+            <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <p className="text-text-tertiary">Điểm</p>
-                <p className="mt-1 font-semibold text-text-primary">
-                  {riskCase.probability === null
-                    ? "—"
-                    : `${riskCase.probability}/100`}
-                </p>
-              </div>
-              <div>
-                <p className="text-text-tertiary">Chưa hoạt động</p>
+                <p className="text-text-tertiary">Chưa có tương tác</p>
                 <p className="mt-1 font-semibold text-error-500">
                   {riskCase.silentFor}
                 </p>

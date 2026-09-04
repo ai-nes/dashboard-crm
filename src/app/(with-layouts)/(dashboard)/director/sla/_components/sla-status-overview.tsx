@@ -35,7 +35,7 @@ export default function SlaStatusOverview({ buckets }: SlaStatusOverviewProps) {
           id="sla-status-heading"
           className="text-base font-semibold text-text-primary"
         >
-          Tình trạng thời hạn xử lý
+          Tình trạng xử lý hồ sơ
         </h2>
       </div>
 

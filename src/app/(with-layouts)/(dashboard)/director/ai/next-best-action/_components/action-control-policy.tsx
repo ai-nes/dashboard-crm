@@ -42,9 +42,9 @@ export default function ActionControlPolicy({
     <Card className="min-w-0 p-5">
       <CardHeader className="mb-4 items-start">
         <div>
-          <CardTitle>Quy tắc thực hiện</CardTitle>
+          <CardTitle>Quy định xử lý</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Việc càng tác động trực tiếp càng cần người xác nhận.
+            Mức xác nhận cần thiết trước khi công việc được thực hiện.
           </p>
         </div>
       </CardHeader>
