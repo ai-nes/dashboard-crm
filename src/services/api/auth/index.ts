@@ -1,4 +1,4 @@
-import type { CurrentUser, FrappeMessage } from "./types";
+import type { CurrentUser, FrappeMessage, SessionUser } from "./types";
 
 export type * from "./types";
 
@@ -66,6 +66,62 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 export async function getCsrfToken(baseUrl = FRAPPE_URL): Promise<string | null> {
   const user = await getCurrentUserFrom(baseUrl);
   return user?.csrf_token?.trim() || null;
+}
+
+function normalizeSessionUser(value: unknown): SessionUser | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const source = value as Record<string, unknown>;
+  const name = String(source.name || source.email || "").trim();
+  if (!name) return null;
+
+  return {
+    name,
+    email: String(source.email || name),
+    full_name: String(source.full_name || source.fullName || name),
+    roles: Array.isArray(source.roles)
+      ? source.roles.filter((role): role is string => typeof role === "string")
+      : [],
+    crm_profile:
+      typeof source.crm_profile === "string"
+        ? source.crm_profile
+        : typeof source.crmProfile === "string"
+          ? source.crmProfile
+          : null,
+  };
+}
+
+/** Lấy danh sách user CRM để dùng cho trường phân công task. */
+export async function getSessionUsers(): Promise<SessionUser[]> {
+  let response: Response;
+  try {
+    response = await fetch(frappeMethod("crm.api.session.get_users"), {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+  } catch {
+    throw new Error("Không thể tải danh sách người phân công task.");
+  }
+
+  if (!response.ok) {
+    throw new Error(`Không thể tải danh sách người phân công (HTTP ${response.status}).`);
+  }
+
+  const body = (await response.json().catch(() => null)) as FrappeMessage<unknown> | null;
+  const message = body?.message;
+  const messageArrays = Array.isArray(message) ? message : [];
+  const rawUsers =
+    (Array.isArray(messageArrays[1]) && messageArrays[1].length > 0
+      ? messageArrays[1]
+      : messageArrays[0]) ??
+    (Array.isArray(message) ? message : []);
+
+  const normalizedUsers = rawUsers.map((rawUser: unknown) =>
+    normalizeSessionUser(rawUser),
+  );
+  return normalizedUsers.filter(
+    (user: SessionUser | null): user is SessionUser => user !== null,
+  );
 }
 
 export interface PasswordLoginResult {

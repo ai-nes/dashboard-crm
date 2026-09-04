@@ -1,11 +1,111 @@
-export type StudentJourneyStage = "Quan tâm" | "Tìm hiểu" | "Tư vấn" | "Ứng tuyển" | "Nhập học";
+export type StudentJourneyStage =
+  | "Quan tâm"
+  | "Tìm hiểu"
+  | "Tư vấn"
+  | "Ứng tuyển"
+  | "Nhập học";
 
 export type StudentPriority = "Cao" | "Trung bình" | "Thấp";
 
-export type StudentClassificationTone = "primary" | "success" | "warning" | "sky" | "gray";
+export type StudentVerificationStatus =
+  | "Đã xác thực"
+  | "Chưa xác thực"
+  | "Cần xác minh";
+
+export type StudentConsentStatus =
+  | "Đã đồng ý"
+  | "Chưa đồng ý"
+  | "Đã rút lại"
+  | "Chưa xác định";
+
+export interface StudentContactConsent {
+  status: StudentConsentStatus;
+  channels: ("Điện thoại" | "Zalo" | "Email")[];
+  updatedAt?: string | null;
+}
+
+export interface StudentProbabilityTrendPoint {
+  date: string;
+  score: number;
+  touches: number;
+  eventTitle?: string | null;
+  eventDetail?: string | null;
+  channel?: string | null;
+}
+
+export interface StudentChannelActivity {
+  title: string;
+  time?: string | null;
+  description?: string | null;
+}
+
+export interface StudentChannelPerformanceItem {
+  channel: string;
+  touches: number;
+  response: number;
+  activities?: StudentChannelActivity[];
+  effectiveness?: string | null;
+  notes?: string | null;
+}
+
+export type StudentTaskType = "call" | "email" | "todo";
+
+export type StudentZaloDirection = "inbound" | "outbound";
+
+export type StudentZaloMessageStatus = "sent" | "delivered" | "read" | "failed";
+
+export interface StudentZaloMessage {
+  id: string;
+  time: string;
+  senderName: string;
+  senderRole?: string;
+  recipientName: string;
+  recipientRole?: string;
+  content: string;
+  direction: StudentZaloDirection;
+  status?: StudentZaloMessageStatus;
+  conversationTitle?: string;
+  attachmentName?: string;
+}
+
+export type StudentCallDirection = "inbound" | "outbound" | "missed";
+
+export type StudentCallOutcome =
+  | "connected"
+  | "missed"
+  | "no-answer"
+  | "callback";
+
+export interface StudentCallRecord {
+  id: string;
+  time: string;
+  direction: StudentCallDirection;
+  outcome: StudentCallOutcome;
+  callerName: string;
+  receiverName: string;
+  callerRole?: string;
+  receiverRole?: string;
+  phoneNumber?: string;
+  durationSeconds?: number;
+  topic?: string;
+  summary?: string;
+  recordingUrl?: string;
+}
+
+export type StudentClassificationTone =
+  | "primary"
+  | "success"
+  | "warning"
+  | "sky"
+  | "gray";
 
 export interface StudentFitFactor {
-  label: "Ngành" | "Hồ sơ học tập" | "Phương thức xét tuyển" | "Chi phí" | "Địa lý";
+  label:
+    | "Ngành"
+    | "Hồ sơ học tập"
+    | "Phương thức xét tuyển"
+    | "Chi phí"
+    | "Địa lý";
   value: string;
   tone: StudentClassificationTone;
 }
@@ -38,6 +138,26 @@ export interface StudentListItem {
   priority: StudentPriority;
 }
 
+export interface StudentTaskItem {
+  id: string;
+  title: string;
+  assignee: string;
+  assigneeId?: string;
+  dueDate: string;
+  dueTime?: string;
+  status: "todo" | "in-progress" | "done" | "canceled";
+  priority: StudentPriority;
+  taskType?: StudentTaskType;
+  notes?: string;
+}
+
+export interface StudentNoteItem {
+  name?: string;
+  author: string;
+  date: string;
+  content: string;
+}
+
 export interface StudentJourneyEvent {
   id: string;
   date: string;
@@ -59,8 +179,17 @@ export interface Student360Data {
     email: string;
     province: string;
     counselor: string;
+    priority?: StudentPriority | null;
+    verificationStatus?: StudentVerificationStatus | null;
+    contactConsent?: StudentContactConsent | null;
+    lastUpdatedAt?: string | null;
   };
-  readiness: { label: string; value: number; tone: "success" | "warning" | "error"; detail: string }[];
+  readiness: {
+    label: string;
+    value: number;
+    tone: "success" | "warning" | "error";
+    detail: string;
+  }[];
   profile: { label: string; value: string }[];
   academics: { label: string; value: string }[];
   family: { label: string; value: string; emphasis?: boolean }[];
@@ -76,7 +205,11 @@ export interface Student360Data {
   };
   acquisition: {
     firstTouch: string;
-    sourceGroup: "Trực tuyến chủ động" | "Trực tuyến qua quảng cáo" | "Thực địa" | "Giới thiệu";
+    sourceGroup:
+      | "Trực tuyến chủ động"
+      | "Trực tuyến qua quảng cáo"
+      | "Thực địa"
+      | "Giới thiệu";
     campaign: string;
     capturedAt: string;
     attributionModel: string;
@@ -106,6 +239,8 @@ export interface Student360Data {
     summary: string;
     signalScore: number;
     probability: number;
+    potentialLabel?: "Tiềm năng cao" | "Tiềm năng vừa" | "Cần chú ý" | null;
+    priorityThreshold?: number | null;
     scoreDelta?: number;
     baseline?: number;
     confidence?: number;
@@ -115,13 +250,36 @@ export interface Student360Data {
     recommendation: string;
   };
   journey: StudentJourneyEvent[];
-  engagement: { label: string; value: string; level: "Cao" | "Trung bình" | "Thấp" }[];
-  application: { label: string; value: string; status?: "success" | "warning" | "primary" }[];
-  probabilityTrend?: { date: string; score: number; touches: number }[];
-  channelPerformance?: { channel: string; touches: number; response: number; fill?: string }[];
-  documents?: { name: string; type: string; status: string; tone: "success" | "warning" | "gray" | "primary" | "error"; date: string }[];
-  notes?: { author: string; date: string; content: string }[];
-  auditEvents?: { actor: string; action: string; time: string; status: string; tone: "success" | "primary" | "warning" | "error" }[];
+  engagement: {
+    label: string;
+    value: string;
+    level: "Cao" | "Trung bình" | "Thấp";
+  }[];
+  application: {
+    label: string;
+    value: string;
+    status?: "success" | "warning" | "primary";
+  }[];
+  probabilityTrend?: StudentProbabilityTrendPoint[];
+  channelPerformance?: StudentChannelPerformanceItem[];
+  documents?: {
+    name: string;
+    type: string;
+    status: string;
+    tone: "success" | "warning" | "gray" | "primary" | "error";
+    date: string;
+  }[];
+  notes?: StudentNoteItem[];
+  tasks?: StudentTaskItem[];
+  zaloMessages?: StudentZaloMessage[];
+  calls?: StudentCallRecord[];
+  auditEvents?: {
+    actor: string;
+    action: string;
+    time: string;
+    status: string;
+    tone: "success" | "primary" | "warning" | "error";
+  }[];
 }
 
 export interface DirectorStudentsParams {

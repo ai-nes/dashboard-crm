@@ -10,7 +10,7 @@ interface AuthContextValue {
   /** True while the initial session check is in flight. */
   isLoading: boolean;
   /** Re-run the session check (after login or logout). */
-  refetch: () => void;
+  refetch: () => Promise<CurrentUser | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user: data ?? null,
       isLoading: isPending,
-      refetch: () => void refetch(),
+      refetch: async () => (await refetch()).data ?? null,
     }),
     [data, isPending, refetch],
   );

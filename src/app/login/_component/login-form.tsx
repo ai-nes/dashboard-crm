@@ -4,6 +4,7 @@ import {
   AUTH_QUERY_KEY,
   useAuth,
 } from "@/components/common/auth/auth-provider";
+import { getDefaultRouteForRoles } from "@/components/common/auth/rbac";
 import { loginWithPassword } from "@/services/api/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -31,7 +32,7 @@ export function LoginForm() {
 
   // Already signed in (e.g. via Google) → don't sit on the login screen.
   useEffect(() => {
-    if (user) router.replace("/");
+    if (user) router.replace(getDefaultRouteForRoles(user.roles));
   }, [user, router]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -50,8 +51,8 @@ export function LoginForm() {
     }
 
     await queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
-    refetch();
-    router.replace("/");
+    const authenticatedUser = await refetch();
+    router.replace(getDefaultRouteForRoles(authenticatedUser?.roles));
   };
 
   return (

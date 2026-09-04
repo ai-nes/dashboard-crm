@@ -115,7 +115,15 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
     "phone": "09•• ••• 412",
     "email": "a••••@gmail.com",
     "province": "Cần Thơ",
-    "counselor": "Trần Quốc Bảo"
+    "counselor": "Trần Quốc Bảo",
+    "priority": "Cao",
+    "verificationStatus": "Đã xác thực",
+    "contactConsent": {
+      "status": "Đã đồng ý",
+      "channels": ["Điện thoại", "Zalo"],
+      "updatedAt": "2026-06-06T16:42:00+07:00"
+    },
+    "lastUpdatedAt": "2026-06-06T17:05:00+07:00"
   },
   "readiness": [
     {
@@ -241,6 +249,8 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
     "summary": "Nguyễn Minh An đang ở giai đoạn cân nhắc nghiêm túc, mức quan tâm cao với ngành Trí tuệ nhân tạo. Rào cản chính là chi phí; bố là người đồng quyết định cần được tiếp cận đúng kênh.",
     "signalScore": 82,
     "probability": 76,
+    "potentialLabel": "Tiềm năng cao",
+    "priorityThreshold": 70,
     "scoreDelta": 13,
     "baseline": 41,
     "confidence": 76,
@@ -294,13 +304,56 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
     { "label": "Hạn hoàn tất", "value": "Còn 12 ngày", "status": "warning" }
   ],
   "probabilityTrend": [
-    { "date": "2026-05-28", "score": 41, "touches": 2 },
-    { "date": "2026-06-02", "score": 63, "touches": 9 },
-    { "date": "2026-06-06", "score": 76, "touches": 18 }
+    {
+      "date": "2026-05-28T09:42:00+07:00",
+      "score": 41,
+      "touches": 2,
+      "eventTitle": "Đăng ký tại Career Talk",
+      "eventDetail": "Để lại nguyện vọng ngành Trí tuệ nhân tạo và thông tin liên hệ.",
+      "channel": "Sự kiện"
+    },
+    {
+      "date": "2026-06-02T09:30:00+07:00",
+      "score": 63,
+      "touches": 9,
+      "eventTitle": "Check-in FPTU Open Day",
+      "eventDetail": "Tham gia phiên chuyên ngành AI và đặt câu hỏi về chuẩn đầu ra.",
+      "channel": "Sự kiện"
+    },
+    {
+      "date": "2026-06-06T16:42:00+07:00",
+      "score": 76,
+      "touches": 18,
+      "eventTitle": "Cuộc gọi tư vấn chuyên sâu",
+      "eventDetail": "Xác nhận nguyện vọng nhập học và thống nhất thời hạn hoàn tất hồ sơ.",
+      "channel": "Cuộc gọi"
+    }
   ],
   "channelPerformance": [
-    { "channel": "Cuộc gọi", "touches": 2, "response": 100 },
-    { "channel": "Website", "touches": 22, "response": 82 }
+    {
+      "channel": "Cuộc gọi",
+      "touches": 2,
+      "response": 100,
+      "activities": [
+        {
+          "title": "Cuộc gọi tư vấn chuyên sâu lần 2",
+          "time": "2026-06-06T16:42:00+07:00",
+          "description": "Xác nhận ngành học, phụ huynh hỏi thêm về học phí và học bổng."
+        }
+      ]
+    },
+    {
+      "channel": "Website",
+      "touches": 22,
+      "response": 82,
+      "activities": [
+        {
+          "title": "Tra cứu biểu phí và học bổng",
+          "time": "2026-05-31T20:05:00+07:00",
+          "description": "Xem bảng học phí và chính sách học bổng theo học kỳ."
+        }
+      ]
+    }
   ],
   "documents": [
     { "name": "Phiếu đăng ký tư vấn", "type": "Biểu mẫu", "status": "Đã nhận", "tone": "success", "date": "2026-05-28" }
@@ -334,6 +387,20 @@ Schema nguồn hiện tại nằm tại [types.ts](../../src/services/api/studen
 | `email` | string | Có | Liên hệ; production phải theo policy PII |
 | `province` | string | Có | Khu vực |
 | `counselor` | string | Có | Người phụ trách |
+| `priority` | enum | Có | Mức ưu tiên hiển thị ở header: `Cao`, `Trung bình`, `Thấp` |
+| `verificationStatus` | enum | Có | Trạng thái xác thực hồ sơ: `Đã xác thực`, `Chưa xác thực`, `Cần xác minh` |
+| `contactConsent` | object | Có | Trạng thái và các kênh học sinh đã đồng ý nhận tư vấn |
+| `lastUpdatedAt` | string ISO-8601 | Có | Thời điểm cập nhật hồ sơ gần nhất |
+
+`contactConsent`:
+
+```typescript
+{
+  status: "Đã đồng ý" | "Chưa đồng ý" | "Đã rút lại" | "Chưa xác định";
+  channels: ("Điện thoại" | "Zalo" | "Email")[];
+  updatedAt?: string; // ISO-8601
+}
+```
 
 ### 5.2. `readiness[]`
 
@@ -357,6 +424,8 @@ Các collection này dùng cùng shape:
   emphasis?: boolean; // chỉ có ở family
 }
 ```
+
+Frontend dùng dimension có `id = "fit"` cho nhãn mức độ phù hợp; backend phải trả `value` và `tone` tương ứng, không mặc định `"Phù hợp cao"`.
 
 `profile` hiện được dùng cho ngày sinh, giới tính, khu vực và nguồn. `academics` dùng cho GPA, tiếng Anh, điểm mạnh và sở thích. `family` dùng cho người liên hệ, vai trò quyết định, mối quan tâm và kênh phù hợp.
 
@@ -435,6 +504,8 @@ Một `dimension`:
 | `summary` | string | Có | Tóm tắt insight |
 | `signalScore` | number | Có | Điểm tín hiệu, thường `0..100` |
 | `probability` | number | Có | Xác suất nhập học, `%` |
+| `potentialLabel` | enum | Có | Nhãn đi cùng điểm: `Tiềm năng cao`, `Tiềm năng vừa`, `Cần chú ý` |
+| `priorityThreshold` | number | Có | Ngưỡng ưu tiên trên biểu đồ, `0..100`; ví dụ `70` |
 | `scoreDelta` | number | Không | Thay đổi điểm gần nhất |
 | `baseline` | number | Không | Điểm baseline của biểu đồ |
 | `confidence` | number | Không | Độ tin cậy insight, `%` |
@@ -472,7 +543,7 @@ Một `dimension`:
 
 ## 6. Field mở rộng cho chart và hồ sơ xử lý
 
-Các field dưới đây đã có trong `Student360Data` và được frontend đọc trực tiếp. Chúng là tùy chọn để API vẫn trả được hồ sơ khi một nguồn dữ liệu chưa sẵn sàng.
+Các field dưới đây được frontend dùng trực tiếp cho biểu đồ và hồ sơ xử lý. Backend production phải trả dữ liệu thật khi nguồn đã có; nếu chưa có dữ liệu thì trả mảng rỗng `[]`, không bỏ qua để frontend hiển thị số minh họa.
 
 ### 6.1. `probabilityTrend[]`
 
@@ -480,9 +551,14 @@ Dùng cho chart `StudentChartsSection` — đường xu hướng xác suất nh�
 
 | Field | Kiểu | Bắt buộc | Mô tả |
 |---|---|---:|---|
-| `date` | string | Có | Nhãn thời gian; nên là ngày ISO-8601 nếu backend có dữ liệu chuẩn |
+| `date` | string ISO-8601 | Có | Thời điểm của mốc xu hướng |
 | `score` | number | Có | Điểm xác suất `0..100` |
-| `touches` | number | Có | Số điểm chạm tích lũy tại mốc đó |
+| `touches` | integer | Có | Số điểm chạm tích lũy tại mốc đó, `>= 0` |
+| `eventTitle` | string | Không | Tên sự kiện/điểm chạm hiển thị trong bảng chi tiết mốc |
+| `eventDetail` | string | Không | Diễn giải sự kiện/điểm chạm |
+| `channel` | enum | Không | `Website`, `Sự kiện`, `Cuộc gọi`, `Zalo`, `Hồ sơ` |
+
+Mỗi mốc nên có `eventTitle`, `eventDetail` và `channel` nếu mốc được tạo từ một điểm chạm cụ thể; nếu không có sự kiện liên quan thì để `null` hoặc bỏ field.
 
 ### 6.2. `channelPerformance[]`
 
@@ -491,9 +567,23 @@ Dùng cho chart hiệu suất theo kênh.
 | Field | Kiểu | Bắt buộc | Mô tả |
 |---|---|---:|---|
 | `channel` | string | Có | Tên kênh, ví dụ `Website`, `Cuộc gọi`, `Zalo` |
-| `touches` | number | Có | Số điểm chạm của kênh |
+| `touches` | integer | Có | Số điểm chạm của kênh, `>= 0` |
 | `response` | number | Có | Tỷ lệ phản hồi `0..100` |
-| `fill` | string | Không | Token màu chỉ dành cho mock/UI; backend production nên bỏ qua field này |
+| `activities` | `ChannelActivity[]` | Không | Các hoạt động chi tiết hiển thị khi mở bảng kiểm tra kênh |
+| `effectiveness` | string | Không | Nhận xét hiệu quả của kênh |
+| `notes` | string | Không | Ghi chú bổ sung cho kênh |
+
+`ChannelActivity`:
+
+```typescript
+{
+  title: string;
+  time?: string; // ISO-8601
+  description?: string;
+}
+```
+
+Không cần trả `fill`; đây là token màu dành riêng cho frontend.
 
 ### 6.3. `documents[]`
 

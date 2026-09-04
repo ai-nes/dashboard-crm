@@ -8,26 +8,29 @@ import { useStudent360Query } from "@/hooks/use-students-queries";
 import type { Student360Data } from "@/services/api/students/types";
 
 import JourneyTimeline from "./journey-timeline";
-import StudentAuditCard from "./student-audit-card";
+import StudentActivitiesTab from "./student-activities-tab";
 import StudentChartsSection from "./student-charts-section";
 import StudentClassificationCockpit from "./student-classification-cockpit";
 import StudentDetailsTab from "./student-details-tab";
 import StudentDocumentsTab from "./student-documents-tab";
 import StudentFamilyTab from "./student-family-tab";
 import StudentHeader from "./student-header";
-import StudentNotesTab from "./student-notes-tab";
 import StudentSourceContext from "./student-source-context";
 
 interface Student360DashboardProps {
   studentId?: string;
   initialData?: Student360Data | null;
   data?: Student360Data;
+  initialTab?: string;
+  initialTaskId?: string;
 }
 
 export default function Student360Dashboard({
   studentId,
   initialData,
   data: propData,
+  initialTab,
+  initialTaskId,
 }: Student360DashboardProps) {
   const targetId =
     studentId ||
@@ -90,8 +93,8 @@ export default function Student360Dashboard({
       <div className="px-2 pt-4 lg:px-6">
         <DetailTabs
           ariaLabel="Các phần trong hồ sơ học sinh"
-          defaultSelectedKey="decision"
-          tabs={getStudentTabs(data, targetId)}
+          defaultSelectedKey={getInitialTab(initialTab)}
+          tabs={getStudentTabs(data, targetId, initialTaskId)}
         />
       </div>
     </main>
@@ -101,11 +104,12 @@ export default function Student360Dashboard({
 function getStudentTabs(
   data: Student360Data,
   analysisTargetId: string,
+  initialTaskId?: string,
 ): DetailTabItem[] {
   return [
     {
       id: "decision",
-      label: "Phân tích Học sinh 360",
+      label: "Tổng quan",
       content: (
         <StudentClassificationCockpit
           data={data}
@@ -114,22 +118,33 @@ function getStudentTabs(
       ),
     },
     {
-      id: "profile",
-      label: "Thông tin hồ sơ",
+      id: "progress",
+      label: "Tiến độ tuyển sinh",
+      content: <JourneyTimeline data={data} />,
+    },
+    {
+      id: "activities",
+      label: "Các hoạt động",
       content: (
-        <div className="space-y-4">
-          <StudentDetailsTab data={data} />
-          <StudentSourceContext data={data} />
-        </div>
+        <StudentActivitiesTab
+          data={data}
+          studentId={analysisTargetId}
+          initialTaskId={initialTaskId}
+        />
       ),
     },
     {
       id: "engagement",
       label: "Mức độ quan tâm",
+      content: <StudentChartsSection data={data} />,
+    },
+    {
+      id: "profile",
+      label: "Thông tin học sinh",
       content: (
         <div className="space-y-4">
-          <StudentChartsSection data={data} />
-          <JourneyTimeline data={data} />
+          <StudentDetailsTab data={data} />
+          <StudentSourceContext data={data} />
         </div>
       ),
     },
@@ -140,18 +155,22 @@ function getStudentTabs(
     },
     {
       id: "records",
-      label: "Hồ sơ ứng tuyển",
+      label: "Hồ sơ & tài liệu",
       content: <StudentDocumentsTab data={data} />,
     },
-    {
-      id: "follow-up",
-      label: "Ghi chú & nhật ký",
-      content: (
-        <div className="space-y-4">
-          <StudentNotesTab data={data} />
-          <StudentAuditCard data={data} />
-        </div>
-      ),
-    },
   ];
+}
+
+function getInitialTab(initialTab?: string): string {
+  const supportedTabs = new Set([
+    "decision",
+    "activities",
+    "profile",
+    "engagement",
+    "progress",
+    "family",
+    "records",
+  ]);
+
+  return initialTab && supportedTabs.has(initialTab) ? initialTab : "decision";
 }

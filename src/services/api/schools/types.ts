@@ -109,9 +109,16 @@ export interface SchoolScoreBand {
   available?: boolean;
 }
 
-export const SCHOOL_EXAM_SCORE_BAND_LABELS = ["0–2", "2–4", "4–6", "6–8", "8–10"] as const;
+export const SCHOOL_EXAM_SCORE_BAND_LABELS = [
+  "0–2",
+  "2–4",
+  "4–6",
+  "6–8",
+  "8–10",
+] as const;
 
-export type SchoolExamScoreBandLabel = (typeof SCHOOL_EXAM_SCORE_BAND_LABELS)[number];
+export type SchoolExamScoreBandLabel =
+  (typeof SCHOOL_EXAM_SCORE_BAND_LABELS)[number];
 
 export interface SchoolExamScoreBand {
   label: SchoolExamScoreBandLabel;
@@ -119,7 +126,13 @@ export interface SchoolExamScoreBand {
   share: number;
 }
 
-export type SchoolPotentialIndicatorId = "P1" | "P2" | "P3" | "P4" | "P5" | "P6";
+export type SchoolPotentialIndicatorId =
+  | "P1"
+  | "P2"
+  | "P3"
+  | "P4"
+  | "P5"
+  | "P6";
 
 export interface SchoolPotentialIndicator {
   id: SchoolPotentialIndicatorId;
@@ -173,8 +186,8 @@ export interface SchoolIntelligenceData {
   classification: {
     group: SchoolClassification;
     isKeyAccount: boolean;
-    label: string;
-    action: string;
+    label: string | null;
+    action: string | null;
   };
   quadrantPeers: SchoolQuadrantPoint[];
   scoreBands: SchoolScoreBand[];
@@ -200,6 +213,10 @@ export interface SchoolIntelligenceData {
   contacts: SchoolContact[];
   activities: SchoolActivity[];
   dataAvailability?: DirectorSchoolDetailData["dataAvailability"];
+  /** Raw response fields kept for analysis UI so null is not turned into a fallback value. */
+  relationshipResponse?: DirectorSchoolDetailData["relationship"];
+  classificationResponse?: DirectorSchoolDetailData["classification"];
+  activitiesResponse?: DirectorSchoolDetailData["activities"];
 }
 
 export type SchoolRegion = "Miền Bắc" | "Miền Trung" | "Miền Nam";
@@ -397,6 +414,7 @@ export interface DirectorSchoolDetailData {
     group: SchoolClassification | null;
     isKeyAccount: boolean | null;
     label: string | null;
+    action: string | null;
   };
   locality: DirectorSchoolLocality;
   quadrantPeers: DirectorSchoolQuadrantPeer[];

@@ -10,7 +10,6 @@ import type {
   SchoolIntelligenceData,
   SchoolRelationshipLevel,
 } from "@/services/api/schools/types";
-import { SCHOOL_CLASSIFICATION_STRATEGIES } from "@/services/api/schools/classification";
 
 const relationshipLevels: SchoolRelationshipLevel[] = [
   "Chưa tiếp xúc",
@@ -37,19 +36,29 @@ const activityGroupLabels: ActivityGroupLabel[] = [
   "Hoạt động trực tuyến",
 ];
 
-const potentialIndicatorIds: SchoolPotentialIndicator["id"][] = ["P1", "P2", "P3", "P4", "P5", "P6"];
+const potentialIndicatorIds: SchoolPotentialIndicator["id"][] = [
+  "P1",
+  "P2",
+  "P3",
+  "P4",
+  "P5",
+  "P6",
+];
 const unavailable = "Chưa có dữ liệu";
 
-export function toSchoolIntelligenceData(detail: DirectorSchoolDetailData): SchoolIntelligenceData {
+export function toSchoolIntelligenceData(
+  detail: DirectorSchoolDetailData,
+): SchoolIntelligenceData {
   const school = toDirectorySchool(detail.school);
   const relationshipScore = detail.relationship.score ?? 0;
-  const relationshipLevel = normalizeRelationshipLevel(detail.relationship.level);
+  const relationshipLevel = normalizeRelationshipLevel(
+    detail.relationship.level,
+  );
   const geography = detail.geography;
   const demographics = detail.demographics;
   const subjectMix = detail.subjectMix;
   const earlyForecast = detail.earlyForecast;
   const classificationGroup = detail.classification.group ?? "Sàng lọc";
-  const classificationStrategy = SCHOOL_CLASSIFICATION_STRATEGIES[classificationGroup];
 
   return {
     school,
@@ -72,16 +81,21 @@ export function toSchoolIntelligenceData(detail: DirectorSchoolDetailData): Scho
     geography: {
       cluster: geography?.cluster ?? unavailable,
       clusterMeaning: geography?.clusterMeaning ?? unavailable,
-      travelTime: geography?.travelTime ?? detail.locality.travelTime ?? unavailable,
+      travelTime:
+        geography?.travelTime ?? detail.locality.travelTime ?? unavailable,
       distanceTier: normalizeDistanceTier(geography?.distanceTier ?? null),
-      competitionDensity: normalizeCompetitionDensity(geography?.competitionDensity ?? null),
+      competitionDensity: normalizeCompetitionDensity(
+        geography?.competitionDensity ?? null,
+      ),
     },
     demographics: {
       occupationProfile: demographics?.occupationProfile ?? unavailable,
       relativeIncome: normalizeIncome(demographics?.relativeIncome ?? null),
       tuitionAffordability: demographics?.tuitionAffordability ?? unavailable,
       awayFromHomeRate: demographics?.awayFromHomeRate ?? unavailable,
-      parentInvolvement: normalizeIncome(demographics?.parentInvolvement ?? null),
+      parentInvolvement: normalizeIncome(
+        demographics?.parentInvolvement ?? null,
+      ),
     },
     subjectMix: {
       naturalScienceShare: subjectMix?.naturalScienceShare ?? 0,
@@ -106,9 +120,10 @@ export function toSchoolIntelligenceData(detail: DirectorSchoolDetailData): Scho
     classification: {
       group: classificationGroup,
       isKeyAccount:
-        detail.classification.isKeyAccount ?? classificationGroup === "Trọng điểm",
-      label: detail.classification.label ?? classificationStrategy.summary,
-      action: classificationStrategy.action,
+        detail.classification.isKeyAccount ??
+        classificationGroup === "Trọng điểm",
+      label: detail.classification.label,
+      action: detail.classification.action,
     },
     quadrantPeers: toQuadrantPeers(detail),
     scoreBands: toScoreBands(detail),
@@ -119,12 +134,20 @@ export function toSchoolIntelligenceData(detail: DirectorSchoolDetailData): Scho
       examScore: detail.academicGap?.examScore ?? 0,
     },
     postGraduationChoices: detail.postGraduationChoices
-      .filter((item) => item.label !== null && item.students !== null && item.share !== null)
-      .map((item) => ({ label: item.label!, students: item.students!, share: item.share! })),
+      .filter(
+        (item) =>
+          item.label !== null && item.students !== null && item.share !== null,
+      )
+      .map((item) => ({
+        label: item.label!,
+        students: item.students!,
+        share: item.share!,
+      })),
     competitionContext: {
       leadingChoice: detail.competitionContext?.leadingChoice ?? unavailable,
       lostReason: detail.competitionContext?.lostReason ?? unavailable,
-      externalPresence: detail.competitionContext?.externalPresence ?? unavailable,
+      externalPresence:
+        detail.competitionContext?.externalPresence ?? unavailable,
     },
     dataFreshness: detail.asOf ?? unavailable,
     dataSources: {
@@ -136,28 +159,46 @@ export function toSchoolIntelligenceData(detail: DirectorSchoolDetailData): Scho
     contacts: detail.contacts.map(toSchoolContact),
     activities: detail.activities.map(toSchoolActivity),
     dataAvailability: detail.dataAvailability,
+    relationshipResponse: detail.relationship,
+    classificationResponse: detail.classification,
+    activitiesResponse: detail.activities,
   };
 }
 
-function normalizeDistanceTier(value: string | null): SchoolIntelligenceData["geography"]["distanceTier"] {
-  return value === "Dưới 1 giờ" || value === "1–3 giờ" || value === "Trên 3 giờ" ? value : unavailable;
+function normalizeDistanceTier(
+  value: string | null,
+): SchoolIntelligenceData["geography"]["distanceTier"] {
+  return value === "Dưới 1 giờ" || value === "1–3 giờ" || value === "Trên 3 giờ"
+    ? value
+    : unavailable;
 }
 
-function normalizeCompetitionDensity(value: string | null): SchoolIntelligenceData["geography"]["competitionDensity"] {
-  return value === "Thấp" || value === "Trung bình" || value === "Cao" ? value : unavailable;
+function normalizeCompetitionDensity(
+  value: string | null,
+): SchoolIntelligenceData["geography"]["competitionDensity"] {
+  return value === "Thấp" || value === "Trung bình" || value === "Cao"
+    ? value
+    : unavailable;
 }
 
-function normalizeIncome(value: string | null): SchoolIntelligenceData["demographics"]["relativeIncome"] {
-  return value === "Thấp" || value === "Trung bình" || value === "Cao" ? value : unavailable;
+function normalizeIncome(
+  value: string | null,
+): SchoolIntelligenceData["demographics"]["relativeIncome"] {
+  return value === "Thấp" || value === "Trung bình" || value === "Cao"
+    ? value
+    : unavailable;
 }
 
-function toActivityStats(detail: DirectorSchoolDetailData): SchoolIntelligenceData["activityStats"] {
+function toActivityStats(
+  detail: DirectorSchoolDetailData,
+): SchoolIntelligenceData["activityStats"] {
   return detail.activityStats
-    .filter((item) =>
-      item.label !== null &&
-      activityGroupLabels.includes(item.label as ActivityGroupLabel) &&
-      item.conversionRate !== null &&
-      item.costPerActivity !== null,
+    .filter(
+      (item) =>
+        item.label !== null &&
+        activityGroupLabels.includes(item.label as ActivityGroupLabel) &&
+        item.conversionRate !== null &&
+        item.costPerActivity !== null,
     )
     .map((item) => ({
       label: item.label as ActivityGroupLabel,
@@ -168,32 +209,45 @@ function toActivityStats(detail: DirectorSchoolDetailData): SchoolIntelligenceDa
     }));
 }
 
-function toPotentialIndicators(detail: DirectorSchoolDetailData): SchoolPotentialIndicator[] {
+function toPotentialIndicators(
+  detail: DirectorSchoolDetailData,
+): SchoolPotentialIndicator[] {
   return detail.potentialIndicators
-    .filter((item) =>
-      item.id !== null &&
-      potentialIndicatorIds.includes(item.id as SchoolPotentialIndicator["id"]) &&
-      item.label !== null &&
-      item.weight !== null,
+    .filter(
+      (item) =>
+        item.id !== null &&
+        potentialIndicatorIds.includes(
+          item.id as SchoolPotentialIndicator["id"],
+        ) &&
+        item.label !== null &&
+        item.weight !== null,
     )
     .map((item) => ({
       id: item.id as SchoolPotentialIndicator["id"],
       label: item.label!,
       score: item.score,
       weight: item.weight!,
-      status: item.status === "available" || item.status === "estimated" || item.status === "unavailable" ? item.status : "unavailable",
+      status:
+        item.status === "available" ||
+        item.status === "estimated" ||
+        item.status === "unavailable"
+          ? item.status
+          : "unavailable",
     }));
 }
 
-function toQuadrantPeers(detail: DirectorSchoolDetailData): SchoolIntelligenceData["quadrantPeers"] {
+function toQuadrantPeers(
+  detail: DirectorSchoolDetailData,
+): SchoolIntelligenceData["quadrantPeers"] {
   return detail.quadrantPeers
-    .filter((item) =>
-      item.id !== null &&
-      item.name !== null &&
-      item.potential !== null &&
-      item.relationship !== null &&
-      item.availableStudents !== null &&
-      item.enrollment !== null,
+    .filter(
+      (item) =>
+        item.id !== null &&
+        item.name !== null &&
+        item.potential !== null &&
+        item.relationship !== null &&
+        item.availableStudents !== null &&
+        item.enrollment !== null,
     )
     .map((item) => ({
       id: item.id!,
@@ -206,13 +260,25 @@ function toQuadrantPeers(detail: DirectorSchoolDetailData): SchoolIntelligenceDa
     }));
 }
 
-function toScoreBands(detail: DirectorSchoolDetailData): SchoolIntelligenceData["scoreBands"] {
+function toScoreBands(
+  detail: DirectorSchoolDetailData,
+): SchoolIntelligenceData["scoreBands"] {
   return detail.scoreBands
-    .filter((item) => item.label !== null && item.students !== null && item.share !== null)
-    .map((item) => ({ label: item.label!, students: item.students!, share: item.share!, available: item.available }));
+    .filter(
+      (item) =>
+        item.label !== null && item.students !== null && item.share !== null,
+    )
+    .map((item) => ({
+      label: item.label!,
+      students: item.students!,
+      share: item.share!,
+      available: item.available,
+    }));
 }
 
-function toDirectorySchool(school: DirectorSchoolDetailData["school"]): SchoolDirectoryRecord {
+function toDirectorySchool(
+  school: DirectorSchoolDetailData["school"],
+): SchoolDirectoryRecord {
   return {
     id: school.id,
     provinceCode: school.provinceCode ?? "",
@@ -227,12 +293,16 @@ function toDirectorySchool(school: DirectorSchoolDetailData["school"]): SchoolDi
   };
 }
 
-function normalizeRelationshipLevel(value: string | null): SchoolRelationshipLevel {
+function normalizeRelationshipLevel(
+  value: string | null,
+): SchoolRelationshipLevel {
   return relationshipLevels.find((level) => level === value) ?? "Chưa tiếp xúc";
 }
 
 function normalizeContactRole(value: string | null): SchoolContactRole {
-  return contactRoles.find((role) => role === value) ?? "GV phụ trách hướng nghiệp";
+  return (
+    contactRoles.find((role) => role === value) ?? "GV phụ trách hướng nghiệp"
+  );
 }
 
 function toSchoolContact(contact: DirectorSchoolContact) {

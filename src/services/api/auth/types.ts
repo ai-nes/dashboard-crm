@@ -16,6 +16,14 @@ export interface CurrentUser {
   csrf_token: string | null;
 }
 
+export interface SessionUser {
+  name: string;
+  email: string;
+  full_name: string;
+  roles: string[];
+  crm_profile: string | null;
+}
+
 /** Raw `frappe.whitelist` envelope: the payload sits under `message`. */
 export interface FrappeMessage<T> {
   message?: T;

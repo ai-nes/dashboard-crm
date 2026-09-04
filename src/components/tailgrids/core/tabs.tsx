@@ -50,6 +50,8 @@ const tabRootStyles = cva("max-w-full rounded-xl border border-card-border", {
 
 type TabsProps = {
   defaultValue: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
   children: React.ReactNode;
   className?: string;
   variant?: StyleVariant;
@@ -58,13 +60,20 @@ type TabsProps = {
 
 export function TabRoot({
   defaultValue,
+  value,
+  onValueChange,
   children,
   className,
   variant = "default",
   direction = "vertical",
 }: TabsProps) {
-  const [activeTab, setActiveTab] = useState(defaultValue);
+  const [internalActiveTab, setInternalActiveTab] = useState(defaultValue);
   const id = useId();
+  const activeTab = value ?? internalActiveTab;
+  const setActiveTab = (nextTab: string) => {
+    if (value === undefined) setInternalActiveTab(nextTab);
+    onValueChange?.(nextTab);
+  };
 
   return (
     <TabsContext.Provider value={{ activeTab, setActiveTab, variant, id, direction }}>
