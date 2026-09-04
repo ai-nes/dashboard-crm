@@ -87,7 +87,17 @@ function normalizeEvaluation(value: unknown): NbaEvaluationReference {
 }
 
 function normalizeExplanation(value: unknown): NbaExplanation | null {
-  const record = asRecord(value);
+  const record =
+    asRecord(value) ??
+    (typeof value === "string"
+      ? (() => {
+          try {
+            return asRecord(JSON.parse(value));
+          } catch {
+            return null;
+          }
+        })()
+      : null);
   if (!record) return null;
 
   const summary = text(record.summary);
@@ -137,7 +147,9 @@ function normalizeRecommendation(
       ? record.priority
       : "medium";
   const explanationSource =
-    record.explanationSource === "model" ? "model" : null;
+    record.explanationSource === "model" || record.explanation_source === "model"
+      ? "model"
+      : null;
 
   return {
     id,
@@ -151,7 +163,9 @@ function normalizeRecommendation(
     channel: text(record.channel),
     reason: reason ?? "",
     aiPayload,
-    explanation: normalizeExplanation(record.explanation),
+    explanation: normalizeExplanation(
+      record.explanation ?? record.explanation_json ?? record.explanationJson,
+    ),
     explanationSource,
     evaluation: normalizeEvaluation(record.evaluation),
     generatedAt: text(record.generatedAt) ?? text(record.generated_at) ?? "",
@@ -494,6 +508,12 @@ export async function runStudentNbaEvaluation(
     rawDisposition === "ABSTAIN"
       ? rawDisposition
       : null;
+  const recommendations = Array.isArray(root.recommendations)
+    ? root.recommendations.flatMap((item) => {
+        const normalized = normalizeRecommendation(item);
+        return normalized ? [normalized] : [];
+      })
+    : [];
 
   return {
     evaluation,
@@ -502,6 +522,7 @@ export async function runStudentNbaEvaluation(
     disposition,
     recommendationCount: number(root.recommendation_count, 0),
     terminalReason: text(root.terminal_reason),
+    recommendations,
   };
 }
 

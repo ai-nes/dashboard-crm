@@ -44,6 +44,9 @@ export default function StudentNextBestActions({
     recommendation: NbaRecommendation;
     operation: NbaDecisionOperation;
   } | null>(null);
+  const [postRecommendations, setPostRecommendations] = useState<
+    NbaRecommendation[] | null
+  >(null);
   const [idempotencyKeys, setIdempotencyKeys] = useState<
     Record<string, string>
   >({});
@@ -53,13 +56,39 @@ export default function StudentNextBestActions({
   const decisionMutation = useDecideNbaRecommendation();
   const runMutation = useRunStudentNbaEvaluation();
 
-  const actions = useMemo(
+  const worklistActions = useMemo(
     () =>
       (query.data?.items ?? []).filter(
         (item) => item.studentId === studentId.trim(),
       ),
     [query.data?.items, studentId],
   );
+  const actions = useMemo(() => {
+    if (postRecommendations === null) return worklistActions;
+
+    return postRecommendations
+      .filter((recommendation) => recommendation.studentId === studentId.trim())
+      .map((recommendation) => {
+        const worklistItem = worklistActions.find((item) =>
+          sameNbaRecommendation(item, recommendation),
+        );
+
+        if (!worklistItem) return recommendation;
+
+        // The worklist owns the persisted recommendation content and decision
+        // metadata. Keep the POST explanation only while GET is incomplete.
+        return {
+          ...recommendation,
+          ...worklistItem,
+          explanation: worklistItem.explanation ?? recommendation.explanation,
+          explanationSource:
+            worklistItem.explanationSource ?? recommendation.explanationSource,
+          expectedRevision: worklistItem.expectedRevision,
+          revision: worklistItem.revision,
+          permittedDecisions: worklistItem.permittedDecisions,
+        };
+      });
+  }, [postRecommendations, studentId, worklistActions]);
   const selectedAction =
     actions.find((action) => action.id === selectedId) ?? null;
 
@@ -83,12 +112,14 @@ export default function StudentNextBestActions({
   const runNba = async () => {
     try {
       const result = await runMutation.mutateAsync({ studentId });
-      const refreshed = await query.refetch();
-      const hasRecommendation = (refreshed.data?.items ?? []).some(
-        (item) => item.studentId === studentId.trim(),
+      await query.refetch();
+      const recommendations = result.recommendations.filter(
+        (recommendation) => recommendation.studentId === studentId.trim(),
       );
+      setPostRecommendations(recommendations);
+      setSelectedId(recommendations[0]?.id ?? null);
 
-      if (hasRecommendation || result.recommendationCount > 0) {
+      if (recommendations.length > 0 || result.recommendationCount > 0) {
         toast.success("Đã tạo đề xuất NBA cho học sinh.");
       } else {
         toast.success("Đánh giá NBA hoàn tất nhưng chưa có hành động phù hợp.");
@@ -144,6 +175,8 @@ export default function StudentNextBestActions({
     try {
       const result = await decisionMutation.mutateAsync(request);
       setDecision(null);
+      setPostRecommendations(null);
+      setSelectedId(null);
       await query.refetch();
 
       if (result.action) {
@@ -272,6 +305,17 @@ export default function StudentNextBestActions({
         />
       )}
     </>
+  );
+}
+
+function sameNbaRecommendation(
+  left: NbaRecommendation,
+  right: NbaRecommendation,
+): boolean {
+  return (
+    left.id === right.id ||
+    (Boolean(left.recommendationKey) &&
+      left.recommendationKey === right.recommendationKey)
   );
 }
 

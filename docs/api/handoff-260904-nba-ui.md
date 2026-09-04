@@ -475,9 +475,10 @@ comes from the delegated session.
 }
 ```
 
-The worklist DTO does **not** carry `explanation` today — only
-`get_director_recommendations` does. On the worklist, render from `reason` +
-`aiPayload`, or call the sync run endpoint (§3.4b) which returns `explanation`.
+The worklist DTO can carry the persisted `explanation` for each recommendation.
+When it is absent or has not finished rendering, fall back to `reason` +
+`aiPayload`; the sync run endpoint (§3.4b) can also return the explanation
+immediately.
 
 ### 4.5 Single-student latest Task (read)
 

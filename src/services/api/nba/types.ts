@@ -62,6 +62,7 @@ export interface NbaEvaluationRunResponse {
   disposition: NbaDisposition | null;
   recommendationCount: number;
   terminalReason: string | null;
+  recommendations: NbaRecommendation[];
 }
 
 export type DirectorNbaRecommendationsStatus = "available" | "empty";

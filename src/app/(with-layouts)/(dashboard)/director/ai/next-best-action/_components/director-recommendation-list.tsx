@@ -14,6 +14,7 @@ import { cn } from "@/utils/cn";
 
 interface DirectorRecommendationListProps {
   recommendations: DirectorNbaRecommendation[];
+  studentNameById: ReadonlyMap<string, string>;
   selectedId: string | null;
   onSelect: (recommendationId: string) => void;
 }
@@ -32,6 +33,7 @@ const priorityColors = {
 
 export default function DirectorRecommendationList({
   recommendations,
+  studentNameById,
   selectedId,
   onSelect,
 }: DirectorRecommendationListProps) {
@@ -39,6 +41,10 @@ export default function DirectorRecommendationList({
     <ol className="divide-y divide-card-border">
       {recommendations.map((recommendation) => {
         const isSelected = recommendation.id === selectedId;
+        const studentName =
+          recommendation.studentName ??
+          studentNameById.get(recommendation.studentId) ??
+          recommendation.studentId;
 
         return (
           <li key={recommendation.id}>
@@ -66,13 +72,13 @@ export default function DirectorRecommendationList({
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="block truncate text-sm font-semibold text-text-primary">
-                    {recommendation.studentName ?? recommendation.studentId}
+                    {studentName}
                   </span>
                   <Badge color={priorityColors[recommendation.priority]}>
                     {priorityLabels[recommendation.priority]}
                   </Badge>
                 </span>
-                {recommendation.studentName && (
+                {studentName !== recommendation.studentId && (
                   <span className="mt-1 block truncate text-xs text-text-secondary">
                     {recommendation.studentId}
                   </span>

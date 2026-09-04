@@ -16,6 +16,7 @@ import DirectorRecommendationList, {
 } from "./director-recommendation-list";
 import DirectorOperationalOverview from "./director-operational-overview";
 import NextBestActionHeader from "./next-best-action-header";
+import { useRecommendationStudentNames } from "./use-recommendation-student-names";
 
 const RECOMMENDATION_LIMIT = 50;
 
@@ -31,6 +32,7 @@ export default function NextBestActionWorkspace() {
     outcomePeriod: "30d",
   });
   const recommendations = query.data?.recommendations ?? [];
+  const studentNameById = useRecommendationStudentNames(recommendations);
   const selectedRecommendation: DirectorNbaRecommendation | null =
     recommendations.find(
       (recommendation) => recommendation.id === selectedId,
@@ -111,6 +113,7 @@ export default function NextBestActionWorkspace() {
             </div>
             <DirectorRecommendationList
               recommendations={recommendations}
+              studentNameById={studentNameById}
               selectedId={selectedRecommendation?.id ?? null}
               onSelect={setSelectedId}
             />
@@ -118,6 +121,7 @@ export default function NextBestActionWorkspace() {
 
           <DirectorRecommendationDetail
             recommendation={selectedRecommendation}
+            studentNameById={studentNameById}
           />
         </Card>
       )}

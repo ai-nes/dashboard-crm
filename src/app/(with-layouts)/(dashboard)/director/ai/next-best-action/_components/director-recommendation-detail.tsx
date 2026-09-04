@@ -13,6 +13,7 @@ import {
 
 interface DirectorRecommendationDetailProps {
   recommendation: DirectorNbaRecommendation | null;
+  studentNameById: ReadonlyMap<string, string>;
 }
 
 const priorityLabels = {
@@ -29,6 +30,7 @@ const priorityColors = {
 
 export default function DirectorRecommendationDetail({
   recommendation,
+  studentNameById,
 }: DirectorRecommendationDetailProps) {
   if (!recommendation) {
     return (
@@ -42,6 +44,9 @@ export default function DirectorRecommendationDetail({
       </section>
     );
   }
+
+  const studentName =
+    recommendation.studentName ?? studentNameById.get(recommendation.studentId);
 
   return (
     <section aria-label="Chi tiết đề xuất NBA" className="min-w-0">
@@ -57,6 +62,7 @@ export default function DirectorRecommendationDetail({
         </div>
 
         <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+          {studentName && <DataField label="Học sinh" value={studentName} />}
           <DataField
             label="Mã hồ sơ học sinh"
             value={recommendation.studentId}

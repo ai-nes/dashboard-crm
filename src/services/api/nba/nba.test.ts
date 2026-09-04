@@ -144,8 +144,16 @@ describe("NBA review API contract", () => {
                 channel: null,
                 reason: "Chưa có liên lạc trong 5 ngày.",
                 aiPayload: { score: 0.8, timing_window: "today" },
-                explanation: null,
-                explanationSource: null,
+                explanation: {
+                  summary: "Nên kích hoạt lại liên hệ.",
+                  why_action: "Giúp khôi phục tương tác.",
+                  why_now: "Tín hiệu đang giảm.",
+                  timing_reason: "Nên thực hiện trong hôm nay.",
+                  evidence_summary: ["Không có liên lạc trong 5 ngày."],
+                  uncertainty: "Chưa rõ mức độ ưu tiên.",
+                  execution_guidance: ["Gửi một tin nhắn ngắn."],
+                },
+                explanationSource: "model",
                 evaluation: {
                   id: "eval-1",
                   disposition: "RECOMMEND",
@@ -181,6 +189,9 @@ describe("NBA review API contract", () => {
         actionId: "ACTIVATE_WINBACK",
         expectedRevision: "2026-09-04 13:41:14.512345",
         permittedDecisions: ["accepted", "deferred", "rejected"],
+        explanation: expect.objectContaining({
+          summary: "Nên kích hoạt lại liên hệ.",
+        }),
       }),
     );
     expect(result.nextCursor).toBe("next-page");
@@ -245,6 +256,39 @@ describe("NBA review API contract", () => {
             disposition: "RECOMMEND",
             recommendation_count: 1,
             terminal_reason: null,
+            recommendations: [
+              {
+                id: "eval-2-1",
+                rank: 1,
+                recommendationKey: "NBAEVAL-2:ACTIVATE_WINBACK:1",
+                studentId: "ENR-2026-00002",
+                actionId: "ACTIVATE_WINBACK",
+                priority: "high",
+                channel: "NONE",
+                reason: "Chưa có liên lạc trong 5 ngày.",
+                aiPayload: {
+                  explanation_facts: ["Còn 26 ngày đến hạn tiếp theo."],
+                },
+                explanation: {
+                  summary: "Nên kích hoạt lại liên hệ.",
+                  why_action: "Giúp khôi phục tương tác.",
+                  why_now: "Tín hiệu đang giảm.",
+                  timing_reason: "Nên thực hiện trong hôm nay.",
+                  evidence_summary: ["Không có liên lạc trong 5 ngày."],
+                  uncertainty: "Chưa rõ mức độ ưu tiên của lần tương tác trước.",
+                  execution_guidance: [
+                    "Gửi một tin nhắn ngắn, không gây áp lực.",
+                  ],
+                },
+                explanationSource: "model",
+                evaluation: {
+                  id: "eval-2",
+                  disposition: "RECOMMEND",
+                  status: "completed",
+                },
+                generatedAt: "2026-09-04T13:41:14+07:00",
+              },
+            ],
           },
         }),
         { status: 200 },
@@ -275,6 +319,14 @@ describe("NBA review API contract", () => {
       disposition: "RECOMMEND",
       recommendationCount: 1,
       terminalReason: null,
+      recommendations: [
+        expect.objectContaining({
+          id: "eval-2-1",
+          explanation: expect.objectContaining({
+            summary: "Nên kích hoạt lại liên hệ.",
+          }),
+        }),
+      ],
     });
   });
 
