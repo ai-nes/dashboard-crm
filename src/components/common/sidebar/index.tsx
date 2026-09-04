@@ -1,6 +1,7 @@
 "use client";
 
 import { CollapsibleGroup } from "@/components/tailgrids/core/collapsible";
+import { useAuth } from "@/components/common/auth/auth-provider";
 import { cn } from "@/utils/cn";
 import { Logo } from "@/utils/icon";
 import Link from "next/link";
@@ -10,7 +11,10 @@ import type { Key } from "react-aria-components";
 import { NAV_DATA } from "./data";
 import { CloseIcon, SidebarExpandedIcon, ThreeDots } from "./icon";
 import NavItem from "./nav-item";
-import { findActiveGroupKey } from "./utils";
+import {
+  filterNavigationByRoles,
+  findActiveGroupKeyInNavigation,
+} from "./utils";
 
 export default function Sidebar({
   isSidebarOpen,
@@ -23,12 +27,17 @@ export default function Sidebar({
   isMobileSheet?: boolean;
   onItemClick?: () => void;
 }) {
+  const { user } = useAuth();
   const pathname = usePathname();
+  const visibleNavData = useMemo(
+    () => filterNavigationByRoles(NAV_DATA, user?.roles ?? []),
+    [user?.roles],
+  );
 
   // Compute which group should be open based on the current route
   const activeGroupKey = useMemo(
-    () => findActiveGroupKey(pathname),
-    [pathname],
+    () => findActiveGroupKeyInNavigation(pathname, visibleNavData),
+    [pathname, visibleNavData],
   );
 
   const [expandedKeys, setExpandedKeys] = useState<Set<Key>>(
@@ -91,7 +100,7 @@ export default function Sidebar({
           expandedKeys={expandedKeys}
           onExpandedChange={setExpandedKeys}
         >
-          {NAV_DATA.map((section) => (
+          {visibleNavData.map((section) => (
             <div key={section.label}>
               {/* Expanded: show section label | Collapsed: show divider between sections */}
               {isSidebarOpen ? (

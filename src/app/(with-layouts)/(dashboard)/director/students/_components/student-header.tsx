@@ -16,6 +16,12 @@ import {
   AvatarFallback,
 } from "@/components/tailgrids/core/avatar";
 import { Badge } from "@/components/tailgrids/core/badge";
+import { formatDateTime } from "@/utils/format-date";
+import type {
+  StudentContactConsent,
+  StudentPriority,
+  StudentVerificationStatus,
+} from "@/services/api/students/types";
 
 import StudentCopyBadge from "./student-copy-badge";
 import type { Student360SectionProps } from "./types";
@@ -23,6 +29,11 @@ import type { Student360SectionProps } from "./types";
 export default function StudentHeader({ data }: Student360SectionProps) {
   const { student } = data;
   const subtitle = student.grade || "-";
+  const hasMetadata = Boolean(
+    student.verificationStatus ||
+    student.contactConsent ||
+    student.lastUpdatedAt,
+  );
 
   return (
     <header className="min-w-0 shrink-0">
@@ -46,7 +57,18 @@ export default function StudentHeader({ data }: Student360SectionProps) {
                 <h1 className="min-w-0 text-balance text-xl font-semibold tracking-[-0.4px] text-text-primary lg:text-2xl lg:leading-8">
                   {student.name || "-"}
                 </h1>
-                <Badge color="success">Ưu tiên cao</Badge>
+                {student.priority && (
+                  <Badge color={getPriorityColor(student.priority)}>
+                    Ưu tiên {student.priority.toLowerCase()}
+                  </Badge>
+                )}
+                {student.verificationStatus && (
+                  <Badge
+                    color={getVerificationColor(student.verificationStatus)}
+                  >
+                    {student.verificationStatus}
+                  </Badge>
+                )}
                 <Badge color="primary">
                   {data.segmentation?.learningStage || "Đang tư vấn"}
                 </Badge>
@@ -110,6 +132,22 @@ export default function StudentHeader({ data }: Student360SectionProps) {
             />
             <HeaderFact label="Rào cản" value={data.insight.concern || "-"} />
           </div>
+          {hasMetadata && (
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-card-border pt-3 text-xs">
+              {student.contactConsent && (
+                <HeaderMeta
+                  label="Đồng ý tư vấn"
+                  value={formatConsent(student.contactConsent)}
+                />
+              )}
+              {student.lastUpdatedAt && (
+                <HeaderMeta
+                  label="Cập nhật"
+                  value={formatDateTime(student.lastUpdatedAt)}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -129,4 +167,32 @@ function HeaderFact({ label, value }: { label: string; value: string }) {
       </p>
     </div>
   );
+}
+
+function HeaderMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="min-w-0">
+      <span className="text-text-tertiary">{label}: </span>
+      <span className="font-medium text-text-secondary">{value || "-"}</span>
+    </span>
+  );
+}
+
+function formatConsent(consent: StudentContactConsent): string {
+  const channels = consent.channels
+    .filter((channel) => channel !== "Zalo")
+    .join(", ");
+  return channels ? `${consent.status} · ${channels}` : consent.status;
+}
+
+function getPriorityColor(priority: StudentPriority) {
+  if (priority === "Cao") return "success" as const;
+  if (priority === "Thấp") return "gray" as const;
+  return "warning" as const;
+}
+
+function getVerificationColor(status: StudentVerificationStatus) {
+  if (status === "Đã xác thực") return "success" as const;
+  if (status === "Cần xác minh") return "warning" as const;
+  return "gray" as const;
 }

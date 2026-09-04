@@ -1,7 +1,10 @@
 "use client";
 
 import type { TooltipContentProps } from "recharts";
-import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
+import type {
+  NameType,
+  ValueType,
+} from "recharts/types/component/DefaultTooltipContent";
 import type { ChannelChartItem, TrendChartItem } from "./student-chart-types";
 
 export default function StudentChartTooltip({
@@ -12,20 +15,18 @@ export default function StudentChartTooltip({
   if (!active || !payload?.length) return null;
 
   const firstItem = payload[0];
-  const rawData = (firstItem?.payload || {}) as ChannelChartItem & TrendChartItem;
+  const rawData = (firstItem?.payload || {}) as ChannelChartItem &
+    TrendChartItem;
 
-  // 1. Kênh tương tác (Channel Bar Chart)
-  if (rawData.channel && rawData.touches != null) {
-    return <ChannelTooltip channel={rawData} />;
-  }
-
-  // 2. Khả năng nhập học (Probability Trend Area Chart)
+  // 1. Khả năng nhập học (Probability Trend Area Chart)
   if (rawData.score != null) {
     const score = Number(rawData.score);
     return (
       <div className="pointer-events-none z-50 min-w-44 max-w-56 rounded-lg border border-card-border bg-card-background/95 p-2.5 text-xs shadow-md backdrop-blur-xs">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-semibold text-text-primary">{rawData.date || label}</span>
+          <span className="font-semibold text-text-primary">
+            {rawData.date || label}
+          </span>
           <span className="font-bold text-success-500">{score}%</span>
         </div>
 
@@ -35,8 +36,30 @@ export default function StudentChartTooltip({
           </p>
         )}
 
+        {rawData.eventDetail && (
+          <p className="mt-1 text-[11px] leading-4 text-text-tertiary line-clamp-2">
+            {rawData.eventDetail}
+          </p>
+        )}
+
+        <div className="mt-2 border-t border-card-border/40 pt-2 text-[11px] text-text-secondary">
+          <span>
+            Điểm chạm tích lũy:{" "}
+            <strong className="font-semibold text-text-primary">
+              {rawData.touches ?? 0}
+            </strong>
+          </span>
+          {rawData.channel && (
+            <span className="ml-3">Kênh: {rawData.channel}</span>
+          )}
+        </div>
       </div>
     );
+  }
+
+  // 2. Kênh tương tác (Channel Bar Chart)
+  if (rawData.channel && rawData.touches != null) {
+    return <ChannelTooltip channel={rawData} />;
   }
 
   // Fallback mặc định
@@ -47,7 +70,9 @@ export default function StudentChartTooltip({
         {payload.map((item, index) => (
           <div key={index} className="flex items-center justify-between gap-3">
             <span className="text-text-secondary">{item.name}</span>
-            <span className="font-semibold text-text-primary">{item.value ?? "-"}</span>
+            <span className="font-semibold text-text-primary">
+              {item.value ?? "-"}
+            </span>
           </div>
         ))}
       </div>
@@ -68,23 +93,34 @@ function ChannelTooltip({ channel }: { channel: ChannelChartItem }) {
             style={{ backgroundColor: channel.fill || "var(--primary-500)" }}
             aria-hidden="true"
           />
-          <span className="truncate font-semibold text-text-primary" title={channel.channel}>
+          <span
+            className="truncate font-semibold text-text-primary"
+            title={channel.channel}
+          >
             {channel.channel}
           </span>
         </div>
-        <span className="shrink-0 font-bold text-text-primary">{channel.touches} lượt</span>
+        <span className="shrink-0 font-bold text-text-primary">
+          {channel.touches} lượt
+        </span>
       </div>
 
       {(channel.response != null || activities.length > 0) && (
         <div className="mt-2 flex items-center gap-3 border-t border-card-border/40 pt-2 text-[11px] text-text-secondary">
           {channel.response != null && (
             <span>
-              Phản hồi <strong className="font-semibold text-text-primary">{channel.response}%</strong>
+              Phản hồi{" "}
+              <strong className="font-semibold text-text-primary">
+                {channel.response}%
+              </strong>
             </span>
           )}
           {activities.length > 0 && (
             <span>
-              <strong className="font-semibold text-text-primary">{activities.length}</strong> ghi nhận
+              <strong className="font-semibold text-text-primary">
+                {activities.length}
+              </strong>{" "}
+              ghi nhận
             </span>
           )}
         </div>
@@ -97,12 +133,20 @@ function ChannelTooltip({ channel }: { channel: ChannelChartItem }) {
           </p>
           <ul className="mt-1.5 space-y-2">
             {previewActivities.map((activity) => (
-              <li key={`${activity.title}-${activity.time ?? ""}`} className="min-w-0">
-                <p className="truncate font-medium text-text-primary" title={activity.title}>
+              <li
+                key={`${activity.title}-${activity.time ?? ""}`}
+                className="min-w-0"
+              >
+                <p
+                  className="truncate font-medium text-text-primary"
+                  title={activity.title}
+                >
                   {activity.title}
                 </p>
                 <p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-text-secondary">
-                  {[activity.time, activity.description].filter(Boolean).join(" · ")}
+                  {[activity.time, activity.description]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </li>
             ))}
@@ -117,14 +161,18 @@ function ChannelTooltip({ channel }: { channel: ChannelChartItem }) {
 
       {channel.effectiveness && (
         <p className="mt-2 border-t border-card-border/40 pt-2 text-[11px] text-text-secondary">
-          Hiệu quả: <span className="font-medium text-text-primary">{channel.effectiveness}</span>
+          Hiệu quả:{" "}
+          <span className="font-medium text-text-primary">
+            {channel.effectiveness}
+          </span>
         </p>
       )}
 
       {channel.notes && (
-        <p className="mt-1 text-[11px] leading-4 text-text-secondary">{channel.notes}</p>
+        <p className="mt-1 text-[11px] leading-4 text-text-secondary">
+          {channel.notes}
+        </p>
       )}
-
     </div>
   );
 }

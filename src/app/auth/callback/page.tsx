@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
+import { getDefaultRouteForRoles } from "@/components/common/auth/rbac";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -18,7 +19,7 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     if (isLoading) return;
-    router.replace(user ? "/" : "/login");
+    router.replace(user ? getDefaultRouteForRoles(user.roles) : "/login");
   }, [isLoading, user, router]);
 
   return (

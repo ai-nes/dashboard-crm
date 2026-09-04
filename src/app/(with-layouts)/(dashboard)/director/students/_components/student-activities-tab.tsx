@@ -409,7 +409,7 @@ export default function StudentActivitiesTab({
         <TabTrigger value="all">Tất cả hoạt động</TabTrigger>
         <TabTrigger value="notes">Ghi chú</TabTrigger>
         <TabTrigger value="tasks">Task</TabTrigger>
-        <TabTrigger value="log">Nhật ký</TabTrigger>
+        <TabTrigger value="log">Lịch sử hoạt động</TabTrigger>
         <TabTrigger value="zalo">Zalo</TabTrigger>
         <TabTrigger value="calls">Cuộc gọi</TabTrigger>
       </TabList>

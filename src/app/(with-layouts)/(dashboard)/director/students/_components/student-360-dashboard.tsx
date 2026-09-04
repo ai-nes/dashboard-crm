@@ -93,7 +93,7 @@ export default function Student360Dashboard({
       <div className="px-2 pt-4 lg:px-6">
         <DetailTabs
           ariaLabel="Các phần trong hồ sơ học sinh"
-          defaultSelectedKey={initialTab === "activities" ? "activities" : "decision"}
+          defaultSelectedKey={getInitialTab(initialTab)}
           tabs={getStudentTabs(data, targetId, initialTaskId)}
         />
       </div>
@@ -109,13 +109,18 @@ function getStudentTabs(
   return [
     {
       id: "decision",
-      label: "Phân tích Học sinh 360",
+      label: "Tổng quan",
       content: (
         <StudentClassificationCockpit
           data={data}
           analysisTargetId={analysisTargetId}
         />
       ),
+    },
+    {
+      id: "progress",
+      label: "Tiến độ tuyển sinh",
+      content: <JourneyTimeline data={data} />,
     },
     {
       id: "activities",
@@ -129,22 +134,17 @@ function getStudentTabs(
       ),
     },
     {
+      id: "engagement",
+      label: "Mức độ quan tâm",
+      content: <StudentChartsSection data={data} />,
+    },
+    {
       id: "profile",
-      label: "Thông tin hồ sơ",
+      label: "Thông tin học sinh",
       content: (
         <div className="space-y-4">
           <StudentDetailsTab data={data} />
           <StudentSourceContext data={data} />
-        </div>
-      ),
-    },
-    {
-      id: "engagement",
-      label: "Mức độ quan tâm",
-      content: (
-        <div className="space-y-4">
-          <StudentChartsSection data={data} />
-          <JourneyTimeline data={data} />
         </div>
       ),
     },
@@ -155,8 +155,22 @@ function getStudentTabs(
     },
     {
       id: "records",
-      label: "Hồ sơ ứng tuyển",
+      label: "Hồ sơ & tài liệu",
       content: <StudentDocumentsTab data={data} />,
     },
   ];
+}
+
+function getInitialTab(initialTab?: string): string {
+  const supportedTabs = new Set([
+    "decision",
+    "activities",
+    "profile",
+    "engagement",
+    "progress",
+    "family",
+    "records",
+  ]);
+
+  return initialTab && supportedTabs.has(initialTab) ? initialTab : "decision";
 }

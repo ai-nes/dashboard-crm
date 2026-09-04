@@ -29,7 +29,7 @@ export default function JourneyTimeline({ data }: Student360SectionProps) {
   return (
     <Card className="flex min-w-0 flex-col p-5">
       <CardHeader className="mb-5">
-        <CardTitle>Tiến độ hồ sơ</CardTitle>
+        <CardTitle>Tiến độ tuyển sinh</CardTitle>
         <Badge color="success">Bước {currentStageIndex + 1}/{journeyStages.length}</Badge>
       </CardHeader>
 
