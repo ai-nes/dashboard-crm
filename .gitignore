@@ -50,3 +50,6 @@ next-env.d.ts
 .mcp.json
 scratchpad-*.diff
 
+
+# CodeGraph local index
+.codegraph/
