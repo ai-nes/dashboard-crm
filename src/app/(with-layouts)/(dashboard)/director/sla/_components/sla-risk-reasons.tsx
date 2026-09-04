@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
+import StudentCardEmptyState from "../../students/_components/student-card-empty-state";
 import { slaRiskReasons } from "./data";
 import type { SlaRiskReason } from "./types";
 
@@ -20,6 +21,8 @@ export default function SlaRiskReasons({ riskReasons }: SlaRiskReasonsProps) {
           </p>
         </div>
       </CardHeader>
+
+      {rows.length === 0 && <StudentCardEmptyState message="Chưa có dữ liệu." className="py-6" />}
 
       <div className="space-y-5">
         {rows.map((reason) => (

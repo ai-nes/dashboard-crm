@@ -55,21 +55,27 @@ export default function DemandMomentumChart({ demand = defaultDemand, period }: 
           {aiBadgeText}
         </Badge>
       </CardHeader>
-      <div className="mb-4 grid grid-cols-2 gap-y-4 rounded-xl bg-card-background py-3 sm:grid-cols-4 sm:gap-y-0 sm:divide-x sm:divide-card-border">
-        {summaryData.map((item) => {
-          const valueText = item.value != null ? item.value.toLocaleString("vi-VN") : "-";
-          const changeText = item.change != null ? `${item.change >= 0 ? "+" : ""}${item.change}%` : "-";
-          return (
-            <TrendSummary
-              key={item.id}
-              label={item.label}
-              value={valueText}
-              change={changeText}
-              tone={item.change != null ? (toneMap[item.id] ?? "text-text-primary") : "text-text-tertiary"}
-            />
-          );
-        })}
-      </div>
+      {summaryData.length > 0 ? (
+        <div className="mb-4 grid grid-cols-2 gap-y-4 rounded-xl bg-card-background py-3 sm:grid-cols-4 sm:gap-y-0 sm:divide-x sm:divide-card-border">
+          {summaryData.map((item) => {
+            const valueText = item.value != null ? item.value.toLocaleString("vi-VN") : "-";
+            const changeText = item.change != null ? `${item.change >= 0 ? "+" : ""}${item.change}%` : "-";
+            return (
+              <TrendSummary
+                key={item.id}
+                label={item.label}
+                value={valueText}
+                change={changeText}
+                tone={item.change != null ? (toneMap[item.id] ?? "text-text-primary") : "text-text-tertiary"}
+              />
+            );
+          })}
+        </div>
+      ) : (
+        <div className="mb-4">
+          <ChartEmptyState message="Chưa có số liệu tổng hợp theo ngành" />
+        </div>
+      )}
       <div className="h-64 w-full sm:h-80" aria-label="Biểu đồ xu hướng nhu cầu ngành học">
         {hasTrendData ? (
           <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>

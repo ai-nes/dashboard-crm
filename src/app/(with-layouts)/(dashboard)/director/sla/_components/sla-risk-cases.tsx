@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
+import StudentCardEmptyState from "../../students/_components/student-card-empty-state";
 import { slaRiskCases } from "./data";
 import type { SlaRiskCase } from "./types";
 
@@ -25,6 +26,10 @@ export default function SlaRiskCases({ riskCases }: SlaRiskCasesProps) {
         <Badge color="error">{rows.length} hồ sơ</Badge>
       </CardHeader>
 
+      {rows.length === 0 && <StudentCardEmptyState message="Chưa có dữ liệu." className="py-6" />}
+
+      {rows.length > 0 && (
+      <>
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[620px] text-left text-sm">
           <thead className="border-b-[0.5px] border-card-border bg-background-soft-50 text-xs text-text-tertiary">
@@ -125,6 +130,8 @@ export default function SlaRiskCases({ riskCases }: SlaRiskCasesProps) {
           </li>
         ))}
       </ul>
+      </>
+      )}
     </Card>
   );
 }

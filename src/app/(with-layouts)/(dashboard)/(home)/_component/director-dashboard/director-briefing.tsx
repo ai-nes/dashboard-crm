@@ -4,6 +4,7 @@ import { ArrowRight, InfoTriangle } from "@tailgrids/icons";
 import Link from "next/link";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import StudentCardEmptyState from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-card-empty-state";
 import { initialDirectorBriefing } from "@/services/api/director-overview/data";
 import type { DirectorBriefing as DirectorBriefingType } from "./types";
 
@@ -15,6 +16,20 @@ export default function DirectorBriefing({ briefing = initialDirectorBriefing }:
   const data = briefing ?? initialDirectorBriefing;
   const alert = data.alert;
   const priorityAction = data.priorityAction;
+
+  if (!alert?.title && !priorityAction?.title) {
+    return (
+      <Card className="flex h-full min-w-0 flex-col bg-background-gray-primary">
+        <CardHeader className="mb-4 items-start">
+          <div>
+            <CardTitle>Việc cần xử lý hôm nay</CardTitle>
+            <p className="mt-1 text-xs leading-5 text-text-tertiary">Một cảnh báo và việc ưu tiên tương ứng</p>
+          </div>
+        </CardHeader>
+        <StudentCardEmptyState message="Chưa có dữ liệu" className="flex-1" />
+      </Card>
+    );
+  }
 
   return (
     <Card className="flex h-full min-w-0 flex-col bg-background-gray-primary">

@@ -10,30 +10,40 @@ import {
 afterEach(() => vi.restoreAllMocks());
 
 describe("director admission overview API contract", () => {
-  it("computes full overview data with correct initial structure", () => {
+  it("computes an empty overview with correct structure when offline (no backend configured)", () => {
     const data = computeDirectorOverview({ admissionYear: 2026, scope: "all", trendRange: "30d" });
 
     expect(data.meta.admissionYear).toBe(2026);
     expect(data.meta.scope).toBe("all");
-    expect(data.kpis).toHaveLength(5);
-    expect(data.forecast.summary.actual).toBe(3820);
-    expect(data.forecast.points.length).toBeGreaterThan(0);
-    expect(data.briefing.alert.id).toBe("dong-nai-risk");
-    expect(data.pipeline.stages).toHaveLength(7);
-    expect(data.pipeline.biggestDrop.fromStageId).toBe("prospect");
-    expect(data.admissionsTrend.ranges["30d"].points.length).toBeGreaterThan(0);
-    expect(data.marketOverview.length).toBeGreaterThan(0);
-    expect(data.sourcePerformance.length).toBeGreaterThan(0);
-    expect(data.weeklyActivity.points.length).toBe(7);
+    expect(data.kpis).toEqual([]);
+    expect(data.forecast.summary.actual).toBe(0);
+    expect(data.forecast.points).toEqual([]);
+    expect(data.briefing.alert.id).toBe("");
+    expect(data.pipeline.stages).toEqual([]);
+    expect(data.pipeline.biggestDrop.fromStageId).toBe("");
+    expect(data.admissionsTrend.ranges["30d"].points).toEqual([]);
+    expect(data.marketOverview).toEqual([]);
+    expect(data.sourcePerformance).toEqual([]);
+    expect(data.weeklyActivity.points).toEqual([]);
   });
 
   it("converts invalid regional metrics to finite display values", () => {
     const payload = computeDirectorOverview({ admissionYear: 2026 });
+    const baseRegion = {
+      id: "region-a",
+      name: "Region A",
+      prospects: "0",
+      enrolled: "0",
+      conversion: "0%",
+      growth: "0%",
+      coverage: 0,
+      tone: "primary" as const,
+    };
     const result = normalizeDirectorOverview({
       ...payload,
       marketOverview: [
         {
-          ...payload.marketOverview[0],
+          ...baseRegion,
           prospects: "2",
           enrolled: "0",
           conversion: "NaN%",
@@ -41,7 +51,9 @@ describe("director admission overview API contract", () => {
           coverage: Number.NaN,
         },
         {
-          ...payload.marketOverview[1],
+          ...baseRegion,
+          id: "region-b",
+          name: "Region B",
           prospects: "NaN",
           enrolled: "NaN",
           conversion: "NaN%",
@@ -75,7 +87,7 @@ describe("director admission overview API contract", () => {
       expect.objectContaining({ cache: "no-store" }),
     );
     expect(result.meta.admissionYear).toBe(2026);
-    expect(result.kpis.length).toBe(5);
+    expect(result.kpis.length).toBe(mockPayload.kpis.length);
   });
 
   it("handles Frappe error responses correctly", async () => {

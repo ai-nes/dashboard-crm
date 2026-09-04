@@ -39,6 +39,11 @@ export default function SlaStatusOverview({ buckets }: SlaStatusOverviewProps) {
         </h2>
       </div>
 
+      {rows.length === 0 ? (
+        <Card className="min-w-0 p-5">
+          <p className="text-center text-sm text-text-tertiary">Chưa có dữ liệu.</p>
+        </Card>
+      ) : (
       <div className="grid gap-3 xl:grid-cols-3">
         {rows.map((bucket) => {
           const styles = toneStyles[bucket.tone];
@@ -91,6 +96,7 @@ export default function SlaStatusOverview({ buckets }: SlaStatusOverviewProps) {
           );
         })}
       </div>
+      )}
     </section>
   );
 }

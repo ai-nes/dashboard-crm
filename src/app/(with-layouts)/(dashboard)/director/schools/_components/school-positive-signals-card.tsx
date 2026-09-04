@@ -7,6 +7,7 @@ import { Card } from "@/components/tailgrids/core/card";
 import type { AnalysisReportItem } from "@/services/api/analysis-runs";
 
 import StudentAICardHeader from "../../students/_components/student-ai-card-header";
+import StudentCardEmptyState from "../../students/_components/student-card-empty-state";
 import { formatSchoolConfidence } from "./school-analysis-display";
 
 interface SchoolPositiveSignalsCardProps {
@@ -59,10 +60,7 @@ export default function SchoolPositiveSignalsCard({
           </div>
         ))}
         {recommendations.length === 0 && (
-          <div
-            className="min-h-16"
-            aria-label="Chưa có dữ liệu tín hiệu thuận lợi"
-          />
+          <StudentCardEmptyState message="Chưa ghi nhận tín hiệu thuận lợi nào cho trường này." />
         )}
       </div>
     </Card>

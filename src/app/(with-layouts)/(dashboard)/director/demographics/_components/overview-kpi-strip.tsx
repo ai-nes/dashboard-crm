@@ -2,6 +2,7 @@ import { ArrowUpward } from "@tailgrids/icons";
 
 import { demographicKpis as defaultKpis } from "@/services/api/demographics/data";
 import type { DemographicKpi, DemographicTone } from "@/services/api/demographics/types";
+import ChartEmptyState from "./chart-empty-state";
 
 const toneStyles: Record<DemographicTone, { dot: string; icon: string; bar: string; text: string }> = {
   primary: { dot: "bg-brand-500", icon: "bg-badge-primary-background", bar: "bg-brand-500", text: "text-brand-500" },
@@ -16,6 +17,14 @@ interface OverviewKpiStripProps {
 }
 
 export default function OverviewKpiStrip({ kpis = defaultKpis }: OverviewKpiStripProps) {
+  if (kpis.length === 0) {
+    return (
+      <section aria-label="Chỉ số tổng quan học sinh" className="min-w-0">
+        <ChartEmptyState message="Chưa có chỉ số tổng quan" detail="Cần dữ liệu học sinh để tính các chỉ số này." />
+      </section>
+    );
+  }
+
   return (
     <section aria-label="Chỉ số tổng quan học sinh" className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {kpis.map((kpi) => {

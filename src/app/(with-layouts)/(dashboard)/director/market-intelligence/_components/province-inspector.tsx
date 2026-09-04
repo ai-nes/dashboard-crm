@@ -10,13 +10,11 @@ import {
   opportunityLabel,
   REGION_CONFIGS,
 } from "./data";
-import SchoolSpotlight from "./school-spotlight";
 import type { HighSchoolItem, ProvinceMetrics } from "./types";
 
 interface ProvinceInspectorProps {
   onSelectSchool: (provinceCode: string, schoolId: string) => void;
   province: ProvinceMetrics | null;
-  selectedSchoolId: string | null;
 }
 
 const classificationConfig: Record<NonNullable<HighSchoolItem["classification"]>, { color: "success" | "primary" | "warning" | "gray"; label: string }> = {
@@ -26,7 +24,7 @@ const classificationConfig: Record<NonNullable<HighSchoolItem["classification"]>
   "Sàng lọc": { color: "gray", label: "Sàng lọc" },
 };
 
-export default function ProvinceInspector({ onSelectSchool, province, selectedSchoolId }: ProvinceInspectorProps) {
+export default function ProvinceInspector({ onSelectSchool, province }: ProvinceInspectorProps) {
   if (!province) {
     return (
       <aside className="flex h-full min-w-0 flex-col items-center justify-center rounded-2xl bg-card-background p-6 text-center" aria-label="Phân tích địa bàn">
@@ -38,9 +36,6 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
   }
 
   const schools = sortByAvailableScore(province.highSchools, "potentialScore");
-  const selectedSchool = selectedSchoolId
-    ? schools.find((school) => school.id === selectedSchoolId) ?? null
-    : null;
   const badgeVariant = getOpportunityBadgeVariant(province.opportunity);
   const regionLabel = REGION_CONFIGS[province.regionKey]?.label ?? province.regionKey;
 
@@ -76,17 +71,15 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
           <div className="mt-3 space-y-2">
             {schools.map((school, index) => {
               const status = school.classification ? classificationConfig[school.classification] : { color: "gray" as const, label: "Chưa phân loại" };
-              const isSelected = selectedSchool?.id === school.id;
 
               return (
                 <button
-                  aria-pressed={isSelected}
-                  className={`flex w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition ${isSelected ? "border-primary-200 bg-badge-primary-background" : "border-card-border bg-card-background hover:border-primary-200 hover:bg-background-soft-50"}`}
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-card-border bg-card-background p-2.5 text-left transition hover:border-primary-200 hover:bg-background-soft-50"
                   key={school.id}
                   onClick={() => onSelectSchool(province.code, school.id)}
                   type="button"
                 >
-                  <span className={`flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-semibold ${isSelected ? "bg-primary-500 text-primary-text" : "bg-background-soft-100 text-text-secondary"}`}>{index + 1}</span>
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-background-soft-100 text-xs font-semibold text-text-secondary">{index + 1}</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
                       <span className="truncate text-xs font-semibold text-text-primary" title={school.name}>{school.name}</span>
@@ -100,8 +93,6 @@ export default function ProvinceInspector({ onSelectSchool, province, selectedSc
             })}
           </div>
         </section>
-
-        {selectedSchool && <SchoolSpotlight provinceName={province.name} school={selectedSchool} />}
 
         <section aria-labelledby="province-recommendation-title" className="mt-5 rounded-xl border border-card-border bg-background-soft-50 p-3.5">
           <div className="flex items-start gap-2.5">

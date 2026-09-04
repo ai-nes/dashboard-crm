@@ -8,8 +8,8 @@ import Link from "next/link";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
-import { positiveDrivers } from "./data";
 import { percent, useRevenueForecastData } from "./revenue-forecast-context";
+import type { ForecastDriver } from "./types";
 
 export default function AiForecastExplanation() {
   const { aiExplanation, signals } = useRevenueForecastData();
@@ -130,7 +130,7 @@ function DriverGroup({
   positive = false,
 }: {
   title: string;
-  drivers: typeof positiveDrivers;
+  drivers: ForecastDriver[];
   positive?: boolean;
 }) {
   return (

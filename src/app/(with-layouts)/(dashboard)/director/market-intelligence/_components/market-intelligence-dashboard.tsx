@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/tailgrids/core/button";
 import { sortByAvailableScore } from "@/services/api/market-intelligence";
@@ -27,6 +28,7 @@ export default function MarketIntelligenceDashboard({
   overview,
   error: apiError,
 }: Props) {
+  const router = useRouter();
   const provinces = useMemo(
     () => (overview?.provinces ?? []) as ProvinceMetrics[],
     [overview],
@@ -149,8 +151,10 @@ export default function MarketIntelligenceDashboard({
     setSelectedSchoolId(null);
   };
   const selectSchool = (provinceCode: string, schoolId: string) => {
-    setSelectedCode(provinceCode);
-    setSelectedSchoolId(schoolId);
+    const school = provinces
+      .find((province) => province.code === provinceCode)
+      ?.highSchools.find((item) => item.id === schoolId);
+    if (school) router.push(`/director/schools/${school.id}`);
   };
   const changeRegion = (nextRegion: RegionKey) => {
     setRegion(nextRegion);
@@ -205,7 +209,6 @@ export default function MarketIntelligenceDashboard({
           <ProvinceInspector
             onSelectSchool={selectSchool}
             province={filteredSelectedProvince}
-            selectedSchoolId={visibleSelectedSchoolId}
           />
         )}
       </div>
