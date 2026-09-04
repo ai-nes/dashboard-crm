@@ -58,19 +58,9 @@ describe("CRM Notes API Service", () => {
       );
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        `${baseUrl}/api/method/crm.api.note.list_notes`,
+        `${baseUrl}/api/method/crm.api.note.list_notes?reference_doctype=CRM+Student&reference_docname=STU-0001&start=0&page_length=20&search=h%E1%BB%8Dc+b%E1%BB%95ng`,
         expect.objectContaining({
-          method: "POST",
-          headers: expect.objectContaining({
-            "Content-Type": "application/json",
-          }),
-          body: JSON.stringify({
-            reference_doctype: "CRM Student",
-            reference_docname: "STU-0001",
-            start: 0,
-            page_length: 20,
-            search: "học bổng",
-          }),
+          method: "GET",
         }),
       );
 
@@ -199,6 +189,11 @@ describe("CRM Notes API Service", () => {
       });
 
       const result = await getNote("NOTE-001", { baseUrl });
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `${baseUrl}/api/method/crm.api.note.get_note?name=NOTE-001`,
+        expect.objectContaining({ method: "GET" }),
+      );
       expect(result.name).toBe("NOTE-001");
       expect(result.content).toBe("Nội dung");
     });
