@@ -35,7 +35,11 @@ export default function StudentHeader({ data }: Student360SectionProps) {
     student.contactConsent ||
     student.lastUpdatedAt,
   );
-  const score = data.insight.signalScore ?? data.insight.probability ?? 82;
+  const scoreCandidate = data.insight.signalScore ?? data.insight.probability;
+  const score =
+    typeof scoreCandidate === "number" && Number.isFinite(scoreCandidate)
+      ? scoreCandidate
+      : null;
 
   return (
     <header className="min-w-0 shrink-0">
@@ -128,7 +132,16 @@ export default function StudentHeader({ data }: Student360SectionProps) {
             </div>
 
             <div className="flex justify-center border-t border-card-border pt-3 lg:border-t-0 lg:pt-0">
-              <StudentGaugeChart score={score} label="Điểm tiềm năng" />
+              {score === null ? (
+                <div
+                  className="flex min-h-28 items-center justify-center text-sm font-medium text-text-tertiary"
+                  role="status"
+                >
+                  Chưa có dữ liệu
+                </div>
+              ) : (
+                <StudentGaugeChart score={score} label="Điểm tiềm năng" />
+              )}
             </div>
           </div>
 

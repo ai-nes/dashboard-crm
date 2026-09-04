@@ -151,7 +151,7 @@ export interface SchoolChoiceBreakdown {
 export interface SchoolIntelligenceData {
   school: SchoolDirectoryRecord;
   locality?: DirectorSchoolLocality;
-  potentialScore: number;
+  potentialScore: number | null;
   grade12Students: number;
   availableStudents: number;
   prospects: number;

@@ -45,8 +45,16 @@ export default function StudentAskAIDialog({
           `Gợi ý kịch bản cho tư vấn viên: 1) Chào hỏi và cập nhật cuộc trao đổi ngày hôm qua. 2) Cung cấp thông tin chi tiết về ngành ${data.student.major} theo nguyện vọng của học sinh. 3) Giới thiệu chính sách học bổng và hẹn lịch gửi bản thảo hồ sơ.`,
         );
       } else if (questionText.includes("nhập học") || questionText.includes("đánh giá")) {
+        const scoreText =
+          data.insight.signalScore === null
+            ? "Chưa có dữ liệu"
+            : `${data.insight.signalScore}/100`;
+        const probabilityText =
+          data.insight.probability === null
+            ? "Chưa có dữ liệu"
+            : `${Math.round(data.insight.probability * 100)}%`;
         setAnswer(
-          `Học sinh có điểm tín hiệu ưu tiên là ${data.insight.signalScore}/100 với điểm tiềm năng ở mức cao. Xác suất nhập học ước tính đạt ${Math.round(data.insight.probability * 100)}%. Đề xuất tư vấn viên giữ nhịp chăm sóc trong 48 giờ tới.`,
+          `Điểm tín hiệu ưu tiên: ${scoreText}. Xác suất nhập học ước tính: ${probabilityText}. Đề xuất tư vấn viên giữ nhịp chăm sóc trong 48 giờ tới.`,
         );
       } else {
         setAnswer(
@@ -166,4 +174,3 @@ export default function StudentAskAIDialog({
     </div>
   );
 }
-

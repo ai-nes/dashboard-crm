@@ -1,5 +1,6 @@
 import type {
   AnalysisClaimKind,
+  AnalysisConfidence,
   AnalysisReport,
   AnalysisReportItem,
   AnalysisRunStage,
@@ -19,10 +20,19 @@ export function getHighestConfidenceReportItem(
   return items.reduce((selected, item) => {
     if (selected === null) return item;
 
-    const selectedConfidence = selected.confidence ?? -1;
-    const itemConfidence = item.confidence ?? -1;
+    const selectedConfidence = confidenceRank(selected.confidence);
+    const itemConfidence = confidenceRank(item.confidence);
     return itemConfidence > selectedConfidence ? item : selected;
   }, null as AnalysisReportItem | null);
+}
+
+function confidenceRank(value: AnalysisConfidence): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const normalized = typeof value === "string" ? value.trim().toUpperCase() : "";
+  if (normalized === "HIGH") return 1;
+  if (normalized === "MEDIUM") return 0.7;
+  if (normalized === "LOW") return 0.4;
+  return -1;
 }
 
 export function getRichReport(
@@ -32,12 +42,29 @@ export function getRichReport(
 }
 
 const TERMINAL_REASON_LABELS: Record<string, string> = {
+  insufficient_evidence: "chưa đủ dữ liệu đối soát",
+  student_analysis_model_timeout: "mô hình phân tích học sinh quá thời gian",
+  school_analysis_model_timeout: "mô hình phân tích trường quá thời gian",
   evidence_access_denied: "quyền truy cập dữ liệu nguồn bị từ chối",
   source_revision_superseded: "dữ liệu hồ sơ đã thay đổi giữa chừng",
   source_digest_mismatch: "dữ liệu hồ sơ đã thay đổi giữa chừng",
   stage_timeout: "quá thời gian xử lý",
   dead_lettered: "đã thử lại nhiều lần không thành công",
 };
+
+export function formatTerminalReason(reason: string | null | undefined): string | null {
+  if (!reason) return null;
+  return TERMINAL_REASON_LABELS[reason] ?? reason.replaceAll("_", " ");
+}
+
+export function formatAnalysisLevel(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "HIGH" || normalized === "CAO") return "Cao";
+  if (normalized === "MEDIUM" || normalized === "TRUNG BÌNH") return "Trung bình";
+  if (normalized === "LOW" || normalized === "THẤP") return "Thấp";
+  return value;
+}
 
 /**
  * A non-blocking notice when the deep-analysis (Next Best Action) stage did not
@@ -57,9 +84,7 @@ export function getDeepAnalysisNotice(run: {
   );
   if (!nba || nba.status === "completed") return null;
   if (!overview || overview.status !== "completed") return null;
-  const reason = nba.terminalReason
-    ? (TERMINAL_REASON_LABELS[nba.terminalReason] ?? nba.terminalReason)
-    : null;
+  const reason = formatTerminalReason(nba.terminalReason);
   return reason
     ? `Phân tích chuyên sâu (Hành động tiếp theo) chưa sẵn sàng — ${reason}.`
     : "Phân tích chuyên sâu (Hành động tiếp theo) chưa sẵn sàng.";
@@ -194,11 +219,15 @@ export function computeAnalysisKpis(
 }
 
 export function formatClaimConfidence(
-  confidence: number | null,
+  confidence: AnalysisConfidence,
 ): { label: string; color: "success" | "primary" | "warning" } | null {
   if (confidence === null || confidence === undefined) return null;
-  const percent = Math.round(confidence * 100);
-  if (percent >= 85) return { label: `${percent}% tin cậy`, color: "success" };
-  if (percent >= 65) return { label: `${percent}% tin cậy`, color: "primary" };
-  return { label: `${percent}% tin cậy`, color: "warning" };
+  const rank = confidenceRank(confidence);
+  if (rank >= 0.85) return { label: "Tin cậy cao", color: "success" };
+  if (rank >= 0.65) return { label: "Tin cậy trung bình", color: "primary" };
+  if (rank >= 0) return { label: "Tin cậy thấp", color: "warning" };
+  return {
+    label: typeof confidence === "string" ? confidence : "Có tín hiệu",
+    color: "primary",
+  };
 }

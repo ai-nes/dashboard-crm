@@ -4,7 +4,7 @@ import {
   ChatIcon,
   HomeIcon,
   InvoiceIcon,
-  PieChartIcon,
+  // PieChartIcon,
   TaskIcon,
   UserGroupIcon,
   Widget4Icon,
@@ -232,11 +232,11 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
         url: "/ctv-sale/tasks",
         icon: <TaskIcon />,
       }),
-      navItem({
-        title: "Kết quả",
-        url: "/ctv-sale/results",
-        icon: <PieChartIcon />,
-      }),
+      // navItem({
+      //   title: "Kết quả",
+      //   url: "/ctv-sale/results",
+      //   icon: <PieChartIcon />,
+      // }),
     ],
   },
 ];

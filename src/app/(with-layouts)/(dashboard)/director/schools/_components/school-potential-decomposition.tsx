@@ -111,25 +111,20 @@ export default function SchoolPotentialDecomposition({
   });
   const hasData = rows.some((row) => row.score !== null);
   const hasCompleteData = rows.every((row) => row.score !== null);
-  const totalContribution = hasCompleteData
-    ? Math.round(
-        rows.reduce((total, row) => total + (row.contribution ?? 0), 0) * 10,
-      ) / 10
-    : null;
+  const potentialScore = finiteScore(data.potentialScore);
   const hasEstimate = rows.some((row) => row.status === "estimated");
-  const badgeColor = !hasData
+  const badgeColor = potentialScore === null || !hasData
     ? "gray"
     : hasEstimate || !hasCompleteData
       ? "warning"
       : "success";
-  const badgeLabel = !hasData
+  const badgeLabel = potentialScore === null || !hasData
     ? "Chưa có dữ liệu"
     : hasEstimate
       ? "Có ước lượng"
       : !hasCompleteData
         ? "Thiếu dữ liệu"
-        : `${totalContribution}/100`;
-  const potentialScore = data.potentialScore ?? totalContribution;
+        : `${potentialScore}/100`;
 
   return (
     <Card className="min-w-0 overflow-hidden p-0">
@@ -147,10 +142,16 @@ export default function SchoolPotentialDecomposition({
               Điểm tiềm năng
             </p>
             <p className="mt-2 text-4xl leading-none font-semibold tracking-[-1px] text-primary-500">
-              {potentialScore ?? "-"}
-              <span className="text-lg font-medium text-text-tertiary">
-                /100
-              </span>
+              {potentialScore === null ? (
+                "Chưa có dữ liệu"
+              ) : (
+                <>
+                  {potentialScore}
+                  <span className="text-lg font-medium text-text-tertiary">
+                    /100
+                  </span>
+                </>
+              )}
             </p>
             <p className="mt-2 text-xs text-text-tertiary">
               Điểm càng cao càng nên ưu tiên đầu tư
