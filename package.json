@@ -28,6 +28,7 @@
         "@tiptap/react": "^3.31.2",
         "@tiptap/starter-kit": "^3.31.2",
         "@xdev-asia/vietnam-map-34-provinces": "^2.1.0",
+        "@xyflow/react": "^12.11.6",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
