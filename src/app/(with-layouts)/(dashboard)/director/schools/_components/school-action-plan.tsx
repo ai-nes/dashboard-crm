@@ -59,14 +59,10 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
     [data],
   );
   const displayData = schoolActionPlanMock.data;
-  const displayReport = schoolActionPlanMock.report;
+  const displayReport = analysisReport ?? schoolActionPlanMock.report;
   const classificationGroup = displayData.classificationResponse?.group;
 
   const handleAnalysis = () => {
-    if (run && !isAnalysisActive) {
-      setIsAnalysisDrawerOpen(true);
-      return;
-    }
     if (!data.school.id || requestMutation.isPending || isAnalysisActive)
       return;
     request({ kind: "school", highSchool: data.school.id });
@@ -76,9 +72,7 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
     ? "Đang gửi"
     : isAnalysisActive
       ? "Đang phân tích"
-      : run
-        ? "Xem phân tích"
-        : "Phân tích AI";
+      : "Phân tích";
 
   return (
     <div className="min-w-0 space-y-6">
@@ -108,7 +102,7 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
                   onPress={handleAnalysis}
                   size="xs"
                 >
-                  {isAnalysisActive || run ? (
+                  {isAnalysisActive ? (
                     <RefreshCircle1Clockwise
                       className={
                         isAnalysisActive

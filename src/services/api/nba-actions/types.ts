@@ -7,6 +7,9 @@ export const ACTION_TIME_SLOTS = [
 
 export type ActionTimeSlot = (typeof ACTION_TIME_SLOTS)[number];
 
+export type ActionChannel = "NONE" | "CALL" | "EMAIL" | "MESSAGE";
+export type ActionExecutionType = "MANUAL" | "AI_ASSISTED";
+
 export interface NbaAction {
   name: string;
   code: string;
@@ -14,9 +17,16 @@ export interface NbaAction {
   actionType: string | null;
   description: string | null;
   purpose: string | null;
-  defaultChannel: string | null;
+  defaultChannel: ActionChannel | null;
+  allowedActors: string[];
   allowedTimeSlots: ActionTimeSlot[];
+  requiresApproval: boolean;
+  autoExecute: boolean;
+  executionType: ActionExecutionType;
+  aiAllowed: boolean;
   enabled: boolean;
+  sortOrder: number;
+  modified: string | null;
 }
 
 export interface NbaActionType {
@@ -28,6 +38,7 @@ export interface NbaActionType {
 
 export interface ListNbaActionsParams {
   actionType?: string;
+  channel?: string;
   enabled?: boolean;
   search?: string;
   start?: number;
@@ -54,7 +65,36 @@ export interface ListNbaTimeSlotsResponse {
 
 export interface UpdateNbaActionPayload {
   name: string;
+  displayName?: string;
+  actionType?: string;
+  description?: string;
+  purpose?: string;
+  defaultChannel?: ActionChannel;
+  allowedActors?: string[];
+  allowedTimeSlots?: ActionTimeSlot[];
+  requiresApproval?: boolean;
+  autoExecute?: boolean;
+  executionType?: ActionExecutionType;
+  aiAllowed?: boolean;
+  enabled?: boolean;
+  sortOrder?: number;
+}
+
+export interface CreateNbaActionPayload {
+  code: string;
+  displayName: string;
+  actionType: string;
+  description?: string;
+  purpose?: string;
+  defaultChannel: ActionChannel;
+  allowedActors: string[];
   allowedTimeSlots: ActionTimeSlot[];
+  requiresApproval: boolean;
+  autoExecute: boolean;
+  executionType: ActionExecutionType;
+  aiAllowed: boolean;
+  enabled: boolean;
+  sortOrder: number;
 }
 
 export interface UpdateNbaActionResponse {

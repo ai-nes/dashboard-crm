@@ -6,6 +6,7 @@ import {
   DirectorStudentsApiError,
   getDirectorStudents,
   getStudent360,
+  getStudentInteractions,
 } from "./index";
 
 afterEach(() => vi.restoreAllMocks());
@@ -109,5 +110,56 @@ describe("director students API contract", () => {
         code: "INVALID_STUDENT_RESPONSE",
       }),
     );
+  });
+
+  it("returns empty interactions response when offline", async () => {
+    const result = await getStudentInteractions("ENR-1");
+
+    expect(result).toEqual({
+      student_id: "ENR-1",
+      zalo_messages: [],
+      calls: [],
+      total_interactions: 0,
+    });
+  });
+
+  it("calls Frappe get_student_interactions endpoint and parses payload", async () => {
+    const mockPayload = {
+      student_id: "ENR-1",
+      zalo_messages: [
+        {
+          id: "INTX-1",
+          time: "06/06/2026 · 16:42",
+          senderName: "Nguyễn Văn Minh",
+          recipientName: "Trần Quốc Bảo",
+          content: "Hỏi học phí",
+          direction: "inbound" as const,
+        },
+      ],
+      calls: [],
+      total_interactions: 1,
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockPayload }), { status: 200 }),
+    );
+
+    const result = await getStudentInteractions("ENR-1", { baseUrl: "http://frappe:8000" });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_student_interactions?student_id=ENR-1",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+    expect(result).toEqual(mockPayload);
+  });
+
+  it("maps 404 to null for getStudentInteractions", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: "STUDENT_NOT_FOUND" } }), { status: 404 }),
+    );
+
+    const result = await getStudentInteractions("non-existent", { baseUrl: "http://frappe:8000" });
+
+    expect(result).toBeNull();
   });
 });

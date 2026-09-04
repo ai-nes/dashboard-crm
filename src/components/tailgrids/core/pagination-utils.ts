@@ -1,6 +1,6 @@
 export type PaginationItem = number | "ellipsis";
 
-const PAGE_LINK_WINDOW = 5;
+const PAGE_LINK_WINDOW = 3;
 
 export interface NormalizedPagination {
   currentPage: number;

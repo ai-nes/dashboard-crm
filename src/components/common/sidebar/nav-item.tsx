@@ -21,7 +21,7 @@ export interface NavItemProps {
   label: string;
   href?: string;
   exact?: boolean;
-  items?: Array<{ title: string; url?: string }>;
+  items?: Array<{ title: string; url?: string; exact?: boolean }>;
   collapsed?: boolean;
   onItemClick?: () => void;
 }
@@ -44,8 +44,10 @@ export default function NavItem({
       : isPathActive(href, pathname)
     : false;
 
-  const hasActiveChild = items?.some(
-    (item) => item.url && isPathActive(item.url, pathname),
+  const hasActiveChild = items?.some((item) =>
+    item.exact
+      ? pathname === item.url
+      : item.url && isPathActive(item.url, pathname),
   );
 
   // Collapsed: icon-only button centered, no dropdown
@@ -106,11 +108,13 @@ export default function NavItem({
           <AltArrowUpIcon className="rotate-180 text-icon-tertiary duration-200 group-data-expanded:rotate-0" />
         </CollapsibleTrigger>
 
-        <CollapsibleContent className="space-y-1 pr-0 group-data-expanded:mt-2">
+        <CollapsibleContent className="space-y-1 pr-0 pl-11 group-data-expanded:mt-2">
           {items.map((item) => {
-            const isChildActive = item.url
-              ? isPathActive(item.url, pathname)
-              : false;
+            const isChildActive = item.exact
+              ? pathname === item.url
+              : item.url
+                ? isPathActive(item.url, pathname)
+                : false;
 
             return (
               <div key={item.title} className="px-0">

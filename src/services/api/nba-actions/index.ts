@@ -9,6 +9,8 @@ import type {
   ListNbaActionsParams,
   ListNbaActionsResponse,
   ListNbaTimeSlotsResponse,
+  CreateNbaActionPayload,
+  NbaAction,
   UpdateNbaActionPayload,
   UpdateNbaActionResponse,
 } from "./types";
@@ -19,9 +21,12 @@ export * from "./normalizers";
 
 const METHODS = {
   LIST_ACTIONS: "crm.api.action.list_actions",
+  GET_ACTION: "crm.api.action.get_action",
+  CREATE_ACTION: "crm.api.action.create_action",
+  UPDATE_ACTION: "crm.api.action.update_action",
+  DELETE_ACTION: "crm.api.action.delete_action",
   LIST_ACTION_TYPES: "crm.api.action_type.list_action_types",
   LIST_TIME_SLOTS: "crm.api.action.list_time_slots",
-  UPDATE_ACTION: "crm.api.action.update_action",
 } as const;
 
 export type RequestOptions = {
@@ -40,7 +45,7 @@ export class NbaActionsApiError extends Error {
   }
 }
 
-type RequestMethod = "GET" | "POST";
+type RequestMethod = "GET" | "POST" | "PUT" | "DELETE";
 type QueryValue = string | number | undefined;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -145,6 +150,8 @@ function getErrorDetails(payload: unknown): {
     code:
       typeof error?.code === "string"
         ? error.code
+        : typeof root?.exc_type === "string"
+          ? root.exc_type
         : typeof root?.exception === "string"
           ? root.exception
           : undefined,
@@ -184,7 +191,7 @@ async function callNbaActionsApi<T>(
       ...(typeof window !== "undefined"
         ? { credentials: "include" as RequestCredentials }
         : {}),
-      ...(body ? { body: JSON.stringify(body) } : {}),
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       cache: "no-store",
     });
   } catch {
@@ -218,6 +225,7 @@ export async function listNbaActions(
     options,
     {
       action_type: params.actionType,
+      default_channel: params.channel,
       enabled:
         params.enabled === undefined ? undefined : params.enabled ? 1 : 0,
       search: params.search,
@@ -233,6 +241,72 @@ export async function listNbaActions(
       502,
       "INVALID_NBA_ACTIONS_RESPONSE",
       "Phản hồi danh sách Action NBA không hợp lệ.",
+    );
+  }
+}
+
+export async function getNbaAction(
+  name: string,
+  options: RequestOptions = {},
+): Promise<NbaAction> {
+  const raw = await callNbaActionsApi<unknown>(
+    METHODS.GET_ACTION,
+    "GET",
+    options,
+    { name },
+  );
+
+  try {
+    const payload = asRecord(raw)?.message ?? raw;
+    return normalizeNbaActionsResponse({ actions: [payload] }).actions[0];
+  } catch {
+    throw new NbaActionsApiError(
+      502,
+      "INVALID_NBA_ACTION_RESPONSE",
+      "Phản hồi chi tiết Action NBA không hợp lệ.",
+    );
+  }
+}
+
+function actionBody(payload: CreateNbaActionPayload | UpdateNbaActionPayload): Record<string, unknown> {
+  return {
+    ...("code" in payload ? { code: payload.code } : {}),
+    ...(payload.displayName !== undefined ? { display_name: payload.displayName } : {}),
+    ...(payload.actionType !== undefined ? { action_type: payload.actionType } : {}),
+    ...(payload.description !== undefined ? { description: payload.description } : {}),
+    ...(payload.purpose !== undefined ? { purpose: payload.purpose } : {}),
+    ...(payload.defaultChannel !== undefined ? { default_channel: payload.defaultChannel } : {}),
+    ...(payload.allowedActors !== undefined ? { allowed_actors: payload.allowedActors } : {}),
+    ...(payload.allowedTimeSlots !== undefined ? { allowed_time_slots: payload.allowedTimeSlots } : {}),
+    ...(payload.requiresApproval !== undefined ? { requires_approval: payload.requiresApproval ? 1 : 0 } : {}),
+    ...(payload.autoExecute !== undefined ? { auto_execute: payload.autoExecute ? 1 : 0 } : {}),
+    ...(payload.executionType !== undefined ? { execution_type: payload.executionType } : {}),
+    ...(payload.aiAllowed !== undefined ? { ai_allowed: payload.aiAllowed ? 1 : 0 } : {}),
+    ...(payload.enabled !== undefined ? { enabled: payload.enabled ? 1 : 0 } : {}),
+    ...(payload.sortOrder !== undefined ? { sort_order: payload.sortOrder } : {}),
+  };
+}
+
+export async function createNbaAction(
+  payload: CreateNbaActionPayload,
+  options: RequestOptions = {},
+): Promise<NbaAction> {
+  const raw = await callNbaActionsApi<unknown>(
+    METHODS.CREATE_ACTION,
+    "POST",
+    options,
+    {},
+    actionBody(payload),
+  );
+
+  try {
+    const response = normalizeNbaActionsResponse({ actions: [asRecord(raw)?.message ?? raw] });
+    return response.actions[0];
+  } catch {
+    throw new NbaActionsApiError(
+      502,
+      "INVALID_NBA_ACTION_CREATE_RESPONSE",
+      "Phản hồi tạo Action NBA không hợp lệ.",
     );
   }
 }
@@ -284,13 +358,10 @@ export async function updateNbaAction(
 ): Promise<UpdateNbaActionResponse> {
   const raw = await callNbaActionsApi<unknown>(
     METHODS.UPDATE_ACTION,
-    "POST",
+    "PUT",
     options,
-    {},
-    {
-      name: payload.name,
-      allowed_time_slots: payload.allowedTimeSlots,
-    },
+    { name: payload.name },
+    actionBody(payload),
   );
 
   try {
@@ -302,4 +373,16 @@ export async function updateNbaAction(
       "Phản hồi cập nhật Action NBA không hợp lệ.",
     );
   }
+}
+
+export async function deleteNbaAction(
+  name: string,
+  options: RequestOptions = {},
+): Promise<void> {
+  await callNbaActionsApi<unknown>(
+    METHODS.DELETE_ACTION,
+    "DELETE",
+    options,
+    { name },
+  );
 }
