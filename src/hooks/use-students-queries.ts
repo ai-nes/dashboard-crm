@@ -1,10 +1,15 @@
 "use client";
 
 import { useQuery, type UseQueryOptions, type UseQueryResult } from "@tanstack/react-query";
-import { getDirectorStudents, getStudent360 } from "@/services/api/students";
+import {
+  getDirectorStudents,
+  getStudent360,
+  getStudentChatwootInteractions,
+} from "@/services/api/students";
 import type {
   DirectorStudentsParams,
   DirectorStudentsResponse,
+  StudentChatwootInteractionsResponse,
   Student360Data,
 } from "@/services/api/students";
 
@@ -12,6 +17,7 @@ export const studentsKeys = {
   all: ["students"] as const,
   directorStudents: (params?: DirectorStudentsParams) => ["director-students", params] as const,
   student360: (studentId: string) => ["student-360", studentId] as const,
+  studentChatwootInteractions: (studentId: string) => ["student-chatwoot-interactions", studentId] as const,
 };
 
 export function useDirectorStudentsQuery<TData = DirectorStudentsResponse>(
@@ -32,6 +38,28 @@ export function useStudent360Query<TData = Student360Data | null>(
   return useQuery({
     queryKey: studentsKeys.student360(studentId),
     queryFn: () => getStudent360(studentId),
+    ...options,
+  });
+}
+
+export function useStudentChatwootInteractionsQuery<
+  TData = StudentChatwootInteractionsResponse | null,
+>(
+  studentId: string,
+  options?: Omit<
+    UseQueryOptions<
+      StudentChatwootInteractionsResponse | null,
+      Error,
+      TData,
+      ReturnType<typeof studentsKeys.studentChatwootInteractions>
+    >,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<TData, Error> {
+  return useQuery({
+    queryKey: studentsKeys.studentChatwootInteractions(studentId),
+    queryFn: () => getStudentChatwootInteractions(studentId),
+    enabled: Boolean(studentId),
     ...options,
   });
 }

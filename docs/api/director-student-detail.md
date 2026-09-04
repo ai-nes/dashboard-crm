@@ -666,3 +666,35 @@ Frontend cần:
 3. Hiển thị `student`, `classification`, `acquisition`, `segmentation`, `parentProfile`, `insight`, `journey`, `engagement` và `application`.
 4. Xử lý `404 STUDENT_NOT_FOUND` bằng trạng thái không tìm thấy hồ sơ; lỗi `401/403/5xx` phải hiển thị lỗi đồng bộ rõ ràng.
 5. Trả `probabilityTrend`, `channelPerformance`, `documents`, `notes` và `auditEvents` khi có dữ liệu thật. Nếu chưa có nguồn, trả `[]` hoặc bỏ field tùy chọn; không trả số minh họa và không dùng `0` thay cho dữ liệu thiếu.
+
+## 10. Tin nhắn Chatwoot cho tab Zalo
+
+Tab Zalo lấy dữ liệu từ endpoint chuyên biệt:
+
+```http
+GET /api/method/crm.api.director_students.get_student_chatwoot_interactions?student_id=ENR-2026-00005&page=1&page_size=50
+Cookie: sid=<Frappe session cookie>
+```
+
+Endpoint lọc chính xác `student_id` và `interaction_type = "Tin nhắn Chatwoot"`.
+Vì vậy message có `channel=webchat` vẫn được hiển thị trong tab Zalo. Response
+được bọc trong `message` theo chuẩn Frappe:
+
+```typescript
+{
+  student_id: string;
+  data: StudentChatwootInteraction[];
+  zalo_messages: StudentZaloMessage[];
+  meta: {
+    page: number;
+    page_size: number;
+    total: number;
+    has_next_page: boolean;
+  };
+}
+```
+
+Trang detail gọi endpoint này ở server và hook TanStack Query tiếp tục đồng bộ
+khi component hoạt động ở browser. Nếu API chưa cấu hình hoặc trả `404`, tab
+Zalo dùng `data.zaloMessages` từ Student360 để giữ tương thích với fixture và
+backend cũ; không thay đổi giao diện, bộ lọc hoặc thao tác tạo dữ liệu.

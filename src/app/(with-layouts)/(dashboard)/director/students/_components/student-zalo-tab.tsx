@@ -17,6 +17,7 @@ import StudentActivityToolbar, {
 } from "./student-activity-toolbar";
 import {
   activityTimeFilterOptions,
+  getStudentZaloConversationTitle,
   matchesActivityTimeFilter,
   parseStudentActivityDate,
   type ActivityTimeFilter,
@@ -177,7 +178,7 @@ function groupConversations(messages: StudentZaloMessage[]): StudentZaloConversa
   const conversations = new Map<string, StudentZaloMessage[]>();
 
   for (const message of messages) {
-    const title = message.conversationTitle || "Trao đổi Zalo";
+    const title = getStudentZaloConversationTitle(message.conversationTitle);
     const current = conversations.get(title) ?? [];
     current.push(message);
     conversations.set(title, current);

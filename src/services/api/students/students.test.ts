@@ -5,6 +5,7 @@ import {
   computeStudent360,
   DirectorStudentsApiError,
   getDirectorStudents,
+  getStudentChatwootInteractions,
   getStudent360,
   getStudentInteractions,
 } from "./index";
@@ -161,5 +162,72 @@ describe("director students API contract", () => {
     const result = await getStudentInteractions("non-existent", { baseUrl: "http://frappe:8000" });
 
     expect(result).toBeNull();
+  });
+
+  it("calls the Chatwoot interactions endpoint with pagination and parses payload", async () => {
+    const mockPayload = {
+      student_id: "ENR-1",
+      data: [
+        {
+          name: "INTX-CHATWOOT-1",
+          interaction_type: "Tin nhắn Chatwoot",
+          interaction_datetime: "2026-09-04 12:47:31",
+        },
+      ],
+      zalo_messages: [
+        {
+          id: "INTX-CHATWOOT-1",
+          time: "04/09/2026 · 12:47",
+          senderName: "Nguyễn Minh An",
+          recipientName: "Tư vấn viên",
+          content: "Em muốn hỏi học phí.",
+          direction: "inbound" as const,
+        },
+      ],
+      meta: { page: 2, page_size: 10, total: 11, has_next_page: true },
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockPayload }), { status: 200 }),
+    );
+
+    const result = await getStudentChatwootInteractions("ENR-1", {
+      baseUrl: "http://frappe:8000",
+      page: 2,
+      pageSize: 10,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_student_chatwoot_interactions?student_id=ENR-1&page=2&page_size=10",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+    expect(result).toEqual(mockPayload);
+  });
+
+  it("returns null when the Chatwoot interactions student is not found", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: "STUDENT_NOT_FOUND" } }), { status: 404 }),
+    );
+
+    const result = await getStudentChatwootInteractions("non-existent", {
+      baseUrl: "http://frappe:8000",
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("rejects an invalid Chatwoot interactions envelope", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: { data: [] } }), { status: 200 }),
+    );
+
+    await expect(
+      getStudentChatwootInteractions("ENR-1", { baseUrl: "http://frappe:8000" }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<DirectorStudentsApiError>>({
+        status: 502,
+        code: "INVALID_CHATWOOT_INTERACTIONS_RESPONSE",
+      }),
+    );
   });
 });
