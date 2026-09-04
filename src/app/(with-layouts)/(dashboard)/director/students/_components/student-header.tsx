@@ -24,6 +24,7 @@ import type {
 } from "@/services/api/students/types";
 
 import StudentCopyBadge from "./student-copy-badge";
+import StudentGaugeChart from "./student-gauge-chart";
 import type { Student360SectionProps } from "./types";
 
 export default function StudentHeader({ data }: Student360SectionProps) {
@@ -34,6 +35,7 @@ export default function StudentHeader({ data }: Student360SectionProps) {
     student.contactConsent ||
     student.lastUpdatedAt,
   );
+  const score = data.insight.signalScore ?? data.insight.probability ?? 82;
 
   return (
     <header className="min-w-0 shrink-0">
@@ -47,80 +49,86 @@ export default function StudentHeader({ data }: Student360SectionProps) {
 
       <div className="min-w-0 overflow-hidden rounded-2xl border border-card-border bg-card-background">
         <div className="min-w-0 p-3 lg:p-4">
-          <div className="flex min-w-0 items-start gap-3">
-            <Avatar size="md">
-              <AvatarFallback>{student.initials || "HS"}</AvatarFallback>
-              <AvatarBadge size="md" status="online" />
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="min-w-0 text-balance text-xl font-semibold tracking-[-0.4px] text-text-primary lg:text-2xl lg:leading-8">
-                  {student.name || "-"}
-                </h1>
-                {student.priority && (
-                  <Badge color={getPriorityColor(student.priority)}>
-                    Ưu tiên {student.priority.toLowerCase()}
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-center">
+            <div className="flex min-w-0 items-start gap-3">
+              <Avatar size="md">
+                <AvatarFallback>{student.initials || "HS"}</AvatarFallback>
+                <AvatarBadge size="md" status="online" />
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="min-w-0 text-balance text-xl font-semibold tracking-[-0.4px] text-text-primary lg:text-2xl lg:leading-8">
+                    {student.name || "-"}
+                  </h1>
+                  {student.priority && (
+                    <Badge color={getPriorityColor(student.priority)}>
+                      Ưu tiên {student.priority.toLowerCase()}
+                    </Badge>
+                  )}
+                  {student.verificationStatus && (
+                    <Badge
+                      color={getVerificationColor(student.verificationStatus)}
+                    >
+                      {student.verificationStatus}
+                    </Badge>
+                  )}
+                  <Badge color="primary">
+                    {data.segmentation?.learningStage || "Đang tư vấn"}
                   </Badge>
-                )}
-                {student.verificationStatus && (
-                  <Badge
-                    color={getVerificationColor(student.verificationStatus)}
-                  >
-                    {student.verificationStatus}
-                  </Badge>
-                )}
-                <Badge color="primary">
-                  {data.segmentation?.learningStage || "Đang tư vấn"}
-                </Badge>
-                {student.code && (
-                  <StudentCopyBadge
-                    icon={Copy1}
-                    label="mã học sinh"
-                    value={student.code}
-                  >
-                    Sao chép ID
-                  </StudentCopyBadge>
-                )}
+                  {student.code && (
+                    <StudentCopyBadge
+                      icon={Copy1}
+                      label="mã học sinh"
+                      value={student.code}
+                    >
+                      Sao chép ID
+                    </StudentCopyBadge>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-text-tertiary">
+                  <span>{subtitle}</span>
+                  {student.major && (
+                    <Badge
+                      color="violet"
+                      prefixIcon={<Sparkle size={12} aria-hidden="true" />}
+                    >
+                      Quan tâm ngành: {student.major}
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs text-text-secondary">
+                  {student.phone && (
+                    <StudentCopyBadge
+                      icon={Phone}
+                      label="số điện thoại"
+                      value={student.phone}
+                    >
+                      {student.phone}
+                    </StudentCopyBadge>
+                  )}
+                  {student.email && (
+                    <StudentCopyBadge
+                      icon={Envelope1}
+                      label="email"
+                      value={student.email}
+                    >
+                      {student.email}
+                    </StudentCopyBadge>
+                  )}
+                  <span className="flex items-center gap-1.5">
+                    <MapMarker5
+                      size={14}
+                      className="text-icon-tertiary"
+                      aria-hidden="true"
+                    />
+                    {student.school || "-"}
+                  </span>
+                </div>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
-                <span>{subtitle}</span>
-                {student.major && (
-                  <Badge
-                    color="violet"
-                    prefixIcon={<Sparkle size={12} aria-hidden="true" />}
-                  >
-                    Quan tâm ngành: {student.major}
-                  </Badge>
-                )}
-              </div>
-              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
-                {student.phone && (
-                  <StudentCopyBadge
-                    icon={Phone}
-                    label="số điện thoại"
-                    value={student.phone}
-                  >
-                    {student.phone}
-                  </StudentCopyBadge>
-                )}
-                {student.email && (
-                  <StudentCopyBadge
-                    icon={Envelope1}
-                    label="email"
-                    value={student.email}
-                  >
-                    {student.email}
-                  </StudentCopyBadge>
-                )}
-                <span className="flex items-center gap-1.5">
-                  <MapMarker5
-                    size={14}
-                    className="text-icon-tertiary"
-                    aria-hidden="true"
-                  />
-                  {student.school || "-"}
-                </span>
-              </div>
+            </div>
+
+            <div className="flex justify-center border-t border-card-border pt-3 lg:border-t-0 lg:pt-0">
+              <StudentGaugeChart score={score} label="Điểm tiềm năng" />
             </div>
           </div>
 

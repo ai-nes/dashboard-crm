@@ -5,23 +5,25 @@ export interface NbaFallbackFact {
   value: string;
 }
 
+export function actionCode(actionId: string): string {
+  return actionId.trim().replace(/^ACT[-_]/i, "");
+}
+
 export function actionLabel(actionId: string): string {
   const labels: Record<string, string> = {
     ACTIVATE_WINBACK: "Kích hoạt lại quan tâm",
+    SEND_REENGAGEMENT_MESSAGE: "Gửi tin nhắn tái kích hoạt",
     CALL_PARENT: "Gọi cho phụ huynh",
+    ADD_TAG: "Thêm tag",
+    ADVISE_CAREER: "Tư vấn nghề nghiệp",
     SEND_INFORMATION: "Gửi lại thông tin",
     INVITE_EVENT: "Mời tham dự sự kiện",
     REQUEST_DOCUMENTS: "Yêu cầu bổ sung hồ sơ",
     HANDOFF: "Chuyển giao phụ trách",
   };
 
-  return (
-    labels[actionId] ??
-    actionId
-      .replace(/^[A-Z]+_/, "")
-      .replaceAll("_", " ")
-      .toLowerCase()
-  );
+  const code = actionCode(actionId).toUpperCase();
+  return labels[code] ?? code.replaceAll("_", " ").toLowerCase();
 }
 
 export function formatNbaChannel(value: string | null): string {

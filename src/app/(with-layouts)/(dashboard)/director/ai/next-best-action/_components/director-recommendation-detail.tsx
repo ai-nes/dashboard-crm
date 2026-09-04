@@ -69,7 +69,10 @@ export default function DirectorRecommendationDetail({
           />
           <DataField
             label="Hành động tuyển sinh"
-            value={actionLabel(recommendation.actionId)}
+            value={
+              recommendation.explanation?.action.title ??
+              actionLabel(recommendation.actionId)
+            }
           />
           {recommendation.channel && (
             <DataField

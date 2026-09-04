@@ -9,6 +9,12 @@ import { useMemo, useState } from "react";
 
 import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
 import { Button } from "@/components/tailgrids/core/button";
+import {
+  TabContent,
+  TabList,
+  TabRoot,
+  TabTrigger,
+} from "@/components/tailgrids/core/tabs";
 import { useAnalysisRun } from "@/hooks/use-analysis-run";
 import { cn } from "@/utils/cn";
 
@@ -33,6 +39,7 @@ export default function StudentClassificationCockpit({
   const [isHealthOpen, setIsHealthOpen] = useState(true);
   const [isAskDialogOpen, setIsAskDialogOpen] = useState(false);
   const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
+  const [nbaCount, setNbaCount] = useState(0);
 
   const { run, request, requestMutation, runQuery } = useAnalysisRun(
     "student",
@@ -70,142 +77,170 @@ export default function StudentClassificationCockpit({
   const recommendations = report?.recommendations ?? [];
 
   return (
-    <div className="mt-4 space-y-6">
+    <div className="mt-0 space-y-6">
       {analysisError && !isAnalysisActive && (
         <p className="text-xs text-error-600" role="alert">
           Chưa thể hoàn tất phân tích. Bạn có thể thử lại.
         </p>
       )}
 
-      {/* Section 1: Overview */}
-      <section aria-labelledby="section-overview-heading" className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => setIsOverviewOpen((prev) => !prev)}
-            className="flex cursor-pointer items-center gap-2 text-base font-semibold text-text-primary transition-colors hover:text-text-secondary focus:outline-hidden"
-            aria-expanded={isOverviewOpen}
-          >
-            <ChevronDown
-              size={18}
-              className={cn(
-                "transition-transform duration-200 text-text-tertiary",
-                !isOverviewOpen && "-rotate-90",
-              )}
-              aria-hidden="true"
-            />
-            <h2
-              id="section-overview-heading"
-              className="text-base font-semibold tracking-tight"
-            >
-              Tổng quan hồ sơ tuyển sinh
-            </h2>
-          </button>
-          <Button
-            appearance="outline"
-            isDisabled={!analysisTargetId.trim() || isAnalysisActive}
-            onPress={handleAnalysisRequest}
-            size="xs"
-          >
-            {isAnalysisActive ? (
-              <RefreshCircle1Clockwise
-                className="motion-safe:animate-spin"
-                size={14}
-                aria-hidden="true"
-              />
-            ) : (
-              <Sparkle size={14} aria-hidden="true" />
-            )}
-            {isAnalysisActive ? "Đang phân tích" : "Phân tích"}
-          </Button>
-        </div>
+      <TabRoot
+        defaultValue="next-actions"
+        variant="minimal"
+        className="rounded-none border-0"
+      >
+        <TabList>
+          <TabTrigger value="next-actions" badge={nbaCount || undefined}>
+            Hành động tiếp theo
+          </TabTrigger>
+          <TabTrigger value="analysis-360">Phân tích 360</TabTrigger>
+        </TabList>
 
-        {isOverviewOpen && (
-          <div className="space-y-4">
-            <div className="space-y-4">
-              {/* Supporting contact context */}
-              <StudentContactInsightsCard
-                data={data}
-                reportTitle={report?.title}
-                policyRevision={
-                  nbaStage?.policyRevision ?? student360Stage?.policyRevision
-                }
-                isRefreshing={Boolean(isAnalysisActive)}
-                onRefresh={handleAnalysisRequest}
-                onOpenAskAI={() => setIsAskDialogOpen(true)}
-              />
-
-              <StudentNextBestActions
-                data={data}
-                studentId={analysisTargetId}
-              />
-            </div>
-
-            {/* Card 2: Recent interactions */}
-            <StudentRecentInteractionsCard
-              data={data}
-              reportSummary={report?.summary}
-              isRefreshing={Boolean(isAnalysisActive)}
-              onRefresh={handleAnalysisRequest}
-            />
-          </div>
-        )}
-      </section>
-
-      {/* Section 2: Health */}
-      <section aria-labelledby="section-health-heading" className="space-y-4">
-        <button
-          type="button"
-          onClick={() => setIsHealthOpen((prev) => !prev)}
-          className="flex cursor-pointer items-center gap-2 text-base font-semibold text-text-primary transition-colors hover:text-text-secondary focus:outline-hidden"
-          aria-expanded={isHealthOpen}
-        >
-          <ChevronDown
-            size={18}
-            className={cn(
-              "transition-transform duration-200 text-text-tertiary",
-              !isHealthOpen && "-rotate-90",
-            )}
-            aria-hidden="true"
+        <TabContent value="next-actions">
+          <StudentNextBestActions
+            data={data}
+            studentId={analysisTargetId}
+            onActionsCountChange={setNbaCount}
           />
-          <h2
-            id="section-health-heading"
-            className="text-base font-semibold tracking-tight"
-          >
-            Đánh giá điểm tiềm năng hồ sơ
-          </h2>
-        </button>
+        </TabContent>
 
-        {isHealthOpen && (
-          <div className="space-y-4">
-            {/* Card 3: Sentiment & Potential with Speedometer Gauge */}
-            <StudentSentimentGaugeCard
-              data={data}
-              reportSummary={report?.summary}
-              modelRevision={student360Stage?.modelRevision}
-              policyRevision={student360Stage?.policyRevision}
-              isRefreshing={Boolean(isAnalysisActive)}
-              onRefresh={handleAnalysisRequest}
-            />
+        <TabContent value="analysis-360">
+          <div className="space-y-6">
+            {/* Section 1: Overview */}
+            <section
+              aria-labelledby="section-overview-heading"
+              className="space-y-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsOverviewOpen((prev) => !prev)}
+                  className="flex cursor-pointer items-center gap-2 text-base font-semibold text-text-primary transition-colors hover:text-text-secondary focus:outline-hidden"
+                  aria-expanded={isOverviewOpen}
+                >
+                  <ChevronDown
+                    size={18}
+                    className={cn(
+                      "transition-transform duration-200 text-text-tertiary",
+                      !isOverviewOpen && "-rotate-90",
+                    )}
+                    aria-hidden="true"
+                  />
+                  <h2
+                    id="section-overview-heading"
+                    className="text-base font-semibold tracking-tight"
+                  >
+                    Tổng quan hồ sơ tuyển sinh
+                  </h2>
+                </button>
+                <Button
+                  appearance="outline"
+                  isDisabled={!analysisTargetId.trim() || isAnalysisActive}
+                  onPress={handleAnalysisRequest}
+                  size="xs"
+                >
+                  {isAnalysisActive ? (
+                    <RefreshCircle1Clockwise
+                      className="motion-safe:animate-spin"
+                      size={14}
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Sparkle size={14} aria-hidden="true" />
+                  )}
+                  {isAnalysisActive ? "Đang phân tích" : "Phân tích"}
+                </Button>
+              </div>
 
-            {/* Card 4: Challenges */}
-            <StudentChallengesCard
-              data={data}
-              risks={risks}
-              isRefreshing={Boolean(isAnalysisActive)}
-              onRefresh={handleAnalysisRequest}
-            />
+              {isOverviewOpen && (
+                <div className="space-y-4">
+                  <div className="space-y-4">
+                    {/* Supporting contact context */}
+                    <StudentContactInsightsCard
+                      data={data}
+                      reportTitle={report?.title}
+                      policyRevision={
+                        nbaStage?.policyRevision ??
+                        student360Stage?.policyRevision
+                      }
+                      isRefreshing={Boolean(isAnalysisActive)}
+                      onRefresh={handleAnalysisRequest}
+                      onOpenAskAI={() => setIsAskDialogOpen(true)}
+                    />
 
-            {/* Card 5: Positive feedback */}
-            <StudentPositiveFeedbackCard
-              data={data}
-              recommendations={recommendations}
-              isRefreshing={Boolean(isAnalysisActive)}
-              onRefresh={handleAnalysisRequest}
-            />
+                  </div>
+
+                  {/* Card 2: Recent interactions */}
+                  <StudentRecentInteractionsCard
+                    data={data}
+                    reportSummary={report?.summary}
+                    isRefreshing={Boolean(isAnalysisActive)}
+                    onRefresh={handleAnalysisRequest}
+                  />
+                </div>
+              )}
+            </section>
+
+            {/* Section 2: Health */}
+            <section
+              aria-labelledby="section-health-heading"
+              className="space-y-4"
+            >
+              <button
+                type="button"
+                onClick={() => setIsHealthOpen((prev) => !prev)}
+                className="flex cursor-pointer items-center gap-2 text-base font-semibold text-text-primary transition-colors hover:text-text-secondary focus:outline-hidden"
+                aria-expanded={isHealthOpen}
+              >
+                <ChevronDown
+                  size={18}
+                  className={cn(
+                    "transition-transform duration-200 text-text-tertiary",
+                    !isHealthOpen && "-rotate-90",
+                  )}
+                  aria-hidden="true"
+                />
+                <h2
+                  id="section-health-heading"
+                  className="text-base font-semibold tracking-tight"
+                >
+                  Đánh giá điểm tiềm năng hồ sơ
+                </h2>
+              </button>
+
+              {isHealthOpen && (
+                <div className="space-y-4">
+                  {/* Card 3: Sentiment & Potential with Speedometer Gauge */}
+                  <StudentSentimentGaugeCard
+                    data={data}
+                    reportSummary={report?.summary}
+                    modelRevision={student360Stage?.modelRevision}
+                    policyRevision={student360Stage?.policyRevision}
+                    isRefreshing={Boolean(isAnalysisActive)}
+                    onRefresh={handleAnalysisRequest}
+                  />
+
+                  {/* Card 4: Challenges */}
+                  <StudentChallengesCard
+                    data={data}
+                    risks={risks}
+                    isRefreshing={Boolean(isAnalysisActive)}
+                    onRefresh={handleAnalysisRequest}
+                  />
+
+                  {/* Card 5: Positive feedback */}
+                  <StudentPositiveFeedbackCard
+                    data={data}
+                    recommendations={recommendations}
+                    isRefreshing={Boolean(isAnalysisActive)}
+                    onRefresh={handleAnalysisRequest}
+                  />
+                </div>
+              )}
+            </section>
           </div>
-        )}
-      </section>
+        </TabContent>
+      </TabRoot>
 
       {/* Modal Ask AI */}
       <StudentAskAIDialog

@@ -97,13 +97,19 @@ describe("NBA review API contract", () => {
                 actionId: "HANDOFF",
                 aiPayload: {},
                 explanation: {
+                  action: {
+                    code: "HANDOFF",
+                    title: "Chuyển giao phụ trách",
+                  },
                   summary: "Cần chuyển giao để tiếp tục theo dõi.",
                   why_action: "Thông tin cần được chuyển tới người phù hợp.",
                   why_now: "Có tín hiệu mới cần phản hồi.",
-                  timing_reason: "Xử lý trong phiên làm việc hiện tại.",
-                  evidence_summary: [],
+                  evidence: [],
                   uncertainty: "Chưa rõ người nhận cuối cùng.",
-                  execution_guidance: [],
+                  timing: {
+                    recommended_at: "2026-09-04T18:30:00+07:00",
+                    reason: "Xử lý trong phiên làm việc hiện tại.",
+                  },
                 },
                 evaluation: {
                   id: "eval-2",
@@ -145,13 +151,24 @@ describe("NBA review API contract", () => {
                 reason: "Chưa có liên lạc trong 5 ngày.",
                 aiPayload: { score: 0.8, timing_window: "today" },
                 explanation: {
+                  action: {
+                    code: "ACTIVATE_WINBACK",
+                    title: "Kích hoạt lại quan tâm",
+                  },
                   summary: "Nên kích hoạt lại liên hệ.",
                   why_action: "Giúp khôi phục tương tác.",
                   why_now: "Tín hiệu đang giảm.",
-                  timing_reason: "Nên thực hiện trong hôm nay.",
-                  evidence_summary: ["Không có liên lạc trong 5 ngày."],
+                  evidence: [
+                    {
+                      summary: "Không có liên lạc trong 5 ngày.",
+                      evidence_ref: "INT-845",
+                    },
+                  ],
                   uncertainty: "Chưa rõ mức độ ưu tiên.",
-                  execution_guidance: ["Gửi một tin nhắn ngắn."],
+                  timing: {
+                    recommended_at: "2026-09-04T18:30:00+07:00",
+                    reason: "Nên thực hiện trong hôm nay.",
+                  },
                 },
                 explanationSource: "model",
                 evaluation: {
@@ -270,15 +287,24 @@ describe("NBA review API contract", () => {
                   explanation_facts: ["Còn 26 ngày đến hạn tiếp theo."],
                 },
                 explanation: {
+                  action: {
+                    code: "ACTIVATE_WINBACK",
+                    title: "Kích hoạt lại quan tâm",
+                  },
                   summary: "Nên kích hoạt lại liên hệ.",
                   why_action: "Giúp khôi phục tương tác.",
                   why_now: "Tín hiệu đang giảm.",
-                  timing_reason: "Nên thực hiện trong hôm nay.",
-                  evidence_summary: ["Không có liên lạc trong 5 ngày."],
-                  uncertainty: "Chưa rõ mức độ ưu tiên của lần tương tác trước.",
-                  execution_guidance: [
-                    "Gửi một tin nhắn ngắn, không gây áp lực.",
+                  evidence: [
+                    {
+                      summary: "Không có liên lạc trong 5 ngày.",
+                      evidence_ref: "INT-845",
+                    },
                   ],
+                  uncertainty: "Chưa rõ mức độ ưu tiên của lần tương tác trước.",
+                  timing: {
+                    recommended_at: "2026-09-04T18:30:00+07:00",
+                    reason: "Nên thực hiện trong hôm nay.",
+                  },
                 },
                 explanationSource: "model",
                 evaluation: {

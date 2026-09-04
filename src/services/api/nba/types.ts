@@ -9,14 +9,29 @@ export type NbaDecisionOperation =
   | "DEFER"
   | "DISMISS";
 
+export interface NbaExplanationAction {
+  code: string;
+  title: string;
+}
+
+export interface NbaExplanationEvidence {
+  summary: string;
+  evidence_ref: string;
+}
+
+export interface NbaExplanationTiming {
+  recommended_at: string;
+  reason: string;
+}
+
 export interface NbaExplanation {
+  action: NbaExplanationAction;
   summary: string;
   why_action: string;
   why_now: string;
-  timing_reason: string;
-  evidence_summary: string[];
+  evidence: NbaExplanationEvidence[];
   uncertainty: string;
-  execution_guidance: string[];
+  timing: NbaExplanationTiming;
 }
 
 export interface NbaEvaluationReference {

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Key } from "react-aria-components";
+import { getDefaultRouteForRoles } from "../auth/rbac";
 import { getNavigationDataForRoles } from "./data";
 import { CloseIcon, SidebarExpandedIcon, ThreeDots } from "./icon";
 import NavItem from "./nav-item";
@@ -37,6 +38,7 @@ export default function Sidebar({
       ),
     [user?.roles],
   );
+  const homeHref = user ? getDefaultRouteForRoles(user.roles) : "/";
 
   // Compute which group should be open based on the current route
   const activeGroupKey = useMemo(
@@ -58,7 +60,7 @@ export default function Sidebar({
         )}
       >
         <Link
-          href="/"
+          href={homeHref}
           className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
           aria-label="FAIP — FPTU Admission Intelligence Platform"
         >

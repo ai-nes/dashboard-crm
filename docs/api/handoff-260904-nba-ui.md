@@ -344,7 +344,7 @@ timeout ≥ 120 s.**
       "recommendationKey": "…", "studentId": "ENR-2026-00002",
       "priority": "high", "channel": null, "reason": "…short kernel reason…",
       "aiPayload": { /* immutable kernel object, §4.6 */ },
-      "explanation": { /* 6-group object, §5, or null */ },
+      "explanation": { /* structured object, §5, or null */ },
       "explanationSource": "model"    // "model" | null
     }
   ]
@@ -416,7 +416,7 @@ Query: `admissionYear` (optional, defaults to resolved current year),
       "studentId": "ENR-2026-00002",
       "actionId": "ACTIVATE_WINBACK",
       "aiPayload": { /* immutable kernel object, verbatim — §4.6 */ },
-      "explanation": { /* 6-group object, or null — §5 */ },
+      "explanation": { /* structured object, or null — §5 */ },
       "explanationSource": "model",   // "model" | null
       "evaluation": { "id": "oo3kgs831p", "disposition": "RECOMMEND", "status": "completed" },
       "generatedAt": "2026-09-04T13:41:14+07:00"
@@ -573,41 +573,49 @@ Post-decision, LLM-rendered, **grounded**, per recommendation, best-effort.
 `explanationSource` is `"model"` when rendered, else `null`. When `null`, fall
 back to `aiPayload` + `reason`.
 
-6 conceptual groups, 7 keys: 5 string fields + 2 list fields. Server validates
-all present, no extras; strings 1..500 chars; lists ≤8 items of ≤400 chars each.
+The structured object contains the decision context plus two kernel-owned nested
+objects. Server validates all fields, no extras; strings 1..500 chars; evidence
+has at most 8 items, each with strings ≤400 chars.
 
 | Field | Type | Meaning |
 |---|---|---|
+| `action` | object | kernel action identity (`code`, `title`) |
 | `summary` | string | one-paragraph "what and why", sales-facing |
 | `why_action` | string | why this action fits the situation |
 | `why_now` | string | why act now vs wait |
-| `timing_reason` | string | why the specific timing window |
-| `evidence_summary` | string[] | observed facts behind the call |
+| `evidence` | object[] | observed facts with `summary` and `evidence_ref` |
 | `uncertainty` | string | what's not known — **qualitative only** |
-| `execution_guidance` | string[] | draft/approach notes for the sales rep |
+| `timing` | object | recommended time (`recommended_at`) and its `reason` |
 
 Live example (`oo3kgs831p-1`):
 
 ```json
 {
+  "action": {
+    "code": "ACTIVATE_WINBACK",
+    "title": "Kích hoạt lại quan tâm"
+  },
   "summary": "Lead đang giảm tương tác (chưa liên lạc trong 5 ngày). Cần kích hoạt chiến dịch tái kích hoạt để khôi phục sự quan tâm trước khi mất hoàn toàn.",
   "why_action": "Tương tác lạnh do thời gian không liên hệ kéo dài. Một tin nhắn tái kích hoạt có thể đưa lead quay trở lại chu trình tuyển sinh khi sự chú ý của họ còn tương đối gần đây.",
   "why_now": "5 ngày là khoảng thời gian tới hạn — đủ lâu để sự quan tâm nguội lạnh, nhưng chưa quá lâu để mất hoàn toàn.",
-  "timing_reason": "Thời điểm 04/09/2026 được lựa chọn để tránh gửi quá sớm hoặc quá muộn.",
-  "evidence_summary": ["Lead chưa có liên lạc trong 5 ngày qua", "Mức độ tương tác hiện tại không rõ ràng", "Điểm số tín hiệu cho thấy mức độ quan tâm giảm"],
+  "evidence": [
+    { "summary": "Lead chưa có liên lạc trong 5 ngày qua", "evidence_ref": "INT-845" },
+    { "summary": "Điểm số tín hiệu cho thấy mức độ quan tâm giảm", "evidence_ref": "SCORE-102" }
+  ],
   "uncertainty": "Còn ít dữ liệu về lý do tạm dừng của lead và mức độ sẵn sàng của họ lúc này — hành động tái kích hoạt có thể không hiệu quả nếu lead đã từ bỏ rồi.",
-  "execution_guidance": ["Soạn tin nhắn ngắn, tập trung vào giá trị mà lead quan tâm", "Đặt câu hỏi mở để hiểu lý do tạm dừng", "Chuẩn bị tùy chọn thay thế nếu lead phản hồi", "Nếu không phản hồi sau 3 ngày, cân nhắc kênh liên lạc thay thế"]
+  "timing": {
+    "recommended_at": "2026-09-04T18:30:00+07:00",
+    "reason": "Thời điểm nằm trong contact window được phép và đáp ứng policy tái liên hệ sau 5 ngày."
+  }
 }
 ```
 
 Grounding guarantees (server rejects a render that violates them and falls back
 to `null`): no different action id, no timing override, no fabricated
 percentage/preference, no raw-confidence-number leak, no authorization language,
-Vietnamese only.
-
-`execution_guidance` is **draft/approach text, not execution authorization** —
-nothing is executed until the Task is accepted and worked. Label it in the UI
-("gợi ý cách làm", not "đã duyệt gửi").
+Vietnamese only. The `action` and `timing.recommended_at` values are echoed from
+the deterministic kernel; the remaining text and evidence are grounded
+explanation content.
 
 ---
 
@@ -649,7 +657,7 @@ nothing is executed until the Task is accepted and worked. Label it in the UI
 ### 6.4 What the FE must NOT do
 
 - Never build an "edit recommendation" form. Recommendations are immutable.
-- Never treat `explanation`/`execution_guidance` as "approved to send".
+- Never treat `explanation` as authorization to send or execute anything.
 - Never render raw `score` / `confidence` numbers.
 - Never cache a decision result and replay a different `idempotency_key`.
 - Never assume a fixed `aiPayload` key set across engine revisions.
@@ -901,7 +909,8 @@ writes.
   Rank + qualitative band only.
 - The raw kernel JSON object as-is to end users.
 - Any "approved to send / execute" framing on a recommendation or on
-  `execution_guidance`. Execution authority = an accepted Task being worked.
+  the structured `explanation`. Execution authority = an accepted Task being
+  worked.
 - Director analytics counts/rates without the `metricDisclaimer` /
   "observational" wording next to them.
 - Evaluation / run internal ids as primary identifiers to sales users (use

@@ -1,5 +1,5 @@
-import DirectorDashboard from "./_component/director-dashboard";
+import RoleEntryRedirect from "@/components/common/auth/role-entry-redirect";
 
 export default function Home() {
-  return <DirectorDashboard />;
+  return <RoleEntryRedirect />;
 }

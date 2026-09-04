@@ -11,7 +11,11 @@ import {
 import { Buildings11, MapMarker5, Target3 } from "@tailgrids/icons";
 import type { ReactNode } from "react";
 import type { CrmRole } from "../auth/rbac";
-import { getEffectiveCrmRoles, getRolesForRoute } from "../auth/rbac";
+import {
+  getDefaultRouteForRoles,
+  getEffectiveCrmRoles,
+  getRolesForRoute,
+} from "../auth/rbac";
 
 export interface NavigationItem {
   title: string;
@@ -183,7 +187,23 @@ export const DIRECTOR_NAV_DATA: NavigationSection[] = NAV_DATA.map(
 export function getNavigationDataForRoles(
   userRoles: readonly string[],
 ): NavigationSection[] {
-  return getEffectiveCrmRoles(userRoles).includes("Admissions Director")
+  const navigation = getEffectiveCrmRoles(userRoles).includes("Admissions Director")
     ? DIRECTOR_NAV_DATA
     : NAV_DATA;
+
+  const workspaceRoute = getDefaultRouteForRoles(userRoles);
+
+  return navigation.map((section) => ({
+    ...section,
+    items: section.items.map((item) =>
+      item.url === "/"
+        ? {
+            ...item,
+            url: workspaceRoute,
+            exact: true,
+            roles: getRolesForRoute(workspaceRoute),
+          }
+        : item,
+    ),
+  }));
 }

@@ -103,20 +103,44 @@ function normalizeExplanation(value: unknown): NbaExplanation | null {
   const summary = text(record.summary);
   const whyAction = text(record.why_action);
   const whyNow = text(record.why_now);
-  const timingReason = text(record.timing_reason);
   const uncertainty = text(record.uncertainty);
-  if (!summary || !whyAction || !whyNow || !timingReason || !uncertainty) {
+  const action = asRecord(record.action);
+  const timing = asRecord(record.timing);
+  const actionCode = text(action?.code);
+  const actionTitle = text(action?.title);
+  const recommendedAt = text(timing?.recommended_at);
+  const timingReason = text(timing?.reason);
+  if (
+    !summary ||
+    !whyAction ||
+    !whyNow ||
+    !uncertainty ||
+    !actionCode ||
+    !actionTitle ||
+    !recommendedAt ||
+    !timingReason
+  ) {
     return null;
   }
 
+  if (!Array.isArray(record.evidence)) return null;
+  const evidence: NbaExplanation["evidence"] = [];
+  for (const item of record.evidence) {
+    const evidenceItem = asRecord(item);
+    const evidenceSummary = text(evidenceItem?.summary);
+    const evidenceRef = text(evidenceItem?.evidence_ref);
+    if (!evidenceSummary || !evidenceRef) return null;
+    evidence.push({ summary: evidenceSummary, evidence_ref: evidenceRef });
+  }
+
   return {
+    action: { code: actionCode, title: actionTitle },
     summary,
     why_action: whyAction,
     why_now: whyNow,
-    timing_reason: timingReason,
-    evidence_summary: stringArray(record.evidence_summary),
+    evidence,
     uncertainty,
-    execution_guidance: stringArray(record.execution_guidance),
+    timing: { recommended_at: recommendedAt, reason: timingReason },
   };
 }
 

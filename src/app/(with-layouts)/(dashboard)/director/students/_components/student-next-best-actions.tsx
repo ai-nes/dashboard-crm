@@ -1,12 +1,19 @@
 "use client";
 
 import { ErrorCircle1, InfoTriangle } from "@tailgrids/icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
-import { Card } from "@/components/tailgrids/core/card";
+import {
+  Select,
+  SelectContent,
+  SelectIndicator,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/tailgrids/core/select";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import {
   useDecideNbaRecommendation,
@@ -32,14 +39,20 @@ import {
 interface StudentNextBestActionsProps {
   data: Student360Data;
   studentId: string;
+  onActionsCountChange?: (count: number) => void;
 }
+
+type NbaExpansionMode = "collapse" | "expand";
 
 export default function StudentNextBestActions({
   data,
   studentId,
+  onActionsCountChange,
 }: StudentNextBestActionsProps) {
   const router = useRouter();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [expandedRecommendationIds, setExpandedRecommendationIds] = useState<
+    Set<string> | null
+  >(null);
   const [decision, setDecision] = useState<{
     recommendation: NbaRecommendation;
     operation: NbaDecisionOperation;
@@ -89,14 +102,38 @@ export default function StudentNextBestActions({
         };
       });
   }, [postRecommendations, studentId, worklistActions]);
-  const selectedAction =
-    actions.find((action) => action.id === selectedId) ?? null;
-
-  const toggleAction = (actionId: string) => {
-    setSelectedId((currentId) => (currentId === actionId ? null : actionId));
-    setDecision(null);
+  useEffect(() => {
+    onActionsCountChange?.(actions.length);
+  }, [actions.length, onActionsCountChange]);
+  const areAllRecommendationsExpanded =
+    actions.length > 0 &&
+    (expandedRecommendationIds === null ||
+      actions.every((recommendation) =>
+        expandedRecommendationIds.has(recommendation.id),
+      ));
+  const handleExpansionModeChange = (mode: NbaExpansionMode) => {
+    setExpandedRecommendationIds(
+      mode === "expand"
+        ? new Set(actions.map((recommendation) => recommendation.id))
+        : new Set(),
+    );
   };
-
+  const handleRecommendationExpandedChange = (
+    id: string,
+    expanded: boolean,
+  ) => {
+    setExpandedRecommendationIds((current) => {
+      const next = new Set(
+        current ?? actions.map((recommendation) => recommendation.id),
+      );
+      if (expanded) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
   const beginDecision = (
     recommendation: NbaRecommendation,
     operation: NbaDecisionOperation,
@@ -117,7 +154,6 @@ export default function StudentNextBestActions({
         (recommendation) => recommendation.studentId === studentId.trim(),
       );
       setPostRecommendations(recommendations);
-      setSelectedId(recommendations[0]?.id ?? null);
 
       if (recommendations.length > 0 || result.recommendationCount > 0) {
         toast.success("Đã tạo đề xuất NBA cho học sinh.");
@@ -176,7 +212,6 @@ export default function StudentNextBestActions({
       const result = await decisionMutation.mutateAsync(request);
       setDecision(null);
       setPostRecommendations(null);
-      setSelectedId(null);
       await query.refetch();
 
       if (result.action) {
@@ -194,22 +229,19 @@ export default function StudentNextBestActions({
 
   return (
     <>
-      <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
+      <section
+        aria-labelledby="next-best-actions-heading"
+        className="min-w-0"
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-base font-semibold text-text-primary">
-              Hành động tiếp theo
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
-              Đề xuất cần bạn xem xét trước khi tạo Task cho {data.student.name}
-              .
-            </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {actions.length > 0 && (
-              <span className="rounded-full bg-background-soft-50 px-3 py-1 text-xs font-medium text-text-secondary">
-                {actions.length} đề xuất đang mở
-              </span>
+              <NbaExpansionSelect
+                value={areAllRecommendationsExpanded ? "expand" : "collapse"}
+                onChange={handleExpansionModeChange}
+              />
             )}
             <Button
               variant="primary"
@@ -283,14 +315,19 @@ export default function StudentNextBestActions({
               <StudentNbaRecommendationCard
                 key={action.id}
                 recommendation={action}
-                isSelected={selectedAction?.id === action.id}
-                onSelect={() => toggleAction(action.id)}
+                expanded={
+                  expandedRecommendationIds === null ||
+                  expandedRecommendationIds.has(action.id)
+                }
+                onExpandedChange={(expanded) =>
+                  handleRecommendationExpandedChange(action.id, expanded)
+                }
                 onBeginDecision={beginDecision}
               />
             ))}
           </div>
         )}
-      </Card>
+      </section>
 
       {decision && (
         <StudentNbaDecisionDialog
@@ -304,7 +341,41 @@ export default function StudentNextBestActions({
           }
         />
       )}
+
     </>
+  );
+}
+
+function NbaExpansionSelect({
+  value,
+  onChange,
+}: {
+  value: NbaExpansionMode;
+  onChange: (value: NbaExpansionMode) => void;
+}) {
+  return (
+    <Select
+      value={value}
+      onChange={(key) => onChange(String(key) as NbaExpansionMode)}
+      aria-label="Hiển thị đề xuất NBA"
+      className="w-fit"
+    >
+      <SelectTrigger
+        appearance="ghost"
+        className="h-auto min-h-8 justify-start gap-1.5 whitespace-nowrap rounded-lg border-0 bg-transparent px-2 text-sm font-semibold text-text-primary shadow-none hover:bg-background-gray-secondary hover:text-text-primary"
+      >
+        <SelectValue className="max-w-none text-sm font-semibold text-text-primary" />
+        <SelectIndicator className="text-text-primary" />
+      </SelectTrigger>
+      <SelectContent className="min-w-44">
+        <SelectItem id="collapse" textValue="Thu gọn tất cả" className="py-2 whitespace-nowrap">
+          Thu gọn tất cả
+        </SelectItem>
+        <SelectItem id="expand" textValue="Mở rộng tất cả" className="py-2 whitespace-nowrap">
+          Mở rộng tất cả
+        </SelectItem>
+      </SelectContent>
+    </Select>
   );
 }
 
