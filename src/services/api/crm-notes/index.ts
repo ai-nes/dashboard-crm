@@ -140,15 +140,20 @@ async function callFrappeRpc<T>(
   isWrite = false,
 ): Promise<T> {
   const baseUrl = resolveBaseUrl(options);
-  const url = `${baseUrl}/api/method/${method}`;
+  const endpoint = `${baseUrl}/api/method/${method}`;
+  const url = isWrite
+    ? endpoint
+    : `${endpoint}?${new URLSearchParams(
+        Object.entries(body).map(([key, value]) => [key, String(value)]),
+      )}`;
   const headers = await requestHeaders(options, isWrite);
 
   let res: Response;
   try {
     res = await fetch(url, {
-      method: "POST",
+      method: isWrite ? "POST" : "GET",
       headers,
-      body: JSON.stringify(body),
+      ...(isWrite ? { body: JSON.stringify(body) } : {}),
       ...(typeof window !== "undefined"
         ? { credentials: "include" as RequestCredentials }
         : {}),

@@ -16,7 +16,11 @@ import { Card } from "@/components/tailgrids/core/card";
 import type { Student360Data } from "@/services/api/students/types";
 import { cn } from "@/utils/cn";
 import StudentAICardHeader from "./student-ai-card-header";
-import { tasks as mockTasks } from "./student-tab-data";
+import {
+  resolveStudentCalls,
+  tasks as mockTasks,
+  zaloMessages as mockZaloMessages,
+} from "./student-tab-data";
 
 interface StudentRecentInteractionsCardProps {
   data: Student360Data;
@@ -35,9 +39,9 @@ export default function StudentRecentInteractionsCard({
 }: StudentRecentInteractionsCardProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
 
-  // Outbound items from API
-  const allCalls = data.calls ?? [];
-  const allZalo = data.zaloMessages ?? [];
+  // Outbound items from API or local fallback data
+  const allCalls = resolveStudentCalls(data.calls);
+  const allZalo = data.zaloMessages && data.zaloMessages.length > 0 ? data.zaloMessages : mockZaloMessages;
   const allNotes = data.notes ?? [];
   const allTasks = data.tasks && data.tasks.length > 0 ? data.tasks : mockTasks;
 
