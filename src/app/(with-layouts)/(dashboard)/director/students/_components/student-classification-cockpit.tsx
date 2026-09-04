@@ -78,11 +78,6 @@ export default function StudentClassificationCockpit({
   const report = student360Stage?.report ?? null;
   const risks = report?.risks ?? [];
   const recommendations = report?.recommendations ?? [];
-  const nbaRecommendations = useMemo(
-    () =>
-      nbaStage?.claims.filter((c) => c.claimKind === "recommendation") ?? [],
-    [nbaStage],
-  );
 
   return (
     <div className="mt-4 space-y-6">
@@ -140,7 +135,6 @@ export default function StudentClassificationCockpit({
             {/* Card 1: Contact insights */}
             <StudentContactInsightsCard
               data={data}
-              nbaRecommendations={nbaRecommendations}
               reportTitle={report?.title}
               policyRevision={
                 nbaStage?.policyRevision ?? student360Stage?.policyRevision

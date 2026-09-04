@@ -1,4 +1,5 @@
 import { ArrowRight, Buildings11, TrendUp2 } from "@tailgrids/icons";
+import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 
@@ -34,6 +35,17 @@ export default function SchoolSpotlight({ provinceName, school }: SchoolSpotligh
         </div>
         <Badge color={status.color}>{status.label}</Badge>
       </div>
+
+      {school.directoryId ? (
+        <Link
+          href={`/director/schools/${school.directoryId}`}
+          className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 hover:text-primary-700"
+        >
+          Xem chi tiết trường <ArrowRight size={13} />
+        </Link>
+      ) : (
+        <p className="mt-3 text-xs text-text-tertiary">Trường này chưa được liên kết với hồ sơ trường chi tiết.</p>
+      )}
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2">
         <div className="rounded-lg bg-card-background/80 p-2.5">

@@ -37,6 +37,10 @@ export default function StudentDocumentsTab({ data }: Student360SectionProps) {
         </div>
       </div>
 
+      {docList.length === 0 && (
+        <p className="py-6 text-center text-sm text-text-tertiary">Chưa có dữ liệu tài liệu.</p>
+      )}
+
       <AccordionRoot variant="style_two" className="gap-0">
         {docList.map((document) => {
           const hasFile = document.tone === "success";

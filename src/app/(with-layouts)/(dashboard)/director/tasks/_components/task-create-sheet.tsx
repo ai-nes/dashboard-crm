@@ -25,8 +25,8 @@ import {
   SheetTitle,
 } from "@/components/tailgrids/core/sheet";
 import { TextField } from "@/components/tailgrids/core/text-field";
+import { useAuth } from "@/components/common/auth/auth-provider";
 import type { StudentListItem, StudentPriority, StudentTaskType } from "@/services/api/students/types";
-import { taskManagementAssignee } from "@/services/api/tasks/data";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 
 import { taskTypeLabel } from "../../students/_components/student-task-badges";
@@ -50,6 +50,8 @@ function getTodayInputValue(): string {
 
 export default function TaskCreateSheet({ isOpen, onOpenChange, students, onCreate }: TaskCreateSheetProps) {
   const formId = useId();
+  const { user } = useAuth();
+  const assigneeName = user?.full_name || "-";
   const [title, setTitle] = useState("");
   const [studentId, setStudentId] = useState(students[0]?.id ?? "");
   const [dueDate, setDueDate] = useState(getTodayInputValue);
@@ -77,7 +79,7 @@ export default function TaskCreateSheet({ isOpen, onOpenChange, students, onCrea
     onCreate({
       id: `task-new-${formId}-${Date.now()}`,
       title: title.trim(),
-      assignee: taskManagementAssignee,
+      assignee: assigneeName,
       dueDate,
       dueTime,
       status: "todo",
@@ -184,7 +186,7 @@ export default function TaskCreateSheet({ isOpen, onOpenChange, students, onCrea
 
           <div className="rounded-lg border border-card-border bg-background-gray-secondary/40 px-4 py-3">
             <p className="text-xs text-text-tertiary">Người phụ trách</p>
-            <p className="mt-1 font-semibold text-text-primary">{taskManagementAssignee}</p>
+            <p className="mt-1 font-semibold text-text-primary">{assigneeName}</p>
             <p className="mt-1 text-xs text-text-secondary">Người phụ trách chung của danh sách task, không thể chỉnh sửa.</p>
           </div>
 

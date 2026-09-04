@@ -20,9 +20,10 @@ export default function CampusMarkerLayer({
       {FPTU_CAMPUS_LOCATIONS.map((campus) => {
         const [x, y] = projectPoint([campus.coordinates[1], campus.coordinates[0]]);
         const isHovered = activeCampus?.id === campus.id;
-        const fillPercentage = Math.round(
-          (campus.currentEnrolled / campus.target) * 100,
-        );
+        const hasEnrollmentData = campus.target > 0;
+        const fillPercentage = hasEnrollmentData
+          ? Math.round((campus.currentEnrolled / campus.target) * 100)
+          : 0;
 
         return (
           <g
@@ -121,8 +122,9 @@ export default function CampusMarkerLayer({
                   x={12}
                   y={49}
                 >
-                  Đã tuyển: {new Intl.NumberFormat("vi-VN").format(campus.currentEnrolled)} /{" "}
-                  {new Intl.NumberFormat("vi-VN").format(campus.target)} ({fillPercentage}%)
+                  {hasEnrollmentData
+                    ? `Đã tuyển: ${new Intl.NumberFormat("vi-VN").format(campus.currentEnrolled)} / ${new Intl.NumberFormat("vi-VN").format(campus.target)} (${fillPercentage}%)`
+                    : "Chưa có dữ liệu tuyển sinh"}
                 </text>
                 <rect
                   fill="var(--color-background-gray-primary, #e2e8f0)"

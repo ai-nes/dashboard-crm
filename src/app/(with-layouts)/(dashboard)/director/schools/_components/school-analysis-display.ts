@@ -1,21 +1,9 @@
+import { displayValue } from "@/utils/display-value";
+
 export function displaySchoolValue(
   value: string | number | null | undefined,
 ): string | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value.toLocaleString("vi-VN") : null;
-  }
-
-  const normalized = value.trim();
-  if (
-    !normalized ||
-    normalized === "-" ||
-    normalized === "Chưa có dữ liệu" ||
-    normalized.toLowerCase() === "null"
-  ) {
-    return null;
-  }
-  return normalized;
+  return displayValue(value);
 }
 
 export function schoolAnalysisTimestamp(value: string | null | undefined) {

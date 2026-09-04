@@ -6,6 +6,7 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Card } from "@/components/tailgrids/core/card";
 import type { AnalysisReportItem } from "@/services/api/analysis-runs";
 import type { Student360Data } from "@/services/api/students/types";
+import { displayValue } from "@/utils/display-value";
 import StudentAICardHeader from "./student-ai-card-header";
 import StudentCardEmptyState from "./student-card-empty-state";
 
@@ -66,18 +67,18 @@ export default function StudentPositiveFeedbackCard({
     }
 
     // 3. From Student360 insight evidence (+points)
-    if (data.insight?.evidence && Array.isArray(data.insight.evidence) && data.insight.evidence.length > 0) {
+    if (data.insight?.evidence && Array.isArray(data.insight.evidence)) {
       data.insight.evidence.slice(0, 3).forEach((ev) => {
-        if (!ev) return;
-        const evStr = String(ev);
+        const evStr = displayValue(ev);
+        if (!evStr) return;
         const parts = evStr.split(/[·•]/);
-        const action = parts[0]?.trim() || evStr;
-        const delta = parts[1]?.trim() || "+ Tín hiệu tốt";
+        const action = displayValue(parts[0]) ?? evStr;
+        const rest = displayValue(parts[1]);
 
         items.push({
           headline: action,
-          detail: `Tín hiệu tích cực được ghi nhận qua các điểm chạm tư vấn và nền tảng trực tuyến.`,
-          badgeText: delta,
+          detail: rest ?? "",
+          badgeText: undefined,
         });
       });
     }
@@ -116,7 +117,7 @@ export default function StudentPositiveFeedbackCard({
                   />
                   <div className="min-w-0">
                     <p className="font-semibold text-text-primary">{item.headline}</p>
-                    <p className="mt-1 leading-relaxed text-text-secondary">{item.detail}</p>
+                    {item.detail && <p className="mt-1 leading-relaxed text-text-secondary">{item.detail}</p>}
                     {item.evidence && item.evidence.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {item.evidence.map((ev, evIdx) => (

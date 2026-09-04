@@ -42,6 +42,17 @@ export default function ActionOutcomeChart({
         <Badge color="primary">{chartData.length} loại việc</Badge>
       </CardHeader>
 
+      {chartData.length === 0 ? (
+        <div
+          role="status"
+          className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-card-border bg-card-background p-5 text-center"
+        >
+          <div>
+            <p className="text-sm font-medium text-text-secondary">Chưa có dữ liệu hiệu quả</p>
+            <p className="mt-1 text-xs leading-5 text-text-tertiary">Chưa có dữ liệu hành động để tổng hợp trong kỳ này.</p>
+          </div>
+        </div>
+      ) : (
       <div
         className="h-72 w-full"
         role="img"
@@ -97,6 +108,7 @@ export default function ActionOutcomeChart({
           </BarChart>
         </ChartContainer>
       </div>
+      )}
     </Card>
   );
 }

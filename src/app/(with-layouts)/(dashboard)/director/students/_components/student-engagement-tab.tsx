@@ -36,23 +36,27 @@ export default function StudentEngagementTab({ data }: Student360SectionProps) {
           </div>
           <Badge color="primary">{data.engagement.length} nhóm tín hiệu</Badge>
         </CardHeader>
-        <ol className="grid gap-4 md:grid-cols-2">
-          {touchpoints.map((item) => (
-            <li key={`${item.date}-${item.title}`} className="flex gap-3 rounded-xl border border-card-border p-4">
-              <span className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full ${item.tone === "success" ? "bg-badge-success-background text-success-500" : item.tone === "warning" ? "bg-badge-warning-background text-warning-500" : "bg-badge-primary-background text-badge-primary-text"}`} aria-hidden="true">
-                {item.tone === "warning" ? <ClockThree size={15} /> : item.tone === "success" ? <CheckCircle1 size={15} /> : <span className="size-2 rounded-full bg-primary-500" />}
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <p className="text-sm font-semibold text-text-primary">{item.title}</p>
-                  <Badge color={item.tone}>{item.channel}</Badge>
+        {touchpoints.length === 0 ? (
+          <p className="py-6 text-center text-sm text-text-tertiary">Chưa có dữ liệu lịch sử tương tác.</p>
+        ) : (
+          <ol className="grid gap-4 md:grid-cols-2">
+            {touchpoints.map((item) => (
+              <li key={`${item.date}-${item.title}`} className="flex gap-3 rounded-xl border border-card-border p-4">
+                <span className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full ${item.tone === "success" ? "bg-badge-success-background text-success-500" : item.tone === "warning" ? "bg-badge-warning-background text-warning-500" : "bg-badge-primary-background text-badge-primary-text"}`} aria-hidden="true">
+                  {item.tone === "warning" ? <ClockThree size={15} /> : item.tone === "success" ? <CheckCircle1 size={15} /> : <span className="size-2 rounded-full bg-primary-500" />}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <p className="text-sm font-semibold text-text-primary">{item.title}</p>
+                    <Badge color={item.tone}>{item.channel}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-text-tertiary">{formatDateTime(item.date)}</p>
+                  <p className="mt-2 text-sm leading-5 text-text-secondary">{item.detail}</p>
                 </div>
-                <p className="mt-1 text-xs text-text-tertiary">{formatDateTime(item.date)}</p>
-                <p className="mt-2 text-sm leading-5 text-text-secondary">{item.detail}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+              </li>
+            ))}
+          </ol>
+        )}
       </Card>
     </div>
   );
