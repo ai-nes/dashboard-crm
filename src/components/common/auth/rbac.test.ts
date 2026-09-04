@@ -109,16 +109,13 @@ describe("dashboard RBAC", () => {
       "Hiệu suất khu vực",
       "Phễu tuyển sinh",
       "Phân tích xu hướng",
-      "Thông minh chiến dịch",
       "Quản lý task",
       "Hoạt động & chiến dịch",
-      "Hiệu suất SLA",
-      "Hoạt động trường",
     ]);
     expect(directorNavigation).toEqual(
       filterNavigationByRoles(DIRECTOR_NAV_DATA, ["Admissions Director"]),
     );
-    expect(getNavigationUrls(directorNavigation)).toHaveLength(15);
+    expect(getNavigationUrls(directorNavigation)).toHaveLength(12);
     expect(primaryItems).not.toContain("Cấu hình Action NBA");
     expect(
       findActiveGroupKeyInNavigation("/director/ai", directorNavigation),
@@ -161,5 +158,23 @@ describe("dashboard RBAC", () => {
         filterNavigationByRoles(NAV_DATA, ["System Manager", "Sale"]),
       ),
     ).toEqual(systemManagerItems);
+  });
+
+  it("reserves NBA configuration for System Manager", () => {
+    const configurationUrl = "/director/admin/nba-actions";
+
+    expect(
+      getNavigationUrls(filterNavigationByRoles(NAV_DATA, ["Sale"])),
+    ).not.toContain(configurationUrl);
+    expect(canAccessDashboardPath(configurationUrl, ["Sale"])).toBe(false);
+    expect(
+      canAccessDashboardPath(
+        "/director/admin/action-recommendations",
+        ["Admissions Director"],
+      ),
+    ).toBe(false);
+    expect(
+      canAccessDashboardPath(configurationUrl, ["System Manager"]),
+    ).toBe(true);
   });
 });

@@ -7,7 +7,7 @@ import { Card } from "@/components/tailgrids/core/card";
 import type { AnalysisClaim } from "@/services/api/analysis-runs";
 import type { Student360Data } from "@/services/api/students/types";
 import StudentAICardHeader from "./student-ai-card-header";
-import { calls as mockCalls, tasks as mockTasks } from "./student-tab-data";
+import { tasks as mockTasks } from "./student-tab-data";
 
 interface StudentContactInsightsCardProps {
   data: Student360Data;
@@ -30,8 +30,8 @@ export default function StudentContactInsightsCard({
 }: StudentContactInsightsCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Extract real call info from response or fallback data
-  const allCalls = (data.calls && data.calls.length > 0) ? data.calls : mockCalls;
+  // Extract real call info from response
+  const allCalls = data.calls ?? [];
   const latestCall = allCalls.find((c) => c.outcome === "connected") || allCalls[0];
   const recentCallContact = latestCall?.receiverName || latestCall?.callerName || data.student.name;
   const recentCallDate = latestCall?.time || "03/09/2026";

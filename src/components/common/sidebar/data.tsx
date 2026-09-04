@@ -167,11 +167,8 @@ const DIRECTOR_NAV_PATHS = new Set([
   "/director/regional-performance",
   "/director/admission-funnel",
   "/director/revenue-forecast",
-  "/director/campaign-intelligence",
   "/director/tasks",
   "/director/activity-campaign",
-  "/director/sla",
-  "/director/school-field-activity",
 ]);
 
 export const DIRECTOR_NAV_DATA: NavigationSection[] = NAV_DATA.map(

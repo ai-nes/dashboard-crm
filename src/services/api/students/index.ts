@@ -300,6 +300,8 @@ export function computeStudent360(studentId = "nguyen-minh-an"): Student360Data 
     insight: buildInsight(student, classification, parentProfile),
     journey: buildJourney(student, parentProfile, barrier?.value ?? "thông tin"),
     application: buildApplication(student),
+    zaloMessages: [],
+    calls: [],
   };
 }
 
@@ -372,6 +374,67 @@ export async function getStudent360(
   }
 
   return (payload.message || payload) as Student360Data;
+}
+
+export interface StudentInteractionsResponse {
+  student_id: string;
+  zalo_messages: Student360Data["zaloMessages"];
+  calls: Student360Data["calls"];
+  total_interactions: number;
+}
+
+export async function getStudentInteractions(
+  studentId: string,
+  options: { baseUrl?: string } = {},
+): Promise<StudentInteractionsResponse | null> {
+  const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
+
+  if (!frappeBase) {
+    return {
+      student_id: studentId,
+      zalo_messages: [],
+      calls: [],
+      total_interactions: 0,
+    };
+  }
+
+  const url = `${frappeBase}/api/method/crm.api.director_students.get_student_interactions?student_id=${encodeURIComponent(studentId)}`;
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+
+  if (!options.baseUrl && typeof window === "undefined") {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieHeader = frappeCookieHeader((await cookies()).toString());
+      if (cookieHeader) {
+        headers.Cookie = cookieHeader;
+      }
+    } catch {
+      // Ignored outside request context
+    }
+  }
+
+  const response = await fetch(url, {
+    headers,
+    ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+    cache: "no-store",
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const error = payload?.error ?? {};
+    const errorCode = typeof error.code === "string" ? error.code : "INTERACTIONS_FETCH_FAILED";
+    const errorMessage = typeof error.message === "string" ? error.message : "Không thể lấy lịch sử tương tác.";
+    throw new DirectorStudentsApiError(response.status, errorCode, errorMessage);
+  }
+
+  return (payload.message || payload) as StudentInteractionsResponse;
 }
 
 function normalizeSearchValue(value: string): string {

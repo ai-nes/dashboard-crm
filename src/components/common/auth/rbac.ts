@@ -110,11 +110,6 @@ const DATA_HEALTH_ROLES = [
 ] as const satisfies readonly CrmRole[];
 
 const NBA_ACTIONS_READ_ROLES = [
-  "Sale",
-  "Lead Sales",
-  "Marketing",
-  "Promoter",
-  "Admissions Director",
   "System Manager",
 ] as const satisfies readonly CrmRole[];
 

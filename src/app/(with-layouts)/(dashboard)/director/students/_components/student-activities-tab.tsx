@@ -33,10 +33,6 @@ import type {
 import StudentAllActivitiesFeed from "./student-all-activities-feed";
 import StudentAuditCard from "./student-audit-card";
 import StudentCallsTab from "./student-calls-tab";
-import {
-  calls as mockCalls,
-  zaloMessages as mockZaloMessages,
-} from "./student-tab-data";
 import StudentNotesTab from "./student-notes-tab";
 import StudentDeleteTaskDialog from "./student-delete-task-dialog";
 import StudentTasksTab from "./student-tasks-tab";
@@ -209,8 +205,8 @@ export default function StudentActivitiesTab({
 
     return [...pendingCreatedTasks, ...visibleServerTasks];
   }, [createdTasks, deletedTaskIds, serverTasks, taskOverrides]);
-  const zaloMessages = data.zaloMessages ?? mockZaloMessages;
-  const calls = data.calls ?? mockCalls;
+  const zaloMessages = data.zaloMessages ?? [];
+  const calls = data.calls ?? [];
   const auditEvents = studentAuditQuery.data?.logs ?? EMPTY_AUDIT_LOGS;
 
   // Tạo ghi chú qua crm.api.note.create_note
