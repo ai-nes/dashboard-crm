@@ -4,9 +4,17 @@ import { CheckCircle1 } from "@tailgrids/icons";
 import { useMemo } from "react";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card } from "@/components/tailgrids/core/card";
+import {
+  AnalysisSourceCountBadge,
+  getAnalysisSourceCount,
+} from "@/components/analysis-runs/analysis-report-signal-lists";
 import type { AnalysisReportItem } from "@/services/api/analysis-runs";
 import type { Student360Data } from "@/services/api/students/types";
 import { displayValue } from "@/utils/display-value";
+import {
+  formatAnalysisLevel,
+  formatClaimConfidence,
+} from "@/components/analysis-runs/analysis-run-meta";
 import StudentAICardHeader from "./student-ai-card-header";
 import StudentCardEmptyState from "./student-card-empty-state";
 
@@ -25,6 +33,10 @@ export default function StudentPositiveFeedbackCard({
   isRefreshing,
   onRefresh,
 }: StudentPositiveFeedbackCardProps) {
+  const sourceCount = getAnalysisSourceCount([
+    ...recommendations.map((item) => ({ evidenceRefs: item.provenanceIds })),
+    ...opportunities.map((item) => ({ evidenceRefs: item.provenanceIds })),
+  ]);
   // Aggregate positive signals from AI recommendations, insight.evidence, and classification dimensions
   const allPositives = useMemo(() => {
     const items: Array<{
@@ -41,16 +53,17 @@ export default function StudentPositiveFeedbackCard({
     allReportItems.forEach((rec) => {
       if (seenHeadlines.has(rec.headline)) return;
       seenHeadlines.add(rec.headline);
+      const confidence = formatClaimConfidence(rec.confidence);
       items.push({
         headline: rec.headline,
         detail: rec.detail,
         evidence: rec.provenanceIds,
-        badgeText:
-          rec.confidence != null
-            ? `Độ tin cậy ${Math.round(rec.confidence * 100)}%`
-            : rec.kind === "opportunity"
+        badgeText: rec.strength
+          ? `Mức độ ${formatAnalysisLevel(rec.strength)}`
+          : confidence?.label ??
+            (rec.kind === "opportunity"
               ? "Cơ hội tuyển sinh"
-              : "Khuyến nghị 360",
+              : "Khuyến nghị 360"),
       });
     });
 
@@ -92,6 +105,7 @@ export default function StudentPositiveFeedbackCard({
     <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
         title="Tín hiệu thuận lợi"
+        rightAction={<AnalysisSourceCountBadge count={sourceCount} />}
         timestamp={
           data.classification.updatedAt
             ? `Cập nhật lúc ${data.classification.updatedAt}`
@@ -118,18 +132,6 @@ export default function StudentPositiveFeedbackCard({
                   <div className="min-w-0">
                     <p className="font-semibold text-text-primary">{item.headline}</p>
                     {item.detail && <p className="mt-1 leading-relaxed text-text-secondary">{item.detail}</p>}
-                    {item.evidence && item.evidence.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {item.evidence.map((ev, evIdx) => (
-                          <span
-                            key={evIdx}
-                            className="rounded-md border border-card-border bg-card-background px-2 py-0.5 text-[11px] font-medium text-text-secondary shadow-2xs"
-                          >
-                            Tín hiệu: {ev}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
                 {item.badgeText && (

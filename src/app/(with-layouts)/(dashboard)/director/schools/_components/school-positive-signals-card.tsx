@@ -2,12 +2,18 @@
 
 import { CheckCircle1 } from "@tailgrids/icons";
 
+import {
+  AnalysisSourceCountBadge,
+  getAnalysisSourceCount,
+} from "@/components/analysis-runs/analysis-report-signal-lists";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card } from "@/components/tailgrids/core/card";
 import type { AnalysisReportItem } from "@/services/api/analysis-runs";
 
 import StudentAICardHeader from "../../students/_components/student-ai-card-header";
 import StudentCardEmptyState from "../../students/_components/student-card-empty-state";
+import { formatAnalysisLevel } from "@/components/analysis-runs/analysis-run-meta";
+
 import { formatSchoolConfidence } from "./school-analysis-display";
 
 interface SchoolPositiveSignalsCardProps {
@@ -25,6 +31,9 @@ export default function SchoolPositiveSignalsCard({
     <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
         title="Cơ hội phát triển tuyển sinh"
+        rightAction={
+          <AnalysisSourceCountBadge count={getAnalysisSourceCount(recommendations)} />
+        }
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}
       />
@@ -52,7 +61,9 @@ export default function SchoolPositiveSignalsCard({
               </div>
             </div>
             <Badge color="success" size="sm" className="shrink-0">
-              {formatSchoolConfidence(recommendation.confidence) ??
+              {(recommendation.strength
+                ? `Mức độ ${formatAnalysisLevel(recommendation.strength)}`
+                : formatSchoolConfidence(recommendation.confidence)) ??
                 (recommendation.kind === "opportunity"
                   ? "Cơ hội"
                   : "Khuyến nghị")}

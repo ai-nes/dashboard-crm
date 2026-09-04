@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 
 import { Card } from "@/components/tailgrids/core/card";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { useCreateCrmTaskMutation } from "@/hooks/use-crm-tasks-queries";
+import { useDirectorStudentsQuery } from "@/hooks/use-students-queries";
 import { studentListData } from "@/services/api/students/data";
 import { taskManagementData } from "@/services/api/tasks/data";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
@@ -11,6 +14,11 @@ import TaskCreateSheet from "./task-create-sheet";
 import TaskManagementTable from "./task-management-table";
 import TaskManagementToolbar from "./task-management-toolbar";
 import type { TaskPriorityFilter, TaskSort, TaskStatusFilter, TaskTypeFilter, TaskView } from "./types";
+import { studentTaskToCreatePayload } from "../../students/_components/student-task-mappers";
+
+interface TaskManagementPageProps {
+  useCrmApi?: boolean;
+}
 
 function startOfDay(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
@@ -36,7 +44,23 @@ function isUpcoming(task: TaskManagementItem, now = new Date()): boolean {
 
 const priorityRank: Record<TaskManagementItem["priority"], number> = { Cao: 0, "Trung bình": 1, Thấp: 2 };
 
-export default function TaskManagementPage() {
+export default function TaskManagementPage({ useCrmApi = false }: TaskManagementPageProps) {
+  const { user } = useAuth();
+  const createTaskMutation = useCreateCrmTaskMutation();
+  const currentUserId = user?.user || user?.email;
+  const studentsQuery = useDirectorStudentsQuery(
+    {
+      admissionYear: 2026,
+      page: 1,
+      pageSize: 100,
+      sort: "name",
+      order: "asc",
+    },
+    {
+      enabled: useCrmApi,
+      staleTime: 5 * 60 * 1000,
+    },
+  );
   const [tasks, setTasks] = useState<TaskManagementItem[]>(taskManagementData);
   const [view, setView] = useState<TaskView>("all");
   const [search, setSearch] = useState("");
@@ -79,7 +103,23 @@ export default function TaskManagementPage() {
     setTasks((current) => current.map((task) => (task.id === id ? { ...task, ...updates } : task)));
   };
 
-  const handleCreateTask = (task: TaskManagementItem) => {
+  const handleCreateTask = async (task: TaskManagementItem) => {
+    if (useCrmApi) {
+      const createdTask = await createTaskMutation.mutateAsync(
+        studentTaskToCreatePayload(task, task.studentId, currentUserId),
+      );
+
+      setTasks((current) => [
+        {
+          ...task,
+          id: createdTask.name || task.id,
+          assigneeId: createdTask.assignedTo || task.assigneeId,
+        },
+        ...current,
+      ]);
+      return;
+    }
+
     setTasks((current) => [task, ...current]);
   };
 
@@ -141,7 +181,18 @@ export default function TaskManagementPage() {
         <TaskManagementTable tasks={filteredTasks} onUpdateTask={handleUpdateTask} />
       </Card>
 
-      <TaskCreateSheet isOpen={sheetOpen} onOpenChange={setSheetOpen} students={studentListData} onCreate={handleCreateTask} />
+      <TaskCreateSheet
+        isOpen={sheetOpen}
+        onOpenChange={setSheetOpen}
+        students={useCrmApi ? (studentsQuery.data?.data ?? []) : studentListData}
+        isLoadingStudents={useCrmApi && studentsQuery.isPending}
+        studentsError={useCrmApi ? studentsQuery.error : null}
+        assigneeId={useCrmApi ? currentUserId : undefined}
+        assigneeName={useCrmApi ? user?.full_name : undefined}
+        requireAssignee={useCrmApi}
+        isSubmitting={useCrmApi && createTaskMutation.isPending}
+        onCreate={handleCreateTask}
+      />
     </main>
   );
 }

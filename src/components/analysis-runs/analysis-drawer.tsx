@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Close, Sparkle } from "@tailgrids/icons";
+import { ChevronDown, Close, InfoTriangle, Sparkle } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -21,7 +21,7 @@ import type {
 
 import AnalysisClaimsView from "./analysis-claims-view";
 import AnalysisRichReport from "./analysis-rich-report";
-import { stageLabels, statusMeta } from "./analysis-run-meta";
+import { formatTerminalReason, stageLabels, statusMeta } from "./analysis-run-meta";
 import AnalysisStageRail from "./analysis-stage-rail";
 
 interface AnalysisDrawerProps {
@@ -42,6 +42,10 @@ export default function AnalysisDrawer({
 }: AnalysisDrawerProps) {
   const reportStages = run.stages.filter((stage) => stage.report);
   const hasClaims = run.stages.some((stage) => stage.claims.length > 0);
+  const terminalReason =
+    run.terminalReason ??
+    run.stages.find((stage) => stage.terminalReason)?.terminalReason;
+  const terminalReasonLabel = formatTerminalReason(terminalReason);
   return (
     <SheetOverlay isOpen={isOpen} onOpenChange={onOpenChange}>
       <SheetContent
@@ -85,6 +89,20 @@ export default function AnalysisDrawer({
 
         <div className="space-y-4 px-5 py-5 sm:px-6">
           <AnalysisStageRail stages={run.stages} />
+          {terminalReasonLabel && run.status !== "completed" && (
+            <div
+              className="flex items-start gap-3 rounded-xl border border-warning-200 bg-badge-warning-background p-4 text-sm text-warning-800 dark:border-warning-800 dark:text-warning-200"
+              role="status"
+            >
+              <InfoTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Phân tích chưa hoàn tất</p>
+                <p className="mt-1 text-xs leading-5">
+                  {terminalReasonLabel}. Bạn có thể đóng bảng này và chọn “Phân tích lại”.
+                </p>
+              </div>
+            </div>
+          )}
           {reportStages.map((stage) => (
             <AnalysisRichReport
               key={`${stage.id ?? stage.stageKind}-report`}

@@ -2,12 +2,18 @@
 
 import { InfoTriangle } from "@tailgrids/icons";
 
+import {
+  AnalysisSourceCountBadge,
+  getAnalysisSourceCount,
+} from "@/components/analysis-runs/analysis-report-signal-lists";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card } from "@/components/tailgrids/core/card";
 import type { AnalysisReportItem } from "@/services/api/analysis-runs";
 
 import StudentAICardHeader from "../../students/_components/student-ai-card-header";
 import StudentCardEmptyState from "../../students/_components/student-card-empty-state";
+import { formatAnalysisLevel } from "@/components/analysis-runs/analysis-run-meta";
+
 import { formatSchoolConfidence } from "./school-analysis-display";
 
 interface SchoolChallengesCardProps {
@@ -27,6 +33,9 @@ export default function SchoolChallengesCard({
     <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
         title="Rào cản hợp tác tuyển sinh"
+        rightAction={
+          <AnalysisSourceCountBadge count={getAnalysisSourceCount(risks)} />
+        }
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}
       />
@@ -53,9 +62,11 @@ export default function SchoolChallengesCard({
                 )}
               </div>
             </div>
-            {formatSchoolConfidence(risk.confidence) && (
+            {(risk.severity || formatSchoolConfidence(risk.confidence)) && (
               <Badge color="warning" size="sm" className="shrink-0">
-                {formatSchoolConfidence(risk.confidence)}
+                {risk.severity
+                  ? `Mức độ ${formatAnalysisLevel(risk.severity)}`
+                  : formatSchoolConfidence(risk.confidence)}
               </Badge>
             )}
           </div>

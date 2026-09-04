@@ -8,6 +8,7 @@ import {
 import { useMemo, useState } from "react";
 
 import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
+import { formatTerminalReason } from "@/components/analysis-runs/analysis-run-meta";
 import { Button } from "@/components/tailgrids/core/button";
 import {
   TabContent,
@@ -50,6 +51,10 @@ export default function StudentClassificationCockpit({
     run?.status === "running" ||
     requestMutation.isPending;
   const analysisError = requestMutation.error ?? runQuery.error;
+  const terminalReason =
+    run?.terminalReason ??
+    run?.stages.find((stage) => stage.terminalReason)?.terminalReason;
+  const terminalReasonLabel = formatTerminalReason(terminalReason);
 
   const handleAnalysisRequest = () => {
     if (
@@ -74,7 +79,15 @@ export default function StudentClassificationCockpit({
   );
   const report = student360Stage?.report ?? null;
   const risks = report?.risks ?? [];
-  const recommendations = report?.recommendations ?? [];
+  const recommendations =
+    report?.recommendations.filter((item) => item.kind === "recommendation") ??
+    [];
+  const opportunities =
+    report?.opportunities ??
+    report?.recommendations.filter((item) => item.kind === "opportunity") ??
+    [];
+  const primaryAdvisory = report?.advisorySignals?.[0] ?? null;
+  const reportSummary = report?.summary ?? primaryAdvisory?.summary;
 
   return (
     <div className="mt-0 space-y-6">
@@ -82,6 +95,17 @@ export default function StudentClassificationCockpit({
         <p className="text-xs text-error-600" role="alert">
           Chưa thể hoàn tất phân tích. Bạn có thể thử lại.
         </p>
+      )}
+      {terminalReasonLabel && !isAnalysisActive && (
+        <div
+          className="rounded-xl border border-warning-200 bg-badge-warning-background px-4 py-3 text-xs leading-5 text-warning-800 dark:border-warning-800 dark:text-warning-200"
+          role="status"
+        >
+          <p className="font-semibold">Phân tích chưa hoàn tất</p>
+          <p className="mt-0.5">
+            {terminalReasonLabel}. Bạn có thể chọn “Phân tích” để thử lại.
+          </p>
+        </div>
       )}
 
       <TabRoot
@@ -158,7 +182,7 @@ export default function StudentClassificationCockpit({
                     {/* Supporting contact context */}
                     <StudentContactInsightsCard
                       data={data}
-                      reportTitle={report?.title}
+                      report={report}
                       policyRevision={
                         nbaStage?.policyRevision ??
                         student360Stage?.policyRevision
@@ -173,7 +197,7 @@ export default function StudentClassificationCockpit({
                   {/* Card 2: Recent interactions */}
                   <StudentRecentInteractionsCard
                     data={data}
-                    reportSummary={report?.summary}
+                    recentChanges={report?.recentChanges}
                     isRefreshing={Boolean(isAnalysisActive)}
                     onRefresh={handleAnalysisRequest}
                   />
@@ -213,7 +237,7 @@ export default function StudentClassificationCockpit({
                   {/* Card 3: Sentiment & Potential with Speedometer Gauge */}
                   <StudentSentimentGaugeCard
                     data={data}
-                    reportSummary={report?.summary}
+                    reportSummary={reportSummary}
                     modelRevision={student360Stage?.modelRevision}
                     policyRevision={student360Stage?.policyRevision}
                     isRefreshing={Boolean(isAnalysisActive)}
@@ -232,6 +256,7 @@ export default function StudentClassificationCockpit({
                   <StudentPositiveFeedbackCard
                     data={data}
                     recommendations={recommendations}
+                    opportunities={opportunities}
                     isRefreshing={Boolean(isAnalysisActive)}
                     onRefresh={handleAnalysisRequest}
                   />

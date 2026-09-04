@@ -63,7 +63,7 @@ export function toSchoolIntelligenceData(
   return {
     school,
     locality: detail.locality,
-    potentialScore: detail.potentialScore ?? 0,
+    potentialScore: detail.potentialScore,
     grade12Students: detail.grade12Students ?? 0,
     availableStudents: detail.availableStudents ?? 0,
     prospects: detail.prospects ?? 0,

@@ -62,7 +62,7 @@ export default function SchoolIntelligenceApiFallback({ data, error }: SchoolInt
       </section>
 
       <section aria-label="Chỉ số trường" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <Metric label="Điểm tiềm năng" value={formatNumber(data.potentialScore, "/100")} />
+        <Metric label="Điểm tiềm năng" value={formatPotentialScore(data.potentialScore)} />
         <Metric label="Học sinh lớp 12" value={formatNumber(data.grade12Students)} />
         <Metric label="Có thể tiếp cận" value={formatNumber(data.availableStudents)} />
         <Metric label="Prospect" value={formatNumber(data.prospects)} />
@@ -90,6 +90,12 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function formatNumber(value: number | null, suffix = "") {
   return value === null || !Number.isFinite(value) ? unavailable : `${value.toLocaleString("vi-VN")}${suffix}`;
+}
+
+function formatPotentialScore(value: number | null) {
+  return value === null || !Number.isFinite(value)
+    ? "Chưa có dữ liệu"
+    : `${value.toLocaleString("vi-VN")}/100`;
 }
 
 function toDirectorySchool(school: DirectorSchoolDetailData["school"]) {

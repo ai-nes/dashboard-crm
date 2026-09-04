@@ -63,7 +63,7 @@ const SEGMENT2_PATH = createArcSlice(120, 60);
 const SEGMENT3_PATH = createArcSlice(57, 0);
 
 export default function StudentGaugeChart({
-  score = 85,
+  score,
   statusText,
   label = "Điểm tiềm năng",
   className,

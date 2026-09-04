@@ -268,8 +268,8 @@ export interface Student360Data {
   };
   insight: {
     summary: string;
-    signalScore: number;
-    probability: number;
+    signalScore: number | null;
+    probability: number | null;
     potentialLabel?: "Tiềm năng cao" | "Tiềm năng vừa" | "Cần chú ý" | null;
     priorityThreshold?: number | null;
     scoreDelta?: number;

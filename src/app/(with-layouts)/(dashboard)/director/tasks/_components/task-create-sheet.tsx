@@ -35,7 +35,13 @@ interface TaskCreateSheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   students: StudentListItem[];
-  onCreate: (task: TaskManagementItem) => void;
+  onCreate: (task: TaskManagementItem) => void | Promise<void>;
+  isLoadingStudents?: boolean;
+  studentsError?: Error | null;
+  isSubmitting?: boolean;
+  requireAssignee?: boolean;
+  assigneeId?: string;
+  assigneeName?: string;
 }
 
 const priorityOptions: StudentPriority[] = ["Cao", "Trung bình", "Thấp"];
@@ -48,10 +54,22 @@ function getTodayInputValue(): string {
   return `${today.getFullYear()}-${month}-${day}`;
 }
 
-export default function TaskCreateSheet({ isOpen, onOpenChange, students, onCreate }: TaskCreateSheetProps) {
+export default function TaskCreateSheet({
+  isOpen,
+  onOpenChange,
+  students,
+  onCreate,
+  isLoadingStudents = false,
+  studentsError = null,
+  isSubmitting = false,
+  requireAssignee = false,
+  assigneeId: assigneeIdProp,
+  assigneeName: assigneeNameProp,
+}: TaskCreateSheetProps) {
   const formId = useId();
   const { user } = useAuth();
-  const assigneeName = user?.full_name || "-";
+  const assigneeName = assigneeNameProp || user?.full_name || "-";
+  const assigneeId = assigneeIdProp || user?.user || user?.email;
   const [title, setTitle] = useState("");
   const [studentId, setStudentId] = useState(students[0]?.id ?? "");
   const [dueDate, setDueDate] = useState(getTodayInputValue);
@@ -60,8 +78,17 @@ export default function TaskCreateSheet({ isOpen, onOpenChange, students, onCrea
   const [priority, setPriority] = useState<StudentPriority>("Trung bình");
   const [notes, setNotes] = useState("");
 
-  const student = students.find((item) => item.id === studentId) ?? students[0];
-  const isValid = Boolean(student && title.trim() && dueDate && dueTime);
+  const selectedStudentId = students.some((item) => item.id === studentId)
+    ? studentId
+    : (students[0]?.id ?? "");
+  const student = students.find((item) => item.id === selectedStudentId);
+  const isValid = Boolean(
+    student &&
+      title.trim() &&
+      dueDate &&
+      dueTime &&
+      (!requireAssignee || assigneeId),
+  );
 
   const resetForm = () => {
     setTitle("");
@@ -73,28 +100,33 @@ export default function TaskCreateSheet({ isOpen, onOpenChange, students, onCrea
     setNotes("");
   };
 
-  const handleSubmit = () => {
-    if (!isValid || !student) return;
+  const handleSubmit = async () => {
+    if (!isValid || !student || isSubmitting) return;
 
-    onCreate({
-      id: `task-new-${formId}-${Date.now()}`,
-      title: title.trim(),
-      assignee: assigneeName,
-      dueDate,
-      dueTime,
-      status: "todo",
-      priority,
-      taskType,
-      notes: notes.replace(/<[^>]*>/g, "").trim() ? notes : undefined,
-      studentId: student.id,
-      studentName: student.name,
-      studentCode: student.code,
-      studentInitials: student.initials,
-      studentMajor: student.major,
-    });
-    toast.success(`Đã tạo task cho ${student.name}.`);
-    resetForm();
-    onOpenChange(false);
+    try {
+      await onCreate({
+        id: `task-new-${formId}-${Date.now()}`,
+        title: title.trim(),
+        assignee: assigneeName,
+        assigneeId,
+        dueDate,
+        dueTime,
+        status: "todo",
+        priority,
+        taskType,
+        notes: notes.replace(/<[^>]*>/g, "").trim() ? notes : undefined,
+        studentId: student.id,
+        studentName: student.name,
+        studentCode: student.code,
+        studentInitials: student.initials,
+        studentMajor: student.major,
+      });
+      toast.success(`Đã tạo task cho ${student.name}.`);
+      resetForm();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể tạo task.");
+    }
   };
 
   return (
@@ -113,9 +145,17 @@ export default function TaskCreateSheet({ isOpen, onOpenChange, students, onCrea
           <TextField className="gap-2" required>
             <Label>Học sinh *</Label>
             <Select
-              value={studentId}
+              value={selectedStudentId}
               onChange={(value) => setStudentId(String(value))}
               aria-label="Chọn học sinh liên kết với task"
+              placeholder={
+                isLoadingStudents
+                  ? "Đang tải danh sách học sinh..."
+                  : students.length > 0
+                    ? "Chọn học sinh"
+                    : "Chưa có học sinh"
+              }
+              isDisabled={isLoadingStudents || students.length === 0}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -132,6 +172,11 @@ export default function TaskCreateSheet({ isOpen, onOpenChange, students, onCrea
                 ))}
               </SelectContent>
             </Select>
+            {studentsError && (
+              <p className="text-sm text-input-error" role="alert">
+                {studentsError.message || "Không thể tải danh sách học sinh."}
+              </p>
+            )}
           </TextField>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -197,7 +242,9 @@ export default function TaskCreateSheet({ isOpen, onOpenChange, students, onCrea
         </SheetBody>
         <SheetFooter className="border-t border-card-border pt-4">
           <Button appearance="outline" onPress={() => onOpenChange(false)}>Hủy</Button>
-          <Button onPress={handleSubmit} isDisabled={!isValid}>Tạo task</Button>
+          <Button onPress={handleSubmit} isDisabled={!isValid || isSubmitting}>
+            {isSubmitting ? "Đang lưu..." : "Tạo task"}
+          </Button>
         </SheetFooter>
       </SheetContent>
     </SheetOverlay>

@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function CtvSaleTasksPage() {
-  return <TaskManagementPage />;
+  return <TaskManagementPage useCrmApi />;
 }

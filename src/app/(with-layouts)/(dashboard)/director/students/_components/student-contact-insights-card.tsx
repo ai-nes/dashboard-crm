@@ -1,15 +1,21 @@
 "use client";
 
 import { Sparkle } from "@tailgrids/icons";
+import {
+  AnalysisSourceCountBadge,
+  getAnalysisSourceCount,
+} from "@/components/analysis-runs/analysis-report-signal-lists";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
+import type { AnalysisReport } from "@/services/api/analysis-runs";
+import { AnalysisAdvisorySignalList } from "@/components/analysis-runs/analysis-report-signal-lists";
 import type { Student360Data } from "@/services/api/students/types";
 import StudentAICardHeader from "./student-ai-card-header";
 import StudentCardEmptyState from "./student-card-empty-state";
 
 interface StudentContactInsightsCardProps {
   data: Student360Data;
-  reportTitle?: string | null;
+  report?: AnalysisReport | null;
   policyRevision?: string | null;
   isRefreshing?: boolean;
   onRefresh?: () => void;
@@ -18,7 +24,7 @@ interface StudentContactInsightsCardProps {
 
 export default function StudentContactInsightsCard({
   data,
-  reportTitle,
+  report,
   policyRevision,
   isRefreshing,
   onRefresh,
@@ -27,21 +33,37 @@ export default function StudentContactInsightsCard({
   const timestamp = data.classification.updatedAt
     ? `Cập nhật lúc ${data.classification.updatedAt}${policyRevision ? ` (Chính sách: ${policyRevision})` : ""}`
     : undefined;
+  const advisorySignals = report?.advisorySignals ?? [];
+  const hasOverview = Boolean(report?.title || report?.summary);
+  const hasAnalysis = hasOverview || advisorySignals.length > 0;
 
   return (
     <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
         title="Tín hiệu tư vấn tuyển sinh"
+        rightAction={
+          <AnalysisSourceCountBadge
+            count={getAnalysisSourceCount(advisorySignals)}
+          />
+        }
         timestamp={timestamp}
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}
       />
 
-      {/* Nguyên văn từ Analysis Run report, không ghép thêm nội dung */}
-      {reportTitle ? (
-        <div className="mt-4 rounded-xl border border-card-border bg-background-soft-50/50 p-4 text-sm leading-relaxed text-text-primary sm:p-5">
-          {reportTitle}
-        </div>
+      {/* Hiển thị overview và toàn bộ advisory_signals từ Analysis Run report. */}
+      {hasAnalysis ? (
+        <>
+          {hasOverview && (
+            <div className="mt-4 rounded-xl border border-card-border bg-background-soft-50/50 p-4 text-sm leading-relaxed text-text-primary sm:p-5">
+              {report?.title && <p className="font-semibold">{report.title}</p>}
+              {report?.summary && (
+                <p className="mt-1 text-text-secondary">{report.summary}</p>
+              )}
+            </div>
+          )}
+          <AnalysisAdvisorySignalList items={advisorySignals} />
+        </>
       ) : (
         <div className="mt-4 rounded-xl border border-card-border bg-background-soft-50/50 p-4 sm:p-5">
           <StudentCardEmptyState message="Chưa có phân tích cho hồ sơ này." />
