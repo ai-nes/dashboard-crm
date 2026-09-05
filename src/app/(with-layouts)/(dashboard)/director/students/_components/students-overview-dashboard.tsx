@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -19,6 +20,8 @@ import StudentList, {
 import StudentListToolbar from "./student-list-toolbar";
 
 export default function StudentsOverviewDashboard() {
+  const searchParams = useSearchParams();
+  const ownerId = searchParams.get("owner")?.trim() || undefined;
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState<StudentJourneyStage | "all">("all");
   const [province, setProvince] = useState("all");
@@ -42,6 +45,7 @@ export default function StudentsOverviewDashboard() {
       q: query || undefined,
       stage,
       province,
+      ownerId,
     },
     { placeholderData: keepPreviousData },
   );

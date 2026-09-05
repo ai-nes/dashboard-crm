@@ -320,6 +320,7 @@ export interface DirectorStudentsParams {
   q?: string;
   stage?: StudentJourneyStage | "all" | string;
   province?: string;
+  ownerId?: string;
   sort?: "score" | "priority" | "lastActivityAt" | "nextActionDueAt" | string;
   order?: "asc" | "desc";
 }

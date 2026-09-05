@@ -405,8 +405,8 @@ Các route con phải dùng cùng team scope của Lead Sales. Không dùng quy�
 | `/lead-sale/tasks` | `crm.api.task.list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task` | CRUD chỉ trong team scope; tham khảo [crm-tasks/index.ts](<../../src/services/api/crm-tasks/index.ts>) |
 | `/lead-sale/next-best-action` | NBA read/action APIs hiện có | Recommendation và mutation chỉ dành cho hồ sơ thuộc team |
 | `/lead-sale/demographics` | `director_demographics` overview/segment | Nếu cho phép xem, aggregate phải lọc team trước khi tính |
-| `/lead-sale/student-assignment` | API assignment riêng | Cần GET danh sách hồ sơ chưa phân công và POST command gán/chuyển hồ sơ; route hiện mới là placeholder |
-| `/lead-sale/sales-team` | API team performance/detail riêng hoặc mở rộng overview | Route hiện mới là placeholder; không suy ra quyền từ dữ liệu client |
+| `/lead-sale/student-assignment` | get_student_assignment_workspace, get_student_assignment_detail, resolve_student_assignment | Contract chi tiết tại [lead-sale-student-assignment.md](./lead-sale-student-assignment.md); route hiện vẫn đang dùng fixture |
+| `/lead-sale/sales-team` | get_sales_team_workspace, get_sales_team_member_detail | Contract chi tiết tại [lead-sale-sales-team.md](./lead-sale-sales-team.md); route hiện vẫn đang dùng fixture |
 
 Thao tác gán/chuyển hồ sơ là mutation, không thực hiện qua GET. Mutation cần
 kiểm tra team scope, optimistic concurrency nếu hồ sơ có thể bị gán đồng thời,

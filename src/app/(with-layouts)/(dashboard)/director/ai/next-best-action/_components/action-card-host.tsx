@@ -5,7 +5,6 @@ import {
   Buildings11,
   Calendar,
   ChevronDown,
-  User2,
 } from "@tailgrids/icons";
 import Link from "next/link";
 import { useState } from "react";
@@ -26,7 +25,6 @@ import {
 
 interface ActionCardHostProps {
   action: RecommendedAction | null;
-  onAssign: (action: RecommendedAction) => void;
   onDefer: (action: RecommendedAction) => void;
   onDismiss: (action: RecommendedAction) => void;
 }
@@ -45,7 +43,6 @@ const priorityColors: Record<ActionPriority, "error" | "primary" | "gray"> = {
 
 export default function ActionCardHost({
   action,
-  onAssign,
   onDefer,
   onDismiss,
 }: ActionCardHostProps) {
@@ -58,7 +55,7 @@ export default function ActionCardHost({
         aria-label="Chi tiết việc cần xử lý"
       >
         <p className="max-w-60 text-center text-sm leading-6 text-text-secondary">
-          Chọn một việc để xem lý do và giao người phụ trách.
+          Chọn một việc để xem lý do và chi tiết xử lý.
         </p>
       </aside>
     );
@@ -181,55 +178,23 @@ export default function ActionCardHost({
               {action.suggestedAssignee}
               {isAssigned && <Badge color="success">Đã giao</Badge>}
             </p>
-            {isAssigned ? (
-              // Already has a sales owner — the director only needs an override
-              // path, not the primary "assign" call-to-action.
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <Button
-                  appearance="outline"
-                  size="sm"
-                  onPress={() => onDefer(action)}
-                >
-                  <Calendar size={16} />
-                  Trì hoãn
-                </Button>
-                <Button
-                  appearance="ghost"
-                  size="sm"
-                  onPress={() => onDismiss(action)}
-                >
-                  Bỏ đề xuất
-                </Button>
-              </div>
-            ) : (
-              <>
-                <Button
-                  className="mt-4 w-full"
-                  size="md"
-                  onPress={() => onAssign(action)}
-                >
-                  <User2 size={17} />
-                  Giao việc
-                </Button>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <Button
-                    appearance="outline"
-                    size="sm"
-                    onPress={() => onDefer(action)}
-                  >
-                    <Calendar size={16} />
-                    Trì hoãn
-                  </Button>
-                  <Button
-                    appearance="ghost"
-                    size="sm"
-                    onPress={() => onDismiss(action)}
-                  >
-                    Bỏ đề xuất
-                  </Button>
-                </div>
-              </>
-            )}
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <Button
+                appearance="outline"
+                size="sm"
+                onPress={() => onDefer(action)}
+              >
+                <Calendar size={16} />
+                Trì hoãn
+              </Button>
+              <Button
+                appearance="ghost"
+                size="sm"
+                onPress={() => onDismiss(action)}
+              >
+                Bỏ đề xuất
+              </Button>
+            </div>
           </div>
         </>
       )}

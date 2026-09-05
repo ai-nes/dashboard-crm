@@ -1,13 +1,15 @@
 export type AssignmentStatus =
   | "assigned"
   | "no_match"
-  | "missing_data";
+  | "missing_data"
+  | "error";
 export type AssignmentFilter =
   | "all"
   | "assigned"
   | "review"
   | "no_match"
-  | "missing_data";
+  | "missing_data"
+  | "error";
 export type StepId =
   | "input"
   | "validation"
@@ -21,6 +23,11 @@ export interface Candidate {
   name: string;
   initials: string;
   workload: number;
+  capacity: number;
+  remainingCapacity: number;
+  score: number;
+  eligible: boolean;
+  reasons: string[];
 }
 
 export interface AssignmentRecord {
@@ -34,9 +41,12 @@ export interface AssignmentRecord {
   time: string;
   status: AssignmentStatus;
   ownerId?: string;
+  ownerName?: string;
   score?: number;
   method: "automatic" | "manual";
   reason?: string;
+  revision: number;
+  receivedAt: string;
 }
 
 export interface WorkflowStep {
@@ -47,4 +57,11 @@ export interface WorkflowStep {
   rules: string[];
   tone: "neutral" | "blue" | "primary" | "warning" | "success";
   position: { x: number; y: number };
+  status: "idle" | "running" | "success" | "warning" | "error";
+  metrics: {
+    processedCount: number;
+    successCount: number;
+    warningCount: number;
+    errorCount: number;
+  };
 }

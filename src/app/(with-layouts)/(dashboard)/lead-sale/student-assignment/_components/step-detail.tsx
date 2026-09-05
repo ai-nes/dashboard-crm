@@ -3,12 +3,11 @@
 import { Check, InfoCircle } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import { useAssignment } from "./assignment-context";
-import { workflowSteps } from "./data";
 import DetailDrawer from "./detail-drawer";
 import { stepMetrics } from "./mappings";
 
 export default function StepDetail() {
-  const { selectedStep, selectStep, records, setFilter } = useAssignment();
+  const { selectedStep, selectStep, workflowSteps, setFilter } = useAssignment();
   const step = workflowSteps.find((item) => item.id === selectedStep);
   if (!step) return null;
   return (
@@ -19,9 +18,9 @@ export default function StepDetail() {
     >
       <p className="text-sm leading-6 text-text-secondary">{step.detail}</p>
       <div className="my-6 rounded-xl border border-card-border bg-background-gray-secondary p-4">
-        <p className="text-xs text-text-tertiary">Trong bộ dữ liệu minh họa</p>
+        <p className="text-xs text-text-tertiary">Trong snapshot workspace hiện tại</p>
         <p className="mt-2 text-lg font-semibold text-text-primary">
-          {stepMetrics(step.id, records)}
+          {stepMetrics(step)}
         </p>
       </div>
       <h3 className="text-sm font-semibold text-text-primary">Cách xử lý</h3>
@@ -42,7 +41,7 @@ export default function StepDetail() {
       </ul>
       <p className="mt-6 flex gap-2 rounded-lg bg-badge-sky-background p-3 text-xs leading-5 text-badge-sky-text">
         <InfoCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-        Điều kiện minh họa cho bản thiết kế. Chưa áp dụng vào phân công thực tế.
+        Điều kiện và metrics được lấy từ snapshot workspace hiện tại.
       </p>
       <Button
         appearance="outline"

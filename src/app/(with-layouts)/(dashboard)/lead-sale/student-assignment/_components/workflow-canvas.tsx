@@ -12,8 +12,7 @@ import {
 import { ExpandArrow6 } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import { useAssignment } from "./assignment-context";
-import { automationPath, workflowSteps } from "./data";
-import { stepMetrics } from "./mappings";
+import { automationPath } from "./data";
 import WorkflowNode, { type AssignmentFlowNode } from "./workflow-node";
 import type { StepId } from "./types";
 import "@xyflow/react/dist/style.css";
@@ -37,41 +36,42 @@ const connections: {
     target: "classification",
     sourceHandle: "out-right",
     targetHandle: "in-left",
-    label: "Đủ thông tin",
+    label: "Pool hợp lệ",
   },
   {
     source: "classification",
     target: "matching",
     sourceHandle: "out-bottom",
     targetHandle: "in-right",
+    label: "Xác định Tier",
   },
   {
-    source: "validation",
+    source: "classification",
     target: "review",
-    sourceHandle: "out-bottom",
+    sourceHandle: "out-left",
     targetHandle: "in-top",
-    label: "Cần bổ sung",
+    label: "Tier 3/4 hoặc lỗi địa bàn",
   },
   {
     source: "matching",
     target: "review",
     sourceHandle: "out-left",
     targetHandle: "in-right",
-    label: "Chưa phù hợp",
+    label: "Deferred / queue",
   },
   {
     source: "matching",
     target: "assignment",
     sourceHandle: "out-bottom",
     targetHandle: "in-top",
-    label: "Phù hợp",
+    label: "Tier 1/2 · áp dụng",
   },
   {
     source: "review",
     target: "assignment",
     sourceHandle: "out-bottom",
     targetHandle: "in-left",
-    label: "Sau xử lý",
+    label: "Resolve thủ công",
   },
 ];
 
@@ -82,7 +82,7 @@ const canvasStyle = {
 } as CSSProperties;
 
 export default function WorkflowCanvas() {
-  const { records, selectStep, testRun } = useAssignment();
+  const { workflowSteps, selectStep, testRun } = useAssignment();
   const instance = useRef<ReactFlowInstance<AssignmentFlowNode> | null>(null);
   const path = automationPath;
   const isRunning = testRun.status === "running";
@@ -99,7 +99,7 @@ export default function WorkflowCanvas() {
           metric:
             isRunning && activeStepId === step.id
               ? "Đang xử lý"
-              : stepMetrics(step.id, records),
+              : `${step.metrics.successCount} thành công · ${step.metrics.warningCount + step.metrics.errorCount} cần xử lý`,
           highlighted:
             hasRun &&
             path.includes(step.id) &&
@@ -109,7 +109,7 @@ export default function WorkflowCanvas() {
           completed: isRunning && path.indexOf(step.id) < testRun.stepIndex,
         },
       })),
-    [records, path, hasRun, isRunning, testRun.stepIndex, activeStepId],
+    [workflowSteps, path, hasRun, isRunning, testRun.stepIndex, activeStepId],
   );
 
   const edges: Edge[] = useMemo(

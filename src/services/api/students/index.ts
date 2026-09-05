@@ -633,6 +633,7 @@ export async function getDirectorStudents(
   if (params?.q) searchParams.set("q", params.q);
   if (params?.stage && params.stage !== "all") searchParams.set("stage", params.stage);
   if (params?.province && params.province !== "all") searchParams.set("province", params.province);
+  if (params?.ownerId) searchParams.set("ownerId", params.ownerId);
   if (params?.sort) searchParams.set("sort", params.sort);
   if (params?.order) searchParams.set("order", params.order);
 

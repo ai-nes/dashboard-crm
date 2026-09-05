@@ -2,7 +2,6 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowRight } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { candidates } from "./data";
 import { statusColors, statusLabels } from "./mappings";
 import type { AssignmentRecord } from "./types";
 
@@ -28,15 +27,12 @@ export function historyColumns(
       ),
     },
     {
-      accessorKey: "ownerId",
+      accessorKey: "ownerName",
       header: "Người phụ trách",
       cell: ({ row }) => {
-        const owner = candidates.find(
-          (person) => person.id === row.original.ownerId,
-        );
-        return owner ? (
+        return row.original.ownerName ? (
           <div>
-            <p className="text-text-primary">{owner.name}</p>
+            <p className="text-text-primary">{row.original.ownerName}</p>
             <p className="mt-1 text-xs text-text-tertiary">
               {row.original.method === "manual"
                 ? "Trưởng nhóm phân công"

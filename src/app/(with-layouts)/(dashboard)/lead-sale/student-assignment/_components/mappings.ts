@@ -6,17 +6,19 @@ import {
   Shield1Check,
   UserMultiple1,
 } from "@tailgrids/icons";
-import type { AssignmentRecord, AssignmentStatus, StepId } from "./types";
+import type { AssignmentStatus, StepId, WorkflowStep } from "./types";
 
 export const statusLabels: Record<AssignmentStatus, string> = {
   assigned: "Đã phân công",
   no_match: "Chưa có người phù hợp",
   missing_data: "Thiếu thông tin",
+  error: "Lỗi tự động",
 };
 export const statusColors = {
   assigned: "success",
   no_match: "warning",
   missing_data: "warning",
+  error: "error",
 } as const;
 export const stepIcons = {
   input: UserMultiple1,
@@ -34,23 +36,20 @@ export const toneClasses = {
   success: "bg-badge-success-background text-badge-success-text",
 };
 
-export function stepMetrics(id: StepId, records: AssignmentRecord[]): string {
-  const assigned = records.filter((record) => record.ownerId).length;
-  const missing = records.filter(
-    (record) => record.status === "missing_data",
-  ).length;
-  switch (id) {
+export function stepMetrics(step: WorkflowStep): string {
+  const { metrics } = step;
+  switch (step.id) {
     case "input":
-      return `${records.length} học sinh mới`;
+      return `${metrics.processedCount} học sinh mới`;
     case "validation":
-      return `${records.length - missing} đủ thông tin · ${missing} cần bổ sung`;
+      return `${metrics.successCount} đủ thông tin · ${metrics.warningCount} cần bổ sung`;
     case "classification":
-      return `${records.length - missing} học sinh đã phân nhóm`;
+      return `${metrics.successCount} học sinh đã phân nhóm`;
     case "matching":
-      return `${assigned} đã có người phụ trách`;
+      return `${metrics.successCount} đã có người phụ trách`;
     case "review":
-      return `${records.length - assigned} học sinh chờ phân công`;
+      return `${metrics.warningCount + metrics.errorCount} học sinh chờ phân công`;
     case "assignment":
-      return `${assigned} học sinh đã phân công`;
+      return `${metrics.successCount} học sinh đã phân công`;
   }
 }

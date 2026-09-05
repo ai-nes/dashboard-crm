@@ -2,8 +2,13 @@ import { ArrowRight, CalendarTime, UserPencil } from "@tailgrids/icons";
 import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
+import type { SalesTeamWorkspaceMeta } from "@/services/api/lead-sale";
 
-export default function TeamHeader() {
+interface TeamHeaderProps {
+  meta: SalesTeamWorkspaceMeta;
+}
+
+export default function TeamHeader({ meta }: TeamHeaderProps) {
   return (
     <header className="relative isolate overflow-hidden rounded-2xl border border-card-border bg-card-background px-5 py-5 shadow-xs sm:px-6 lg:px-7 lg:py-6">
       <div className="pointer-events-none absolute -top-24 -right-8 -z-10 size-72 rounded-full bg-primary-50/70 blur-3xl" />
@@ -15,8 +20,9 @@ export default function TeamHeader() {
             <Badge color="primary">VẬN HÀNH TUYỂN SINH</Badge>
             <span className="inline-flex items-center gap-1.5 text-xs text-text-tertiary">
               <CalendarTime size={14} aria-hidden="true" />
-              Thứ Bảy, 05/09/2026
+              {formatDate(meta.date, meta.timezone)}
             </span>
+            <span className="text-xs text-text-tertiary">{meta.team.name}</span>
           </div>
           <h1 className="mt-4 text-balance text-[26px] leading-8 font-semibold tracking-[-0.5px] text-text-primary sm:text-[30px]">
             Quản lý đội ngũ Sale
@@ -24,6 +30,9 @@ export default function TeamHeader() {
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
             Theo dõi số lượng học sinh đang phụ trách, hiệu suất và trạng thái
             làm việc của từng thành viên.
+          </p>
+          <p className="mt-2 text-xs text-text-tertiary">
+            Người xem: {meta.viewer.displayName} · Cập nhật lúc {formatTime(meta.asOf)}
           </p>
         </div>
 
@@ -50,4 +59,25 @@ export default function TeamHeader() {
       </div>
     </header>
   );
+}
+
+function formatDate(value: string, timezone: string): string {
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("vi-VN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: timezone,
+  }).format(parsed);
+}
+
+function formatTime(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
 }

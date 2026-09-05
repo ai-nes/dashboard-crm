@@ -12,11 +12,16 @@ import { Button } from "@/components/tailgrids/core/button";
 import { useAssignment } from "./assignment-context";
 
 export default function AssignmentHeader() {
-  const { records, setFilter } = useAssignment();
-  const assigned = records.filter((record) => record.ownerId).length;
-  const pending = records.filter(
-    (record) => record.status !== "assigned",
-  ).length;
+  const { setFilter, summary, health, meta, isLoading } = useAssignment();
+  const assigned = summary?.assigned ?? 0;
+  const pending = summary?.pending ?? 0;
+  const received = summary?.received ?? 0;
+  const snapshotTime = meta?.asOf
+    ? new Date(meta.asOf).toLocaleString("vi-VN", {
+        dateStyle: "short",
+        timeStyle: "short",
+      })
+    : "—";
 
   return (
     <header className="space-y-5">
@@ -64,15 +69,15 @@ export default function AssignmentHeader() {
                 className="mt-1 gap-1.5 px-0 bg-transparent"
               >
                 <CheckCircle1 size={12} aria-hidden="true" />
-                Đã bật trong bản thử
+                {health?.automationEnabled ? "Đang bật" : "Đang tạm dừng"}
               </Badge>
             </div>
           </div>
           {[
             {
               label: "Học sinh tiếp nhận",
-              value: records.length,
-              note: "Trong bộ dữ liệu minh họa",
+              value: received,
+              note: meta ? `Snapshot ${meta.admissionYear}` : "Đang tải snapshot",
             },
             {
               label: "Đã có người phụ trách",
@@ -106,11 +111,11 @@ export default function AssignmentHeader() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-card-border bg-background-gray-secondary/50 px-5 py-2.5 text-xs text-text-tertiary">
           <span className="inline-flex items-center gap-1.5">
             <InfoCircle size={14} aria-hidden="true" />
-            Dữ liệu minh họa. Thao tác chỉ áp dụng cho bản thử.
+            {isLoading ? "Đang tải dữ liệu phân công…" : "Số liệu từ snapshot phân công hiện tại."}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <ClockThree size={13} aria-hidden="true" />
-            05/09/2026 · 09:45
+            {snapshotTime}
           </span>
         </div>
       </div>

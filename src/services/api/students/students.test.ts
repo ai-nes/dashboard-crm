@@ -72,6 +72,23 @@ describe("director students API contract", () => {
     expect(result.meta.total).toBe(mockData.meta.total);
   });
 
+  it("passes an owner filter to the session-scoped students endpoint", async () => {
+    const mockData = computeDirectorStudents({ admissionYear: 2026, page: 1, pageSize: 10 });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockData }), { status: 200 }),
+    );
+
+    await getDirectorStudents(
+      { admissionYear: 2026, ownerId: "STAFF-1" },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_director_students?admissionYear=2026&ownerId=STAFF-1",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+  });
+
   it("throws DirectorStudentsApiError on authorization failure", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

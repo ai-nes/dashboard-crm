@@ -9,58 +9,39 @@ import {
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card } from "@/components/tailgrids/core/card";
-import type { SalesTeamMember } from "./types";
+import type { TeamOverviewSummary } from "./types";
 
 interface TeamOverviewProps {
-  members: SalesTeamMember[];
+  summary: TeamOverviewSummary;
 }
 
-export default function TeamOverview({ members }: TeamOverviewProps) {
-  const activeMembers = members.filter(
-    (member) => member.availability === "active",
-  ).length;
-  const assignedStudents = members.reduce(
-    (total, member) => total + member.activeStudents,
-    0,
-  );
-  const totalCapacity = members.reduce(
-    (total, member) => total + member.capacity,
-    0,
-  );
-  const supportMembers = members.filter(
-    (member) => member.health === "support",
-  ).length;
-  const overdueStudents = members.reduce(
-    (total, member) => total + member.overdue,
-    0,
-  );
-  const loadRate = Math.round((assignedStudents / totalCapacity) * 100);
-
+export default function TeamOverview({ summary }: TeamOverviewProps) {
+  const loadRateLabel = summary.loadRate === null ? "—" : `${summary.loadRate}%`;
   const stats = [
     {
       label: "Thành viên",
-      value: members.length,
-      note: `${activeMembers} đang hoạt động`,
+      value: summary.memberCount,
+      note: `${summary.activeMemberCount} đang hoạt động`,
       icon: UserMultiple1,
       tone: "sky",
     },
     {
       label: "Học sinh đang phụ trách",
-      value: assignedStudents,
-      note: `${loadRate}% khả năng tiếp nhận đã dùng`,
+      value: summary.assignedStudents,
+      note: `${loadRateLabel} khả năng tiếp nhận đã dùng`,
       icon: CheckCircle1,
       tone: "primary",
     },
     {
       label: "Cần hỗ trợ",
-      value: supportMembers,
+      value: summary.supportMemberCount,
       note: "thành viên cần theo dõi",
       icon: InfoTriangle,
       tone: "warning",
     },
     {
       label: "Quá hạn liên hệ",
-      value: overdueStudents,
+      value: summary.overdueStudents,
       note: "học sinh cần xử lý sớm",
       icon: ClockThree,
       tone: "error",

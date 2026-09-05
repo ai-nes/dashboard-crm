@@ -6,21 +6,17 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { healthColors, healthLabels } from "./mappings";
-import type { SalesTeamMember } from "./types";
+import type { TeamAttentionMember } from "./types";
 
 interface TeamAttentionProps {
-  members: SalesTeamMember[];
-  onSelect: (member: SalesTeamMember) => void;
+  members: TeamAttentionMember[];
+  onSelect: (memberId: string) => void;
 }
 
 export default function TeamAttention({
   members,
   onSelect,
 }: TeamAttentionProps) {
-  const attentionMembers = members
-    .filter((member) => member.health === "support")
-    .sort((a, b) => b.overdue - a.overdue);
-
   return (
     <Card className="min-w-0 p-5 sm:p-6">
       <CardHeader className="items-start">
@@ -30,14 +26,14 @@ export default function TeamAttention({
             Ưu tiên xem những thành viên đang có dấu hiệu quá tải hoặc chậm xử lý.
           </p>
         </div>
-        <Badge color={attentionMembers.length ? "warning" : "success"}>
-          {attentionMembers.length} thành viên
+        <Badge color={members.length ? "warning" : "success"}>
+          {members.length} thành viên
         </Badge>
       </CardHeader>
 
-      {attentionMembers.length ? (
+      {members.length ? (
         <div className="mt-5 divide-y divide-card-border">
-          {attentionMembers.map((member) => (
+          {members.map((member) => (
             <div
               key={member.id}
               className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0"
@@ -62,7 +58,7 @@ export default function TeamAttention({
                 appearance="ghost"
                 size="sm"
                 className="shrink-0 text-text-secondary"
-                onPress={() => onSelect(member)}
+                onPress={() => onSelect(member.id)}
               >
                 Xem chi tiết
                 <ArrowRight size={14} aria-hidden="true" />

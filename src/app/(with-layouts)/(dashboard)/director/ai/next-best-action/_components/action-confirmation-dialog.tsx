@@ -5,7 +5,7 @@ import { Button } from "@/components/tailgrids/core/button";
 
 import type { RecommendedAction } from "./types";
 
-export type ActionConfirmationType = "assign" | "defer" | "dismiss";
+export type ActionConfirmationType = "defer" | "dismiss";
 
 interface ActionConfirmationDialogProps {
   action: RecommendedAction | null;
@@ -15,11 +15,6 @@ interface ActionConfirmationDialogProps {
 }
 
 const dialogCopy = {
-  assign: {
-    title: "Xác nhận giao việc",
-    description: "Việc này sẽ được giao cho người phụ trách đề xuất.",
-    confirmLabel: "Giao việc",
-  },
   defer: {
     title: "Trì hoãn việc này",
     description: "Việc sẽ được đưa ra khỏi danh sách hiện tại để xử lý sau.",
@@ -46,7 +41,6 @@ export default function ActionConfirmationDialog({ action, type, onClose, onConf
       <DialogBody className="space-y-2">
         <p className="font-medium text-text-primary">{action.recommendation}</p>
         <p>{action.studentName} · {action.school}</p>
-        {type === "assign" && <p>Người phụ trách: <strong className="font-semibold text-text-primary">{action.suggestedAssignee}</strong></p>}
       </DialogBody>
       <DialogFooter>
         <Button appearance="outline" onPress={onClose}>Để sau</Button>

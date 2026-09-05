@@ -4,28 +4,19 @@ import Link from "next/link";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { healthColors, healthLabels } from "./mappings";
-import type { SalesTeamMember } from "./types";
+import type { TeamLoadSummaryData } from "./types";
 
 interface TeamLoadSummaryProps {
-  members: SalesTeamMember[];
+  summary: TeamLoadSummaryData;
+  asOf: string;
 }
 
-export default function TeamLoadSummary({ members }: TeamLoadSummaryProps) {
-  const assignedStudents = members.reduce(
-    (total, member) => total + member.activeStudents,
-    0,
-  );
-  const capacity = members.reduce(
-    (total, member) => total + member.capacity,
-    0,
-  );
-  const loadRate = Math.round((assignedStudents / capacity) * 100);
-  const topMembers = [...members]
-    .sort(
-      (a, b) =>
-        b.activeStudents / b.capacity - a.activeStudents / a.capacity,
-    )
-    .slice(0, 4);
+export default function TeamLoadSummary({
+  summary,
+  asOf,
+}: TeamLoadSummaryProps) {
+  const loadRateLabel =
+    summary.loadRate === null ? "Chưa cấu hình" : `${summary.loadRate}% đã dùng`;
 
   return (
     <Card className="min-w-0 p-5 sm:p-6">
@@ -51,20 +42,27 @@ export default function TeamLoadSummary({ members }: TeamLoadSummaryProps) {
             Đã phân bổ / khả năng tiếp nhận
           </p>
           <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">
-            {assignedStudents}
+            {summary.assignedStudents}
             <span className="text-base font-normal text-text-tertiary">
-              /{capacity}
+              /{summary.totalCapacity}
             </span>
           </p>
         </div>
-        <Badge color={loadRate >= 80 ? "warning" : "success"}>
-          {loadRate}% đã dùng
+        <Badge
+          color={
+            summary.loadRate !== null && summary.loadRate >= 80
+              ? "warning"
+              : "success"
+          }
+        >
+          {loadRateLabel}
         </Badge>
       </div>
 
       <div className="mt-5 space-y-3">
-        {topMembers.map((member) => {
-          const load = Math.round((member.activeStudents / member.capacity) * 100);
+        {summary.topMembers.map((member) => {
+          const load =
+            member.loadRate === null ? "Chưa cấu hình" : `${member.loadRate}% đã dùng`;
           return (
             <div key={member.id} className="flex items-center gap-3">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-badge-sky-background text-[10px] font-semibold text-badge-sky-text">
@@ -80,7 +78,7 @@ export default function TeamLoadSummary({ members }: TeamLoadSummaryProps) {
                   </span>
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-2">
-                  <span className="text-xs text-text-tertiary">{load}% đã dùng</span>
+                  <span className="text-xs text-text-tertiary">{load}</span>
                   <Badge color={healthColors[member.health]} size="sm">
                     {healthLabels[member.health]}
                   </Badge>
@@ -92,8 +90,17 @@ export default function TeamLoadSummary({ members }: TeamLoadSummaryProps) {
       </div>
       <p className="mt-4 flex items-center gap-1.5 text-xs text-text-tertiary">
         <UserMultiple1 size={14} aria-hidden="true" />
-        Số liệu minh họa, cập nhật lúc 09:45.
+        Cập nhật lúc {formatAsOf(asOf)}.
       </p>
     </Card>
   );
+}
+
+function formatAsOf(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
 }

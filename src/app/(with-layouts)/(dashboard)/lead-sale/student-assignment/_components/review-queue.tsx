@@ -28,11 +28,19 @@ const groups = [
     icon: InfoTriangle,
     tone: "warning",
   },
+  {
+    status: "error",
+    title: "Lỗi tự động",
+    description: "Cần kiểm tra execution",
+    action: "Xem để xử lý",
+    icon: InfoTriangle,
+    tone: "warning",
+  },
 ] as const;
 
 export default function ReviewQueue() {
-  const { records, inspect, setFilter } = useAssignment();
-  const count = records.filter((record) => record.status !== "assigned").length;
+  const { records, summary, inspect, setFilter } = useAssignment();
+  const count = summary?.pending ?? 0;
   return (
     <section aria-labelledby="review-heading" className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -50,7 +58,7 @@ export default function ReviewQueue() {
       {count === 0 ? (
         <Card className="flex items-center gap-3 py-5 text-sm text-badge-success-text">
           <CheckCircle1 size={20} />
-          Đã xử lý hết các trường hợp trong bản thử.
+          Đã xử lý hết các trường hợp trong snapshot hiện tại.
         </Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
@@ -68,7 +76,7 @@ export default function ReviewQueue() {
                     <Icon size={18} aria-hidden="true" />
                   </span>
                   <span className="text-2xl font-semibold tabular-nums text-text-primary">
-                    {items.length}
+                    {summary?.byStatus[group.status] ?? 0}
                   </span>
                 </div>
                 <h3 className="mt-3 text-sm font-semibold text-text-primary">

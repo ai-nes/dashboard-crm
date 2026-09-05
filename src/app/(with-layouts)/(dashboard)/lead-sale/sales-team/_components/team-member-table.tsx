@@ -7,6 +7,7 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { Input } from "@/components/tailgrids/core/input";
+import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,7 @@ import {
 import type {
   SalesTeamMember,
   TeamAvailabilityFilter,
+  TeamPagination,
   TeamSort,
 } from "./types";
 
@@ -38,6 +40,9 @@ interface TeamMemberTableProps {
   onSortChange: (value: TeamSort) => void;
   onSelect: (member: SalesTeamMember) => void;
   onReset: () => void;
+  pagination: TeamPagination;
+  asOf: string;
+  onPageChange: (page: number) => void;
 }
 
 const availabilityOptions: { id: TeamAvailabilityFilter; label: string }[] = [
@@ -72,6 +77,9 @@ export default function TeamMemberTable({
   onSortChange,
   onSelect,
   onReset,
+  pagination,
+  asOf,
+  onPageChange,
 }: TeamMemberTableProps) {
   return (
     <section id="sales-team-list" aria-labelledby="sales-team-list-heading">
@@ -336,11 +344,30 @@ export default function TeamMemberTable({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-card-border px-5 py-3 text-xs text-text-tertiary">
-          <span>Chọn thành viên để xem chỉ số chi tiết.</span>
-          <span className="tabular-nums">Cập nhật lúc 09:45 · 05/09/2026</span>
+        <div className="flex flex-col gap-3 border-t border-card-border px-5 py-3 text-xs text-text-tertiary sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <span>Chọn thành viên để xem chỉ số chi tiết.</span>
+            <span className="tabular-nums">Cập nhật lúc {formatAsOf(asOf)}</span>
+          </div>
+          {pagination.total > 0 && (
+            <Pagination
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={onPageChange}
+              variant="compact"
+            />
+          )}
         </div>
       </Card>
     </section>
   );
+}
+
+function formatAsOf(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
 }

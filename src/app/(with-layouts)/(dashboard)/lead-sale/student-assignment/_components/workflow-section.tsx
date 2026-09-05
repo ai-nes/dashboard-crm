@@ -13,7 +13,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { cn } from "@/utils/cn";
 import { useAssignment } from "./assignment-context";
-import { automationPath, workflowSteps } from "./data";
+import { automationPath } from "./data";
 import { stepIcons, stepMetrics, toneClasses } from "./mappings";
 
 const WorkflowCanvas = dynamic(() => import("./workflow-canvas"), {
@@ -26,7 +26,7 @@ const WorkflowCanvas = dynamic(() => import("./workflow-canvas"), {
 });
 
 export default function WorkflowSection() {
-  const { records, selectStep, testRun, startTest, stopTest } = useAssignment();
+  const { workflowSteps, selectStep, testRun, startTest, stopTest } = useAssignment();
   const path = testRun.status === "idle" ? [] : automationPath;
   const activeStepId =
     testRun.status === "running" ? path[testRun.stepIndex] : undefined;
@@ -129,7 +129,7 @@ export default function WorkflowSection() {
                         {step.title}
                       </span>
                       <span className="mt-0.5 block text-xs font-normal text-text-tertiary">
-                        {stepMetrics(step.id, records)}
+                        {stepMetrics(step)}
                       </span>
                     </span>
                     <ArrowRight size={14} aria-hidden="true" />

@@ -5,7 +5,6 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { useAssignment } from "./assignment-context";
 import AssignmentForm from "./assignment-form";
-import { candidates } from "./data";
 import DetailDrawer from "./detail-drawer";
 import { statusColors, statusLabels } from "./mappings";
 
@@ -14,56 +13,105 @@ const issueDescriptions = {
     "Chưa có nhân sự đạt điều kiện phụ trách khu vực này. Bạn có thể thống nhất với nhân sự và phân công thủ công.",
   missing_data:
     "Thiếu khu vực của học sinh nên chưa thể tìm người phù hợp. Bổ sung thông tin trước khi phân công.",
+  error:
+    "Luồng tự động gặp lỗi kỹ thuật. Kiểm tra thông tin và xử lý thủ công nếu phù hợp.",
 };
 
+function initials(value: string): string {
+  return value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function timeOf(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function AssignmentDetail() {
-  const { inspectedId, inspect, records } = useAssignment();
+  const { inspectedId, inspect, records, detail, detailLoading, detailError } = useAssignment();
   const record = records.find((item) => item.id === inspectedId);
-  if (!record) return null;
-  const owner = candidates.find((person) => person.id === record.ownerId);
+  if (!inspectedId) return null;
+  if (!record && !detailLoading) return null;
+  const item = detail?.item
+      ? {
+        id: detail.item.studentId,
+        name: detail.item.name,
+        initials: initials(detail.item.name),
+        school: detail.item.school,
+        region: detail.item.region ?? "",
+        interest: detail.item.interest ?? "Chưa xác định",
+        source: detail.item.source ?? "Chưa xác định",
+        receivedAt: detail.item.receivedAt,
+        time: timeOf(detail.item.receivedAt),
+        status: detail.item.status,
+        ownerId: detail.item.owner?.id,
+        ownerName: detail.item.owner?.displayName,
+        score: detail.item.matchScore ?? undefined,
+        method: detail.item.method,
+        reason: detail.item.reason ?? undefined,
+        revision: detail.item.revision,
+      }
+    : record;
+  if (!item) {
+    return (
+      <DetailDrawer title="Chi tiết học sinh" subtitle="CHI TIẾT PHÂN CÔNG" onClose={() => inspect(null)}>
+        <p className="text-sm text-text-secondary">{detailError?.message ?? "Đang tải dữ liệu…"}</p>
+      </DetailDrawer>
+    );
+  }
+  const owner = item.ownerName
+    ? { name: item.ownerName, initials: initials(item.ownerName) }
+    : null;
   const waiting = records.filter(
-    (item) => item.status !== "assigned" && item.id !== record.id,
+    (waitingItem) => waitingItem.status !== "assigned" && waitingItem.id !== item.id,
   );
 
   return (
     <DetailDrawer
-      title={record.name}
-      subtitle={`CHI TIẾT PHÂN CÔNG · ${record.id}`}
+      title={item.name}
+      subtitle={`CHI TIẾT PHÂN CÔNG · ${item.id}`}
       onClose={() => inspect(null)}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Badge color={statusColors[record.status]}>
-          {statusLabels[record.status]}
+        <Badge color={statusColors[item.status]}>
+          {statusLabels[item.status]}
         </Badge>
         <span className="text-xs text-text-tertiary">
-          Tiếp nhận lúc {record.time}
+          Tiếp nhận lúc {item.time}
         </span>
       </div>
       <dl className="mt-5 grid grid-cols-[100px_1fr] gap-x-3 gap-y-3 text-sm">
         <dt className="text-text-tertiary">Trường</dt>
-        <dd className="text-text-primary">{record.school}</dd>
+        <dd className="text-text-primary">{item.school}</dd>
         <dt className="text-text-tertiary">Khu vực</dt>
         <dd
           className={
-            record.region ? "text-text-primary" : "text-badge-warning-text"
+            item.region ? "text-text-primary" : "text-badge-warning-text"
           }
         >
-          {record.region || "Chưa có thông tin"}
+          {item.region || "Chưa có thông tin"}
         </dd>
         <dt className="text-text-tertiary">Quan tâm</dt>
-        <dd className="text-text-primary">{record.interest}</dd>
+        <dd className="text-text-primary">{item.interest}</dd>
         <dt className="text-text-tertiary">Nguồn</dt>
-        <dd className="text-text-primary">{record.source}</dd>
+        <dd className="text-text-primary">{item.source}</dd>
       </dl>
 
-      {record.status !== "assigned" && (
+      {item.status !== "assigned" && (
         <div className="mt-6 rounded-xl bg-badge-warning-background p-4 text-badge-warning-text">
           <p className="flex items-center gap-2 text-sm font-semibold">
             <InfoTriangle size={17} aria-hidden="true" />
-            {statusLabels[record.status]}
+            {statusLabels[item.status]}
           </p>
           <p className="mt-2 text-sm leading-6">
-            {issueDescriptions[record.status]}
+            {issueDescriptions[item.status]}
           </p>
         </div>
       )}
@@ -81,15 +129,15 @@ export default function AssignmentDetail() {
                   {owner.name}
                 </p>
                 <p className="mt-0.5 text-xs text-text-tertiary">
-                  {record.method === "manual"
+                  {item.method === "manual"
                     ? "Trưởng nhóm phân công"
                     : "Hệ thống tự động phân công"}
                 </p>
               </div>
-              {record.score !== undefined && (
+              {item.score !== undefined && (
                 <div className="text-right">
                   <p className="text-lg font-semibold tabular-nums text-badge-success-text">
-                    {record.score}
+                    {item.score}
                     <span className="text-xs font-normal text-text-tertiary">
                       /100
                     </span>
@@ -104,12 +152,13 @@ export default function AssignmentDetail() {
               Lý do phân công
             </h3>
             <ul className="mt-3 space-y-2.5">
-              {(record.method === "manual"
-                ? [record.reason || "Do trưởng nhóm lựa chọn."]
+              {(item.method === "manual"
+                ? [item.reason || "Do trưởng nhóm lựa chọn."]
                 : [
-                    `Phụ trách khu vực ${record.region}.`,
-                    `Nhận tư vấn nhóm ngành ${record.interest.toLocaleLowerCase("vi")}.`,
-                    `Đang phụ trách ${owner.workload} học sinh, còn khả năng tiếp nhận.`,
+                    ...(detail?.explainability.reasons ?? [
+                      `Phụ trách khu vực ${item.region || "chưa xác định"}.`,
+                      `Nhận tư vấn nhóm ngành ${item.interest?.toLocaleLowerCase("vi") || "chung"}.`,
+                    ]),
                   ]
               ).map((reason) => (
                 <li
@@ -141,7 +190,7 @@ export default function AssignmentDetail() {
           </div>
         </div>
       ) : (
-        <AssignmentForm key={record.id} record={record} />
+        <AssignmentForm key={item.id} record={item} />
       )}
 
       {waiting.length > 0 && (

@@ -17,11 +17,15 @@ import type { SalesTeamMember } from "./types";
 interface TeamMemberDetailProps {
   member: SalesTeamMember | null;
   onClose: () => void;
+  isLoading?: boolean;
+  errorMessage?: string | null;
 }
 
 export default function TeamMemberDetail({
   member,
   onClose,
+  isLoading = false,
+  errorMessage = null,
 }: TeamMemberDetailProps) {
   if (!member) return null;
 
@@ -49,10 +53,21 @@ export default function TeamMemberDetail({
             {member.name}
           </p>
           <p className="mt-1 truncate text-sm text-text-tertiary">
-            {member.email}
+            {member.email || "Email công việc chưa được cấu hình"}
           </p>
         </div>
       </div>
+
+      {isLoading && (
+        <p className="mt-4 rounded-lg bg-background-gray-secondary px-3 py-2 text-xs text-text-tertiary">
+          Đang tải số liệu chi tiết…
+        </p>
+      )}
+      {errorMessage && (
+        <div className="mt-4 rounded-lg bg-badge-error-background px-3 py-2 text-xs text-badge-error-text">
+          Không thể tải chi tiết từ Frappe CRM: {errorMessage}
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-3 gap-2">
         <div className="rounded-xl bg-background-gray-secondary p-3">
@@ -89,7 +104,9 @@ export default function TeamMemberDetail({
           />
           <div>
             <p className="text-sm font-semibold">Cần được theo dõi</p>
-            <p className="mt-1 text-sm leading-6">{member.supportReason}</p>
+            <p className="mt-1 text-sm leading-6">
+              {member.supportReason || "Cần theo dõi thêm."}
+            </p>
           </div>
         </div>
       )}
@@ -138,7 +155,7 @@ export default function TeamMemberDetail({
             <div>
               <p className="text-xs text-text-tertiary">Tỷ lệ nhập học</p>
               <p className="mt-1 font-semibold tabular-nums text-text-primary">
-                {member.conversionRate}%
+                {member.conversionRate === null ? "—" : `${member.conversionRate}%`}
               </p>
             </div>
             <div>
