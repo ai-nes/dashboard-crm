@@ -175,7 +175,7 @@ export function AssignmentProvider({ children }: { children: ReactNode }) {
         const lastStepIndex = automationPath.length - 1;
         if (testRun.stepIndex >= lastStepIndex) {
           setTestRun((current) => ({ ...current, status: "completed" }));
-          toast.success("Chạy thử luồng hoàn tất", {
+          toast.success("Chạy thủ công hoàn tất", {
             description: "Đã mô phỏng đầy đủ các bước phân công học sinh.",
           });
           return;

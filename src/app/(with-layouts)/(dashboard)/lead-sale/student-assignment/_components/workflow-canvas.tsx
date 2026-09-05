@@ -17,7 +17,6 @@ import WorkflowNode, { type AssignmentFlowNode } from "./workflow-node";
 import type { StepId } from "./types";
 import "@xyflow/react/dist/style.css";
 
-const nodeTypes = { assignmentStep: WorkflowNode };
 const connections: {
   source: StepId;
   target: StepId;
@@ -42,38 +41,37 @@ const connections: {
   {
     source: "classification",
     target: "matching",
-    sourceHandle: "out-bottom",
-    targetHandle: "in-right",
-    label: "Xác định Tier",
+    sourceHandle: "out-right",
+    targetHandle: "in-left",
+    label: "Tier 1/2",
   },
   {
     source: "classification",
     target: "review",
-    sourceHandle: "out-left",
-    targetHandle: "in-top",
+    sourceHandle: "out-bottom",
+    targetHandle: "in-left",
     label: "Tier 3/4 hoặc lỗi địa bàn",
-    labelOffsetY: 88,
   },
   {
     source: "matching",
     target: "review",
-    sourceHandle: "out-left",
+    sourceHandle: "out-bottom",
     targetHandle: "in-right",
-    label: "Deferred / queue",
+    label: "Deferred · vào hàng đợi",
   },
   {
     source: "matching",
     target: "assignment",
     sourceHandle: "out-bottom",
     targetHandle: "in-top",
-    label: "Tier 1/2 · áp dụng",
+    label: "Tier 1/2 · gán thành công",
   },
   {
     source: "review",
     target: "assignment",
-    sourceHandle: "out-bottom",
+    sourceHandle: "out-right",
     targetHandle: "in-left",
-    label: "Resolve thủ công",
+    label: "Đã xử lý thủ công",
   },
 ];
 
@@ -85,6 +83,7 @@ const canvasStyle = {
 
 export default function WorkflowCanvas() {
   const { workflowSteps, selectStep, testRun } = useAssignment();
+  const nodeTypes = useMemo(() => ({ assignmentStep: WorkflowNode }), []);
   const instance = useRef<ReactFlowInstance<AssignmentFlowNode> | null>(null);
   const path = automationPath;
   const isRunning = testRun.status === "running";
@@ -141,7 +140,7 @@ export default function WorkflowCanvas() {
         return {
           ...connection,
           id: `${connection.source}-${connection.target}`,
-          type: "smoothstep",
+          type: "straight",
           animated: active,
           selectable: false,
           focusable: false,
