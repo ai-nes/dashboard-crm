@@ -46,12 +46,20 @@ function startOfDay(date: Date): Date {
 
 function getTaskGroup(task: StudentTaskItem): Omit<StudentTaskGroup, "tasks"> {
   if (isTaskOverdue(task)) {
-    return { id: "overdue", label: "Quá hạn", sortTime: Number.MIN_SAFE_INTEGER };
+    return {
+      id: "overdue",
+      label: "Quá hạn",
+      sortTime: Number.MIN_SAFE_INTEGER,
+    };
   }
 
   const taskDate = parseStudentActivityDate(task.dueDate);
   if (taskDate.getTime() === 0) {
-    return { id: "unscheduled", label: "Chưa đặt hạn", sortTime: Number.MAX_SAFE_INTEGER };
+    return {
+      id: "unscheduled",
+      label: "Chưa đặt hạn",
+      sortTime: Number.MAX_SAFE_INTEGER,
+    };
   }
 
   const today = startOfDay(new Date());
@@ -106,9 +114,13 @@ export default function StudentTasksTab({
 }: StudentTasksTabProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<TaskTimeFilter>("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | StudentTaskItem["status"]>("all");
-  const [priorityFilter, setPriorityFilter] = useState<TaskPriorityFilter>("all");
-  const [expansionMode, setExpansionMode] = useState<TaskExpansionMode>("collapse");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | StudentTaskItem["status"]
+  >("all");
+  const [priorityFilter, setPriorityFilter] =
+    useState<TaskPriorityFilter>("all");
+  const [expansionMode, setExpansionMode] =
+    useState<TaskExpansionMode>("collapse");
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(
     () => new Set(tasks.map((task) => task.id)),
   );
@@ -116,15 +128,19 @@ export default function StudentTasksTab({
 
   useEffect(() => {
     if (!initialTaskId) return;
-    document.getElementById(`student-task-${initialTaskId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    document
+      .getElementById(`student-task-${initialTaskId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [initialTaskId]);
 
   const filteredTasks = useMemo(() => {
     const query = search.trim().toLowerCase();
     return tasks.filter((task) => {
-      const matchesStatus = statusFilter === "all" || task.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "all" || task.status === statusFilter;
       const matchesTime = matchesActivityTimeFilter(task.dueDate, timeFilter);
-      const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
+      const matchesPriority =
+        priorityFilter === "all" || task.priority === priorityFilter;
       const matchesSearch =
         !query ||
         task.title.toLowerCase().includes(query) ||
@@ -137,7 +153,9 @@ export default function StudentTasksTab({
 
   const handleExpansionModeChange = (mode: TaskExpansionMode) => {
     setExpansionMode(mode);
-    setExpandedTaskIds(new Set(mode === "expand" ? tasks.map((task) => task.id) : []));
+    setExpandedTaskIds(
+      new Set(mode === "expand" ? tasks.map((task) => task.id) : []),
+    );
   };
 
   const handleTaskExpandedChange = (id: string, expanded: boolean) => {
@@ -176,11 +194,17 @@ export default function StudentTasksTab({
       {isLoading ? (
         <p className="py-2 text-xs text-text-tertiary">Đang tải task...</p>
       ) : filteredTasks.length === 0 ? (
-        <p className="py-2 text-xs text-text-tertiary">Chưa có task nào phù hợp.</p>
+        <p className="py-2 text-xs text-text-tertiary">
+          Chưa có task nào phù hợp.
+        </p>
       ) : (
         <div className="space-y-6">
           {taskGroups.map((group) => (
-            <section key={group.id} className="space-y-3" aria-labelledby={`task-group-${group.id}`}>
+            <section
+              key={group.id}
+              className="space-y-3"
+              aria-labelledby={`task-group-${group.id}`}
+            >
               <div className="flex items-center gap-2">
                 <h3
                   id={`task-group-${group.id}`}
@@ -195,7 +219,10 @@ export default function StudentTasksTab({
                 <span className="rounded-full bg-background-gray-secondary_alt px-2 py-0.5 text-xs font-medium text-text-tertiary">
                   {group.tasks.length}
                 </span>
-                <span className="h-px flex-1 bg-card-border" aria-hidden="true" />
+                <span
+                  className="h-px flex-1 bg-card-border"
+                  aria-hidden="true"
+                />
               </div>
               <div className="space-y-3">
                 {group.tasks.map((task) => (
@@ -205,7 +232,9 @@ export default function StudentTasksTab({
                     onUpdateTask={onUpdateTask}
                     onDeleteTask={onDeleteTask}
                     expanded={expandedTaskIds.has(task.id)}
-                    onExpandedChange={(expanded) => handleTaskExpandedChange(task.id, expanded)}
+                    onExpandedChange={(expanded) =>
+                      handleTaskExpandedChange(task.id, expanded)
+                    }
                   />
                 ))}
               </div>

@@ -1,5 +1,8 @@
 import { Badge } from "@/components/tailgrids/core/badge";
-import type { StudentTaskItem, StudentTaskType } from "@/services/api/students/types";
+import type {
+  StudentTaskItem,
+  StudentTaskType,
+} from "@/services/api/students/types";
 
 type BadgeColor = "gray" | "warning" | "success" | "error";
 
@@ -29,7 +32,11 @@ const priorityDotClass: Record<StudentTaskItem["priority"], string> = {
   Thấp: "bg-badge-success-icon-color",
 };
 
-export function StudentTaskStatusBadge({ status }: { status: StudentTaskItem["status"] }) {
+export function StudentTaskStatusBadge({
+  status,
+}: {
+  status: StudentTaskItem["status"];
+}) {
   return (
     <Badge
       color={taskStatusColor[status]}
@@ -40,8 +47,11 @@ export function StudentTaskStatusBadge({ status }: { status: StudentTaskItem["st
     </Badge>
   );
 }
-
-export function StudentTaskPriority({ priority }: { priority: StudentTaskItem["priority"] }) {
+export function StudentTaskPriority({
+  priority,
+}: {
+  priority: StudentTaskItem["priority"];
+}) {
   return (
     <span className="inline-flex items-center gap-2 whitespace-nowrap text-base font-semibold text-text-primary">
       <span

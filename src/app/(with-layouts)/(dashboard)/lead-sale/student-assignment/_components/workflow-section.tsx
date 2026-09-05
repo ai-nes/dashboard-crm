@@ -19,7 +19,7 @@ import { stepIcons, stepMetrics, toneClasses } from "./mappings";
 const WorkflowCanvas = dynamic(() => import("./workflow-canvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[590px] items-center justify-center border-t border-card-border bg-background-gray-secondary text-sm text-text-tertiary">
+    <div className="flex h-[660px] items-center justify-center border-t border-card-border bg-background-gray-secondary text-sm text-text-tertiary">
       Đang tải sơ đồ phân công…
     </div>
   ),

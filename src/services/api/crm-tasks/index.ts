@@ -157,7 +157,8 @@ function normalizeCRMTask(raw: unknown): CRMTask {
     assignedTo: optionalString(obj.assigned_to ?? obj.assignedTo),
     status: normalizeStatus(obj.status),
     dueDate: optionalString(obj.due_date ?? obj.dueDate),
-    referenceDoctype: (obj.reference_doctype || obj.referenceDoctype ||
+    referenceDoctype: (obj.reference_doctype ||
+      obj.referenceDoctype ||
       "CRM Student") as CRMTask["referenceDoctype"],
     referenceDocname: String(
       obj.reference_docname || obj.referenceDocname || "",
@@ -282,19 +283,14 @@ export async function listTasks(
     start?: number;
     page_length?: number;
     tasks?: unknown[];
-  }>(
-    METHODS.LIST_TASKS,
-    "GET",
-    options,
-    {
-      reference_doctype: params.referenceDoctype,
-      reference_docname: params.referenceDocname,
-      search: params.search,
-      status: params.status,
-      start: params.start ?? 0,
-      page_length: params.pageLength ?? 20,
-    },
-  );
+  }>(METHODS.LIST_TASKS, "GET", options, {
+    reference_doctype: params.referenceDoctype,
+    reference_docname: params.referenceDocname,
+    search: params.search,
+    status: params.status,
+    start: params.start ?? 0,
+    page_length: params.pageLength ?? 20,
+  });
 
   const rawTasks = Array.isArray(raw?.tasks) ? raw.tasks : [];
   return {
@@ -312,12 +308,9 @@ export async function getTask(
   name: string,
   options: RequestOptions = {},
 ): Promise<CRMTask> {
-  const raw = await callTaskApi<unknown>(
-    METHODS.GET_TASK,
-    "GET",
-    options,
-    { name },
-  );
+  const raw = await callTaskApi<unknown>(METHODS.GET_TASK, "GET", options, {
+    name,
+  });
   return normalizeCRMTask(raw);
 }
 

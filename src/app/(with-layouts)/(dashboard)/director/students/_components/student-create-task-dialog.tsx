@@ -188,9 +188,7 @@ export default function StudentCreateTaskDialog({
             <div className="grid gap-3 sm:grid-cols-2">
               <Select
                 value={priority}
-                onChange={(key) =>
-                  setPriority(String(key) as StudentPriority)
-                }
+                onChange={(key) => setPriority(String(key) as StudentPriority)}
               >
                 <SelectLabel>Mức ưu tiên</SelectLabel>
                 <SelectTrigger className="w-full">

@@ -10,11 +10,11 @@ export const automationPath: StepId[] = [
 
 export const workflowPositions: Record<StepId, { x: number; y: number }> = {
   input: { x: 0, y: 0 },
-  validation: { x: 310, y: 0 },
-  classification: { x: 620, y: 0 },
-  matching: { x: 310, y: 195 },
-  review: { x: 0, y: 195 },
-  assignment: { x: 310, y: 390 },
+  validation: { x: 360, y: 0 },
+  classification: { x: 720, y: 0 },
+  matching: { x: 360, y: 220 },
+  review: { x: 0, y: 220 },
+  assignment: { x: 360, y: 440 },
 };
 
 /**

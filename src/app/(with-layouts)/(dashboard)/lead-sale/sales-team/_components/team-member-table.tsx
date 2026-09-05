@@ -350,12 +350,15 @@ export default function TeamMemberTable({
             <span className="tabular-nums">Cập nhật lúc {formatAsOf(asOf)}</span>
           </div>
           {pagination.total > 0 && (
-            <Pagination
-              currentPage={pagination.page}
-              totalPages={pagination.totalPages}
-              onPageChange={onPageChange}
-              variant="compact"
-            />
+            <div className="flex w-full shrink-0 items-center justify-end sm:w-fit">
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={onPageChange}
+                variant="compact"
+                className="w-fit"
+              />
+            </div>
           )}
         </div>
       </Card>

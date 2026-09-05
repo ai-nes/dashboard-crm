@@ -1,6 +1,11 @@
 export type CRMTaskReferenceDoctype = "CRM Student" | "CRM Contact";
 export type CRMTaskPriority = "Low" | "Medium" | "High";
-export type CRMTaskStatus = "Backlog" | "Todo" | "In Progress" | "Done" | "Canceled";
+export type CRMTaskStatus =
+  | "Backlog"
+  | "Todo"
+  | "In Progress"
+  | "Done"
+  | "Canceled";
 
 export interface CRMTask {
   name: string;

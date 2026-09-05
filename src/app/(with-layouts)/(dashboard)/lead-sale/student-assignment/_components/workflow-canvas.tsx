@@ -24,6 +24,7 @@ const connections: {
   sourceHandle: string;
   targetHandle: string;
   label?: string;
+  labelOffsetY?: number;
 }[] = [
   {
     source: "input",
@@ -51,6 +52,7 @@ const connections: {
     sourceHandle: "out-left",
     targetHandle: "in-top",
     label: "Tier 3/4 hoặc lỗi địa bàn",
+    labelOffsetY: 88,
   },
   {
     source: "matching",
@@ -130,6 +132,7 @@ export default function WorkflowCanvas() {
         const visible =
           !isRunning || (sourceIndex >= 0 && sourceIndex <= testRun.stepIndex);
         const warning = connection.target === "review";
+        const labelOffsetY = connection.labelOffsetY ?? -12;
         const color = highlighted
           ? "var(--primary-500)"
           : warning
@@ -159,11 +162,11 @@ export default function WorkflowCanvas() {
               ? "var(--badge-warning-text)"
               : "var(--text-secondary)",
             fontSize: 11,
-            transform: "translateY(-12px)",
+            transform: `translateY(${labelOffsetY}px)`,
           },
           labelBgStyle: {
             fill: "var(--background-gray-secondary)",
-            transform: "translateY(-12px)",
+            transform: `translateY(${labelOffsetY}px)`,
           },
           labelBgPadding: [6, 4] as [number, number],
           labelBgBorderRadius: 4,
@@ -173,7 +176,7 @@ export default function WorkflowCanvas() {
   );
 
   return (
-    <div className="relative h-[590px] min-w-0 border-t border-card-border bg-background-gray-secondary/50">
+    <div className="relative h-[660px] min-w-0 border-t border-card-border bg-background-gray-secondary/50">
       <ReactFlow<AssignmentFlowNode>
         id="assignment-workflow-canvas"
         aria-label="Sơ đồ phân công học sinh tự động"
@@ -185,7 +188,7 @@ export default function WorkflowCanvas() {
         }}
         onNodeClick={(_, node) => selectStep(node.data.step.id)}
         fitView
-        fitViewOptions={{ padding: 0.12, maxZoom: 1 }}
+        fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
         minZoom={0.65}
         maxZoom={1.2}
         nodesDraggable={false}
@@ -212,7 +215,7 @@ export default function WorkflowCanvas() {
         appearance="outline"
         size="sm"
         className="absolute bottom-3 left-3 gap-1.5 border-card-border bg-card-background text-text-secondary"
-        onPress={() => instance.current?.fitView({ padding: 0.12, maxZoom: 1 })}
+        onPress={() => instance.current?.fitView({ padding: 0.1, maxZoom: 1 })}
       >
         <ExpandArrow6 size={14} aria-hidden="true" />
         Vừa khung
