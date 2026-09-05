@@ -44,8 +44,8 @@ import {
   studentTaskToUpdatePayload,
 } from "./student-task-mappers";
 import {
-  filterAssigneesToCurrentUser,
-  isCtvSaleUser,
+  getTaskAssignmentMessage,
+  resolveStudentTaskAssignee,
 } from "./student-task-assignee-policy";
 import StudentZaloTab from "./student-zalo-tab";
 import type {
@@ -101,8 +101,6 @@ export default function StudentActivitiesTab({
   const taskAssigneesQuery = useTaskAssigneesQuery();
   const [activeTab, setActiveTab] = useState(initialTaskId ? "tasks" : "all");
   const assignedTo = data.student.counselor || "Chưa phân công";
-  const currentUserId = user?.user || user?.email;
-  const isSelfAssignmentOnly = isCtvSaleUser(user);
   const taskAssignees = useMemo(() => {
     const currentSessionUser = user
       ? {
@@ -122,14 +120,23 @@ export default function StudentActivitiesTab({
         allUsers.findIndex((item) => item.name === candidate.name) === index,
     );
   }, [taskAssigneesQuery.data, user]);
-  const assignableTaskAssignees = useMemo(() => {
-    if (!isSelfAssignmentOnly) return taskAssignees;
-
-    return filterAssigneesToCurrentUser(taskAssignees, [
-      user?.user,
-      user?.email,
-    ]);
-  }, [isSelfAssignmentOnly, taskAssignees, user?.email, user?.user]);
+  const studentTaskAssignee = resolveStudentTaskAssignee(
+    assignedTo,
+    taskAssignees,
+  );
+  const taskAssignmentMessage = getTaskAssignmentMessage(
+    assignedTo,
+    studentTaskAssignee,
+    {
+      isLoading: taskAssigneesQuery.isPending,
+      hasError: taskAssigneesQuery.isError,
+    },
+  );
+  const canCreateTask = Boolean(
+    studentTaskAssignee &&
+    !taskAssigneesQuery.isPending &&
+    !taskAssigneesQuery.isError,
+  );
   const currentUserIdentifiers = useMemo(
     () =>
       [user?.user, user?.email]
@@ -229,9 +236,7 @@ export default function StudentActivitiesTab({
     return [...pendingCreatedTasks, ...visibleServerTasks];
   }, [createdTasks, deletedTaskIds, serverTasks, taskOverrides]);
   const zaloMessages =
-    chatwootInteractionsQuery.data?.zalo_messages ??
-    data.zaloMessages ??
-    [];
+    chatwootInteractionsQuery.data?.zalo_messages ?? data.zaloMessages ?? [];
   const calls = data.calls ?? [];
   const auditEvents = studentAuditQuery.data?.logs ?? EMPTY_AUDIT_LOGS;
 
@@ -278,6 +283,16 @@ export default function StudentActivitiesTab({
       );
 
       if (options.createFollowUpTask) {
+        if (!canCreateTask || !studentTaskAssignee) {
+          toast.error(
+            `Ghi chú đã tạo nhưng ${
+              taskAssignmentMessage ||
+              "student chưa được giao cho Sale/CTV nên chưa thể tạo task."
+            }`,
+          );
+          return;
+        }
+
         try {
           const createdTask = await createTaskMutation.mutateAsync({
             referenceDoctype: "CRM Student",
@@ -289,7 +304,7 @@ export default function StudentActivitiesTab({
             ...(options.followUpDueDate
               ? { dueDate: `${options.followUpDueDate} 23:59:00` }
               : {}),
-            ...(currentUserId ? { assignedTo: currentUserId } : {}),
+            assignedTo: studentTaskAssignee.name,
           });
           setCreatedTasks((prev) => [
             crmTaskToStudentTask(createdTask, assignedTo, taskAssignees),
@@ -339,21 +354,22 @@ export default function StudentActivitiesTab({
   };
 
   const handleCreateTask = async (task: StudentTaskItem) => {
-    const enforcedAssigneeId = isSelfAssignmentOnly
-      ? currentUserId
-      : task.assigneeId;
-    const taskToCreate = isSelfAssignmentOnly
-      ? {
-          ...task,
-          assigneeId: enforcedAssigneeId,
-          assignee: user?.full_name || task.assignee,
-        }
-      : task;
+    if (!canCreateTask || !studentTaskAssignee) {
+      throw new Error(
+        taskAssignmentMessage ||
+          "Student chưa được giao cho Sale/CTV nên chưa thể tạo task.",
+      );
+    }
+
+    const taskToCreate = {
+      ...task,
+      assigneeId: studentTaskAssignee.name,
+      assignee: studentTaskAssignee.full_name,
+    };
     const optimisticId = generateId("task");
     const optimisticTask = {
       ...taskToCreate,
       id: optimisticId,
-      assignee: taskToCreate.assignee || assignedTo,
     };
     setCreatedTasks((prev) => [optimisticTask, ...prev]);
 
@@ -362,7 +378,7 @@ export default function StudentActivitiesTab({
         studentTaskToCreatePayload(
           taskToCreate,
           studentDocname,
-          enforcedAssigneeId,
+          studentTaskAssignee.name,
         ),
       );
       const serverTask = crmTaskToStudentTask(
@@ -480,6 +496,8 @@ export default function StudentActivitiesTab({
           isCreating={
             createNoteMutation.isPending || createTaskMutation.isPending
           }
+          canCreateFollowUpTask={canCreateTask}
+          followUpTaskDisabledReason={taskAssignmentMessage || undefined}
         />
       </TabContent>
       <TabContent value="tasks">
@@ -490,10 +508,9 @@ export default function StudentActivitiesTab({
           onCreateTask={handleCreateTask}
           onUpdateTask={handleUpdateTask}
           onDeleteTask={handleRequestDeleteTask}
-          assignees={assignableTaskAssignees}
-          currentUserId={currentUserId}
-          isSelfAssignmentOnly={isSelfAssignmentOnly}
-          isLoadingAssignees={taskAssigneesQuery.isPending}
+          canCreateTask={canCreateTask}
+          createTaskDisabledReason={taskAssignmentMessage || undefined}
+          assigneeId={studentTaskAssignee?.name}
           isCreating={createTaskMutation.isPending}
           isLoading={crmTasksQuery.isPending}
           initialTaskId={initialTaskId}

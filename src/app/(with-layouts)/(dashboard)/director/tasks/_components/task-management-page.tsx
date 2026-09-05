@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/tailgrids/core/card";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { useCreateCrmTaskMutation } from "@/hooks/use-crm-tasks-queries";
+import { useTaskAssigneesQuery } from "@/hooks/use-task-assignees-query";
 import { useAssignedStudentsQuery } from "@/hooks/use-students-queries";
 import { taskManagementData } from "@/services/api/tasks/data";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
@@ -62,6 +63,26 @@ export default function TaskManagementPage({
 }: TaskManagementPageProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const createTaskMutation = useCreateCrmTaskMutation();
+  const taskAssigneesQuery = useTaskAssigneesQuery();
+  const taskAssignees = useMemo(() => {
+    const currentSessionUser = user
+      ? {
+          name: user.user,
+          email: user.email,
+          full_name: user.full_name,
+          roles: user.roles,
+          crm_profile: user.crm_profile,
+        }
+      : null;
+    const users = currentSessionUser
+      ? [currentSessionUser, ...(taskAssigneesQuery.data ?? [])]
+      : (taskAssigneesQuery.data ?? []);
+
+    return users.filter(
+      (candidate, index, allUsers) =>
+        allUsers.findIndex((item) => item.name === candidate.name) === index,
+    );
+  }, [taskAssigneesQuery.data, user]);
   const currentUserId = user?.user || user?.email;
   const isCtvSaleUser = Boolean(
     user?.roles.includes("CTV Sale") ||
@@ -105,12 +126,7 @@ export default function TaskManagementPage({
         taskType === "all" || (task.taskType ?? "todo") === taskType;
       const matchesSearch =
         !query ||
-        [
-          task.title,
-          task.studentName,
-          task.studentCode,
-          task.studentMajor,
-        ]
+        [task.title, task.studentName, task.studentCode, task.studentMajor]
           .join(" ")
           .toLowerCase()
           .includes(query);
@@ -144,8 +160,14 @@ export default function TaskManagementPage({
 
   const handleCreateTask = async (task: TaskManagementItem) => {
     if (shouldUseCrmApi) {
+      if (!task.assigneeId) {
+        throw new Error(
+          "Student chưa được giao cho Sale/CTV nên chưa thể tạo task.",
+        );
+      }
+
       const createdTask = await createTaskMutation.mutateAsync(
-        studentTaskToCreatePayload(task, task.studentId, currentUserId),
+        studentTaskToCreatePayload(task, task.studentId, task.assigneeId),
       );
 
       setTasks((current) => [
@@ -242,8 +264,9 @@ export default function TaskManagementPage({
           isAuthLoading || (Boolean(currentUserId) && studentsQuery.isPending)
         }
         studentsError={studentsQuery.error}
-        assigneeId={shouldUseCrmApi ? currentUserId : undefined}
-        assigneeName={shouldUseCrmApi ? user?.full_name : undefined}
+        assignees={taskAssignees}
+        isLoadingAssignees={taskAssigneesQuery.isPending}
+        assigneesError={taskAssigneesQuery.error}
         requireAssignee={shouldUseCrmApi}
         isSubmitting={shouldUseCrmApi && createTaskMutation.isPending}
         onCreate={handleCreateTask}

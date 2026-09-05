@@ -37,6 +37,8 @@ interface StudentCreateNoteDialogProps {
     options: StudentNoteCreationOptions,
   ) => Promise<void>;
   isSubmitting?: boolean;
+  canCreateFollowUpTask: boolean;
+  followUpTaskDisabledReason?: string;
 }
 
 function isContentEmpty(value: string) {
@@ -49,6 +51,8 @@ export default function StudentCreateNoteDialog({
   studentName,
   onCreate,
   isSubmitting = false,
+  canCreateFollowUpTask,
+  followUpTaskDisabledReason,
 }: StudentCreateNoteDialogProps) {
   const [content, setContent] = useState("");
   const [createFollowUpTask, setCreateFollowUpTask] = useState(false);
@@ -138,14 +142,18 @@ export default function StudentCreateNoteDialog({
             <Checkbox
               isSelected={createFollowUpTask}
               onChange={handleFollowUpChange}
-              className="w-full rounded-lg border border-card-border bg-background-gray-secondary_alt px-3 py-2.5 text-left text-sm text-text-primary transition hover:bg-background-gray-secondary"
+              isDisabled={!canCreateFollowUpTask}
+              className="w-full rounded-lg border border-card-border bg-background-gray-secondary_alt px-3 py-2.5 text-left text-sm text-text-primary transition hover:bg-background-gray-secondary group-data-[disabled=true]:cursor-not-allowed group-data-[disabled=true]:opacity-70"
             >
               <span className="flex flex-col gap-0.5">
                 <span className="font-medium">
                   Tạo task follow-up theo ghi chú này
                 </span>
                 <span className="text-xs text-text-tertiary">
-                  Tạo task “Cần làm”, giao cho bạn và đặt hạn follow-up
+                  {canCreateFollowUpTask
+                    ? "Tạo task “Cần làm”, giao cho Sale/CTV phụ trách và đặt hạn follow-up"
+                    : followUpTaskDisabledReason ||
+                      "Chưa thể tạo task follow-up cho student này."}
                 </span>
               </span>
             </Checkbox>
@@ -201,9 +209,7 @@ export default function StudentCreateNoteDialog({
                     type="date"
                     value={followUpDueDate}
                     min={getDateInputValue(0)}
-                    onChange={(event) =>
-                      setFollowUpDueDate(event.target.value)
-                    }
+                    onChange={(event) => setFollowUpDueDate(event.target.value)}
                     aria-label="Chọn ngày follow-up tùy chọn"
                     className="mt-2 h-9 max-w-52 bg-background-white-primary"
                   />
@@ -220,9 +226,8 @@ export default function StudentCreateNoteDialog({
               isDisabled={
                 isContentEmpty(content) ||
                 isSubmitting ||
-                (createFollowUpTask &&
-                  isCustomFollowUpDate &&
-                  !followUpDueDate)
+                (createFollowUpTask && !canCreateFollowUpTask) ||
+                (createFollowUpTask && isCustomFollowUpDate && !followUpDueDate)
               }
             >
               {isSubmitting ? "Đang lưu..." : "Tạo ghi chú"}

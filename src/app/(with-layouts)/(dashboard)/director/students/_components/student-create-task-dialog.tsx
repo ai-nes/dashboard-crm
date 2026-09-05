@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
@@ -30,7 +30,6 @@ import type {
   StudentPriority,
   StudentTaskItem,
 } from "@/services/api/students/types";
-import type { SessionUser } from "@/services/api/auth";
 import { formatDate } from "@/utils/format-date";
 import { Close } from "@tailgrids/icons";
 import {
@@ -38,17 +37,14 @@ import {
   Modal as AriaModal,
 } from "react-aria-components";
 
-import { filterAssigneesToCurrentUser } from "./student-task-assignee-policy";
-
 interface StudentCreateTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   studentName: string;
   assignee: string;
-  assignees: SessionUser[];
-  currentUserId?: string;
-  isSelfAssignmentOnly?: boolean;
-  isLoadingAssignees?: boolean;
+  assigneeId?: string;
+  isAssignmentLocked?: boolean;
+  assignmentDisabledReason?: string;
   onCreate: (task: StudentTaskItem) => Promise<void>;
   isSubmitting?: boolean;
 }
@@ -60,10 +56,9 @@ export default function StudentCreateTaskDialog({
   onOpenChange,
   studentName,
   assignee,
-  assignees,
-  currentUserId,
-  isSelfAssignmentOnly = false,
-  isLoadingAssignees = false,
+  assigneeId,
+  isAssignmentLocked = true,
+  assignmentDisabledReason,
   onCreate,
   isSubmitting = false,
 }: StudentCreateTaskDialogProps) {
@@ -72,26 +67,15 @@ export default function StudentCreateTaskDialog({
   const [dueDate, setDueDate] = useState("");
   const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState<StudentPriority>("Trung bình");
-  const [assigneeId, setAssigneeId] = useState("");
   const [notes, setNotes] = useState("");
   const dueDateInputId = `${formId}-due-date`;
-  const assignableAssignees = useMemo(() => {
-    if (!isSelfAssignmentOnly) return assignees;
-
-    return filterAssigneesToCurrentUser(assignees, [currentUserId]);
-  }, [assignees, currentUserId, isSelfAssignmentOnly]);
-  const selectedAssigneeId = isSelfAssignmentOnly
-    ? currentUserId || ""
-    : assigneeId || currentUserId || "";
-  const selectedAssignee = assignableAssignees.find(
-    (user) =>
-      user.name === selectedAssigneeId || user.email === selectedAssigneeId,
-  );
 
   const isValid =
     title.trim().length > 0 &&
     dueDate.trim().length > 0 &&
-    dueTime.trim().length > 0;
+    dueTime.trim().length > 0 &&
+    isAssignmentLocked &&
+    Boolean(assigneeId);
 
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -109,8 +93,8 @@ export default function StudentCreateTaskDialog({
         dueTime,
         status: "todo",
         priority,
-        assigneeId: selectedAssigneeId || undefined,
-        assignee: selectedAssignee?.full_name || assignee,
+        assigneeId,
+        assignee,
         notes:
           notes.replace(/<[^>]*>/g, "").trim().length > 0 ? notes : undefined,
       });
@@ -119,7 +103,6 @@ export default function StudentCreateTaskDialog({
       setDueDate("");
       setDueTime("");
       setPriority("Trung bình");
-      setAssigneeId("");
       setNotes("");
       onOpenChange(false);
     } catch (error) {
@@ -150,7 +133,7 @@ export default function StudentCreateTaskDialog({
               Task cho {studentName}
             </DialogTitle>
             <DialogDescription className="text-sm leading-5 text-text-tertiary">
-              Tạo công việc tiếp theo và chọn người phụ trách
+              Tạo công việc tiếp theo cho student này
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="max-h-[calc(100vh-11rem)] space-y-5 overflow-y-auto px-6 py-5">
@@ -204,38 +187,16 @@ export default function StudentCreateTaskDialog({
                 </SelectContent>
               </Select>
 
-              <Select
-                value={selectedAssigneeId}
-                placeholder={
-                  isLoadingAssignees ? "Đang tải..." : "Chọn người phụ trách"
-                }
-                onChange={(key) => setAssigneeId(String(key))}
-                isDisabled={
-                  isSelfAssignmentOnly ||
-                  isLoadingAssignees ||
-                  assignableAssignees.length === 0
-                }
-              >
-                <SelectLabel>Người phụ trách</SelectLabel>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                  <SelectIndicator />
-                </SelectTrigger>
-                <SelectContent className="max-h-56 min-w-[18rem]">
-                  {assignableAssignees.map((option) => (
-                    <SelectItem
-                      key={option.name}
-                      id={option.name}
-                      textValue={option.full_name}
-                      className="py-2"
-                    >
-                      <span className="truncate font-medium text-text-primary">
-                        {option.full_name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="rounded-lg border border-card-border bg-background-gray-secondary/40 px-4 py-3 sm:col-span-2">
+                <p className="text-xs text-text-tertiary">Assign to</p>
+                <p className="mt-1 font-semibold text-text-primary">
+                  {assigneeId ? assignee : "Chưa phân công"}
+                </p>
+                <p className="mt-1 text-xs text-text-secondary">
+                  {assignmentDisabledReason ||
+                    "Task sẽ mặc định giao cho Sale/CTV đang phụ trách student này và không thể thay đổi."}
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">

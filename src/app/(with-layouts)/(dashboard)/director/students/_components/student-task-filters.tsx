@@ -1,5 +1,7 @@
 "use client";
 
+import { InfoTriangle } from "@tailgrids/icons";
+
 import type { StudentTaskItem } from "@/services/api/students/types";
 
 import StudentActivityToolbar, {
@@ -30,6 +32,8 @@ interface StudentTaskFiltersProps {
   expansionMode: TaskExpansionMode;
   onExpansionModeChange: (value: TaskExpansionMode) => void;
   onCreateTask: () => void;
+  canCreateTask: boolean;
+  createTaskDisabledReason?: string;
 }
 
 const statusFilterOptions: ActivityFilterOption[] = [
@@ -59,6 +63,8 @@ export default function StudentTaskFilters({
   expansionMode,
   onExpansionModeChange,
   onCreateTask,
+  canCreateTask,
+  createTaskDisabledReason,
 }: StudentTaskFiltersProps) {
   return (
     <div className="space-y-4">
@@ -71,7 +77,23 @@ export default function StudentTaskFilters({
         onExpansionModeChange={onExpansionModeChange}
         onCreate={onCreateTask}
         createLabel="Tạo task"
+        isCreateDisabled={!canCreateTask}
+        createDisabledReason={createTaskDisabledReason}
       />
+
+      {!canCreateTask && createTaskDisabledReason && (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-warning-200 bg-badge-warning-background px-3 py-2.5 text-sm text-badge-warning-text"
+          role="status"
+        >
+          <InfoTriangle
+            size={16}
+            className="mt-0.5 shrink-0"
+            aria-hidden="true"
+          />
+          <span>{createTaskDisabledReason}</span>
+        </div>
+      )}
 
       <div className="grid w-full max-w-md grid-cols-3 items-center gap-x-2">
         <ActivityFilterSelect
@@ -95,7 +117,9 @@ export default function StudentTaskFilters({
           triggerLabel="Mức ưu tiên"
           value={priorityFilter}
           options={priorityFilterOptions}
-          onChange={(value) => onPriorityFilterChange(value as TaskPriorityFilter)}
+          onChange={(value) =>
+            onPriorityFilterChange(value as TaskPriorityFilter)
+          }
         />
       </div>
     </div>

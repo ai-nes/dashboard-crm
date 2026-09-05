@@ -3,7 +3,11 @@
 import { Plus, Search1 } from "@tailgrids/icons";
 
 import { Button } from "@/components/tailgrids/core/button";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/tailgrids/core/input-group";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/tailgrids/core/input-group";
 import {
   Select,
   SelectContent,
@@ -29,6 +33,8 @@ interface StudentActivityToolbarProps {
   onExpansionModeChange: (value: ActivityExpansionMode) => void;
   onCreate?: () => void;
   createLabel?: string;
+  isCreateDisabled?: boolean;
+  createDisabledReason?: string;
 }
 
 export default function StudentActivityToolbar({
@@ -40,6 +46,8 @@ export default function StudentActivityToolbar({
   onExpansionModeChange,
   onCreate,
   createLabel,
+  isCreateDisabled = false,
+  createDisabledReason,
 }: StudentActivityToolbarProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -58,14 +66,22 @@ export default function StudentActivityToolbar({
 
       <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
         {onCreate && createLabel ? (
-          <Button size="sm" className="shrink-0" onPress={onCreate}>
+          <Button
+            size="sm"
+            className="shrink-0"
+            onPress={onCreate}
+            isDisabled={isCreateDisabled}
+            aria-label={createDisabledReason || createLabel}
+          >
             <Plus size={16} />
             {createLabel}
           </Button>
         ) : null}
         <Select
           value={expansionMode}
-          onChange={(key) => onExpansionModeChange(String(key) as ActivityExpansionMode)}
+          onChange={(key) =>
+            onExpansionModeChange(String(key) as ActivityExpansionMode)
+          }
           aria-label="Hiển thị tất cả hoạt động"
           className="w-fit"
         >
@@ -77,10 +93,18 @@ export default function StudentActivityToolbar({
             <SelectIndicator className="text-text-primary" />
           </SelectTrigger>
           <SelectContent className="min-w-44">
-            <SelectItem id="collapse" textValue="Thu gọn tất cả" className="py-2 whitespace-nowrap">
+            <SelectItem
+              id="collapse"
+              textValue="Thu gọn tất cả"
+              className="py-2 whitespace-nowrap"
+            >
               Thu gọn tất cả
             </SelectItem>
-            <SelectItem id="expand" textValue="Mở rộng tất cả" className="py-2 whitespace-nowrap">
+            <SelectItem
+              id="expand"
+              textValue="Mở rộng tất cả"
+              className="py-2 whitespace-nowrap"
+            >
               Mở rộng tất cả
             </SelectItem>
           </SelectContent>
@@ -117,7 +141,9 @@ export function ActivityFilterSelect({
         className="h-auto min-h-8 justify-start gap-1.5 rounded-none border-0 bg-transparent p-0 text-base font-semibold text-text-primary shadow-none hover:bg-transparent hover:text-text-primary"
       >
         <SelectValue className="max-w-none text-base font-semibold text-text-primary">
-          {({ selectedText }) => (value === "all" ? triggerLabel : selectedText)}
+          {({ selectedText }) =>
+            value === "all" ? triggerLabel : selectedText
+          }
         </SelectValue>
         <SelectIndicator className="text-text-primary" />
       </SelectTrigger>
