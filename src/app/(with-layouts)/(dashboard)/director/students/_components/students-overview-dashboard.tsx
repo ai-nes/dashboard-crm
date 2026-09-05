@@ -2,24 +2,23 @@
 
 import { keepPreviousData } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
-import { useDirectorNbaRecommendationsQuery } from "@/hooks/use-director-nba-recommendations-queries";
 import { useDirectorStudentsQuery } from "@/hooks/use-students-queries";
 import type { StudentJourneyStage } from "@/services/api/students/types";
 
 import StudentKpiStrip from "./student-kpi-strip";
-import StudentList, {
-  getEvaluationContent,
-  getEvaluationStudentKey,
-  studentListGrid,
-} from "./student-list";
+import StudentList, { studentListGrid } from "./student-list";
 import StudentListToolbar from "./student-list-toolbar";
 
 export default function StudentsOverviewDashboard() {
+  const { user } = useAuth();
+  const isLeadSale = user?.roles?.includes("Lead Sales") ?? false;
+  const pageTitle = isLeadSale ? "Danh sách học sinh" : "Hồ sơ học sinh 360°";
   const searchParams = useSearchParams();
   const ownerId = searchParams.get("owner")?.trim() || undefined;
   const [query, setQuery] = useState("");
@@ -27,10 +26,6 @@ export default function StudentsOverviewDashboard() {
   const [province, setProvince] = useState("all");
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const evaluationQuery = useDirectorNbaRecommendationsQuery({
-    admissionYear: 2026,
-    limit: 200,
-  });
 
   const {
     data: response,
@@ -51,22 +46,6 @@ export default function StudentsOverviewDashboard() {
   );
 
   const students = response?.data ?? [];
-  const evaluationByStudentId = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const recommendation of evaluationQuery.data?.recommendations ?? []) {
-      const content = getEvaluationContent(recommendation);
-      if (!content) continue;
-
-      for (const reference of [
-        recommendation.studentId,
-        recommendation.studentName ?? "",
-      ]) {
-        const key = getEvaluationStudentKey(reference);
-        if (key && !map.has(key)) map.set(key, content);
-      }
-    }
-    return map;
-  }, [evaluationQuery.data?.recommendations]);
   const summary = response?.summary;
   const meta = response?.meta;
 
@@ -124,13 +103,13 @@ export default function StudentsOverviewDashboard() {
       <header className="flex flex-col gap-5 rounded-xl border border-card-border bg-card-background p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge color="primary">FAIP · Hồ sơ học sinh 360°</Badge>
+            <Badge color="primary">FAIP · {pageTitle}</Badge>
             <span className="text-xs text-text-tertiary">
               Dữ liệu tuyển sinh · Kỳ {meta?.admissionYear ?? 2026}
             </span>
           </div>
           <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
-            Hồ sơ học sinh 360°
+            {pageTitle}
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
             Từ toàn cảnh tệp học sinh đến hành động tiếp theo cho từng hồ sơ.
@@ -170,13 +149,10 @@ export default function StudentsOverviewDashboard() {
           <span>Họ tên · THPT · Quê quán</span>
           <span>Ngành quan tâm</span>
           <span>Trạng thái</span>
-          <span>Mức độ ưu tiên</span>
-          <span>Hành động tiếp theo</span>
+          <span>Điểm tiềm năng</span>
+          <span>Người phụ trách</span>
         </div>
-        <StudentList
-          students={students}
-          evaluationByStudentId={evaluationByStudentId}
-        />
+        <StudentList students={students} ownerEditable={isLeadSale} />
 
         {totalCount > 0 && (
           <div className="flex flex-col gap-3 border-t border-card-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">

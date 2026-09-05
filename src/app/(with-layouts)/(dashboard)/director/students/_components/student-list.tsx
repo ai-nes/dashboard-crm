@@ -1,13 +1,15 @@
-import { ArrowRight, ClockThree, MapMarker5 } from "@tailgrids/icons";
+import { ArrowRight, MapMarker5 } from "@tailgrids/icons";
 import Link from "next/link";
+import { useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import type { DirectorNbaRecommendation } from "@/services/api/nba";
 import type { StudentListItem } from "@/services/api/students/types";
+
+import StudentOwnerCell from "./student-owner-cell";
 
 interface StudentListProps {
   students: StudentListItem[];
-  evaluationByStudentId?: ReadonlyMap<string, string>;
+  ownerEditable?: boolean;
 }
 
 const stageColor = {
@@ -18,23 +20,23 @@ const stageColor = {
   "Nhập học": "success",
 } as const;
 
-const priorityColor = { Cao: "error", "Trung bình": "warning", Thấp: "gray" } as const;
+function getScoreTone(score: number): "success" | "warning" | "error" {
+  if (score >= 75) return "success";
+  if (score >= 60) return "warning";
+  return "error";
+}
 
 export const studentListGrid =
   "lg:grid-cols-[minmax(250px,1.35fr)_minmax(170px,0.9fr)_120px_130px_minmax(240px,1.2fr)]";
 
-export function getEvaluationContent(
-  recommendation: DirectorNbaRecommendation,
-): string | null {
-  if (recommendation.evaluation.disposition !== "RECOMMEND") return null;
-  return recommendation.explanation?.summary || recommendation.reason || null;
-}
+export default function StudentList({
+  students,
+  ownerEditable = false,
+}: StudentListProps) {
+  const [ownerOverrides, setOwnerOverrides] = useState<
+    Record<string, string>
+  >({});
 
-export function getEvaluationStudentKey(studentId: string): string {
-  return studentId.trim().toLowerCase();
-}
-
-export default function StudentList({ students, evaluationByStudentId }: StudentListProps) {
   if (students.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
@@ -47,12 +49,7 @@ export default function StudentList({ students, evaluationByStudentId }: Student
   return (
     <ul className="divide-y divide-card-border" aria-label="Danh sách học sinh">
       {students.map((student) => {
-        const activityInfo = [student.lastActivity, student.owner].filter(Boolean).join(" · ") || "-";
-        const priorityTone = priorityColor[student.priority] ?? "gray";
-        const evaluationContent = [student.id, student.code, student.name]
-          .map(getEvaluationStudentKey)
-          .map((key) => evaluationByStudentId?.get(key))
-          .find(Boolean) ?? "-";
+        const scoreTone = getScoreTone(student.score);
 
         return (
           <li key={student.id}>
@@ -93,23 +90,26 @@ export default function StudentList({ students, evaluationByStudentId }: Student
                 )}
               </div>
 
-              {/* Cột 4: Mức độ ưu tiên */}
+              {/* Cột 4: Điểm tiềm năng */}
               <div className="flex items-center justify-between gap-2 lg:justify-start">
-                <p className="text-xs text-text-tertiary lg:hidden">Mức độ ưu tiên</p>
-                <Badge color={priorityTone}>{student.priority || "Chưa xác định"}</Badge>
+                <p className="text-xs text-text-tertiary lg:hidden">Điểm tiềm năng</p>
+                <Badge color={scoreTone}>{student.score}</Badge>
               </div>
 
-              {/* Cột 5: Hành động tiếp theo */}
+              {/* Cột 5: Người phụ trách */}
               <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="mb-1 text-xs text-text-tertiary lg:hidden">Hành động tiếp theo</p>
-                  <p className="truncate text-sm font-medium text-text-primary" title={evaluationContent}>
-                    {evaluationContent}
-                  </p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-text-tertiary">
-                    <ClockThree size={12} aria-hidden="true" />
-                    {activityInfo}
-                  </p>
+                  <p className="mb-1 text-xs text-text-tertiary lg:hidden">Người phụ trách</p>
+                  <StudentOwnerCell
+                    owner={ownerOverrides[student.id] ?? student.owner}
+                    editable={ownerEditable}
+                    onChange={(next) =>
+                      setOwnerOverrides((prev) => ({
+                        ...prev,
+                        [student.id]: next,
+                      }))
+                    }
+                  />
                 </div>
                 <ArrowRight
                   size={15}

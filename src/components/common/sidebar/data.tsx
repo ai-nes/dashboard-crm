@@ -334,18 +334,18 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
   {
     label: "HỌC SINH & NGƯỜI HỌC",
     items: [
+      // navItem({
+      //   title: "Khám phá người học",
+      //   url: "/lead-sale/demographics",
+      //   icon: <AlphabetIcon />,
+      // }),
       navItem({
-        title: "Khám phá người học",
-        url: "/lead-sale/demographics",
-        icon: <AlphabetIcon />,
-      }),
-      navItem({
-        title: "Hồ sơ học sinh 360°",
+        title: "Danh sách học sinh",
         url: "/lead-sale/students",
         icon: <UserGroupIcon />,
       }),
       navItem({
-        title: "Trường THPT 360°",
+        title: "Danh sách trường",
         url: "/director/market-intelligence",
         icon: <Buildings11 size={18} />,
       }),
