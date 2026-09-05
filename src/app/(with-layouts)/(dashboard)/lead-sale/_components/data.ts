@@ -1,4 +1,18 @@
-export type LeadSaleTone = "primary" | "sky" | "warning" | "error" | "success" | "violet";
+import type {
+  LeadSaleIntervention,
+  LeadSaleKpi,
+  LeadSaleStudentStatusItem,
+  LeadSaleTeamMember,
+  LeadSaleTrendPoint,
+} from "@/services/api/lead-sale";
+
+export type LeadSaleTone =
+  | "primary"
+  | "sky"
+  | "warning"
+  | "error"
+  | "success"
+  | "violet";
 
 export interface LeadSaleStat {
   id: string;
@@ -8,50 +22,41 @@ export interface LeadSaleStat {
   tone: LeadSaleTone;
 }
 
-export const leadSaleStats: LeadSaleStat[] = [
-  {
-    id: "active",
+const statPresentation: Record<
+  LeadSaleKpi["id"],
+  Omit<LeadSaleStat, "id" | "value">
+> = {
+  active: {
     label: "Đang phụ trách",
-    value: 184,
     note: "học sinh đang theo dõi",
     tone: "primary",
   },
-  {
-    id: "new",
-    label: "Mới nhận",
-    value: 24,
-    note: "trong hôm nay",
-    tone: "sky",
-  },
-  {
-    id: "unassigned",
+  new: { label: "Mới nhận", note: "trong hôm nay", tone: "sky" },
+  unassigned: {
     label: "Chưa phân công",
-    value: 18,
     note: "cần điều phối",
     tone: "violet",
   },
-  {
-    id: "needs-action",
+  "needs-action": {
     label: "Cần xử lý",
-    value: 27,
     note: "đang chờ hành động",
     tone: "warning",
   },
-  {
-    id: "overdue",
-    label: "Quá hạn",
-    value: 6,
-    note: "cần hỗ trợ ngay",
-    tone: "error",
-  },
-  {
-    id: "documents",
+  overdue: { label: "Quá hạn", note: "cần hỗ trợ ngay", tone: "error" },
+  documents: {
     label: "Hồ sơ chờ",
-    value: 14,
     note: "thiếu giấy tờ hoặc xác nhận",
     tone: "success",
   },
-];
+};
+
+export function toLeadSaleStats(kpis: LeadSaleKpi[]): LeadSaleStat[] {
+  return kpis.map((kpi) => ({
+    id: kpi.id,
+    value: kpi.value,
+    ...statPresentation[kpi.id],
+  }));
+}
 
 export interface InterventionItem {
   id: string;
@@ -63,44 +68,49 @@ export interface InterventionItem {
   tone: "violet" | "warning" | "error" | "sky";
 }
 
-export const interventionItems: InterventionItem[] = [
-  {
-    id: "unassigned",
+const interventionPresentation: Record<
+  LeadSaleIntervention["id"],
+  Omit<InterventionItem, "id" | "value">
+> = {
+  unassigned: {
     label: "Chưa phân công",
-    value: 18,
     note: "Hồ sơ mới chưa có người phụ trách",
     action: "Điều phối",
     href: "/lead-sale/student-assignment",
     tone: "violet",
   },
-  {
-    id: "not-contacted",
+  "not-contacted": {
     label: "Chưa liên hệ sau 24 giờ",
-    value: 12,
     note: "Chưa ghi nhận lần liên hệ gần nhất",
     action: "Xem",
     href: "/lead-sale/students",
     tone: "warning",
   },
-  {
-    id: "at-risk",
+  "at-risk": {
     label: "Có nguy cơ mất liên hệ",
-    value: 8,
     note: "Không phản hồi hoặc giảm tương tác",
     action: "Xem",
     href: "/lead-sale/students",
     tone: "error",
   },
-  {
-    id: "blocked",
+  blocked: {
     label: "Hồ sơ đang bị kẹt",
-    value: 5,
     note: "Thiếu giấy tờ hoặc chờ xử lý",
     action: "Xử lý",
     href: "/lead-sale/tasks",
     tone: "sky",
   },
-];
+};
+
+export function toInterventionItems(
+  items: LeadSaleIntervention[],
+): InterventionItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    value: item.count,
+    ...interventionPresentation[item.id],
+  }));
+}
 
 export interface TeamPerformance {
   id: string;
@@ -112,52 +122,55 @@ export interface TeamPerformance {
   status: "Tốt" | "Cần hỗ trợ";
 }
 
-export const teamPerformance: TeamPerformance[] = [
-  {
-    id: "sales-01",
-    name: "Nguyễn Minh Anh",
-    initials: "MA",
-    activeStudents: 46,
-    consulted: 31,
-    admitted: 8,
-    status: "Tốt",
-  },
-  {
-    id: "sales-02",
-    name: "Trần Ngọc Mai",
-    initials: "NM",
-    activeStudents: 39,
-    consulted: 26,
-    admitted: 6,
-    status: "Tốt",
-  },
-  {
-    id: "sales-03",
-    name: "Lê Hoàng Nam",
-    initials: "HN",
-    activeStudents: 35,
-    consulted: 21,
-    admitted: 4,
-    status: "Cần hỗ trợ",
-  },
-  {
-    id: "sales-04",
-    name: "Phạm Gia Hân",
-    initials: "GH",
-    activeStudents: 31,
-    consulted: 19,
-    admitted: 3,
-    status: "Cần hỗ trợ",
-  },
-];
+function initials(value: string): string {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  return (
+    words
+      .slice(-2)
+      .map((word) => word[0]?.toUpperCase() ?? "")
+      .join("") || "–"
+  );
+}
 
-export const studentStatusData = [
-  { id: "consulting", label: "Đang tư vấn", value: 72, color: "var(--primary-500)" },
-  { id: "waiting", label: "Chờ phản hồi", value: 48, color: "var(--info-500)" },
-  { id: "documents", label: "Đang làm hồ sơ", value: 29, color: "var(--warning-500)" },
-  { id: "admission", label: "Chờ nhập học", value: 17, color: "var(--success-500)" },
-  { id: "new", label: "Mới nhận", value: 18, color: "var(--primary-200)" },
-];
+export function toTeamPerformance(
+  items: LeadSaleTeamMember[],
+): TeamPerformance[] {
+  return items.map((item) => ({
+    id: item.id,
+    name: item.displayName,
+    initials: initials(item.displayName),
+    activeStudents: item.activeStudents,
+    consulted: item.consulted,
+    admitted: item.admitted,
+    status: item.status === "on-track" ? "Tốt" : "Cần hỗ trợ",
+  }));
+}
+
+export interface StudentStatusDataItem {
+  id: LeadSaleStudentStatusItem["id"];
+  label: string;
+  value: number;
+  color: string;
+}
+
+const statusColors: Record<LeadSaleStudentStatusItem["id"], string> = {
+  consulting: "var(--primary-500)",
+  waiting: "var(--info-500)",
+  documents: "var(--warning-500)",
+  admission: "var(--success-500)",
+  new: "var(--primary-200)",
+};
+
+export function toStudentStatusData(
+  items: LeadSaleStudentStatusItem[],
+): StudentStatusDataItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    label: item.label,
+    value: item.count,
+    color: statusColors[item.id],
+  }));
+}
 
 export interface ResultTrendPoint {
   period: string;
@@ -165,16 +178,12 @@ export interface ResultTrendPoint {
   admitted: number;
 }
 
-export const resultTrendData: Record<"4w" | "3m", ResultTrendPoint[]> = {
-  "4w": [
-    { period: "Tuần 1", consulted: 68, admitted: 9 },
-    { period: "Tuần 2", consulted: 76, admitted: 12 },
-    { period: "Tuần 3", consulted: 83, admitted: 14 },
-    { period: "Tuần 4", consulted: 96, admitted: 18 },
-  ],
-  "3m": [
-    { period: "Tháng 1", consulted: 214, admitted: 42 },
-    { period: "Tháng 2", consulted: 246, admitted: 51 },
-    { period: "Tháng 3", consulted: 298, admitted: 63 },
-  ],
-};
+export function toResultTrendData(
+  points: LeadSaleTrendPoint[],
+): ResultTrendPoint[] {
+  return points.map((point) => ({
+    period: point.label,
+    consulted: point.consulted,
+    admitted: point.admitted,
+  }));
+}

@@ -2,12 +2,17 @@ import { ArrowRight } from "@tailgrids/icons";
 import Link from "next/link";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import type { SalePipelineStage } from "@/services/api/sale";
 
-import { funnelStages } from "./data";
+import { FUNNEL_STAGE_COLORS } from "./data";
 import FunnelStageTooltip from "./funnel-stage-tooltip";
 
-export default function FunnelOverview() {
-  const firstStage = funnelStages[0]?.value ?? 0;
+interface FunnelOverviewProps {
+  stages: SalePipelineStage[];
+}
+
+export default function FunnelOverview({ stages }: FunnelOverviewProps) {
+  const firstStage = stages[0]?.count ?? 0;
 
   return (
     <Card className="min-w-0 p-4 sm:p-5">
@@ -19,24 +24,25 @@ export default function FunnelOverview() {
       </CardHeader>
 
       <div className="mt-4 space-y-3.5" role="list" aria-label="Các bước phễu tuyển sinh">
-        {funnelStages.map((stage, index) => {
-          const previousValue = funnelStages[index - 1]?.value;
-          const conversionRate = previousValue ? Math.round((stage.value / previousValue) * 100) : null;
-          const width = `${(stage.value / firstStage) * 100}%`;
+        {stages.map((stage, index) => {
+          const previousValue = stages[index - 1]?.count;
+          const conversionRate = previousValue ? Math.round((stage.count / previousValue) * 100) : null;
+          const width = firstStage ? `${(stage.count / firstStage) * 100}%` : "0%";
+          const color = FUNNEL_STAGE_COLORS[stage.id];
 
           return (
             <div key={stage.id} role="listitem">
               <div className="relative min-h-8 sm:min-h-5">
                 <div className="flex items-center gap-2 text-xs font-medium text-text-secondary sm:absolute sm:inset-y-0 sm:left-0 sm:z-10 sm:max-w-[42%] sm:text-sm">
-                  <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: stage.color }} aria-hidden="true" />
+                  <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
                   <span className="truncate">{stage.label}</span>
                 </div>
                 <div className="mt-1.5 flex items-center justify-center sm:mt-0">
                   <div className="flex w-full max-w-[26rem] items-center justify-center sm:translate-x-4">
                     <FunnelStageTooltip
                       label={stage.label}
-                      value={stage.value}
-                      color={stage.color}
+                      value={stage.count}
+                      color={color}
                       conversionRate={conversionRate}
                       width={width}
                     />

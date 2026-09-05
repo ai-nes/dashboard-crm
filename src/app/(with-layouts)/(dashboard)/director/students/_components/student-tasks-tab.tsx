@@ -26,6 +26,7 @@ interface StudentTasksTabProps {
   onDeleteTask: (id: string) => void;
   assignees: SessionUser[];
   currentUserId?: string;
+  isSelfAssignmentOnly?: boolean;
   isLoadingAssignees?: boolean;
   isCreating?: boolean;
   isLoading?: boolean;
@@ -97,6 +98,7 @@ export default function StudentTasksTab({
   onDeleteTask,
   assignees,
   currentUserId,
+  isSelfAssignmentOnly = false,
   isLoadingAssignees = false,
   isCreating = false,
   isLoading = false,
@@ -219,6 +221,7 @@ export default function StudentTasksTab({
         assignee={assignee}
         assignees={assignees}
         currentUserId={currentUserId}
+        isSelfAssignmentOnly={isSelfAssignmentOnly}
         isLoadingAssignees={isLoadingAssignees}
         onCreate={handleCreateTask}
         isSubmitting={isCreating}

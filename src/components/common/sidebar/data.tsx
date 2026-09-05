@@ -222,6 +222,11 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
         url: "/ctv-sale/students",
         icon: <UserGroupIcon />,
       }),
+      navItem({
+        title: "Trường THPT 360°",
+        url: "/director/market-intelligence",
+        icon: <Buildings11 size={18} />,
+      }),
     ],
   },
   {
@@ -270,15 +275,20 @@ export const SALE_NAV_DATA: NavigationSection[] = [
   {
     label: "HỌC SINH & NGƯỜI HỌC",
     items: [
-      navItem({
-        title: "Khám phá người học",
-        url: "/sale/demographics",
-        icon: <AlphabetIcon />,
-      }),
+      // navItem({
+      //   title: "Khám phá người học",
+      //   url: "/sale/demographics",
+      //   icon: <AlphabetIcon />,
+      // }),
       navItem({
         title: "Hồ sơ học sinh 360°",
         url: "/sale/students",
         icon: <UserGroupIcon />,
+      }),
+      navItem({
+        title: "Trường THPT 360°",
+        url: "/director/market-intelligence",
+        icon: <Buildings11 size={18} />,
       }),
     ],
   },
@@ -333,6 +343,11 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         title: "Hồ sơ học sinh 360°",
         url: "/lead-sale/students",
         icon: <UserGroupIcon />,
+      }),
+      navItem({
+        title: "Trường THPT 360°",
+        url: "/director/market-intelligence",
+        icon: <Buildings11 size={18} />,
       }),
     ],
   },

@@ -2,7 +2,9 @@ import { CheckCircle1, FileTextMultiple, Message1, Target3, UserMultiple1 } from
 
 import { Card } from "@/components/tailgrids/core/card";
 
-import type { SaleDashboardTone, SaleStat } from "./data";
+import type { SaleKpi } from "@/services/api/sale";
+
+import { KPI_PRESENTATION, type SaleDashboardTone } from "./data";
 
 const statIcons = {
   primary: UserMultiple1,
@@ -21,12 +23,13 @@ const toneStyles: Record<SaleDashboardTone, { icon: string; value: string }> = {
 };
 
 interface StatCardProps {
-  stat: SaleStat;
+  stat: SaleKpi;
 }
 
 function StatCard({ stat }: StatCardProps) {
-  const Icon = statIcons[stat.tone];
-  const styles = toneStyles[stat.tone];
+  const presentation = KPI_PRESENTATION[stat.id];
+  const Icon = statIcons[presentation.tone];
+  const styles = toneStyles[presentation.tone];
 
   return (
     <Card className="relative min-w-0 overflow-hidden p-4 sm:p-5">
@@ -37,16 +40,16 @@ function StatCard({ stat }: StatCardProps) {
         <span className="text-[11px] font-medium text-text-tertiary">Hôm nay</span>
       </div>
       <div className="mt-4">
-        <p className="text-xs font-medium text-text-tertiary">{stat.label}</p>
+        <p className="text-xs font-medium text-text-tertiary">{presentation.label}</p>
         <p className={`mt-1 text-[28px] leading-8 font-semibold tracking-[-0.6px] ${styles.value}`}>{stat.value}</p>
-        <p className="mt-1 text-[11px] leading-4 text-text-secondary">{stat.note}</p>
+        <p className="mt-1 text-[11px] leading-4 text-text-secondary">{presentation.note}</p>
       </div>
     </Card>
   );
 }
 
 interface StatCardsProps {
-  stats: SaleStat[];
+  stats: SaleKpi[];
 }
 
 export default function StatCards({ stats }: StatCardsProps) {

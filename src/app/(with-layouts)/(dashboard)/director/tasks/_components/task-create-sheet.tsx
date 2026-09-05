@@ -163,10 +163,10 @@ export default function TaskCreateSheet({
               </SelectTrigger>
               <SelectContent>
                 {students.map((item) => (
-                  <SelectItem key={item.id} id={item.id} textValue={`${item.name} · ${item.code}`}>
+                  <SelectItem key={item.id} id={item.id} textValue={`${item.name} · ${item.major}`}>
                     <span className="flex min-w-0 flex-col">
                       <span className="font-medium text-text-primary">{item.name}</span>
-                      <span className="text-xs text-text-tertiary">{item.code} · {item.major}</span>
+                      <span className="text-xs text-text-tertiary">{item.major}</span>
                     </span>
                   </SelectItem>
                 ))}

@@ -3,7 +3,21 @@ import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 
-export default function LeadSaleHeader() {
+import type { LeadSaleOverviewMeta } from "@/services/api/lead-sale";
+
+export default function LeadSaleHeader({
+  meta,
+}: {
+  meta: LeadSaleOverviewMeta;
+}) {
+  const formattedDate = new Intl.DateTimeFormat("vi-VN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: meta.timezone,
+  }).format(new Date(`${meta.date}T12:00:00`));
+
   return (
     <header className="relative isolate overflow-hidden rounded-2xl border border-card-border bg-card-background px-5 py-5 shadow-xs sm:px-6 lg:px-7 lg:py-6">
       <div className="pointer-events-none absolute -top-24 -right-8 -z-10 size-72 rounded-full bg-primary-50/70 blur-3xl" />
@@ -15,14 +29,15 @@ export default function LeadSaleHeader() {
             <Badge color="primary">LEAD SALE · TỔNG QUAN</Badge>
             <span className="inline-flex items-center gap-1.5 text-xs text-text-tertiary">
               <CalendarTime size={14} aria-hidden="true" />
-              Thứ Bảy, 05/09/2026
+              {formattedDate}
             </span>
           </div>
           <h1 className="mt-4 text-balance text-[26px] leading-8 font-semibold tracking-[-0.5px] text-text-primary sm:text-[30px]">
-            Tổng quan đội ngũ Sale
+            Tổng quan đội ngũ Sale · {meta.team.name}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Theo dõi phân công, điểm cần can thiệp và kết quả của đội trong ngày.
+            Theo dõi phân công, điểm cần can thiệp và kết quả của đội trong
+            ngày.
           </p>
         </div>
 
@@ -39,7 +54,11 @@ export default function LeadSaleHeader() {
             className="group inline-flex items-center gap-2 rounded-lg border border-button-primary-outline-stroke bg-button-primary-outline-background px-3.5 py-2.5 text-sm font-semibold text-button-primary-outline-text transition-colors hover:bg-button-primary-outline-hover-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
           >
             Mở việc cần xử lý
-            <ArrowRight size={16} aria-hidden="true" className="transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight
+              size={16}
+              aria-hidden="true"
+              className="transition-transform group-hover:translate-x-0.5"
+            />
           </Link>
         </div>
       </div>

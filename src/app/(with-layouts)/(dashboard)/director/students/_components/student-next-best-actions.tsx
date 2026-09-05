@@ -291,21 +291,20 @@ export default function StudentNextBestActions({
         )}
 
         {!query.isLoading && !query.isError && actions.length === 0 && (
-          <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-card-border bg-background-soft-50 p-3 text-text-secondary">
-            <InfoTriangle
-              size={16}
-              className="mt-0.5 shrink-0 text-text-tertiary"
-              aria-hidden="true"
-            />
-            <div>
-              <p className="text-sm font-medium text-text-primary">
-                Chưa có hành động được đề xuất.
-              </p>
-              <p className="mt-1 text-xs leading-5">
-                Hệ thống sẽ cập nhật khi có tín hiệu mới hoặc một lần đánh giá
-                NBA hoàn tất.
-              </p>
-            </div>
+          <div
+            className="mt-8 flex flex-col items-center px-4 py-8 text-center"
+            role="status"
+          >
+            <span className="flex size-10 items-center justify-center rounded-full bg-background-gray-secondary text-text-tertiary">
+              <InfoTriangle size={18} aria-hidden="true" />
+            </span>
+            <p className="mt-4 text-sm font-semibold text-text-primary">
+              Chưa có hành động phù hợp lúc này
+            </p>
+            <p className="mt-1 max-w-md text-xs leading-5 text-text-secondary">
+              Hệ thống sẽ cập nhật khi có tín hiệu mới. Bạn cũng có thể chọn
+              “Gợi ý hành động” để chạy đánh giá NBA ngay.
+            </p>
           </div>
         )}
 

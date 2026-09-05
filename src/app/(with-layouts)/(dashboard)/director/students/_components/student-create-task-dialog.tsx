@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
@@ -38,6 +38,8 @@ import {
   Modal as AriaModal,
 } from "react-aria-components";
 
+import { filterAssigneesToCurrentUser } from "./student-task-assignee-policy";
+
 interface StudentCreateTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,6 +47,7 @@ interface StudentCreateTaskDialogProps {
   assignee: string;
   assignees: SessionUser[];
   currentUserId?: string;
+  isSelfAssignmentOnly?: boolean;
   isLoadingAssignees?: boolean;
   onCreate: (task: StudentTaskItem) => Promise<void>;
   isSubmitting?: boolean;
@@ -59,6 +62,7 @@ export default function StudentCreateTaskDialog({
   assignee,
   assignees,
   currentUserId,
+  isSelfAssignmentOnly = false,
   isLoadingAssignees = false,
   onCreate,
   isSubmitting = false,
@@ -71,9 +75,17 @@ export default function StudentCreateTaskDialog({
   const [assigneeId, setAssigneeId] = useState("");
   const [notes, setNotes] = useState("");
   const dueDateInputId = `${formId}-due-date`;
-  const selectedAssigneeId = assigneeId || currentUserId || "";
-  const selectedAssignee = assignees.find(
-    (user) => user.name === selectedAssigneeId,
+  const assignableAssignees = useMemo(() => {
+    if (!isSelfAssignmentOnly) return assignees;
+
+    return filterAssigneesToCurrentUser(assignees, [currentUserId]);
+  }, [assignees, currentUserId, isSelfAssignmentOnly]);
+  const selectedAssigneeId = isSelfAssignmentOnly
+    ? currentUserId || ""
+    : assigneeId || currentUserId || "";
+  const selectedAssignee = assignableAssignees.find(
+    (user) =>
+      user.name === selectedAssigneeId || user.email === selectedAssigneeId,
   );
 
   const isValid =
@@ -200,7 +212,11 @@ export default function StudentCreateTaskDialog({
                   isLoadingAssignees ? "Đang tải..." : "Chọn người phụ trách"
                 }
                 onChange={(key) => setAssigneeId(String(key))}
-                isDisabled={isLoadingAssignees || assignees.length === 0}
+                isDisabled={
+                  isSelfAssignmentOnly ||
+                  isLoadingAssignees ||
+                  assignableAssignees.length === 0
+                }
               >
                 <SelectLabel>Người phụ trách</SelectLabel>
                 <SelectTrigger className="w-full">
@@ -208,7 +224,7 @@ export default function StudentCreateTaskDialog({
                   <SelectIndicator />
                 </SelectTrigger>
                 <SelectContent className="max-h-56 min-w-[18rem]">
-                  {assignees.map((option) => (
+                  {assignableAssignees.map((option) => (
                     <SelectItem
                       key={option.name}
                       id={option.name}

@@ -5,8 +5,7 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/tailgrids/core/card";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { useCreateCrmTaskMutation } from "@/hooks/use-crm-tasks-queries";
-import { useDirectorStudentsQuery } from "@/hooks/use-students-queries";
-import { studentListData } from "@/services/api/students/data";
+import { useAssignedStudentsQuery } from "@/hooks/use-students-queries";
 import { taskManagementData } from "@/services/api/tasks/data";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 
@@ -45,19 +44,24 @@ function isUpcoming(task: TaskManagementItem, now = new Date()): boolean {
 const priorityRank: Record<TaskManagementItem["priority"], number> = { Cao: 0, "Trung bình": 1, Thấp: 2 };
 
 export default function TaskManagementPage({ useCrmApi = false }: TaskManagementPageProps) {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const createTaskMutation = useCreateCrmTaskMutation();
   const currentUserId = user?.user || user?.email;
-  const studentsQuery = useDirectorStudentsQuery(
+  const isCtvSaleUser = Boolean(
+    user?.roles.includes("CTV Sale") ||
+      user?.crm_role === "CTV Sale" ||
+      user?.crm_profile === "ctv_sale",
+  );
+  const shouldUseCrmApi = useCrmApi || isCtvSaleUser;
+  const studentsQuery = useAssignedStudentsQuery(
     {
       admissionYear: 2026,
       page: 1,
       pageSize: 100,
-      sort: "name",
-      order: "asc",
     },
+    currentUserId,
     {
-      enabled: useCrmApi,
+      enabled: !isAuthLoading,
       staleTime: 5 * 60 * 1000,
     },
   );
@@ -104,7 +108,7 @@ export default function TaskManagementPage({ useCrmApi = false }: TaskManagement
   };
 
   const handleCreateTask = async (task: TaskManagementItem) => {
-    if (useCrmApi) {
+    if (shouldUseCrmApi) {
       const createdTask = await createTaskMutation.mutateAsync(
         studentTaskToCreatePayload(task, task.studentId, currentUserId),
       );
@@ -184,13 +188,13 @@ export default function TaskManagementPage({ useCrmApi = false }: TaskManagement
       <TaskCreateSheet
         isOpen={sheetOpen}
         onOpenChange={setSheetOpen}
-        students={useCrmApi ? (studentsQuery.data?.data ?? []) : studentListData}
-        isLoadingStudents={useCrmApi && studentsQuery.isPending}
-        studentsError={useCrmApi ? studentsQuery.error : null}
-        assigneeId={useCrmApi ? currentUserId : undefined}
-        assigneeName={useCrmApi ? user?.full_name : undefined}
-        requireAssignee={useCrmApi}
-        isSubmitting={useCrmApi && createTaskMutation.isPending}
+        students={studentsQuery.data?.data ?? []}
+        isLoadingStudents={isAuthLoading || (Boolean(currentUserId) && studentsQuery.isPending)}
+        studentsError={studentsQuery.error}
+        assigneeId={shouldUseCrmApi ? currentUserId : undefined}
+        assigneeName={shouldUseCrmApi ? user?.full_name : undefined}
+        requireAssignee={shouldUseCrmApi}
+        isSubmitting={shouldUseCrmApi && createTaskMutation.isPending}
         onCreate={handleCreateTask}
       />
     </main>

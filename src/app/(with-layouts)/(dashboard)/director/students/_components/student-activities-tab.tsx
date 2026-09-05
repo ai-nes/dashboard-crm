@@ -43,6 +43,10 @@ import {
   studentTaskToCreatePayload,
   studentTaskToUpdatePayload,
 } from "./student-task-mappers";
+import {
+  filterAssigneesToCurrentUser,
+  isCtvSaleUser,
+} from "./student-task-assignee-policy";
 import StudentZaloTab from "./student-zalo-tab";
 import type {
   Student360SectionProps,
@@ -98,6 +102,7 @@ export default function StudentActivitiesTab({
   const [activeTab, setActiveTab] = useState(initialTaskId ? "tasks" : "all");
   const assignedTo = data.student.counselor || "Chưa phân công";
   const currentUserId = user?.user || user?.email;
+  const isSelfAssignmentOnly = isCtvSaleUser(user);
   const taskAssignees = useMemo(() => {
     const currentSessionUser = user
       ? {
@@ -117,6 +122,14 @@ export default function StudentActivitiesTab({
         allUsers.findIndex((item) => item.name === candidate.name) === index,
     );
   }, [taskAssigneesQuery.data, user]);
+  const assignableTaskAssignees = useMemo(() => {
+    if (!isSelfAssignmentOnly) return taskAssignees;
+
+    return filterAssigneesToCurrentUser(taskAssignees, [
+      user?.user,
+      user?.email,
+    ]);
+  }, [isSelfAssignmentOnly, taskAssignees, user?.email, user?.user]);
   const currentUserIdentifiers = useMemo(
     () =>
       [user?.user, user?.email]
@@ -324,17 +337,31 @@ export default function StudentActivitiesTab({
   };
 
   const handleCreateTask = async (task: StudentTaskItem) => {
+    const enforcedAssigneeId = isSelfAssignmentOnly
+      ? currentUserId
+      : task.assigneeId;
+    const taskToCreate = isSelfAssignmentOnly
+      ? {
+          ...task,
+          assigneeId: enforcedAssigneeId,
+          assignee: user?.full_name || task.assignee,
+        }
+      : task;
     const optimisticId = generateId("task");
     const optimisticTask = {
-      ...task,
+      ...taskToCreate,
       id: optimisticId,
-      assignee: task.assignee || assignedTo,
+      assignee: taskToCreate.assignee || assignedTo,
     };
     setCreatedTasks((prev) => [optimisticTask, ...prev]);
 
     try {
       const createdTask = await createTaskMutation.mutateAsync(
-        studentTaskToCreatePayload(task, studentDocname, task.assigneeId),
+        studentTaskToCreatePayload(
+          taskToCreate,
+          studentDocname,
+          enforcedAssigneeId,
+        ),
       );
       const serverTask = crmTaskToStudentTask(
         createdTask,
@@ -461,8 +488,9 @@ export default function StudentActivitiesTab({
           onCreateTask={handleCreateTask}
           onUpdateTask={handleUpdateTask}
           onDeleteTask={handleRequestDeleteTask}
-          assignees={taskAssignees}
+          assignees={assignableTaskAssignees}
           currentUserId={currentUserId}
+          isSelfAssignmentOnly={isSelfAssignmentOnly}
           isLoadingAssignees={taskAssigneesQuery.isPending}
           isCreating={createTaskMutation.isPending}
           isLoading={crmTasksQuery.isPending}

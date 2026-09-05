@@ -6,15 +6,21 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import { Select, SelectContent, SelectIndicator, SelectItem, SelectTrigger, SelectValue } from "@/components/tailgrids/core/select";
+import type { SaleConversionTrend, SaleTrendRange } from "@/services/api/sale";
 
-import { conversionTrendData } from "./data";
 import ConversionTrendTooltip from "./conversion-trend-tooltip";
 
-type TrendRange = "4w" | "12w";
+interface ConversionTrendChartProps {
+  data: SaleConversionTrend;
+}
 
-export default function ConversionTrendChart() {
-  const [range, setRange] = useState<TrendRange>("4w");
-  const chartData = conversionTrendData[range];
+export default function ConversionTrendChart({ data }: ConversionTrendChartProps) {
+  const [range, setRange] = useState<SaleTrendRange>(data.defaultRange);
+  const chartData = data.ranges[range].points.map((point) => ({
+    period: point.label,
+    consulted: point.consulted,
+    admitted: point.admitted,
+  }));
 
   return (
     <Card className="min-w-0 p-5 sm:p-6">
@@ -25,7 +31,7 @@ export default function ConversionTrendChart() {
         </div>
         <Select
           value={range}
-          onChange={(value) => setRange(value as TrendRange)}
+          onChange={(value) => setRange(value as SaleTrendRange)}
           className="w-fit shrink-0"
           aria-label="Khoảng thời gian biểu đồ xu hướng chuyển đổi"
         >

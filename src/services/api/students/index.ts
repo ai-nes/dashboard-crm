@@ -624,7 +624,7 @@ export function computeDirectorStudents(params?: DirectorStudentsParams): Direct
 
 export async function getDirectorStudents(
   params?: DirectorStudentsParams,
-  options: { baseUrl?: string } = {},
+  options: { baseUrl?: string; sessionRequired?: boolean } = {},
 ): Promise<DirectorStudentsResponse> {
   const searchParams = new URLSearchParams();
   if (params?.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
@@ -640,6 +640,14 @@ export async function getDirectorStudents(
   const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
 
   if (!frappeBase) {
+    if (options.sessionRequired) {
+      throw new DirectorStudentsApiError(
+        503,
+        "STUDENTS_SESSION_API_UNAVAILABLE",
+        "Không thể tải danh sách học sinh theo session.",
+      );
+    }
+
     return computeDirectorStudents(params);
   }
 

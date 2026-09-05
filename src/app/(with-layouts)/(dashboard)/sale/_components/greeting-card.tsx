@@ -2,8 +2,16 @@ import { ArrowRight, CalendarTime, CheckCircle1 } from "@tailgrids/icons";
 import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
+import type { SaleOverviewMeta } from "@/services/api/sale";
 
-export default function GreetingCard() {
+import { formatReportDate } from "./formatters";
+
+interface GreetingCardProps {
+  meta: SaleOverviewMeta;
+  todayTaskCount: number;
+}
+
+export default function GreetingCard({ meta, todayTaskCount }: GreetingCardProps) {
   return (
     <header className="relative isolate overflow-hidden rounded-2xl border border-card-border bg-card-background px-5 py-5 shadow-xs sm:px-6 lg:px-7 lg:py-6">
       <div className="pointer-events-none absolute -top-24 -right-8 -z-10 size-72 rounded-full bg-primary-50/80 blur-3xl" />
@@ -17,14 +25,14 @@ export default function GreetingCard() {
             </Badge>
             <span className="inline-flex items-center gap-1.5 text-xs text-text-tertiary">
               <CalendarTime size={14} aria-hidden="true" />
-              Thứ Bảy, 05/09/2026
+              {formatReportDate(meta.date, meta.timezone)}
             </span>
           </div>
           <h1 className="mt-4 text-balance text-[26px] leading-8 font-semibold tracking-[-0.5px] text-text-primary sm:text-[30px]">
-            Chào buổi sáng, Nguyễn Văn A
+            Chào buổi sáng, {meta.viewer.displayName}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Bạn có <span className="font-semibold text-primary-600">10 việc</span> cần xử lý hôm nay.
+            Bạn có <span className="font-semibold text-primary-600">{todayTaskCount} việc</span> cần xử lý hôm nay.
             Ưu tiên các task quá hạn và hồ sơ đang chờ bổ sung giấy tờ.
           </p>
         </div>

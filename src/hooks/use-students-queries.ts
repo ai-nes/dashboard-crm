@@ -16,6 +16,8 @@ import type {
 export const studentsKeys = {
   all: ["students"] as const,
   directorStudents: (params?: DirectorStudentsParams) => ["director-students", params] as const,
+  assignedStudents: (params?: DirectorStudentsParams, sessionUser?: string | null) =>
+    ["assigned-students", sessionUser ?? "anonymous", params] as const,
   student360: (studentId: string) => ["student-360", studentId] as const,
   studentChatwootInteractions: (studentId: string) => ["student-chatwoot-interactions", studentId] as const,
 };
@@ -39,6 +41,25 @@ export function useStudent360Query<TData = Student360Data | null>(
     queryKey: studentsKeys.student360(studentId),
     queryFn: () => getStudent360(studentId),
     ...options,
+  });
+}
+
+/**
+ * Loads the students visible to the authenticated Frappe user.
+ * The user id is only a cache scope; the backend derives ownership from the session cookie.
+ */
+export function useAssignedStudentsQuery(
+  params: DirectorStudentsParams | undefined,
+  sessionUser: string | null | undefined,
+  options?: Omit<UseQueryOptions<DirectorStudentsResponse, Error>, "queryKey" | "queryFn">,
+): UseQueryResult<DirectorStudentsResponse, Error> {
+  const { enabled = true, ...queryOptions } = options ?? {};
+
+  return useQuery({
+    ...queryOptions,
+    queryKey: studentsKeys.assignedStudents(params, sessionUser),
+    queryFn: () => getDirectorStudents(params, { sessionRequired: true }),
+    enabled: Boolean(sessionUser) && enabled,
   });
 }
 

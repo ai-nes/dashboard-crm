@@ -10,7 +10,10 @@ import {
   getStudentInteractions,
 } from "./index";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 describe("director students API contract", () => {
   it("computes full students list when offline", async () => {
@@ -19,6 +22,35 @@ describe("director students API contract", () => {
     expect(result.data.length).toBeGreaterThan(0);
     expect(result.summary.trackedStudents).toBeGreaterThan(0);
     expect(result.meta.page).toBe(1);
+  });
+
+  it("does not fall back to fixture data for a session-scoped list", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "");
+
+    await expect(
+      getDirectorStudents({ admissionYear: 2026 }, { sessionRequired: true }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<DirectorStudentsApiError>>({
+        status: 503,
+        code: "STUDENTS_SESSION_API_UNAVAILABLE",
+      }),
+    );
+  });
+
+  it("sends browser credentials for a session-scoped list", async () => {
+    vi.stubGlobal("window", {});
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
+    const mockData = computeDirectorStudents({ admissionYear: 2026 });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockData }), { status: 200 }),
+    );
+
+    await getDirectorStudents({ admissionYear: 2026 }, { sessionRequired: true });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_director_students?admissionYear=2026",
+      expect.objectContaining({ credentials: "include", cache: "no-store" }),
+    );
   });
 
   it("calls Frappe students endpoint with query parameters and parses envelope", async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Diamonds1, RefreshCircle1Clockwise } from "@tailgrids/icons";
+import { RefreshCircle1Clockwise } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { cn } from "@/utils/cn";
 
@@ -29,10 +29,14 @@ export default function StudentAICardHeader({
           {rightAction}
           <Badge
             color="primary"
+            prefixIcon={
+              <span className="text-xs leading-none" aria-hidden="true">
+                ✦
+              </span>
+            }
             size="sm"
             className="inline-flex items-center gap-1 font-semibold tracking-wide"
           >
-            <Diamonds1 size={12} aria-hidden="true" />
             AI
           </Badge>
         </div>

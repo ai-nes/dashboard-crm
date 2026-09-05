@@ -4,7 +4,8 @@ import TaskManagementPage from "@/app/(with-layouts)/(dashboard)/director/tasks/
 
 export const metadata: Metadata = {
   title: "Quản lý task",
-  description: "Theo dõi task từ nhiều hồ sơ học sinh và mở nhanh đúng hồ sơ liên quan.",
+  description:
+    "Theo dõi task từ nhiều hồ sơ học sinh và mở nhanh đúng hồ sơ liên quan.",
 };
 
 export default function CtvSaleTasksPage() {

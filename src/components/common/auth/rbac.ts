@@ -55,6 +55,7 @@ const OVERVIEW_ACTION_ROLES = [
 
 const SCHOOL_INTELLIGENCE_ROLES = [
   "Sale",
+  "CTV Sale",
   "Lead Sales",
   "Promoter",
   "Lead Promoter",
