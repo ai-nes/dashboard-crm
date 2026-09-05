@@ -332,7 +332,11 @@ export async function getStudent360(
   const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
 
   if (!frappeBase) {
-    return computeStudent360(studentId);
+    throw new DirectorStudentsApiError(
+      503,
+      "STUDENT_API_UNAVAILABLE",
+      "Không thể tải hồ sơ học sinh vì chưa cấu hình Frappe CRM API.",
+    );
   }
 
   const url = `${frappeBase}/api/method/crm.api.director_students.get_director_student?student_id=${encodeURIComponent(studentId)}`;
@@ -641,15 +645,15 @@ export async function getDirectorStudents(
   const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
 
   if (!frappeBase) {
-    if (options.sessionRequired) {
-      throw new DirectorStudentsApiError(
-        503,
-        "STUDENTS_SESSION_API_UNAVAILABLE",
-        "Không thể tải danh sách học sinh theo session.",
-      );
-    }
-
-    return computeDirectorStudents(params);
+    throw new DirectorStudentsApiError(
+      503,
+      options.sessionRequired
+        ? "STUDENTS_SESSION_API_UNAVAILABLE"
+        : "STUDENTS_API_UNAVAILABLE",
+      options.sessionRequired
+        ? "Không thể tải danh sách học sinh theo session."
+        : "Không thể tải danh sách học sinh vì chưa cấu hình Frappe CRM API.",
+    );
   }
 
   const url = `${frappeBase}/api/method/crm.api.director_students.get_director_students${queryStr ? `?${queryStr}` : ""}`;

@@ -12,6 +12,8 @@ export interface CurrentUser {
   /** Human-readable CRM role label. */
   crm_role: string | null;
   crm_capabilities: string[];
+  /** Session-bound token required by Frappe for authenticated write requests. */
+  csrf_token: string | null;
 }
 
 export interface SessionUser {

@@ -4,27 +4,59 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { formatDateTime } from "@/utils/format-date";
 
-import { touchpoints } from "./student-tab-data";
 import type { Student360SectionProps } from "./types";
 
 export default function StudentEngagementTab({ data }: Student360SectionProps) {
+  const touchpoints = data.journey.map((event) => ({
+    ...event,
+    detail: event.description,
+    tone:
+      event.status === "completed"
+        ? ("success" as const)
+        : event.status === "current"
+          ? ("primary" as const)
+          : ("warning" as const),
+  }));
+  const totalTouches = data.channelPerformance?.reduce(
+    (total, channel) => total + channel.touches,
+    0,
+  );
+  const activeDays = data.engagement.find((item) =>
+    /ngày/i.test(item.label),
+  )?.value;
+  const mostEffectiveChannel = [...(data.channelPerformance ?? [])].sort(
+    (left, right) => right.touches - left.touches,
+  )[0];
+
   return (
     <div className="space-y-5">
       <section className="grid items-stretch gap-4 sm:grid-cols-3">
         <Card className="h-full border-info-500/20 bg-badge-sky-background p-4">
           <p className="text-xs text-badge-sky-text">Tổng điểm chạm</p>
-          <p className="mt-2 text-3xl font-semibold tracking-[-0.6px] text-info-500">18</p>
-          <p className="mt-1 text-xs text-text-secondary">trong 30 ngày</p>
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.6px] text-info-500">
+            {totalTouches ?? "—"}
+          </p>
+          <p className="mt-1 text-xs text-text-secondary">Theo dữ liệu API</p>
         </Card>
         <Card className="h-full border-success-500/20 bg-badge-success-background p-4">
           <p className="text-xs text-badge-success-text">Ngày hoạt động</p>
-          <p className="mt-2 text-3xl font-semibold tracking-[-0.6px] text-success-500">9/30</p>
-          <p className="mt-1 flex items-center gap-1 text-xs text-success-500"><ArrowUpward size={11} />+2 ngày so với tuần trước</p>
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.6px] text-success-500">
+            {activeDays ?? "—"}
+          </p>
+          <p className="mt-1 flex items-center gap-1 text-xs text-success-500">
+            <ArrowUpward size={11} /> Theo dữ liệu API
+          </p>
         </Card>
         <Card className="h-full border-primary-200 bg-badge-primary-background p-4">
           <p className="text-xs text-badge-primary-text">Kênh hiệu quả nhất</p>
-          <p className="mt-2 text-xl font-semibold text-text-primary">Cuộc gọi</p>
-          <p className="mt-2 text-xs text-text-secondary">Tỷ lệ phản hồi 100%</p>
+          <p className="mt-2 text-xl font-semibold text-text-primary">
+            {mostEffectiveChannel?.channel ?? "Chưa có dữ liệu"}
+          </p>
+          <p className="mt-2 text-xs text-text-secondary">
+            {mostEffectiveChannel
+              ? `Tỷ lệ phản hồi ${mostEffectiveChannel.response}%`
+              : "Chưa có dữ liệu từ API"}
+          </p>
         </Card>
       </section>
 

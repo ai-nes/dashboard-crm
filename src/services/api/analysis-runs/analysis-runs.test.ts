@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getAnalysisRun, normalizeAnalysisRun, requestAnalysisRun } from "./index";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe("analysis run API contract", () => {
   it("renders Frappe visible claims from its compact wire schema", () => {

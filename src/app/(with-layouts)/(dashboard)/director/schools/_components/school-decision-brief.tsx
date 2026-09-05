@@ -1,7 +1,9 @@
-import { ClockThree, Target3, TrendUp2 } from "@tailgrids/icons";
+import { ClockThree, MapMarker5, Target3, TrendUp2 } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { SchoolIntelligenceData } from "@/services/api/schools/types";
+
+import { getSchoolLocalityContext } from "./school-locality-data";
 
 interface SchoolDecisionBriefProps {
   data: SchoolIntelligenceData;
@@ -20,7 +22,17 @@ interface DecisionState {
 export default function SchoolDecisionBrief({
   data,
 }: SchoolDecisionBriefProps) {
-  const decision = getDecisionState(data);
+  const locality = getSchoolLocalityContext(
+    data.school,
+    data.locality?.latitude !== null &&
+      data.locality?.latitude !== undefined &&
+      data.locality?.longitude !== null &&
+      data.locality?.longitude !== undefined
+      ? [data.locality.latitude, data.locality.longitude]
+      : undefined,
+    data.locality,
+  );
+  const decision = getDecisionState(data, locality.distanceKm);
   const availableStudents =
     data.availableStudents > 0
       ? `${data.availableStudents.toLocaleString("vi-VN")} HS có thể tiếp cận`
@@ -32,9 +44,16 @@ export default function SchoolDecisionBrief({
 
   return (
     <section
-      className="grid divide-y divide-card-border border-t border-card-border sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+      className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
       aria-label="Tóm tắt điều hành"
     >
+      <BriefItem
+        icon={<MapMarker5 size={16} />}
+        label="Địa bàn"
+        value={`${data.school.district}, ${data.school.province}`}
+        detail={`${locality.distanceKm} km đến campus · ${locality.travelTime}`}
+        tone="gray"
+      />
       <BriefItem
         icon={<TrendUp2 size={16} />}
         label="Cơ hội tuyển sinh"
@@ -88,14 +107,14 @@ function BriefItem({
   return (
     <div
       className={
-        "min-w-0 px-3 py-2.5 " +
+        "min-w-0 rounded-xl border border-card-border p-3 " +
         (emphasized ? "bg-background-soft-50" : "bg-card-background")
       }
     >
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex items-center gap-2">
         <span
           className={
-            "flex size-6 shrink-0 items-center justify-center rounded-md " +
+            "flex size-7 shrink-0 items-center justify-center rounded-lg " +
             accentClass
           }
           aria-hidden="true"
@@ -110,19 +129,25 @@ function BriefItem({
         )}
       </div>
       <p
-        className="mt-1 truncate text-sm font-semibold leading-5 text-text-primary"
+        className="mt-2 truncate text-sm font-semibold leading-5 text-text-primary"
         title={value}
       >
         {value}
       </p>
-      <p className="sr-only" title={detail}>
+      <p
+        className="mt-1 truncate text-xs leading-5 text-text-secondary"
+        title={detail}
+      >
         {detail}
       </p>
     </div>
   );
 }
 
-function getDecisionState(data: SchoolIntelligenceData): DecisionState {
+function getDecisionState(
+  data: SchoolIntelligenceData,
+  distanceKm: number,
+): DecisionState {
   const noContact =
     !data.relationship.contact ||
     ["-", "Chưa có đầu mối chính"].includes(data.relationship.contact);
@@ -156,6 +181,16 @@ function getDecisionState(data: SchoolIntelligenceData): DecisionState {
       action: "Tăng một hoạt động tại trường",
       actionDetail: "Ưu tiên Career Talk hoặc tư vấn nhóm khối 12",
       tone: "warning",
+    };
+  }
+
+  if (distanceKm >= 70) {
+    return {
+      issue: "Khoảng cách đến campus xa",
+      issueDetail: `Di chuyển mất ${data.geography.travelTime}; học sinh cần thêm lý do để đi trải nghiệm.`,
+      action: "Chốt campus tour theo nhóm",
+      actionDetail: "Kết hợp tư vấn online và thông tin học bổng, lưu trú",
+      tone: "primary",
     };
   }
 

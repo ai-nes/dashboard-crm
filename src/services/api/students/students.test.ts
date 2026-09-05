@@ -16,12 +16,15 @@ afterEach(() => {
 });
 
 describe("director students API contract", () => {
-  it("computes full students list when offline", async () => {
-    const result = await getDirectorStudents({ admissionYear: 2026, page: 1, pageSize: 20 });
-
-    expect(result.data.length).toBeGreaterThan(0);
-    expect(result.summary.trackedStudents).toBeGreaterThan(0);
-    expect(result.meta.page).toBe(1);
+  it("does not display fixture data when the API is unavailable", async () => {
+    await expect(
+      getDirectorStudents({ admissionYear: 2026, page: 1, pageSize: 20 }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<DirectorStudentsApiError>>({
+        status: 503,
+        code: "STUDENTS_API_UNAVAILABLE",
+      }),
+    );
   });
 
   it("does not fall back to fixture data for a session-scoped list", async () => {

@@ -229,7 +229,9 @@ export default function StudentActivitiesTab({
     return [...pendingCreatedTasks, ...visibleServerTasks];
   }, [createdTasks, deletedTaskIds, serverTasks, taskOverrides]);
   const zaloMessages =
-    chatwootInteractionsQuery.data?.zalo_messages ?? data.zaloMessages ?? [];
+    chatwootInteractionsQuery.data?.zalo_messages ??
+    data.zaloMessages ??
+    [];
   const calls = data.calls ?? [];
   const auditEvents = studentAuditQuery.data?.logs ?? EMPTY_AUDIT_LOGS;
 
