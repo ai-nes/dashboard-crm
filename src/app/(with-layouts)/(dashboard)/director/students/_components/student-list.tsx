@@ -1,4 +1,4 @@
-import { ArrowRight, MapMarker5 } from "@tailgrids/icons";
+import { MapMarker5 } from "@tailgrids/icons";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -27,7 +27,7 @@ function getScoreTone(score: number): "success" | "warning" | "error" {
 }
 
 export const studentListGrid =
-  "lg:grid-cols-[minmax(250px,1.35fr)_minmax(170px,0.9fr)_120px_130px_minmax(240px,1.2fr)]";
+  "lg:grid-cols-[minmax(250px,1.35fr)_minmax(170px,0.9fr)_120px_130px_minmax(200px,1.2fr)_110px]";
 
 export default function StudentList({
   students,
@@ -53,17 +53,14 @@ export default function StudentList({
 
         return (
           <li key={student.id}>
-            <Link
-              href={`/director/students/${student.id}`}
-              className={`group grid gap-4 px-4 py-4 transition hover:bg-background-soft-50 focus-visible:bg-background-soft-50 focus-visible:outline-none ${studentListGrid} lg:items-center lg:px-5`}
-            >
+            <div className={`grid gap-4 px-4 py-4 ${studentListGrid} lg:items-center lg:px-5`}>
               {/* Cột 1: Họ tên · THPT · Quê quán */}
               <div className="flex min-w-0 items-start gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-sm font-semibold text-badge-primary-text">
                   {student.initials || "HS"}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-text-primary group-hover:text-primary-500">{student.name || "-"}</p>
+                  <p className="truncate font-semibold text-text-primary">{student.name || "-"}</p>
                   <p className="mt-1 truncate text-xs text-text-tertiary">{student.school || "-"}</p>
                   <p className="mt-1 flex items-center gap-1 text-xs text-text-secondary">
                     <MapMarker5 size={13} className="shrink-0 text-icon-tertiary" aria-hidden="true" />
@@ -97,27 +94,34 @@ export default function StudentList({
               </div>
 
               {/* Cột 5: Người phụ trách */}
-              <div className="flex min-w-0 items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="mb-1 text-xs text-text-tertiary lg:hidden">Người phụ trách</p>
-                  <StudentOwnerCell
-                    owner={ownerOverrides[student.id] ?? student.owner}
-                    editable={ownerEditable}
-                    onChange={(next) =>
-                      setOwnerOverrides((prev) => ({
-                        ...prev,
-                        [student.id]: next,
-                      }))
-                    }
-                  />
-                </div>
-                <ArrowRight
-                  size={15}
-                  className="mt-0.5 shrink-0 text-button-primary-outline-text transition group-hover:translate-x-0.5 group-hover:text-button-primary-outline-hover-text"
-                  aria-hidden="true"
+              <div className="min-w-0">
+                <p className="mb-1 text-xs text-text-tertiary lg:hidden">Người phụ trách</p>
+                <StudentOwnerCell
+                  studentId={student.id}
+                  expectedRevision={student.revision}
+                  owner={ownerOverrides[student.id] ?? student.owner}
+                  editable={ownerEditable}
+                  onChange={(next) =>
+                    setOwnerOverrides((prev) => ({
+                      ...prev,
+                      [student.id]: next,
+                    }))
+                  }
                 />
               </div>
-            </Link>
+
+              {/* Cột 6: Thao tác */}
+              <div className="flex items-center justify-between gap-2 lg:justify-center">
+                <p className="text-xs text-text-tertiary lg:hidden">Thao tác</p>
+                <Link
+                  href={`/director/students/${student.id}`}
+                  aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
+                  className="text-xs font-medium text-warning-500 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+                >
+                  Chi tiết
+                </Link>
+              </div>
+            </div>
           </li>
         );
       })}

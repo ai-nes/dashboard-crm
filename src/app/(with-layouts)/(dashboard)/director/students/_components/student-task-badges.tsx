@@ -34,13 +34,15 @@ const priorityDotClass: Record<StudentTaskItem["priority"], string> = {
 
 export function StudentTaskStatusBadge({
   status,
+  size = "md",
 }: {
   status: StudentTaskItem["status"];
+  size?: "sm" | "md";
 }) {
   return (
     <Badge
       color={taskStatusColor[status]}
-      size="md"
+      size={size}
       className="whitespace-nowrap font-semibold"
     >
       {taskStatusLabel[status]}
@@ -49,13 +51,21 @@ export function StudentTaskStatusBadge({
 }
 export function StudentTaskPriority({
   priority,
+  size = "md",
 }: {
   priority: StudentTaskItem["priority"];
+  size?: "sm" | "md";
 }) {
   return (
-    <span className="inline-flex items-center gap-2 whitespace-nowrap text-base font-semibold text-text-primary">
+    <span
+      className={`inline-flex items-center whitespace-nowrap font-semibold text-text-primary ${
+        size === "sm" ? "gap-1.5 text-sm" : "gap-2 text-base"
+      }`}
+    >
       <span
-        className={`size-2.5 shrink-0 rounded-full ${priorityDotClass[priority]}`}
+        className={`shrink-0 rounded-full ${
+          size === "sm" ? "size-2" : "size-2.5"
+        } ${priorityDotClass[priority]}`}
         aria-hidden="true"
       />
       {priority}

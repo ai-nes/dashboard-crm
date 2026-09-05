@@ -9,7 +9,6 @@ import type {
   AnalysisReportItem,
   AnalysisRecentChange,
 } from "@/services/api/analysis-runs";
-import { cn } from "@/utils/cn";
 
 import { formatAnalysisLevel, formatClaimConfidence } from "./analysis-run-meta";
 
@@ -51,7 +50,7 @@ export default function AnalysisRichReport({
         </h2>
       </div>
 
-      <div className="rounded-xl border border-primary-200 bg-badge-primary-background p-4 dark:border-primary-800">
+      <div className="rounded-xl border border-card-border bg-background-soft-50 p-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-text-primary">
           <Sparkle size={16} className="text-primary-500" aria-hidden="true" />
           Tóm tắt
@@ -93,7 +92,7 @@ function AdvisorySection({ items }: { items: AnalysisAdvisorySignal[] }) {
 
   return (
     <section
-      className="rounded-xl border border-primary-200 bg-primary-50/40 p-4 dark:border-primary-800 dark:bg-primary-950/20"
+      className="rounded-xl border border-card-border bg-background-soft-50 p-4"
       aria-label="Tín hiệu tư vấn"
     >
       <div className="flex items-center justify-between gap-3">
@@ -150,14 +149,6 @@ function ReportSection({
   items: AnalysisReportItem[];
   emptyText: string;
 }) {
-  const toneStyles = {
-    primary:
-      "border-primary-200 bg-primary-50/60 dark:border-primary-800 dark:bg-primary-950/20",
-    warning:
-      "border-warning-200 bg-warning-50/70 dark:border-warning-800 dark:bg-warning-950/20",
-    success:
-      "border-success-200 bg-badge-success-background dark:border-success-800",
-  }[tone];
   const badgeColor = {
     primary: "primary",
     warning: "warning",
@@ -165,7 +156,10 @@ function ReportSection({
   }[tone] as "primary" | "warning" | "success";
 
   return (
-    <section className={cn("rounded-xl border p-4", toneStyles)} aria-label={title}>
+    <section
+      className="rounded-xl border border-card-border bg-background-soft-50 p-4"
+      aria-label={title}
+    >
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-base font-semibold text-text-primary">{title}</h3>
         <Badge color={badgeColor} size="sm">
@@ -193,7 +187,7 @@ function ReportSection({
 function MissingEvidenceSection({ items }: { items: string[] }) {
   return (
     <section
-      className="rounded-xl border border-warning-200 bg-background-soft-50 p-4 dark:border-warning-800"
+      className="rounded-xl border border-card-border bg-background-soft-50 p-4"
       aria-label="Dữ liệu còn thiếu"
     >
       <div className="flex items-center justify-between gap-3">

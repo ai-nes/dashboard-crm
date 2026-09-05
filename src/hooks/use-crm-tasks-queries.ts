@@ -41,7 +41,7 @@ export function useCrmTasksQuery<TData = ListTasksResponse>(
   return useQuery({
     queryKey: crmTasksKeys.list(params),
     queryFn: () => listTasks(params),
-    enabled: Boolean(params.referenceDocname),
+    enabled: options?.enabled ?? true,
     ...options,
   });
 }
@@ -76,12 +76,57 @@ export function useCreateCrmTaskMutation() {
   });
 }
 
+function getTaskCachePatch(
+  updates: UpdateTaskPayload,
+): Partial<CRMTask> {
+  return {
+    ...(updates.title !== undefined ? { title: updates.title } : {}),
+    ...(updates.description !== undefined
+      ? { description: updates.description }
+      : {}),
+    ...(updates.priority !== undefined ? { priority: updates.priority } : {}),
+    ...(updates.startDate !== undefined
+      ? { startDate: updates.startDate }
+      : {}),
+    ...(updates.assignedTo !== undefined
+      ? { assignedTo: updates.assignedTo }
+      : {}),
+    ...(updates.status !== undefined ? { status: updates.status } : {}),
+    ...(updates.dueDate !== undefined ? { dueDate: updates.dueDate } : {}),
+    ...(updates.linkedInteraction !== undefined
+      ? { linkedInteraction: updates.linkedInteraction }
+      : {}),
+  };
+}
+
 export function useUpdateCrmTaskMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateTaskPayload) => updateTask(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: crmTasksKeys.all });
+    onSuccess: (_, variables) => {
+      const patch = getTaskCachePatch(variables);
+
+      queryClient.setQueriesData<ListTasksResponse>(
+        {
+          queryKey: crmTasksKeys.all,
+          predicate: (query) => query.queryKey[1] === "list",
+        },
+        (current) => {
+          if (!current) return current;
+
+          return {
+            ...current,
+            tasks: current.tasks.map((task) =>
+              task.name === variables.name ? { ...task, ...patch } : task,
+            ),
+          };
+        },
+      );
+
+      queryClient.setQueryData<CRMTask>(
+        crmTasksKeys.detail(variables.name),
+        (current) => (current ? { ...current, ...patch } : current),
+      );
     },
   });
 }

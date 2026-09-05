@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -224,6 +224,7 @@ export default function StudentActivitiesTab({
   const [taskToDelete, setTaskToDelete] = useState<StudentTaskItem | null>(
     null,
   );
+  const pendingTaskUpdates = useRef(new Set<string>());
   const tasks = useMemo(() => {
     const serverIds = new Set(serverTasks.map((task) => task.id));
     const visibleServerTasks = serverTasks
@@ -405,6 +406,8 @@ export default function StudentActivitiesTab({
   ) => {
     const currentTask = tasks.find((task) => task.id === id);
     if (!currentTask) return;
+    if (pendingTaskUpdates.current.has(id)) return;
+    pendingTaskUpdates.current.add(id);
 
     const updatedTask = {
       ...currentTask,
@@ -430,6 +433,8 @@ export default function StudentActivitiesTab({
       toast.error(
         error instanceof Error ? error.message : "Không thể cập nhật task.",
       );
+    } finally {
+      pendingTaskUpdates.current.delete(id);
     }
   };
 

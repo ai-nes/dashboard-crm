@@ -67,6 +67,29 @@ describe("CRM Tasks API Service", () => {
     });
   });
 
+  it("list task theo scope session khi không truyền hồ sơ", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        message: {
+          total: 0,
+          start: 0,
+          page_length: 100,
+          tasks: [],
+        },
+      }),
+    });
+
+    const result = await listTasks({ start: 0, pageLength: 100 }, { baseUrl });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      `${baseUrl}/api/method/crm.api.task.list_tasks?start=0&page_length=100`,
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(result.total).toBe(0);
+  });
+
   it("get task theo name", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,

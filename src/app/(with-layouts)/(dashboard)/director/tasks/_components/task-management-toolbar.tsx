@@ -3,7 +3,11 @@
 import { Plus, Search1 } from "@tailgrids/icons";
 
 import { Button } from "@/components/tailgrids/core/button";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/tailgrids/core/input-group";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/tailgrids/core/input-group";
 import {
   Select,
   SelectContent,
@@ -12,8 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/tailgrids/core/select";
-import { taskStatusLabel, taskTypeLabel } from "../../students/_components/student-task-badges";
-import type { TaskPriorityFilter, TaskSort, TaskStatusFilter, TaskTypeFilter, TaskView } from "./types";
+import {
+  taskStatusLabel,
+  taskTypeLabel,
+} from "../../students/_components/student-task-badges";
+import type {
+  TaskPriorityFilter,
+  TaskSort,
+  TaskStatusFilter,
+  TaskTypeFilter,
+  TaskView,
+} from "./types";
 
 interface TaskManagementToolbarProps {
   search: string;
@@ -46,6 +59,7 @@ const statuses: { id: TaskStatusFilter; label: string }[] = [
   { id: "todo", label: taskStatusLabel.todo },
   { id: "in-progress", label: taskStatusLabel["in-progress"] },
   { id: "done", label: taskStatusLabel.done },
+  { id: "canceled", label: taskStatusLabel.canceled },
 ];
 
 const priorities: { id: TaskPriorityFilter; label: string }[] = [
@@ -87,13 +101,17 @@ export default function TaskManagementToolbar({
   totalCount,
   onCreateTask,
 }: TaskManagementToolbarProps) {
-  const activeFilterCount = [status !== "all", priority !== "all", taskType !== "all"].filter(Boolean).length;
+  const activeFilterCount = [
+    status !== "all",
+    priority !== "all",
+    taskType !== "all",
+  ].filter(Boolean).length;
 
   return (
     <div className="space-y-4 border-b border-card-border p-4 lg:p-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 flex-1 flex-col gap-3 md:flex-row md:items-center">
-          <InputGroup className="min-w-0 md:max-w-sm">
+          <InputGroup className="w-full min-w-0 md:max-w-sm">
             <InputGroupInput
               aria-label="Tìm task"
               value={search}
@@ -110,13 +128,17 @@ export default function TaskManagementToolbar({
               onChange={(value) => onSortChange(String(value) as TaskSort)}
               aria-label="Sắp xếp task"
             >
-              <SelectTrigger size="sm" className="min-w-44">
+              <SelectTrigger size="sm" className="w-full min-w-44 md:w-auto">
                 <SelectValue />
                 <SelectIndicator />
               </SelectTrigger>
               <SelectContent>
                 {sorts.map((option) => (
-                  <SelectItem key={option.id} id={option.id} textValue={option.label}>
+                  <SelectItem
+                    key={option.id}
+                    id={option.id}
+                    textValue={option.label}
+                  >
                     {option.label}
                   </SelectItem>
                 ))}
@@ -126,7 +148,10 @@ export default function TaskManagementToolbar({
         </div>
         <div className="flex items-center justify-between gap-3 xl:justify-end">
           <p className="text-xs text-text-tertiary">
-            <span className="font-semibold text-text-primary">{resultCount}</span> task
+            <span className="font-semibold text-text-primary">
+              {resultCount}
+            </span>{" "}
+            task
             {resultCount !== totalCount && <span> · {totalCount} tổng</span>}
           </p>
           <Button size="sm" onPress={onCreateTask}>
@@ -136,7 +161,7 @@ export default function TaskManagementToolbar({
         </div>
       </div>
 
-      <nav aria-label="Nhóm task" className="flex gap-1 overflow-x-auto [scrollbar-width:thin]">
+      <nav aria-label="Nhóm task" className="flex flex-wrap gap-1">
         {views.map((item) => {
           const selected = item.id === view;
           return (
@@ -158,65 +183,88 @@ export default function TaskManagementToolbar({
         })}
       </nav>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid min-w-0 gap-3 md:grid-cols-3">
+        <Select
+          value={status}
+          onChange={(value) =>
+            onStatusChange(String(value) as TaskStatusFilter)
+          }
+          aria-label="Lọc theo trạng thái"
+        >
+          <SelectTrigger size="sm" className="w-full min-w-0">
+            <SelectValue />
+            <SelectIndicator />
+          </SelectTrigger>
+          <SelectContent>
+            {statuses.map((option) => (
+              <SelectItem
+                key={option.id}
+                id={option.id}
+                textValue={option.label}
+              >
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={priority}
+          onChange={(value) =>
+            onPriorityChange(String(value) as TaskPriorityFilter)
+          }
+          aria-label="Lọc theo mức ưu tiên"
+        >
+          <SelectTrigger size="sm" className="w-full min-w-0">
+            <SelectValue />
+            <SelectIndicator />
+          </SelectTrigger>
+          <SelectContent>
+            {priorities.map((option) => (
+              <SelectItem
+                key={option.id}
+                id={option.id}
+                textValue={option.label}
+              >
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex min-w-0 gap-2">
           <Select
-            value={status}
-            onChange={(value) => onStatusChange(String(value) as TaskStatusFilter)}
-            aria-label="Lọc theo trạng thái"
+            value={taskType}
+            onChange={(value) =>
+              onTaskTypeChange(String(value) as TaskTypeFilter)
+            }
+            aria-label="Lọc theo loại task"
           >
-            <SelectTrigger size="sm" className="w-full">
+            <SelectTrigger size="sm" className="w-full min-w-0">
               <SelectValue />
               <SelectIndicator />
             </SelectTrigger>
             <SelectContent>
-              {statuses.map((option) => (
-                <SelectItem key={option.id} id={option.id} textValue={option.label}>
+              {taskTypes.map((option) => (
+                <SelectItem
+                  key={option.id}
+                  id={option.id}
+                  textValue={option.label}
+                >
                   {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={priority}
-            onChange={(value) => onPriorityChange(String(value) as TaskPriorityFilter)}
-            aria-label="Lọc theo mức ưu tiên"
-          >
-            <SelectTrigger size="sm" className="w-full">
-              <SelectValue />
-              <SelectIndicator />
-            </SelectTrigger>
-            <SelectContent>
-              {priorities.map((option) => (
-                <SelectItem key={option.id} id={option.id} textValue={option.label}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            <Select
-              value={taskType}
-              onChange={(value) => onTaskTypeChange(String(value) as TaskTypeFilter)}
-              aria-label="Lọc theo loại task"
+          {activeFilterCount > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              appearance="ghost"
+              onPress={onResetFilters}
             >
-              <SelectTrigger size="sm" className="w-full">
-                <SelectValue />
-                <SelectIndicator />
-              </SelectTrigger>
-              <SelectContent>
-                {taskTypes.map((option) => (
-                  <SelectItem key={option.id} id={option.id} textValue={option.label}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {activeFilterCount > 0 && (
-              <Button size="sm" variant="ghost" appearance="ghost" onPress={onResetFilters}>
-                Xóa
-              </Button>
-            )}
-          </div>
+              Xóa
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

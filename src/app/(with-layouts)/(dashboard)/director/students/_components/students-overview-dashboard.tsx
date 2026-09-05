@@ -151,6 +151,7 @@ export default function StudentsOverviewDashboard() {
           <span>Trạng thái</span>
           <span>Điểm tiềm năng</span>
           <span>Người phụ trách</span>
+          <span className="text-center">Thao tác</span>
         </div>
         <StudentList students={students} ownerEditable={isLeadSale} />
 
