@@ -23,11 +23,17 @@ import {
   initialWeeklyActivity,
 } from "./data";
 
+const SENTINEL_STRINGS = new Set(["null", "undefined", "-", "—", "–", "n/a"]);
+
+function isSentinelString(str: string): boolean {
+  return str.toLowerCase().includes("nan") || SENTINEL_STRINGS.has(str.toLowerCase());
+}
+
 export function safeNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
   if (!value) return fallback;
   const str = String(value).trim();
-  if (str.toLowerCase().includes("nan") || str === "null" || str === "undefined") return fallback;
+  if (isSentinelString(str)) return fallback;
   const cleaned = str.replace(/[^\d.-]/g, "");
   const num = Number(cleaned);
   return Number.isFinite(num) ? num : fallback;
@@ -37,7 +43,7 @@ export function safePercentNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
   if (!value) return fallback;
   const str = String(value).trim();
-  if (str.toLowerCase().includes("nan") || str === "null" || str === "undefined") return fallback;
+  if (isSentinelString(str)) return fallback;
   const cleaned = str.replace("%", "").replace(",", ".").replace("+", "").trim();
   const num = Number(cleaned);
   return Number.isFinite(num) ? num : fallback;
@@ -46,7 +52,7 @@ export function safePercentNumber(value: unknown, fallback = 0): number {
 export function safePercentString(value: unknown, fallback = "0%"): string {
   if (value === null || value === undefined || value === "") return fallback;
   const str = String(value).trim();
-  if (str.toLowerCase().includes("nan") || str === "null" || str === "undefined") return fallback;
+  if (isSentinelString(str)) return fallback;
   const num = safePercentNumber(str);
   return `${num.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%`;
 }
@@ -54,7 +60,7 @@ export function safePercentString(value: unknown, fallback = "0%"): string {
 export function safeGrowthString(value: unknown, fallback = "0%"): string {
   if (value === null || value === undefined || value === "") return fallback;
   const str = String(value).trim();
-  if (str.toLowerCase().includes("nan") || str === "null" || str === "undefined") return fallback;
+  if (isSentinelString(str)) return fallback;
   const num = safePercentNumber(str);
   const prefix = num > 0 ? "+" : "";
   return `${prefix}${num.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%`;
@@ -66,18 +72,17 @@ export function safeFormattedNumber(value: unknown): string {
 
 function normalizeKpis(rawKpis: unknown): DirectorKpi[] {
   if (!Array.isArray(rawKpis) || rawKpis.length === 0) return initialDirectorKpis;
-  return rawKpis.map((kpi, idx) => {
-    const fallback = initialDirectorKpis[idx] ?? initialDirectorKpis[0];
+  return rawKpis.map((kpi) => {
     const item = typeof kpi === "object" && kpi !== null ? (kpi as Record<string, unknown>) : {};
     return {
-      id: String(item.id ?? fallback.id),
-      label: String(item.label ?? fallback.label),
-      value: String(item.value ?? fallback.value),
-      target: String(item.target ?? fallback.target),
-      achievement: safePercentString(item.achievement, fallback.achievement),
-      change: safeGrowthString(item.change, fallback.change),
-      helper: String(item.helper ?? fallback.helper),
-      tone: (item.tone as MetricTone) ?? fallback.tone,
+      id: String(item.id ?? ""),
+      label: String(item.label ?? ""),
+      value: String(item.value ?? "-"),
+      target: String(item.target ?? "-"),
+      achievement: safePercentString(item.achievement, "-"),
+      change: safeGrowthString(item.change, "-"),
+      helper: String(item.helper ?? ""),
+      tone: (item.tone as MetricTone) ?? "primary",
     };
   });
 }
@@ -95,14 +100,13 @@ function normalizeForecast(rawForecast: unknown): EnrollmentForecast {
   const confidence = safeNumber(rawSummary.confidence, fallback.summary.confidence);
   const gapToTarget = safeNumber(rawSummary.gapToTarget, Math.max(0, target - actual));
 
-  const points = rawPoints.map((pt, idx) => {
+  const points = rawPoints.map((pt) => {
     const ptObj = typeof pt === "object" && pt !== null ? (pt as Record<string, unknown>) : {};
-    const fbPt = fallback.points[idx] ?? fallback.points[0];
     return {
-      label: String(ptObj.label ?? fbPt.label),
+      label: String(ptObj.label ?? ""),
       actual: ptObj.actual === null || ptObj.actual === undefined ? null : safeNumber(ptObj.actual),
-      forecast: safeNumber(ptObj.forecast, fbPt.forecast),
-      target: safeNumber(ptObj.target, fbPt.target),
+      forecast: safeNumber(ptObj.forecast, 0),
+      target: safeNumber(ptObj.target, 0),
     };
   });
 
@@ -149,8 +153,8 @@ function normalizePipeline(rawPipeline: unknown): AdmissionsPipeline {
   if (!rawPipeline || typeof rawPipeline !== "object") {
     return {
       stages: initialPipelineStages,
-      summary: { prospects: 24860, accepted: 4820, enrolled: 3820, enrollmentRate: 15.4 },
-      biggestDrop: { fromStageId: "prospect", fromLabel: "Hồ sơ tiềm năng", toStageId: "engaged", toLabel: "Đã tương tác", differencePoints: 24 },
+      summary: { prospects: 0, accepted: 0, enrolled: 0, enrollmentRate: 0 },
+      biggestDrop: { fromStageId: "", fromLabel: "", toStageId: "", toLabel: "", differencePoints: 0 },
     };
   }
 
@@ -158,15 +162,14 @@ function normalizePipeline(rawPipeline: unknown): AdmissionsPipeline {
   const rawStages = Array.isArray(obj.stages) ? obj.stages : initialPipelineStages;
   const rawSummary = obj.summary && typeof obj.summary === "object" ? (obj.summary as Record<string, unknown>) : {};
 
-  const stages: PipelineStage[] = rawStages.map((st, idx) => {
+  const stages: PipelineStage[] = rawStages.map((st) => {
     const stObj = typeof st === "object" && st !== null ? (st as Record<string, unknown>) : {};
-    const fbStage = initialPipelineStages[idx] ?? initialPipelineStages[0];
     return {
-      id: String(stObj.id ?? fbStage.id),
-      label: String(stObj.label ?? fbStage.label),
-      value: typeof stObj.value === "number" ? safeFormattedNumber(stObj.value) : String(stObj.value ?? fbStage.value),
-      percentage: safePercentNumber(stObj.percentage, fbStage.percentage),
-      conversion: safePercentString(stObj.conversion, fbStage.conversion),
+      id: String(stObj.id ?? ""),
+      label: String(stObj.label ?? ""),
+      value: typeof stObj.value === "number" ? safeFormattedNumber(stObj.value) : String(stObj.value ?? "-"),
+      percentage: safePercentNumber(stObj.percentage, 0),
+      conversion: safePercentString(stObj.conversion, "-"),
     };
   });
 
@@ -268,8 +271,7 @@ function normalizeTrend(rawTrend: unknown): AdmissionsTrend {
 function normalizeMarketOverview(rawMarket: unknown): MarketOverviewItem[] {
   if (!Array.isArray(rawMarket) || rawMarket.length === 0) return initialMarketOverview;
 
-  return rawMarket.map((item, idx) => {
-    const fb = initialMarketOverview[idx] ?? initialMarketOverview[0];
+  return rawMarket.map((item) => {
     const obj = typeof item === "object" && item !== null ? (item as Record<string, unknown>) : {};
 
     const prospectsNum = safeNumber(obj.prospects);
@@ -291,18 +293,18 @@ function normalizeMarketOverview(rawMarket: unknown): MarketOverviewItem[] {
     const coverageNum = safeNumber(obj.coverage, 0);
 
     return {
-      id: String(obj.id ?? fb.id),
-      name: String(obj.name ?? fb.name),
+      id: String(obj.id ?? ""),
+      name: String(obj.name ?? ""),
       prospects: obj.prospects === null || obj.prospects === undefined
-        ? fb.prospects
+        ? "-"
         : safeFormattedNumber(obj.prospects),
       enrolled: obj.enrolled === null || obj.enrolled === undefined
-        ? fb.enrolled
+        ? "-"
         : safeFormattedNumber(obj.enrolled),
       conversion: conversionStr,
       growth: growthStr,
       coverage: coverageNum,
-      tone: (obj.tone as MetricTone) ?? fb.tone,
+      tone: (obj.tone as MetricTone) ?? "primary",
     };
   });
 }
@@ -310,21 +312,20 @@ function normalizeMarketOverview(rawMarket: unknown): MarketOverviewItem[] {
 function normalizeSourcePerformance(rawSources: unknown): SourcePerformance[] {
   if (!Array.isArray(rawSources) || rawSources.length === 0) return initialSourcePerformance;
 
-  return rawSources.map((item, idx) => {
-    const fb = initialSourcePerformance[idx] ?? initialSourcePerformance[0];
+  return rawSources.map((item) => {
     const obj = typeof item === "object" && item !== null ? (item as Record<string, unknown>) : {};
 
     return {
-      id: String(obj.id ?? fb.id),
-      label: String(obj.label ?? fb.label),
-      leads: obj.leads === null || obj.leads === undefined ? fb.leads : safeFormattedNumber(obj.leads),
+      id: String(obj.id ?? ""),
+      label: String(obj.label ?? ""),
+      leads: obj.leads === null || obj.leads === undefined ? "-" : safeFormattedNumber(obj.leads),
       applicants: obj.applicants === null || obj.applicants === undefined
-        ? fb.applicants
+        ? "-"
         : safeFormattedNumber(obj.applicants),
       enrolled: obj.enrolled === null || obj.enrolled === undefined
-        ? fb.enrolled
+        ? "-"
         : safeFormattedNumber(obj.enrolled),
-      share: safePercentNumber(obj.share, fb.share),
+      share: safePercentNumber(obj.share, 0),
     };
   });
 }
@@ -335,13 +336,12 @@ function normalizeWeeklyActivity(rawActivity: unknown): WeeklyActivity {
   const obj = rawActivity as Record<string, unknown>;
   const rawPoints = Array.isArray(obj.points) ? obj.points : fallback.points;
 
-  const points = rawPoints.map((pt, idx) => {
+  const points = rawPoints.map((pt) => {
     const ptObj = typeof pt === "object" && pt !== null ? (pt as Record<string, unknown>) : {};
-    const fbPt = fallback.points[idx] ?? fallback.points[0];
     return {
-      label: String(ptObj.label ?? fbPt.label),
-      interactions: safeNumber(ptObj.interactions, fbPt.interactions),
-      sla: safeNumber(ptObj.sla, fbPt.sla),
+      label: String(ptObj.label ?? ""),
+      interactions: safeNumber(ptObj.interactions, 0),
+      sla: safeNumber(ptObj.sla, 0),
     };
   });
 
@@ -351,7 +351,7 @@ function normalizeWeeklyActivity(rawActivity: unknown): WeeklyActivity {
   );
   const averageSla = safePercentNumber(
     obj.averageSla,
-    points.length > 0 ? points.reduce((acc, p) => acc + p.sla, 0) / points.length : 94.1,
+    points.length > 0 ? points.reduce((acc, p) => acc + p.sla, 0) / points.length : 0,
   );
   const changePercent = safePercentNumber(obj.changePercent, 0);
 

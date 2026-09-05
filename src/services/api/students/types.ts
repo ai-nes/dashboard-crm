@@ -68,6 +68,37 @@ export interface StudentZaloMessage {
   attachmentName?: string;
 }
 
+export interface StudentChatwootInteraction {
+  name: string;
+  student?: string | null;
+  crm_contact?: string | null;
+  interaction_type: string;
+  interaction_datetime: string;
+  summary?: string | null;
+  notes?: string | null;
+  channel?: string | null;
+  direction?: StudentZaloDirection | null;
+  conversation_id?: string | null;
+  agent_id?: string | null;
+  outcome?: string | null;
+  actor?: string | null;
+  source_namespace?: string | null;
+  source_record_id?: string | null;
+  creation?: string | null;
+}
+
+export interface StudentChatwootInteractionsResponse {
+  student_id: string;
+  data: StudentChatwootInteraction[];
+  zalo_messages: StudentZaloMessage[];
+  meta: {
+    page: number;
+    page_size: number;
+    total: number;
+    has_next_page: boolean;
+  };
+}
+
 export type StudentCallDirection = "inbound" | "outbound" | "missed";
 
 export type StudentCallOutcome =
@@ -237,8 +268,8 @@ export interface Student360Data {
   };
   insight: {
     summary: string;
-    signalScore: number;
-    probability: number;
+    signalScore: number | null;
+    probability: number | null;
     potentialLabel?: "Tiềm năng cao" | "Tiềm năng vừa" | "Cần chú ý" | null;
     priorityThreshold?: number | null;
     scoreDelta?: number;
@@ -289,6 +320,7 @@ export interface DirectorStudentsParams {
   q?: string;
   stage?: StudentJourneyStage | "all" | string;
   province?: string;
+  ownerId?: string;
   sort?: "score" | "priority" | "lastActivityAt" | "nextActionDueAt" | string;
   order?: "asc" | "desc";
 }

@@ -1,21 +1,10 @@
+import { displayValue } from "@/utils/display-value";
+import type { AnalysisConfidence } from "@/services/api/analysis-runs";
+
 export function displaySchoolValue(
   value: string | number | null | undefined,
 ): string | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value.toLocaleString("vi-VN") : null;
-  }
-
-  const normalized = value.trim();
-  if (
-    !normalized ||
-    normalized === "-" ||
-    normalized === "Chưa có dữ liệu" ||
-    normalized.toLowerCase() === "null"
-  ) {
-    return null;
-  }
-  return normalized;
+  return displayValue(value);
 }
 
 export function schoolAnalysisTimestamp(value: string | null | undefined) {
@@ -23,17 +12,22 @@ export function schoolAnalysisTimestamp(value: string | null | undefined) {
   return timestamp ? `Cập nhật lúc ${timestamp}` : undefined;
 }
 
-export function formatSchoolConfidence(value: number | null | undefined) {
-  if (value === null || value === undefined || !Number.isFinite(value)) {
+export function formatSchoolConfidence(value: AnalysisConfidence) {
+  if (value === null || value === undefined) {
     return null;
   }
-  return `Độ tin cậy ${Math.round(value * 100)}%`;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    if (value >= 0.85) return "Tin cậy cao";
+    if (value >= 0.65) return "Tin cậy trung bình";
+    return "Tin cậy thấp";
+  }
+  return typeof value === "string" ? value : null;
 }
 
 export function isPotentialScoreAvailable(
   dataAvailability: { fields: Record<string, string> } | undefined,
-  score: number,
+  score: number | null,
 ) {
   if (dataAvailability?.fields.potentialScore === "unavailable") return false;
-  return Number.isFinite(score);
+  return typeof score === "number" && Number.isFinite(score);
 }

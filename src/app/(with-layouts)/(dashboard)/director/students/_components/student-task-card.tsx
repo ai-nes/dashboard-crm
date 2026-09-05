@@ -1,6 +1,12 @@
 "use client";
 
-import { Calendar, Check, ChevronDown, ChevronRight, Trash1 } from "@tailgrids/icons";
+import {
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Trash1,
+} from "@tailgrids/icons";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -35,7 +41,11 @@ interface StudentTaskCardProps {
   onExpandedChange?: (expanded: boolean) => void;
 }
 
-const priorityOptions: StudentTaskItem["priority"][] = ["Cao", "Trung bình", "Thấp"];
+const priorityOptions: StudentTaskItem["priority"][] = [
+  "Cao",
+  "Trung bình",
+  "Thấp",
+];
 const statusOptions: Array<{
   value: StudentTaskItem["status"];
   label: string;
@@ -65,7 +75,9 @@ export function isTaskOverdue(task: StudentTaskItem): boolean {
   if (task.status === "done" || task.status === "canceled") return false;
   const dueDate = toDateInputValue(task.dueDate);
   if (!dueDate) return false;
-  return new Date(`${dueDate}T${task.dueTime || "23:59"}`).getTime() < Date.now();
+  return (
+    new Date(`${dueDate}T${task.dueTime || "23:59"}`).getTime() < Date.now()
+  );
 }
 
 function formatTaskDeadline(task: StudentTaskItem): string {
@@ -92,7 +104,10 @@ export default function StudentTaskCard({
   };
 
   return (
-    <article id={`student-task-${task.id}`} className="overflow-hidden rounded-xl border border-card-border bg-card-background shadow-sm">
+    <article
+      id={`student-task-${task.id}`}
+      className="overflow-hidden rounded-xl border border-card-border bg-card-background shadow-sm"
+    >
       <div className="flex items-center justify-between gap-3 bg-background-gray-secondary/30 px-4 py-4 sm:px-5">
         <button
           type="button"
@@ -110,7 +125,9 @@ export default function StudentTaskCard({
           <span
             className={cn(
               "inline-flex items-center gap-1 text-sm",
-              overdue ? "font-medium text-badge-cyan-text" : "text-text-tertiary",
+              overdue
+                ? "font-medium text-badge-cyan-text"
+                : "text-text-tertiary",
             )}
           >
             <Calendar size={14} aria-hidden="true" />
@@ -137,7 +154,9 @@ export default function StudentTaskCard({
           <TaskQuickStatusButton
             status={task.status}
             overdue={overdue}
-            onPress={() => onUpdateTask(task.id, { status: getNextQuickStatus(task.status) })}
+            onPress={() =>
+              onUpdateTask(task.id, { status: getNextQuickStatus(task.status) })
+            }
           />
           <span
             className={cn(
@@ -157,12 +176,18 @@ export default function StudentTaskCard({
             <TaskQuickStatusButton
               status={task.status}
               overdue={overdue}
-              onPress={() => onUpdateTask(task.id, { status: getNextQuickStatus(task.status) })}
+              onPress={() =>
+                onUpdateTask(task.id, {
+                  status: getNextQuickStatus(task.status),
+                })
+              }
             />
             <StudentInlineEditableText
               value={task.title}
               onCommit={(title) => onUpdateTask(task.id, { title })}
-              strikethrough={task.status === "done" || task.status === "canceled"}
+              strikethrough={
+                task.status === "done" || task.status === "canceled"
+              }
               textClassName="text-lg font-semibold sm:text-xl"
               className="min-w-0 flex-1"
             />
@@ -174,7 +199,9 @@ export default function StudentTaskCard({
                 type="date"
                 value={toDateInputValue(task.dueDate)}
                 onChange={(event) =>
-                  onUpdateTask(task.id, { dueDate: fromDateInputValue(event.target.value) })
+                  onUpdateTask(task.id, {
+                    dueDate: fromDateInputValue(event.target.value),
+                  })
                 }
                 aria-label="Hạn xử lý"
                 className="h-10 font-medium text-sm shadow-xs"
@@ -184,7 +211,9 @@ export default function StudentTaskCard({
               <Input
                 type="time"
                 value={task.dueTime ?? ""}
-                onChange={(event) => onUpdateTask(task.id, { dueTime: event.target.value })}
+                onChange={(event) =>
+                  onUpdateTask(task.id, { dueTime: event.target.value })
+                }
                 aria-label="Giờ xử lý"
                 className="h-10 font-medium text-sm shadow-xs"
               />
@@ -240,7 +269,7 @@ export default function StudentTaskCard({
                   size="sm"
                   className="w-fit min-w-0 border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus:ring-0"
                 >
-              <StudentTaskPriority priority={task.priority} />
+                  <StudentTaskPriority priority={task.priority} />
                   <SelectValue className="sr-only" />
                   <SelectIndicator className="ml-1 text-text-primary" />
                 </SelectTrigger>
@@ -267,7 +296,9 @@ export default function StudentTaskCard({
           </div>
 
           <div className="mt-5 border-t border-card-border pt-5">
-            <p className="mb-2 text-sm font-medium text-text-100">Ghi chú task</p>
+            <p className="mb-2 text-sm font-medium text-text-100">
+              Ghi chú task
+            </p>
             <StudentInlineEditableRichText
               value={task.notes ?? ""}
               onCommit={(notes) => onUpdateTask(task.id, { notes })}
@@ -280,7 +311,13 @@ export default function StudentTaskCard({
   );
 }
 
-function FieldGroup({ label, children }: { label: string; children: ReactNode }) {
+function FieldGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <span className="text-sm font-medium text-text-100">{label}</span>
@@ -295,7 +332,11 @@ interface TaskQuickStatusButtonProps {
   onPress: () => void;
 }
 
-function TaskQuickStatusButton({ status, overdue, onPress }: TaskQuickStatusButtonProps) {
+function TaskQuickStatusButton({
+  status,
+  overdue,
+  onPress,
+}: TaskQuickStatusButtonProps) {
   return (
     <Button
       variant="success"

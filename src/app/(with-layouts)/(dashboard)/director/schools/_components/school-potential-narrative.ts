@@ -33,8 +33,13 @@ export function buildSchoolPotentialNarrative(
   const recommendedMajorGroup = displaySchoolValue(
     data.subjectMix.recommendedMajorGroup,
   );
+  const hasPotentialScore =
+    typeof data.potentialScore === "number" &&
+    Number.isFinite(data.potentialScore);
   const sentences = [
-    `${schoolName} đang được đánh giá ở mức ${statusText ?? "chưa xác định"}.`,
+    hasPotentialScore
+      ? `${schoolName} đang được đánh giá ở mức ${statusText ?? "chưa xác định"}.`
+      : `${schoolName} hiện chưa có dữ liệu điểm tiềm năng.`,
     strongestIndicator
       ? `Động lực nổi bật đến từ ${strongestIndicator.label} (${strongestIndicator.score}/100), cho thấy trường có nền tảng tốt để phát triển thêm các điểm chạm tuyển sinh.`
       : null,

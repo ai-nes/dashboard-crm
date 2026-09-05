@@ -113,7 +113,14 @@ export default function SchoolPotentialScoreCard({
         </div>
 
         <div className="flex min-h-44 justify-center">
-          {score !== null && (
+          {score === null ? (
+            <div
+              className="flex items-center justify-center text-sm font-medium text-text-tertiary"
+              role="status"
+            >
+              Chưa có dữ liệu
+            </div>
+          ) : (
             <StudentGaugeChart
               score={score}
               statusText={statusText}

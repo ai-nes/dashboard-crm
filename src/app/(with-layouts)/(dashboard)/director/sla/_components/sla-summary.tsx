@@ -13,6 +13,14 @@ const markerClassByTone = {
 } as const;
 
 export default function SlaSummary() {
+  if (slaMetrics.length === 0) {
+    return (
+      <section className="rounded-xl border-[0.5px] border-card-border bg-card-background p-5" aria-label="Tóm tắt thời hạn xử lý">
+        <p className="text-center text-sm text-text-tertiary">Chưa có dữ liệu.</p>
+      </section>
+    );
+  }
+
   return (
     <section className="grid divide-y divide-card-border rounded-xl border-[0.5px] border-card-border bg-card-background sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4" aria-label="Tóm tắt thời hạn xử lý">
       {slaMetrics.map((metric) => (

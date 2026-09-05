@@ -1,62 +1,59 @@
 "use client";
 
-import { RefreshCircle1Clockwise } from "@tailgrids/icons";
-import { toast } from "sonner";
-
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
-import type { DirectorNextBestActionMeta } from "@/services/api/director-next-best-action";
+import type { DirectorNbaRecommendationsMeta } from "@/services/api/nba";
+import { formatNbaDateTime } from "@/services/api/nba/presentation";
 
 interface NextBestActionHeaderProps {
-  meta?: DirectorNextBestActionMeta;
-  responseWindowHours?: number;
-  onRefresh?: () => void | Promise<void>;
+  meta?: DirectorNbaRecommendationsMeta;
+  recommendationCount: number;
 }
 
 export default function NextBestActionHeader({
   meta,
-  responseWindowHours = 8,
-  onRefresh,
+  recommendationCount,
 }: NextBestActionHeaderProps) {
   const dataLabel = !meta
-    ? "Đang tải dữ liệu"
+    ? "Đang tải hàng đợi"
     : meta.status === "available"
-      ? "Dữ liệu thực tế"
-      : meta.status === "ai_unavailable"
-        ? "AI không khả dụng"
-        : "Dữ liệu một phần";
+      ? "Đang có đề xuất"
+      : "Chưa có đề xuất";
 
   return (
-    <Card className="flex flex-col gap-5 border border-card-border p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
+    <Card className="flex flex-col gap-5 p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge color="primary">M-07 · Việc cần xử lý</Badge>
+          <Badge color="primary">AI tuyển sinh · NBA</Badge>
           <span className="text-xs text-text-tertiary">
             {dataLabel} · Kỳ tuyển sinh {meta?.admissionYear ?? "—"}
           </span>
-          <span className="text-xs text-text-tertiary">
-            Mốc xử lý: {responseWindowHours} giờ làm việc
-          </span>
+          {meta?.asOf && (
+            <span className="text-xs text-text-tertiary">
+              Cập nhật {formatNbaDateTime(meta.asOf)}
+            </span>
+          )}
         </div>
         <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
-          Việc cần xử lý
+          Đề xuất chăm sóc tiếp theo
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
-          Ưu tiên hồ sơ theo hạn xử lý và xem ngay việc cần làm tiếp theo.
+          Xem hồ sơ nào cần được chăm sóc tiếp theo, kiểm tra đề xuất của hệ
+          thống và ghi nhận quyết định trong hồ sơ học sinh.
+        </p>
+        <p className="mt-3 text-xs leading-5 text-text-tertiary">
+          {recommendationCount} đề xuất cần xem xét
+          {meta?.metricKind === "observational" && meta.metricDisclaimer && (
+            <span className="block mt-1">
+              Lưu ý: {formatMetricDisclaimer(meta.metricDisclaimer)}
+            </span>
+          )}
         </p>
       </div>
-      <Button
-        appearance="outline"
-        size="sm"
-        onPress={
-          onRefresh ??
-          (() => toast.success("Đã làm mới danh sách việc cần xử lý."))
-        }
-      >
-        <RefreshCircle1Clockwise size={16} aria-hidden="true" />
-        Làm mới
-      </Button>
     </Card>
   );
+}
+
+function formatMetricDisclaimer(value: string): string {
+  return value.replace(/\bActions?\b/gi, "đề xuất");
 }

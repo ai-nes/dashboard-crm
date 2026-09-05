@@ -14,7 +14,10 @@ interface SchoolPriorityOutcomeProps {
 export default function SchoolPriorityOutcome({
   data,
 }: SchoolPriorityOutcomeProps) {
-  const potentialGap = data.potentialScore - POTENTIAL_THRESHOLD;
+  const potentialGap =
+    data.potentialScore === null
+      ? null
+      : data.potentialScore - POTENTIAL_THRESHOLD;
   const relationshipGap = data.relationship.score - RELATIONSHIP_THRESHOLD;
   const conclusion = getPriorityConclusion(potentialGap, relationshipGap);
 
@@ -49,7 +52,7 @@ export default function SchoolPriorityOutcome({
           label="Tiềm năng tuyển sinh"
           score={data.potentialScore}
           gap={potentialGap}
-          reached={potentialGap >= 0}
+          reached={potentialGap !== null && potentialGap >= 0}
           reachedCopy="Vượt mốc"
           pendingCopy="Thiếu so với mốc"
         />
@@ -92,14 +95,15 @@ function ScoreSignal({
   primary = false,
 }: {
   label: string;
-  score: number;
-  gap: number;
+  score: number | null;
+  gap: number | null;
   reached: boolean;
   reachedCopy: string;
   pendingCopy: string;
   primary?: boolean;
 }) {
-  const value = `${gap > 0 ? "+" : ""}${gap} điểm`;
+  const value =
+    gap === null ? "Chưa có dữ liệu" : `${gap > 0 ? "+" : ""}${gap} điểm`;
   const toneClass =
     reached && !primary
       ? "bg-badge-success-background text-success-500"
@@ -112,18 +116,29 @@ function ScoreSignal({
       <dt className="text-xs text-text-tertiary">{label}</dt>
       <dd className="mt-1 flex items-baseline justify-between gap-3">
         <span className="text-base font-semibold text-text-primary">
-          {score}/100
+          {score === null ? "Chưa có dữ liệu" : `${score}/100`}
         </span>
         <span className={"text-sm font-semibold " + toneClass}>{value}</span>
       </dd>
       <p className="mt-1 text-xs text-text-secondary">
-        {reached ? reachedCopy : pendingCopy}
+        {gap === null ? "Chưa có dữ liệu" : reached ? reachedCopy : pendingCopy}
       </p>
     </div>
   );
 }
 
-function getPriorityConclusion(potentialGap: number, relationshipGap: number) {
+function getPriorityConclusion(
+  potentialGap: number | null,
+  relationshipGap: number,
+) {
+  if (potentialGap === null) {
+    return {
+      title: "Chưa đủ dữ liệu để kết luận ưu tiên",
+      detail:
+        "Điểm tiềm năng chưa có dữ liệu. Cần bổ sung dữ liệu trước khi quyết định tăng đầu tư tuyển sinh.",
+    };
+  }
+
   if (potentialGap >= 0 && relationshipGap <= 0) {
     return {
       title: "Đáng đầu tư, nhưng cần củng cố quan hệ",

@@ -5,6 +5,7 @@ import type {
   DirectorStudentsParams,
   DirectorStudentsResponse,
   DirectorStudentsSummary,
+  StudentChatwootInteractionsResponse,
   Student360Data,
   StudentListItem,
 } from "./types";
@@ -69,6 +70,25 @@ function hasStudent360Envelope(value: unknown): boolean {
     Array.isArray(payload.family) &&
     Array.isArray(payload.journey) &&
     Array.isArray(payload.application)
+  );
+}
+
+function hasStudentChatwootInteractionsEnvelope(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const root = value as Record<string, unknown>;
+  const payload =
+    "message" in root && root.message && typeof root.message === "object"
+      ? (root.message as Record<string, unknown>)
+      : root;
+  const meta = payload.meta;
+
+  return (
+    typeof payload.student_id === "string" &&
+    Array.isArray(payload.data) &&
+    Array.isArray(payload.zalo_messages) &&
+    !!meta &&
+    typeof meta === "object" &&
+    typeof (meta as Record<string, unknown>).total === "number"
   );
 }
 
@@ -312,7 +332,11 @@ export async function getStudent360(
   const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
 
   if (!frappeBase) {
-    return computeStudent360(studentId);
+    throw new DirectorStudentsApiError(
+      503,
+      "STUDENT_API_UNAVAILABLE",
+      "Không thể tải hồ sơ học sinh vì chưa cấu hình Frappe CRM API.",
+    );
   }
 
   const url = `${frappeBase}/api/method/crm.api.director_students.get_director_student?student_id=${encodeURIComponent(studentId)}`;
@@ -381,6 +405,76 @@ export interface StudentInteractionsResponse {
   zalo_messages: Student360Data["zaloMessages"];
   calls: Student360Data["calls"];
   total_interactions: number;
+}
+
+export async function getStudentChatwootInteractions(
+  studentId: string,
+  options: { baseUrl?: string; page?: number; pageSize?: number } = {},
+): Promise<StudentChatwootInteractionsResponse | null> {
+  const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
+
+  if (!frappeBase) return null;
+
+  const query = new URLSearchParams({
+    student_id: studentId,
+    page: String(options.page ?? 1),
+    page_size: String(options.pageSize ?? 50),
+  });
+  const url = `${frappeBase}/api/method/crm.api.director_students.get_student_chatwoot_interactions?${query}`;
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+
+  if (!options.baseUrl && typeof window === "undefined") {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieHeader = frappeCookieHeader((await cookies()).toString());
+      if (cookieHeader) {
+        headers.Cookie = cookieHeader;
+      }
+    } catch {
+      // Ignored outside request context
+    }
+  }
+
+  const response = await fetch(url, {
+    headers,
+    ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+    cache: "no-store",
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  const error = payload?.error ?? {};
+  if (response.status === 404 && (error.code === "STUDENT_NOT_FOUND" || !error.code)) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const errorCode =
+      typeof error.code === "string"
+        ? error.code
+        : typeof payload?.exception === "string"
+          ? payload.exception
+          : "CHATWOOT_INTERACTIONS_FETCH_FAILED";
+    const errorMessage =
+      typeof error.message === "string"
+        ? error.message
+        : typeof payload?.message === "string"
+          ? payload.message
+          : `Không thể lấy tin nhắn Chatwoot (${response.status}).`;
+    throw new DirectorStudentsApiError(response.status, errorCode, errorMessage);
+  }
+
+  if (!hasStudentChatwootInteractionsEnvelope(payload)) {
+    throw new DirectorStudentsApiError(
+      502,
+      "INVALID_CHATWOOT_INTERACTIONS_RESPONSE",
+      "Phản hồi tin nhắn Chatwoot không hợp lệ.",
+    );
+  }
+
+  return (payload.message || payload) as StudentChatwootInteractionsResponse;
 }
 
 export async function getStudentInteractions(
@@ -534,7 +628,7 @@ export function computeDirectorStudents(params?: DirectorStudentsParams): Direct
 
 export async function getDirectorStudents(
   params?: DirectorStudentsParams,
-  options: { baseUrl?: string } = {},
+  options: { baseUrl?: string; sessionRequired?: boolean } = {},
 ): Promise<DirectorStudentsResponse> {
   const searchParams = new URLSearchParams();
   if (params?.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
@@ -543,6 +637,7 @@ export async function getDirectorStudents(
   if (params?.q) searchParams.set("q", params.q);
   if (params?.stage && params.stage !== "all") searchParams.set("stage", params.stage);
   if (params?.province && params.province !== "all") searchParams.set("province", params.province);
+  if (params?.ownerId) searchParams.set("ownerId", params.ownerId);
   if (params?.sort) searchParams.set("sort", params.sort);
   if (params?.order) searchParams.set("order", params.order);
 
@@ -550,7 +645,15 @@ export async function getDirectorStudents(
   const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
 
   if (!frappeBase) {
-    return computeDirectorStudents(params);
+    throw new DirectorStudentsApiError(
+      503,
+      options.sessionRequired
+        ? "STUDENTS_SESSION_API_UNAVAILABLE"
+        : "STUDENTS_API_UNAVAILABLE",
+      options.sessionRequired
+        ? "Không thể tải danh sách học sinh theo session."
+        : "Không thể tải danh sách học sinh vì chưa cấu hình Frappe CRM API.",
+    );
   }
 
   const url = `${frappeBase}/api/method/crm.api.director_students.get_director_students${queryStr ? `?${queryStr}` : ""}`;

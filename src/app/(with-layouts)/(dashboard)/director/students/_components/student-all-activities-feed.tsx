@@ -22,6 +22,7 @@ import {
 } from "./student-audit-event";
 import { StudentCallDetails } from "./student-calls-tab";
 import {
+  getStudentZaloConversationTitle,
   groupActivitiesWithOverdue,
   parseStudentActivityDate,
 } from "./student-activity-utils";
@@ -92,7 +93,7 @@ export default function StudentAllActivitiesFeed({
 
     const zaloThreads = new Map<string, StudentZaloMessage[]>();
     for (const message of zaloMessages) {
-      const threadKey = message.conversationTitle || "Trao đổi Zalo";
+      const threadKey = getStudentZaloConversationTitle(message.conversationTitle);
       const thread = zaloThreads.get(threadKey) ?? [];
       thread.push(message);
       zaloThreads.set(threadKey, thread);

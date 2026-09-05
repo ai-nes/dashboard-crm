@@ -45,12 +45,8 @@ function persistRunReference(kind: AnalysisRunKind, targetId: string, runId: str
   try {
     window.sessionStorage.setItem(storageKey(kind, targetId), JSON.stringify({ runId, runKind: kind }));
   } catch {
-    // Storage can be unavailable in private browsing; polling still works in-memory.
+    // Storage can be unavailable in private browsing; the current run remains available in mutation state.
   }
-}
-
-function isActiveStatus(status: AnalysisRunSnapshot["status"] | undefined): boolean {
-  return status === "queued" || status === "running";
 }
 
 interface UseAnalysisRunResult {
@@ -73,16 +69,15 @@ export function useAnalysisRun(kind: AnalysisRunKind, targetId: string): UseAnal
   const runQuery = useQuery({
     queryKey: runReference ? analysisRunKeys.run(runReference.runKind, runReference.runId) : analysisRunKeys.all,
     queryFn: () => getAnalysisRun(runReference!.runId, runReference!.runKind),
-    enabled: Boolean(runReference?.runId),
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return isActiveStatus(status) ? 2000 : false;
-    },
+    // The new crm-agents endpoint settles the 360 report in the POST response.
+    // A stored run is read once for history; Analyse now no longer starts a
+    // webhook/poll loop.
+    enabled: Boolean(runReference?.runId) && !requestMutation.data,
     refetchOnWindowFocus: true,
   });
 
   return {
-    run: runQuery.data ?? requestMutation.data ?? null,
+    run: requestMutation.data ?? runQuery.data ?? null,
     request: (request) => requestMutation.mutate(request),
     requestMutation,
     runQuery,

@@ -17,6 +17,15 @@ export const activityTimeFilterOptions: { id: ActivityTimeFilter; label: string 
   { id: "last-7-days", label: "7 ngày qua" },
 ];
 
+export function getStudentZaloConversationTitle(title?: string): string {
+  const normalizedTitle = title?.trim().toLocaleLowerCase("en-US");
+
+  if (normalizedTitle === "webchat inbound") return "Tin nhắn đến";
+  if (normalizedTitle === "webchat outbound") return "Tin nhắn đã gửi";
+
+  return title?.trim() || "Trao đổi Zalo";
+}
+
 export interface StudentActivityGroup<T> {
   id: string;
   label: string;

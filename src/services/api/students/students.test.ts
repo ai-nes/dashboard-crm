@@ -5,19 +5,55 @@ import {
   computeStudent360,
   DirectorStudentsApiError,
   getDirectorStudents,
+  getStudentChatwootInteractions,
   getStudent360,
   getStudentInteractions,
 } from "./index";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 describe("director students API contract", () => {
-  it("computes full students list when offline", async () => {
-    const result = await getDirectorStudents({ admissionYear: 2026, page: 1, pageSize: 20 });
+  it("does not display fixture data when the API is unavailable", async () => {
+    await expect(
+      getDirectorStudents({ admissionYear: 2026, page: 1, pageSize: 20 }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<DirectorStudentsApiError>>({
+        status: 503,
+        code: "STUDENTS_API_UNAVAILABLE",
+      }),
+    );
+  });
 
-    expect(result.data.length).toBeGreaterThan(0);
-    expect(result.summary.trackedStudents).toBeGreaterThan(0);
-    expect(result.meta.page).toBe(1);
+  it("does not fall back to fixture data for a session-scoped list", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "");
+
+    await expect(
+      getDirectorStudents({ admissionYear: 2026 }, { sessionRequired: true }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<DirectorStudentsApiError>>({
+        status: 503,
+        code: "STUDENTS_SESSION_API_UNAVAILABLE",
+      }),
+    );
+  });
+
+  it("sends browser credentials for a session-scoped list", async () => {
+    vi.stubGlobal("window", {});
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
+    const mockData = computeDirectorStudents({ admissionYear: 2026 });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockData }), { status: 200 }),
+    );
+
+    await getDirectorStudents({ admissionYear: 2026 }, { sessionRequired: true });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_director_students?admissionYear=2026",
+      expect.objectContaining({ credentials: "include", cache: "no-store" }),
+    );
   });
 
   it("calls Frappe students endpoint with query parameters and parses envelope", async () => {
@@ -37,6 +73,23 @@ describe("director students API contract", () => {
     );
     expect(result.data.length).toBe(mockData.data.length);
     expect(result.meta.total).toBe(mockData.meta.total);
+  });
+
+  it("passes an owner filter to the session-scoped students endpoint", async () => {
+    const mockData = computeDirectorStudents({ admissionYear: 2026, page: 1, pageSize: 10 });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockData }), { status: 200 }),
+    );
+
+    await getDirectorStudents(
+      { admissionYear: 2026, ownerId: "STAFF-1" },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_director_students?admissionYear=2026&ownerId=STAFF-1",
+      expect.objectContaining({ cache: "no-store" }),
+    );
   });
 
   it("throws DirectorStudentsApiError on authorization failure", async () => {
@@ -161,5 +214,72 @@ describe("director students API contract", () => {
     const result = await getStudentInteractions("non-existent", { baseUrl: "http://frappe:8000" });
 
     expect(result).toBeNull();
+  });
+
+  it("calls the Chatwoot interactions endpoint with pagination and parses payload", async () => {
+    const mockPayload = {
+      student_id: "ENR-1",
+      data: [
+        {
+          name: "INTX-CHATWOOT-1",
+          interaction_type: "Tin nhắn Chatwoot",
+          interaction_datetime: "2026-09-04 12:47:31",
+        },
+      ],
+      zalo_messages: [
+        {
+          id: "INTX-CHATWOOT-1",
+          time: "04/09/2026 · 12:47",
+          senderName: "Nguyễn Minh An",
+          recipientName: "Tư vấn viên",
+          content: "Em muốn hỏi học phí.",
+          direction: "inbound" as const,
+        },
+      ],
+      meta: { page: 2, page_size: 10, total: 11, has_next_page: true },
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockPayload }), { status: 200 }),
+    );
+
+    const result = await getStudentChatwootInteractions("ENR-1", {
+      baseUrl: "http://frappe:8000",
+      page: 2,
+      pageSize: 10,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_student_chatwoot_interactions?student_id=ENR-1&page=2&page_size=10",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+    expect(result).toEqual(mockPayload);
+  });
+
+  it("returns null when the Chatwoot interactions student is not found", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: "STUDENT_NOT_FOUND" } }), { status: 404 }),
+    );
+
+    const result = await getStudentChatwootInteractions("non-existent", {
+      baseUrl: "http://frappe:8000",
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("rejects an invalid Chatwoot interactions envelope", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: { data: [] } }), { status: 200 }),
+    );
+
+    await expect(
+      getStudentChatwootInteractions("ENR-1", { baseUrl: "http://frappe:8000" }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<DirectorStudentsApiError>>({
+        status: 502,
+        code: "INVALID_CHATWOOT_INTERACTIONS_RESPONSE",
+      }),
+    );
   });
 });

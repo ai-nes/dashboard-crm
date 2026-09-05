@@ -55,6 +55,7 @@ const OVERVIEW_ACTION_ROLES = [
 
 const SCHOOL_INTELLIGENCE_ROLES = [
   "Sale",
+  "CTV Sale",
   "Lead Sales",
   "Promoter",
   "Lead Promoter",
@@ -131,6 +132,30 @@ const NON_SYSTEM_MANAGER_ROLES = CRM_ROLES.filter(
   (role) => role !== "System Manager",
 );
 
+/**
+ * Public workspace routes. A workspace is the stable entry point for a role;
+ * feature screens can be added below it without changing the login contract.
+ */
+export const ROLE_ROUTE_ROLES = {
+  director: ["Admissions Director", "CEO"],
+  admin: ["System Manager"],
+  marketing: ["Marketing", "Lead Marketing"],
+  sale: ["Sale"],
+  "ctv-sale": ["CTV Sale"],
+  "lead-sale": ["Lead Sales"],
+} as const satisfies Record<string, readonly CrmRole[]>;
+
+export type RoleRouteSlug = keyof typeof ROLE_ROUTE_ROLES;
+
+export const ROLE_ROUTE_PATHS: Record<RoleRouteSlug, string> = {
+  director: "/director",
+  admin: "/admin",
+  marketing: "/marketing",
+  sale: "/sale",
+  "ctv-sale": "/ctv-sale",
+  "lead-sale": "/lead-sale",
+};
+
 export interface RouteAccessRule {
   path: string;
   roles: readonly CrmRole[];
@@ -144,6 +169,32 @@ export interface RouteAccessRule {
 export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/", roles: CRM_ROLES },
   { path: "/crm-chatbot", roles: NON_SYSTEM_MANAGER_ROLES },
+  { path: "/director", roles: ROLE_ROUTE_ROLES.director },
+  { path: "/admin", roles: ROLE_ROUTE_ROLES.admin },
+  { path: "/marketing", roles: ROLE_ROUTE_ROLES.marketing },
+  { path: "/sale", roles: ROLE_ROUTE_ROLES.sale },
+  { path: "/sale/next-best-action", roles: ROLE_ROUTE_ROLES.sale },
+  { path: "/sale/students", roles: ROLE_ROUTE_ROLES.sale },
+  { path: "/sale/tasks", roles: ROLE_ROUTE_ROLES.sale },
+  { path: "/sale/demographics", roles: ROLE_ROUTE_ROLES.sale },
+  { path: "/ctv-sale", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
+  { path: "/ctv-sale/results", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
+  { path: "/ctv-sale/students", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
+  { path: "/ctv-sale/tasks", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
+  { path: "/ctv-sale/next-best-action", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
+  { path: "/lead-sale", roles: ROLE_ROUTE_ROLES["lead-sale"] },
+  {
+    path: "/lead-sale/next-best-action",
+    roles: ROLE_ROUTE_ROLES["lead-sale"],
+  },
+  { path: "/lead-sale/students", roles: ROLE_ROUTE_ROLES["lead-sale"] },
+  { path: "/lead-sale/tasks", roles: ROLE_ROUTE_ROLES["lead-sale"] },
+  { path: "/lead-sale/demographics", roles: ROLE_ROUTE_ROLES["lead-sale"] },
+  {
+    path: "/lead-sale/student-assignment",
+    roles: ROLE_ROUTE_ROLES["lead-sale"],
+  },
+  { path: "/lead-sale/sales-team", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/director/ai/next-best-action", roles: OVERVIEW_ACTION_ROLES },
   { path: "/director/ai", roles: AI_CENTER_ROLES },
   { path: "/director/demographics", roles: DEMOGRAPHICS_ROLES },
@@ -191,16 +242,16 @@ const ROLE_PRIORITY: readonly CrmRole[] = [
 ];
 
 const ROLE_DEFAULT_ROUTES: Record<CrmRole, string> = {
-  Sale: "/director/students",
-  "CTV Sale": "/director/students",
-  "Lead Sales": "/director/regional-performance",
+  Sale: ROLE_ROUTE_PATHS.sale,
+  "CTV Sale": ROLE_ROUTE_PATHS["ctv-sale"],
+  "Lead Sales": ROLE_ROUTE_PATHS["lead-sale"],
   Promoter: "/director/school-field-activity",
   "Lead Promoter": "/director/school-field-activity",
-  Marketing: "/director/campaign-intelligence",
-  "Lead Marketing": "/director/campaign-intelligence",
-  "Admissions Director": "/",
-  CEO: "/",
-  "System Manager": "/",
+  Marketing: ROLE_ROUTE_PATHS.marketing,
+  "Lead Marketing": ROLE_ROUTE_PATHS.marketing,
+  "Admissions Director": ROLE_ROUTE_PATHS.director,
+  CEO: ROLE_ROUTE_PATHS.director,
+  "System Manager": ROLE_ROUTE_PATHS.admin,
 };
 
 export function getRecognizedRoles(
@@ -249,8 +300,9 @@ export function isProtectedDashboardPath(pathname: string): boolean {
   return (
     pathname === "/" ||
     pathname === "/crm-chatbot" ||
-    pathname === "/director" ||
-    pathname.startsWith("/director/")
+    Object.values(ROLE_ROUTE_PATHS).some(
+      (route) => pathname === route || pathname.startsWith(`${route}/`),
+    )
   );
 }
 

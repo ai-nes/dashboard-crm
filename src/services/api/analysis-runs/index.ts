@@ -1,6 +1,9 @@
 import type {
+  AnalysisAdvisorySignal,
   AnalysisClaim,
   AnalysisClaimKind,
+  AnalysisConfidence,
+  AnalysisRecentChange,
   AnalysisRunKind,
   AnalysisReport,
   AnalysisReportItem,
@@ -14,13 +17,25 @@ import type {
 
 export type * from "./types";
 
-const STUDENT_REQUEST_METHOD =
-  "crm.api.intelligence_runs.request_student_analysis_run";
-const SCHOOL_REQUEST_METHOD =
-  "crm.api.intelligence_runs.request_school_analysis_run";
-const GET_RUN_METHOD = "crm.api.intelligence_runs.get_analysis_run";
+const FRAPPE_STUDENT_RUN_METHOD =
+  "crm.api.copilot_delegation.run_student_analysis";
+const FRAPPE_SCHOOL_RUN_METHOD =
+  "crm.api.copilot_delegation.run_school_analysis";
+const FRAPPE_GET_RUN_METHOD = "crm.api.copilot_delegation.get_analysis_run";
+const AGENTS_STUDENT_RUN_PATH = "/api/v1/analysis-runs/student/run";
+const AGENTS_SCHOOL_RUN_PATH = "/api/v1/analysis-runs/school/run";
+const ANALYSIS_RUN_REQUEST_TIMEOUT_MS = 65_000;
 
-type RequestOptions = { baseUrl?: string };
+export type AnalysisRunTransport = "frappe-proxy" | "agents";
+
+export type AnalysisRunRequestOptions = {
+  baseUrl?: string;
+  transport?: AnalysisRunTransport;
+  apiKey?: string;
+  authorization?: string;
+  delegationProof?: string;
+  idempotencyKey?: string;
+};
 
 const RUN_STATUSES: AnalysisRunStatus[] = [
   "queued",
@@ -83,11 +98,13 @@ function getErrorDetails(payload: unknown): {
   return {
     code:
       text(error?.code) ??
+      text(root?.code) ??
       text(root?.exception) ??
       text(message?.exception) ??
       undefined,
     message:
       text(error?.message) ??
+      text(root?.detail) ??
       text(message?.message) ??
       text(root?.message) ??
       text(root?.exception) ??
@@ -95,17 +112,25 @@ function getErrorDetails(payload: unknown): {
   };
 }
 
-function resolveBaseUrl(options: RequestOptions): string {
+function resolveTransport(options: AnalysisRunRequestOptions): AnalysisRunTransport {
+  return options.transport ?? "frappe-proxy";
+}
+
+function resolveBaseUrl(options: AnalysisRunRequestOptions): string {
+  const transport = resolveTransport(options);
   const baseUrl = (
     options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
+    (transport === "agents"
+      ? process.env.CRM_AGENTS_URL ??
+        process.env.NEXT_PUBLIC_CRM_AGENTS_URL ??
+        "http://localhost:7999"
+      : process.env.NEXT_PUBLIC_FRAPPE_URL ?? "http://localhost:8000")
   ).replace(/\/+$/, "");
-  if (!baseUrl) {
+  if (!baseUrl || !/^https?:\/\//i.test(baseUrl)) {
     throw new AnalysisRunApiError(
       0,
-      "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
+      "CRM_AGENTS_URL_INVALID",
+      "Chưa cấu hình địa chỉ dịch vụ phân tích AI.",
     );
   }
   return baseUrl;
@@ -120,13 +145,46 @@ function frappeCookieHeader(cookieHeader: string): string {
 }
 
 async function requestHeaders(
-  options: RequestOptions,
+  options: AnalysisRunRequestOptions,
   contentType = false,
 ): Promise<Record<string, string>> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (contentType) headers["Content-Type"] = "application/json";
+  const transport = resolveTransport(options);
 
-  if (!options.baseUrl && typeof window === "undefined") {
+  const apiKey =
+    transport === "agents"
+      ? options.apiKey ??
+        (typeof window !== "undefined"
+          ? process.env.NEXT_PUBLIC_CRM_AGENTS_API_KEY
+          : process.env.CRM_AGENTS_API_KEY)
+      : undefined;
+  const authorization =
+    transport === "agents"
+      ? options.authorization ??
+        (typeof window !== "undefined"
+          ? process.env.NEXT_PUBLIC_CRM_AGENTS_AUTHORIZATION ??
+            process.env.NEXT_PUBLIC_CRM_AGENTS_OAUTH_TOKEN
+          : process.env.CRM_AGENTS_AUTHORIZATION ??
+            process.env.CRM_AGENTS_OAUTH_TOKEN)
+      : undefined;
+  const delegationProof =
+    transport === "agents"
+      ? options.delegationProof ??
+        (typeof window !== "undefined"
+          ? process.env.NEXT_PUBLIC_CRM_AGENTS_DELEGATION_PROOF
+          : process.env.CRM_AGENTS_DELEGATION_PROOF)
+      : undefined;
+
+  if (apiKey) headers["X-API-Key"] = apiKey;
+  if (authorization) {
+    headers.Authorization = authorization.startsWith("Bearer ")
+      ? authorization
+      : `Bearer ${authorization}`;
+  }
+  if (delegationProof) headers["X-Frappe-Delegation"] = delegationProof;
+
+  if (transport === "frappe-proxy" && typeof window === "undefined") {
     try {
       const { cookies } = await import("next/headers");
       const cookieHeader = frappeCookieHeader((await cookies()).toString());
@@ -136,37 +194,32 @@ async function requestHeaders(
     }
   }
 
-  // Frappe protects authenticated write methods with a session-bound CSRF
-  // token. The login response does not always expose it as a browser cookie,
-  // so obtain it from the already-authenticated session endpoint before a
-  // client-side POST. This keeps credentials on the Frappe origin and avoids
-  // weakening CSRF checks server-side.
-  if (typeof window !== "undefined" && contentType) {
-    const cookieToken = document.cookie
+  if (transport === "frappe-proxy" && typeof window !== "undefined" && contentType) {
+    const csrfToken = document.cookie
       .split(";")
       .map((part) => part.trim())
       .find((part) => part.startsWith("csrf_token="))
       ?.split("=")
       .slice(1)
       .join("=");
-    if (cookieToken) {
-      headers["X-Frappe-CSRF-Token"] = decodeURIComponent(cookieToken);
+
+    if (csrfToken) {
+      headers["X-Frappe-CSRF-Token"] = decodeURIComponent(csrfToken);
     } else {
       try {
         const sessionResponse = await fetch(
           `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
           { credentials: "include", headers: { Accept: "application/json" } },
         );
-        const sessionPayload = (await sessionResponse.json().catch(() => null)) as
-          | { message?: { csrf_token?: unknown } }
-          | null;
-        const csrfToken = sessionPayload?.message?.csrf_token;
-        if (typeof csrfToken === "string" && csrfToken) {
-          headers["X-Frappe-CSRF-Token"] = csrfToken;
+        const sessionPayload = (await sessionResponse
+          .json()
+          .catch(() => null)) as { message?: { csrf_token?: unknown } } | null;
+        const sessionCsrfToken = sessionPayload?.message?.csrf_token;
+        if (typeof sessionCsrfToken === "string" && sessionCsrfToken) {
+          headers["X-Frappe-CSRF-Token"] = sessionCsrfToken;
         }
       } catch {
-        // The write request will return the authoritative authentication/CSRF
-        // error if the session token cannot be read.
+        // The proxy returns the authoritative CSRF error if needed.
       }
     }
   }
@@ -174,8 +227,51 @@ async function requestHeaders(
   return headers;
 }
 
+function analysisRunPath(
+  kind: AnalysisRunKind,
+  options: AnalysisRunRequestOptions,
+): string {
+  if (resolveTransport(options) === "agents") {
+    return kind === "student"
+      ? AGENTS_STUDENT_RUN_PATH
+      : AGENTS_SCHOOL_RUN_PATH;
+  }
+  return `/api/method/${
+    kind === "student"
+      ? FRAPPE_STUDENT_RUN_METHOD
+      : FRAPPE_SCHOOL_RUN_METHOD
+  }`;
+}
+
 async function parseResponse(response: Response): Promise<unknown> {
   return response.json().catch(() => ({}));
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs?: number,
+): Promise<Response> {
+  if (!timeoutMs || typeof AbortController === "undefined") {
+    return fetch(input, init);
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new AnalysisRunApiError(
+        504,
+        "ANALYSIS_RUN_TIMEOUT",
+        "Phân tích mất nhiều thời gian hơn dự kiến. Bạn có thể thử lại với một yêu cầu mới.",
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function throwResponseError(response: Response, payload: unknown): never {
@@ -276,7 +372,7 @@ function parseClaims(value: unknown): AnalysisClaim[] {
           VISIBILITY_LABELS.includes(visibilityLabel as AnalysisVisibilityLabel)
             ? (visibilityLabel as AnalysisVisibilityLabel)
             : "source_scoped",
-        confidence: numberValue(claim.confidence),
+        confidence: parseConfidence(claim.confidence),
       },
     ];
   });
@@ -312,6 +408,12 @@ function parseTextList(value: unknown): string[] {
   });
 }
 
+function parseConfidence(value: unknown): AnalysisConfidence {
+  const numeric = numberValue(value);
+  if (numeric !== null) return numeric;
+  return text(value)?.toUpperCase() ?? null;
+}
+
 function parseReportItems(
   value: unknown,
   defaultKind: AnalysisReportItem["kind"],
@@ -343,6 +445,7 @@ function parseReportItems(
         item.description ??
         item.statement ??
         item.next_step ??
+        item.summary ??
         item.text,
     );
     if (!headline && !detail) return [];
@@ -354,11 +457,62 @@ function parseReportItems(
     return [
       {
         kind,
+        code: text(item.code),
+        signalType: text(item.type),
+        severity: text(item.severity),
+        strength: text(item.strength),
         headline: headline ?? detail ?? "",
         detail: detail ?? headline ?? "",
-        confidence: numberValue(item.confidence),
+        confidence: parseConfidence(item.confidence),
         provenanceIds: parseProvenance(
-          item.provenanceIds ?? item.provenance_ids,
+          item.provenanceIds ?? item.provenance_ids ?? item.evidence_refs,
+        ),
+      },
+    ];
+  });
+}
+
+function parseAdvisorySignals(value: unknown): AnalysisAdvisorySignal[] {
+  const parsed = parseJson(value);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.flatMap((value): AnalysisAdvisorySignal[] => {
+    const item = asRecord(value);
+    if (!item) return [];
+    const type = text(item.type);
+    const title = text(item.title ?? item.headline);
+    const summary = text(item.summary ?? item.detail ?? item.description);
+    if (!type || !title || !summary) return [];
+    return [
+      {
+        type,
+        title,
+        summary,
+        confidence: parseConfidence(item.confidence),
+        evidenceRefs: parseProvenance(
+          item.evidence_refs ?? item.evidenceRefs ?? item.provenance_ids,
+        ),
+      },
+    ];
+  });
+}
+
+function parseRecentChanges(value: unknown): AnalysisRecentChange[] {
+  const parsed = parseJson(value);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.flatMap((value): AnalysisRecentChange[] => {
+    const item = asRecord(value);
+    if (!item) return [];
+    const type = text(item.type);
+    const summary = text(item.summary ?? item.detail ?? item.description);
+    if (!type || !summary) return [];
+    return [
+      {
+        type,
+        summary,
+        evidenceRefs: parseProvenance(
+          item.evidence_refs ?? item.evidenceRefs ?? item.provenance_ids,
         ),
       },
     ];
@@ -368,16 +522,29 @@ function parseReportItems(
 function parseReport(value: unknown): AnalysisReport | null {
   const report = asRecord(parseJson(value));
   if (!report) return null;
-  // Preserve response order. The UI groups items by kind without dropping or
-  // reordering any item from the report.
-  const recommendations = [
+  // Keep the legacy combined list for existing cards, while exposing the new
+  // response groups explicitly to the richer report UI.
+  const legacyRecommendations = [
     ...parseReportItems(report.recommendations, "recommendation"),
     ...parseReportItems(
       report.recommendedActions ?? report.recommended_actions,
       "recommendation",
     ),
-    ...parseReportItems(report.opportunities, "opportunity"),
   ];
+  const opportunities = [
+    ...parseReportItems(report.opportunities, "opportunity"),
+    ...parseReportItems(
+      report.opportunitySignals ?? report.opportunity_signals,
+      "opportunity",
+    ),
+  ];
+  const advisorySignals = parseAdvisorySignals(
+    report.advisorySignals ?? report.advisory_signals,
+  );
+  const recentChanges = parseRecentChanges(
+    report.recentChanges ?? report.recent_changes,
+  );
+  const recommendations = [...legacyRecommendations, ...opportunities];
   const missingEvidence = parseTextList(
     report.missingEvidence ??
       report.missing_evidence ??
@@ -391,11 +558,16 @@ function parseReport(value: unknown): AnalysisReport | null {
     ),
     risks: parseReportItems(report.risks, "risk"),
     recommendations,
+    advisorySignals,
+    opportunities,
+    recentChanges,
     missingEvidence,
   };
   return normalized.summary ||
     normalized.risks.length > 0 ||
     normalized.recommendations.length > 0 ||
+    advisorySignals.length > 0 ||
+    recentChanges.length > 0 ||
     missingEvidence.length > 0
     ? normalized
     : null;
@@ -428,13 +600,33 @@ function normalizeStage(
 function normalizeStages(
   value: unknown,
   kind: AnalysisRunKind,
+  root: Record<string, unknown>,
 ): AnalysisRunStage[] {
-  if (!Array.isArray(value)) return [];
   const fallbacks: AnalysisStageKind[] =
     kind === "student" ? ["student_360", "next_best_action"] : ["school_360"];
-  return value.map((stage, index) =>
-    normalizeStage(stage, fallbacks[index] ?? fallbacks[0]),
-  );
+  if (Array.isArray(value)) {
+    return value.map((stage, index) =>
+      normalizeStage(stage, fallbacks[index] ?? fallbacks[0]),
+    );
+  }
+
+  // The synchronous crm-agents endpoint returns one settled, flat envelope
+  // instead of the legacy Frappe stages[] envelope. Adapt it into the same
+  // internal stage model so the existing drawer and report cards stay useful.
+  const runId = text(root.runId ?? root.run_id);
+  if (!runId) return [];
+  return [
+    {
+      id: runId,
+      stageKind: fallbacks[0],
+      status: normalizeStatus(root.status),
+      claims: [],
+      report: parseReport(root.report),
+      terminalReason: text(root.terminalReason ?? root.terminal_reason),
+      policyRevision: text(root.policyRevision ?? root.policy_revision),
+      modelRevision: text(root.modelRevision ?? root.model_revision),
+    },
+  ];
 }
 
 export function normalizeAnalysisRun(
@@ -452,7 +644,8 @@ export function normalizeAnalysisRun(
     receiptId:
       text(root.receiptId ?? root.receipt_id ?? root.receipt) ?? undefined,
     status: normalizeStatus(root.status),
-    stages: normalizeStages(root.stages, runKind),
+    terminalReason: text(root.terminalReason ?? root.terminal_reason),
+    stages: normalizeStages(root.stages, runKind, root),
     sourceRevision: numberValue(root.sourceRevision ?? root.source_revision),
     sourceDigest: text(root.sourceDigest ?? root.source_digest),
     expiresAt: text(root.expiresAt ?? root.expires_at),
@@ -475,29 +668,38 @@ function createIdempotencyKey(kind: AnalysisRunKind, targetId: string): string {
 
 export async function requestAnalysisRun(
   request: AnalysisRunRequest,
-  options: RequestOptions = {},
+  options: AnalysisRunRequestOptions = {},
 ): Promise<AnalysisRunSnapshot> {
   const baseUrl = resolveBaseUrl(options);
-  const method =
-    request.kind === "student" ? STUDENT_REQUEST_METHOD : SCHOOL_REQUEST_METHOD;
   const payload =
     request.kind === "student"
-      ? { student: request.studentId.trim() }
+      ? {
+          student_id: request.studentId.trim(),
+          ...(request.forceRerunReason
+            ? { force_rerun_reason: request.forceRerunReason }
+            : {}),
+        }
       : {
           high_school: request.highSchool.trim(),
           ...(request.admissionYear !== undefined
             ? { admission_year: request.admissionYear }
             : {}),
+          ...(request.forceRerunReason
+            ? { force_rerun_reason: request.forceRerunReason }
+            : {}),
         };
   const headers = await requestHeaders(options, true);
-  headers["Idempotency-Key"] = createIdempotencyKey(
-    request.kind,
-    request.kind === "student" ? request.studentId : request.highSchool,
-  );
+  headers["Idempotency-Key"] =
+    options.idempotencyKey ??
+    createIdempotencyKey(
+      request.kind,
+      request.kind === "student" ? request.studentId : request.highSchool,
+    );
+  const path = analysisRunPath(request.kind, options);
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/api/method/${method}`, {
+    response = await fetchWithTimeout(`${baseUrl}${path}`, {
       method: "POST",
       headers,
       body: JSON.stringify(payload),
@@ -505,8 +707,9 @@ export async function requestAnalysisRun(
         ? { credentials: "include" as RequestCredentials }
         : {}),
       cache: "no-store",
-    });
-  } catch {
+    }, ANALYSIS_RUN_REQUEST_TIMEOUT_MS);
+  } catch (error) {
+    if (error instanceof AnalysisRunApiError) throw error;
     throw new AnalysisRunApiError(
       503,
       "ANALYSIS_RUN_UNAVAILABLE",
@@ -541,22 +744,24 @@ export async function requestAnalysisRun(
 export async function getAnalysisRun(
   runId: string,
   runKind: AnalysisRunKind,
-  options: RequestOptions = {},
+  options: AnalysisRunRequestOptions = {},
 ): Promise<AnalysisRunSnapshot> {
   const baseUrl = resolveBaseUrl(options);
   const query = new URLSearchParams({
-    run_type:
-      runKind === "student"
-        ? "CRM Student Analysis Run"
-        : "CRM School Analysis Run",
-    run_id: runId,
+    run_kind: runKind,
   });
   const headers = await requestHeaders(options);
+
+  const transport = resolveTransport(options);
+  const url =
+    transport === "agents"
+      ? `${baseUrl}/api/v1/analysis-runs/${encodeURIComponent(runId)}?${query.toString()}`
+      : `${baseUrl}/api/method/${FRAPPE_GET_RUN_METHOD}?${query.toString()}&run_id=${encodeURIComponent(runId)}`;
 
   let response: Response;
   try {
     response = await fetch(
-      `${baseUrl}/api/method/${GET_RUN_METHOD}?${query.toString()}`,
+      url,
       {
         headers,
         ...(typeof window !== "undefined"

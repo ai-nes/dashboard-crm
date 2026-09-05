@@ -9,11 +9,10 @@ import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { formatDateTime } from "@/utils/format-date";
 
-import { documents } from "./student-tab-data";
 import type { Student360SectionProps } from "./types";
 
 export default function StudentDocumentsTab({ data }: Student360SectionProps) {
-  const docList = data.documents ?? documents;
+  const docList = data.documents ?? [];
   const completed = docList.filter((item) => item.tone === "success").length;
   const totalDocs = docList.length;
   const percentage = totalDocs > 0 ? Math.round((completed / totalDocs) * 100) : 0;
@@ -36,6 +35,10 @@ export default function StudentDocumentsTab({ data }: Student360SectionProps) {
           <span className="text-sm font-semibold text-text-primary">{percentage}%</span>
         </div>
       </div>
+
+      {docList.length === 0 && (
+        <p className="py-6 text-center text-sm text-text-tertiary">Chưa có dữ liệu tài liệu.</p>
+      )}
 
       <AccordionRoot variant="style_two" className="gap-0">
         {docList.map((document) => {

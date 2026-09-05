@@ -52,7 +52,7 @@ describe("dashboard RBAC", () => {
       canAccessDashboardPath("/director/schools/HIGH-001", ["Promoter"]),
     ).toBe(true);
     expect(canAccessDashboardPath("/director/school/123", ["CTV Sale"])).toBe(
-      false,
+      true,
     );
   });
 
@@ -176,5 +176,19 @@ describe("dashboard RBAC", () => {
     expect(
       canAccessDashboardPath(configurationUrl, ["System Manager"]),
     ).toBe(true);
+  });
+
+  it("shows the school 360 workspace to Sale, CTV Sale, and Lead Sales", () => {
+    const school360Url = "/director/market-intelligence";
+    const roles = ["Sale", "CTV Sale", "Lead Sales"] as const;
+
+    for (const role of roles) {
+      expect(
+        getNavigationUrls(
+          filterNavigationByRoles(getNavigationDataForRoles([role]), [role]),
+        ),
+      ).toContain(school360Url);
+      expect(canAccessDashboardPath(school360Url, [role])).toBe(true);
+    }
   });
 });

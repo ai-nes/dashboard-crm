@@ -7,6 +7,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { demographicSegments as defaultSegments } from "@/services/api/demographics/data";
 import type { DemographicSegment } from "@/services/api/demographics/types";
+import ChartEmptyState from "./chart-empty-state";
 
 interface EmergingSegmentsProps {
   segments?: DemographicSegment[];
@@ -24,11 +25,16 @@ export default function EmergingSegments({
           <CardTitle>Nhóm học sinh nên xem</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Xếp theo số lượng, tỷ lệ nhập học và tăng trưởng.</p>
         </div>
-        <Badge color="success">
-          <ArrowUpward size={13} aria-hidden="true" />
-          {segments.length} nhóm nổi bật
-        </Badge>
+        {segments.length > 0 ? (
+          <Badge color="success">
+            <ArrowUpward size={13} aria-hidden="true" />
+            {segments.length} nhóm nổi bật
+          </Badge>
+        ) : null}
       </CardHeader>
+      {segments.length === 0 ? (
+        <ChartEmptyState message="Chưa có nhóm nổi bật để hiển thị." />
+      ) : (
       <div className="divide-y divide-card-border">
         {segments.map((segment, index) => (
           <div
@@ -56,6 +62,7 @@ export default function EmergingSegments({
           </div>
         ))}
       </div>
+      )}
     </Card>
   );
 }

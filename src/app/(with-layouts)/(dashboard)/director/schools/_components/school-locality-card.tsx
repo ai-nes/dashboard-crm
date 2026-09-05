@@ -29,6 +29,7 @@ export default function SchoolLocalityCard({
   school,
 }: SchoolLocalityCardProps) {
   const context = getSchoolLocalityContext(school, coordinates, locality);
+  const hasLocalityStats = context.mockStats.schools !== "-";
   const clusterLabel = geography ? getClusterLabel(geography.cluster) : "-";
   const relativeIncome = demographics?.relativeIncome ?? "-";
   const tuitionAffordability = demographics
@@ -52,9 +53,6 @@ export default function SchoolLocalityCard({
             Tính khoảng cách đến campus để chọn cách tiếp cận và hỗ trợ phù hợp.
           </p>
         </div>
-        <span className="shrink-0 text-xs text-text-tertiary">
-          Mock địa bàn · 2026
-        </span>
       </CardHeader>
 
       <div className="min-w-0 p-5 lg:p-6">
@@ -123,7 +121,7 @@ export default function SchoolLocalityCard({
                 Quy mô khu vực
               </p>
               <span className="text-[11px] text-text-tertiary">
-                Số liệu minh hoạ (mock)
+                {hasLocalityStats ? "Theo dữ liệu hệ thống" : "Chưa có dữ liệu"}
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-3">
@@ -161,15 +159,16 @@ export default function SchoolLocalityCard({
         </section>
       </div>
 
-      <p className="flex items-start gap-1.5 border-t border-card-border px-5 py-4 text-xs leading-5 text-text-tertiary lg:px-6">
-        <InfoTriangle
-          size={14}
-          className="mt-0.5 shrink-0 text-warning-500"
-          aria-hidden="true"
-        />
-        Số liệu địa bàn là mock để minh hoạ cách chọn kênh tiếp cận; cần thay
-        bằng dữ liệu xác thực trước khi triển khai.
-      </p>
+      {!hasLocalityStats && (
+        <p className="flex items-start gap-1.5 border-t border-card-border px-5 py-4 text-xs leading-5 text-text-tertiary lg:px-6">
+          <InfoTriangle
+            size={14}
+            className="mt-0.5 shrink-0 text-warning-500"
+            aria-hidden="true"
+          />
+          Chưa có dữ liệu quy mô khu vực xác thực cho địa bàn này.
+        </p>
+      )}
     </Card>
   );
 }

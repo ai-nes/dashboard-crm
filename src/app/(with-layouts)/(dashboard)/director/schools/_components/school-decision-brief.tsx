@@ -37,6 +37,10 @@ export default function SchoolDecisionBrief({
     data.availableStudents > 0
       ? `${data.availableStudents.toLocaleString("vi-VN")} HS có thể tiếp cận`
       : "Cần cập nhật tệp học sinh";
+  const potentialDetail =
+    data.potentialScore === null
+      ? "Điểm tiềm năng: Chưa có dữ liệu"
+      : `Tiềm năng ${data.potentialScore}/100 · ${data.geography.cluster}`;
 
   return (
     <section
@@ -54,7 +58,7 @@ export default function SchoolDecisionBrief({
         icon={<TrendUp2 size={16} />}
         label="Cơ hội tuyển sinh"
         value={availableStudents}
-        detail={`Tiềm năng ${data.potentialScore}/100 · ${data.geography.cluster}`}
+        detail={potentialDetail}
         tone="success"
       />
       <BriefItem

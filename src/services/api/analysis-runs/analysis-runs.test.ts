@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { normalizeAnalysisRun, requestAnalysisRun } from "./index";
+import { getAnalysisRun, normalizeAnalysisRun, requestAnalysisRun } from "./index";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -164,60 +164,203 @@ describe("analysis run API contract", () => {
     );
   });
 
-  it("loads the session CSRF token before a browser analysis request", async () => {
-    vi.stubGlobal("window", {});
-    vi.stubGlobal("crypto", { randomUUID: () => "request-id" });
-
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            message: {
-              user: "director@example.com",
-              email: "director@example.com",
-              full_name: "Director",
-              user_image: null,
-              roles: ["Admissions Director"],
-              crm_profile: "admissions_director",
-              crm_role: "Admissions Director",
-              crm_capabilities: ["analysis:request"],
-              csrf_token: "session-csrf-token",
-            },
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            message: {
-              run_id: "run-1",
-              run_type: "CRM Student Analysis Run",
-              status: "queued",
-              stages: [{ name: "stage-1", stage_kind: "student_360", status: "queued" }],
-            },
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
-      );
+  it("routes Student 360 through the Frappe BFF by default", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          run_id: "proxy-student-run",
+          student_id: "ENR-2026-00003",
+          status: "completed",
+          report: null,
+          terminal_reason: null,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     await requestAnalysisRun(
-      { kind: "student", studentId: "ENR-2026-01395" },
-      { baseUrl: "https://crm.faip.pro" },
+      { kind: "student", studentId: "ENR-2026-00003" },
+      {
+        baseUrl: "http://frappe.test",
+        idempotencyKey: "dashboard-student:proxy-test",
+      },
     );
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://crm.faip.pro/api/method/crm.api.session.me",
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      "http://frappe.test/api/method/crm.api.copilot_delegation.run_student_analysis",
     );
-    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
-      method: "POST",
-      credentials: "include",
-      headers: expect.objectContaining({
-        "X-Frappe-CSRF-Token": "session-csrf-token",
-      }),
+    expect(init.headers).toMatchObject({
+      "Content-Type": "application/json",
+      "Idempotency-Key": "dashboard-student:proxy-test",
     });
+    expect(init.headers).not.toHaveProperty("X-API-Key");
+  });
+
+  it("calls the synchronous Student 360 endpoint and normalizes its flat report", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          run_id: "sync-student-run",
+          student_id: "ENR-2026-00003",
+          status: "completed",
+          report: {
+            advisory_signals: [
+              {
+                type: "Academic Readiness",
+                title: "Kết quả học tập lớp 12 đạt hạn cao",
+                summary: "Nền tảng học tập đang phù hợp với ngành đã chọn.",
+                confidence: "HIGH",
+                evidence_refs: ["score:SCH-2026-00003"],
+              },
+            ],
+            risks: [
+              {
+                code: "INCOMPLETE_DOCS",
+                severity: "LOW",
+                title: "Còn thiếu tài liệu hồ sơ",
+                summary: "Cần bổ sung giấy tờ trước khi chốt hồ sơ.",
+                evidence_refs: ["application:APP-2026-00001"],
+              },
+            ],
+            opportunity_signals: [
+              {
+                code: "HIGH_FIT_INTEREST",
+                strength: "HIGH",
+                title: "Mức độ phù hợp cao",
+                summary: "Có thể ưu tiên tư vấn bước tiếp theo.",
+                evidence_refs: ["score:SCH-2026-00003"],
+              },
+            ],
+            recent_changes: [
+              {
+                type: "Lifecycle Progression",
+                summary: "Hồ sơ đã chuyển sang Applicant.",
+                evidence_refs: ["lifecycle:run-1"],
+              },
+            ],
+          },
+          terminal_reason: null,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await requestAnalysisRun(
+      { kind: "student", studentId: "ENR-2026-00003" },
+      {
+        baseUrl: "http://agents.test",
+        transport: "agents",
+        apiKey: "api-key",
+        authorization: "oauth-token",
+        delegationProof: "delegation-proof",
+        idempotencyKey: "dashboard-student:sync-test",
+      },
+    );
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://agents.test/api/v1/analysis-runs/student/run");
+    expect(init.headers).toMatchObject({
+      "X-API-Key": "api-key",
+      Authorization: "Bearer oauth-token",
+      "X-Frappe-Delegation": "delegation-proof",
+      "Idempotency-Key": "dashboard-student:sync-test",
+    });
+    expect(JSON.parse(String(init.body))).toEqual({
+      student_id: "ENR-2026-00003",
+    });
+    expect(result.status).toBe("completed");
+    expect(result.stages[0]?.stageKind).toBe("student_360");
+    expect(result.stages[0]?.report?.advisorySignals?.[0]).toMatchObject({
+      type: "Academic Readiness",
+      confidence: "HIGH",
+      evidenceRefs: ["score:SCH-2026-00003"],
+    });
+    expect(result.stages[0]?.report?.risks[0]).toMatchObject({
+      code: "INCOMPLETE_DOCS",
+      severity: "LOW",
+    });
+    expect(result.stages[0]?.report?.opportunities?.[0]).toMatchObject({
+      code: "HIGH_FIT_INTEREST",
+      strength: "HIGH",
+    });
+    expect(result.stages[0]?.report?.recentChanges?.[0]?.type).toBe(
+      "Lifecycle Progression",
+    );
+  });
+
+  it("calls the synchronous School 360 endpoint and keeps terminal reasons retryable", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            run_id: "sync-school-run",
+            high_school: "01-001-062",
+            status: "abstained",
+            report: null,
+            terminal_reason: "insufficient_evidence",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    const result = await requestAnalysisRun(
+      {
+        kind: "school",
+        highSchool: "01-001-062",
+        admissionYear: 2026,
+        forceRerunReason: "Dữ liệu quan hệ trường vừa được cập nhật",
+      },
+      { baseUrl: "http://agents.test", transport: "agents" },
+    );
+
+    const fetchMock = vi.mocked(fetch);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://agents.test/api/v1/analysis-runs/school/run");
+    expect(JSON.parse(String(init.body))).toEqual({
+      high_school: "01-001-062",
+      admission_year: 2026,
+      force_rerun_reason: "Dữ liệu quan hệ trường vừa được cập nhật",
+    });
+    expect(result.status).toBe("abstained");
+    expect(result.terminalReason).toBe("insufficient_evidence");
+    expect(result.stages[0]?.stageKind).toBe("school_360");
+    expect(result.stages[0]?.report).toBeNull();
+  });
+
+  it("reads a settled run from the new history endpoint with run_kind", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          run_id: "history-school-run",
+          high_school: "01-001-062",
+          status: "completed",
+          report: {
+            advisory_signals: [],
+            risks: [],
+            opportunity_signals: [],
+            recent_changes: [],
+          },
+          terminal_reason: null,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getAnalysisRun("history-school-run", "school", {
+      baseUrl: "http://frappe.test",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://frappe.test/api/method/crm.api.copilot_delegation.get_analysis_run?run_kind=school&run_id=history-school-run",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+    expect(result.runKind).toBe("school");
+    expect(result.stages[0]?.stageKind).toBe("school_360");
   });
 });

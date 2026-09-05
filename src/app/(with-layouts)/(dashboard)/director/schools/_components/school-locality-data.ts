@@ -83,16 +83,12 @@ function getTravelTime(distanceKm: number) {
   return hours > 0 ? `${hours} giờ ${remainingMinutes > 0 ? `${remainingMinutes} phút` : ""}`.trim() : `${minutes} phút`;
 }
 
-function getMockStats(school: SchoolDirectoryRecord) {
-  const seed = [...normalize(`${school.provinceCode}-${school.districtCode}-${school.name}`)].reduce((total, character) => total + character.charCodeAt(0), 0);
-
-  return {
-    schools: `${18 + (seed % 20)}`,
-    grade12Students: (4800 + (seed % 34) * 240).toLocaleString("vi-VN"),
-    outOfProvinceRate: `${20 + (seed % 16)}%`,
-    fptInterestRate: `${10 + (seed % 9)}%`,
-  };
-}
+const EMPTY_LOCALITY_STATS = {
+  schools: "-",
+  grade12Students: "-",
+  outOfProvinceRate: "-",
+  fptInterestRate: "-",
+};
 
 function getCompactAddress(address: string, fallback: string) {
   const segments = address.split(",").map((segment) => segment.trim()).filter(Boolean);
@@ -140,11 +136,13 @@ export function getSchoolLocalityContext(
         outOfProvinceRate: locality?.marketStats.outOfProvinceRate ?? "-",
         fptInterestRate: locality?.marketStats.fptInterestRate ?? "-",
       }
-    : isLongAn
-    ? { schools: "42", grade12Students: "12.640", outOfProvinceRate: "34%", fptInterestRate: "18%" }
-    : getMockStats(school);
+    : EMPTY_LOCALITY_STATS;
   const localityPlan = getLocalityPlan(distanceKm, travelTime);
   const sourceName = isLongAn ? `${school.name} · ${sourceLabel}` : school.name;
+  const opportunity =
+    mockStats.outOfProvinceRate === "-"
+      ? "Chưa có dữ liệu để đánh giá cơ hội mở rộng tệp học sinh ngoài tỉnh."
+      : `Có thể mở rộng tệp học sinh đi học ngoài tỉnh (${mockStats.outOfProvinceRate}).`;
 
   return {
     isLongAn,
@@ -161,8 +159,8 @@ export function getSchoolLocalityContext(
     travelTime,
     mockStats,
     risks: localityPlan.risks,
-    opportunity: `Có thể mở rộng tệp học sinh đi học ngoài tỉnh (${mockStats.outOfProvinceRate}).`,
+    opportunity,
     actions: localityPlan.actions,
-    recommendation: localityPlan.actions[0],
+    recommendation: localityPlan.actions[0] ?? "-",
   };
 }

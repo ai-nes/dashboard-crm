@@ -4,14 +4,25 @@ import {
   ChatIcon,
   HomeIcon,
   InvoiceIcon,
+  // PieChartIcon,
   TaskIcon,
   UserGroupIcon,
   Widget4Icon,
 } from "./icon";
-import { Buildings11, MapMarker5, Target3 } from "@tailgrids/icons";
+import {
+  Buildings11,
+  MapMarker5,
+  Target3,
+  UserMultiple4,
+  UserPencil,
+} from "@tailgrids/icons";
 import type { ReactNode } from "react";
 import type { CrmRole } from "../auth/rbac";
-import { getEffectiveCrmRoles, getRolesForRoute } from "../auth/rbac";
+import {
+  getDefaultRouteForRoles,
+  getEffectiveCrmRoles,
+  getRolesForRoute,
+} from "../auth/rbac";
 
 export interface NavigationItem {
   title: string;
@@ -180,10 +191,220 @@ export const DIRECTOR_NAV_DATA: NavigationSection[] = NAV_DATA.map(
   }),
 ).filter((section) => section.items.length > 0);
 
+/**
+ * Dedicated, curated navigation for CTV Sale — a small, focused set of
+ * entry points rather than a filtered slice of the full NAV_DATA (two of
+ * these routes, the CTV Sale overview and results screens, don't exist
+ * anywhere else in NAV_DATA).
+ */
+export const CTV_SALE_NAV_DATA: NavigationSection[] = [
+  {
+    label: "TỔNG QUAN",
+    items: [
+      navItem({
+        title: "Tổng quan tuyển sinh",
+        url: "/ctv-sale",
+        exact: true,
+        icon: <HomeIcon />,
+      }),
+      navItem({
+        title: "Việc cần xử lý",
+        url: "/ctv-sale/next-best-action",
+        icon: <TaskIcon />,
+      }),
+    ],
+  },
+  {
+    label: "HỒ SƠ HỌC SINH",
+    items: [
+      navItem({
+        title: "Hồ sơ học sinh 360°",
+        url: "/ctv-sale/students",
+        icon: <UserGroupIcon />,
+      }),
+      navItem({
+        title: "Trường THPT 360°",
+        url: "/director/market-intelligence",
+        icon: <Buildings11 size={18} />,
+      }),
+    ],
+  },
+  {
+    label: "VẬN HÀNH TUYỂN SINH",
+    items: [
+      navItem({
+        title: "Quản lý task",
+        url: "/ctv-sale/tasks",
+        icon: <TaskIcon />,
+      }),
+      // navItem({
+      //   title: "Kết quả",
+      //   url: "/ctv-sale/results",
+      //   icon: <PieChartIcon />,
+      // }),
+    ],
+  },
+];
+
+/**
+ * Dedicated, curated navigation for Sale — mirrors CTV Sale's structure but
+ * also keeps the CRM chatbot entry point that Sale already has access to.
+ */
+export const SALE_NAV_DATA: NavigationSection[] = [
+  {
+    label: "TỔNG QUAN",
+    items: [
+      navItem({
+        title: "Tổng quan tuyển sinh",
+        url: "/sale",
+        exact: true,
+        icon: <HomeIcon />,
+      }),
+      navItem({
+        title: "Việc cần xử lý",
+        url: "/sale/next-best-action",
+        icon: <TaskIcon />,
+      }),
+      navItem({
+        title: "Chatbot CRM",
+        url: "/crm-chatbot",
+        icon: <ChatIcon />,
+      }),
+    ],
+  },
+  {
+    label: "HỌC SINH & NGƯỜI HỌC",
+    items: [
+      // navItem({
+      //   title: "Khám phá người học",
+      //   url: "/sale/demographics",
+      //   icon: <AlphabetIcon />,
+      // }),
+      navItem({
+        title: "Hồ sơ học sinh 360°",
+        url: "/sale/students",
+        icon: <UserGroupIcon />,
+      }),
+      navItem({
+        title: "Trường THPT 360°",
+        url: "/director/market-intelligence",
+        icon: <Buildings11 size={18} />,
+      }),
+    ],
+  },
+  {
+    label: "VẬN HÀNH TUYỂN SINH",
+    items: [
+      navItem({
+        title: "Quản lý task",
+        url: "/sale/tasks",
+        icon: <TaskIcon />,
+      }),
+    ],
+  },
+];
+
+/**
+ * Dedicated, curated navigation for Lead Sale — Sale's set plus the two
+ * team-management screens (student assignment, sales team) that only a
+ * Lead Sales owns.
+ */
+export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
+  {
+    label: "TỔNG QUAN",
+    items: [
+      navItem({
+        title: "Tổng quan tuyển sinh",
+        url: "/lead-sale",
+        exact: true,
+        icon: <HomeIcon />,
+      }),
+      navItem({
+        title: "Việc cần xử lý",
+        url: "/lead-sale/next-best-action",
+        icon: <TaskIcon />,
+      }),
+      navItem({
+        title: "Chatbot CRM",
+        url: "/crm-chatbot",
+        icon: <ChatIcon />,
+      }),
+    ],
+  },
+  {
+    label: "HỌC SINH & NGƯỜI HỌC",
+    items: [
+      navItem({
+        title: "Khám phá người học",
+        url: "/lead-sale/demographics",
+        icon: <AlphabetIcon />,
+      }),
+      navItem({
+        title: "Hồ sơ học sinh 360°",
+        url: "/lead-sale/students",
+        icon: <UserGroupIcon />,
+      }),
+      navItem({
+        title: "Trường THPT 360°",
+        url: "/director/market-intelligence",
+        icon: <Buildings11 size={18} />,
+      }),
+    ],
+  },
+  {
+    label: "VẬN HÀNH TUYỂN SINH",
+    items: [
+      navItem({
+        title: "Quản lý task",
+        url: "/lead-sale/tasks",
+        icon: <TaskIcon />,
+      }),
+      navItem({
+        title: "Phân công học sinh",
+        url: "/lead-sale/student-assignment",
+        icon: <UserPencil size={18} />,
+      }),
+    ],
+  },
+  {
+    label: "ĐỘI NGŨ",
+    items: [
+      navItem({
+        title: "Đội ngũ Sale",
+        url: "/lead-sale/sales-team",
+        icon: <UserMultiple4 size={18} />,
+      }),
+    ],
+  },
+];
+
 export function getNavigationDataForRoles(
   userRoles: readonly string[],
 ): NavigationSection[] {
-  return getEffectiveCrmRoles(userRoles).includes("Admissions Director")
+  const effectiveRoles = getEffectiveCrmRoles(userRoles);
+  const navigation = effectiveRoles.includes("Admissions Director")
     ? DIRECTOR_NAV_DATA
-    : NAV_DATA;
+    : effectiveRoles.includes("CTV Sale")
+      ? CTV_SALE_NAV_DATA
+      : effectiveRoles.includes("Lead Sales")
+        ? LEAD_SALE_NAV_DATA
+        : effectiveRoles.includes("Sale")
+          ? SALE_NAV_DATA
+          : NAV_DATA;
+
+  const workspaceRoute = getDefaultRouteForRoles(userRoles);
+
+  return navigation.map((section) => ({
+    ...section,
+    items: section.items.map((item) =>
+      item.url === "/"
+        ? {
+            ...item,
+            url: workspaceRoute,
+            exact: true,
+            roles: getRolesForRoute(workspaceRoute),
+          }
+        : item,
+    ),
+  }));
 }

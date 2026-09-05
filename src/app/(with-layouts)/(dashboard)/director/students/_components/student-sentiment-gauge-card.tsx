@@ -1,16 +1,11 @@
 "use client";
 
 import {
-  Calendar,
-  Envelope1,
-  FileText,
-  Phone,
   ThumbsDown2,
   ThumbsUp2,
 } from "@tailgrids/icons";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import type { Student360Data } from "@/services/api/students/types";
 import { cn } from "@/utils/cn";
@@ -24,7 +19,6 @@ interface StudentSentimentGaugeCardProps {
   policyRevision?: string | null;
   isRefreshing?: boolean;
   onRefresh?: () => void;
-  onCreateEmail?: () => void;
 }
 
 export default function StudentSentimentGaugeCard({
@@ -34,23 +28,23 @@ export default function StudentSentimentGaugeCard({
   policyRevision,
   isRefreshing,
   onRefresh,
-  onCreateEmail,
 }: StudentSentimentGaugeCardProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
 
-  // Score from API response
-  const score = data.insight.signalScore ?? data.insight.probability ?? 82;
-  const statusText = score >= 70 ? "Tiềm năng cao" : score >= 40 ? "Tiềm năng vừa" : "Cần chú ý";
-
-  // Calculate actual sources count from API response
-  const sourcesCount = useMemo(() => {
-    let count = 0;
-    if (data.calls && data.calls.length > 0) count += 1;
-    if (data.tasks && data.tasks.length > 0) count += 1;
-    if (data.notes && data.notes.length > 0) count += 1;
-    if (data.insight.evidence && data.insight.evidence.length > 0) count += 1;
-    return Math.max(3, count);
-  }, [data]);
+  // Do not invent a score when the API has no potential-score data.
+  const scoreCandidate = data.insight.signalScore ?? data.insight.probability;
+  const score =
+    typeof scoreCandidate === "number" && Number.isFinite(scoreCandidate)
+      ? scoreCandidate
+      : null;
+  const statusText =
+    score === null
+      ? null
+      : score >= 70
+        ? "Tiềm năng cao"
+        : score >= 40
+          ? "Tiềm năng vừa"
+          : "Cần chú ý";
 
   const handleFeedback = (type: "up" | "down") => {
     setFeedback(type);
@@ -59,16 +53,6 @@ export default function StudentSentimentGaugeCard({
         ? "Cảm ơn bạn! Đã ghi nhận phản hồi tích cực về đánh giá điểm tiềm năng."
         : "Cảm ơn bạn! Chúng tôi sẽ tinh chỉnh lại trọng số đánh giá tiềm năng.",
     );
-  };
-
-  const handleEmailAction = () => {
-    if (onCreateEmail) {
-      onCreateEmail();
-    } else {
-      toast.success(
-        `Đã mở mẫu soạn email tư vấn cho ${data.student.name} (${data.student.email})`,
-      );
-    }
   };
 
   return (
@@ -94,8 +78,28 @@ export default function StudentSentimentGaugeCard({
               <>
                 {reportSummary}{" "}
                 <span className="text-text-secondary">
-                  (Điểm tiềm năng: <span className="font-semibold text-primary-600 dark:text-primary-400">{score}/100</span> — {statusText}).
+                  (Điểm tiềm năng: {score === null ? (
+                    <span className="font-semibold text-text-primary">
+                      Chưa có dữ liệu
+                    </span>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-primary-600 dark:text-primary-400">
+                        {score}/100
+                      </span>{" "}
+                      — {statusText}
+                    </>
+                  )}).
                 </span>
+              </>
+            ) : score === null ? (
+              <>
+                Học sinh <span className="font-semibold">{data.student.name}</span>{" "}
+                hiện <span className="font-semibold">chưa có dữ liệu</span> điểm tiềm năng. {" "}
+                {data.classification.interpretation ||
+                  `Học sinh đang quan tâm đến ngành ${data.student.major || "chưa xác định"}.`}{" "}
+                {data.insight.recommendation ||
+                  "Tư vấn viên nên bổ sung thêm dữ liệu tương tác trước khi đánh giá mức độ ưu tiên chăm sóc."}
               </>
             ) : (
               <>
@@ -107,28 +111,6 @@ export default function StudentSentimentGaugeCard({
               </>
             )}
           </p>
-
-          <div>
-            <Button
-              appearance="outline"
-              size="xs"
-              onPress={handleEmailAction}
-              className="rounded-lg font-medium text-text-primary hover:bg-background-soft-100"
-            >
-              <Envelope1 size={14} aria-hidden="true" />
-              Soạn email tư vấn
-            </Button>
-          </div>
-
-          {/* Sources count & icons */}
-          <div className="flex items-center gap-2 text-xs font-medium text-text-tertiary">
-            <div className="flex items-center -space-x-0.5 text-text-secondary">
-              <Phone size={14} aria-hidden="true" />
-              <Calendar size={14} aria-hidden="true" />
-              <FileText size={14} aria-hidden="true" />
-            </div>
-            <span>{sourcesCount} nguồn dữ liệu CRM</span>
-          </div>
 
           {/* Feedback thumbs buttons */}
           <div className="flex items-center gap-2 pt-1 text-text-tertiary">
@@ -159,11 +141,20 @@ export default function StudentSentimentGaugeCard({
 
         {/* Right column: Speedometer Gauge Chart */}
         <div className="flex justify-center border-t border-card-border pt-4 lg:border-t-0 lg:pt-0">
-          <StudentGaugeChart
-            score={score}
-            statusText={statusText}
-            label="Điểm tiềm năng"
-          />
+          {score === null ? (
+            <div
+              className="flex min-h-44 items-center justify-center text-sm font-medium text-text-tertiary"
+              role="status"
+            >
+              Chưa có dữ liệu
+            </div>
+          ) : (
+            <StudentGaugeChart
+              score={score}
+              statusText={statusText ?? undefined}
+              label="Điểm tiềm năng"
+            />
+          )}
         </div>
       </div>
     </Card>

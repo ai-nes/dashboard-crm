@@ -1,24 +1,36 @@
 "use client";
 
 import { keepPreviousData } from "@tanstack/react-query";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
+import { useDirectorNbaRecommendationsQuery } from "@/hooks/use-director-nba-recommendations-queries";
 import { useDirectorStudentsQuery } from "@/hooks/use-students-queries";
 import type { StudentJourneyStage } from "@/services/api/students/types";
 
 import StudentKpiStrip from "./student-kpi-strip";
-import StudentList from "./student-list";
+import StudentList, {
+  getEvaluationContent,
+  getEvaluationStudentKey,
+  studentListGrid,
+} from "./student-list";
 import StudentListToolbar from "./student-list-toolbar";
 
 export default function StudentsOverviewDashboard() {
+  const searchParams = useSearchParams();
+  const ownerId = searchParams.get("owner")?.trim() || undefined;
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState<StudentJourneyStage | "all">("all");
   const [province, setProvince] = useState("all");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const evaluationQuery = useDirectorNbaRecommendationsQuery({
+    admissionYear: 2026,
+    limit: 200,
+  });
 
   const {
     data: response,
@@ -33,11 +45,28 @@ export default function StudentsOverviewDashboard() {
       q: query || undefined,
       stage,
       province,
+      ownerId,
     },
     { placeholderData: keepPreviousData },
   );
 
   const students = response?.data ?? [];
+  const evaluationByStudentId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const recommendation of evaluationQuery.data?.recommendations ?? []) {
+      const content = getEvaluationContent(recommendation);
+      if (!content) continue;
+
+      for (const reference of [
+        recommendation.studentId,
+        recommendation.studentName ?? "",
+      ]) {
+        const key = getEvaluationStudentKey(reference);
+        if (key && !map.has(key)) map.set(key, content);
+      }
+    }
+    return map;
+  }, [evaluationQuery.data?.recommendations]);
   const summary = response?.summary;
   const meta = response?.meta;
 
@@ -116,8 +145,8 @@ export default function StudentsOverviewDashboard() {
           <div>
             <CardTitle>Danh sách học sinh</CardTitle>
             <p className="mt-1 text-xs leading-5 text-text-tertiary">
-              Ưu tiên theo điểm tiềm năng, giai đoạn hành trình và hành động gần
-              nhất.
+              Theo dõi hồ sơ, trạng thái, mức độ ưu tiên và hành động tiếp theo
+              của từng học sinh.
             </p>
           </div>
           <Badge color="primary">
@@ -135,16 +164,19 @@ export default function StudentsOverviewDashboard() {
           onReset={resetFilters}
         />
         <div
-          className="hidden grid-cols-[minmax(240px,1.35fr)_130px_minmax(140px,0.75fr)_minmax(210px,1.15fr)_84px] items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid"
+          className={`hidden ${studentListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
           aria-hidden="true"
         >
-          <span>Học sinh</span>
-          <span className="text-center">Giai đoạn</span>
-          <span>Điểm tiềm năng</span>
-          <span>Hành động gần nhất</span>
-          <span />
+          <span>Họ tên · THPT · Quê quán</span>
+          <span>Ngành quan tâm</span>
+          <span>Trạng thái</span>
+          <span>Mức độ ưu tiên</span>
+          <span>Hành động tiếp theo</span>
         </div>
-        <StudentList students={students} />
+        <StudentList
+          students={students}
+          evaluationByStudentId={evaluationByStudentId}
+        />
 
         {totalCount > 0 && (
           <div className="flex flex-col gap-3 border-t border-card-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">

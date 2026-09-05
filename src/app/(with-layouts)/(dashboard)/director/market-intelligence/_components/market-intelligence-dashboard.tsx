@@ -151,13 +151,10 @@ export default function MarketIntelligenceDashboard({
     setSelectedSchoolId(null);
   };
   const selectSchool = (provinceCode: string, schoolId: string) => {
-    setSelectedCode(provinceCode);
-    setSelectedSchoolId(schoolId);
     const school = provinces
       .find((province) => province.code === provinceCode)
       ?.highSchools.find((item) => item.id === schoolId);
-    if (school?.directoryId)
-      router.push(`/director/schools/${school.directoryId}`);
+    if (school) router.push(`/director/schools/${school.id}`);
   };
   const changeRegion = (nextRegion: RegionKey) => {
     setRegion(nextRegion);
@@ -212,7 +209,6 @@ export default function MarketIntelligenceDashboard({
           <ProvinceInspector
             onSelectSchool={selectSchool}
             province={filteredSelectedProvince}
-            selectedSchoolId={visibleSelectedSchoolId}
           />
         )}
       </div>

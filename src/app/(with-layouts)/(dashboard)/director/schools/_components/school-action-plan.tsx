@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 
 import AnalysisActivityFeed from "@/components/analysis-runs/analysis-activity-feed";
 import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
+import { formatTerminalReason } from "@/components/analysis-runs/analysis-run-meta";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { useAnalysisRun } from "@/hooks/use-analysis-run";
@@ -49,6 +50,10 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
     run?.status === "running" ||
     requestMutation.isPending;
   const analysisError = requestMutation.error ?? runQuery.error;
+  const terminalReason =
+    run?.terminalReason ??
+    run?.stages.find((stage) => stage.terminalReason)?.terminalReason;
+  const terminalReasonLabel = formatTerminalReason(terminalReason);
   const school360Stage = useMemo(
     () => run?.stages.find((stage) => stage.stageKind === "school_360") ?? null,
     [run],
@@ -60,6 +65,9 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
   );
   const displayData = schoolActionPlanMock.data;
   const displayReport = analysisReport ?? schoolActionPlanMock.report;
+  const opportunities =
+    displayReport.opportunities ??
+    displayReport.recommendations.filter((item) => item.kind === "opportunity");
   const classificationGroup = displayData.classificationResponse?.group;
 
   const handleAnalysis = () => {
@@ -80,6 +88,17 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
         <p className="text-xs text-error-600" role="alert">
           Chưa thể hoàn tất phân tích. Bạn có thể thử lại.
         </p>
+      )}
+      {terminalReasonLabel && !isAnalysisActive && (
+        <div
+          className="rounded-xl border border-warning-200 bg-badge-warning-background px-4 py-3 text-xs leading-5 text-warning-800 dark:border-warning-800 dark:text-warning-200"
+          role="status"
+        >
+          <p className="font-semibold">Phân tích chưa hoàn tất</p>
+          <p className="mt-0.5">
+            {terminalReasonLabel}. Bạn có thể chọn “Phân tích” để thử lại.
+          </p>
+        </div>
       )}
 
       {isAnalysisActive && run ? (
@@ -136,6 +155,7 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
             />
             <SchoolRecentInteractionsCard
               data={displayData}
+              recentChanges={displayReport.recentChanges}
               isRefreshing={Boolean(isAnalysisActive)}
               onRefresh={handleAnalysis}
             />
@@ -159,7 +179,7 @@ export default function SchoolActionPlan({ data }: SchoolActionPlanProps) {
               onRefresh={handleAnalysis}
             />
             <SchoolPositiveSignalsCard
-              recommendations={displayReport.recommendations}
+              recommendations={opportunities}
               isRefreshing={Boolean(isAnalysisActive)}
               onRefresh={handleAnalysis}
             />

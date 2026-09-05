@@ -29,9 +29,11 @@ export default function AnalysisReportCockpit({
     report.recommendations.filter((item) => item.kind === "recommendation"),
   );
   const primaryOpportunity = getHighestConfidenceReportItem(
-    report.recommendations.filter((item) => item.kind === "opportunity"),
+    report.opportunities ??
+      report.recommendations.filter((item) => item.kind === "opportunity"),
   );
   const nextMove = primaryRecommendation ?? primaryOpportunity;
+  const primaryAdvisory = report.advisorySignals?.[0] ?? null;
 
   return (
     <section
@@ -45,8 +47,9 @@ export default function AnalysisReportCockpit({
         <SignalBlock
           label="Tóm tắt"
           tone="primary"
-          heading={report.title ?? "Tổng quan tình trạng"}
-          body={report.summary ?? "Chưa có tóm tắt cho lần phân tích này."}
+          heading={report.title ?? primaryAdvisory?.title ?? "Tổng quan tình trạng"}
+          body={report.summary ?? primaryAdvisory?.summary}
+          emptyText="Chưa có tóm tắt cho lần phân tích này."
         />
         <SignalBlock
           label="Rủi ro chính"
@@ -59,12 +62,14 @@ export default function AnalysisReportCockpit({
           label={
             nextMove?.kind === "opportunity"
               ? "Cơ hội"
-              : "Khuyến nghị tiếp theo"
+              : nextMove
+                ? "Khuyến nghị tiếp theo"
+                : "Tín hiệu tư vấn"
           }
           tone={nextMove?.kind === "opportunity" ? "success" : "primary"}
-          heading={nextMove?.headline}
-          body={nextMove?.detail}
-          emptyText="Chưa có khuyến nghị hoặc cơ hội nổi bật từ dữ liệu hiện có."
+          heading={nextMove?.headline ?? primaryAdvisory?.title}
+          body={nextMove?.detail ?? primaryAdvisory?.summary}
+          emptyText="Chưa có tín hiệu nổi bật từ dữ liệu hiện có."
         />
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-card-border px-5 py-4">

@@ -11,6 +11,7 @@ import {
 } from "@/components/tailgrids/core/tabs";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { useStudentAuditLogsQuery } from "@/hooks/use-student-audit-query";
+import { useStudentChatwootInteractionsQuery } from "@/hooks/use-students-queries";
 import {
   useCreateCrmTaskMutation,
   useCrmTasksQuery,
@@ -26,6 +27,7 @@ import {
 } from "@/hooks/use-crm-notes-queries";
 import type { StudentAuditLog } from "@/services/api/student-audit";
 import type {
+  StudentChatwootInteractionsResponse,
   StudentNoteItem,
   StudentTaskItem,
 } from "@/services/api/students/types";
@@ -33,10 +35,6 @@ import type {
 import StudentAllActivitiesFeed from "./student-all-activities-feed";
 import StudentAuditCard from "./student-audit-card";
 import StudentCallsTab from "./student-calls-tab";
-import {
-  resolveStudentCalls,
-  zaloMessages as mockZaloMessages,
-} from "./student-tab-data";
 import StudentNotesTab from "./student-notes-tab";
 import StudentDeleteTaskDialog from "./student-delete-task-dialog";
 import StudentTasksTab from "./student-tasks-tab";
@@ -45,6 +43,10 @@ import {
   studentTaskToCreatePayload,
   studentTaskToUpdatePayload,
 } from "./student-task-mappers";
+import {
+  filterAssigneesToCurrentUser,
+  isCtvSaleUser,
+} from "./student-task-assignee-policy";
 import StudentZaloTab from "./student-zalo-tab";
 import type {
   Student360SectionProps,
@@ -54,6 +56,7 @@ import type {
 
 interface StudentActivitiesTabProps extends Student360SectionProps {
   studentId: string;
+  initialChatwootInteractions?: StudentChatwootInteractionsResponse | null;
   initialTaskId?: string;
 }
 
@@ -91,6 +94,7 @@ function getFollowUpTaskTitle(content: string): string {
 export default function StudentActivitiesTab({
   data,
   studentId,
+  initialChatwootInteractions,
   initialTaskId,
 }: StudentActivitiesTabProps) {
   const { user } = useAuth();
@@ -98,6 +102,7 @@ export default function StudentActivitiesTab({
   const [activeTab, setActiveTab] = useState(initialTaskId ? "tasks" : "all");
   const assignedTo = data.student.counselor || "Chưa phân công";
   const currentUserId = user?.user || user?.email;
+  const isSelfAssignmentOnly = isCtvSaleUser(user);
   const taskAssignees = useMemo(() => {
     const currentSessionUser = user
       ? {
@@ -117,6 +122,14 @@ export default function StudentActivitiesTab({
         allUsers.findIndex((item) => item.name === candidate.name) === index,
     );
   }, [taskAssigneesQuery.data, user]);
+  const assignableTaskAssignees = useMemo(() => {
+    if (!isSelfAssignmentOnly) return taskAssignees;
+
+    return filterAssigneesToCurrentUser(taskAssignees, [
+      user?.user,
+      user?.email,
+    ]);
+  }, [isSelfAssignmentOnly, taskAssignees, user?.email, user?.user]);
   const currentUserIdentifiers = useMemo(
     () =>
       [user?.user, user?.email]
@@ -127,6 +140,12 @@ export default function StudentActivitiesTab({
 
   // Dùng ID canonical từ URL (e.g. ENR-2026-00005), không dùng mã hiển thị/nội bộ từ payload student.
   const studentDocname = studentId.trim();
+  const chatwootInteractionsQuery = useStudentChatwootInteractionsQuery(
+    studentDocname,
+    {
+      initialData: initialChatwootInteractions ?? undefined,
+    },
+  );
 
   // Gọi Frappe RPC crm.api.note.list_notes
   const { data: crmNotesData } = useCrmNotesQuery({
@@ -209,8 +228,11 @@ export default function StudentActivitiesTab({
 
     return [...pendingCreatedTasks, ...visibleServerTasks];
   }, [createdTasks, deletedTaskIds, serverTasks, taskOverrides]);
-  const zaloMessages = data.zaloMessages ?? mockZaloMessages;
-  const calls = resolveStudentCalls(data.calls);
+  const zaloMessages =
+    chatwootInteractionsQuery.data?.zalo_messages ??
+    data.zaloMessages ??
+    [];
+  const calls = data.calls ?? [];
   const auditEvents = studentAuditQuery.data?.logs ?? EMPTY_AUDIT_LOGS;
 
   // Tạo ghi chú qua crm.api.note.create_note
@@ -317,17 +339,31 @@ export default function StudentActivitiesTab({
   };
 
   const handleCreateTask = async (task: StudentTaskItem) => {
+    const enforcedAssigneeId = isSelfAssignmentOnly
+      ? currentUserId
+      : task.assigneeId;
+    const taskToCreate = isSelfAssignmentOnly
+      ? {
+          ...task,
+          assigneeId: enforcedAssigneeId,
+          assignee: user?.full_name || task.assignee,
+        }
+      : task;
     const optimisticId = generateId("task");
     const optimisticTask = {
-      ...task,
+      ...taskToCreate,
       id: optimisticId,
-      assignee: task.assignee || assignedTo,
+      assignee: taskToCreate.assignee || assignedTo,
     };
     setCreatedTasks((prev) => [optimisticTask, ...prev]);
 
     try {
       const createdTask = await createTaskMutation.mutateAsync(
-        studentTaskToCreatePayload(task, studentDocname, task.assigneeId),
+        studentTaskToCreatePayload(
+          taskToCreate,
+          studentDocname,
+          enforcedAssigneeId,
+        ),
       );
       const serverTask = crmTaskToStudentTask(
         createdTask,
@@ -454,8 +490,9 @@ export default function StudentActivitiesTab({
           onCreateTask={handleCreateTask}
           onUpdateTask={handleUpdateTask}
           onDeleteTask={handleRequestDeleteTask}
-          assignees={taskAssignees}
+          assignees={assignableTaskAssignees}
           currentUserId={currentUserId}
+          isSelfAssignmentOnly={isSelfAssignmentOnly}
           isLoadingAssignees={taskAssigneesQuery.isPending}
           isCreating={createTaskMutation.isPending}
           isLoading={crmTasksQuery.isPending}
