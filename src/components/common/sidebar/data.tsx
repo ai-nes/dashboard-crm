@@ -360,7 +360,7 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         icon: <TaskIcon />,
       }),
       navItem({
-        title: "Phân công học sinh",
+        title: "Phân công tự động",
         url: "/lead-sale/student-assignment",
         icon: <UserPencil size={18} />,
       }),
