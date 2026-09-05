@@ -20,7 +20,7 @@ import NbaAdminDialogHeader from "./nba-admin-dialog-header";
 import NbaTimeWindowEditor from "./nba-time-window-editor";
 import { getActionPurpose } from "./types";
 
-const ACTION_ROLES = ["Sale", "Lead Sales", "Marketing", "Promoter", "Admissions Director", "System Manager"] as const;
+const ACTION_ROLES = ["Sale", "Lead Sale", "Marketing", "Promoter", "Admissions Director", "System Manager"] as const;
 
 const CHANNEL_OPTIONS: Array<{ id: ActionChannel; label: string }> = [
   { id: "NONE", label: "Không có kênh" },

@@ -17,14 +17,10 @@ describe("student ownership API contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            studentId: "STUDENT-1",
-            sales: [
+            owners: [
               {
                 name: "STAFF-CTV",
                 label: "CTV Sale A",
-                profile: "ctv_sale",
-                role: "CTV Sale",
-                function: "CTV-Sale",
                 team: "TEAM-1",
                 campus: "CAMPUS-1",
               },
@@ -41,7 +37,7 @@ describe("student ownership API contract", () => {
 
     expect(result.sales[0]?.name).toBe("STAFF-CTV");
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_ownership.get_assignable_sales?studentId=STUDENT-1&search=ctv",
+      "http://frappe:8000/api/method/crm.api.student_ownership.get_eligible_ownership_targets?student=STUDENT-1",
       expect.objectContaining({ cache: "no-store" }),
     );
   });
@@ -64,13 +60,14 @@ describe("student ownership API contract", () => {
         expectedRevision: 4,
         idempotencyKey: "assign-student-001",
         correlationId: "manual-assign-001",
+        targetTeamId: "TEAM-1",
       },
       { baseUrl: "http://frappe:8000" },
     );
 
     const [url, init] = fetchSpy.mock.calls[0] ?? [];
     expect(url).toBe(
-      "http://frappe:8000/api/method/crm.api.student_ownership.assign_student_to_sales",
+      "http://frappe:8000/api/method/crm.api.student_ownership.change_student_ownership",
     );
     expect(init).toEqual(
       expect.objectContaining({
@@ -82,18 +79,20 @@ describe("student ownership API contract", () => {
       }),
     );
     expect(JSON.parse(String(init?.body))).toEqual({
-      studentId: "STUDENT-1",
-      ownerId: "STAFF-CTV",
+      student: "STUDENT-1",
+      target_kind: "owner",
+      target_id: "STAFF-CTV",
       reason: "Phân công thủ công cho CTV Sale",
-      expectedRevision: 4,
-      idempotencyKey: "assign-student-001",
-      correlationId: "manual-assign-001",
+      expected_revision: 4,
+      idempotency_key: "assign-student-001",
+      correlation_id: "manual-assign-001",
+      target_team_id: "TEAM-1",
     });
   });
 
   it("rejects an invalid candidate response", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: { studentId: "STUDENT-1" } }), {
+      new Response(JSON.stringify({ message: { owners: null } }), {
         status: 200,
       }),
     );
@@ -104,6 +103,28 @@ describe("student ownership API contract", () => {
       expect.objectContaining<Partial<StudentOwnershipApiError>>({
         status: 502,
         code: "INVALID_ASSIGNABLE_SALES_RESPONSE",
+      }),
+    );
+  });
+
+  it("requires the revision and target team for an owner command", async () => {
+    await expect(
+      assignStudentToSales(
+        {
+          studentId: "STUDENT-1",
+          ownerId: "STAFF-CTV",
+          reason: "Phân công thủ công",
+          expectedRevision: -1,
+          idempotencyKey: "assign-student-001",
+          correlationId: "manual-assign-001",
+          targetTeamId: "",
+        },
+        { baseUrl: "http://frappe:8000" },
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<StudentOwnershipApiError>>({
+        status: 400,
+        code: "INVALID_PAYLOAD",
       }),
     );
   });

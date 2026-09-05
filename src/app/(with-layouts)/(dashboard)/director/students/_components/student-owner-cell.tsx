@@ -69,15 +69,20 @@ export default function StudentOwnerCell({
       setIsEditing(false);
       return;
     }
+    if (expectedRevision === undefined) {
+      toast.error("Thiếu phiên bản ownership; hãy tải lại danh sách trước khi phân công.");
+      return;
+    }
 
     try {
       await assignMutation.mutateAsync({
         studentId,
         ownerId: sale.name,
         reason: `Phân công thủ công cho ${sale.role || sale.profile || "Sale"}`,
-        ...(expectedRevision !== undefined ? { expectedRevision } : {}),
+        expectedRevision,
         idempotencyKey: createRequestId("student-ownership", studentId),
         correlationId: createRequestId("manual-assign", studentId),
+        targetTeamId: sale.team,
       });
       onChange(sale.label);
       setIsEditing(false);

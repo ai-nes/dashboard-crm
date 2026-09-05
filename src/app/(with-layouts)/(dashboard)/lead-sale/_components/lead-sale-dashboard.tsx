@@ -27,7 +27,7 @@ export default function LeadSaleDashboard() {
     return (
       <DashboardState
         message={
-          overview.error.message || "Không thể tải tổng quan Lead Sales."
+          overview.error.message || "Không thể tải tổng quan Lead Sale."
         }
         action={overview.refetch}
       />

@@ -13,7 +13,7 @@ const assignees: SessionUser[] = [
     name: "sale@example.com",
     email: "sale@example.com",
     full_name: "Nguyễn Minh Anh",
-    roles: ["Sales User"],
+    roles: ["Sale"],
     crm_profile: "sales",
   },
   {

@@ -1,5 +1,5 @@
-const ASSIGNABLE_SALES_METHOD = "crm.api.student_ownership.get_assignable_sales";
-const ASSIGN_STUDENT_METHOD = "crm.api.student_ownership.assign_student_to_sales";
+const OWNERSHIP_TARGETS_METHOD = "crm.api.student_ownership.get_eligible_ownership_targets";
+const CHANGE_OWNERSHIP_METHOD = "crm.api.student_ownership.change_student_ownership";
 
 export interface AssignableSale {
   name: string;
@@ -20,10 +20,10 @@ export interface AssignStudentToSalesRequest {
   studentId: string;
   ownerId: string;
   reason: string;
-  expectedRevision?: number;
+  expectedRevision: number;
   idempotencyKey: string;
   correlationId: string;
-  targetTeamId?: string;
+  targetTeamId: string;
 }
 
 export type AssignStudentToSalesResponse = Record<string, unknown>;
@@ -199,14 +199,13 @@ function normalizeAssignableSale(value: unknown, index: number): AssignableSale 
   return sale;
 }
 
-function normalizeAssignableSales(value: unknown): AssignableSalesResponse {
+function normalizeAssignableSales(studentId: string, value: unknown): AssignableSalesResponse {
   const source = asRecord(unwrapMessage(value));
-  const studentId = text(source?.studentId ?? source?.student_id).trim();
-  const sales = Array.isArray(source?.sales)
-    ? source.sales.map((sale, index) => normalizeAssignableSale(sale, index))
+  const sales = Array.isArray(source?.owners)
+    ? source.owners.map((sale, index) => normalizeAssignableSale(sale, index))
     : null;
 
-  if (!studentId || !sales) {
+  if (!sales) {
     throw new Error("Phản hồi danh sách người phụ trách không hợp lệ");
   }
 
@@ -223,15 +222,26 @@ export async function getAssignableSales(
     throw new StudentOwnershipApiError(400, "INVALID_STUDENT_ID", "studentId là bắt buộc.");
   }
 
-  const query = new URLSearchParams({ studentId: normalizedStudentId });
-  if (search.trim()) query.set("search", search.trim());
+  const query = new URLSearchParams({ student: normalizedStudentId });
   const payload = await request(
-    `${resolveBaseUrl(options)}/api/method/${ASSIGNABLE_SALES_METHOD}?${query.toString()}`,
+    `${resolveBaseUrl(options)}/api/method/${OWNERSHIP_TARGETS_METHOD}?${query.toString()}`,
     { method: "GET", headers: await requestHeaders(options) },
   );
 
   try {
-    return normalizeAssignableSales(payload);
+    const result = normalizeAssignableSales(normalizedStudentId, payload);
+    const normalizedSearch = search.trim().toLocaleLowerCase();
+    return normalizedSearch
+      ? {
+          ...result,
+          sales: result.sales.filter((sale) =>
+            [sale.label, sale.team, sale.campus, sale.role, sale.profile]
+              .join(" ")
+              .toLocaleLowerCase()
+              .includes(normalizedSearch),
+          ),
+        }
+      : result;
   } catch {
     throw new StudentOwnershipApiError(
       502,
@@ -250,12 +260,22 @@ export async function assignStudentToSales(
   const reason = requestBody.reason.trim();
   const idempotencyKey = requestBody.idempotencyKey.trim();
   const correlationId = requestBody.correlationId.trim();
+  const targetTeamId = requestBody.targetTeamId.trim();
 
-  if (!studentId || !ownerId || !reason || !idempotencyKey || !correlationId) {
+  if (
+    !studentId ||
+    !ownerId ||
+    !reason ||
+    !idempotencyKey ||
+    !correlationId ||
+    !targetTeamId ||
+    !Number.isInteger(requestBody.expectedRevision) ||
+    requestBody.expectedRevision < 0
+  ) {
     throw new StudentOwnershipApiError(
       400,
       "INVALID_PAYLOAD",
-      "studentId, ownerId, reason, idempotencyKey và correlationId là bắt buộc.",
+      "studentId, ownerId, targetTeamId, expectedRevision, reason, idempotencyKey và correlationId là bắt buộc.",
     );
   }
 
@@ -263,22 +283,19 @@ export async function assignStudentToSales(
   headers["Idempotency-Key"] = idempotencyKey;
 
   const payload = await request(
-    `${resolveBaseUrl(options)}/api/method/${ASSIGN_STUDENT_METHOD}`,
+    `${resolveBaseUrl(options)}/api/method/${CHANGE_OWNERSHIP_METHOD}`,
     {
       method: "POST",
       headers,
       body: JSON.stringify({
-        studentId,
-        ownerId,
+        student: studentId,
+        target_kind: "owner",
+        target_id: ownerId,
         reason,
-        ...(requestBody.expectedRevision !== undefined
-          ? { expectedRevision: requestBody.expectedRevision }
-          : {}),
-        idempotencyKey,
-        correlationId,
-        ...(requestBody.targetTeamId?.trim()
-          ? { targetTeamId: requestBody.targetTeamId.trim() }
-          : {}),
+        expected_revision: requestBody.expectedRevision,
+        idempotency_key: idempotencyKey,
+        correlation_id: correlationId,
+        target_team_id: targetTeamId,
       }),
     },
   );

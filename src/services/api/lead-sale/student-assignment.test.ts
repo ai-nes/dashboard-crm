@@ -14,7 +14,7 @@ function workspaceFixture() {
   const ids = ["input", "validation", "classification", "matching", "review", "assignment"];
   return {
     meta: {
-      viewer: { id: "lead@example.com", displayName: "Lead Sales" },
+      viewer: { id: "lead@example.com", displayName: "Lead Sale" },
       team: { id: "TEAM-1", name: "Đội Sale" },
       admissionYear: 2026,
       date: "2026-09-05",

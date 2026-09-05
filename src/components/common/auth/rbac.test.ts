@@ -178,9 +178,9 @@ describe("dashboard RBAC", () => {
     ).toBe(true);
   });
 
-  it("shows the school 360 workspace to Sale, CTV Sale, and Lead Sales", () => {
+  it("shows the school 360 workspace to Sale, CTV Sale, and Lead Sale", () => {
     const school360Url = "/director/market-intelligence";
-    const roles = ["Sale", "CTV Sale", "Lead Sales"] as const;
+    const roles = ["Sale", "CTV Sale", "Lead Sale"] as const;
 
     for (const role of roles) {
       expect(

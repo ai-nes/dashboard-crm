@@ -17,7 +17,7 @@ import StudentListToolbar from "./student-list-toolbar";
 
 export default function StudentsOverviewDashboard() {
   const { user } = useAuth();
-  const isLeadSale = user?.roles?.includes("Lead Sales") ?? false;
+  const isLeadSale = user?.roles?.includes("Lead Sale") ?? false;
   const pageTitle = isLeadSale ? "Danh sách học sinh" : "Hồ sơ học sinh 360°";
   const searchParams = useSearchParams();
   const ownerId = searchParams.get("owner")?.trim() || undefined;

@@ -307,7 +307,7 @@ export const SALE_NAV_DATA: NavigationSection[] = [
 /**
  * Dedicated, curated navigation for Lead Sale — Sale's set plus the two
  * team-management screens (student assignment, sales team) that only a
- * Lead Sales owns.
+ * Lead Sale owns.
  */
 export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
   {
@@ -386,7 +386,7 @@ export function getNavigationDataForRoles(
     ? DIRECTOR_NAV_DATA
     : effectiveRoles.includes("CTV Sale")
       ? CTV_SALE_NAV_DATA
-      : effectiveRoles.includes("Lead Sales")
+      : effectiveRoles.includes("Lead Sale")
         ? LEAD_SALE_NAV_DATA
         : effectiveRoles.includes("Sale")
           ? SALE_NAV_DATA

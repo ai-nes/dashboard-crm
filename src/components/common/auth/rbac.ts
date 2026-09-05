@@ -8,7 +8,7 @@
 export const CRM_ROLES = [
   "Sale",
   "CTV Sale",
-  "Lead Sales",
+  "Lead Sale",
   "Promoter",
   "Lead Promoter",
   "Marketing",
@@ -23,13 +23,13 @@ export type CrmRole = (typeof CRM_ROLES)[number];
 const CUSTOMER_DATA_ROLES = [
   "Sale",
   "CTV Sale",
-  "Lead Sales",
+  "Lead Sale",
   "Admissions Director",
   "CEO",
 ] as const satisfies readonly CrmRole[];
 
 const AI_CENTER_ROLES = [
-  "Lead Sales",
+  "Lead Sale",
   "Lead Promoter",
   "Marketing",
   "Lead Marketing",
@@ -45,7 +45,7 @@ const DEMOGRAPHICS_ROLES = AI_CENTER_ROLES.filter(
 const OVERVIEW_ACTION_ROLES = [
   "Sale",
   "CTV Sale",
-  "Lead Sales",
+  "Lead Sale",
   "Promoter",
   "Lead Promoter",
   "Admissions Director",
@@ -56,7 +56,7 @@ const OVERVIEW_ACTION_ROLES = [
 const SCHOOL_INTELLIGENCE_ROLES = [
   "Sale",
   "CTV Sale",
-  "Lead Sales",
+  "Lead Sale",
   "Promoter",
   "Lead Promoter",
   "Marketing",
@@ -66,7 +66,7 @@ const SCHOOL_INTELLIGENCE_ROLES = [
 ] as const satisfies readonly CrmRole[];
 
 const REGIONAL_PERFORMANCE_ROLES = [
-  "Lead Sales",
+  "Lead Sale",
   "Lead Promoter",
   "Lead Marketing",
   "Admissions Director",
@@ -74,7 +74,7 @@ const REGIONAL_PERFORMANCE_ROLES = [
 ] as const satisfies readonly CrmRole[];
 
 const MARKETING_ANALYTICS_ROLES = [
-  "Lead Sales",
+  "Lead Sale",
   "Marketing",
   "Lead Marketing",
   "Admissions Director",
@@ -92,7 +92,7 @@ const ACTIVITY_CAMPAIGN_ROLES = [
 
 const SLA_ROLES = [
   "Sale",
-  "Lead Sales",
+  "Lead Sale",
   "Promoter",
   "Lead Promoter",
   "Admissions Director",
@@ -142,7 +142,7 @@ export const ROLE_ROUTE_ROLES = {
   marketing: ["Marketing", "Lead Marketing"],
   sale: ["Sale"],
   "ctv-sale": ["CTV Sale"],
-  "lead-sale": ["Lead Sales"],
+  "lead-sale": ["Lead Sale"],
 } as const satisfies Record<string, readonly CrmRole[]>;
 
 export type RoleRouteSlug = keyof typeof ROLE_ROUTE_ROLES;
@@ -236,7 +236,7 @@ const ROLE_PRIORITY: readonly CrmRole[] = [
   "Marketing",
   "Lead Promoter",
   "Promoter",
-  "Lead Sales",
+  "Lead Sale",
   "Sale",
   "CTV Sale",
 ];
@@ -244,7 +244,7 @@ const ROLE_PRIORITY: readonly CrmRole[] = [
 const ROLE_DEFAULT_ROUTES: Record<CrmRole, string> = {
   Sale: ROLE_ROUTE_PATHS.sale,
   "CTV Sale": ROLE_ROUTE_PATHS["ctv-sale"],
-  "Lead Sales": ROLE_ROUTE_PATHS["lead-sale"],
+  "Lead Sale": ROLE_ROUTE_PATHS["lead-sale"],
   Promoter: "/director/school-field-activity",
   "Lead Promoter": "/director/school-field-activity",
   Marketing: ROLE_ROUTE_PATHS.marketing,
