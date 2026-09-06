@@ -290,6 +290,13 @@ function toDirectorySchool(
     address: school.address ?? "",
     area: school.area ?? "",
     isBoardingSchool: school.isBoardingSchool ?? false,
+    phone: school.phone,
+    email: school.email,
+    schoolType: school.schoolType,
+    schoolTier: school.schoolTier,
+    boardingType: school.boardingType,
+    latitude: school.latitude,
+    longitude: school.longitude,
   };
 }
 

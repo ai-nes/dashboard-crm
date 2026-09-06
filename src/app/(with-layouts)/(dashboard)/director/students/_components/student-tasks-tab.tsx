@@ -22,7 +22,7 @@ interface StudentTasksTabProps {
   tasks: StudentTaskItem[];
   onCreateTask: (task: StudentTaskItem) => Promise<void>;
   onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
-  onDeleteTask: (id: string) => void;
+  onDeleteTask?: (id: string) => void;
   canCreateTask: boolean;
   createTaskDisabledReason?: string;
   assigneeId?: string;

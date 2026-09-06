@@ -1,25 +1,49 @@
 "use client";
 
-import { keepPreviousData } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import {
+  keepPreviousData,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { Plus } from "@tailgrids/icons";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
-import { useDirectorStudentsQuery } from "@/hooks/use-students-queries";
+import {
+  useAssignedStudentsQuery,
+  useDirectorStudentsQuery,
+} from "@/hooks/use-students-queries";
+import {
+  createStudent,
+  type StudentCreateFields,
+} from "@/services/api/student-school-update";
 import type { StudentJourneyStage } from "@/services/api/students/types";
 
+import StudentCreateDialog from "./student-create-dialog";
 import StudentKpiStrip from "./student-kpi-strip";
 import StudentList, { studentListGrid } from "./student-list";
 import StudentListToolbar from "./student-list-toolbar";
 
 export default function StudentsOverviewDashboard() {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const permissions = getCrmPermissions(user?.roles);
+  const canReadStudents = permissions.student.canRead;
+  const readScope = permissions.student.readScope ?? permissions.student.scope;
+  const isSessionScoped = readScope === "assigned" || readScope === "team";
   const isLeadSale = user?.roles?.includes("Lead Sale") ?? false;
+  const canCreateStudent = permissions.student.canCreate;
   const pageTitle = isLeadSale ? "Danh sách học sinh" : "Hồ sơ học sinh 360°";
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const ownerId = searchParams.get("owner")?.trim() || undefined;
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState<StudentJourneyStage | "all">("all");
@@ -27,23 +51,38 @@ export default function StudentsOverviewDashboard() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
+  const studentsQueryParams = {
+    admissionYear: 2026,
+    page,
+    pageSize,
+    q: query || undefined,
+    stage,
+    province,
+    // Session-scoped roles must never be able to widen the list with an owner
+    // query parameter. The backend derives pool/team scope from the session.
+    ownerId: isSessionScoped ? undefined : ownerId,
+  };
+  const sessionScopedStudentsQuery = useAssignedStudentsQuery(
+    studentsQueryParams,
+    user?.user,
+    {
+      enabled: canReadStudents && isSessionScoped && !isAuthLoading,
+      placeholderData: keepPreviousData,
+    },
+  );
+  const allStudentsQuery = useDirectorStudentsQuery(studentsQueryParams, {
+    enabled: canReadStudents && !isSessionScoped && !isAuthLoading,
+    placeholderData: keepPreviousData,
+  });
+  const studentsQuery = isSessionScoped
+    ? sessionScopedStudentsQuery
+    : allStudentsQuery;
   const {
     data: response,
     isError,
     error,
     isPlaceholderData,
-  } = useDirectorStudentsQuery(
-    {
-      admissionYear: 2026,
-      page,
-      pageSize,
-      q: query || undefined,
-      stage,
-      province,
-      ownerId,
-    },
-    { placeholderData: keepPreviousData },
-  );
+  } = studentsQuery;
 
   const students = response?.data ?? [];
   const summary = response?.summary;
@@ -57,9 +96,31 @@ export default function StudentsOverviewDashboard() {
   );
   const currentPage = meta ? Math.min(page, totalPages) : page;
 
+  const createMutation = useMutation({
+    mutationFn: (fields: StudentCreateFields) => createStudent(fields),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: ["director-students"] });
+      setCreateDialogOpen(false);
+      toast.success("Đã tạo hồ sơ học sinh.");
+      if (response.name) {
+        router.push(`/director/students/${encodeURIComponent(response.name)}`);
+      }
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Chưa thể tạo hồ sơ học sinh.",
+      );
+    },
+  });
+
   const handleQueryChange = (val: string) => {
     setQuery(val);
     setPage(1);
+  };
+
+  const openCreateDialog = () => {
+    createMutation.reset();
+    setCreateDialogOpen(true);
   };
 
   const handleStageChange = (val: StudentJourneyStage | "all") => {
@@ -115,7 +176,26 @@ export default function StudentsOverviewDashboard() {
             Từ toàn cảnh tệp học sinh đến hành động tiếp theo cho từng hồ sơ.
           </p>
         </div>
+        {canCreateStudent && (
+          <Button
+            className="shrink-0 self-start lg:self-auto"
+            isDisabled={createMutation.isPending}
+            onPress={openCreateDialog}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Thêm học sinh
+          </Button>
+        )}
       </header>
+
+      <StudentCreateDialog
+        isOpen={createDialogOpen}
+        isSubmitting={createMutation.isPending}
+        onCreate={(fields) =>
+          createMutation.mutateAsync(fields).then(() => undefined)
+        }
+        onOpenChange={setCreateDialogOpen}
+      />
 
       <StudentKpiStrip summary={summary} />
 
@@ -153,7 +233,10 @@ export default function StudentsOverviewDashboard() {
           <span>Người phụ trách</span>
           <span className="text-center">Thao tác</span>
         </div>
-        <StudentList students={students} ownerEditable={isLeadSale} />
+        <StudentList
+          students={students}
+          ownerEditable={permissions.student.canAssign}
+        />
 
         {totalCount > 0 && (
           <div className="flex flex-col gap-3 border-t border-card-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">

@@ -10,6 +10,7 @@ import {
   TabTrigger,
 } from "@/components/tailgrids/core/tabs";
 import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { useStudentAuditLogsQuery } from "@/hooks/use-student-audit-query";
 import {
   useStudentChatwootInteractionsQuery,
@@ -104,6 +105,7 @@ export default function StudentActivitiesTab({
   initialTaskId,
 }: StudentActivitiesTabProps) {
   const { user } = useAuth();
+  const permissions = getCrmPermissions(user?.roles);
   const taskAssigneesQuery = useTaskAssigneesQuery();
   const [activeTab, setActiveTab] = useState(initialTaskId ? "tasks" : "all");
   const assignedTo = data.student.counselor || "Chưa phân công";
@@ -139,10 +141,14 @@ export default function StudentActivitiesTab({
     },
   );
   const canCreateTask = Boolean(
-    studentTaskAssignee &&
-    !taskAssigneesQuery.isPending &&
-    !taskAssigneesQuery.isError,
+    permissions.task.canCreate &&
+      studentTaskAssignee &&
+      !taskAssigneesQuery.isPending &&
+      !taskAssigneesQuery.isError,
   );
+  const taskCreationDisabledReason = permissions.task.canCreate
+    ? taskAssignmentMessage || undefined
+    : "CTV Sale không có quyền tạo task.";
   const currentUserIdentifiers = useMemo(
     () =>
       [user?.user, user?.email]
@@ -414,6 +420,10 @@ export default function StudentActivitiesTab({
     id: string,
     updates: Partial<StudentTaskItem>,
   ) => {
+    if (!permissions.task.canUpdate) {
+      toast.error("Bạn không có quyền sửa task.");
+      return;
+    }
     const currentTask = tasks.find((task) => task.id === id);
     if (!currentTask) return;
     if (pendingTaskUpdates.current.has(id)) return;
@@ -449,11 +459,13 @@ export default function StudentActivitiesTab({
   };
 
   const handleRequestDeleteTask = (id: string) => {
+    if (!permissions.task.canDelete) return;
     const task = tasks.find((current) => current.id === id);
     if (task) setTaskToDelete(task);
   };
 
   const handleConfirmDeleteTask = async () => {
+    if (!permissions.task.canDelete) return;
     const task = taskToDelete;
     if (!task) return;
 
@@ -511,7 +523,7 @@ export default function StudentActivitiesTab({
             createNoteMutation.isPending || createTaskMutation.isPending
           }
           canCreateFollowUpTask={canCreateTask}
-          followUpTaskDisabledReason={taskAssignmentMessage || undefined}
+          followUpTaskDisabledReason={taskCreationDisabledReason}
         />
       </TabContent>
       <TabContent value="tasks">
@@ -521,9 +533,11 @@ export default function StudentActivitiesTab({
           tasks={tasks}
           onCreateTask={handleCreateTask}
           onUpdateTask={handleUpdateTask}
-          onDeleteTask={handleRequestDeleteTask}
+          onDeleteTask={
+            permissions.task.canDelete ? handleRequestDeleteTask : undefined
+          }
           canCreateTask={canCreateTask}
-          createTaskDisabledReason={taskAssignmentMessage || undefined}
+          createTaskDisabledReason={taskCreationDisabledReason}
           assigneeId={studentTaskAssignee?.name}
           isCreating={createTaskMutation.isPending}
           isLoading={crmTasksQuery.isPending}
@@ -543,14 +557,16 @@ export default function StudentActivitiesTab({
       <TabContent value="calls">
         <StudentCallsTab calls={calls} />
       </TabContent>
-      <StudentDeleteTaskDialog
-        task={taskToDelete}
-        isDeleting={deleteTaskMutation.isPending}
-        onOpenChange={(open) => {
-          if (!open && !deleteTaskMutation.isPending) setTaskToDelete(null);
-        }}
-        onConfirm={handleConfirmDeleteTask}
-      />
+      {permissions.task.canDelete && (
+        <StudentDeleteTaskDialog
+          task={taskToDelete}
+          isDeleting={deleteTaskMutation.isPending}
+          onOpenChange={(open) => {
+            if (!open && !deleteTaskMutation.isPending) setTaskToDelete(null);
+          }}
+          onConfirm={handleConfirmDeleteTask}
+        />
+      )}
     </TabRoot>
   );
 }

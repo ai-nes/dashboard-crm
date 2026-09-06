@@ -42,6 +42,7 @@ function hasStudentsEnvelope(value: unknown): boolean {
 
   return (
     Array.isArray(payload.data) &&
+    payload.data.every(hasStudentListRevision) &&
     !!payload.summary &&
     typeof payload.summary === "object" &&
     !!payload.actionSummary &&
@@ -50,6 +51,12 @@ function hasStudentsEnvelope(value: unknown): boolean {
     typeof payload.meta === "object" &&
     typeof (payload.meta as Record<string, unknown>).total === "number"
   );
+}
+
+function hasStudentListRevision(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const revision = (value as Record<string, unknown>).revision;
+  return typeof revision === "number" && Number.isInteger(revision) && revision >= 0;
 }
 
 function hasStudent360Envelope(value: unknown): boolean {

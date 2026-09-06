@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { DatePickerField } from "@/components/common/date-picker-field";
 import { Button } from "@/components/tailgrids/core/button";
 import { Input } from "@/components/tailgrids/core/input";
 import {
@@ -197,15 +198,12 @@ export default function StudentTaskCard({
 
           <div className="grid gap-4 border-b border-card-border py-5 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <FieldGroup label="Hạn xử lý">
-              <Input
-                type="date"
+              <DatePickerField
+                ariaLabel="Hạn xử lý"
                 value={toDateInputValue(task.dueDate)}
-                onChange={(event) =>
-                  onUpdateTask(task.id, {
-                    dueDate: fromDateInputValue(event.target.value),
-                  })
+                onChange={(value) =>
+                  onUpdateTask(task.id, { dueDate: fromDateInputValue(value) })
                 }
-                aria-label="Hạn xử lý"
                 className="h-10 font-medium text-sm shadow-xs"
               />
             </FieldGroup>

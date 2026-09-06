@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { DatePickerField } from "@/components/common/date-picker-field";
 import { Button } from "@/components/tailgrids/core/button";
 import { Input } from "@/components/tailgrids/core/input";
 import { Label } from "@/components/tailgrids/core/label";
@@ -196,10 +197,10 @@ export default function TaskCreateSheet({
           <div className="grid gap-3 sm:grid-cols-2">
             <TextField className="gap-2" required>
               <Label>Hạn xử lý *</Label>
-              <Input
-                type="date"
+              <DatePickerField
+                ariaLabel="Hạn xử lý"
                 value={dueDate}
-                onChange={(event) => setDueDate(event.target.value)}
+                onChange={setDueDate}
               />
             </TextField>
             <TextField className="gap-2" required>

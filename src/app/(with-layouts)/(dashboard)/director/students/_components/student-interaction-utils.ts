@@ -218,7 +218,7 @@ export function getDirectionLabel(direction?: string | null): string {
     case "internal":
       return "Trao đổi nội bộ";
     default:
-      return direction || "Chưa xác định chiều liên hệ";
+      return direction || "-";
   }
 }
 
@@ -239,7 +239,7 @@ export function getChannelLabel(channel?: string | null): string {
     case "internal":
       return "Nội bộ";
     default:
-      return channel || "Chưa xác định kênh";
+      return channel || "-";
   }
 }
 
@@ -248,7 +248,7 @@ export function getEpisodeStateLabel(state?: string | null): string {
     ? "Đang theo dõi"
     : state === "sealed"
       ? "Đã kết thúc"
-      : "Chưa xác định trạng thái";
+      : "-";
 }
 
 export function getIntentLabel(

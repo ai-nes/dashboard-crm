@@ -1,12 +1,5 @@
+import type { AssignmentWorkflowConnection } from "@/services/api/lead-sale";
 import type { StepId, WorkflowStep } from "./types";
-
-export const automationPath: StepId[] = [
-  "input",
-  "validation",
-  "classification",
-  "matching",
-  "assignment",
-];
 
 export const workflowPositions: Record<StepId, { x: number; y: number }> = {
   input: { x: 0, y: 0 },
@@ -17,16 +10,31 @@ export const workflowPositions: Record<StepId, { x: number; y: number }> = {
   assignment: { x: 1520, y: 280 },
 };
 
+export const workflowConnections: AssignmentWorkflowConnection[] = [
+  { source: "input", target: "validation", label: null },
+  { source: "validation", target: "classification", label: "Pool hợp lệ" },
+  { source: "classification", target: "matching", label: "Xác định Tier" },
+  {
+    source: "classification",
+    target: "review",
+    label: "Tier 3/4 hoặc lỗi địa bàn",
+  },
+  { source: "matching", target: "assignment", label: "Tier 1/2 · áp dụng" },
+  { source: "matching", target: "review", label: "Deferred / queue" },
+  { source: "review", target: "assignment", label: "Resolve thủ công" },
+];
+
 /**
- * The canvas explains the business pipeline. Its nodes and layout are stable
- * UI definitions; the workspace API may only provide snapshot metrics.
+ * The canvas provides the layout while the workspace API supplies live step
+ * metrics and connections when the backend exposes them.
  */
 export const workflowSteps: WorkflowStep[] = [
   {
     id: "input",
     title: "Bước 1 · Lead vào hệ thống",
     description: "Tạo CRM Student · pool theo Campus",
-    detail: "Tiếp nhận lead, chống trùng và tạo CRM Student thuộc pool mặc định theo Campus.",
+    detail:
+      "Tiếp nhận lead, chống trùng và tạo CRM Student thuộc pool mặc định theo Campus.",
     rules: [
       "Kiểm tra trùng qua CRM Student Case Key.",
       "Ghi owning_team và owning_pool theo Campus.",
@@ -35,13 +43,19 @@ export const workflowSteps: WorkflowStep[] = [
     tone: "blue",
     position: workflowPositions.input,
     status: "idle",
-    metrics: { processedCount: 0, successCount: 0, warningCount: 0, errorCount: 0 },
+    metrics: {
+      processedCount: 0,
+      successCount: 0,
+      warningCount: 0,
+      errorCount: 0,
+    },
   },
   {
     id: "validation",
     title: "Bước 2 · Xác định pool chuẩn",
     description: "Campus · Team · Student Pool",
-    detail: "Resolve đúng một Student Pool active khớp Campus và ownership topology của CRM Student.",
+    detail:
+      "Resolve đúng một Student Pool active khớp Campus và ownership topology của CRM Student.",
     rules: [
       "Pool phải active và thuộc đúng Campus.",
       "Student phải có owning_pool hoặc owning_team.",
@@ -50,13 +64,19 @@ export const workflowSteps: WorkflowStep[] = [
     tone: "neutral",
     position: workflowPositions.validation,
     status: "idle",
-    metrics: { processedCount: 0, successCount: 0, warningCount: 0, errorCount: 0 },
+    metrics: {
+      processedCount: 0,
+      successCount: 0,
+      warningCount: 0,
+      errorCount: 0,
+    },
   },
   {
     id: "classification",
     title: "Bước 3 · Xác định Zone và Tier",
     description: "High School → Zone → Province",
-    detail: "Xác định địa bàn theo thứ tự ưu tiên của trường học, Zone, Province và trạng thái chưa xác định.",
+    detail:
+      "Xác định địa bàn theo thứ tự ưu tiên của trường học, Zone, Province và trạng thái chưa xác định.",
     rules: [
       "Trường có owner active: Tier 1.",
       "Biết Zone nhưng trường chưa có owner: Tier 2.",
@@ -66,13 +86,19 @@ export const workflowSteps: WorkflowStep[] = [
     tone: "blue",
     position: workflowPositions.classification,
     status: "idle",
-    metrics: { processedCount: 0, successCount: 0, warningCount: 0, errorCount: 0 },
+    metrics: {
+      processedCount: 0,
+      successCount: 0,
+      warningCount: 0,
+      errorCount: 0,
+    },
   },
   {
     id: "matching",
     title: "Bước 4 · Điều phối theo 4 tầng",
     description: "School owner · Zone team · Queue",
-    detail: "Áp policy, capacity và chiến lược chọn người; deferred không tự động rơi xuống tầng khác.",
+    detail:
+      "Áp policy, capacity và chiến lược chọn người; deferred không tự động rơi xuống tầng khác.",
     rules: [
       "Tier 1 ưu tiên school owner và kiểm tra capacity direct.",
       "Tier 2 route vào Zone Team Pool rồi chọn member.",
@@ -82,13 +108,19 @@ export const workflowSteps: WorkflowStep[] = [
     tone: "primary",
     position: workflowPositions.matching,
     status: "idle",
-    metrics: { processedCount: 0, successCount: 0, warningCount: 0, errorCount: 0 },
+    metrics: {
+      processedCount: 0,
+      successCount: 0,
+      warningCount: 0,
+      errorCount: 0,
+    },
   },
   {
     id: "review",
     title: "Nhánh rẽ · Hàng đợi xử lý thủ công",
     description: "MANUAL_QUEUE · ENRICHMENT_QUEUE · Deferred",
-    detail: "Các lead chưa thể tự động gán được giữ trong hàng đợi tương ứng để bổ sung dữ liệu, retry hoặc xử lý thủ công.",
+    detail:
+      "Các lead chưa thể tự động gán được giữ trong hàng đợi tương ứng để bổ sung dữ liệu, retry hoặc xử lý thủ công.",
     rules: [
       "Tier 3 chờ Manager phân công thủ công.",
       "Tier 4 cần làm giàu trường, tỉnh hoặc phường.",
@@ -97,13 +129,19 @@ export const workflowSteps: WorkflowStep[] = [
     tone: "warning",
     position: workflowPositions.review,
     status: "idle",
-    metrics: { processedCount: 0, successCount: 0, warningCount: 0, errorCount: 0 },
+    metrics: {
+      processedCount: 0,
+      successCount: 0,
+      warningCount: 0,
+      errorCount: 0,
+    },
   },
   {
     id: "assignment",
     title: "Bước 5 · Ownership và SLA",
     description: "Owner cá nhân · Receipt · Audit · SLA",
-    detail: "Ghi ownership qua command canonical, append audit event và mở SLA khi lead có owner cá nhân.",
+    detail:
+      "Ghi ownership qua command canonical, append audit event và mở SLA khi lead có owner cá nhân.",
     rules: [
       "Chỉ change_student_ownership được ghi owner_staff.",
       "Mỗi command có receipt idempotency và ownership event audit.",
@@ -112,6 +150,11 @@ export const workflowSteps: WorkflowStep[] = [
     tone: "success",
     position: workflowPositions.assignment,
     status: "idle",
-    metrics: { processedCount: 0, successCount: 0, warningCount: 0, errorCount: 0 },
+    metrics: {
+      processedCount: 0,
+      successCount: 0,
+      warningCount: 0,
+      errorCount: 0,
+    },
   },
 ];

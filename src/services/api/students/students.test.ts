@@ -125,6 +125,25 @@ describe("director students API contract", () => {
     );
   });
 
+  it("rejects a student list record without an ownership revision", async () => {
+    const payload = computeDirectorStudents({ admissionYear: 2026 });
+    const firstRecord = payload.data[0] as unknown as Record<string, unknown>;
+    delete firstRecord.revision;
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: payload }), { status: 200 }),
+    );
+
+    await expect(
+      getDirectorStudents({ admissionYear: 2026 }, { baseUrl: "http://frappe:8000" }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<DirectorStudentsApiError>>({
+        status: 502,
+        code: "INVALID_STUDENTS_RESPONSE",
+      }),
+    );
+  });
+
   it("calls Frappe get_director_student and maps 404 to null", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

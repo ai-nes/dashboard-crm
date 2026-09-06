@@ -6,7 +6,12 @@ import {
   Shield1Check,
   UserMultiple1,
 } from "@tailgrids/icons";
-import type { AssignmentStatus, StepId, WorkflowStep } from "./types";
+import type {
+  AssignmentStatus,
+  StepId,
+  WorkflowPhaseState,
+  WorkflowStep,
+} from "./types";
 
 export const statusLabels: Record<AssignmentStatus, string> = {
   assigned: "Đã phân công",
@@ -35,6 +40,46 @@ export const toneClasses = {
   warning: "bg-badge-warning-background text-badge-warning-text",
   success: "bg-badge-success-background text-badge-success-text",
 };
+
+export const workflowPhaseStateLabels: Record<WorkflowPhaseState, string> = {
+  completed: "Đã hoàn tất",
+  current: "Phase hiện tại",
+  attention: "Cần xử lý",
+  pending: "Chưa tới",
+};
+
+export const workflowPhaseStateColors = {
+  completed: "success",
+  current: "primary",
+  attention: "warning",
+  pending: "gray",
+} as const;
+
+export function getCurrentWorkflowPhaseId(
+  steps: WorkflowStep[],
+): StepId | null {
+  return (
+    steps.find((step) => step.status === "running")?.id ??
+    steps.find((step) => step.status === "error" || step.status === "warning")
+      ?.id ??
+    steps.find((step) => step.status === "idle")?.id ??
+    null
+  );
+}
+
+export function getWorkflowPhaseState(
+  step: WorkflowStep,
+  currentPhaseId: StepId | null,
+): WorkflowPhaseState {
+  if (step.status === "success") return "completed";
+  if (step.status === "warning" || step.status === "error") {
+    return "attention";
+  }
+  if (step.status === "running" || step.id === currentPhaseId) {
+    return "current";
+  }
+  return "pending";
+}
 
 export function stepMetrics(step: WorkflowStep): string {
   const { metrics } = step;

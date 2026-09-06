@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { DatePickerField } from "@/components/common/date-picker-field";
 import { Button } from "@/components/tailgrids/core/button";
 import {
   DialogBody,
@@ -68,7 +69,6 @@ export default function StudentCreateTaskDialog({
   const [dueTime, setDueTime] = useState("");
   const [priority, setPriority] = useState<StudentPriority>("Trung bình");
   const [notes, setNotes] = useState("");
-  const dueDateInputId = `${formId}-due-date`;
 
   const isValid =
     title.trim().length > 0 &&
@@ -150,11 +150,10 @@ export default function StudentCreateTaskDialog({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <TextField className="gap-2">
                 <Label>Hạn xử lý *</Label>
-                <Input
-                  id={dueDateInputId}
-                  type="date"
+                <DatePickerField
+                  ariaLabel="Hạn xử lý"
+                  onChange={setDueDate}
                   value={dueDate}
-                  onChange={(event) => setDueDate(event.target.value)}
                 />
               </TextField>
 

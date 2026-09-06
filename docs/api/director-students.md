@@ -80,6 +80,7 @@ Response `200 OK`:
         "lastActivity": "4 phút trước",
         "nextAction": "Gọi phụ huynh về học phí",
         "owner": "Trần Quốc Bảo",
+        "revision": 4,
         "source": "Career Talk 28/05",
         "priority": "Cao"
       }
@@ -126,6 +127,7 @@ Response `200 OK`:
       "lastActivity": "4 phút trước",
       "nextAction": "Gọi phụ huynh về học phí",
       "owner": "Trần Quốc Bảo",
+      "revision": 4,
       "source": "Career Talk 28/05",
       "priority": "Cao"
     }
@@ -206,7 +208,10 @@ Origin: https://faip.pro
 
 Không có request body.
 
-Không cần gửi JWT/API key cho endpoint hiện tại. Vì API đang public, không đưa dữ liệu PII đầy đủ vào cache public hoặc log phía frontend.
+Không cần gửi JWT/API key cho endpoint hiện tại, nhưng request vẫn phải có Frappe
+session đã xác thực (cookie `sid`). `allow_guest` chỉ là cấu hình route; endpoint
+vẫn từ chối user `Guest`. Không đưa dữ liệu PII đầy đủ vào cache public hoặc log
+phía frontend.
 
 Ví dụ dùng mã ổn định cho `stage` và `province`. API có thể accept thêm label tiếng Việt hiện tại để tương thích frontend mock, nhưng response nên trả cả code và label nếu backend cần phân biệt hai lớp này.
 
@@ -228,8 +233,13 @@ Quy tắc filter cần thống nhất với UI hiện tại:
 - `q` được trim khoảng trắng và tìm bằng điều kiện `like` trên `name`, `student_name`, `case_key`, `high_school`, `province`, `major`, `owner_staff` và `source`.
 - `stage` và `province` kết hợp theo điều kiện `AND` với `q`.
 - `meta.total` là tổng số kết quả sau filter, không phải chỉ số dòng của trang hiện tại.
-- Endpoint hiện tại là public guest endpoint; không áp dụng scope theo Director/team/territory.
-- `meta.totalAll` và KPI được tính trên toàn bộ dữ liệu của kỳ tuyển sinh được chọn.
+- Backend suy ra scope đọc từ session: Sale xem hồ sơ thuộc team và pool của mình,
+  CTV Sale chỉ xem hồ sơ được assign, Lead Sale xem team và pool, còn nhóm quản trị
+  xem toàn bộ theo policy. `ownerId` chỉ được phép thu hẹp kết quả, không được mở
+  rộng scope.
+- `meta.totalAll` và KPI được tính trên toàn bộ tập hồ sơ mà session được phép đọc
+  trong kỳ tuyển sinh được chọn. Quyền sửa/xóa/phân công vẫn được kiểm tra riêng ở
+  command tương ứng.
 
 ### 3.2. Response thực tế
 
@@ -255,6 +265,7 @@ Theo chuẩn Frappe RPC method, response trả về qua wrapper `message`. Servi
       "nextAction": "Gọi phụ huynh về học phí",
       "nextActionDueAt": "2026-06-06T16:00:00+07:00",
       "owner": "Trần Quốc Bảo",
+      "revision": 4,
       "source": "Career Talk 28/05",
       "priority": "Cao",
       "priorityCode": "high",
@@ -301,7 +312,8 @@ Theo chuẩn Frappe RPC method, response trả về qua wrapper `message`. Servi
 Ý nghĩa `meta`:
 
 - `total`: tổng kết quả sau filter, dùng cho số lượng hồ sơ hiển thị.
-- `totalAll`: tổng tệp trong kỳ tuyển sinh hiện tại. Endpoint đang public nên không có scope theo user/team/territory.
+- `totalAll`: tổng tệp trong kỳ tuyển sinh hiện tại trong scope đọc của session;
+  với Sale là team + pool, không phải chỉ các hồ sơ đang assign trực tiếp.
 - `asOf`: thời điểm snapshot của KPI và danh sách; phải trả theo ISO-8601 có timezone.
 - `filters`, `sort`: giá trị server thực tế đã áp dụng, giúp frontend đồng bộ URL/state.
 
@@ -395,6 +407,7 @@ Kiểu tương thích trực tiếp với frontend hiện tại là `StudentList
 | `nextAction` | string \| null | Có | Hành động tiếp theo |
 | `nextActionDueAt` | string \| null | Có | Hạn hành động dạng ISO-8601 |
 | `owner` | string \| null | Có | Người phụ trách và search |
+| `revision` | number | Có | Ownership revision dùng làm CAS token khi phân công; không được mặc định ở frontend |
 | `source` | string \| null | Có | Nguồn acquisition; hiện không hiển thị trong dòng |
 | `priority` | enum string \| null | Có | Badge `Cao`, `Trung bình`, `Thấp` |
 | `priorityCode` | enum string \| null | Có | `high`, `medium`, `low` |

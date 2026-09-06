@@ -3,35 +3,34 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
 import {
+  useRunStudentAssignmentPipelineMutation,
   useResolveStudentAssignmentMutation,
   useStudentAssignmentDetailQuery,
   useStudentAssignmentWorkspaceQuery,
 } from "@/hooks/use-student-assignment-queries";
 import type {
   AssignmentDetailResponse,
+  AssignmentPipelineRun,
   AssignmentWorkspaceResponse,
+  AssignmentWorkflowConnection,
 } from "@/services/api/lead-sale";
-import { automationPath, workflowSteps as workflowDefinitions } from "./data";
+import { getCurrentWorkflowPhaseId } from "./mappings";
+import {
+  workflowConnections as workflowConnectionDefinitions,
+  workflowSteps as workflowDefinitions,
+} from "./data";
 import type {
   AssignmentFilter,
   AssignmentRecord,
   StepId,
   WorkflowStep,
 } from "./types";
-
-type TestRunStatus = "idle" | "running" | "completed";
-
-interface TestRun {
-  status: TestRunStatus;
-  stepIndex: number;
-}
 
 interface AssignmentContextValue {
   records: AssignmentRecord[];
@@ -47,6 +46,12 @@ interface AssignmentContextValue {
   summary: AssignmentWorkspaceResponse["summary"] | null;
   health: AssignmentWorkspaceResponse["health"] | null;
   workflowSteps: WorkflowStep[];
+  workflowConnections: AssignmentWorkflowConnection[];
+  currentPhaseId: StepId | null;
+  workflowMode: AssignmentWorkspaceResponse["workflow"]["mode"];
+  pipelineRun: AssignmentPipelineRun | null;
+  isRunningPipeline: boolean;
+  runPipeline: () => Promise<void>;
   detail: AssignmentDetailResponse | null;
   detailLoading: boolean;
   detailError: Error | null;
@@ -61,9 +66,6 @@ interface AssignmentContextValue {
     region: string,
   ) => Promise<void>;
   isResolving: boolean;
-  testRun: TestRun;
-  startTest: () => void;
-  stopTest: () => void;
   setPage: (page: number) => void;
 }
 
@@ -121,10 +123,6 @@ export function AssignmentProvider({ children }: { children: ReactNode }) {
   const [page, setPageState] = useState(1);
   const [inspectedId, inspect] = useState<string | null>(null);
   const [selectedStep, selectStep] = useState<StepId | null>(null);
-  const [testRun, setTestRun] = useState<TestRun>({
-    status: "idle",
-    stepIndex: -1,
-  });
 
   const params = useMemo(
     () => ({
@@ -143,6 +141,7 @@ export function AssignmentProvider({ children }: { children: ReactNode }) {
     inspectedId,
     workspaceQuery.data?.meta.admissionYear,
   );
+  const runPipelineMutation = useRunStudentAssignmentPipelineMutation();
   const resolveMutation = useResolveStudentAssignmentMutation();
 
   const records = useMemo(
@@ -158,6 +157,10 @@ export function AssignmentProvider({ children }: { children: ReactNode }) {
         return apiStep
           ? {
               ...definition,
+              title: apiStep.title,
+              description: apiStep.description,
+              detail: apiStep.detail,
+              rules: apiStep.rules,
               status: apiStep.status,
               metrics: apiStep.metrics,
               tone: toneByStatus[apiStep.status],
@@ -167,28 +170,43 @@ export function AssignmentProvider({ children }: { children: ReactNode }) {
     [workspaceQuery.data],
   );
 
-  useEffect(() => {
-    if (testRun.status !== "running") return;
+  const workflowConnections = useMemo(
+    () =>
+      workspaceQuery.data?.workflow.connections ??
+      workflowConnectionDefinitions,
+    [workspaceQuery.data],
+  );
+  const currentPhaseId = useMemo(
+    () =>
+      workspaceQuery.data
+        ? getCurrentWorkflowPhaseId(workflowSteps)
+        : null,
+    [workflowSteps, workspaceQuery.data],
+  );
 
-    const timeout = window.setTimeout(
-      () => {
-        const lastStepIndex = automationPath.length - 1;
-        if (testRun.stepIndex >= lastStepIndex) {
-          setTestRun((current) => ({ ...current, status: "completed" }));
-          toast.success("Chạy thủ công hoàn tất", {
-            description: "Đã mô phỏng đầy đủ các bước phân công học sinh.",
-          });
-          return;
-        }
-        setTestRun((current) => ({
-          ...current,
-          stepIndex: current.stepIndex + 1,
-        }));
-      },
-      testRun.stepIndex < 0 ? 250 : 850,
-    );
-    return () => window.clearTimeout(timeout);
-  }, [testRun]);
+  const runPipeline = async () => {
+    if (
+      runPipelineMutation.isPending ||
+      workspaceQuery.data?.workflow.mode !== "live"
+    ) {
+      return;
+    }
+    try {
+      const response = await runPipelineMutation.mutateAsync({
+        admissionYear: workspaceQuery.data.meta.admissionYear,
+        timezone: workspaceQuery.data.meta.timezone,
+        limit: 50,
+      });
+      toast.success("Pipeline phân công đã hoàn tất", {
+        description: `${response.run.assigned} đã phân công · ${response.run.deferred} chờ xử lý · ${response.run.failed} lỗi.`,
+      });
+    } catch (error) {
+      toast.error("Không thể chạy pipeline phân công", {
+        description:
+          error instanceof Error ? error.message : "Vui lòng thử lại.",
+      });
+    }
+  };
 
   const setFilter = (nextFilter: AssignmentFilter) => {
     setFilterState(nextFilter);
@@ -208,10 +226,11 @@ export function AssignmentProvider({ children }: { children: ReactNode }) {
   ) => {
     const record = records.find((item) => item.id === id);
     if (!record) return;
-    const idempotencyKey = `assign:${id}:${record.revision}:${ownerId}:${region}:${reason}`
-      .trim()
-      .replace(/[^A-Za-z0-9._:-]+/g, "-")
-      .slice(0, 140);
+    const idempotencyKey =
+      `assign:${id}:${record.revision}:${ownerId}:${region}:${reason}`
+        .trim()
+        .replace(/[^A-Za-z0-9._:-]+/g, "-")
+        .slice(0, 140);
     try {
       await resolveMutation.mutateAsync({
         studentId: id,
@@ -252,6 +271,12 @@ export function AssignmentProvider({ children }: { children: ReactNode }) {
         summary: workspaceQuery.data?.summary ?? null,
         health: workspaceQuery.data?.health ?? null,
         workflowSteps,
+        workflowConnections,
+        currentPhaseId,
+        workflowMode: workspaceQuery.data?.workflow.mode ?? "read-only",
+        pipelineRun: runPipelineMutation.data?.run ?? null,
+        isRunningPipeline: runPipelineMutation.isPending,
+        runPipeline,
         detail: detailQuery.data ?? null,
         detailLoading: detailQuery.isLoading,
         detailError: detailQuery.error,
@@ -261,12 +286,6 @@ export function AssignmentProvider({ children }: { children: ReactNode }) {
         selectStep,
         resolve,
         isResolving: resolveMutation.isPending,
-        testRun,
-        startTest: () => {
-          inspect(null);
-          setTestRun({ status: "running", stepIndex: -1 });
-        },
-        stopTest: () => setTestRun({ status: "idle", stepIndex: -1 }),
         setPage: (nextPage) => setPageState(Math.max(1, nextPage)),
       }}
     >

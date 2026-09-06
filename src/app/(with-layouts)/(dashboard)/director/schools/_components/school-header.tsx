@@ -1,19 +1,23 @@
-import { ArrowLeft, MapMarker5 } from "@tailgrids/icons";
+import { ArrowLeft, MapMarker5, Trash1 } from "@tailgrids/icons";
 import Link from "next/link";
 
+import { CopyableId } from "@/components/common/copyable-id";
 import { Badge } from "@/components/tailgrids/core/badge";
-import type {
-  SchoolIntelligenceData,
-} from "@/services/api/schools/types";
+import { Button } from "@/components/tailgrids/core/button";
+import type { SchoolIntelligenceData } from "@/services/api/schools/types";
 
 import { getSchoolLocalityContext } from "./school-locality-data";
 import SchoolTerritoryMetrics from "./school-territory-metrics";
 
 interface SchoolHeaderProps {
   data: SchoolIntelligenceData;
+  onDeleteRequest?: () => void;
 }
 
-export default function SchoolHeader({ data }: SchoolHeaderProps) {
+export default function SchoolHeader({
+  data,
+  onDeleteRequest,
+}: SchoolHeaderProps) {
   const { school, classification, geography } = data;
   const coordinates =
     data.locality?.latitude != null && data.locality?.longitude != null
@@ -62,9 +66,26 @@ export default function SchoolHeader({ data }: SchoolHeaderProps) {
             {school.isBoardingSchool && (
               <Badge color="violet">Trường DTNT</Badge>
             )}
-            <span className="text-xs text-text-tertiary">
-              Mã {school.schoolCode}
-            </span>
+            <div className="flex min-w-0 max-w-full items-center gap-1 text-xs text-text-tertiary">
+              <span className="shrink-0">Mã</span>
+              <CopyableId
+                className="max-w-full"
+                label="mã trường"
+                value={school.schoolCode}
+              />
+            </div>
+            {onDeleteRequest && (
+              <Button
+                aria-label="Xóa hồ sơ trường học"
+                appearance="ghost"
+                onPress={onDeleteRequest}
+                size="sm"
+                variant="danger"
+              >
+                <Trash1 size={15} aria-hidden="true" />
+                Xóa hồ sơ
+              </Button>
+            )}
           </div>
           <p className="mt-1 flex items-center gap-1.5 text-xs leading-5 text-text-secondary">
             <MapMarker5 size={14} className="shrink-0 text-icon-tertiary" />

@@ -172,7 +172,8 @@ export interface StudentListItem {
   lastActivity: string;
   nextAction: string;
   owner: string;
-  revision?: number;
+  /** Ownership CAS revision returned by the student list API. */
+  revision: number;
   source: string;
   priority: StudentPriority;
 }
@@ -214,11 +215,14 @@ export interface Student360Data {
     code: string;
     school: string;
     grade: string;
+    studyStage?: string | null;
     major: string;
     phone: string;
     email: string;
     province: string;
+    ward?: string | null;
     counselor: string;
+    ownerId?: string | null;
     priority?: StudentPriority | null;
     verificationStatus?: StudentVerificationStatus | null;
     contactConsent?: StudentContactConsent | null;

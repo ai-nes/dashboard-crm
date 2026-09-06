@@ -18,6 +18,12 @@ export type StepId =
   | "review"
   | "assignment";
 
+export type WorkflowPhaseState =
+  | "completed"
+  | "current"
+  | "attention"
+  | "pending";
+
 export interface Candidate {
   id: string;
   name: string;

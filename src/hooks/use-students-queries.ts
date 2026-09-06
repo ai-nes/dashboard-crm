@@ -74,7 +74,8 @@ export function useStudent360Query<TData = Student360Data | null>(
 
 /**
  * Loads the students visible to the authenticated Frappe user.
- * The user id is only a cache scope; the backend derives ownership from the session cookie.
+ * The user id is only a cache scope; the backend derives the allowed
+ * assigned/pool/team scope from the session and its capabilities.
  */
 export function useAssignedStudentsQuery(
   params: DirectorStudentsParams | undefined,

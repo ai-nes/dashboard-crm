@@ -1,10 +1,23 @@
 "use client";
 
-import { Card } from "@/components/tailgrids/core/card";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  canAccessStudent,
+  canPerformStudentAction,
+  getCrmPermissions,
+} from "@/components/common/auth/permissions";
 import DetailTabs, {
   type DetailTabItem,
 } from "@/components/common/detail-tabs";
+import { Card } from "@/components/tailgrids/core/card";
 import { useStudent360Query } from "@/hooks/use-students-queries";
+import { deleteStudent } from "@/services/api/student-school-update";
 import type {
   StudentChatwootInteractionsResponse,
   StudentInteractionsResponse,
@@ -45,6 +58,27 @@ export default function Student360Dashboard({
     propData?.student.code ||
     propData?.student.name ||
     "nguyen-minh-an";
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const permissions = getCrmPermissions(user?.roles);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteStudent(targetId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["director-students"] });
+      await queryClient.invalidateQueries({ queryKey: ["student-360"] });
+      setDeleteDialogOpen(false);
+      toast.success("Đã xóa hồ sơ học sinh.");
+      router.replace("/director/students");
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Chưa thể xóa hồ sơ học sinh.",
+      );
+    },
+  });
   const {
     data: queryData,
     isError,
@@ -55,6 +89,45 @@ export default function Student360Dashboard({
   });
 
   const data = queryData ?? initialData ?? propData;
+  const studentOwnership = {
+    owner: data?.student.counselor,
+    ownerId: data?.student.ownerId,
+  };
+  const hasStudentAccess =
+    isAuthLoading ||
+    (data !== undefined &&
+      data !== null &&
+      canAccessStudent(permissions.student, studentOwnership, user));
+  const canUpdateStudent =
+    !isAuthLoading &&
+    canPerformStudentAction(
+      permissions.student,
+      "update",
+      studentOwnership,
+      user,
+    );
+  const canDeleteStudent =
+    !isAuthLoading &&
+    canPerformStudentAction(
+      permissions.student,
+      "delete",
+      studentOwnership,
+      user,
+    );
+
+  if (!isAuthLoading && data && !hasStudentAccess) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <Card className="border-warning-200 bg-badge-warning-background p-5 text-badge-warning-text">
+          <p className="font-semibold text-base">Bạn không có quyền xem hồ sơ này.</p>
+          <p className="mt-1 text-sm">
+            Sale và CTV Sale chỉ được truy cập học sinh đang được phân công cho
+            mình.
+          </p>
+        </Card>
+      </main>
+    );
+  }
 
   if (isError && !data) {
     return (
@@ -95,7 +168,12 @@ export default function Student360Dashboard({
         </div>
       )}
       <div className="px-2 pt-4 lg:px-6">
-        <StudentHeader data={data} />
+        <StudentHeader
+          data={data}
+          onDeleteRequest={
+            canDeleteStudent ? () => setDeleteDialogOpen(true) : undefined
+          }
+        />
       </div>
 
       <div className="px-2 pt-4 lg:px-6">
@@ -105,12 +183,21 @@ export default function Student360Dashboard({
           tabs={getStudentTabs(
             data,
             targetId,
+            canUpdateStudent,
             initialChatwootInteractions,
             initialStudentInteractions,
             initialTaskId,
           )}
         />
       </div>
+      <DeleteRecordDialog
+        isDeleting={deleteMutation.isPending}
+        isOpen={deleteDialogOpen}
+        onConfirm={() => deleteMutation.mutate()}
+        onOpenChange={setDeleteDialogOpen}
+        recordName={data.student.name || targetId}
+        recordType="hồ sơ học sinh"
+      />
     </main>
   );
 }
@@ -118,6 +205,7 @@ export default function Student360Dashboard({
 function getStudentTabs(
   data: Student360Data,
   analysisTargetId: string,
+  canEditStudent: boolean,
   initialChatwootInteractions?: StudentChatwootInteractionsResponse | null,
   initialStudentInteractions?: StudentInteractionsResponse | null,
   initialTaskId?: string,
@@ -161,15 +249,23 @@ function getStudentTabs(
       label: "Thông tin học sinh",
       content: (
         <div className="space-y-4">
-          <StudentDetailsTab data={data} />
-          <StudentSourceContext data={data} />
+          <StudentDetailsTab
+            data={data}
+            studentId={analysisTargetId}
+            canEdit={canEditStudent}
+          />
+          <StudentSourceContext
+            data={data}
+            studentId={analysisTargetId}
+            canEdit={canEditStudent}
+          />
         </div>
       ),
     },
     {
       id: "family",
       label: "Gia đình",
-      content: <StudentFamilyTab data={data} />,
+      content: <StudentFamilyTab data={data} canEdit={canEditStudent} />,
     },
     {
       id: "records",
