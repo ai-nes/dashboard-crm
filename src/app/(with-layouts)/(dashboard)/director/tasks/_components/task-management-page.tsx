@@ -20,12 +20,14 @@ import { useAssignedStudentsQuery } from "@/hooks/use-students-queries";
 import type { CRMTaskStatus } from "@/services/api/crm-tasks";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 
-import TaskCreateSheet from "./task-create-sheet";
+import TaskCreateDialog from "./task-create-dialog";
+import TaskDetailSheet from "./task-detail-sheet";
 import TaskManagementKanban from "./task-management-kanban";
+import TaskManagementTable from "./task-management-table";
 import TaskManagementToolbar from "./task-management-toolbar";
 import StudentDeleteTaskDialog from "../../students/_components/student-delete-task-dialog";
 import { crmTaskToManagementItem } from "./task-management-mappers";
-import type { TaskView } from "./types";
+import type { TaskLayout, TaskStatusFilter, TaskView } from "./types";
 import {
   studentTaskToCreatePayload,
   studentTaskToUpdatePayload,
@@ -135,10 +137,11 @@ export default function TaskManagementPage({
   const currentUserId = user?.user || user?.email;
   const shouldUseCrmApi = useCrmApi;
   const [view, setView] = useState<TaskView>("all");
-  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>("all");
+  const [layout, setLayout] = useState<TaskLayout>("kanban");
   const [lanePages, setLanePages] = useState(INITIAL_LANE_PAGES);
   const pendingTaskUpdates = useRef(new Set<string>());
-  const hasClientFilters = Boolean(search.trim() || view !== "all");
+  const hasClientFilters = view !== "all" || statusFilter !== "all";
   const studentsQuery = useAssignedStudentsQuery(
     {
       admissionYear: 2026,
@@ -157,7 +160,10 @@ export default function TaskManagementPage({
       : lanePages[lane] * TASK_LANE_PAGE_SIZE;
   const crmTaskQueryOptions = {
     enabled:
-      shouldUseCrmApi && canReadTask && !isAuthLoading && Boolean(currentUserId),
+      shouldUseCrmApi &&
+      canReadTask &&
+      !isAuthLoading &&
+      Boolean(currentUserId),
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
   };
@@ -244,14 +250,15 @@ export default function TaskManagementPage({
   );
   const [localTasks, setLocalTasks] = useState<TaskManagementItem[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<TaskManagementItem | null>(
     null,
   );
   const tasks = shouldUseCrmApi ? apiTasks : localTasks;
+  const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
   const totalTaskCount = shouldUseCrmApi ? apiTaskTotal : tasks.length;
 
   const filteredTasks = useMemo(() => {
-    const query = search.trim().toLowerCase();
     const now = new Date();
     const result = tasks.filter((task) => {
       const matchesView =
@@ -259,17 +266,13 @@ export default function TaskManagementPage({
         (view === "today" && isDueToday(task, now)) ||
         (view === "overdue" && isOverdue(task, now.getTime())) ||
         (view === "upcoming" && isUpcoming(task, now));
-      const matchesSearch =
-        !query ||
-        [task.title, task.studentName, task.studentCode, task.studentMajor]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-      return matchesView && matchesSearch;
+      const matchesStatus =
+        statusFilter === "all" || task.status === statusFilter;
+      return matchesView && matchesStatus;
     });
 
     return result.sort((a, b) => dueTimestamp(a) - dueTimestamp(b));
-  }, [tasks, view, search]);
+  }, [statusFilter, tasks, view]);
 
   const filteredTaskCount = hasClientFilters
     ? filteredTasks.length
@@ -450,20 +453,23 @@ export default function TaskManagementPage({
   return (
     <main
       id="main-content"
-      className="min-w-0 space-y-5 px-2 py-4 pb-10 lg:px-6"
+      className="min-w-0 space-y-4 px-3 py-4 pb-8 lg:px-6"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-primary-500">
-            Vận hành tuyển sinh
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-tertiary">
+            Không gian công việc
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-text-primary">
             Quản lý task
           </h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            Theo dõi việc cần làm theo từng bước xử lý hồ sơ.
+          </p>
         </div>
         {canCreateTask && (
           <Button
-            size="sm"
+            size="md"
             className="self-start sm:self-auto"
             onPress={() => setSheetOpen(true)}
           >
@@ -473,18 +479,20 @@ export default function TaskManagementPage({
         )}
       </div>
 
-      <Card className="overflow-hidden p-0">
+      <Card className="overflow-hidden border-0 p-0 shadow-none">
         <TaskManagementToolbar
-          search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            resetLanePages();
-          }}
           view={view}
           onViewChange={(value) => {
             setView(value);
             resetLanePages();
           }}
+          statusFilter={statusFilter}
+          onStatusFilterChange={(value) => {
+            setStatusFilter(value);
+            resetLanePages();
+          }}
+          layout={layout}
+          onLayoutChange={setLayout}
           resultCount={hasClientFilters ? filteredTaskCount : totalTaskCount}
           totalCount={totalTaskCount}
         />
@@ -501,18 +509,41 @@ export default function TaskManagementPage({
             {apiTaskError.message || "Không thể tải danh sách task."}
           </p>
         ) : (
-          <TaskManagementKanban
-            tasks={visibleTasks}
-            onUpdateTask={handleUpdateTask}
-            onDeleteTask={canDeleteTask ? handleRequestDeleteTask : undefined}
-            lanePagination={lanePagination}
-            isLoading={apiTasksPending && shouldUseCrmApi}
-          />
+          layout === "kanban" ? (
+            <TaskManagementKanban
+              tasks={visibleTasks}
+              onOpenTask={(task) => setSelectedTaskId(task.id)}
+              onUpdateTask={handleUpdateTask}
+              onDeleteTask={canDeleteTask ? handleRequestDeleteTask : undefined}
+              onCreateTask={canCreateTask ? () => setSheetOpen(true) : undefined}
+              lanePagination={lanePagination}
+              isLoading={apiTasksPending && shouldUseCrmApi}
+            />
+          ) : (
+            <TaskManagementTable
+              key={`${view}-${statusFilter}`}
+              tasks={visibleTasks}
+              onOpenTask={(task) => setSelectedTaskId(task.id)}
+              onUpdateTask={handleUpdateTask}
+              onDeleteTask={canDeleteTask ? handleRequestDeleteTask : undefined}
+              lanePagination={lanePagination}
+              isLoading={apiTasksPending && shouldUseCrmApi}
+            />
+          )
         )}
       </Card>
 
+      <TaskDetailSheet
+        isOpen={Boolean(selectedTask)}
+        task={selectedTask}
+        onUpdateTask={handleUpdateTask}
+        onOpenChange={(open) => {
+          if (!open) setSelectedTaskId(null);
+        }}
+      />
+
       {canCreateTask && (
-        <TaskCreateSheet
+        <TaskCreateDialog
           isOpen={sheetOpen}
           onOpenChange={setSheetOpen}
           students={studentsQuery.data?.data ?? []}

@@ -11,6 +11,7 @@ export interface CRMTask {
   name: string;
   title: string;
   description?: string;
+  actionCode?: string;
   student?: string;
   linkedInteraction?: string;
   priority?: CRMTaskPriority;
@@ -50,6 +51,7 @@ export interface CreateTaskPayload {
   referenceDocname: string;
   title: string;
   description?: string;
+  actionCode?: string;
   priority?: CRMTaskPriority;
   startDate?: string;
   assignedTo?: string;

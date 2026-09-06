@@ -64,6 +64,7 @@ interface ActivityFeedItem {
 
 interface StudentAllActivitiesFeedProps {
   studentId: string;
+  studentStage?: string;
   calls: StudentCallRecord[];
   tasks: StudentTaskItem[];
   zaloMessages: StudentZaloMessage[];
@@ -156,6 +157,7 @@ function getActivitySearchText(
 
 export default function StudentAllActivitiesFeed({
   studentId,
+  studentStage,
   calls,
   tasks,
   zaloMessages,
@@ -386,6 +388,7 @@ export default function StudentAllActivitiesFeed({
                 key={item.id}
                 task={item.task}
                 onUpdateTask={onUpdateTask}
+                studentStage={studentStage}
                 expanded={isItemExpanded(item.id)}
                 onExpandedChange={(expanded) =>
                   handleItemExpandedChange(item.id, expanded)

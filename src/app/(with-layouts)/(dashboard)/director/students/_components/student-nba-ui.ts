@@ -8,6 +8,7 @@ export {
   actionLabel,
   formatNbaChannel,
   formatNbaDateTime,
+  formatNbaDecisionStatus,
   getNbaFallbackFacts,
   type NbaFallbackFact,
 } from "@/services/api/nba/presentation";
@@ -19,6 +20,15 @@ export const NBA_OPERATION_LABELS: Record<NbaDecisionOperation, string> = {
   DEFER: "Trì hoãn",
   DISMISS: "Bỏ qua",
 };
+
+export const NBA_OPERATION_DESCRIPTIONS: Record<NbaDecisionOperation, string> =
+  {
+    ACCEPT: "Tạo Task theo đề xuất",
+    ACCEPT_WITH_CHANGES: "Điều chỉnh trước khi tạo Task",
+    REJECT: "Đánh dấu đề xuất không phù hợp",
+    DEFER: "Chọn thời điểm xem lại",
+    DISMISS: "Bỏ khỏi hàng đợi hiện tại",
+  };
 
 const PERMITTED_DECISION_ALIASES: Record<NbaDecisionOperation, string[]> = {
   ACCEPT: ["accepted", "accept"],

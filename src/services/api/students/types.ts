@@ -181,6 +181,7 @@ export interface StudentListItem {
 export interface StudentTaskItem {
   id: string;
   title: string;
+  actionCode?: string;
   assignee: string;
   assigneeId?: string;
   activityDate?: string;

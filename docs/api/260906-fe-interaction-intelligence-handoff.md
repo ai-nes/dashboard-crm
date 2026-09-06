@@ -247,8 +247,9 @@ Interaction `NOTE`; FE không tạo Interaction thứ hai.
 GET /api/method/crm.api.task.list_tasks
 ```
 
-Task trả về dữ liệu thao tác như `title`, `description`, `status`, `due_date`,
-`assigned_to` và reference. Chỉ Task đã hoàn thành mới được hook tạo
+Task trả về dữ liệu thao tác như `title`, `description`, `action_code`, `status`,
+`due_date`, `assigned_to` và reference. Với task tạo từ `CRM Action Item`,
+`action_code` lấy từ `action`, fallback sang `action_type`. Chỉ Task đã hoàn thành mới được hook tạo
 Interaction `SYSTEM_ACTIVITY`; danh sách Task vẫn phải lấy từ Task API.
 
 ### Audit

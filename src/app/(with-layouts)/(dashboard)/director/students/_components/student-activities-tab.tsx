@@ -142,9 +142,9 @@ export default function StudentActivitiesTab({
   );
   const canCreateTask = Boolean(
     permissions.task.canCreate &&
-      studentTaskAssignee &&
-      !taskAssigneesQuery.isPending &&
-      !taskAssigneesQuery.isError,
+    studentTaskAssignee &&
+    !taskAssigneesQuery.isPending &&
+    !taskAssigneesQuery.isError,
   );
   const taskCreationDisabledReason = permissions.task.canCreate
     ? taskAssignmentMessage || undefined
@@ -505,6 +505,7 @@ export default function StudentActivitiesTab({
       <TabContent value="all">
         <StudentAllActivitiesFeed
           studentId={studentDocname}
+          studentStage={data.student.studyStage ?? undefined}
           calls={calls}
           tasks={tasks}
           zaloMessages={zaloMessages}
@@ -530,6 +531,7 @@ export default function StudentActivitiesTab({
         <StudentTasksTab
           studentName={data.student.name}
           assignee={assignedTo}
+          studentStage={data.student.studyStage ?? undefined}
           tasks={tasks}
           onCreateTask={handleCreateTask}
           onUpdateTask={handleUpdateTask}

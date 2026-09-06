@@ -33,6 +33,7 @@ describe("CRM Tasks API Service", () => {
               name: "1",
               title: "Gọi lại tư vấn viên",
               description: "Xác nhận lịch tư vấn.",
+              action_code: "CALL_BACK",
               assigned_to: "sale@example.com",
               status: "Todo",
               priority: "High",
@@ -64,6 +65,7 @@ describe("CRM Tasks API Service", () => {
       status: "Todo",
       priority: "High",
       dueDate: "2026-09-05 17:00:00",
+      actionCode: "CALL_BACK",
     });
   });
 
@@ -133,6 +135,7 @@ describe("CRM Tasks API Service", () => {
         referenceDocname: "ENR-2026-00005",
         title: "Gọi lại tư vấn viên",
         description: "Xác nhận lịch tư vấn.",
+        actionCode: "CALL_BACK",
         priority: "High",
         status: "Todo",
         dueDate: "2026-09-05 17:00:00",
@@ -149,6 +152,7 @@ describe("CRM Tasks API Service", () => {
           reference_docname: "ENR-2026-00005",
           title: "Gọi lại tư vấn viên",
           description: "Xác nhận lịch tư vấn.",
+          action_code: "CALL_BACK",
           priority: "High",
           status: "Todo",
           due_date: "2026-09-05 17:00:00",

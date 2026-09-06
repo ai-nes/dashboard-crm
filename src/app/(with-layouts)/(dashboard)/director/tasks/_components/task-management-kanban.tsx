@@ -6,6 +6,7 @@ import {
   useDroppable,
 } from "@dnd-kit/react";
 import { defaultCollisionDetection } from "@dnd-kit/collision";
+import { Plus } from "@tailgrids/icons";
 import type { StudentTaskItem } from "@/services/api/students/types";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 import { Button } from "@/components/tailgrids/core/button";
@@ -14,29 +15,24 @@ import {
   ScrollAreaViewport,
   ScrollBar,
 } from "@/components/tailgrids/core/scroll-area";
-import { Skeleton } from "@/components/tailgrids/core/skeleton";
 
 import TaskManagementKanbanCard from "./task-management-kanban-card";
 import TaskManagementKanbanSkeleton from "./task-management-kanban-skeleton";
 import { taskStatusLabel } from "../../students/_components/student-task-badges";
+import type { TaskLanePagination } from "./types";
 
 type TaskStatus = TaskManagementItem["status"];
 
-interface TaskLanePagination {
-  total: number;
-  hasMore: boolean;
-  isLoading: boolean;
-  onLoadMore: () => void;
-}
-
 interface TaskManagementKanbanProps {
   tasks: TaskManagementItem[];
+  onOpenTask: (task: TaskManagementItem) => void;
   onUpdateTask: (
     id: string,
     updates: Partial<StudentTaskItem>,
   ) => void | Promise<void>;
   onDeleteTask?: (id: string) => void;
   lanePagination?: Partial<Record<TaskStatus, TaskLanePagination>>;
+  onCreateTask?: () => void;
   isLoading?: boolean;
 }
 
@@ -44,26 +40,31 @@ const columns: Array<{
   status: TaskManagementItem["status"];
   label: string;
   dotClassName: string;
+  countClassName: string;
 }> = [
   {
     status: "todo",
     label: taskStatusLabel.todo,
     dotClassName: "bg-badge-neutral-icon-color",
+    countClassName: "bg-badge-neutral-background text-badge-neutral-text",
   },
   {
     status: "in-progress",
     label: taskStatusLabel["in-progress"],
     dotClassName: "bg-badge-warning-icon-color",
+    countClassName: "bg-badge-warning-background text-badge-warning-text",
   },
   {
     status: "done",
     label: taskStatusLabel.done,
     dotClassName: "bg-badge-success-icon-color",
+    countClassName: "bg-badge-success-background text-badge-success-text",
   },
   {
     status: "canceled",
     label: taskStatusLabel.canceled,
     dotClassName: "bg-badge-error-icon-color",
+    countClassName: "bg-badge-error-background text-badge-error-text",
   },
 ];
 
@@ -75,9 +76,12 @@ interface TaskManagementKanbanColumnProps {
   status: TaskStatus;
   label: string;
   dotClassName: string;
+  countClassName: string;
   tasks: TaskManagementItem[];
+  onOpenTask: TaskManagementKanbanProps["onOpenTask"];
   onUpdateTask: TaskManagementKanbanProps["onUpdateTask"];
   onDeleteTask?: TaskManagementKanbanProps["onDeleteTask"];
+  onCreateTask?: TaskManagementKanbanProps["onCreateTask"];
   pagination?: TaskLanePagination;
   isLoading: boolean;
 }
@@ -86,9 +90,12 @@ function TaskManagementKanbanColumn({
   status,
   label,
   dotClassName,
+  countClassName,
   tasks,
+  onOpenTask,
   onUpdateTask,
   onDeleteTask,
+  onCreateTask,
   pagination,
   isLoading,
 }: TaskManagementKanbanColumnProps) {
@@ -107,13 +114,13 @@ function TaskManagementKanbanColumn({
       ref={ref}
       aria-labelledby={`task-column-${status}`}
       aria-busy={isLoading}
-      className={`flex h-[calc(100vh-20rem)] min-h-[420px] max-h-[720px] flex-col overflow-hidden rounded-lg border bg-background-soft-50/70 transition-colors ${
+      className={`flex h-[calc(100vh-18rem)] min-h-[520px] max-h-[760px] flex-col overflow-hidden rounded-xl bg-background-soft-50 transition-colors ${
         isDropTarget
-          ? "border-primary-500 bg-primary-50/50"
-          : "border-card-border"
+          ? "bg-primary-50/50"
+          : ""
       }`}
     >
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-card-border px-3.5 py-3">
+      <header className="flex shrink-0 items-center justify-between gap-3 px-3.5 py-3.5">
         <h2
           id={`task-column-${status}`}
           className="flex min-w-0 items-center gap-2 text-sm font-semibold text-text-primary"
@@ -123,20 +130,34 @@ function TaskManagementKanbanColumn({
             aria-hidden="true"
           />
           <span className="truncate">{label}</span>
-        </h2>
-        {isLoading ? (
-          <Skeleton aria-hidden="true" className="h-5 w-8 rounded-full" />
-        ) : (
-          <span className="shrink-0 rounded-full bg-card-background px-2 py-0.5 text-xs font-semibold text-text-secondary">
-            {taskCountLabel}
+          <span
+            className={`flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 text-sm font-bold leading-none ${countClassName}`}
+            aria-label={`${taskCountLabel} task`}
+          >
+            {isLoading ? "—" : taskCountLabel}
           </span>
-        )}
+        </h2>
+        <div className="flex items-center gap-1">
+          {onCreateTask && (
+            <Button
+              iconOnly
+              size="xs"
+              variant="ghost"
+              appearance="ghost"
+              aria-label={`Tạo task trong nhóm ${label}`}
+              onPress={onCreateTask}
+              className="size-7 text-text-tertiary hover:bg-card-background hover:text-text-primary"
+            >
+              <Plus size={15} aria-hidden="true" />
+            </Button>
+          )}
+        </div>
       </header>
 
       <ScrollArea className="min-h-0 flex-1">
         <ScrollAreaViewport className="p-3">
           <div
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-2.5"
             role="list"
             aria-label={`${label}: ${tasks.length}${pagination && pagination.total > tasks.length ? ` trong tổng số ${pagination.total}` : ""} task`}
           >
@@ -147,12 +168,13 @@ function TaskManagementKanbanColumn({
                 <TaskManagementKanbanCard
                   key={task.id}
                   task={task}
+                  onOpenTask={onOpenTask}
                   onUpdateTask={onUpdateTask}
                   onDeleteTask={onDeleteTask}
                 />
               ))
             ) : (
-              <p className="rounded-md border border-dashed border-card-border px-3 py-8 text-center text-xs text-text-tertiary">
+              <p className="rounded-lg border border-dashed border-card-border bg-card-background/60 px-3 py-10 text-center text-xs text-text-tertiary">
                 {isDropTarget ? "Thả task vào đây" : "Chưa có task"}
               </p>
             )}
@@ -179,9 +201,11 @@ function TaskManagementKanbanColumn({
 
 export default function TaskManagementKanban({
   tasks,
+  onOpenTask,
   onUpdateTask,
   onDeleteTask,
   lanePagination,
+  onCreateTask,
   isLoading = false,
 }: TaskManagementKanbanProps) {
   const handleDragEnd = (event: DragEndEvent) => {
@@ -199,7 +223,7 @@ export default function TaskManagementKanban({
   };
 
   return (
-    <div className="overflow-x-auto px-4 pb-5 lg:px-5" aria-busy={isLoading}>
+    <div className="overflow-x-auto bg-background-50 px-4 pb-5 pt-1 lg:px-5" aria-busy={isLoading}>
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div
           className="grid min-w-[1080px] grid-cols-4 gap-3 xl:gap-4"
@@ -211,9 +235,12 @@ export default function TaskManagementKanban({
               status={column.status}
               label={column.label}
               dotClassName={column.dotClassName}
+              countClassName={column.countClassName}
               tasks={tasks.filter((task) => task.status === column.status)}
+              onOpenTask={onOpenTask}
               onUpdateTask={onUpdateTask}
               onDeleteTask={onDeleteTask}
+              onCreateTask={onCreateTask}
               pagination={lanePagination?.[column.status]}
               isLoading={isLoading}
             />
