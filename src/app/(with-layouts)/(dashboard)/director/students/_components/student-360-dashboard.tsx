@@ -7,6 +7,7 @@ import DetailTabs, {
 import { useStudent360Query } from "@/hooks/use-students-queries";
 import type {
   StudentChatwootInteractionsResponse,
+  StudentInteractionsResponse,
   Student360Data,
 } from "@/services/api/students/types";
 
@@ -24,6 +25,7 @@ interface Student360DashboardProps {
   studentId?: string;
   initialData?: Student360Data | null;
   initialChatwootInteractions?: StudentChatwootInteractionsResponse | null;
+  initialStudentInteractions?: StudentInteractionsResponse | null;
   data?: Student360Data;
   initialTab?: string;
   initialTaskId?: string;
@@ -33,6 +35,7 @@ export default function Student360Dashboard({
   studentId,
   initialData,
   initialChatwootInteractions,
+  initialStudentInteractions,
   data: propData,
   initialTab,
   initialTaskId,
@@ -103,6 +106,7 @@ export default function Student360Dashboard({
             data,
             targetId,
             initialChatwootInteractions,
+            initialStudentInteractions,
             initialTaskId,
           )}
         />
@@ -115,6 +119,7 @@ function getStudentTabs(
   data: Student360Data,
   analysisTargetId: string,
   initialChatwootInteractions?: StudentChatwootInteractionsResponse | null,
+  initialStudentInteractions?: StudentInteractionsResponse | null,
   initialTaskId?: string,
 ): DetailTabItem[] {
   return [
@@ -141,6 +146,7 @@ function getStudentTabs(
           data={data}
           studentId={analysisTargetId}
           initialChatwootInteractions={initialChatwootInteractions}
+          initialStudentInteractions={initialStudentInteractions}
           initialTaskId={initialTaskId}
         />
       ),

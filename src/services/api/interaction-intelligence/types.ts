@@ -196,6 +196,11 @@ export interface InteractionFeedFilters {
   direction?: InteractionDirection | (string & {});
   status?: InteractionEpisodeState | (string & {});
   family?: InteractionSemanticPurpose;
+  search?: string;
+  interaction_type?: InteractionTypeCode | (string & {});
+  outcome?: string;
+  source_type?: string;
+  source_id?: string;
   from_date?: string;
   to_date?: string;
   cursor?: string;

@@ -123,6 +123,13 @@ export interface StudentCallRecord {
   recordingUrl?: string;
 }
 
+export interface StudentInteractionsResponse {
+  student_id: string;
+  zalo_messages: StudentZaloMessage[];
+  calls: StudentCallRecord[];
+  total_interactions: number;
+}
+
 export type StudentClassificationTone =
   | "primary"
   | "success"

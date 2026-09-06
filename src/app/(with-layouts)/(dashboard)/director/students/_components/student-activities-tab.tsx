@@ -11,7 +11,10 @@ import {
 } from "@/components/tailgrids/core/tabs";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { useStudentAuditLogsQuery } from "@/hooks/use-student-audit-query";
-import { useStudentChatwootInteractionsQuery } from "@/hooks/use-students-queries";
+import {
+  useStudentChatwootInteractionsQuery,
+  useStudentInteractionsQuery,
+} from "@/hooks/use-students-queries";
 import {
   useCreateCrmTaskMutation,
   useCrmTasksQuery,
@@ -28,6 +31,7 @@ import {
 import type { StudentAuditLog } from "@/services/api/student-audit";
 import type {
   StudentChatwootInteractionsResponse,
+  StudentInteractionsResponse,
   StudentNoteItem,
   StudentTaskItem,
 } from "@/services/api/students/types";
@@ -57,6 +61,7 @@ import type {
 interface StudentActivitiesTabProps extends Student360SectionProps {
   studentId: string;
   initialChatwootInteractions?: StudentChatwootInteractionsResponse | null;
+  initialStudentInteractions?: StudentInteractionsResponse | null;
   initialTaskId?: string;
 }
 
@@ -95,6 +100,7 @@ export default function StudentActivitiesTab({
   data,
   studentId,
   initialChatwootInteractions,
+  initialStudentInteractions,
   initialTaskId,
 }: StudentActivitiesTabProps) {
   const { user } = useAuth();
@@ -153,6 +159,9 @@ export default function StudentActivitiesTab({
       initialData: initialChatwootInteractions ?? undefined,
     },
   );
+  const studentInteractionsQuery = useStudentInteractionsQuery(studentDocname, {
+    initialData: initialStudentInteractions ?? undefined,
+  });
 
   // Gọi Frappe RPC crm.api.note.list_notes
   const { data: crmNotesData } = useCrmNotesQuery({
@@ -238,7 +247,7 @@ export default function StudentActivitiesTab({
   }, [createdTasks, deletedTaskIds, serverTasks, taskOverrides]);
   const zaloMessages =
     chatwootInteractionsQuery.data?.zalo_messages ?? data.zaloMessages ?? [];
-  const calls = data.calls ?? [];
+  const calls = studentInteractionsQuery.data?.calls ?? [];
   const auditEvents = studentAuditQuery.data?.logs ?? EMPTY_AUDIT_LOGS;
 
   // Tạo ghi chú qua crm.api.note.create_note
@@ -484,6 +493,7 @@ export default function StudentActivitiesTab({
       <TabContent value="all">
         <StudentAllActivitiesFeed
           studentId={studentDocname}
+          calls={calls}
           tasks={tasks}
           zaloMessages={zaloMessages}
           auditEvents={auditEvents}

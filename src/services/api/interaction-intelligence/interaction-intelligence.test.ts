@@ -54,6 +54,11 @@ describe("interaction intelligence API contract", () => {
         direction: "inbound",
         status: "sealed",
         family: "Conversation",
+        search: "webchat inbound",
+        interaction_type: "TIN_NHAN_CHATWOOT",
+        outcome: "Captured",
+        source_type: "FCRM Note",
+        source_id: "NOTE-1",
         from_date: "2026-09-01",
         to_date: "2026-09-06",
         limit: 120,
@@ -67,6 +72,11 @@ describe("interaction intelligence API contract", () => {
     expect(url).toContain("direction=inbound");
     expect(url).toContain("status=sealed");
     expect(url).toContain("family=Conversation");
+    expect(url).toContain("search=webchat+inbound");
+    expect(url).toContain("interaction_type=TIN_NHAN_CHATWOOT");
+    expect(url).toContain("outcome=Captured");
+    expect(url).toContain("source_type=FCRM+Note");
+    expect(url).toContain("source_id=NOTE-1");
     expect(url).toContain("limit=100");
     expect(result.items[0]).toMatchObject({
       id: "INTX-1",

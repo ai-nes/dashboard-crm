@@ -45,6 +45,17 @@ export function getInteractionLabel(
   );
 }
 
+export function isCallInteraction(interaction: InteractionSummary): boolean {
+  const interactionType = interaction.interaction_type.trim().toUpperCase();
+  const channel = interaction.channel?.trim().toLocaleLowerCase("en-US");
+
+  return (
+    interactionType === "PHONE_CALL" ||
+    channel === "call" ||
+    channel === "phone"
+  );
+}
+
 export function getInteractionActivityTitle(
   interaction: InteractionSummary,
   catalog?: Map<string, InteractionCatalogItem>,
@@ -59,10 +70,16 @@ export function getInteractionActivityTitle(
 
   let sourceLabel: string;
   switch (interactionType) {
-    case "COUNSELING":
     case "CONNECTED":
     case "PHONE_CALL":
-      sourceLabel = "Cuộc gọi tư vấn";
+      sourceLabel = isCallInteraction(interaction)
+        ? "Cuộc gọi tư vấn"
+        : getMessageActivityLabel(interaction.channel);
+      break;
+    case "COUNSELING":
+      sourceLabel = isCallInteraction(interaction)
+        ? "Cuộc gọi tư vấn"
+        : "Tư vấn tuyển sinh";
       break;
     case "MESSAGE":
     case "MESSAGE_CHATWOOT":
