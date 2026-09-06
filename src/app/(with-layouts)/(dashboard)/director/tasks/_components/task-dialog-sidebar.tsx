@@ -172,15 +172,7 @@ export default function TaskDialogSidebar({
                 aria-label="Chọn mức ưu tiên"
               >
                 <SelectTrigger className="h-9 w-full rounded-lg border border-card-border bg-card-background px-3 text-sm font-medium shadow-xs hover:border-card-border-hover">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "size-2 rounded-full",
-                        priorityDotClass[priority],
-                      )}
-                    />
-                    <SelectValue />
-                  </div>
+                  <SelectValue />
                   <SelectIndicator className="ml-auto [&>svg]:size-3.5" />
                 </SelectTrigger>
                 <SelectContent className="min-w-[200px]">
