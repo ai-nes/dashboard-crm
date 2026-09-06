@@ -231,7 +231,7 @@ export default function RuleEditorDialog({ rule, canEdit, onClose }: RuleEditorD
         />
 
         <DialogBody className="max-h-[min(44rem,calc(100vh-10rem))] space-y-3 overflow-y-auto px-5 py-3.5">
-          {!canEdit && <Alert status="info"><AlertIndicator /><AlertContent><AlertDescription>Bạn có thể xem quy tắc. Chỉ System Manager được thay đổi cấu hình.</AlertDescription></AlertContent></Alert>}
+          {!canEdit && <Alert status="info"><AlertIndicator /><AlertContent><AlertDescription>Bạn có thể xem quy tắc. Chỉ Administrator được thay đổi cấu hình.</AlertDescription></AlertContent></Alert>}
           {isPublished && <Alert status="info"><AlertIndicator><Sparkle aria-hidden="true" /></AlertIndicator><AlertContent><AlertDescription>Quy tắc đã phát hành sẽ chuyển về bản nháp và tắt khi bạn lưu thay đổi.</AlertDescription></AlertContent></Alert>}
 
           <div className="grid gap-2.5 sm:grid-cols-2">

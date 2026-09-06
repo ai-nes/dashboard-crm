@@ -165,6 +165,7 @@ export interface StudentListItem {
   lastActivity: string;
   nextAction: string;
   owner: string;
+  revision?: number;
   source: string;
   priority: StudentPriority;
 }
@@ -174,6 +175,7 @@ export interface StudentTaskItem {
   title: string;
   assignee: string;
   assigneeId?: string;
+  activityDate?: string;
   dueDate: string;
   dueTime?: string;
   status: "todo" | "in-progress" | "done" | "canceled";

@@ -11,6 +11,23 @@ export function getStudentAuditActor(event: StudentAuditLog): string {
   return event.ownerFullName || event.owner || "Hệ thống";
 }
 
+export function getStudentAuditSourceLabel(source?: string | null): string {
+  switch (source?.toLocaleLowerCase("en-US")) {
+    case "document":
+      return "Hồ sơ học sinh";
+    case "version":
+      return "Lịch sử cập nhật";
+    case "deleted document":
+      return "Hồ sơ đã xóa";
+    default:
+      return source || "Hồ sơ tuyển sinh";
+  }
+}
+
+export function getStudentAuditDoctypeLabel(doctype?: string | null): string {
+  return doctype === "CRM Student" ? "Hồ sơ học sinh" : doctype || "Hồ sơ";
+}
+
 export function getStudentAuditActionLabel(event: StudentAuditLog): string {
   if (event.action === "created") return "Tạo hồ sơ học sinh";
   if (event.action === "deleted") return "Xóa hồ sơ học sinh";
@@ -129,7 +146,9 @@ export function StudentAuditEventDetails({
                 {event.fieldLabel}
               </span>
               {event.fieldname && event.fieldname !== event.fieldLabel && (
-                <span className="ml-1 text-text-tertiary">({event.fieldname})</span>
+                <span className="ml-1 text-text-tertiary">
+                  ({event.fieldname})
+                </span>
               )}
             </p>
           )}
@@ -137,7 +156,9 @@ export function StudentAuditEventDetails({
           {!compact && (
             <div className="flex flex-col gap-2 rounded-lg border border-card-border/60 bg-background-gray-secondary/20 p-2.5 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1 space-y-1 rounded-md border border-card-border/40 bg-card-background p-2.5">
-                <span className="text-[11px] font-medium text-text-tertiary">Giá trị trước</span>
+                <span className="text-[11px] font-medium text-text-tertiary">
+                  Giá trị trước
+                </span>
                 <p className="break-words text-xs text-text-secondary line-through decoration-error-500/50">
                   {formatStudentAuditValue(event.oldValue)}
                 </p>
@@ -146,7 +167,9 @@ export function StudentAuditEventDetails({
                 <ArrowRight size={14} className="rotate-90 sm:rotate-0" />
               </div>
               <div className="min-w-0 flex-1 space-y-1 rounded-md border border-success-500/20 bg-badge-success-background/30 p-2.5">
-                <span className="text-[11px] font-medium text-success-600">Giá trị mới</span>
+                <span className="text-[11px] font-medium text-success-600">
+                  Giá trị mới
+                </span>
                 <p className="break-words text-xs font-semibold text-text-primary">
                   {formatStudentAuditValue(event.newValue)}
                 </p>
@@ -160,7 +183,9 @@ export function StudentAuditEventDetails({
         <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs text-text-tertiary">
           <span className="inline-flex items-center gap-1.5 rounded-md border border-card-border/50 bg-background-gray-secondary/40 px-2 py-1 text-text-secondary">
             <FileText size={12} className="text-text-tertiary" />
-            <span>Nguồn: {event.source || "Tài liệu"}</span>
+            <span>
+              Nguồn cập nhật: {getStudentAuditSourceLabel(event.source)}
+            </span>
             {event.sourceName && (
               <span className="font-mono font-medium text-text-primary">
                 · {event.sourceName}
@@ -169,7 +194,10 @@ export function StudentAuditEventDetails({
           </span>
           {event.doctype && (
             <span className="rounded-md border border-card-border/40 bg-background-gray-secondary/30 px-2 py-1 text-text-secondary">
-              Đối tượng: <span className="font-medium text-text-primary">{event.doctype}</span>
+              Loại dữ liệu:{" "}
+              <span className="font-medium text-text-primary">
+                {getStudentAuditDoctypeLabel(event.doctype)}
+              </span>
             </span>
           )}
         </div>

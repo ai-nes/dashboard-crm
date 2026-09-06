@@ -4,7 +4,7 @@ export const leadsReportData = [
     representative: {
       id: "user-101",
       fullName: "John Smith",
-      roleTitle: "Sales Manager",
+      roleTitle: "Lead Sale",
       avatarUrl: "/images/user/jhon-smith.png",
       emailAddress: "john.smith@company.com",
     },

@@ -17,10 +17,10 @@ import {
   UserPencil,
 } from "@tailgrids/icons";
 import type { ReactNode } from "react";
-import type { CrmRole } from "../auth/rbac";
+import type { DashboardRole } from "../auth/rbac";
 import {
   getDefaultRouteForRoles,
-  getEffectiveCrmRoles,
+  getEffectiveDashboardRoles,
   getRolesForRoute,
 } from "../auth/rbac";
 
@@ -29,7 +29,7 @@ export interface NavigationItem {
   url?: string;
   exact?: boolean;
   icon?: ReactNode;
-  roles: readonly CrmRole[];
+  roles: readonly DashboardRole[];
   items?: NavigationItem[];
 }
 
@@ -307,7 +307,7 @@ export const SALE_NAV_DATA: NavigationSection[] = [
 /**
  * Dedicated, curated navigation for Lead Sale — Sale's set plus the two
  * team-management screens (student assignment, sales team) that only a
- * Lead Sales owns.
+ * Lead Sale owns.
  */
 export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
   {
@@ -334,18 +334,18 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
   {
     label: "HỌC SINH & NGƯỜI HỌC",
     items: [
+      // navItem({
+      //   title: "Khám phá người học",
+      //   url: "/lead-sale/demographics",
+      //   icon: <AlphabetIcon />,
+      // }),
       navItem({
-        title: "Khám phá người học",
-        url: "/lead-sale/demographics",
-        icon: <AlphabetIcon />,
-      }),
-      navItem({
-        title: "Hồ sơ học sinh 360°",
+        title: "Danh sách học sinh",
         url: "/lead-sale/students",
         icon: <UserGroupIcon />,
       }),
       navItem({
-        title: "Trường THPT 360°",
+        title: "Danh sách trường",
         url: "/director/market-intelligence",
         icon: <Buildings11 size={18} />,
       }),
@@ -360,7 +360,7 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         icon: <TaskIcon />,
       }),
       navItem({
-        title: "Phân công học sinh",
+        title: "Phân công tự động",
         url: "/lead-sale/student-assignment",
         icon: <UserPencil size={18} />,
       }),
@@ -381,12 +381,14 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
 export function getNavigationDataForRoles(
   userRoles: readonly string[],
 ): NavigationSection[] {
-  const effectiveRoles = getEffectiveCrmRoles(userRoles);
-  const navigation = effectiveRoles.includes("Admissions Director")
+  const effectiveRoles = getEffectiveDashboardRoles(userRoles);
+  const navigation =
+    effectiveRoles.includes("Admissions Director") ||
+    effectiveRoles.includes("Administrator")
     ? DIRECTOR_NAV_DATA
     : effectiveRoles.includes("CTV Sale")
       ? CTV_SALE_NAV_DATA
-      : effectiveRoles.includes("Lead Sales")
+      : effectiveRoles.includes("Lead Sale")
         ? LEAD_SALE_NAV_DATA
         : effectiveRoles.includes("Sale")
           ? SALE_NAV_DATA

@@ -1,6 +1,6 @@
 import { NAV_DATA } from "./data";
 import type { NavigationItem, NavigationSection } from "./data";
-import { getEffectiveCrmRoles } from "../auth/rbac";
+import { getEffectiveDashboardRoles } from "../auth/rbac";
 
 /**
  * Checks if the current pathname matches the target href, or if the pathname is a subpath of the target href.=
@@ -59,7 +59,7 @@ export function filterNavigationByRoles(
   navigation: NavigationSection[],
   userRoles: readonly string[],
 ): NavigationSection[] {
-  const effectiveRoles = getEffectiveCrmRoles(userRoles);
+  const effectiveRoles = getEffectiveDashboardRoles(userRoles);
 
   return navigation
     .map((section) => {

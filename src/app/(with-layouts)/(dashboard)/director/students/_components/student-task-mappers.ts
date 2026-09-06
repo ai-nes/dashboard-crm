@@ -106,6 +106,7 @@ export function crmTaskToStudentTask(
     title: task.title,
     assignee: assignedUser?.full_name || task.assignedTo || fallbackAssignee,
     assigneeId: task.assignedTo,
+    activityDate: task.creation || task.modified || task.dueDate,
     dueDate: due.date,
     dueTime: due.time,
     status: task.status ? crmTaskStatusToStudentStatus(task.status) : "todo",

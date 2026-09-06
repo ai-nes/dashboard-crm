@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import type { SessionUser } from "@/services/api/auth";
 import type { StudentTaskItem } from "@/services/api/students/types";
 
 import StudentCreateTaskDialog from "./student-create-task-dialog";
@@ -24,10 +23,9 @@ interface StudentTasksTabProps {
   onCreateTask: (task: StudentTaskItem) => Promise<void>;
   onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
   onDeleteTask: (id: string) => void;
-  assignees: SessionUser[];
-  currentUserId?: string;
-  isSelfAssignmentOnly?: boolean;
-  isLoadingAssignees?: boolean;
+  canCreateTask: boolean;
+  createTaskDisabledReason?: string;
+  assigneeId?: string;
   isCreating?: boolean;
   isLoading?: boolean;
   initialTaskId?: string;
@@ -104,10 +102,9 @@ export default function StudentTasksTab({
   onCreateTask,
   onUpdateTask,
   onDeleteTask,
-  assignees,
-  currentUserId,
-  isSelfAssignmentOnly = false,
-  isLoadingAssignees = false,
+  canCreateTask,
+  createTaskDisabledReason,
+  assigneeId,
   isCreating = false,
   isLoading = false,
   initialTaskId,
@@ -189,6 +186,8 @@ export default function StudentTasksTab({
         expansionMode={expansionMode}
         onExpansionModeChange={handleExpansionModeChange}
         onCreateTask={() => setDialogOpen(true)}
+        canCreateTask={canCreateTask}
+        createTaskDisabledReason={createTaskDisabledReason}
       />
 
       {isLoading ? (
@@ -248,10 +247,9 @@ export default function StudentTasksTab({
         onOpenChange={setDialogOpen}
         studentName={studentName}
         assignee={assignee}
-        assignees={assignees}
-        currentUserId={currentUserId}
-        isSelfAssignmentOnly={isSelfAssignmentOnly}
-        isLoadingAssignees={isLoadingAssignees}
+        assigneeId={assigneeId}
+        assignmentDisabledReason={createTaskDisabledReason}
+        isAssignmentLocked
         onCreate={handleCreateTask}
         isSubmitting={isCreating}
       />

@@ -1,17 +1,27 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { Card } from "@/components/tailgrids/core/card";
+import { Pagination } from "@/components/tailgrids/core/pagination";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { useCreateCrmTaskMutation } from "@/hooks/use-crm-tasks-queries";
+import {
+  useCreateCrmTaskMutation,
+  useCrmTasksQuery,
+  useDeleteCrmTaskMutation,
+  useUpdateCrmTaskMutation,
+} from "@/hooks/use-crm-tasks-queries";
+import { useTaskAssigneesQuery } from "@/hooks/use-task-assignees-query";
 import { useAssignedStudentsQuery } from "@/hooks/use-students-queries";
-import { taskManagementData } from "@/services/api/tasks/data";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 
 import TaskCreateSheet from "./task-create-sheet";
 import TaskManagementTable from "./task-management-table";
 import TaskManagementToolbar from "./task-management-toolbar";
+import StudentDeleteTaskDialog from "../../students/_components/student-delete-task-dialog";
+import { crmTaskToManagementItem } from "./task-management-mappers";
 import type {
   TaskPriorityFilter,
   TaskSort,
@@ -19,7 +29,10 @@ import type {
   TaskTypeFilter,
   TaskView,
 } from "./types";
-import { studentTaskToCreatePayload } from "../../students/_components/student-task-mappers";
+import {
+  studentTaskToCreatePayload,
+  studentTaskToUpdatePayload,
+} from "../../students/_components/student-task-mappers";
 
 interface TaskManagementPageProps {
   useCrmApi?: boolean;
@@ -33,21 +46,42 @@ function startOfDay(date: Date): number {
   ).getTime();
 }
 
+function toDateInputValue(value: string): string {
+  const ddmmyyyy = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (ddmmyyyy) {
+    const [, day, month, year] = ddmmyyyy;
+    return `${year}-${month}-${day}`;
+  }
+
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+}
+
 function dueTimestamp(task: TaskManagementItem): number {
-  return new Date(`${task.dueDate}T${task.dueTime || "23:59"}`).getTime();
+  const date = toDateInputValue(task.dueDate);
+  return date
+    ? new Date(`${date}T${task.dueTime || "23:59"}`).getTime()
+    : Number.POSITIVE_INFINITY;
 }
 
 function isOverdue(task: TaskManagementItem, now = Date.now()): boolean {
-  return task.status !== "done" && dueTimestamp(task) < now;
+  return (
+    task.status !== "done" &&
+    task.status !== "canceled" &&
+    dueTimestamp(task) < now
+  );
 }
 
 function isDueToday(task: TaskManagementItem, now = new Date()): boolean {
-  const due = new Date(`${task.dueDate}T00:00:00`);
+  const date = toDateInputValue(task.dueDate);
+  if (!date) return false;
+  const due = new Date(`${date}T00:00:00`);
   return startOfDay(due) === startOfDay(now);
 }
 
 function isUpcoming(task: TaskManagementItem, now = new Date()): boolean {
-  const due = new Date(`${task.dueDate}T00:00:00`);
+  const date = toDateInputValue(task.dueDate);
+  if (!date) return false;
+  const due = new Date(`${date}T00:00:00`);
   return !isOverdue(task, now.getTime()) && startOfDay(due) > startOfDay(now);
 }
 
@@ -57,18 +91,53 @@ const priorityRank: Record<TaskManagementItem["priority"], number> = {
   Thấp: 2,
 };
 
+const TASK_PAGE_SIZE = 10;
+
 export default function TaskManagementPage({
-  useCrmApi = false,
+  useCrmApi = true,
 }: TaskManagementPageProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const createTaskMutation = useCreateCrmTaskMutation();
+  const updateTaskMutation = useUpdateCrmTaskMutation();
+  const deleteTaskMutation = useDeleteCrmTaskMutation();
+  const taskAssigneesQuery = useTaskAssigneesQuery();
+  const taskAssignees = useMemo(() => {
+    const currentSessionUser = user
+      ? {
+          name: user.user,
+          email: user.email,
+          full_name: user.full_name,
+          roles: user.roles,
+          crm_profile: user.crm_profile,
+        }
+      : null;
+    const users = currentSessionUser
+      ? [currentSessionUser, ...(taskAssigneesQuery.data ?? [])]
+      : (taskAssigneesQuery.data ?? []);
+
+    return users.filter(
+      (candidate, index, allUsers) =>
+        allUsers.findIndex((item) => item.name === candidate.name) === index,
+    );
+  }, [taskAssigneesQuery.data, user]);
   const currentUserId = user?.user || user?.email;
-  const isCtvSaleUser = Boolean(
-    user?.roles.includes("CTV Sale") ||
-    user?.crm_role === "CTV Sale" ||
-    user?.crm_profile === "ctv_sale",
+  const shouldUseCrmApi = useCrmApi;
+  const [view, setView] = useState<TaskView>("all");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<TaskStatusFilter>("all");
+  const [priority, setPriority] = useState<TaskPriorityFilter>("all");
+  const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
+  const [sort, setSort] = useState<TaskSort>("due-asc");
+  const [page, setPage] = useState(1);
+  const pendingTaskUpdates = useRef(new Set<string>());
+  const hasClientFilters = Boolean(
+    search.trim() ||
+    view !== "all" ||
+    status !== "all" ||
+    priority !== "all" ||
+    taskType !== "all" ||
+    sort !== "due-asc",
   );
-  const shouldUseCrmApi = useCrmApi || isCtvSaleUser;
   const studentsQuery = useAssignedStudentsQuery(
     {
       admissionYear: 2026,
@@ -81,14 +150,36 @@ export default function TaskManagementPage({
       staleTime: 5 * 60 * 1000,
     },
   );
-  const [tasks, setTasks] = useState<TaskManagementItem[]>(taskManagementData);
-  const [view, setView] = useState<TaskView>("all");
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<TaskStatusFilter>("all");
-  const [priority, setPriority] = useState<TaskPriorityFilter>("all");
-  const [taskType, setTaskType] = useState<TaskTypeFilter>("all");
-  const [sort, setSort] = useState<TaskSort>("due-asc");
+  const taskQueryParams = useMemo(
+    () =>
+      hasClientFilters
+        ? { start: 0, pageLength: 100 }
+        : { start: (page - 1) * TASK_PAGE_SIZE, pageLength: TASK_PAGE_SIZE },
+    [hasClientFilters, page],
+  );
+  const tasksQuery = useCrmTasksQuery(taskQueryParams, {
+    enabled: shouldUseCrmApi && !isAuthLoading && Boolean(currentUserId),
+    staleTime: 30 * 1000,
+    placeholderData: keepPreviousData,
+  });
+  const apiTasks = useMemo(
+    () =>
+      (tasksQuery.data?.tasks ?? []).map((task) =>
+        crmTaskToManagementItem(
+          task,
+          studentsQuery.data?.data ?? [],
+          taskAssignees,
+        ),
+      ),
+    [studentsQuery.data?.data, taskAssignees, tasksQuery.data?.tasks],
+  );
+  const [localTasks, setLocalTasks] = useState<TaskManagementItem[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<TaskManagementItem | null>(
+    null,
+  );
+  const tasks = shouldUseCrmApi ? apiTasks : localTasks;
+  const totalTaskCount = tasksQuery.data?.total ?? tasks.length;
 
   const filteredTasks = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -105,12 +196,7 @@ export default function TaskManagementPage({
         taskType === "all" || (task.taskType ?? "todo") === taskType;
       const matchesSearch =
         !query ||
-        [
-          task.title,
-          task.studentName,
-          task.studentCode,
-          task.studentMajor,
-        ]
+        [task.title, task.studentName, task.studentCode, task.studentMajor]
           .join(" ")
           .toLowerCase()
           .includes(query);
@@ -133,39 +219,113 @@ export default function TaskManagementPage({
     });
   }, [tasks, view, search, status, priority, taskType, sort]);
 
-  const handleUpdateTask = (
+  const filteredTaskCount = hasClientFilters
+    ? filteredTasks.length
+    : totalTaskCount;
+  const totalPages = Math.max(1, Math.ceil(filteredTaskCount / TASK_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+
+  const visibleTasks = hasClientFilters
+    ? filteredTasks.slice(
+        (currentPage - 1) * TASK_PAGE_SIZE,
+        currentPage * TASK_PAGE_SIZE,
+      )
+    : filteredTasks;
+
+  const handlePageChange = (nextPage: number) => {
+    setPage(Math.min(Math.max(1, nextPage), totalPages));
+  };
+
+  const handleUpdateTask = async (
     id: string,
     updates: Partial<TaskManagementItem>,
   ) => {
-    setTasks((current) =>
-      current.map((task) => (task.id === id ? { ...task, ...updates } : task)),
-    );
+    const currentTask = tasks.find((task) => task.id === id);
+    if (!currentTask) return;
+
+    if (!shouldUseCrmApi) {
+      setLocalTasks((current) =>
+        current.map((task) =>
+          task.id === id ? { ...task, ...updates } : task,
+        ),
+      );
+      return;
+    }
+
+    if (pendingTaskUpdates.current.has(id)) return;
+    pendingTaskUpdates.current.add(id);
+
+    try {
+      await updateTaskMutation.mutateAsync(
+        studentTaskToUpdatePayload(id, currentTask, updates),
+      );
+      toast.success("Đã cập nhật task.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật task.",
+      );
+    } finally {
+      pendingTaskUpdates.current.delete(id);
+    }
   };
 
   const handleCreateTask = async (task: TaskManagementItem) => {
     if (shouldUseCrmApi) {
-      const createdTask = await createTaskMutation.mutateAsync(
-        studentTaskToCreatePayload(task, task.studentId, currentUserId),
+      if (!task.assigneeId) {
+        throw new Error(
+          "Student chưa được giao cho Sale/CTV nên chưa thể tạo task.",
+        );
+      }
+
+      await createTaskMutation.mutateAsync(
+        studentTaskToCreatePayload(task, task.studentId, task.assigneeId),
       );
 
-      setTasks((current) => [
-        {
-          ...task,
-          id: createdTask.name || task.id,
-          assigneeId: createdTask.assignedTo || task.assigneeId,
-        },
-        ...current,
-      ]);
+      await tasksQuery.refetch();
       return;
     }
 
-    setTasks((current) => [task, ...current]);
+    setLocalTasks((current) => [task, ...current]);
+  };
+
+  const handleRequestDeleteTask = (id: string) => {
+    const task = tasks.find((current) => current.id === id);
+    if (task) setTaskToDelete(task);
+  };
+
+  const handleConfirmDeleteTask = async () => {
+    if (!taskToDelete) return;
+    const shouldGoToPreviousPage = visibleTasks.length === 1 && page > 1;
+
+    if (!shouldUseCrmApi) {
+      setLocalTasks((current) =>
+        current.filter((task) => task.id !== taskToDelete.id),
+      );
+      if (shouldGoToPreviousPage) setPage(page - 1);
+      setTaskToDelete(null);
+      return;
+    }
+
+    try {
+      await deleteTaskMutation.mutateAsync(taskToDelete.id);
+      if (shouldGoToPreviousPage) setPage(page - 1);
+      setTaskToDelete(null);
+      toast.success("Đã xóa task.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể xóa task.",
+      );
+    }
   };
 
   const resetFilters = () => {
+    setSearch("");
+    setView("all");
     setStatus("all");
     setPriority("all");
     setTaskType("all");
+    setSort("due-asc");
+    setPage(1);
   };
 
   const viewCounts = useMemo(() => {
@@ -192,14 +352,13 @@ export default function TaskManagementPage({
             Quản lý task
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Theo dõi và phân công công việc từ nhiều hồ sơ học sinh trong một
-            danh sách tập trung.
+            Theo dõi task và hạn xử lý theo từng hồ sơ.
           </p>
         </div>
         <div className="rounded-lg border border-card-border bg-card-background px-4 py-3 text-right">
           <p className="text-xs text-text-tertiary">Tổng số task</p>
           <p className="mt-0.5 text-xl font-semibold text-text-primary">
-            {tasks.length}
+            {tasksQuery.data?.total ?? tasks.length}
           </p>
         </div>
       </div>
@@ -207,20 +366,38 @@ export default function TaskManagementPage({
       <Card className="overflow-hidden p-0">
         <TaskManagementToolbar
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
           view={view}
-          onViewChange={setView}
+          onViewChange={(value) => {
+            setView(value);
+            setPage(1);
+          }}
           status={status}
-          onStatusChange={setStatus}
+          onStatusChange={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
           priority={priority}
-          onPriorityChange={setPriority}
+          onPriorityChange={(value) => {
+            setPriority(value);
+            setPage(1);
+          }}
           taskType={taskType}
-          onTaskTypeChange={setTaskType}
+          onTaskTypeChange={(value) => {
+            setTaskType(value);
+            setPage(1);
+          }}
           sort={sort}
-          onSortChange={setSort}
+          onSortChange={(value) => {
+            setSort(value);
+            setPage(1);
+          }}
           onResetFilters={resetFilters}
-          resultCount={filteredTasks.length}
-          totalCount={tasks.length}
+          resultCount={hasClientFilters ? filteredTaskCount : totalTaskCount}
+          totalCount={totalTaskCount}
           onCreateTask={() => setSheetOpen(true)}
         />
 
@@ -228,10 +405,49 @@ export default function TaskManagementPage({
           {viewCounts.today} task hôm nay, {viewCounts.overdue} task quá hạn,{" "}
           {viewCounts.upcoming} task sắp tới.
         </div>
-        <TaskManagementTable
-          tasks={filteredTasks}
-          onUpdateTask={handleUpdateTask}
-        />
+        {tasksQuery.isPending && shouldUseCrmApi ? (
+          <p className="px-5 py-16 text-center text-sm text-text-tertiary">
+            Đang tải task...
+          </p>
+        ) : tasksQuery.isError && shouldUseCrmApi ? (
+          <p
+            className="px-5 py-16 text-center text-sm text-input-error"
+            role="alert"
+          >
+            {tasksQuery.error.message || "Không thể tải danh sách task."}
+          </p>
+        ) : (
+          <TaskManagementTable
+            tasks={visibleTasks}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={handleRequestDeleteTask}
+          />
+        )}
+
+        {filteredTaskCount > 0 && totalPages > 1 && (
+          <div className="flex flex-col gap-3 border-t border-card-border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between lg:px-5">
+            <p className="text-xs text-text-secondary" aria-live="polite">
+              Hiển thị{" "}
+              <span className="font-semibold text-text-primary">
+                {(currentPage - 1) * TASK_PAGE_SIZE + 1}–
+                {Math.min(currentPage * TASK_PAGE_SIZE, filteredTaskCount)}
+              </span>{" "}
+              trong tổng số{" "}
+              <span className="font-semibold text-text-primary">
+                {filteredTaskCount}
+              </span>{" "}
+              task
+            </p>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              variant="compact"
+              isDisabled={tasksQuery.isFetching}
+              className="max-sm:gap-3"
+            />
+          </div>
+        )}
       </Card>
 
       <TaskCreateSheet
@@ -242,11 +458,20 @@ export default function TaskManagementPage({
           isAuthLoading || (Boolean(currentUserId) && studentsQuery.isPending)
         }
         studentsError={studentsQuery.error}
-        assigneeId={shouldUseCrmApi ? currentUserId : undefined}
-        assigneeName={shouldUseCrmApi ? user?.full_name : undefined}
+        assignees={taskAssignees}
+        isLoadingAssignees={taskAssigneesQuery.isPending}
+        assigneesError={taskAssigneesQuery.error}
         requireAssignee={shouldUseCrmApi}
         isSubmitting={shouldUseCrmApi && createTaskMutation.isPending}
         onCreate={handleCreateTask}
+      />
+      <StudentDeleteTaskDialog
+        task={taskToDelete}
+        isDeleting={deleteTaskMutation.isPending}
+        onOpenChange={(open) => {
+          if (!open && !deleteTaskMutation.isPending) setTaskToDelete(null);
+        }}
+        onConfirm={handleConfirmDeleteTask}
       />
     </main>
   );

@@ -21,10 +21,7 @@ import {
 } from "./student-activity-utils";
 import StudentCreateNoteDialog from "./student-create-note-dialog";
 import StudentInlineEditableRichText from "./student-inline-editable-rich-text";
-import type {
-  StudentNoteCreationOptions,
-  StudentNoteRecord,
-} from "./types";
+import type { StudentNoteCreationOptions, StudentNoteRecord } from "./types";
 
 interface StudentNotesTabProps {
   studentName: string;
@@ -36,6 +33,8 @@ interface StudentNotesTabProps {
   onUpdateNote: (id: string, content: string) => void;
   onDeleteNote?: (id: string) => void;
   isCreating?: boolean;
+  canCreateFollowUpTask: boolean;
+  followUpTaskDisabledReason?: string;
 }
 
 export default function StudentNotesTab({
@@ -45,10 +44,13 @@ export default function StudentNotesTab({
   onUpdateNote,
   onDeleteNote,
   isCreating = false,
+  canCreateFollowUpTask,
+  followUpTaskDisabledReason,
 }: StudentNotesTabProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<ActivityTimeFilter>("all");
-  const [expansionMode, setExpansionMode] = useState<ActivityExpansionMode>("collapse");
+  const [expansionMode, setExpansionMode] =
+    useState<ActivityExpansionMode>("collapse");
   const [expandedNoteIds, setExpandedNoteIds] = useState<Set<string>>(
     () => new Set(notes.map((note) => note.id)),
   );
@@ -72,13 +74,18 @@ export default function StudentNotesTab({
   }, [visibleNotes, timeFilter, search]);
 
   const groupedNotes = useMemo(
-    () => groupActivitiesByDate(filteredNotes, (note) => parseStudentActivityDate(note.date)),
+    () =>
+      groupActivitiesByDate(filteredNotes, (note) =>
+        parseStudentActivityDate(note.date),
+      ),
     [filteredNotes],
   );
 
   const handleExpansionModeChange = (mode: ActivityExpansionMode) => {
     setExpansionMode(mode);
-    setExpandedNoteIds(new Set(mode === "expand" ? notes.map((note) => note.id) : []));
+    setExpandedNoteIds(
+      new Set(mode === "expand" ? notes.map((note) => note.id) : []),
+    );
   };
 
   const handleNoteExpandedChange = (id: string, expanded: boolean) => {
@@ -114,7 +121,9 @@ export default function StudentNotesTab({
       </div>
 
       {filteredNotes.length === 0 ? (
-        <p className="py-2 text-xs text-text-tertiary">Chưa có ghi chú nào phù hợp.</p>
+        <p className="py-2 text-xs text-text-tertiary">
+          Chưa có ghi chú nào phù hợp.
+        </p>
       ) : (
         <div className="space-y-6">
           {groupedNotes.map((group) => (
@@ -138,7 +147,9 @@ export default function StudentNotesTab({
                   timestamp={formatDateTime(note.date)}
                   preview={<StudentNotePreview content={note.content} />}
                   expanded={expandedNoteIds.has(note.id)}
-                  onExpandedChange={(expanded) => handleNoteExpandedChange(note.id, expanded)}
+                  onExpandedChange={(expanded) =>
+                    handleNoteExpandedChange(note.id, expanded)
+                  }
                 >
                   <StudentInlineEditableRichText
                     value={note.content}
@@ -170,6 +181,8 @@ export default function StudentNotesTab({
         studentName={studentName}
         onCreate={onCreateNote}
         isSubmitting={isCreating}
+        canCreateFollowUpTask={canCreateFollowUpTask}
+        followUpTaskDisabledReason={followUpTaskDisabledReason}
       />
     </div>
   );

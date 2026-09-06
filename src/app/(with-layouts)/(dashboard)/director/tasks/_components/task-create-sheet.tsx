@@ -25,7 +25,7 @@ import {
   SheetTitle,
 } from "@/components/tailgrids/core/sheet";
 import { TextField } from "@/components/tailgrids/core/text-field";
-import { useAuth } from "@/components/common/auth/auth-provider";
+import type { SessionUser } from "@/services/api/auth";
 import type {
   StudentListItem,
   StudentPriority,
@@ -34,6 +34,11 @@ import type {
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 
 import { taskTypeLabel } from "../../students/_components/student-task-badges";
+import {
+  getTaskAssignmentMessage,
+  normalizeStudentOwner,
+  resolveStudentTaskAssignee,
+} from "../../students/_components/student-task-assignee-policy";
 import TaskStudentSelect from "./task-student-select";
 
 interface TaskCreateSheetProps {
@@ -43,10 +48,11 @@ interface TaskCreateSheetProps {
   onCreate: (task: TaskManagementItem) => void | Promise<void>;
   isLoadingStudents?: boolean;
   studentsError?: Error | null;
+  assignees: SessionUser[];
+  isLoadingAssignees?: boolean;
+  assigneesError?: Error | null;
   isSubmitting?: boolean;
   requireAssignee?: boolean;
-  assigneeId?: string;
-  assigneeName?: string;
 }
 
 const priorityOptions: StudentPriority[] = ["Cao", "Trung bình", "Thấp"];
@@ -66,15 +72,13 @@ export default function TaskCreateSheet({
   onCreate,
   isLoadingStudents = false,
   studentsError = null,
+  assignees,
+  isLoadingAssignees = false,
+  assigneesError = null,
   isSubmitting = false,
   requireAssignee = false,
-  assigneeId: assigneeIdProp,
-  assigneeName: assigneeNameProp,
 }: TaskCreateSheetProps) {
   const formId = useId();
-  const { user } = useAuth();
-  const assigneeName = assigneeNameProp || user?.full_name || "-";
-  const assigneeId = assigneeIdProp || user?.user || user?.email;
   const [title, setTitle] = useState("");
   const [studentId, setStudentId] = useState(students[0]?.id ?? "");
   const [dueDate, setDueDate] = useState(getTodayInputValue);
@@ -87,12 +91,31 @@ export default function TaskCreateSheet({
     ? studentId
     : (students[0]?.id ?? "");
   const student = students.find((item) => item.id === selectedStudentId);
-  const isValid = Boolean(
+  const studentOwner = normalizeStudentOwner(student?.owner);
+  const studentTaskAssignee = resolveStudentTaskAssignee(
+    studentOwner,
+    assignees,
+  );
+  const assigneeId =
+    studentTaskAssignee?.name || (!requireAssignee ? studentOwner : undefined);
+  const assigneeName =
+    studentTaskAssignee?.full_name || studentOwner || "Chưa phân công";
+  const assignmentMessage = !studentOwner
+    ? getTaskAssignmentMessage(studentOwner, studentTaskAssignee)
+    : requireAssignee
+      ? getTaskAssignmentMessage(studentOwner, studentTaskAssignee, {
+          isLoading: isLoadingAssignees,
+          hasError: Boolean(assigneesError),
+        })
+      : null;
+  const canCreateTask = Boolean(
     student &&
-    title.trim() &&
-    dueDate &&
-    dueTime &&
-    (!requireAssignee || assigneeId),
+    assigneeId &&
+    (!requireAssignee ||
+      (studentTaskAssignee && !isLoadingAssignees && !assigneesError)),
+  );
+  const isValid = Boolean(
+    student && title.trim() && dueDate && dueTime && canCreateTask,
   );
 
   const resetForm = () => {
@@ -237,12 +260,13 @@ export default function TaskCreateSheet({
           </div>
 
           <div className="rounded-lg border border-card-border bg-background-gray-secondary/40 px-4 py-3">
-            <p className="text-xs text-text-tertiary">Người phụ trách</p>
+            <p className="text-xs text-text-tertiary">Assign to</p>
             <p className="mt-1 font-semibold text-text-primary">
               {assigneeName}
             </p>
             <p className="mt-1 text-xs text-text-secondary">
-              Người phụ trách chung của danh sách task, không thể chỉnh sửa.
+              {assignmentMessage ||
+                "Task sẽ mặc định giao cho Sale/CTV đang phụ trách student này và không thể thay đổi."}
             </p>
           </div>
 

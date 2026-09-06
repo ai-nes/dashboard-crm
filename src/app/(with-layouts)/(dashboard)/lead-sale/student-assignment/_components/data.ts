@@ -10,11 +10,11 @@ export const automationPath: StepId[] = [
 
 export const workflowPositions: Record<StepId, { x: number; y: number }> = {
   input: { x: 0, y: 0 },
-  validation: { x: 360, y: 0 },
-  classification: { x: 720, y: 0 },
-  matching: { x: 360, y: 220 },
-  review: { x: 0, y: 220 },
-  assignment: { x: 360, y: 440 },
+  validation: { x: 380, y: 0 },
+  classification: { x: 760, y: 0 },
+  matching: { x: 1140, y: 0 },
+  review: { x: 950, y: 280 },
+  assignment: { x: 1520, y: 280 },
 };
 
 /**
@@ -24,7 +24,7 @@ export const workflowPositions: Record<StepId, { x: number; y: number }> = {
 export const workflowSteps: WorkflowStep[] = [
   {
     id: "input",
-    title: "Lead vào hệ thống",
+    title: "Bước 1 · Lead vào hệ thống",
     description: "Tạo CRM Student · pool theo Campus",
     detail: "Tiếp nhận lead, chống trùng và tạo CRM Student thuộc pool mặc định theo Campus.",
     rules: [
@@ -39,7 +39,7 @@ export const workflowSteps: WorkflowStep[] = [
   },
   {
     id: "validation",
-    title: "Xác định pool chuẩn",
+    title: "Bước 2 · Xác định pool chuẩn",
     description: "Campus · Team · Student Pool",
     detail: "Resolve đúng một Student Pool active khớp Campus và ownership topology của CRM Student.",
     rules: [
@@ -54,7 +54,7 @@ export const workflowSteps: WorkflowStep[] = [
   },
   {
     id: "classification",
-    title: "Xác định Zone và Tier",
+    title: "Bước 3 · Xác định Zone và Tier",
     description: "High School → Zone → Province",
     detail: "Xác định địa bàn theo thứ tự ưu tiên của trường học, Zone, Province và trạng thái chưa xác định.",
     rules: [
@@ -70,7 +70,7 @@ export const workflowSteps: WorkflowStep[] = [
   },
   {
     id: "matching",
-    title: "Điều phối theo 4 tầng",
+    title: "Bước 4 · Điều phối theo 4 tầng",
     description: "School owner · Zone team · Queue",
     detail: "Áp policy, capacity và chiến lược chọn người; deferred không tự động rơi xuống tầng khác.",
     rules: [
@@ -86,7 +86,7 @@ export const workflowSteps: WorkflowStep[] = [
   },
   {
     id: "review",
-    title: "Hàng đợi xử lý",
+    title: "Nhánh rẽ · Hàng đợi xử lý thủ công",
     description: "MANUAL_QUEUE · ENRICHMENT_QUEUE · Deferred",
     detail: "Các lead chưa thể tự động gán được giữ trong hàng đợi tương ứng để bổ sung dữ liệu, retry hoặc xử lý thủ công.",
     rules: [
@@ -101,7 +101,7 @@ export const workflowSteps: WorkflowStep[] = [
   },
   {
     id: "assignment",
-    title: "Ownership và SLA",
+    title: "Bước 5 · Ownership và SLA",
     description: "Owner cá nhân · Receipt · Audit · SLA",
     detail: "Ghi ownership qua command canonical, append audit event và mở SLA khi lead có owner cá nhân.",
     rules: [

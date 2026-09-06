@@ -46,7 +46,7 @@ export default function StudentInlineEditableText({
 
   if (editing) {
     return (
-      <div className={cn("space-y-2", className)}>
+      <div className={cn("min-w-0 flex-1 space-y-2.5", className)}>
         <Input
           autoFocus
           value={draft}
@@ -57,9 +57,9 @@ export default function StudentInlineEditableText({
           }}
           placeholder={placeholder}
           aria-label={placeholder ?? "Nội dung"}
-          className="h-10 text-sm"
+          className="h-10 w-full min-w-0 text-base font-medium"
         />
-        <div className="flex gap-2">
+        <div className="flex justify-end gap-2">
           <Button size="xs" appearance="outline" onPress={cancel}>
             Hủy
           </Button>

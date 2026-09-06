@@ -69,10 +69,10 @@ export default function WorkflowSection() {
                 <Play size={15} aria-hidden="true" />
               )}
               {testRun.status === "running"
-                ? "Dừng chạy thử"
+                ? "Dừng chạy thủ công"
                 : testRun.status === "completed"
-                  ? "Chạy lại luồng"
-                  : "Chạy thử luồng"}
+                  ? "Chạy lại thủ công"
+                  : "Chạy thủ công"}
             </Button>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function WorkflowSection() {
           >
             <span>
               {testRun.status === "running"
-                ? `Đang chạy thử · ${activeStep?.title ?? "Chuẩn bị luồng"}`
+                ? `Đang chạy thủ công · ${activeStep?.title ?? "Chuẩn bị luồng"}`
                 : "Đã chạy xong quy trình phân công tự động"}
             </span>
             <span className="tabular-nums">
@@ -168,8 +168,8 @@ export default function WorkflowSection() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-card-border px-5 py-3 text-xs text-text-tertiary">
           <span className="inline-flex items-center gap-1.5">
             <InfoCircle size={14} aria-hidden="true" />
-            Sơ đồ mô tả quy trình chung; nút chạy thử chỉ mô phỏng trên giao
-            diện.
+            Sơ đồ mô tả quy trình chung; nút chạy thủ công chỉ mô phỏng trên
+            giao diện.
           </span>
           <span className="inline-flex items-center gap-2">
             <span

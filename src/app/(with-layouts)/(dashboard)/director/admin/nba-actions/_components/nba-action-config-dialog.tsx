@@ -20,7 +20,16 @@ import NbaAdminDialogHeader from "./nba-admin-dialog-header";
 import NbaTimeWindowEditor from "./nba-time-window-editor";
 import { getActionPurpose } from "./types";
 
-const ACTION_ROLES = ["Sale", "Lead Sales", "Marketing", "Promoter", "Admissions Director", "System Manager"] as const;
+/** Keep in sync with the backend Action API's allowed actor vocabulary. */
+const ACTION_ROLES = [
+  "CTV Sale",
+  "Sale",
+  "Lead Sale",
+  "Marketing",
+  "Promoter",
+  "Admissions Director",
+  "System Manager",
+] as const;
 
 const CHANNEL_OPTIONS: Array<{ id: ActionChannel; label: string }> = [
   { id: "NONE", label: "Không có kênh" },
@@ -193,7 +202,7 @@ export default function NbaActionConfigDialog({ action, actionTypes, availableTi
         />
 
         <DialogBody className="flex-1 overflow-y-auto px-5 py-3">
-          {!canEdit && <Alert status="info"><AlertIndicator><InfoCircle aria-hidden="true" /></AlertIndicator><AlertContent><AlertDescription>Bạn có thể xem cấu hình. Chỉ System Manager được thay đổi Action.</AlertDescription></AlertContent></Alert>}
+          {!canEdit && <Alert status="info"><AlertIndicator><InfoCircle aria-hidden="true" /></AlertIndicator><AlertContent><AlertDescription>Bạn có thể xem cấu hình. Chỉ Administrator được thay đổi Action.</AlertDescription></AlertContent></Alert>}
           {timeSlotsError && <Alert status="error"><AlertIndicator /><AlertContent><AlertDescription>Không tải được danh sách khung giờ. Hãy tải lại trang trước khi lưu.</AlertDescription></AlertContent></Alert>}
           {detailQuery.error && !isNew && <Alert status="warning"><AlertIndicator /><AlertContent><AlertDescription>Không tải được chi tiết mới nhất; đang hiển thị dữ liệu từ danh sách.</AlertDescription></AlertContent></Alert>}
           <div className="mt-2 grid gap-5 md:grid-cols-2">

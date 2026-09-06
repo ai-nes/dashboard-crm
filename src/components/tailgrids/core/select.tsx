@@ -132,12 +132,14 @@ export function Select<T extends object>({ className, children, ...props }: Sele
     );
   }
 
+  const { value, onChange, ...ariaSelectProps } = props;
+
   return (
     <AriaSelect
-      {...(props as any)}
+      {...(ariaSelectProps as any)}
       className={cn("group flex w-full flex-col gap-2", className)}
-      selectedKey={props.value as Key}
-      onSelectionChange={props.onChange}
+      selectedKey={value as Key}
+      onSelectionChange={onChange}
     >
       {children}
     </AriaSelect>

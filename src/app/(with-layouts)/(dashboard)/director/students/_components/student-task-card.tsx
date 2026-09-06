@@ -39,6 +39,7 @@ interface StudentTaskCardProps {
   defaultExpanded?: boolean;
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
+  aiInsight?: ReactNode;
 }
 
 const priorityOptions: StudentTaskItem["priority"][] = [
@@ -92,6 +93,7 @@ export default function StudentTaskCard({
   defaultExpanded = true,
   expanded: expandedProp,
   onExpandedChange,
+  aiInsight,
 }: StudentTaskCardProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const expanded = expandedProp ?? internalExpanded;
@@ -305,6 +307,7 @@ export default function StudentTaskCard({
               placeholder="Thêm ghi chú cho task..."
             />
           </div>
+          {aiInsight}
         </div>
       )}
     </article>
