@@ -193,7 +193,7 @@ export default function TimingPolicyEditorDialog({ policy, canEdit, onClose }: T
 
         <DialogBody className="max-h-[min(44rem,calc(100vh-10rem))] space-y-3 overflow-y-auto px-5 py-3.5">
           {!canEdit && (
-            <Alert status="info"><AlertIndicator /><AlertContent><AlertDescription>Bạn có thể xem cấu hình. Chỉ System Manager được thay đổi chính sách thời gian.</AlertDescription></AlertContent></Alert>
+            <Alert status="info"><AlertIndicator /><AlertContent><AlertDescription>Bạn có thể xem cấu hình. Chỉ Administrator được thay đổi chính sách thời gian.</AlertDescription></AlertContent></Alert>
           )}
           <div className="grid gap-2.5 sm:grid-cols-2">
             <label className="space-y-1 sm:col-span-2">

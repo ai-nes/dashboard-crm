@@ -15,6 +15,7 @@ interface StudentActivityCardProps {
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
   preview?: ReactNode;
+  aiInsight?: ReactNode;
   children: ReactNode;
 }
 
@@ -27,6 +28,7 @@ export default function StudentActivityCard({
   expanded: expandedProp,
   onExpandedChange,
   preview,
+  aiInsight,
   children,
 }: StudentActivityCardProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
@@ -61,7 +63,9 @@ export default function StudentActivityCard({
               {icon}
             </span>
           ) : null}
-          <span className="min-w-0 truncate text-base text-text-primary">{title}</span>
+          <span className="min-w-0 truncate text-base text-text-primary">
+            {title}
+          </span>
         </span>
         <span className="shrink-0 text-sm text-text-tertiary">{timestamp}</span>
       </button>
@@ -71,7 +75,10 @@ export default function StudentActivityCard({
         </div>
       )}
       {expanded && (
-        <div className="border-t border-card-border px-4 py-4 sm:px-5">{children}</div>
+        <div className="border-t border-card-border px-4 py-4 sm:px-5">
+          {children}
+          {aiInsight}
+        </div>
       )}
     </article>
   );

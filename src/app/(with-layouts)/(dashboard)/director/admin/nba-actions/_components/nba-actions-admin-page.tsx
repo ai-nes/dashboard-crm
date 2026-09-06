@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasCrmRole } from "@/components/common/auth/rbac";
+import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
 import { useNbaActionTypesQuery, useNbaActionsQuery, useNbaTimeSlotsQuery } from "@/hooks/use-nba-actions-queries";
 import { ACTION_TIME_SLOTS } from "@/services/api/nba-actions";
 
@@ -25,7 +25,7 @@ export default function NbaActionsAdminPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const canEdit = hasCrmRole(user?.roles, "System Manager");
+  const canEdit = hasFrappeTechnicalRole(user?.roles, "System Manager");
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("search") ?? "");
@@ -98,7 +98,7 @@ export default function NbaActionsAdminPage() {
       <header className="space-y-4">
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-primary-500"><span className="size-2 rounded-full bg-primary-500" aria-hidden="true" /><span>NBA</span><Badge color={canEdit ? "success" : "gray"}>{canEdit ? "System Manager" : "Chỉ xem"}</Badge></div>
+            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-primary-500"><span className="size-2 rounded-full bg-primary-500" aria-hidden="true" /><span>NBA</span><Badge color={canEdit ? "success" : "gray"}>{canEdit ? "Administrator" : "Chỉ xem"}</Badge></div>
             <h1 className="mt-2 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">Quản lý cấu hình NBA</h1>
             <p className="mt-2 text-sm leading-6 text-text-secondary">Quản lý hành động, nhóm hành động, chính sách thời gian và quy tắc đề xuất cho từng hồ sơ tuyển sinh.</p>
           </div>

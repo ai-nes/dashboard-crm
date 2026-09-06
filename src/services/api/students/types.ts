@@ -175,6 +175,7 @@ export interface StudentTaskItem {
   title: string;
   assignee: string;
   assigneeId?: string;
+  activityDate?: string;
   dueDate: string;
   dueTime?: string;
   status: "todo" | "in-progress" | "done" | "canceled";

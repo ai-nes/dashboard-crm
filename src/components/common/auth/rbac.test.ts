@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CRM_ROLES,
   canAccessDashboardPath,
   findRouteAccessRule,
   getDefaultRouteForRoles,
@@ -30,7 +31,21 @@ function getNavigationUrls(navigation: NavigationSection[]): string[] {
 
 describe("dashboard RBAC", () => {
   it("matches only canonical role names", () => {
+    expect(CRM_ROLES).toEqual([
+      "CTV Sale",
+      "Sale",
+      "Lead Sale",
+      "Promoter",
+      "Lead Promoter",
+      "Marketing",
+      "Lead Marketing",
+      "Admissions Director",
+      "Administrator",
+    ]);
     expect(getRecognizedRoles(["Sale", "sale", " Sale "])).toEqual(["Sale"]);
+    expect(getRecognizedRoles(["Administrator", "CEO", "System Manager"])).toEqual([
+      "Administrator",
+    ]);
   });
 
   it("uses the most specific rule for nested routes", () => {
@@ -65,9 +80,10 @@ describe("dashboard RBAC", () => {
       "/director/school-field-activity",
     );
     expect(getDefaultRouteForRoles(["Marketing"])).toBe(
-      "/director/campaign-intelligence",
+      "/marketing",
     );
-    expect(getDefaultRouteForRoles(["System Manager"])).toBe("/");
+    expect(getDefaultRouteForRoles(["Administrator"])).toBe("/director");
+    expect(getDefaultRouteForRoles(["System Manager"])).toBe("/admin");
   });
 
   it("filters sidebar items with the same exact-role contract", () => {
@@ -112,10 +128,19 @@ describe("dashboard RBAC", () => {
       "Quản lý task",
       "Hoạt động & chiến dịch",
     ]);
-    expect(directorNavigation).toEqual(
-      filterNavigationByRoles(DIRECTOR_NAV_DATA, ["Admissions Director"]),
-    );
     expect(getNavigationUrls(directorNavigation)).toHaveLength(12);
+    expect(getNavigationUrls(directorNavigation)[0]).toBe("/director");
+    expect(
+      getNavigationUrls(filterNavigationByRoles(DIRECTOR_NAV_DATA, ["Admissions Director"])),
+    ).toHaveLength(12);
+    expect(
+      getNavigationUrls(
+        filterNavigationByRoles(
+          getNavigationDataForRoles(["Administrator"]),
+          ["Administrator"],
+        ),
+      ),
+    ).toHaveLength(12);
     expect(primaryItems).not.toContain("Cấu hình Action NBA");
     expect(
       findActiveGroupKeyInNavigation("/director/ai", directorNavigation),

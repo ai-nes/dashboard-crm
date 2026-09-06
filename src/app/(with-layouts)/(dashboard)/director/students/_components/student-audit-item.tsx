@@ -10,6 +10,8 @@ import {
   formatStudentAuditRelativeTime,
   formatStudentAuditValue,
   getStudentAuditActor,
+  getStudentAuditDoctypeLabel,
+  getStudentAuditSourceLabel,
   getStudentAuditStatus,
   getStudentAuditTone,
 } from "./student-audit-event";
@@ -50,13 +52,17 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
           <p className="text-sm font-semibold text-text-primary">
             {actor}
             {role ? (
-              <span className="ml-2 font-normal text-text-tertiary">{role}</span>
+              <span className="ml-2 font-normal text-text-tertiary">
+                {role}
+              </span>
             ) : null}
           </p>
           <p className="mt-0.5 text-xs text-text-tertiary">
-            Nguồn: {event.source || "Tài liệu"}
+            Nguồn cập nhật: {getStudentAuditSourceLabel(event.source)}
             {event.sourceName ? ` · ${event.sourceName}` : ""}
-            {event.doctype ? ` (${event.doctype})` : ""}
+            {event.doctype
+              ? ` (${getStudentAuditDoctypeLabel(event.doctype)})`
+              : ""}
           </p>
         </div>
         <time
@@ -74,7 +80,9 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
           <p className="text-sm leading-6 text-text-primary">
             Đã tạo hồ sơ học sinh{" "}
             {event.docname ? (
-              <span className="font-semibold text-text-primary">{event.docname}</span>
+              <span className="font-semibold text-text-primary">
+                {event.docname}
+              </span>
             ) : (
               ""
             )}{" "}
@@ -119,7 +127,7 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
         </Badge>
         {event.source && (
           <Badge color="gray" size="sm">
-            {event.source}
+            {getStudentAuditSourceLabel(event.source)}
           </Badge>
         )}
         {event.sourceName && (

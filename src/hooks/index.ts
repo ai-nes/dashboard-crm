@@ -14,3 +14,4 @@ export * from "./use-director-overview-queries";
 export * from "./use-director-regional-performance-queries";
 export * from "./use-sale-overview-query";
 export * from "./use-nba-actions-queries";
+export * from "./use-interaction-intelligence-queries";

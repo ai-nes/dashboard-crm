@@ -17,10 +17,10 @@ import {
   UserPencil,
 } from "@tailgrids/icons";
 import type { ReactNode } from "react";
-import type { CrmRole } from "../auth/rbac";
+import type { DashboardRole } from "../auth/rbac";
 import {
   getDefaultRouteForRoles,
-  getEffectiveCrmRoles,
+  getEffectiveDashboardRoles,
   getRolesForRoute,
 } from "../auth/rbac";
 
@@ -29,7 +29,7 @@ export interface NavigationItem {
   url?: string;
   exact?: boolean;
   icon?: ReactNode;
-  roles: readonly CrmRole[];
+  roles: readonly DashboardRole[];
   items?: NavigationItem[];
 }
 
@@ -381,8 +381,10 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
 export function getNavigationDataForRoles(
   userRoles: readonly string[],
 ): NavigationSection[] {
-  const effectiveRoles = getEffectiveCrmRoles(userRoles);
-  const navigation = effectiveRoles.includes("Admissions Director")
+  const effectiveRoles = getEffectiveDashboardRoles(userRoles);
+  const navigation =
+    effectiveRoles.includes("Admissions Director") ||
+    effectiveRoles.includes("Administrator")
     ? DIRECTOR_NAV_DATA
     : effectiveRoles.includes("CTV Sale")
       ? CTV_SALE_NAV_DATA

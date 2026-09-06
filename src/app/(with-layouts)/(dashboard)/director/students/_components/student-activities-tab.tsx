@@ -371,6 +371,7 @@ export default function StudentActivitiesTab({
     const optimisticTask = {
       ...taskToCreate,
       id: optimisticId,
+      activityDate: new Date().toISOString(),
     };
     setCreatedTasks((prev) => [optimisticTask, ...prev]);
 
@@ -482,13 +483,11 @@ export default function StudentActivitiesTab({
       </TabList>
       <TabContent value="all">
         <StudentAllActivitiesFeed
-          notes={notes}
+          studentId={studentDocname}
           tasks={tasks}
           zaloMessages={zaloMessages}
-          calls={calls}
           auditEvents={auditEvents}
           onUpdateTask={handleUpdateTask}
-          onOpenZalo={() => setActiveTab("zalo")}
         />
       </TabContent>
       <TabContent value="notes">
