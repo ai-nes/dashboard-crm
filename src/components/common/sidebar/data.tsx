@@ -60,8 +60,8 @@ export const NAV_DATA: NavigationSection[] = [
         icon: <HomeIcon />,
       }),
       navItem({
-        title: "Việc cần xử lý",
-        url: "/director/ai/next-best-action",
+        title: "Quản lý task",
+        url: "/director/tasks",
         icon: <TaskIcon />,
       }),
       navItem({
@@ -136,11 +136,6 @@ export const NAV_DATA: NavigationSection[] = [
     label: "VẬN HÀNH TUYỂN SINH",
     items: [
       navItem({
-        title: "Quản lý task",
-        url: "/director/tasks",
-        icon: <TaskIcon />,
-      }),
-      navItem({
         title: "Hoạt động & chiến dịch",
         url: "/director/activity-campaign",
         icon: <CalendarIcon />,
@@ -171,7 +166,6 @@ export const NAV_DATA: NavigationSection[] = [
 
 const DIRECTOR_NAV_PATHS = new Set([
   "/",
-  "/director/ai/next-best-action",
   "/crm-chatbot",
   "/director/ai",
   "/director/demographics",
@@ -210,8 +204,8 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
         icon: <HomeIcon />,
       }),
       navItem({
-        title: "Việc cần xử lý",
-        url: "/ctv-sale/next-best-action",
+        title: "Quản lý task",
+        url: "/ctv-sale/tasks",
         icon: <TaskIcon />,
       }),
     ],
@@ -231,21 +225,6 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
       }),
     ],
   },
-  {
-    label: "VẬN HÀNH TUYỂN SINH",
-    items: [
-      navItem({
-        title: "Quản lý task",
-        url: "/ctv-sale/tasks",
-        icon: <TaskIcon />,
-      }),
-      // navItem({
-      //   title: "Kết quả",
-      //   url: "/ctv-sale/results",
-      //   icon: <PieChartIcon />,
-      // }),
-    ],
-  },
 ];
 
 /**
@@ -263,8 +242,8 @@ export const SALE_NAV_DATA: NavigationSection[] = [
         icon: <HomeIcon />,
       }),
       navItem({
-        title: "Việc cần xử lý",
-        url: "/sale/next-best-action",
+        title: "Quản lý task",
+        url: "/sale/tasks",
         icon: <TaskIcon />,
       }),
       navItem({
@@ -294,16 +273,6 @@ export const SALE_NAV_DATA: NavigationSection[] = [
       }),
     ],
   },
-  {
-    label: "VẬN HÀNH TUYỂN SINH",
-    items: [
-      navItem({
-        title: "Quản lý task",
-        url: "/sale/tasks",
-        icon: <TaskIcon />,
-      }),
-    ],
-  },
 ];
 
 /**
@@ -322,8 +291,8 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         icon: <HomeIcon />,
       }),
       navItem({
-        title: "Việc cần xử lý",
-        url: "/lead-sale/next-best-action",
+        title: "Quản lý task",
+        url: "/lead-sale/tasks",
         icon: <TaskIcon />,
       }),
       navItem({
@@ -366,11 +335,6 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
   {
     label: "VẬN HÀNH TUYỂN SINH",
     items: [
-      navItem({
-        title: "Quản lý task",
-        url: "/lead-sale/tasks",
-        icon: <TaskIcon />,
-      }),
       navItem({
         title: "Phân công tự động",
         url: "/lead-sale/student-assignment",

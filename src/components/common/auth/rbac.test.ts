@@ -116,7 +116,7 @@ describe("dashboard RBAC", () => {
 
     expect(primaryItems).toEqual([
       "Tổng quan tuyển sinh",
-      "Việc cần xử lý",
+      "Quản lý task",
       "Chatbot CRM",
       "Trung tâm AI & dữ liệu",
       "Khám phá người học",
@@ -125,14 +125,13 @@ describe("dashboard RBAC", () => {
       "Hiệu suất khu vực",
       "Phễu tuyển sinh",
       "Phân tích xu hướng",
-      "Quản lý task",
       "Hoạt động & chiến dịch",
     ]);
-    expect(getNavigationUrls(directorNavigation)).toHaveLength(12);
+    expect(getNavigationUrls(directorNavigation)).toHaveLength(11);
     expect(getNavigationUrls(directorNavigation)[0]).toBe("/director");
     expect(
       getNavigationUrls(filterNavigationByRoles(DIRECTOR_NAV_DATA, ["Admissions Director"])),
-    ).toHaveLength(12);
+      ).toHaveLength(11);
     expect(
       getNavigationUrls(
         filterNavigationByRoles(
@@ -140,7 +139,7 @@ describe("dashboard RBAC", () => {
           ["Administrator"],
         ),
       ),
-    ).toHaveLength(12);
+       ).toHaveLength(11);
     expect(primaryItems).not.toContain("Cấu hình Action NBA");
     expect(
       findActiveGroupKeyInNavigation("/director/ai", directorNavigation),
@@ -160,7 +159,6 @@ describe("dashboard RBAC", () => {
 
     expect(systemManagerItems).toEqual([
       "/",
-      "/director/ai/next-best-action",
       "/director/ai",
       "/director/data-health",
       "/director/alerts",
