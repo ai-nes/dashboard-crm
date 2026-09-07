@@ -1,32 +1,93 @@
 "use client";
 
 import { Plus } from "@tailgrids/icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
+import {
+  useLeadSaleCampaignChannelTypesQuery,
+  useCreateLeadSaleCampaignMutation,
+  useLeadSaleCampaignsQuery,
+  useUpdateLeadSaleCampaignMutation,
+} from "@/hooks/use-lead-sale-campaign-queries";
+import type { LeadSaleCampaign } from "@/services/api/lead-sale";
 
 import CampaignFormDialog from "./campaign-form-dialog";
 import CampaignList from "./campaign-list";
 import CampaignStats from "./campaign-stats";
 import CampaignToolbar from "./campaign-toolbar";
 import { isChannelTypeValidForMode, type ChannelTypeValue } from "./channel-types";
-import { initialCampaigns } from "./data";
-import type { CampaignListItem, CampaignMode, CampaignStatus, CampaignStatusFilter } from "./types";
+import { campaignStatusOptions } from "./mappings";
+import type {
+  CampaignFormValues,
+  CampaignListItem,
+  CampaignMode,
+  CampaignStatus,
+  CampaignStatusFilter,
+} from "./types";
 
 type FormDialogState = { mode: "create" } | { mode: "edit"; campaign: CampaignListItem } | null;
 
 const pageSize = 5;
 
+function toCampaignListItem(campaign: LeadSaleCampaign): CampaignListItem {
+  const startDate = campaign.startDate ?? "";
+  const endDate = campaign.endDate ?? "";
+  const admissionYear = Number(startDate.slice(0, 4)) || new Date().getFullYear();
+  const status = campaignStatusOptions.includes(campaign.status as CampaignStatus)
+    ? (campaign.status as CampaignStatus)
+    : "DRAFT";
+
+  return {
+    id: campaign.name,
+    code: campaign.stableCode || campaign.name,
+    name: campaign.title || campaign.name,
+    admissionYear,
+    startDate,
+    endDate,
+    status,
+    mode: campaign.channelBoundary === "Digital" ? "ONLINE" : "OFFLINE",
+    channelType: (campaign.channelType ?? "") as ChannelTypeValue | "",
+    channelUrl: campaign.channelUrl ?? "",
+  };
+}
+
 export default function CampaignsOverviewDashboard() {
-  const [campaigns, setCampaigns] = useState<CampaignListItem[]>(initialCampaigns);
+  const { data, error } = useLeadSaleCampaignsQuery();
+  const {
+    data: channelTypeData,
+    error: channelTypeError,
+  } = useLeadSaleCampaignChannelTypesQuery();
+  const channelTypes = channelTypeData?.channelTypes ?? [];
+  const createCampaignMutation = useCreateLeadSaleCampaignMutation();
+  const updateCampaignMutation = useUpdateLeadSaleCampaignMutation();
+  const [campaignChanges, setCampaignChanges] = useState<Record<string, Partial<CampaignListItem>>>({});
+  const [deletedCampaignIds, setDeletedCampaignIds] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<CampaignStatusFilter>("all");
   const [page, setPage] = useState(1);
   const [formDialog, setFormDialog] = useState<FormDialogState>(null);
   const [deletingCampaign, setDeletingCampaign] = useState<CampaignListItem | null>(null);
+
+  useEffect(() => {
+    if (error) toast.error(error.message || "Không thể tải danh sách chiến dịch.");
+  }, [error]);
+
+  useEffect(() => {
+    if (channelTypeError) {
+      toast.error(channelTypeError.message || "Không thể tải danh sách loại kênh.");
+    }
+  }, [channelTypeError]);
+
+  const campaigns = useMemo(() => {
+    const liveCampaigns = (data?.campaigns ?? []).map(toCampaignListItem);
+    return liveCampaigns
+      .filter((campaign) => !deletedCampaignIds.has(campaign.id))
+      .map((campaign) => ({ ...campaign, ...campaignChanges[campaign.id] }));
+  }, [campaignChanges, data, deletedCampaignIds]);
 
   const filteredCampaigns = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -66,50 +127,79 @@ export default function CampaignsOverviewDashboard() {
   );
 
   const handleStatusChange = (id: string, nextStatus: CampaignStatus) => {
-    setCampaigns((current) =>
-      current.map((campaign) => (campaign.id === id ? { ...campaign, status: nextStatus } : campaign)),
-    );
+    setCampaignChanges((current) => ({ ...current, [id]: { ...current[id], status: nextStatus } }));
     toast.success("Đã cập nhật trạng thái chiến dịch.");
   };
 
   const handleModeChange = (id: string, nextMode: CampaignMode) => {
-    setCampaigns((current) =>
-      current.map((campaign) =>
-        campaign.id === id
-          ? {
-              ...campaign,
-              mode: nextMode,
-              channelType: isChannelTypeValidForMode(campaign.channelType, nextMode) ? campaign.channelType : "",
-            }
-          : campaign,
-      ),
-    );
+    const campaign = campaigns.find((item) => item.id === id);
+    const channelType = campaign?.channelType ?? "";
+    setCampaignChanges((current) => ({
+      ...current,
+      [id]: {
+        ...current[id],
+        mode: nextMode,
+        channelType: isChannelTypeValidForMode(channelType, nextMode, channelTypes)
+          ? channelType
+          : "",
+      },
+    }));
     toast.success("Đã cập nhật hình thức chiến dịch.");
   };
 
-  const handleChannelTypeChange = (id: string, channelType: ChannelTypeValue | "") => {
-    setCampaigns((current) =>
-      current.map((campaign) => (campaign.id === id ? { ...campaign, channelType } : campaign)),
-    );
-    toast.success(channelType ? "Đã cập nhật loại kênh." : "Đã bỏ chọn loại kênh.");
+  const handleChannelSave = async (
+    id: string,
+    channelType: ChannelTypeValue | "",
+    channelUrl: string,
+  ) => {
+    const campaign = campaigns.find((item) => item.id === id);
+    if (!campaign) return;
+    await updateCampaignMutation.mutateAsync({
+      name: id,
+      channelType,
+      channelUrl,
+    });
+    setCampaignChanges((current) => ({
+      ...current,
+      [id]: { ...current[id], channelType, channelUrl },
+    }));
+    toast.success("Đã cập nhật thông tin kênh.");
   };
 
-  const handleChannelUrlChange = (id: string, channelUrl: string) => {
-    setCampaigns((current) =>
-      current.map((campaign) => (campaign.id === id ? { ...campaign, channelUrl } : campaign)),
-    );
-    toast.success(channelUrl ? "Đã cập nhật liên kết kênh online." : "Đã xóa liên kết kênh online.");
-  };
-
-  const handleFormSubmit = (fields: Omit<CampaignListItem, "id">) => {
+  const handleFormSubmit = async (fields: CampaignFormValues) => {
     if (formDialog?.mode === "edit") {
       const { campaign } = formDialog;
-      setCampaigns((current) =>
-        current.map((item) => (item.id === campaign.id ? { ...fields, id: campaign.id } : item)),
-      );
+      await updateCampaignMutation.mutateAsync({
+        name: campaign.id,
+        title: fields.name.trim(),
+        status: fields.status,
+        startDate: fields.startDate,
+        endDate: fields.endDate,
+        channelBoundary: fields.mode === "ONLINE" ? "Digital" : "Field",
+        channelType: fields.channelType,
+        channelUrl: fields.channelUrl.trim(),
+      });
+      setCampaignChanges((current) => {
+        const next = { ...current };
+        delete next[campaign.id];
+        return next;
+      });
       toast.success("Đã cập nhật chiến dịch.");
     } else {
-      setCampaigns((current) => [{ ...fields, id: `camp-${Date.now()}` }, ...current]);
+      const campus = data?.campaigns.find((item) => item.campus)?.campus;
+      if (!campus) {
+        throw new Error("Không thể tạo chiến dịch vì chưa xác định được cơ sở.");
+      }
+      await createCampaignMutation.mutateAsync({
+        title: fields.name.trim(),
+        campus,
+        status: fields.status,
+        startDate: fields.startDate,
+        endDate: fields.endDate,
+        channelBoundary: fields.mode === "ONLINE" ? "Digital" : "Field",
+        channelType: fields.channelType || undefined,
+        channelUrl: fields.channelUrl.trim() || undefined,
+      });
       toast.success("Đã tạo chiến dịch mới.");
     }
     setFormDialog(null);
@@ -117,7 +207,7 @@ export default function CampaignsOverviewDashboard() {
 
   const handleDeleteConfirm = () => {
     if (!deletingCampaign) return;
-    setCampaigns((current) => current.filter((item) => item.id !== deletingCampaign.id));
+    setDeletedCampaignIds((current) => new Set(current).add(deletingCampaign.id));
     toast.success("Đã xóa chiến dịch.");
     setDeletingCampaign(null);
   };
@@ -146,10 +236,10 @@ export default function CampaignsOverviewDashboard() {
 
       <CampaignList
         campaigns={pageCampaigns}
+        channelTypes={channelTypes}
         onStatusChange={handleStatusChange}
         onModeChange={handleModeChange}
-        onChannelTypeChange={handleChannelTypeChange}
-        onChannelUrlChange={handleChannelUrlChange}
+        onChannelSave={handleChannelSave}
         onEdit={(campaign) => setFormDialog({ mode: "edit", campaign })}
         onDelete={setDeletingCampaign}
         toolbar={
@@ -168,6 +258,7 @@ export default function CampaignsOverviewDashboard() {
       {formDialog && (
         <CampaignFormDialog
           campaign={formDialog.mode === "edit" ? formDialog.campaign : null}
+          channelTypes={channelTypes}
           onClose={() => setFormDialog(null)}
           onSubmit={handleFormSubmit}
         />

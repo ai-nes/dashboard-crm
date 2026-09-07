@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
+import { DatePickerField } from "@/components/common/date-picker-field";
 import { Button } from "@/components/tailgrids/core/button";
 import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
 import { Dialog, DialogBody, DialogClose, DialogFooter, DialogTitle } from "@/components/tailgrids/core/dialog";
@@ -15,18 +16,24 @@ import {
   SelectValue,
 } from "@/components/tailgrids/core/select";
 
-import { channelTypeOptionsForMode, isChannelTypeValidForMode, type ChannelTypeValue } from "./channel-types";
+import {
+  channelTypeOptionsForMode,
+  isChannelTypeValidForMode,
+  type ChannelTypeOption,
+  type ChannelTypeValue,
+  validateChannelUrl,
+} from "./channel-types";
 import { campaignModeLabel, campaignModeOptions, campaignStatusLabel, campaignStatusOptions } from "./mappings";
-import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
+import type { CampaignFormValues, CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
 interface CampaignFormDialogProps {
   campaign: CampaignListItem | null;
+  channelTypes: readonly ChannelTypeOption[];
   onClose: () => void;
-  onSubmit: (campaign: Omit<CampaignListItem, "id">) => void;
+  onSubmit: (campaign: CampaignFormValues) => void | Promise<void>;
 }
 
 interface CampaignForm {
-  code: string;
   name: string;
   admissionYear: string;
   startDate: string;
@@ -39,7 +46,6 @@ interface CampaignForm {
 
 function formFromCampaign(campaign: CampaignListItem | null): CampaignForm {
   return {
-    code: campaign?.code ?? "",
     name: campaign?.name ?? "",
     admissionYear: String(campaign?.admissionYear ?? new Date().getFullYear()),
     startDate: campaign?.startDate ?? "",
@@ -51,19 +57,21 @@ function formFromCampaign(campaign: CampaignListItem | null): CampaignForm {
   };
 }
 
-export default function CampaignFormDialog({ campaign, onClose, onSubmit }: CampaignFormDialogProps) {
+export default function CampaignFormDialog({ campaign, channelTypes, onClose, onSubmit }: CampaignFormDialogProps) {
   const isEditing = Boolean(campaign);
   const [form, setForm] = useState<CampaignForm>(() => formFromCampaign(campaign));
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const setField = <K extends keyof CampaignForm>(field: K, value: CampaignForm[K]) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!form.code.trim() || !form.name.trim()) {
-      setError("Vui lòng nhập mã và tên chiến dịch.");
+    if (isSubmitting) return;
+    if (!form.name.trim()) {
+      setError("Vui lòng nhập tên chiến dịch.");
       return;
     }
     if (!form.startDate || !form.endDate) {
@@ -75,24 +83,39 @@ export default function CampaignFormDialog({ campaign, onClose, onSubmit }: Camp
       return;
     }
 
-    onSubmit({
-      code: form.code.trim(),
-      name: form.name.trim(),
-      admissionYear: Number(form.admissionYear) || new Date().getFullYear(),
-      startDate: form.startDate,
-      endDate: form.endDate,
-      status: form.status,
-      mode: form.mode,
-      channelType: form.channelType,
-      channelUrl: form.channelUrl.trim(),
-    });
+    const urlError = validateChannelUrl(form.channelUrl);
+    if (urlError) {
+      setError(urlError);
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        name: form.name.trim(),
+        admissionYear: Number(form.admissionYear) || new Date().getFullYear(),
+        startDate: form.startDate,
+        endDate: form.endDate,
+        status: form.status,
+        mode: form.mode,
+        channelType: form.channelType,
+        channelUrl: form.channelUrl.trim(),
+      });
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Không thể lưu chiến dịch.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleModeChange = (nextMode: CampaignMode) => {
     setForm((current) => ({
       ...current,
       mode: nextMode,
-      channelType: isChannelTypeValidForMode(current.channelType, nextMode) ? current.channelType : "",
+      channelType: isChannelTypeValidForMode(current.channelType, nextMode, channelTypes)
+        ? current.channelType
+        : "",
     }));
   };
 
@@ -110,21 +133,15 @@ export default function CampaignFormDialog({ campaign, onClose, onSubmit }: Camp
           </div>
 
           <DialogBody className="space-y-3 px-5 py-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1">
-                <span className="text-xs font-medium text-input-label-text">Mã chiến dịch</span>
-                <Input value={form.code} onChange={(event) => setField("code", event.target.value)} placeholder="Ví dụ: TS2026-D1" className="h-9 w-full px-3 py-2 text-sm" />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs font-medium text-input-label-text">Năm tuyển sinh</span>
-                <Input
-                  type="number"
-                  value={form.admissionYear}
-                  onChange={(event) => setField("admissionYear", event.target.value)}
-                  className="h-9 w-full px-3 py-2 text-sm"
-                />
-              </label>
-            </div>
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-input-label-text">Năm tuyển sinh</span>
+              <Input
+                type="number"
+                value={form.admissionYear}
+                onChange={(event) => setField("admissionYear", event.target.value)}
+                className="h-9 w-full px-3 py-2 text-sm"
+              />
+            </label>
 
             <label className="block space-y-1">
               <span className="text-xs font-medium text-input-label-text">Tên chiến dịch</span>
@@ -134,11 +151,21 @@ export default function CampaignFormDialog({ campaign, onClose, onSubmit }: Camp
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1">
                 <span className="text-xs font-medium text-input-label-text">Ngày bắt đầu</span>
-                <Input type="date" value={form.startDate} onChange={(event) => setField("startDate", event.target.value)} className="h-9 w-full px-3 py-2 text-sm" />
+                <DatePickerField
+                  value={form.startDate}
+                  onChange={(value) => setField("startDate", value)}
+                  ariaLabel="Ngày bắt đầu"
+                  className="h-9 w-full px-3 py-2 text-sm"
+                />
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-medium text-input-label-text">Ngày kết thúc</span>
-                <Input type="date" value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} className="h-9 w-full px-3 py-2 text-sm" />
+                <DatePickerField
+                  value={form.endDate}
+                  onChange={(value) => setField("endDate", value)}
+                  ariaLabel="Ngày kết thúc"
+                  className="h-9 w-full px-3 py-2 text-sm"
+                />
               </label>
             </div>
 
@@ -191,9 +218,9 @@ export default function CampaignFormDialog({ campaign, onClose, onSubmit }: Camp
                 aria-label="Loại kênh"
                 placeholder="Chọn loại kênh"
               >
-                {channelTypeOptionsForMode(form.mode).map((option) => (
-                  <ComboboxItem key={option.value} id={option.value} textValue={option.label}>
-                    {option.label}
+                {channelTypeOptionsForMode(channelTypes, form.mode).map((option) => (
+                  <ComboboxItem key={option.code} id={option.code} textValue={option.displayName}>
+                    {option.displayName}
                   </ComboboxItem>
                 ))}
               </Combobox>
@@ -214,7 +241,9 @@ export default function CampaignFormDialog({ campaign, onClose, onSubmit }: Camp
 
           <DialogFooter className="border-t border-card-border px-5 py-3">
             <DialogClose appearance="outline" size="sm" type="button">Hủy</DialogClose>
-            <Button type="submit" size="sm">{isEditing ? "Lưu thay đổi" : "Tạo chiến dịch"}</Button>
+            <Button type="submit" size="sm" isDisabled={isSubmitting}>
+              {isEditing ? "Lưu thay đổi" : "Tạo chiến dịch"}
+            </Button>
           </DialogFooter>
         </form>
       </Dialog>

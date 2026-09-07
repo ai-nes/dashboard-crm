@@ -17,4 +17,6 @@ export interface CampaignListItem {
   channelUrl: string;
 }
 
+export type CampaignFormValues = Omit<CampaignListItem, "id" | "code">;
+
 export type CampaignStatusFilter = CampaignStatus | "all";

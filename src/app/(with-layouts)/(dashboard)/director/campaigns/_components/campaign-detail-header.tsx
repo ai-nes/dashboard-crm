@@ -5,11 +5,17 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { formatDate } from "@/utils/format-date";
 
-import { channelTypeLabel } from "./channel-types";
+import { getChannelTypeLabel, type ChannelTypeOption } from "./channel-types";
 import { campaignModeColor, campaignModeLabel, campaignStatusColor, campaignStatusLabel } from "./mappings";
 import type { CampaignListItem } from "./types";
 
-export default function CampaignDetailHeader({ campaign }: { campaign: CampaignListItem }) {
+export default function CampaignDetailHeader({
+  campaign,
+  channelTypes,
+}: {
+  campaign: CampaignListItem;
+  channelTypes: readonly ChannelTypeOption[];
+}) {
   return (
     <header className="rounded-xl border border-card-border bg-card-background p-5 lg:p-6">
       <Link
@@ -33,7 +39,10 @@ export default function CampaignDetailHeader({ campaign }: { campaign: CampaignL
 
       <div className="mt-4 grid divide-y divide-card-border border-t border-card-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <HeaderFact label="Thời gian" value={`${formatDate(campaign.startDate)} – ${formatDate(campaign.endDate)}`} />
-        <HeaderFact label="Loại kênh" value={campaign.channelType ? channelTypeLabel[campaign.channelType] : "-"} />
+        <HeaderFact
+          label="Loại kênh"
+          value={campaign.channelType ? getChannelTypeLabel(channelTypes, campaign.channelType) : "-"}
+        />
         <HeaderFact
           label="Channel URL"
           value={

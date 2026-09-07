@@ -9,42 +9,66 @@ import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
 import { Input } from "@/components/tailgrids/core/input";
 import { Popover } from "@/components/tailgrids/core/popover";
 
-import { channelTypeLabel, channelTypeOptionsForMode, type ChannelTypeValue } from "./channel-types";
+import {
+  getChannelTypeLabel,
+  channelTypeOptionsForMode,
+  type ChannelTypeOption,
+  type ChannelTypeValue,
+  validateChannelUrl,
+} from "./channel-types";
 import type { CampaignMode } from "./types";
 
 interface CampaignChannelCellProps {
   campaignName: string;
   mode: CampaignMode;
+  channelTypes: readonly ChannelTypeOption[];
   channelType: ChannelTypeValue | "";
   channelUrl: string;
-  onChannelTypeChange: (channelType: ChannelTypeValue | "") => void;
-  onChannelUrlChange: (url: string) => void;
+  onSave: (channelType: ChannelTypeValue | "", url: string) => void | Promise<void>;
 }
 
 export default function CampaignChannelCell({
   campaignName,
   mode,
+  channelTypes,
   channelType,
   channelUrl,
-  onChannelTypeChange,
-  onChannelUrlChange,
+  onSave,
 }: CampaignChannelCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [pendingType, setPendingType] = useState(channelType);
   const [pendingUrl, setPendingUrl] = useState(channelUrl);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleOpenChange = (open: boolean) => {
     setIsEditing(open);
     if (open) {
       setPendingType(channelType);
       setPendingUrl(channelUrl);
+      setError(null);
     }
   };
 
-  const handleSave = () => {
-    onChannelTypeChange(pendingType);
-    onChannelUrlChange(pendingUrl.trim());
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (isSaving) return;
+    setError(null);
+
+    const urlError = validateChannelUrl(pendingUrl);
+    if (urlError) {
+      setError(urlError);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await onSave(pendingType, pendingUrl.trim());
+      setIsEditing(false);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Không thể lưu thông tin kênh.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -58,7 +82,7 @@ export default function CampaignChannelCell({
           aria-label={channelType ? `Sửa loại kênh của ${campaignName}` : `Chọn loại kênh cho ${campaignName}`}
         >
           <span className={channelType ? "truncate text-text-primary" : "truncate text-text-tertiary italic"}>
-            {channelType ? channelTypeLabel[channelType] : "Chọn loại kênh"}
+            {channelType ? getChannelTypeLabel(channelTypes, channelType) : "Chọn loại kênh"}
           </span>
           <Pencil1
             size={12}
@@ -75,9 +99,9 @@ export default function CampaignChannelCell({
             placeholder="Chọn loại kênh"
             className="mt-1.5"
           >
-            {channelTypeOptionsForMode(mode).map((option) => (
-              <ComboboxItem key={option.value} id={option.value} textValue={option.label}>
-                {option.label}
+            {channelTypeOptionsForMode(channelTypes, mode).map((option) => (
+              <ComboboxItem key={option.code} id={option.code} textValue={option.displayName}>
+                {option.displayName}
               </ComboboxItem>
             ))}
           </Combobox>
@@ -91,16 +115,24 @@ export default function CampaignChannelCell({
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                handleSave();
+                void handleSave();
               }
             }}
           />
 
+          {error && <p className="mt-2 text-xs text-badge-error-text">{error}</p>}
+
           <div className="mt-3 flex items-center justify-end gap-2">
-            <Button type="button" appearance="outline" size="xs" onPress={() => setIsEditing(false)}>
+            <Button
+              type="button"
+              appearance="outline"
+              size="xs"
+              isDisabled={isSaving}
+              onPress={() => setIsEditing(false)}
+            >
               Hủy
             </Button>
-            <Button type="button" size="xs" onPress={handleSave}>
+            <Button type="button" size="xs" isDisabled={isSaving} onPress={() => void handleSave()}>
               Lưu
             </Button>
           </div>

@@ -17,6 +17,7 @@ import type {
 export type * from "./types";
 export * from "./leads";
 export * from "./campaigns";
+export * from "./campaign-channel-types";
 export * from "./student-assignment";
 export * from "./sales-team";
 

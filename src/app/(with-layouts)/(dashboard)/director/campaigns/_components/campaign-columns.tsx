@@ -14,7 +14,7 @@ import {
 import { formatDate } from "@/utils/format-date";
 
 import CampaignChannelCell from "./campaign-channel-cell";
-import type { ChannelTypeValue } from "./channel-types";
+import type { ChannelTypeOption, ChannelTypeValue } from "./channel-types";
 import { campaignModeLabel, campaignModeOptions, campaignStatusLabel, campaignStatusOptions } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -31,19 +31,19 @@ const modeTriggerClass: Record<CampaignMode, string> = {
 };
 
 interface CampaignColumnHandlers {
+  channelTypes: readonly ChannelTypeOption[];
   onStatusChange: (id: string, status: CampaignStatus) => void;
   onModeChange: (id: string, mode: CampaignMode) => void;
-  onChannelTypeChange: (id: string, channelType: ChannelTypeValue | "") => void;
-  onChannelUrlChange: (id: string, channelUrl: string) => void;
+  onChannelSave: (id: string, channelType: ChannelTypeValue | "", channelUrl: string) => void | Promise<void>;
   onEdit: (campaign: CampaignListItem) => void;
   onDelete: (campaign: CampaignListItem) => void;
 }
 
 export function campaignColumns({
+  channelTypes,
   onStatusChange,
   onModeChange,
-  onChannelTypeChange,
-  onChannelUrlChange,
+  onChannelSave,
   onEdit,
   onDelete,
 }: CampaignColumnHandlers): ColumnDef<CampaignListItem>[] {
@@ -112,10 +112,10 @@ export function campaignColumns({
           <CampaignChannelCell
             campaignName={campaign.name}
             mode={campaign.mode}
+            channelTypes={channelTypes}
             channelType={campaign.channelType}
             channelUrl={campaign.channelUrl}
-            onChannelTypeChange={(channelType) => onChannelTypeChange(campaign.id, channelType)}
-            onChannelUrlChange={(url) => onChannelUrlChange(campaign.id, url)}
+            onSave={(channelType, url) => onChannelSave(campaign.id, channelType, url)}
           />
         );
       },

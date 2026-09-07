@@ -7,6 +7,7 @@ import type {
   LeadStageStatus,
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
 import { Card } from "@/components/tailgrids/core/card";
+import { useLeadSaleCampaignChannelTypesQuery } from "@/hooks/use-lead-sale-campaign-queries";
 
 import CampaignDetailHeader from "./campaign-detail-header";
 import CampaignDetailLeadList, { campaignLeadListGrid } from "./campaign-detail-lead-list";
@@ -15,6 +16,7 @@ import CampaignDetailStats from "./campaign-detail-stats";
 import { initialCampaigns } from "./data";
 
 export default function CampaignDetailDashboard({ campaignId }: { campaignId: string }) {
+  const { data: channelTypeData } = useLeadSaleCampaignChannelTypesQuery();
   const campaign = useMemo(
     () => initialCampaigns.find((item) => item.id === campaignId) ?? null,
     [campaignId],
@@ -54,7 +56,7 @@ export default function CampaignDetailDashboard({ campaignId }: { campaignId: st
 
   return (
     <main id="main-content" className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6">
-      <CampaignDetailHeader campaign={campaign} />
+      <CampaignDetailHeader campaign={campaign} channelTypes={channelTypeData?.channelTypes ?? []} />
 
       <CampaignDetailStats leads={leads} />
 

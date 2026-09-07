@@ -13,7 +13,7 @@ import { formatDate } from "@/utils/format-date";
 
 import CampaignChannelCell from "./campaign-channel-cell";
 import { campaignColumns } from "./campaign-columns";
-import type { ChannelTypeValue } from "./channel-types";
+import type { ChannelTypeOption, ChannelTypeValue } from "./channel-types";
 import { campaignModeColor, campaignModeLabel, campaignStatusColor, campaignStatusLabel } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -26,10 +26,10 @@ interface CampaignListPagination {
 
 interface CampaignListProps {
   campaigns: CampaignListItem[];
+  channelTypes: readonly ChannelTypeOption[];
   onStatusChange: (id: string, status: CampaignStatus) => void;
   onModeChange: (id: string, mode: CampaignMode) => void;
-  onChannelTypeChange: (id: string, channelType: ChannelTypeValue | "") => void;
-  onChannelUrlChange: (id: string, channelUrl: string) => void;
+  onChannelSave: (id: string, channelType: ChannelTypeValue | "", channelUrl: string) => void | Promise<void>;
   onEdit: (campaign: CampaignListItem) => void;
   onDelete: (campaign: CampaignListItem) => void;
   toolbar: ReactNode;
@@ -39,10 +39,10 @@ interface CampaignListProps {
 
 export default function CampaignList({
   campaigns,
+  channelTypes,
   onStatusChange,
   onModeChange,
-  onChannelTypeChange,
-  onChannelUrlChange,
+  onChannelSave,
   onEdit,
   onDelete,
   toolbar,
@@ -51,7 +51,7 @@ export default function CampaignList({
 }: CampaignListProps) {
   const table = useReactTable({
     data: campaigns,
-    columns: campaignColumns({ onStatusChange, onModeChange, onChannelTypeChange, onChannelUrlChange, onEdit, onDelete }),
+    columns: campaignColumns({ channelTypes, onStatusChange, onModeChange, onChannelSave, onEdit, onDelete }),
     getCoreRowModel: getCoreRowModel(),
     getRowId: (campaign) => campaign.id,
   });
@@ -121,10 +121,10 @@ export default function CampaignList({
                 <CampaignChannelCell
                   campaignName={campaign.name}
                   mode={campaign.mode}
+                  channelTypes={channelTypes}
                   channelType={campaign.channelType}
                   channelUrl={campaign.channelUrl}
-                  onChannelTypeChange={(channelType) => onChannelTypeChange(campaign.id, channelType)}
-                  onChannelUrlChange={(url) => onChannelUrlChange(campaign.id, url)}
+                  onSave={(channelType, url) => onChannelSave(campaign.id, channelType, url)}
                 />
               </div>
               <div className="mt-3 flex items-center justify-end gap-2 border-t border-card-border/60 pt-2.5">
