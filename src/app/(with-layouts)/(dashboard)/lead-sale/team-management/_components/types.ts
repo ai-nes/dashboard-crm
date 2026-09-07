@@ -41,7 +41,10 @@ export interface SmallTeam {
 export interface BigTeam {
   id: string;
   name: string;
-  leadId: string | null;
+  provinceId?: string | null;
+  provinceName?: string | null;
+  provinceCode?: string | null;
+  groupLeadId: string | null;
   smallTeamIds: string[];
   teamCount?: number;
   memberCount?: number;
@@ -55,6 +58,7 @@ export interface TeamOrgState {
   members: TeamMember[];
   options?: {
     campuses: { id: string; label: string }[];
+    provinces?: { id: string; label: string; code?: string | null }[];
     functions: { value: string; label: string }[];
   };
   permissions?: {

@@ -17,13 +17,13 @@ const stepDefinitions: Record<
 > = {
   input: {
     title: "Bước 1 · Tiếp nhận Lead",
-    description: "Lead đã được đưa vào đợt phân công",
+    description: "Lead đã được hệ thống nhận diện để phân công",
     detail:
-      "Hệ thống gom các Lead thành từng đợt để kiểm tra và phân công độc lập.",
+      "Hệ thống kiểm tra các Lead chưa có người phụ trách.",
     rules: [
-      "Mỗi đợt có tên riêng để theo dõi.",
+      "Mỗi lần chạy có kết quả riêng để theo dõi.",
       "Thông tin gốc được giữ lại để đối chiếu.",
-      "Trang này chỉ theo dõi các đợt đã được tạo từ luồng tiếp nhận Lead.",
+      "Nguồn tiếp nhận Lead nằm ngoài màn hình này.",
     ],
     tone: "blue",
   },
@@ -42,7 +42,7 @@ const stepDefinitions: Record<
   classification: {
     title: "Bước 3 · Xác định kết quả xử lý",
     description: "MATCHED · CREATED · DUPLICATE",
-    detail: "Hệ thống xác định kết quả xử lý của từng Lead trong đợt.",
+    detail: "Hệ thống xác định kết quả xử lý của từng Lead.",
     rules: [
       "Kết quả MATCHED, CREATED hoặc DUPLICATE do hệ thống quyết định.",
       "Người dùng không tự thay đổi kết quả xử lý.",
@@ -51,14 +51,14 @@ const stepDefinitions: Record<
     tone: "blue",
   },
   matching: {
-    title: "Bước 4 · Xác định tuyến phân công",
-    description: "Trường · Khu vực · Đội · Sức chứa",
+    title: "Bước 4 · Tìm Team theo tỉnh",
+    description: "Tỉnh · Team phụ trách · Sức chứa",
     detail:
-      "Hệ thống xác định tuyến phân công dựa trên trường, khu vực, đội và sức chứa.",
+      "Hệ thống tìm các Team đang phụ trách tỉnh của Lead rồi chọn Team có Sale/CTV phù hợp.",
     rules: [
-      "Tuyến và người phụ trách do hệ thống quyết định.",
-      "Kết quả phân công đi kèm phiên bản quy tắc đã áp dụng.",
-      "Thiếu sức chứa hoặc thông tin tuyến có thể khiến hồ sơ tạm hoãn.",
+      "Tỉnh của Lead được dùng làm căn cứ tìm Team.",
+      "Một tỉnh có thể có nhiều Team cùng phụ trách.",
+      "Team không có người đang hoạt động sẽ không được chọn.",
     ],
     tone: "primary",
   },
@@ -76,13 +76,13 @@ const stepDefinitions: Record<
   },
   assignment: {
     title: "Bước 5 · Ghi nhận người phụ trách",
-    description: "Đội · Tư vấn viên · Sức chứa · Quy tắc",
+    description: "Team · Sale/CTV · Tải hiện tại",
     detail:
-      "Kết quả phân công được lưu cùng thông tin tuyến để đối chiếu và truy vết.",
+      "Kết quả phân công được lưu cùng Team, tỉnh, Sale/CTV và tải tại thời điểm chọn.",
     rules: [
-      "Hiển thị tư vấn viên và đội khi hệ thống đã phân công.",
-      "Giữ mã yêu cầu và phiên bản quy tắc để truy vết.",
-      "Sau khi phân công, tải lại chi tiết để nhận kết quả cuối.",
+      "Lead Sale chỉ quản lý Team, không được nhận Lead.",
+      "Sale và CTV Sale được chọn theo tải hiện tại và giới hạn nhận.",
+      "Sau khi phân công, có thể xem lại lý do và người được chọn.",
     ],
     tone: "success",
   },
@@ -259,7 +259,7 @@ export function getBatchWorkflowStepMetric(step: WorkflowStep): string {
   const { metrics } = step;
   switch (step.id) {
     case "input":
-      return `${metrics.processedCount} Lead trong đợt`;
+      return `${metrics.processedCount} Lead đã xử lý`;
     case "validation":
       return `${metrics.successCount} hợp lệ · ${metrics.warningCount} cần bổ sung`;
     case "classification":

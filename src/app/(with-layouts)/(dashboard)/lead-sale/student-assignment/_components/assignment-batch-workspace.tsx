@@ -44,11 +44,11 @@ function AssignmentBatchWorkspaceContent() {
                 <FileText size={22} aria-hidden="true" />
               </span>
               <h2 className="mt-4 text-base font-semibold text-text-primary">
-                Chưa có đợt để phân công
+                Chưa có lần chạy phân công
               </h2>
               <p className="mt-2 max-w-md text-sm leading-6 text-text-secondary">
-                Chọn một đợt đã được tạo từ luồng tiếp nhận Lead để xem sơ đồ
-                quy trình và kết quả phân công.
+                Bấm “Phân công Lead” ở phía trên để hệ thống quét các Lead chưa
+                có người phụ trách.
               </p>
             </Card>
           )}
