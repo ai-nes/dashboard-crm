@@ -22,10 +22,8 @@ import type {
   StudentStatus,
 } from "@/services/api/students/types";
 
-import {
-  studentStatusLabel,
-  studentStatusOptions,
-} from "./student-status";
+import { studentStatusLabel, studentStatusOptions } from "./student-status";
+import { getSouthernProvinceOptions } from "./student-province-options";
 
 interface StudentListToolbarProps {
   query: string;
@@ -67,7 +65,9 @@ export default function StudentListToolbar({
     fieldname: "province",
     limit: 100,
   });
-  const provinceOptions = provinceOptionsQuery.data?.options ?? [];
+  const provinceOptions = getSouthernProvinceOptions(
+    provinceOptionsQuery.data?.options ?? [],
+  );
 
   return (
     <div className="space-y-4">
@@ -140,9 +140,7 @@ export default function StudentListToolbar({
             className="min-w-0 sm:w-44"
             value={assignmentStatus}
             onChange={(value) =>
-              onAssignmentStatusChange(
-                value as StudentAssignmentStatus | "all",
-              )
+              onAssignmentStatusChange(value as StudentAssignmentStatus | "all")
             }
             aria-label="Lọc theo trạng thái phân công"
           >

@@ -222,7 +222,7 @@ Query parameters:
 | `admissionYear` | integer | Không | Kỳ đang active | Kỳ tuyển sinh cần xem; nếu bỏ trống, backend chọn kỳ active mới nhất |
 | `page` | integer | Không | `1` | Trang, bắt đầu từ `1` |
 | `pageSize` | integer | Không | `20` | Số dòng/trang; backend nên giới hạn tối đa `100` |
-| `q` | string | Không | `""` | Tìm theo tên, mã học sinh, trường, ngành, người phụ trách |
+| `q` | string | Không | `""` | Tìm theo tên, mã học sinh, trường, ngành, người phụ trách; hỗ trợ mã hiển thị `HS-YYYY-HCM-NNNNNN` |
 | `stage` | enum | Không | Không lọc | Dùng `interested`, `exploring`, `counselling`, `applying`, `enrolled`; có thể dùng label tiếng Việt tương ứng |
 | `assignmentStatus` | enum | Không | Không lọc | `assigned` hoặc `unassigned`; có thể dùng nhãn `Đã phân công`/`Chưa phân công` |
 | `lifecycleStatus` | enum | Không | Không lọc | `Lead`, `MQL`, `Applicant`, `Enrolled`, `Lost`; lọc trực tiếp theo lifecycle canonical |
@@ -233,7 +233,7 @@ Query parameters:
 
 Quy tắc filter cần thống nhất với UI hiện tại:
 
-- `q` được trim khoảng trắng và tìm bằng điều kiện `like` trên `name`, `student_name`, `case_key`, `high_school`, `province`, `major`, `owner_staff` và `source`.
+- `q` được trim khoảng trắng và tìm bằng điều kiện `like` trên `name`, `student_name`, `case_key`, `high_school`, `province`, `major`, `owner_staff` và `source`; mã hiển thị `HS-YYYY-HCM-NNNNNN` được resolve về hồ sơ canonical tương ứng.
 - `stage`, `assignmentStatus`, `lifecycleStatus` và `province` kết hợp theo điều kiện `AND` với `q`.
 - `assignmentStatus` dùng `owner_staff` canonical; `assigned` là hồ sơ có người phụ trách, `unassigned` là hồ sơ chưa có người phụ trách.
 - `stage` và `lifecycleStatus` phải cùng trỏ tới một lifecycle; ví dụ `stage=counselling` chỉ hợp lệ cùng `lifecycleStatus=MQL`.

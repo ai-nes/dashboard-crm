@@ -60,7 +60,7 @@ export function campaignColumns({
       header: "Tên chiến dịch",
       cell: ({ row }) => (
         <Link
-          href={`/lead-sale/campaigns/${row.original.id}`}
+          href={`/lead-sale/campaigns/${row.original.code}`}
           className="font-medium text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
         >
           {row.original.name}

@@ -9,6 +9,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/tailgrids/core/input-group";
 import { Popover } from "@/components/tailgrids/core/popover";
 import { SelectItem } from "@/components/tailgrids/core/select";
+import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import {
   useAssignStudentToSalesMutation,
   useAssignableSalesQuery,
@@ -166,39 +167,55 @@ export default function StudentOwnerCell({
               </Button>
             </div>
           )}
-          {assignableSalesQuery.isFetching && (
-            <span className="mt-1 block text-xs text-text-tertiary" role="status">
-              Đang tìm…
-            </span>
-          )}
-          <ListBox
-            aria-label={`Danh sách Sale và CTV Sale có thể gán cho ${studentId}`}
-            className="mt-1 max-h-64 overflow-auto p-1 outline-none"
-            onAction={(key) => {
-              const sale = sales.find((item) => item.name === String(key));
-              if (sale) void handleAssign(sale);
-            }}
-          >
-            {sales.length > 0 ? (
-              sales.map((sale) => (
-                <SelectItem key={sale.name} id={sale.name} textValue={sale.label}>
-                  <span className="flex min-w-0 flex-col py-0.5">
-                    <span className="truncate text-text-primary">{sale.label}</span>
-                    <span className="truncate text-xs text-text-tertiary">
-                      {sale.role || sale.profile}
-                      {sale.campus ? ` · ${sale.campus}` : ""}
+          {assignableSalesQuery.isFetching ? (
+            <OwnerOptionsSkeleton />
+          ) : (
+            <ListBox
+              aria-label={`Danh sách Sale và CTV Sale có thể gán cho ${studentId}`}
+              className="mt-1 max-h-64 overflow-auto p-1 outline-none"
+              onAction={(key) => {
+                const sale = sales.find((item) => item.name === String(key));
+                if (sale) void handleAssign(sale);
+              }}
+            >
+              {sales.length > 0 ? (
+                sales.map((sale) => (
+                  <SelectItem key={sale.name} id={sale.name} textValue={sale.label}>
+                    <span className="flex min-w-0 flex-col py-0.5">
+                      <span className="truncate text-text-primary">{sale.label}</span>
+                      <span className="truncate text-xs text-text-tertiary">
+                        {sale.role || sale.profile}
+                        {sale.campus ? ` · ${sale.campus}` : ""}
+                      </span>
                     </span>
-                  </span>
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem id="no-assignable-sales" isDisabled textValue="Không tìm thấy Sale hoặc CTV Sale">
+                  Không tìm thấy Sale hoặc CTV Sale
                 </SelectItem>
-              ))
-            ) : (
-              <SelectItem id="no-assignable-sales" isDisabled textValue="Không tìm thấy Sale hoặc CTV Sale">
-                Không tìm thấy Sale hoặc CTV Sale
-              </SelectItem>
-            )}
-          </ListBox>
+              )}
+            </ListBox>
+          )}
         </div>
       </Popover>
     </DialogTrigger>
+  );
+}
+
+function OwnerOptionsSkeleton() {
+  return (
+    <div
+      className="mt-1 space-y-2 p-2"
+      role="status"
+      aria-label="Đang tải danh sách người phụ trách"
+    >
+      {["first", "second", "third"].map((row) => (
+        <div key={row} className="space-y-2 rounded-md px-1.5 py-1">
+          <Skeleton className="h-3 w-40 max-w-full" />
+          <Skeleton className="h-2.5 w-24" />
+        </div>
+      ))}
+    </div>
   );
 }

@@ -26,11 +26,11 @@ import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
 import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 import {
+  type LeadResultFilter,
   leadStageStatusLabel,
   type LeadResultStatus,
   type LeadStageStatus,
 } from "./lead-status";
-import type { LeadStatus } from "./types";
 
 const pageSize = 10;
 type LeadControlDraft = Partial<
@@ -43,7 +43,10 @@ export default function LeadsOverviewDashboard() {
   const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<LeadStatus | "all">("all");
+  const [status, setStatus] = useState<LeadStageStatus | "all">("all");
+  const [resolution, setResolution] = useState<LeadResultFilter | "all">(
+    "all",
+  );
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
   const [controlDrafts, setControlDrafts] = useState<
@@ -61,6 +64,7 @@ export default function LeadsOverviewDashboard() {
     pageSize,
     q: query || undefined,
     status: status === "all" ? undefined : status,
+    resolution: resolution === "all" ? undefined : resolution,
     campaign: campaign || undefined,
   };
   const {
@@ -107,8 +111,13 @@ export default function LeadsOverviewDashboard() {
     setPage(1);
   };
 
-  const handleStatusChange = (value: LeadStatus | "all") => {
+  const handleStatusChange = (value: LeadStageStatus | "all") => {
     setStatus(value);
+    setPage(1);
+  };
+
+  const handleResolutionChange = (value: LeadResultFilter | "all") => {
+    setResolution(value);
     setPage(1);
   };
 
@@ -120,6 +129,7 @@ export default function LeadsOverviewDashboard() {
   const resetFilters = () => {
     setQuery("");
     setStatus("all");
+    setResolution("all");
     setCampaign("");
     setPage(1);
   };
@@ -176,14 +186,15 @@ export default function LeadsOverviewDashboard() {
       <LeadListToolbar
         query={query}
         status={status}
+        resolution={resolution}
         campaign={campaign}
-        statusOptions={meta?.statusOptions ?? []}
         campaigns={availableCampaigns}
         campaignLoading={campaignsQuery.isPending}
         campaignError={campaignsQuery.error?.message}
         resultCount={totalCount}
         onQueryChange={handleQueryChange}
         onStatusChange={handleStatusChange}
+        onResolutionChange={handleResolutionChange}
         onCampaignChange={handleCampaignChange}
         onReset={resetFilters}
       />

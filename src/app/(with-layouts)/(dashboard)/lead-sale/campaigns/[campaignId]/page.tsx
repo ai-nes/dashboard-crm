@@ -13,5 +13,5 @@ export default async function CampaignDetailPage({
   params: Promise<{ campaignId: string }>;
 }) {
   const { campaignId } = await params;
-  return <CampaignDetailDashboard key={campaignId} campaignId={campaignId} />;
+  return <CampaignDetailDashboard key={campaignId} campaignCode={campaignId} />;
 }

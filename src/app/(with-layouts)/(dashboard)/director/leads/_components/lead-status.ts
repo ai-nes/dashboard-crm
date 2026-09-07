@@ -1,13 +1,14 @@
-import type { LeadResolution } from "@/services/api/lead-sale";
+import type {
+  LeadProcessStatus,
+  LeadResolution,
+  LeadResolutionFilter,
+} from "@/services/api/lead-sale";
 
-export type LeadStageStatus =
-  | "NEW"
-  | "PROCESSED"
-  | "ASSIGNED"
-  | "CLOSED";
+export type LeadStageStatus = LeadProcessStatus;
 
 export const leadStageStatusLabel: Record<LeadStageStatus, string> = {
   NEW: "Mới",
+  PROCESSING: "Đang xử lý",
   PROCESSED: "Đã xử lý",
   ASSIGNED: "Đã phân công",
   CLOSED: "Đã đóng",
@@ -18,6 +19,7 @@ export const leadStageStatusColor: Record<
   "gray" | "sky" | "warning" | "success"
 > = {
   NEW: "gray",
+  PROCESSING: "sky",
   PROCESSED: "sky",
   ASSIGNED: "warning",
   CLOSED: "success",
@@ -25,6 +27,7 @@ export const leadStageStatusColor: Record<
 
 export const leadStageStatusOptions: LeadStageStatus[] = [
   "NEW",
+  "PROCESSING",
   "PROCESSED",
   "ASSIGNED",
   "CLOSED",
@@ -32,9 +35,12 @@ export const leadStageStatusOptions: LeadStageStatus[] = [
 
 export const leadStageTriggerClass: Record<LeadStageStatus, string> = {
   NEW: "border-transparent bg-badge-gray-background text-badge-gray-text",
+  PROCESSING: "border-transparent bg-badge-sky-background text-badge-sky-text",
   PROCESSED: "border-transparent bg-badge-sky-background text-badge-sky-text",
-  ASSIGNED: "border-transparent bg-badge-warning-background text-badge-warning-text",
-  CLOSED: "border-transparent bg-badge-success-background text-badge-success-text",
+  ASSIGNED:
+    "border-transparent bg-badge-warning-background text-badge-warning-text",
+  CLOSED:
+    "border-transparent bg-badge-success-background text-badge-success-text",
 };
 
 export function normalizeLeadStageStatus(
@@ -47,6 +53,7 @@ export function normalizeLeadStageStatus(
 }
 
 export type LeadResultStatus = LeadResolution;
+export type LeadResultFilter = LeadResolutionFilter;
 
 export const leadResultLabel: Record<LeadResultStatus, string> = {
   MATCHED: "Đã liên kết",
@@ -55,6 +62,11 @@ export const leadResultLabel: Record<LeadResultStatus, string> = {
   INVALID: "Không hợp lệ",
   SPAM: "Spam",
   FAILED: "Thất bại",
+};
+
+export const leadResultFilterLabel: Record<LeadResultFilter, string> = {
+  PENDING: "Chưa có kết quả",
+  ...leadResultLabel,
 };
 
 // Duplicate/Invalid/Spam/Failed are all "problem" outcomes, so they share the
@@ -80,9 +92,14 @@ export const leadResultOptions: LeadResultStatus[] = [
   "FAILED",
 ];
 
+export const leadResultFilterOptions: LeadResultFilter[] = [
+  "PENDING",
+  ...leadResultOptions,
+];
+
 export function canEditLeadResult(status: LeadStageStatus | null): boolean {
-  return status === "ASSIGNED" || status === "CLOSED";
+  return status === "NEW";
 }
 
 export const LEAD_RESULT_LOCKED_MESSAGE =
-  "Chỉ cập nhật được kết quả khi trạng thái là Đã phân công hoặc Đã đóng.";
+  "Chỉ chọn kết quả khi Lead đang ở trạng thái Mới để bắt đầu xử lý.";

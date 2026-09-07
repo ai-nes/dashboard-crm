@@ -1,4 +1,3 @@
-import { getStudentInteractions } from "@/services/api/students";
 import type { StudentCallRecord } from "@/services/api/students/types";
 
 export type LeadCallRecord = StudentCallRecord;
@@ -12,6 +11,11 @@ export interface LeadCallLogsResponse {
 const DIRECTIONS = new Set(["inbound", "outbound", "missed"]);
 const OUTCOMES = new Set(["connected", "missed", "no-answer", "callback"]);
 
+export interface LeadCallLogsRequestOptions {
+  baseUrl?: string;
+  headers?: Record<string, string>;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -20,6 +24,46 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function text(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+function resolveBaseUrl(options: LeadCallLogsRequestOptions): string {
+  return (
+    options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? ""
+  ).replace(/\/+$/, "");
+}
+
+function frappeCookieHeader(cookieHeader: string): string {
+  return cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => part.split("=", 1)[0] === "sid")
+    .join("; ");
+}
+
+async function requestHeaders(
+  options: LeadCallLogsRequestOptions,
+): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...(options.headers ?? {}),
+  };
+
+  if (!options.baseUrl && typeof window === "undefined") {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieHeader = frappeCookieHeader((await cookies()).toString());
+      if (cookieHeader) headers.Cookie = cookieHeader;
+    } catch {
+      // Contract tests and non-request contexts do not have Next headers.
+    }
+  }
+
+  return headers;
+}
+
+function unwrapMessage(value: unknown): unknown {
+  const root = asRecord(value);
+  return root?.message !== undefined ? root.message : value;
 }
 
 function normalizeCall(value: unknown): LeadCallRecord | null {
@@ -69,15 +113,55 @@ function normalizeCall(value: unknown): LeadCallRecord | null {
  */
 export async function getLeadCallLogs(
   leadId: string,
+  options: LeadCallLogsRequestOptions = {},
 ): Promise<LeadCallLogsResponse | null> {
   const normalizedLeadId = leadId.trim();
   if (!normalizedLeadId) return null;
 
-  const response = await getStudentInteractions(normalizedLeadId);
-  if (!response) return null;
+  const baseUrl = resolveBaseUrl(options);
+  if (!baseUrl) {
+    return { leadId: normalizedLeadId, calls: [], total: 0 };
+  }
 
-  const payload = response as unknown as Record<string, unknown>;
-  if (typeof payload.student_id !== "string" || !Array.isArray(payload.calls)) {
+  const url = new URL(
+    `${baseUrl}/api/method/crm.api.director_students.get_lead_call_logs`,
+  );
+  url.searchParams.set("lead_id", normalizedLeadId);
+
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      method: "GET",
+      headers: await requestHeaders(options),
+      ...(typeof window !== "undefined"
+        ? { credentials: "include" as RequestCredentials }
+        : {}),
+      cache: "no-store",
+    });
+  } catch {
+    throw new Error("Không thể kết nối đến máy chủ lịch sử cuộc gọi.");
+  }
+
+  if (response.status === 404) return null;
+
+  const raw = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const root = asRecord(raw);
+    const message = asRecord(root?.message);
+    throw new Error(
+      text(asRecord(root?.error)?.message) ||
+        text(message?.message) ||
+        text(root?.message) ||
+        `Không thể tải lịch sử cuộc gọi (${response.status}).`,
+    );
+  }
+
+  const payload = asRecord(unwrapMessage(raw));
+  if (
+    !payload ||
+    typeof (payload.lead_id ?? payload.leadId) !== "string" ||
+    !Array.isArray(payload.calls)
+  ) {
     throw new Error("Phản hồi lịch sử cuộc gọi không hợp lệ.");
   }
   const calls = payload.calls
@@ -88,8 +172,11 @@ export async function getLeadCallLogs(
   }
 
   return {
-    leadId: payload.student_id,
+    leadId: text(payload.lead_id ?? payload.leadId),
     calls,
-    total: calls.length,
+    total:
+      typeof payload.total === "number" && Number.isFinite(payload.total)
+        ? Math.max(0, Math.floor(payload.total))
+        : calls.length,
   };
 }

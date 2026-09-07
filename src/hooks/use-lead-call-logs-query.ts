@@ -12,11 +12,14 @@ export const leadCallLogsKeys = {
   detail: (leadId: string) => ["lead-call-logs", leadId] as const,
 };
 
-export function useLeadCallLogsQuery(leadId: string) {
+export function useLeadCallLogsQuery(
+  leadId: string,
+  options: { enabled?: boolean } = {},
+) {
   return useQuery<LeadCallLogsResponse | null, Error>({
     queryKey: leadCallLogsKeys.detail(leadId),
     queryFn: () => getLeadCallLogs(leadId),
-    enabled: Boolean(leadId.trim()),
+    enabled: Boolean(leadId.trim()) && options.enabled !== false,
     retry: false,
     staleTime: 30_000,
   });

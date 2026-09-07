@@ -238,6 +238,8 @@ export interface StudentJourneyEvent {
 
 export interface Student360Data {
   student: {
+    /** Canonical CRM Lead name used by internal API calls. */
+    id?: string;
     initials: string;
     name: string;
     code: string;
@@ -253,6 +255,8 @@ export interface Student360Data {
     ward?: string | null;
     counselor: string;
     ownerId?: string | null;
+    /** Ownership revision used as the CAS token when changing the owner. */
+    revision?: number;
     priority?: StudentPriority | null;
     verificationStatus?: StudentVerificationStatus | null;
     contactConsent?: StudentContactConsent | null;

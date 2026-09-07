@@ -17,6 +17,7 @@ interface DetailTabsProps {
   tabs: DetailTabItem[];
   className?: string;
   isSticky?: boolean;
+  onSelectionChange?: (key: string) => void;
 }
 
 export default function DetailTabs({
@@ -25,11 +26,13 @@ export default function DetailTabs({
   tabs,
   className,
   isSticky = true,
+  onSelectionChange,
 }: DetailTabsProps) {
   return (
     <Tabs
       className={cn("min-w-0", className)}
       defaultSelectedKey={defaultSelectedKey}
+      onSelectionChange={(key) => onSelectionChange?.(String(key))}
     >
       <div className={cn(isSticky && "sticky top-0 z-30", "bg-card-surface-area")}>
         <TabList

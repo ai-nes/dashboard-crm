@@ -69,7 +69,7 @@ export default function StudentList({
                 </span>
                 <div className="min-w-0">
                   <Link
-                    href={`/director/students/${student.id}`}
+                    href={`/director/students/${encodeURIComponent(student.code || student.id)}`}
                     aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
                     className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
                   >
@@ -148,7 +148,7 @@ export default function StudentList({
               <div className="flex items-center justify-between gap-2 lg:justify-center">
                 <p className="text-xs text-text-tertiary lg:hidden">Thao tác</p>
                 <Link
-                  href={`/director/students/${student.id}`}
+                  href={`/director/students/${encodeURIComponent(student.code || student.id)}`}
                   aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
                   className="text-xs font-medium text-warning-500 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
                 >

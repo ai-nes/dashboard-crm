@@ -8,6 +8,7 @@ import {
   LeadApiError,
   normalizeLeadDetail,
   normalizeLeadList,
+  processLead,
   updateLead,
 } from "./leads";
 
@@ -46,6 +47,8 @@ function listFixture() {
       query: "Nguyễn",
       status: null,
       statusOptions: [{ value: "NEW", label: "Mới" }],
+      resolution: "MATCHED",
+      resolutionOptions: [{ value: "MATCHED", label: "Đã liên kết" }],
       stats: { total: 1, inProgress: 1, closed: 0, conversionRate: 0 },
       asOf: "2026-09-07T10:00:00+07:00",
     },
@@ -67,13 +70,14 @@ describe("Lead list/detail API contract", () => {
         pageSize: 10,
         q: "Nguyễn",
         status: "NEW",
+        resolution: "MATCHED",
         campaign: "CAM-2026-00001",
       },
       { baseUrl: "http://frappe:8000" },
     );
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.director_leads.get_director_leads?admissionYear=2026&page=1&pageSize=10&q=Nguy%E1%BB%85n&status=NEW&campaign=CAM-2026-00001",
+      "http://frappe:8000/api/method/crm.api.director_leads.get_director_leads?admissionYear=2026&page=1&pageSize=10&q=Nguy%E1%BB%85n&status=NEW&resolution=MATCHED&campaign=CAM-2026-00001",
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(result.data[0]?.name).toBe("Nguyễn Minh An");
@@ -87,6 +91,10 @@ describe("Lead list/detail API contract", () => {
     expect(result.data[0]?.contactSuccess).toBe(3);
     expect(result.data[0]?.createdAt).toBe("2026-09-07T10:00:00+07:00");
     expect(result.meta.statusOptions).toEqual([{ value: "NEW", label: "Mới" }]);
+    expect(result.meta.resolution).toBe("MATCHED");
+    expect(result.meta.resolutionOptions).toEqual([
+      { value: "MATCHED", label: "Đã liên kết" },
+    ]);
     expect(result.meta.stats).toEqual({
       total: 1,
       inProgress: 1,
@@ -174,7 +182,7 @@ describe("Lead list/detail API contract", () => {
     });
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.lead.get_lead?name=LEAD-2026-00001",
+      "http://frappe:8000/api/method/crm.api.director_leads.get_director_lead?lead_id=LEAD-2026-00001",
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(result?.lead.email).toBe("an@example.com");
@@ -260,7 +268,7 @@ describe("Lead list/detail API contract", () => {
     });
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.lead.get_lead?name=LEAD-2026-00002",
+      "http://frappe:8000/api/method/crm.api.director_leads.get_director_lead?lead_id=LEAD-2026-00002",
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(result).toMatchObject({
@@ -365,6 +373,65 @@ describe("Lead list/detail API contract", () => {
     );
     expect(result.lead.name).toBe("Lê Văn Cường");
     expect(result.lead.phone).toBe("0922222222");
+  });
+
+  it("processes a Lead through the processing command", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            status: "PROCESSED",
+            resolution: "MATCHED",
+            lead: "LEAD-2026-00003",
+            target_student: "STU-00001",
+            validation: { high_school: true, major: true },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await processLead(
+      {
+        lead: " LEAD-2026-00003 ",
+        resolution: "MATCHED",
+        reason: "Đã xác minh thông tin",
+      },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_processing.process_lead",
+      expect.objectContaining({
+        method: "POST",
+        cache: "no-store",
+        body: JSON.stringify({
+          lead: "LEAD-2026-00003",
+          resolution: "MATCHED",
+          reason: "Đã xác minh thông tin",
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      status: "PROCESSED",
+      resolution: "MATCHED",
+      lead: "LEAD-2026-00003",
+      targetStudent: "STU-00001",
+    });
+  });
+
+  it("does not send PENDING to the processing command", async () => {
+    await expect(
+      processLead(
+        { lead: "LEAD-2026-00003", resolution: "PENDING" as never },
+        { baseUrl: "http://frappe:8000" },
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<LeadApiError>>({
+        status: 400,
+        code: "INVALID_LEAD_RESOLUTION",
+      }),
+    );
   });
 
   it("deletes a Lead through the CRUD endpoint", async () => {

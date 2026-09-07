@@ -13,12 +13,15 @@ import {
   deleteLead,
   getLeadDetail,
   getLeadList,
+  processLead,
   updateLead,
   type LeadCreateFields,
   type LeadUpdateFields,
   type LeadDetailResponse,
   type LeadListParams,
   type LeadListResponse,
+  type LeadProcessRequest,
+  type LeadProcessResponse,
 } from "@/services/api/lead-sale";
 
 export const leadSaleLeadsKeys = {
@@ -80,6 +83,21 @@ export function useUpdateLeadMutation() {
       Promise.all([
         queryClient.invalidateQueries({
           queryKey: leadSaleLeadsKeys.detail(variables.leadId),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
+  });
+}
+
+export function useProcessLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadProcessResponse, Error, LeadProcessRequest>({
+    mutationFn: (request) => processLead(request),
+    onSuccess: (_data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(variables.lead),
         }),
         queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
       ]),

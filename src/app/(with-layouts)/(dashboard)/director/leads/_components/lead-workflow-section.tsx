@@ -24,6 +24,7 @@ interface LeadWorkflowSectionProps {
   result: LeadResultStatus | "";
   contactNoAnswer: number;
   contactSuccess: number;
+  isUpdating?: boolean;
   onStatusChange: (status: LeadStageStatus) => void;
   onResultChange: (result: LeadResultStatus) => void;
 }
@@ -34,6 +35,7 @@ export default function LeadWorkflowSection({
   result,
   contactNoAnswer,
   contactSuccess,
+  isUpdating = false,
   onStatusChange,
   onResultChange,
 }: LeadWorkflowSectionProps) {
@@ -57,6 +59,7 @@ export default function LeadWorkflowSection({
                 }
                 aria-label={`Đổi trạng thái lead ${leadName}`}
                 className="w-fit min-w-32"
+                isDisabled={isUpdating || status !== "NEW"}
               >
                 <SelectTrigger
                   size="sm"
@@ -89,6 +92,7 @@ export default function LeadWorkflowSection({
               leadName={leadName}
               status={status}
               result={result}
+              isUpdating={isUpdating}
               onChange={onResultChange}
             />
           }
