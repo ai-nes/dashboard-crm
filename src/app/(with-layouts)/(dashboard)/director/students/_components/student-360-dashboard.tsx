@@ -55,6 +55,7 @@ interface Student360DashboardProps {
 
 interface StudentStageTransitionVariables {
   student: string;
+  targetStudent: string;
   targetStage: StudentStatus;
 }
 
@@ -102,9 +103,9 @@ export default function Student360Dashboard({
     },
   });
   const stageTransitionMutation = useMutation({
-    mutationFn: ({ student, targetStage }: StudentStageTransitionVariables) =>
+    mutationFn: ({ targetStudent, targetStage }: StudentStageTransitionVariables) =>
       requestStudentStageTransition({
-        student,
+        student: targetStudent,
         target_stage: targetStage,
       }),
     onSuccess: async (_result, variables) => {
@@ -215,6 +216,7 @@ export default function Student360Dashboard({
       : null) ??
     data?.student.studentStage ??
     defaultStudentStatus;
+  const canonicalStudentId = data?.student.studentId;
   const studentOwner =
     (studentOwnerDraft?.studentId === targetId
       ? studentOwnerDraft.owner
@@ -222,6 +224,10 @@ export default function Student360Dashboard({
     data?.student.counselor ??
     "";
   const handleStudentStatusChange = (nextStatus: StudentStatus) => {
+    if (!canonicalStudentId) {
+      toast.error("Hồ sơ này chưa được liên kết với bản ghi CRM Student.");
+      return;
+    }
     if (!canTransitionStudentStatus(studentStatus, nextStatus)) {
       toast.error("Trạng thái chỉ được chuyển theo đúng quy trình.");
       return;
@@ -230,6 +236,7 @@ export default function Student360Dashboard({
     setStudentStatusDraft({ studentId: targetId, status: nextStatus });
     stageTransitionMutation.mutate({
       student: targetId,
+      targetStudent: canonicalStudentId,
       targetStage: nextStatus,
     });
   };

@@ -20,6 +20,7 @@ import {
   useDeleteLeadMutation,
   useLeadSaleLeadQuery,
   useProcessLeadMutation,
+  useUpdateLeadProcessingStatusMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 
 import LeadCallsTab from "./lead-calls-tab";
@@ -46,6 +47,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   });
   const deleteMutation = useDeleteLeadMutation();
   const processMutation = useProcessLeadMutation();
+  const statusMutation = useUpdateLeadProcessingStatusMutation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const leadOwnership = { owner: data?.lead.owner };
@@ -60,6 +62,8 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const canDeleteLead =
     !isAuthLoading &&
     canPerformStudentAction(permissions.lead, "delete", leadOwnership, user);
+  const isWorkflowUpdating =
+    processMutation.isPending || statusMutation.isPending;
 
   const processWorkflow = (
     resolution: LeadResultStatus | undefined,
@@ -87,20 +91,33 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const handleStatusChange = (nextStatus: LeadStageStatus) => {
     if (
       !canUpdateLead ||
-      processMutation.isPending ||
-      status !== "NEW" ||
+      isWorkflowUpdating ||
       nextStatus === status
     ) {
       return;
     }
 
-    processWorkflow(undefined, "Đã xử lý Lead theo workflow.");
+    statusMutation.mutate(
+      { lead: leadId, status: nextStatus },
+      {
+        onSuccess: (response) => {
+          toast.success(`Đã cập nhật trạng thái Lead: ${response.status}.`);
+        },
+        onError: (statusError) => {
+          toast.error(
+            statusError instanceof Error
+              ? statusError.message
+              : "Chưa thể cập nhật trạng thái Lead.",
+          );
+        },
+      },
+    );
   };
 
   const handleResultChange = (result: LeadResultStatus) => {
     if (
       !canUpdateLead ||
-      processMutation.isPending ||
+      isWorkflowUpdating ||
       !canEditLeadResult(status)
     ) {
       return;
@@ -246,7 +263,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
             result={result}
             contactNoAnswer={data.lead.contactNoAnswer}
             contactSuccess={data.lead.contactSuccess}
-            isUpdating={processMutation.isPending}
+            isUpdating={isWorkflowUpdating}
             onStatusChange={handleStatusChange}
             onResultChange={handleResultChange}
           />

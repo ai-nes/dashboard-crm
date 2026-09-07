@@ -182,6 +182,8 @@ export interface StudentClassificationDimension {
 
 export interface StudentListItem {
   id: string;
+  /** Canonical CRM Student name used by Student stage commands. */
+  studentId?: string | null;
   initials: string;
   name: string;
   code: string;
@@ -238,8 +240,10 @@ export interface StudentJourneyEvent {
 
 export interface Student360Data {
   student: {
-    /** Canonical CRM Lead name used by internal API calls. */
+    /** CRM Lead name used to load the Student 360 projection. */
     id?: string;
+    /** Canonical CRM Student name used by Student stage commands. */
+    studentId?: string | null;
     initials: string;
     name: string;
     code: string;

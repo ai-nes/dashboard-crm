@@ -10,7 +10,6 @@ import type {
 
 import StudentOwnerCell from "./student-owner-cell";
 import StudentStatusSelect from "./student-status-select";
-import { defaultStudentStatus } from "./student-status";
 
 interface StudentListProps {
   isStatusUpdating?: boolean;
@@ -55,7 +54,7 @@ export default function StudentList({
     <ul className="divide-y divide-card-border" aria-label="Danh sách học sinh">
       {students.map((student) => {
         const scoreTone = getScoreTone(student.score);
-        const status = student.studentStage ?? defaultStudentStatus;
+        const status = student.studentStage;
 
         return (
           <li key={student.id}>
@@ -107,14 +106,20 @@ export default function StudentList({
                 <p className="text-xs text-text-tertiary lg:hidden">
                   Trạng thái
                 </p>
-                <StudentStatusSelect
-                  studentName={student.name}
-                  value={status}
-                  isDisabled={isStatusUpdating}
-                  onChange={(nextStatus) =>
-                    onStatusChange(student.id, nextStatus)
-                  }
-                />
+                {status ? (
+                  <StudentStatusSelect
+                    studentName={student.name}
+                    value={status}
+                    isDisabled={isStatusUpdating}
+                    onChange={(nextStatus) =>
+                      onStatusChange(student.id, nextStatus)
+                    }
+                  />
+                ) : (
+                  <span className="text-sm text-text-tertiary">
+                    Chưa có CRM Student
+                  </span>
+                )}
               </div>
 
               {/* Cột 4: Điểm tiềm năng */}

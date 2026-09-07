@@ -15,6 +15,7 @@ import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-querie
 import {
   useCreateLeadMutation,
   useLeadSaleLeadsQuery,
+  useUpdateLeadProcessingStatusMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 import type {
   LeadCreateFields,
@@ -28,6 +29,7 @@ import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 import {
   type LeadResultFilter,
   leadStageStatusLabel,
+  normalizeLeadStageStatus,
   type LeadResultStatus,
   type LeadStageStatus,
 } from "./lead-status";
@@ -53,6 +55,7 @@ export default function LeadsOverviewDashboard() {
     Record<string, LeadControlDraft>
   >({});
   const createMutation = useCreateLeadMutation();
+  const statusMutation = useUpdateLeadProcessingStatusMutation();
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -89,6 +92,12 @@ export default function LeadsOverviewDashboard() {
   const currentPage = Math.min(page, totalPages);
 
   const handleLeadStatusChange = (id: string, nextStatus: LeadStageStatus) => {
+    const currentLead = leads.find((lead) => lead.id === id);
+    const previousStatus = currentLead
+      ? currentLead.statusCode ?? currentLead.processingStatus ?? currentLead.status
+      : null;
+    const normalizedPreviousStatus = normalizeLeadStageStatus(previousStatus);
+
     setControlDrafts((previous) => ({
       ...previous,
       [id]: {
@@ -97,6 +106,40 @@ export default function LeadsOverviewDashboard() {
         statusCode: nextStatus,
       },
     }));
+
+    statusMutation.mutate(
+      { lead: id, status: nextStatus },
+      {
+        onSuccess: (response) => {
+          toast.success(`Đã cập nhật trạng thái Lead: ${response.status}.`);
+        },
+        onError: (statusError) => {
+          setControlDrafts((previous) => {
+            const draft = previous[id];
+            if (!draft) return previous;
+            if (normalizedPreviousStatus) {
+              return {
+                ...previous,
+                [id]: {
+                  ...draft,
+                  status: leadStageStatusLabel[normalizedPreviousStatus],
+                  statusCode: normalizedPreviousStatus,
+                },
+              };
+            }
+            const restoredDraft = { ...draft };
+            delete restoredDraft.status;
+            delete restoredDraft.statusCode;
+            return { ...previous, [id]: restoredDraft };
+          });
+          toast.error(
+            statusError instanceof Error
+              ? statusError.message
+              : "Chưa thể cập nhật trạng thái Lead.",
+          );
+        },
+      },
+    );
   };
 
   const handleLeadResultChange = (id: string, result: LeadResultStatus) => {
@@ -225,6 +268,7 @@ export default function LeadsOverviewDashboard() {
             ) : (
               <LeadList
                 leads={displayedLeads}
+                isStatusUpdating={statusMutation.isPending}
                 onStatusChange={handleLeadStatusChange}
                 onResultChange={handleLeadResultChange}
               />

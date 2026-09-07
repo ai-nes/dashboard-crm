@@ -9,6 +9,7 @@ import {
   normalizeLeadDetail,
   normalizeLeadList,
   processLead,
+  updateLeadProcessingStatus,
   updateLead,
 } from "./leads";
 
@@ -432,6 +433,44 @@ describe("Lead list/detail API contract", () => {
         code: "INVALID_LEAD_RESOLUTION",
       }),
     );
+  });
+
+  it("updates the selected processing status through the status command", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            status: "ASSIGNED",
+            resolution: "CREATED",
+            lead: "LEAD-2026-00003",
+            validation: {},
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await updateLeadProcessingStatus(
+      { lead: " LEAD-2026-00003 ", status: "ASSIGNED" },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_processing.update_processing_status",
+      expect.objectContaining({
+        method: "POST",
+        cache: "no-store",
+        body: JSON.stringify({
+          lead: "LEAD-2026-00003",
+          status: "ASSIGNED",
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      status: "ASSIGNED",
+      resolution: "CREATED",
+      lead: "LEAD-2026-00003",
+    });
   });
 
   it("deletes a Lead through the CRUD endpoint", async () => {

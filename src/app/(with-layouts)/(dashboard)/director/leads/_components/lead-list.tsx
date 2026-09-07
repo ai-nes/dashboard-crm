@@ -31,11 +31,17 @@ export function getLeadDetailHref(leadId: string) {
 
 interface LeadListProps {
   leads: LeadListItem[];
+  isStatusUpdating?: boolean;
   onStatusChange: (id: string, status: LeadStageStatus) => void;
   onResultChange: (id: string, result: LeadResultStatus) => void;
 }
 
-export default function LeadList({ leads, onStatusChange, onResultChange }: LeadListProps) {
+export default function LeadList({
+  leads,
+  isStatusUpdating = false,
+  onStatusChange,
+  onResultChange,
+}: LeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
@@ -105,6 +111,7 @@ export default function LeadList({ leads, onStatusChange, onResultChange }: Lead
                     value={status}
                     onChange={(value) => onStatusChange(lead.id, String(value) as LeadStageStatus)}
                     aria-label={`Đổi trạng thái lead ${lead.name}`}
+                    isDisabled={isStatusUpdating}
                     className="w-fit min-w-32"
                   >
                     <SelectTrigger size="sm" className={`w-full ${leadStageTriggerClass[status]}`}>

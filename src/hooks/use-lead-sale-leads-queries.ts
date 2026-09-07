@@ -14,6 +14,7 @@ import {
   getLeadDetail,
   getLeadList,
   processLead,
+  updateLeadProcessingStatus,
   updateLead,
   type LeadCreateFields,
   type LeadUpdateFields,
@@ -22,6 +23,7 @@ import {
   type LeadListResponse,
   type LeadProcessRequest,
   type LeadProcessResponse,
+  type LeadStatusUpdateRequest,
 } from "@/services/api/lead-sale";
 
 export const leadSaleLeadsKeys = {
@@ -94,6 +96,25 @@ export function useProcessLeadMutation() {
 
   return useMutation<LeadProcessResponse, Error, LeadProcessRequest>({
     mutationFn: (request) => processLead(request),
+    onSuccess: (_data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(variables.lead),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
+  });
+}
+
+export function useUpdateLeadProcessingStatusMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    LeadProcessResponse,
+    Error,
+    LeadStatusUpdateRequest
+  >({
+    mutationFn: (request) => updateLeadProcessingStatus(request),
     onSuccess: (_data, variables) =>
       Promise.all([
         queryClient.invalidateQueries({

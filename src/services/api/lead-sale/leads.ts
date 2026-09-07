@@ -142,6 +142,12 @@ export interface LeadProcessRequest {
   reason?: string;
 }
 
+export interface LeadStatusUpdateRequest {
+  lead: string;
+  status: LeadProcessStatus;
+  reason?: string;
+}
+
 export interface LeadProcessResponse {
   status: LeadProcessStatus;
   resolution: LeadProcessResolution;
@@ -202,6 +208,7 @@ const CREATE_METHOD = "crm.api.lead.create_lead";
 const UPDATE_METHOD = "crm.api.lead.update_lead";
 const DELETE_METHOD = "crm.api.lead.delete_lead";
 const PROCESS_METHOD = "crm.api.lead_processing.process_lead";
+const STATUS_UPDATE_METHOD = "crm.api.lead_processing.update_processing_status";
 const LEAD_PROCESS_STATUSES = new Set<LeadProcessStatus>([
   "NEW",
   "PROCESSING",
@@ -897,6 +904,47 @@ export async function processLead(
       502,
       "INVALID_LEAD_PROCESS_RESPONSE",
       "Phản hồi xử lý Lead không hợp lệ.",
+    );
+  }
+}
+
+export async function updateLeadProcessingStatus(
+  request: LeadStatusUpdateRequest,
+  options: LeadApiRequestOptions = {},
+): Promise<LeadProcessResponse> {
+  const lead = request.lead.trim();
+  const status = String(request.status ?? "").trim().toUpperCase();
+  if (!lead) {
+    throw new LeadApiError(
+      400,
+      "INVALID_LEAD_NAME",
+      "Thiếu mã Lead cần cập nhật.",
+    );
+  }
+  if (!LEAD_PROCESS_STATUSES.has(status as LeadProcessStatus)) {
+    throw new LeadApiError(
+      400,
+      "INVALID_LEAD_STATUS",
+      "Trạng thái xử lý Lead không hợp lệ.",
+    );
+  }
+
+  const body: Record<string, unknown> = { lead, status };
+  if (request.reason?.trim()) body.reason = request.reason.trim();
+
+  const payload = await mutationRequest(
+    STATUS_UPDATE_METHOD,
+    "POST",
+    body,
+    options,
+  );
+  try {
+    return normalizeProcessResponse(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_STATUS_UPDATE_RESPONSE",
+      "Phản hồi cập nhật trạng thái Lead không hợp lệ.",
     );
   }
 }

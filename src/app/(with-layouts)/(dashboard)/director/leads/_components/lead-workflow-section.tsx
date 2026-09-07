@@ -59,7 +59,7 @@ export default function LeadWorkflowSection({
                 }
                 aria-label={`Đổi trạng thái lead ${leadName}`}
                 className="w-fit min-w-32"
-                isDisabled={isUpdating || status !== "NEW"}
+                isDisabled={isUpdating}
               >
                 <SelectTrigger
                   size="sm"
