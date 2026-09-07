@@ -291,6 +291,7 @@ export function computeStudent360(studentId = "nguyen-minh-an"): Student360Data 
       major: student.major,
       province: student.province,
       counselor: student.owner,
+      studentStage: student.studentStage,
       grade: learningStage,
     },
     classification,

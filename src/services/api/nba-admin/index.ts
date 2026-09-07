@@ -446,7 +446,7 @@ export async function previewRecommendationRule(
     },
     context: {
       student: payload.context.student,
-      ...(payload.context.lifecycleStage ? { lifecycle_stage: payload.context.lifecycleStage } : {}),
+      ...(payload.context.studentStage ? { student_stage: payload.context.studentStage } : {}),
       ...(payload.context.ownerStaff ? { owner_staff: payload.context.ownerStaff } : {}),
     },
   }));

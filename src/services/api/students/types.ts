@@ -5,6 +5,13 @@ export type StudentJourneyStage =
   | "Ứng tuyển"
   | "Nhập học";
 
+export type StudentStage =
+  | "New"
+  | "Attempting"
+  | "Connected"
+  | "Qualified"
+  | "Disqualified";
+
 export type StudentPriority = "Cao" | "Trung bình" | "Thấp";
 
 export type StudentVerificationStatus =
@@ -160,6 +167,7 @@ export interface StudentListItem {
   province: string;
   major: string;
   stage: StudentJourneyStage;
+  studentStage?: StudentStage;
   score: number;
   scoreDelta: number;
   lastActivity: string;
@@ -211,6 +219,7 @@ export interface Student360Data {
     email: string;
     province: string;
     counselor: string;
+    studentStage?: StudentStage | null;
     priority?: StudentPriority | null;
     verificationStatus?: StudentVerificationStatus | null;
     contactConsent?: StudentContactConsent | null;

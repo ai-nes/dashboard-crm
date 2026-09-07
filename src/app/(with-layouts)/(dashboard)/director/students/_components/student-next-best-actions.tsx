@@ -50,6 +50,9 @@ export default function StudentNextBestActions({
   onActionsCountChange,
 }: StudentNextBestActionsProps) {
   const router = useRouter();
+  const studentStage = data.student.studentStage;
+  const terminalStage =
+    studentStage === "Qualified" || studentStage === "Disqualified";
   const [expandedRecommendationIds, setExpandedRecommendationIds] = useState<
     Set<string> | null
   >(null);
@@ -72,11 +75,12 @@ export default function StudentNextBestActions({
   const worklistActions = useMemo(
     () =>
       (query.data?.items ?? []).filter(
-        (item) => item.studentId === studentId.trim(),
+        (item) => item.studentId === studentId.trim() && !terminalStage,
       ),
-    [query.data?.items, studentId],
+    [query.data?.items, studentId, terminalStage],
   );
   const actions = useMemo(() => {
+    if (terminalStage) return [];
     if (postRecommendations === null) return worklistActions;
 
     return postRecommendations
@@ -101,7 +105,7 @@ export default function StudentNextBestActions({
           permittedDecisions: worklistItem.permittedDecisions,
         };
       });
-  }, [postRecommendations, studentId, worklistActions]);
+  }, [postRecommendations, studentId, terminalStage, worklistActions]);
   useEffect(() => {
     onActionsCountChange?.(actions.length);
   }, [actions.length, onActionsCountChange]);
@@ -237,6 +241,11 @@ export default function StudentNextBestActions({
           <div className="min-w-0">
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {studentStage && (
+              <span className="rounded-full border border-card-border bg-background-gray-secondary px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                Student stage: {studentStage}
+              </span>
+            )}
             {actions.length > 0 && (
               <NbaExpansionSelect
                 value={areAllRecommendationsExpanded ? "expand" : "collapse"}
@@ -249,6 +258,7 @@ export default function StudentNextBestActions({
               size="sm"
               onPress={() => void runNba()}
               isDisabled={
+                terminalStage ||
                 query.isFetching ||
                 runMutation.isPending ||
                 decisionMutation.isPending
@@ -258,6 +268,16 @@ export default function StudentNextBestActions({
             </Button>
           </div>
         </div>
+
+        {terminalStage && (
+          <div
+            className="mt-4 rounded-lg border border-card-border bg-background-gray-secondary px-3 py-2.5 text-xs leading-5 text-text-secondary"
+            role="status"
+          >
+            Student stage <strong>{studentStage}</strong> là terminal; hiện không
+            phát sinh NBA mới.
+          </div>
+        )}
 
         {query.isLoading && <NbaPanelSkeleton />}
 
