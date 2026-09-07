@@ -126,6 +126,37 @@ export interface LeadApiRequestOptions {
   baseUrl?: string;
 }
 
+export type LeadUpdateFieldValue = string | null;
+
+export type LeadUpdateFields = Partial<{
+  student_name: LeadUpdateFieldValue;
+  phone: LeadUpdateFieldValue;
+  email: LeadUpdateFieldValue;
+  other_email: LeadUpdateFieldValue;
+  province: LeadUpdateFieldValue;
+  high_school: LeadUpdateFieldValue;
+  major: LeadUpdateFieldValue;
+  aspiration: LeadUpdateFieldValue;
+  admission_year: LeadUpdateFieldValue;
+  branch: LeadUpdateFieldValue;
+  source: LeadUpdateFieldValue;
+  advertising_channel: LeadUpdateFieldValue;
+  conversion_potential: LeadUpdateFieldValue;
+  segments: LeadUpdateFieldValue;
+  notes: LeadUpdateFieldValue;
+}>;
+
+export type LeadCreateFields = LeadUpdateFields & {
+  student_name: string;
+  phone: string;
+  province: string;
+  source: string;
+};
+
+export interface LeadDeleteResponse {
+  deleted: string;
+}
+
 export class LeadApiError extends Error {
   constructor(
     public status: number,
@@ -139,6 +170,9 @@ export class LeadApiError extends Error {
 
 const LIST_METHOD = "crm.api.director_leads.get_director_leads";
 const DETAIL_METHOD = "crm.api.lead.get_lead";
+const CREATE_METHOD = "crm.api.lead.create_lead";
+const UPDATE_METHOD = "crm.api.lead.update_lead";
+const DELETE_METHOD = "crm.api.lead.delete_lead";
 const LEAD_RESOLUTION_CODES = new Set<LeadResolution>([
   "MATCHED",
   "CREATED",
@@ -214,10 +248,12 @@ function integerOrNull(value: unknown): number | null {
 
 function initials(value: string): string {
   const parts = value.trim().split(/\s+/).filter(Boolean);
-  return parts
-    .slice(-2)
-    .map((part) => part[0]?.toLocaleUpperCase("vi-VN") ?? "")
-    .join("") || "L";
+  return (
+    parts
+      .slice(-2)
+      .map((part) => part[0]?.toLocaleUpperCase("vi-VN") ?? "")
+      .join("") || "L"
+  );
 }
 
 function normalizeConversionPotential(
@@ -244,13 +280,15 @@ function normalizeListItem(value: unknown): LeadListItem {
     row.processingStatus,
     row.processing_status,
   ]);
-  const createdAt = firstText([
-    row.createdAt,
-    row.created_at,
-    row.creation,
-  ]);
+  const createdAt = firstText([row.createdAt, row.created_at, row.creation]);
   const owner = firstText(
-    [row.ownerStaff, row.owner_staff, row.assignedTo, row.assigned_to, row.owner],
+    [
+      row.ownerStaff,
+      row.owner_staff,
+      row.assignedTo,
+      row.assigned_to,
+      row.owner,
+    ],
     "Chưa phân công",
   );
   return {
@@ -271,12 +309,13 @@ function normalizeListItem(value: unknown): LeadListItem {
       row.leadStatus,
       row.lead_status,
     ]),
-    statusCode: firstText([
-      row.statusCode,
-      row.status_code,
-      row.processingStatus,
-      row.processing_status,
-    ]) || null,
+    statusCode:
+      firstText([
+        row.statusCode,
+        row.status_code,
+        row.processingStatus,
+        row.processing_status,
+      ]) || null,
     ...(processingStatus ? { processingStatus } : {}),
     result: normalizeResolution(row.result ?? row.resolution),
     source: firstText([row.source]),
@@ -353,18 +392,20 @@ function normalizeDetail(value: unknown): LeadDetail {
 
   return {
     ...normalizeListItem(row),
-    lifecycleStatus: firstText([
-      row.lifecycleStatus,
-      row.lifecycle_status,
-      row.enrollmentStatus,
-      row.enrollment_status,
-    ]) || null,
-    lifecycleStatusCode: firstText([
-      row.lifecycleStatusCode,
-      row.lifecycle_status_code,
-      row.enrollmentStatus,
-      row.enrollment_status,
-    ]) || null,
+    lifecycleStatus:
+      firstText([
+        row.lifecycleStatus,
+        row.lifecycle_status,
+        row.enrollmentStatus,
+        row.enrollment_status,
+      ]) || null,
+    lifecycleStatusCode:
+      firstText([
+        row.lifecycleStatusCode,
+        row.lifecycle_status_code,
+        row.enrollmentStatus,
+        row.enrollment_status,
+      ]) || null,
     email: firstText([row.email]),
     secondaryEmail: firstText([
       row.secondaryEmail,
@@ -398,11 +439,8 @@ function normalizeDetail(value: unknown): LeadDetail {
       row.eventsParticipated ?? row.events_participated,
     ),
     description: firstText([row.description, row.notes]),
-    modifiedAt: firstText([
-      row.modifiedAt,
-      row.modified_at,
-      row.modified,
-    ]) || null,
+    modifiedAt:
+      firstText([row.modifiedAt, row.modified_at, row.modified]) || null,
   };
 }
 
@@ -455,7 +493,9 @@ export function normalizeLeadDetail(value: unknown): LeadDetailResponse {
     meta: {
       asOf:
         nullableText(meta.asOf ?? meta.as_of) ??
-        nullableText(payload.modifiedAt ?? payload.modified_at ?? payload.modified),
+        nullableText(
+          payload.modifiedAt ?? payload.modified_at ?? payload.modified,
+        ),
     },
   };
 }
@@ -477,8 +517,12 @@ function frappeCookieHeader(cookieHeader: string): string {
 
 async function requestHeaders(
   options: LeadApiRequestOptions,
+  includeJsonContentType = false,
 ): Promise<Record<string, string>> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...(includeJsonContentType ? { "Content-Type": "application/json" } : {}),
+  };
   if (!options.baseUrl && typeof window === "undefined") {
     try {
       const { cookies } = await import("next/headers");
@@ -487,6 +531,17 @@ async function requestHeaders(
     } catch {
       // Contract tests and non-request contexts do not have Next headers.
     }
+  }
+  if (typeof window !== "undefined") {
+    const csrfToken = document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith("csrf_token="))
+      ?.split("=")
+      .slice(1)
+      .join("=");
+    if (csrfToken)
+      headers["X-Frappe-CSRF-Token"] = decodeURIComponent(csrfToken);
   }
   return headers;
 }
@@ -557,6 +612,48 @@ async function request(
   return payload;
 }
 
+async function mutationRequest(
+  method: string,
+  httpMethod: "DELETE" | "POST",
+  body: Record<string, unknown>,
+  options: LeadApiRequestOptions,
+): Promise<unknown> {
+  const baseUrl = resolveBaseUrl(options);
+  if (!baseUrl) {
+    throw new LeadApiError(
+      503,
+      "LEAD_API_UNAVAILABLE",
+      "Chưa cấu hình địa chỉ Frappe CRM API.",
+    );
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/api/method/${method}`, {
+      method: httpMethod,
+      headers: await requestHeaders(options, true),
+      ...(typeof window !== "undefined"
+        ? { credentials: "include" as RequestCredentials }
+        : {}),
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch {
+    throw new LeadApiError(
+      503,
+      "LEAD_API_UNAVAILABLE",
+      "Không thể kết nối đến máy chủ Lead.",
+    );
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const details = errorDetails(payload, response.status);
+    throw new LeadApiError(response.status, details.code, details.message);
+  }
+  return payload;
+}
+
 export async function getLeadList(
   params: LeadListParams = {},
   options: LeadApiRequestOptions = {},
@@ -609,4 +706,97 @@ export async function getLeadDetail(
       "Phản hồi chi tiết Lead không hợp lệ.",
     );
   }
+}
+
+export async function createLead(
+  fields: LeadCreateFields,
+  options: LeadApiRequestOptions = {},
+): Promise<LeadDetailResponse> {
+  if (!fields || !fields.student_name?.trim()) {
+    throw new LeadApiError(
+      400,
+      "INVALID_FIELDS",
+      "Họ và tên Lead không được để trống.",
+    );
+  }
+
+  const payload = await mutationRequest(
+    CREATE_METHOD,
+    "POST",
+    { fields },
+    options,
+  );
+  try {
+    return normalizeLeadDetail(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_CREATE_RESPONSE",
+      "Phản hồi tạo Lead không hợp lệ.",
+    );
+  }
+}
+
+export async function updateLead(
+  leadId: string,
+  fields: LeadUpdateFields,
+  options: LeadApiRequestOptions = {},
+): Promise<LeadDetailResponse> {
+  const normalizedLeadId = leadId.trim();
+  if (!normalizedLeadId) {
+    throw new LeadApiError(
+      400,
+      "INVALID_LEAD_NAME",
+      "Thiếu mã Lead cần cập nhật.",
+    );
+  }
+  if (!fields || Object.keys(fields).length === 0) {
+    throw new LeadApiError(
+      400,
+      "INVALID_FIELDS",
+      "Vui lòng thay đổi ít nhất một trường.",
+    );
+  }
+
+  const payload = await mutationRequest(
+    UPDATE_METHOD,
+    "POST",
+    { name: normalizedLeadId, fields },
+    options,
+  );
+  try {
+    return normalizeLeadDetail(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_UPDATE_RESPONSE",
+      "Phản hồi cập nhật Lead không hợp lệ.",
+    );
+  }
+}
+
+export async function deleteLead(
+  leadId: string,
+  options: LeadApiRequestOptions = {},
+): Promise<LeadDeleteResponse> {
+  const normalizedLeadId = leadId.trim();
+  if (!normalizedLeadId) {
+    throw new LeadApiError(400, "INVALID_LEAD_NAME", "Thiếu mã Lead cần xóa.");
+  }
+
+  const payload = await mutationRequest(
+    DELETE_METHOD,
+    "DELETE",
+    { name: normalizedLeadId },
+    options,
+  );
+  const message = asRecord(unwrapMessage(payload));
+  if (message && message.deleted === normalizedLeadId) {
+    return { deleted: normalizedLeadId };
+  }
+  throw new LeadApiError(
+    502,
+    "INVALID_LEAD_DELETE_RESPONSE",
+    "Phản hồi xóa Lead không hợp lệ.",
+  );
 }

@@ -1,17 +1,30 @@
 "use client";
 
 import { keepPreviousData } from "@tanstack/react-query";
+import { Plus } from "@tailgrids/icons";
 import { useState } from "react";
+import { toast } from "sonner";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-queries";
-import { useLeadSaleLeadsQuery } from "@/hooks/use-lead-sale-leads-queries";
-import type { LeadListItem, LeadListParams } from "@/services/api/lead-sale";
+import {
+  useCreateLeadMutation,
+  useLeadSaleLeadsQuery,
+} from "@/hooks/use-lead-sale-leads-queries";
+import type {
+  LeadCreateFields,
+  LeadListItem,
+  LeadListParams,
+} from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
+import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 import {
   leadStageStatusLabel,
   type LeadResultStatus,
@@ -20,14 +33,23 @@ import {
 import type { LeadStatus } from "./types";
 
 const pageSize = 10;
-type LeadControlDraft = Partial<Pick<LeadListItem, "status" | "statusCode" | "result">>;
+type LeadControlDraft = Partial<
+  Pick<LeadListItem, "status" | "statusCode" | "result">
+>;
 
 export default function LeadsOverviewDashboard() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const permissions = getCrmPermissions(user?.roles);
+  const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStatus | "all">("all");
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
-  const [controlDrafts, setControlDrafts] = useState<Record<string, LeadControlDraft>>({});
+  const [controlDrafts, setControlDrafts] = useState<
+    Record<string, LeadControlDraft>
+  >({});
+  const createMutation = useCreateLeadMutation();
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -102,6 +124,12 @@ export default function LeadsOverviewDashboard() {
     setPage(1);
   };
 
+  const handleCreateLead = async (fields: LeadCreateFields) => {
+    await createMutation.mutateAsync(fields);
+    setCreateDialogOpen(false);
+    toast.success("Đã tạo Lead.");
+  };
+
   return (
     <main
       id="main-content"
@@ -133,6 +161,16 @@ export default function LeadsOverviewDashboard() {
             Toàn cảnh Lead tiếp nhận trước khi được phân công cho đội ngũ Sale.
           </p>
         </div>
+        {canCreateLead && (
+          <Button
+            className="shrink-0 max-sm:w-full"
+            onPress={() => setCreateDialogOpen(true)}
+            size="sm"
+          >
+            <Plus size={16} aria-hidden="true" />
+            Tạo Lead nhanh
+          </Button>
+        )}
       </header>
 
       <LeadListToolbar
@@ -218,6 +256,15 @@ export default function LeadsOverviewDashboard() {
           </div>
         )}
       </Card>
+
+      {canCreateLead && (
+        <QuickCreateLeadDialog
+          isOpen={createDialogOpen}
+          isSubmitting={createMutation.isPending}
+          onOpenChange={setCreateDialogOpen}
+          onCreate={handleCreateLead}
+        />
+      )}
     </main>
   );
 }

@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createLead,
+  deleteLead,
   getLeadDetail,
   getLeadList,
   LeadApiError,
   normalizeLeadDetail,
   normalizeLeadList,
+  updateLead,
 } from "./leads";
 
 afterEach(() => vi.restoreAllMocks());
@@ -146,7 +149,8 @@ describe("Lead list/detail API contract", () => {
           title: "Cập nhật tình trạng Lead",
           author: "Administrator",
           date: "2026-09-07T11:00:00+07:00",
-          content: 'Enrollment Status được cập nhật từ "Mới" sang "Có triển vọng".',
+          content:
+            'Enrollment Status được cập nhật từ "Mới" sang "Có triển vọng".',
           event_type: "status_changed",
           category: "status",
           fieldname: "enrollment_status",
@@ -159,9 +163,11 @@ describe("Lead list/detail API contract", () => {
       ],
       meta: {},
     };
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: detail }), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(JSON.stringify({ message: detail }), { status: 200 }),
+      );
 
     const result = await getLeadDetail("LEAD-2026-00001", {
       baseUrl: "http://frappe:8000",
@@ -277,6 +283,111 @@ describe("Lead list/detail API contract", () => {
       log: [],
       meta: { asOf: "2026-09-08 10:00:00" },
     });
+  });
+
+  it("creates a Lead through the CRUD endpoint", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            name: "LEAD-2026-00003",
+            student_name: "Lê Văn Cường",
+            phone: "0922222222",
+            province: "Cần Thơ",
+            source: "Website",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await createLead(
+      {
+        student_name: " Lê Văn Cường ",
+        phone: "0922222222",
+        province: "Cần Thơ",
+        source: "Website",
+        email: "cuong@example.com",
+      },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead.create_lead",
+      expect.objectContaining({
+        method: "POST",
+        cache: "no-store",
+        body: JSON.stringify({
+          fields: {
+            student_name: " Lê Văn Cường ",
+            phone: "0922222222",
+            province: "Cần Thơ",
+            source: "Website",
+            email: "cuong@example.com",
+          },
+        }),
+      }),
+    );
+    expect(result.lead.name).toBe("Lê Văn Cường");
+    expect(result.lead.province).toBe("Cần Thơ");
+  });
+
+  it("updates a Lead through the CRUD endpoint", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            name: "LEAD-2026-00003",
+            student_name: "Lê Văn Cường",
+            phone: "0922222222",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await updateLead(
+      "LEAD-2026-00003",
+      { student_name: "Lê Văn Cường", phone: "0922222222" },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead.update_lead",
+      expect.objectContaining({
+        method: "POST",
+        cache: "no-store",
+        body: JSON.stringify({
+          name: "LEAD-2026-00003",
+          fields: { student_name: "Lê Văn Cường", phone: "0922222222" },
+        }),
+      }),
+    );
+    expect(result.lead.name).toBe("Lê Văn Cường");
+    expect(result.lead.phone).toBe("0922222222");
+  });
+
+  it("deletes a Lead through the CRUD endpoint", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ message: { deleted: "LEAD-2026-00004" } }),
+          { status: 200 },
+        ),
+      );
+
+    await expect(
+      deleteLead("LEAD-2026-00004", { baseUrl: "http://frappe:8000" }),
+    ).resolves.toEqual({ deleted: "LEAD-2026-00004" });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead.delete_lead",
+      expect.objectContaining({
+        method: "DELETE",
+        cache: "no-store",
+        body: JSON.stringify({ name: "LEAD-2026-00004" }),
+      }),
+    );
   });
 
   it("normalizes a valid detail response without changing empty arrays", () => {

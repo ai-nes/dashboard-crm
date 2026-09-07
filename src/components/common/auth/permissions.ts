@@ -19,6 +19,7 @@ export interface CrmResourcePermissions {
 }
 
 export interface CrmPermissions {
+  lead: CrmResourcePermissions;
   student: CrmResourcePermissions;
   task: CrmResourcePermissions;
 }
@@ -105,22 +106,34 @@ export function getCrmPermissions(
     effectiveRoles.includes("Admissions Director") ||
     effectiveRoles.includes("Administrator")
   ) {
-    return { student: FULL_ACCESS, task: FULL_ACCESS };
+    return { lead: FULL_ACCESS, student: FULL_ACCESS, task: FULL_ACCESS };
   }
 
   if (effectiveRoles.includes("Lead Sale")) {
-    return { student: LEAD_SALE_STUDENT_ACCESS, task: FULL_ACCESS };
+    return {
+      lead: LEAD_SALE_STUDENT_ACCESS,
+      student: LEAD_SALE_STUDENT_ACCESS,
+      task: FULL_ACCESS,
+    };
   }
 
   if (effectiveRoles.includes("Sale")) {
-    return { student: SALE_STUDENT_ACCESS, task: SALE_TASK_ACCESS };
+    return {
+      lead: SALE_STUDENT_ACCESS,
+      student: SALE_STUDENT_ACCESS,
+      task: SALE_TASK_ACCESS,
+    };
   }
 
   if (effectiveRoles.includes("CTV Sale")) {
-    return { student: CTV_SALE_STUDENT_ACCESS, task: CTV_SALE_TASK_ACCESS };
+    return {
+      lead: CTV_SALE_STUDENT_ACCESS,
+      student: CTV_SALE_STUDENT_ACCESS,
+      task: CTV_SALE_TASK_ACCESS,
+    };
   }
 
-  return { student: NO_ACCESS, task: NO_ACCESS };
+  return { lead: NO_ACCESS, student: NO_ACCESS, task: NO_ACCESS };
 }
 
 export interface StudentOwnershipInfo {
