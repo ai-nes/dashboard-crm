@@ -5,6 +5,15 @@ export type StudentJourneyStage =
   | "Ứng tuyển"
   | "Nhập học";
 
+export type StudentAssignmentStatus = "assigned" | "unassigned";
+
+export type StudentLifecycleStatus =
+  | "Lead"
+  | "MQL"
+  | "Applicant"
+  | "Enrolled"
+  | "Lost";
+
 export type StudentPriority = "Cao" | "Trung bình" | "Thấp";
 
 export type StudentVerificationStatus =
@@ -165,8 +174,11 @@ export interface StudentListItem {
   code: string;
   school: string;
   province: string;
+  provinceId?: string | null;
   major: string;
   stage: StudentJourneyStage;
+  assignmentStatus?: StudentAssignmentStatus;
+  lifecycleStatus?: StudentLifecycleStatus | null;
   score: number;
   scoreDelta: number;
   lastActivity: string;
@@ -334,7 +346,10 @@ export interface DirectorStudentsParams {
   q?: string;
   stage?: StudentJourneyStage | "all" | string;
   province?: string;
+  provinceId?: string;
   ownerId?: string;
+  assignmentStatus?: StudentAssignmentStatus | "all" | string;
+  lifecycleStatus?: StudentLifecycleStatus | "all" | string;
   sort?: "score" | "priority" | "lastActivityAt" | "nextActionDueAt" | string;
   order?: "asc" | "desc";
 }
@@ -366,6 +381,8 @@ export interface DirectorStudentsMeta {
   query?: string;
   filters?: {
     stage?: string;
+    assignmentStatus?: string;
+    lifecycleStatus?: string;
     province?: string;
   };
   sort?: {

@@ -49,6 +49,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const q = request.nextUrl.searchParams.get("q") ?? undefined;
     const stage = request.nextUrl.searchParams.get("stage") ?? undefined;
     const province = request.nextUrl.searchParams.get("province") ?? undefined;
+    const provinceId = request.nextUrl.searchParams.get("provinceId") ?? undefined;
+    const assignmentStatus = request.nextUrl.searchParams.get("assignmentStatus") ?? undefined;
+    const lifecycleStatus = request.nextUrl.searchParams.get("lifecycleStatus") ?? undefined;
     const sort = request.nextUrl.searchParams.get("sort") ?? undefined;
     const order = (request.nextUrl.searchParams.get("order") as "asc" | "desc") ?? undefined;
 
@@ -59,6 +62,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
       q,
       stage,
       province,
+      provinceId,
+      assignmentStatus,
+      lifecycleStatus,
       sort,
       order,
     };

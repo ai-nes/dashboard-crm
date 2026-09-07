@@ -14,7 +14,7 @@ import { useAuth } from "@/components/common/auth/auth-provider";
 import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   useAssignedStudentsQuery,
@@ -24,7 +24,10 @@ import {
   createStudent,
   type StudentCreateFields,
 } from "@/services/api/student-school-update";
-import type { StudentJourneyStage } from "@/services/api/students/types";
+import type {
+  StudentAssignmentStatus,
+  StudentJourneyStage,
+} from "@/services/api/students/types";
 
 import StudentCreateDialog from "./student-create-dialog";
 import StudentKpiStrip from "./student-kpi-strip";
@@ -48,6 +51,9 @@ export default function StudentsOverviewDashboard() {
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState<StudentJourneyStage | "all">("all");
   const [province, setProvince] = useState("all");
+  const [assignmentStatus, setAssignmentStatus] = useState<
+    StudentAssignmentStatus | "all"
+  >("all");
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -58,6 +64,7 @@ export default function StudentsOverviewDashboard() {
     q: query || undefined,
     stage,
     province,
+    assignmentStatus,
     // Session-scoped roles must never be able to widen the list with an owner
     // query parameter. The backend derives pool/team scope from the session.
     ownerId: isSessionScoped ? undefined : ownerId,
@@ -89,7 +96,6 @@ export default function StudentsOverviewDashboard() {
   const meta = response?.meta;
 
   const totalCount = meta?.total ?? students.length;
-  const totalAll = meta?.totalAll ?? totalCount;
   const totalPages = Math.max(
     1,
     meta?.totalPages ?? Math.ceil(totalCount / pageSize),
@@ -133,10 +139,18 @@ export default function StudentsOverviewDashboard() {
     setPage(1);
   };
 
+  const handleAssignmentStatusChange = (
+    val: StudentAssignmentStatus | "all",
+  ) => {
+    setAssignmentStatus(val);
+    setPage(1);
+  };
+
   const resetFilters = () => {
     setQuery("");
     setStage("all");
     setProvince("all");
+    setAssignmentStatus("all");
     setPage(1);
   };
 
@@ -200,26 +214,16 @@ export default function StudentsOverviewDashboard() {
       <StudentKpiStrip summary={summary} />
 
       <Card className="min-w-0 overflow-hidden p-0">
-        <CardHeader className="border-b border-card-border p-5">
-          <div>
-            <CardTitle>Danh sách học sinh</CardTitle>
-            <p className="mt-1 text-xs leading-5 text-text-tertiary">
-              Theo dõi hồ sơ, trạng thái, mức độ ưu tiên và hành động tiếp theo
-              của từng học sinh.
-            </p>
-          </div>
-          <Badge color="primary">
-            {totalCount}/{totalAll} hồ sơ
-          </Badge>
-        </CardHeader>
         <StudentListToolbar
           query={query}
           stage={stage}
           province={province}
+          assignmentStatus={assignmentStatus}
           resultCount={totalCount}
           onQueryChange={handleQueryChange}
           onStageChange={handleStageChange}
           onProvinceChange={handleProvinceChange}
+          onAssignmentStatusChange={handleAssignmentStatusChange}
           onReset={resetFilters}
         />
         <div

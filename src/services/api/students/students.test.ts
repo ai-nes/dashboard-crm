@@ -92,6 +92,28 @@ describe("director students API contract", () => {
     );
   });
 
+  it("passes assignment, lifecycle, and province filters to the students endpoint", async () => {
+    const mockData = computeDirectorStudents({ admissionYear: 2026 });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockData }), { status: 200 }),
+    );
+
+    await getDirectorStudents(
+      {
+        admissionYear: 2026,
+        provinceId: "PROVINCE-01",
+        assignmentStatus: "assigned",
+        lifecycleStatus: "Applicant",
+      },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_director_students?admissionYear=2026&provinceId=PROVINCE-01&assignmentStatus=assigned&lifecycleStatus=Applicant",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+  });
+
   it("throws DirectorStudentsApiError on authorization failure", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
