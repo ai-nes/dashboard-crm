@@ -11,14 +11,14 @@ const iconBackground = {
 
 export default function CampaignDetailStats({ leads }: { leads: CampaignLeadRow[] }) {
   const total = leads.length;
-  const inProgress = leads.filter((lead) => lead.status === "Đang liên hệ" || lead.status === "Xác nhận tư vấn").length;
-  const converted = leads.filter((lead) => lead.status === "Đã chuyển đổi").length;
+  const inProgress = leads.filter((lead) => lead.status === "PROCESSED" || lead.status === "ASSIGNED").length;
+  const converted = leads.filter((lead) => lead.status === "CLOSED").length;
   const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
 
   const stats = [
     { label: "Tổng số lead", value: total, detail: "Từ chiến dịch này", icon: UserMultiple1, color: "primary" as const },
-    { label: "Đang chăm sóc", value: inProgress, detail: "Đang liên hệ / xác nhận tư vấn", icon: ClockThree, color: "sky" as const },
-    { label: "Đã chuyển đổi", value: converted, detail: "Đã trở thành học sinh", icon: CheckCircle1, color: "success" as const },
+    { label: "Đang chăm sóc", value: inProgress, detail: "Đang xử lý / đã phân công", icon: ClockThree, color: "sky" as const },
+    { label: "Đã đóng", value: converted, detail: "Đã hoàn tất xử lý", icon: CheckCircle1, color: "success" as const },
     { label: "Tỷ lệ chuyển đổi", value: `${conversionRate}%`, detail: "Trên tổng số lead", icon: LabelPercent1, color: "warning" as const },
   ];
 

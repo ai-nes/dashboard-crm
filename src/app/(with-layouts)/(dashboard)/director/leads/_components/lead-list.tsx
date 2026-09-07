@@ -1,18 +1,38 @@
 import Link from "next/link";
 
-import { Badge } from "@/components/tailgrids/core/badge";
+import { formatDate } from "@/utils/format-date";
 
-import { leadStatusColor } from "./mappings";
+import LeadContactLogCell from "./lead-contact-log-cell";
+import type { LeadMockOverlay } from "./lead-mock-overlay";
+import LeadResultCell from "./lead-result-cell";
+import {
+  leadStageStatusLabel,
+  leadStageStatusOptions,
+  leadStageTriggerClass,
+  type LeadResultStatus,
+  type LeadStageStatus,
+} from "./lead-status";
+import { leadTableGrid } from "./lead-table-grid";
 import type { LeadListItem } from "./types";
+import {
+  Select,
+  SelectContent,
+  SelectIndicator,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/tailgrids/core/select";
+
+export const leadListGrid = leadTableGrid;
 
 interface LeadListProps {
   leads: LeadListItem[];
+  getOverlay: (id: string) => LeadMockOverlay;
+  onStatusChange: (id: string, status: LeadStageStatus) => void;
+  onResultChange: (id: string, result: LeadResultStatus) => void;
 }
 
-export const leadListGrid =
-  "lg:grid-cols-[minmax(200px,1.3fr)_140px_minmax(170px,1.1fr)_170px_150px_minmax(160px,1fr)_110px]";
-
-export default function LeadList({ leads }: LeadListProps) {
+export default function LeadList({ leads, getOverlay, onStatusChange, onResultChange }: LeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
@@ -28,75 +48,102 @@ export default function LeadList({ leads }: LeadListProps) {
 
   return (
     <ul className="divide-y divide-card-border" aria-label="Danh sách lead">
-      {leads.map((lead) => (
-        <li key={lead.id}>
-          <div
-            className={`grid gap-4 px-4 py-4 ${leadListGrid} lg:items-center lg:px-5`}
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-sm font-semibold text-badge-primary-text">
-                {lead.initials || "L"}
-              </span>
-              <p className="truncate font-semibold text-text-primary">
-                {lead.name || "-"}
-              </p>
-            </div>
+      {leads.map((lead) => {
+        const overlay = getOverlay(lead.id);
+        return (
+          <li key={lead.id}>
+            <div
+              className={`grid gap-4 px-4 py-4 ${leadListGrid} lg:items-center lg:px-5`}
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-sm font-semibold text-badge-primary-text">
+                  {lead.initials || "L"}
+                </span>
+                <div className="min-w-0">
+                  <Link
+                    href={`/director/leads/${lead.id}`}
+                    className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
+                  >
+                    {lead.name || "-"}
+                  </Link>
+                  <p className="mt-0.5 truncate text-xs text-text-tertiary" title={lead.school || undefined}>
+                    {lead.school || "-"}
+                  </p>
+                </div>
+              </div>
 
-            <div className="flex items-center justify-between gap-2 lg:block">
-              <p className="text-xs text-text-tertiary lg:hidden">Di động</p>
-              <p className="truncate text-sm text-text-primary tabular-nums">
-                {lead.phone || "-"}
-              </p>
-            </div>
+              <div className="flex items-center justify-between gap-2 lg:block">
+                <p className="text-xs text-text-tertiary lg:hidden">Di động</p>
+                <p className="truncate text-sm text-text-primary tabular-nums">
+                  {lead.phone || "-"}
+                </p>
+              </div>
 
-            <div className="flex items-center justify-between gap-2 lg:block">
-              <p className="text-xs text-text-tertiary lg:hidden">
-                Trường THPT
-              </p>
-              <p
-                className="truncate text-sm text-text-primary"
-                title={lead.school || undefined}
-              >
-                {lead.school || "-"}
-              </p>
-            </div>
+              <div className="flex items-center justify-between gap-2 lg:block">
+                <p className="text-xs text-text-tertiary lg:hidden">Nguồn</p>
+                <p className="truncate text-sm text-text-primary">
+                  {lead.source || "-"}
+                </p>
+              </div>
 
-            <div className="flex items-center justify-between gap-2 lg:justify-start">
-              <p className="text-xs text-text-tertiary lg:hidden">
-                Tình trạng Lead
-              </p>
-              <Badge color={leadStatusColor(lead.status)}>
-                {lead.status || "-"}
-              </Badge>
-            </div>
+              <div className="min-w-0">
+                <p className="mb-1 text-xs text-text-tertiary lg:hidden">
+                  Người phụ trách
+                </p>
+                <p className="truncate text-sm text-text-primary">{lead.owner}</p>
+              </div>
 
-            <div className="flex items-center justify-between gap-2 lg:block">
-              <p className="text-xs text-text-tertiary lg:hidden">Nguồn</p>
-              <p className="truncate text-sm text-text-primary">
-                {lead.source || "-"}
-              </p>
-            </div>
+              <div className="flex items-center justify-between gap-2 lg:justify-start">
+                <p className="text-xs text-text-tertiary lg:hidden">Trạng thái lead</p>
+                <Select
+                  value={overlay.status}
+                  onChange={(value) => onStatusChange(lead.id, String(value) as LeadStageStatus)}
+                  aria-label={`Đổi trạng thái lead ${lead.name}`}
+                  className="w-fit min-w-32"
+                >
+                  <SelectTrigger size="sm" className={`w-full ${leadStageTriggerClass[overlay.status]}`}>
+                    <SelectValue />
+                    <SelectIndicator />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {leadStageStatusOptions.map((status) => (
+                      <SelectItem key={status} id={status} textValue={leadStageStatusLabel[status]}>
+                        {leadStageStatusLabel[status]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="min-w-0">
-              <p className="mb-1 text-xs text-text-tertiary lg:hidden">
-                Người phụ trách
-              </p>
-              <p className="truncate text-sm text-text-primary">{lead.owner}</p>
-            </div>
+              <div className="flex items-center justify-between gap-2 lg:justify-start">
+                <p className="text-xs text-text-tertiary lg:hidden">Kết quả</p>
+                <LeadResultCell
+                  leadName={lead.name}
+                  status={overlay.status}
+                  result={overlay.result}
+                  onChange={(result) => onResultChange(lead.id, result)}
+                />
+              </div>
 
-            <div className="flex items-center justify-between gap-2 lg:justify-center">
-              <p className="text-xs text-text-tertiary lg:hidden">Thao tác</p>
-              <Link
-                href={`/director/leads/${lead.id}`}
-                aria-label={`Xem chi tiết lead ${lead.name || ""}`}
-                className="text-xs font-medium text-warning-500 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
-              >
-                Chi tiết
-              </Link>
+              <div className="flex items-center justify-between gap-2 lg:block">
+                <p className="text-xs text-text-tertiary lg:hidden">Số lần liên hệ</p>
+                <LeadContactLogCell
+                  leadName={lead.name}
+                  noAnswer={overlay.contactNoAnswer}
+                  success={overlay.contactSuccess}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2 lg:block">
+                <p className="text-xs text-text-tertiary lg:hidden">Ngày tạo</p>
+                <p className="truncate text-sm text-text-secondary tabular-nums">
+                  {formatDate(overlay.createdAt)}
+                </p>
+              </div>
             </div>
-          </div>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ul>
   );
 }

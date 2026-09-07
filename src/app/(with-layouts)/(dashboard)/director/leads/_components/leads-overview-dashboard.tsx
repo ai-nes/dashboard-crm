@@ -12,6 +12,8 @@ import type { LeadListParams } from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
+import { defaultLeadOverlay, type LeadMockOverlay } from "./lead-mock-overlay";
+import type { LeadResultStatus, LeadStageStatus } from "./lead-status";
 import type { LeadStatus } from "./types";
 
 const pageSize = 10;
@@ -21,6 +23,27 @@ export default function LeadsOverviewDashboard() {
   const [status, setStatus] = useState<LeadStatus | "all">("all");
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
+  const [overlayOverrides, setOverlayOverrides] = useState<
+    Record<string, Partial<LeadMockOverlay>>
+  >({});
+
+  const getOverlay = (id: string): LeadMockOverlay => ({
+    ...defaultLeadOverlay(id),
+    ...overlayOverrides[id],
+  });
+
+  const handleLeadStatusChange = (id: string, nextStatus: LeadStageStatus) => {
+    setOverlayOverrides((prev) => {
+      const current = { ...defaultLeadOverlay(id), ...prev[id] };
+      const nextResult =
+        nextStatus === "ASSIGNED" || nextStatus === "CLOSED" ? current.result : "";
+      return { ...prev, [id]: { ...prev[id], status: nextStatus, result: nextResult } };
+    });
+  };
+
+  const handleLeadResultChange = (id: string, result: LeadResultStatus) => {
+    setOverlayOverrides((prev) => ({ ...prev, [id]: { ...prev[id], result } }));
+  };
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -122,28 +145,38 @@ export default function LeadsOverviewDashboard() {
       />
 
       <Card className="min-w-0 overflow-hidden p-0">
-        <div
-          className={`hidden ${leadListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
-          aria-hidden="true"
-        >
-          <span>Họ và Tên</span>
-          <span>Di động</span>
-          <span>Trường THPT</span>
-          <span>Tình trạng Lead</span>
-          <span>Nguồn</span>
-          <span>Người phụ trách</span>
-          <span className="text-center">Thao tác</span>
-        </div>
-        {isPending && !response ? (
-          <div
-            className="px-5 py-14 text-center text-sm text-text-tertiary"
-            role="status"
-          >
-            Đang tải danh sách Lead…
+        <div className="lg:overflow-x-auto">
+          <div className="lg:min-w-[1350px]">
+            <div
+              className={`hidden ${leadListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
+              aria-hidden="true"
+            >
+              <span>Họ và Tên</span>
+              <span>Di động</span>
+              <span>Nguồn</span>
+              <span>Người phụ trách</span>
+              <span>Trạng thái lead</span>
+              <span>Kết quả</span>
+              <span>Số lần liên hệ</span>
+              <span>Ngày tạo</span>
+            </div>
+            {isPending && !response ? (
+              <div
+                className="px-5 py-14 text-center text-sm text-text-tertiary"
+                role="status"
+              >
+                Đang tải danh sách Lead…
+              </div>
+            ) : (
+              <LeadList
+                leads={leads}
+                getOverlay={getOverlay}
+                onStatusChange={handleLeadStatusChange}
+                onResultChange={handleLeadResultChange}
+              />
+            )}
           </div>
-        ) : (
-          <LeadList leads={leads} />
-        )}
+        </div>
 
         {totalCount > 0 && (
           <div className="flex flex-col gap-3 border-t border-card-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">

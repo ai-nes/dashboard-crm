@@ -1,18 +1,43 @@
 "use client";
 
+import { useState } from "react";
+
 import DetailTabs, {
   type DetailTabItem,
 } from "@/components/common/detail-tabs";
 import { Card } from "@/components/tailgrids/core/card";
 import { useLeadSaleLeadQuery } from "@/hooks/use-lead-sale-leads-queries";
 
+import LeadCallsTab from "./lead-calls-tab";
+import { generateLeadCalls } from "./lead-calls-mock";
 import LeadDetailsTab from "./lead-details-tab";
 import LeadHeader from "./lead-header";
 import LeadLogTab from "./lead-log-tab";
+import { defaultLeadOverlay, type LeadMockOverlay } from "./lead-mock-overlay";
 import LeadNotesTab from "./lead-notes-tab";
+import LeadWorkflowSection from "./lead-workflow-section";
+import type { LeadResultStatus, LeadStageStatus } from "./lead-status";
 
 export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId);
+  const [overlayOverride, setOverlayOverride] = useState<
+    Partial<LeadMockOverlay>
+  >({});
+
+  const overlay: LeadMockOverlay = {
+    ...defaultLeadOverlay(leadId),
+    ...overlayOverride,
+  };
+
+  const handleStatusChange = (status: LeadStageStatus) => {
+    const nextResult =
+      status === "ASSIGNED" || status === "CLOSED" ? overlay.result : "";
+    setOverlayOverride((prev) => ({ ...prev, status, result: nextResult }));
+  };
+
+  const handleResultChange = (result: LeadResultStatus) => {
+    setOverlayOverride((prev) => ({ ...prev, result }));
+  };
 
   if (isPending) {
     return (
@@ -52,11 +77,23 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     );
   }
 
+  const calls = generateLeadCalls({
+    id: data.lead.id,
+    name: data.lead.name,
+    phone: data.lead.phone,
+    owner: data.lead.owner,
+  });
+
   const tabs: DetailTabItem[] = [
     {
       id: "details",
       label: "Chi tiết",
       content: <LeadDetailsTab lead={data.lead} />,
+    },
+    {
+      id: "calls",
+      label: "Cuộc gọi",
+      content: <LeadCallsTab calls={calls} />,
     },
     {
       id: "notes",
@@ -72,7 +109,14 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       className="min-w-0 max-w-full overflow-x-clip pb-10"
     >
       <div className="px-2 pt-4 lg:px-6">
-        <LeadHeader lead={data.lead} />
+        <LeadHeader lead={data.lead} createdAt={overlay.createdAt}>
+          <LeadWorkflowSection
+            leadName={data.lead.name}
+            overlay={overlay}
+            onStatusChange={handleStatusChange}
+            onResultChange={handleResultChange}
+          />
+        </LeadHeader>
       </div>
       <div className="px-2 pt-4 lg:px-6">
         <DetailTabs

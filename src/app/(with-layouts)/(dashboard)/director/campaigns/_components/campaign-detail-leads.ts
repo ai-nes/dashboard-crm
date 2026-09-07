@@ -1,12 +1,23 @@
+import { defaultLeadOverlay } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-mock-overlay";
+import type {
+  LeadResultStatus,
+  LeadStageStatus,
+} from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
+
 export interface CampaignLeadRow {
   id: string;
   name: string;
   initials: string;
   phone: string;
   school: string;
-  status: string;
+  status: LeadStageStatus;
+  result: LeadResultStatus | "";
   source: string;
   owner: string;
+  contactNoAnswer: number;
+  contactSuccess: number;
+  note: string;
+  createdAt: string;
 }
 
 const FIRST_NAMES = [
@@ -54,8 +65,6 @@ const SOURCES = ["Facebook Ads", "TikTok Ads", "Website", "Zalo OA", "Giới thi
 
 const OWNERS = ["Nguyễn Văn Phúc", "Trần Thị Mai", "Lê Hoàng Anh", "Phạm Quốc Bảo", "Đỗ Thùy Linh"];
 
-const STATUSES = ["Mới tiếp nhận", "Đang liên hệ", "Xác nhận tư vấn", "Đã chuyển đổi", "Không tiềm năng"];
-
 function hashSeed(value: string): number {
   let hash = 0;
   for (let i = 0; i < value.length; i += 1) {
@@ -85,16 +94,23 @@ export function generateCampaignLeads(campaignId: string): CampaignLeadRow[] {
     const lastName = pick(LAST_NAMES, rng);
     const name = `${firstName} ${lastName}`;
     const phone = `09${Math.floor(10000000 + rng() * 89999999)}`;
+    const id = `${campaignId}-lead-${index + 1}`;
+    const overlay = defaultLeadOverlay(id);
 
     return {
-      id: `${campaignId}-lead-${index + 1}`,
+      id,
       name,
       initials: lastName.charAt(0).toUpperCase(),
       phone,
       school: pick(SCHOOLS, rng),
-      status: pick(STATUSES, rng),
       source: pick(SOURCES, rng),
       owner: pick(OWNERS, rng),
+      status: overlay.status,
+      result: overlay.result,
+      contactNoAnswer: overlay.contactNoAnswer,
+      contactSuccess: overlay.contactSuccess,
+      note: overlay.note,
+      createdAt: overlay.createdAt,
     };
   });
 }

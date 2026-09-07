@@ -1,11 +1,13 @@
 import { Book4, Layers2, User2 } from "@tailgrids/icons";
-import { Badge } from "@/components/tailgrids/core/badge";
 import LeadDetailSection from "./lead-detail-section";
 import { LeadDetailField as Field, LeadDetailTags } from "./lead-detail-field";
-import { conversionPotentialColor, leadStatusColor } from "./mappings";
 import type { LeadDetail } from "./types";
 
-export default function LeadDetailsTab({ lead }: { lead: LeadDetail }) {
+interface LeadDetailsTabProps {
+  lead: LeadDetail;
+}
+
+export default function LeadDetailsTab({ lead }: LeadDetailsTabProps) {
   return (
     <div className="grid min-w-0 gap-4 lg:grid-cols-2">
       <LeadDetailSection
@@ -16,12 +18,8 @@ export default function LeadDetailsTab({ lead }: { lead: LeadDetail }) {
         <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <Field label="Họ và tên" value={lead.name} />
           <Field label="Di động" value={lead.phone} />
-          <Field label="Email" value={lead.email} className="sm:col-span-2" />
-          <Field
-            label="Email khác"
-            value={lead.secondaryEmail}
-            className="sm:col-span-2"
-          />
+          <Field label="Email" value={lead.email} />
+          <Field label="Email khác" value={lead.secondaryEmail} />
           <Field label="Tỉnh / Thành phố" value={lead.province} />
           <Field label="Trường THPT" value={lead.school} />
         </dl>
@@ -34,33 +32,6 @@ export default function LeadDetailsTab({ lead }: { lead: LeadDetail }) {
         <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <Field label="Ngành quan tâm" value={lead.interestedMajor} />
           <Field label="Nguyện vọng vào FPT" value={lead.fptAspiration} />
-          <Field
-            label="Tình trạng lead"
-            value={
-              lead.status && (
-                <Badge size="sm" color={leadStatusColor(lead.status)}>
-                  {lead.status || "-"}
-                </Badge>
-              )
-            }
-          />
-          <Field
-            label="Khả năng chuyển đổi"
-            value={
-              lead.conversionPotential && (
-                <Badge
-                  size="sm"
-                  color={
-                    lead.conversionPotential
-                      ? conversionPotentialColor[lead.conversionPotential]
-                      : "gray"
-                  }
-                >
-                  {lead.conversionPotential || "Chưa xác định"}
-                </Badge>
-              )
-            }
-          />
           <Field
             label="Năm tuyển sinh"
             value={
