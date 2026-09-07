@@ -7,6 +7,7 @@ import type {
   DirectorStudentsSummary,
   StudentChatwootInteractionsResponse,
   StudentInteractionsResponse,
+  StudentLifecycleStatus,
   Student360Data,
   StudentListItem,
 } from "./types";
@@ -1024,8 +1025,19 @@ export function computeDirectorStudents(
   const query = normalizeSearchValue(rawQuery);
   const stage = params?.stage ?? "all";
   const province = params?.province ?? "all";
+  const provinceId = params?.provinceId ?? "";
+  const assignmentStatus = params?.assignmentStatus ?? "all";
+  const lifecycleStatus = params?.lifecycleStatus ?? "all";
   const sort = params?.sort ?? "score";
   const order = params?.order ?? "desc";
+
+  const lifecycleByStage: Record<StudentListItem["stage"], StudentLifecycleStatus> = {
+    "Quan tâm": "Lead",
+    "Tìm hiểu": "MQL",
+    "Tư vấn": "MQL",
+    "Ứng tuyển": "Applicant",
+    "Nhập học": "Enrolled",
+  };
 
   const filtered = studentListData.filter((student) => {
     const matchesQuery =
@@ -1041,9 +1053,27 @@ export function computeDirectorStudents(
         ].join(" "),
       ).includes(query);
     const matchesStage = stage === "all" || student.stage === stage;
-    const matchesProvince = province === "all" || student.province === province;
+    const matchesProvince =
+      province === "all" || student.province === province || student.provinceId === province;
+    const matchesProvinceId =
+      !provinceId ||
+      student.provinceId === provinceId ||
+      normalizeSearchValue(student.province) === normalizeSearchValue(provinceId);
+    const matchesAssignment =
+      assignmentStatus === "all" ||
+      (student.assignmentStatus ?? (student.owner ? "assigned" : "unassigned")) === assignmentStatus;
+    const matchesLifecycle =
+      lifecycleStatus === "all" ||
+      (student.lifecycleStatus ?? lifecycleByStage[student.stage]) === lifecycleStatus;
 
-    return matchesQuery && matchesStage && matchesProvince;
+    return (
+      matchesQuery &&
+      matchesStage &&
+      matchesProvince &&
+      matchesProvinceId &&
+      matchesAssignment &&
+      matchesLifecycle
+    );
   });
 
   const sorted = [...filtered].sort((a, b) => {
@@ -1068,7 +1098,14 @@ export function computeDirectorStudents(
   const totalAll = 2846;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const hasNextPage = page < totalPages;
-  const paginatedData = sorted.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedData = sorted
+    .slice((page - 1) * pageSize, page * pageSize)
+    .map((student) => ({
+      ...student,
+      assignmentStatus:
+        student.assignmentStatus ?? (student.owner ? "assigned" : "unassigned"),
+      lifecycleStatus: student.lifecycleStatus ?? lifecycleByStage[student.stage] ?? null,
+    }));
 
   const summary: DirectorStudentsSummary = {
     trackedStudents: totalAll,
@@ -1097,7 +1134,9 @@ export function computeDirectorStudents(
     query: rawQuery || undefined,
     filters: {
       stage: stage !== "all" ? stage : undefined,
-      province: province !== "all" ? province : undefined,
+      assignmentStatus: assignmentStatus !== "all" ? assignmentStatus : undefined,
+      lifecycleStatus: lifecycleStatus !== "all" ? lifecycleStatus : undefined,
+      province: province !== "all" ? province : provinceId || undefined,
     },
     sort: {
       field: sort,
@@ -1128,7 +1167,12 @@ export async function getDirectorStudents(
     searchParams.set("stage", params.stage);
   if (params?.province && params.province !== "all")
     searchParams.set("province", params.province);
+  if (params?.provinceId) searchParams.set("provinceId", params.provinceId);
   if (params?.ownerId) searchParams.set("ownerId", params.ownerId);
+  if (params?.assignmentStatus && params.assignmentStatus !== "all")
+    searchParams.set("assignmentStatus", params.assignmentStatus);
+  if (params?.lifecycleStatus && params.lifecycleStatus !== "all")
+    searchParams.set("lifecycleStatus", params.lifecycleStatus);
   if (params?.sort) searchParams.set("sort", params.sort);
   if (params?.order) searchParams.set("order", params.order);
 
