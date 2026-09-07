@@ -6,10 +6,10 @@ import DetailTabs, {
   type DetailTabItem,
 } from "@/components/common/detail-tabs";
 import { Card } from "@/components/tailgrids/core/card";
+import { useLeadCallLogsQuery } from "@/hooks/use-lead-call-logs-query";
 import { useLeadSaleLeadQuery } from "@/hooks/use-lead-sale-leads-queries";
 
 import LeadCallsTab from "./lead-calls-tab";
-import { generateLeadCalls } from "./lead-calls-mock";
 import LeadDetailsTab from "./lead-details-tab";
 import LeadHeader from "./lead-header";
 import LeadLogTab from "./lead-log-tab";
@@ -20,6 +20,7 @@ import type { LeadResultStatus, LeadStageStatus } from "./lead-status";
 
 export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId);
+  const callLogsQuery = useLeadCallLogsQuery(leadId);
   const [overlayOverride, setOverlayOverride] = useState<
     Partial<LeadMockOverlay>
   >({});
@@ -77,13 +78,6 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     );
   }
 
-  const calls = generateLeadCalls({
-    id: data.lead.id,
-    name: data.lead.name,
-    phone: data.lead.phone,
-    owner: data.lead.owner,
-  });
-
   const tabs: DetailTabItem[] = [
     {
       id: "details",
@@ -93,7 +87,14 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     {
       id: "calls",
       label: "Cuộc gọi",
-      content: <LeadCallsTab calls={calls} />,
+      content: (
+        <LeadCallsTab
+          calls={callLogsQuery.data?.calls ?? []}
+          isLoading={callLogsQuery.isPending}
+          isError={callLogsQuery.isError}
+          onRetry={() => void callLogsQuery.refetch()}
+        />
+      ),
     },
     {
       id: "notes",

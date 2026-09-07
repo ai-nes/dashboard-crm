@@ -11,8 +11,23 @@ interface LeadCallRecordingProps {
   durationSeconds?: number;
 }
 
+function resolveAudioUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("blob:") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+  const frappeBase = (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
+  return frappeBase ? `${frappeBase}${url.startsWith("/") ? "" : "/"}${url}` : url;
+}
+
 export default function LeadCallRecording({ recordingUrl, durationSeconds = 0 }: LeadCallRecordingProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioUrl = resolveAudioUrl(recordingUrl);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(durationSeconds);
@@ -45,11 +60,11 @@ export default function LeadCallRecording({ recordingUrl, durationSeconds = 0 }:
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("error", handleError);
     };
-  }, [durationSeconds, recordingUrl]);
+  }, [durationSeconds, audioUrl]);
 
   const togglePlayback = () => {
     const audio = audioRef.current;
-    if (!audio || !recordingUrl) return;
+    if (!audio || !audioUrl) return;
 
     if (isPlaying) {
       audio.pause();
@@ -69,7 +84,7 @@ export default function LeadCallRecording({ recordingUrl, durationSeconds = 0 }:
 
   const handleSeek = (event: React.MouseEvent<HTMLDivElement>) => {
     const audio = audioRef.current;
-    if (!audio || !recordingUrl || duration <= 0) return;
+    if (!audio || !audioUrl || duration <= 0) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
@@ -84,19 +99,25 @@ export default function LeadCallRecording({ recordingUrl, durationSeconds = 0 }:
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background-gray-secondary/40 px-3 py-2.5">
-      {recordingUrl ? (
-        <audio ref={audioRef} src={recordingUrl} preload="metadata" className="sr-only" />
+      {audioUrl ? (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          crossOrigin="use-credentials"
+          preload="metadata"
+          className="sr-only"
+        />
       ) : null}
       <Button
         type="button"
         variant="primary"
-        appearance={recordingUrl ? "fill" : "outline"}
+        appearance={audioUrl ? "fill" : "outline"}
         iconOnly
         size="sm"
         onPress={togglePlayback}
-        isDisabled={!recordingUrl}
+        isDisabled={!audioUrl}
         aria-label={
-          recordingUrl ? (isPlaying ? "Tạm dừng bản ghi âm" : "Phát bản ghi âm") : "Chưa có bản ghi âm"
+          audioUrl ? (isPlaying ? "Tạm dừng bản ghi âm" : "Phát bản ghi âm") : "Chưa có bản ghi âm"
         }
         className="size-9 shrink-0 rounded-full"
       >
@@ -118,11 +139,11 @@ export default function LeadCallRecording({ recordingUrl, durationSeconds = 0 }:
           aria-valuemin={0}
           aria-valuemax={duration}
           aria-label="Tiến trình bản ghi âm"
-          tabIndex={recordingUrl ? 0 : undefined}
-          onClick={recordingUrl ? handleSeek : undefined}
+          tabIndex={audioUrl ? 0 : undefined}
+          onClick={audioUrl ? handleSeek : undefined}
           className={cn(
             "mt-2 h-1.5 overflow-hidden rounded-full bg-card-border",
-            recordingUrl ? "cursor-pointer" : "cursor-default",
+            audioUrl ? "cursor-pointer" : "cursor-default",
           )}
         >
           <div
@@ -130,7 +151,7 @@ export default function LeadCallRecording({ recordingUrl, durationSeconds = 0 }:
             style={{ width: `${progress}%` }}
           />
         </div>
-        {!recordingUrl ? (
+        {!audioUrl ? (
           <p className="mt-1 text-xs text-text-tertiary">Chưa có bản ghi âm — sẽ bổ sung sau.</p>
         ) : hasError ? (
           <p className="mt-1 text-xs text-error-600">Không thể phát tệp âm thanh từ đường dẫn.</p>

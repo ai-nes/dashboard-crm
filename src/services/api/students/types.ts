@@ -129,6 +129,7 @@ export interface StudentCallRecord {
   durationSeconds?: number;
   topic?: string;
   summary?: string;
+  transcript?: string | null;
   recordingUrl?: string;
 }
 
