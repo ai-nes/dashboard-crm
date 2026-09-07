@@ -41,12 +41,29 @@ export interface SmallTeam {
 export interface BigTeam {
   id: string;
   name: string;
-  leadId: string | null;
+  provinceId?: string | null;
+  provinceName?: string | null;
+  provinceCode?: string | null;
+  groupLeadId: string | null;
   smallTeamIds: string[];
   teamCount?: number;
   memberCount?: number;
   isActive?: boolean;
   revision?: string;
+}
+
+export interface TeamManagementPermissions {
+  canManage: boolean;
+  canManageAll: boolean;
+  canManageGroups: boolean;
+  canManageTeams: boolean;
+  canManageMembers: boolean;
+  canManageTeamLeads: boolean;
+  visibleGroupIds: string[];
+  visibleTeamIds: string[];
+  managedGroupIds: string[];
+  managedTeamIds: string[];
+  memberManagementTeamIds: string[];
 }
 
 export interface TeamOrgState {
@@ -55,10 +72,8 @@ export interface TeamOrgState {
   members: TeamMember[];
   options?: {
     campuses: { id: string; label: string }[];
+    provinces?: { id: string; label: string; code?: string | null }[];
     functions: { value: string; label: string }[];
   };
-  permissions?: {
-    canManage: boolean;
-    canManageAll: boolean;
-  };
+  permissions?: TeamManagementPermissions;
 }

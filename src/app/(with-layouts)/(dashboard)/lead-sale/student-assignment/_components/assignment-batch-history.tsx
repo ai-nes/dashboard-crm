@@ -54,10 +54,10 @@ export default function AssignmentBatchHistory({
             id="batch-history-heading"
             className="text-base font-semibold text-text-primary"
           >
-            {compact ? "Đợt gần đây" : "Lịch sử đợt phân công"}
+            {compact ? "Lần chạy gần đây" : "Lịch sử phân công"}
           </h2>
           <p className="mt-1 text-sm text-text-secondary">
-            Theo dõi từng đợt Lead và kết quả phân công.
+            Theo dõi các lần chạy và kết quả phân công.
           </p>
         </div>
         {compact && (
@@ -77,7 +77,7 @@ export default function AssignmentBatchHistory({
             onChange={setBatchQuery}
             className="w-full sm:w-80"
           >
-            <Label className="sr-only">Tìm theo tên đợt</Label>
+            <Label className="sr-only">Tìm theo lần chạy</Label>
             <div className="relative">
               <Search1
                 size={16}
@@ -85,7 +85,7 @@ export default function AssignmentBatchHistory({
                 className="pointer-events-none absolute top-3 left-3 text-text-tertiary"
               />
               <Input
-                placeholder="Tìm tên đợt…"
+                placeholder="Tìm lần chạy…"
                 className="h-10 w-full pr-8 pl-9 text-sm"
               />
               {batchQuery && (
@@ -105,7 +105,7 @@ export default function AssignmentBatchHistory({
           <div
             className="flex flex-wrap gap-1.5"
             role="group"
-            aria-label="Lọc trạng thái đợt"
+            aria-label="Lọc trạng thái lần chạy"
           >
             {statusFilters.map((filter) => (
               <Button
@@ -168,7 +168,7 @@ export default function AssignmentBatchHistory({
               aria-hidden="true"
             />
             <p className="mt-3 text-sm font-medium text-text-primary">
-              {isLoading ? "Đang tải lịch sử…" : "Chưa có đợt phù hợp"}
+              {isLoading ? "Đang tải lịch sử…" : "Chưa có lần chạy phù hợp"}
             </p>
             {!isLoading && (
               <p className="mt-1 text-xs text-text-tertiary">
@@ -181,8 +181,8 @@ export default function AssignmentBatchHistory({
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-5 py-3">
             <p className="text-xs text-text-tertiary" aria-live="polite">
               {listPagination.total
-                ? `${(page - 1) * listPagination.pageSize + 1} đến ${Math.min(page * listPagination.pageSize, listPagination.total)} trong ${listPagination.total} đợt`
-                : "0 đợt"}
+                ? `${(page - 1) * listPagination.pageSize + 1} đến ${Math.min(page * listPagination.pageSize, listPagination.total)} trong ${listPagination.total} lần chạy`
+                : "0 lần chạy"}
             </p>
             <div className="flex items-center gap-2">
               <Button

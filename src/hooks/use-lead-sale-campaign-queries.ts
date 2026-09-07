@@ -29,7 +29,7 @@ export const leadSaleCampaignKeys = {
     ["lead-sale-campaigns", "list", params] as const,
   channelTypes: (params: CampaignChannelTypeListParams = {}) =>
     ["lead-sale-campaigns", "channel-types", params] as const,
-  detail: (name: string) => ["lead-sale-campaigns", "detail", name] as const,
+  detail: (code: string) => ["lead-sale-campaigns", "detail", code] as const,
 };
 
 export function useLeadSaleCampaignsQuery<TData = CampaignListResponse>(
@@ -73,7 +73,7 @@ export function useLeadSaleCampaignChannelTypesQuery<
 }
 
 export function useLeadSaleCampaignQuery(
-  name: string,
+  code: string,
   options?: Omit<
     UseQueryOptions<
       LeadSaleCampaign | null,
@@ -85,9 +85,9 @@ export function useLeadSaleCampaignQuery(
   >,
 ): UseQueryResult<LeadSaleCampaign | null, Error> {
   return useQuery({
-    queryKey: leadSaleCampaignKeys.detail(name),
-    queryFn: () => getCampaign(name),
-    enabled: Boolean(name),
+    queryKey: leadSaleCampaignKeys.detail(code),
+    queryFn: () => getCampaign(code),
+    enabled: Boolean(code),
     ...options,
   });
 }

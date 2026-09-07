@@ -91,6 +91,34 @@ export function formatNbaDateTime(value: string | null | undefined): string {
   });
 }
 
+/** "16:00" -- the clock-face part of a scheduling instant, no date. */
+export function formatNbaTimeOfDay(
+  value: string | null | undefined,
+): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+/** "08/09/2026" -- the calendar-day part of a scheduling instant, no time. */
+export function formatNbaDateShort(
+  value: string | null | undefined,
+): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 export function formatNbaLifecycle(value: string): string {
   const labels: Record<string, string> = {
     proposed: "Mới",

@@ -1,17 +1,29 @@
 "use client";
 
 import {
+  useMutation,
   useQuery,
+  useQueryClient,
   type UseQueryOptions,
   type UseQueryResult,
 } from "@tanstack/react-query";
 
 import {
+  createLead,
+  deleteLead,
   getLeadDetail,
   getLeadList,
+  processLead,
+  updateLeadProcessingStatus,
+  updateLead,
+  type LeadCreateFields,
+  type LeadUpdateFields,
   type LeadDetailResponse,
   type LeadListParams,
   type LeadListResponse,
+  type LeadProcessRequest,
+  type LeadProcessResponse,
+  type LeadStatusUpdateRequest,
 } from "@/services/api/lead-sale";
 
 export const leadSaleLeadsKeys = {
@@ -57,5 +69,78 @@ export function useLeadSaleLeadQuery<TData = LeadDetailResponse | null>(
     queryFn: () => getLeadDetail(leadId),
     enabled: Boolean(leadId),
     ...options,
+  });
+}
+
+export function useUpdateLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    LeadDetailResponse,
+    Error,
+    { leadId: string; fields: LeadUpdateFields }
+  >({
+    mutationFn: ({ leadId, fields }) => updateLead(leadId, fields),
+    onSuccess: (_data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(variables.leadId),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
+  });
+}
+
+export function useProcessLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadProcessResponse, Error, LeadProcessRequest>({
+    mutationFn: (request) => processLead(request),
+    onSuccess: (_data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(variables.lead),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
+  });
+}
+
+export function useUpdateLeadProcessingStatusMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    LeadProcessResponse,
+    Error,
+    LeadStatusUpdateRequest
+  >({
+    mutationFn: (request) => updateLeadProcessingStatus(request),
+    onSuccess: (_data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(variables.lead),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
+  });
+}
+
+export function useCreateLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadDetailResponse, Error, LeadCreateFields>({
+    mutationFn: (fields) => createLead(fields),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+  });
+}
+
+export function useDeleteLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ deleted: string }, Error, string>({
+    mutationFn: (leadId) => deleteLead(leadId),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
   });
 }

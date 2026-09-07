@@ -91,7 +91,7 @@ export interface MockRecommendation {
   id: string;
   studentName: string;
   studentCode: string;
-  lifecycleStage: string;
+  studentStage: string;
   ruleKey: string;
   ruleLabel: string;
   actionLabel: string;

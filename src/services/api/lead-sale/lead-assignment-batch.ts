@@ -4,6 +4,8 @@ const METHODS = {
   create: "crm.api.lead_assignment_batch.create_lead_assignment_batch",
   preview: "crm.api.lead_assignment_batch.preview_lead_assignment_batch",
   run: "crm.api.lead_assignment_batch.run_lead_assignment_batch",
+  runUnassigned:
+    "crm.api.lead_assignment_batch.run_unassigned_lead_assignment",
   retry: "crm.api.lead_assignment_batch.retry_lead_assignment_batch",
   detail: "crm.api.lead_assignment_batch.get_lead_assignment_batch",
   list: "crm.api.lead_assignment_batch.list_lead_assignment_batches",
@@ -119,6 +121,7 @@ export type LeadAssignmentBatchItem = LeadAssignmentRoutingContext & {
   status: LeadAssignmentBatchItemStatus;
   processingStatus: LeadProcessingStatus | null;
   resolution: LeadAssignmentResolution | null;
+  convertedStudent: string | null;
   reason: string | null;
   errorCode: string | null;
   missingFields: string[];
@@ -155,6 +158,14 @@ export type LeadAssignmentBatchListResponse = {
 export type LeadAssignmentBatchMutationResponse = {
   batch: LeadAssignmentBatch;
   items: LeadAssignmentBatchItem[];
+};
+
+export type LeadAssignmentAutoRunResponse = {
+  status: LeadAssignmentBatchStatus | "no_work";
+  batch: LeadAssignmentBatch | null;
+  items: LeadAssignmentBatchItem[];
+  scanned: number;
+  message: string | null;
 };
 
 export type ImportLeadAssignmentBatchRequest = {
@@ -430,6 +441,9 @@ function normalizeItem(value: unknown, index: number): LeadAssignmentBatchItem {
     )
       ? (source.resolution as LeadAssignmentResolution)
       : null,
+    convertedStudent: nullableText(
+      source.convertedStudent ?? source.converted_student,
+    ),
     routingTier: nullableStringOrNumber(
       source.routingTier ?? source.routing_tier,
     ),
@@ -800,6 +814,47 @@ export async function runLeadAssignmentBatch(
       502,
       "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
       "Phản hồi chạy batch không hợp lệ.",
+    );
+  }
+}
+
+export async function runUnassignedLeadAssignment(
+  options: LeadAssignmentBatchRequestOptions = {},
+): Promise<LeadAssignmentAutoRunResponse> {
+  const payload = await post(METHODS.runUnassigned, {}, options);
+  const source = asRecord(unwrapMessage(payload));
+  if (!source) {
+    throw new LeadAssignmentBatchApiError(
+      502,
+      "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+      "Phản hồi phân công tự động không hợp lệ.",
+    );
+  }
+
+  if (source.status === "no_work" || source.batch === null) {
+    return {
+      status: "no_work",
+      batch: null,
+      items: [],
+      scanned: count(source.scanned),
+      message: nullableText(source.message),
+    };
+  }
+
+  try {
+    const normalized = normalizeMutation(payload);
+    return {
+      status: normalized.batch.status,
+      batch: normalized.batch,
+      items: normalized.items,
+      scanned: count(source.scanned, normalized.batch.summary.total),
+      message: nullableText(source.message),
+    };
+  } catch {
+    throw new LeadAssignmentBatchApiError(
+      502,
+      "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+      "Phản hồi phân công tự động không hợp lệ.",
     );
   }
 }

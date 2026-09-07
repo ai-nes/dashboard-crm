@@ -80,7 +80,7 @@ export const initialSmallTeams: SmallTeam[] = [
 ];
 
 export const initialBigTeams: BigTeam[] = [
-  { id: "bt-a", name: "Team Sale Miền Bắc", leadId: "m-01", smallTeamIds: ["st-a1", "st-a2"] },
-  { id: "bt-b", name: "Team Sale Miền Nam", leadId: "m-09", smallTeamIds: ["st-b1", "st-b2"] },
-  { id: "bt-c", name: "Team Sale Miền Trung", leadId: null, smallTeamIds: ["st-c1"] },
+  { id: "bt-a", name: "Team Sale Miền Bắc", groupLeadId: null, smallTeamIds: ["st-a1", "st-a2"] },
+  { id: "bt-b", name: "Team Sale Miền Nam", groupLeadId: null, smallTeamIds: ["st-b1", "st-b2"] },
+  { id: "bt-c", name: "Team Sale Miền Trung", groupLeadId: null, smallTeamIds: ["st-c1"] },
 ];

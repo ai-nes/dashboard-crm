@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  ThumbsDown2,
-  ThumbsUp2,
-} from "@tailgrids/icons";
+import { ThumbsDown2, ThumbsUp2 } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/tailgrids/core/card";
@@ -15,8 +12,6 @@ import StudentGaugeChart from "./student-gauge-chart";
 interface StudentSentimentGaugeCardProps {
   data: Student360Data;
   reportSummary?: string | null;
-  modelRevision?: string | null;
-  policyRevision?: string | null;
   isRefreshing?: boolean;
   onRefresh?: () => void;
 }
@@ -24,8 +19,6 @@ interface StudentSentimentGaugeCardProps {
 export default function StudentSentimentGaugeCard({
   data,
   reportSummary,
-  modelRevision,
-  policyRevision,
   isRefreshing,
   onRefresh,
 }: StudentSentimentGaugeCardProps) {
@@ -59,26 +52,20 @@ export default function StudentSentimentGaugeCard({
     <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
         title="Điểm tiềm năng"
-        timestamp={
-          data.classification.updatedAt
-            ? `Cập nhật lúc ${data.classification.updatedAt}${modelRevision ? ` · Model: ${modelRevision.split("/").pop()}` : ""}`
-            : policyRevision
-              ? `Chính sách: ${policyRevision}`
-              : "Được tính toán từ dữ liệu điểm chạm tuyển sinh gần nhất"
-        }
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}
       />
 
-      <div className="mt-4 grid items-center gap-6 lg:grid-cols-[1fr_240px] xl:grid-cols-[1fr_260px]">
+      <div className="mt-4 grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_260px]">
         {/* Left column: Narrative analysis, action button, sources & feedback */}
-        <div className="space-y-4">
+        <div className="max-w-4xl space-y-4">
           <p className="text-sm leading-relaxed text-text-primary text-pretty">
             {reportSummary ? (
               <>
                 {reportSummary}{" "}
                 <span className="text-text-secondary">
-                  (Điểm tiềm năng: {score === null ? (
+                  (Điểm tiềm năng:{" "}
+                  {score === null ? (
                     <span className="font-semibold text-text-primary">
                       Chưa có dữ liệu
                     </span>
@@ -89,13 +76,16 @@ export default function StudentSentimentGaugeCard({
                       </span>{" "}
                       — {statusText}
                     </>
-                  )}).
+                  )}
+                  ).
                 </span>
               </>
             ) : score === null ? (
               <>
-                Học sinh <span className="font-semibold">{data.student.name}</span>{" "}
-                hiện <span className="font-semibold">chưa có dữ liệu</span> điểm tiềm năng. {" "}
+                Học sinh{" "}
+                <span className="font-semibold">{data.student.name}</span> hiện{" "}
+                <span className="font-semibold">chưa có dữ liệu</span> điểm tiềm
+                năng.{" "}
                 {data.classification.interpretation ||
                   `Học sinh đang quan tâm đến ngành ${data.student.major || "chưa xác định"}.`}{" "}
                 {data.insight.recommendation ||
@@ -103,7 +93,15 @@ export default function StudentSentimentGaugeCard({
               </>
             ) : (
               <>
-                Học sinh <span className="font-semibold">{data.student.name}</span> và gia đình được đánh giá ở mức <span className="font-semibold">{statusText}</span>, đạt điểm ưu tiên chăm sóc <span className="font-semibold text-primary-600 dark:text-primary-400">{score}/100</span>.{" "}
+                Học sinh{" "}
+                <span className="font-semibold">{data.student.name}</span> và
+                gia đình được đánh giá ở mức{" "}
+                <span className="font-semibold">{statusText}</span>, đạt điểm ưu
+                tiên chăm sóc{" "}
+                <span className="font-semibold text-primary-600 dark:text-primary-400">
+                  {score}/100
+                </span>
+                .{" "}
                 {data.classification.interpretation ||
                   `Học sinh bày tỏ nguyện vọng rõ ràng đối với ngành ${data.student.major} và có nhiều tương tác chủ động.`}{" "}
                 {data.insight.recommendation ||

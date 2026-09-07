@@ -1,33 +1,55 @@
 "use client";
 
-import { keepPreviousData } from "@tanstack/react-query";
+import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
+import { Bolt1 } from "@tailgrids/icons";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
+import {
+  leadAssignmentBatchKeys,
+  useRunUnassignedLeadAssignmentMutation,
+} from "@/hooks/use-lead-assignment-batch-queries";
 import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-queries";
-import { useLeadSaleLeadsQuery } from "@/hooks/use-lead-sale-leads-queries";
+import {
+  leadSaleLeadsKeys,
+  useLeadSaleLeadsQuery,
+  useUpdateLeadProcessingStatusMutation,
+} from "@/hooks/use-lead-sale-leads-queries";
 import type { LeadListItem, LeadListParams } from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
 import {
+  type LeadResultFilter,
   leadStageStatusLabel,
+  normalizeLeadStageStatus,
   type LeadResultStatus,
   type LeadStageStatus,
 } from "./lead-status";
-import type { LeadStatus } from "./types";
 
 const pageSize = 10;
-type LeadControlDraft = Partial<Pick<LeadListItem, "status" | "statusCode" | "result">>;
+type LeadControlDraft = Partial<
+  Pick<LeadListItem, "status" | "statusCode" | "result">
+>;
 
 export default function LeadsOverviewDashboard() {
+  const queryClient = useQueryClient();
+  const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<LeadStatus | "all">("all");
+  const [status, setStatus] = useState<LeadStageStatus | "all">("all");
+  const [resolution, setResolution] = useState<LeadResultFilter | "all">(
+    "all",
+  );
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
-  const [controlDrafts, setControlDrafts] = useState<Record<string, LeadControlDraft>>({});
+  const [controlDrafts, setControlDrafts] = useState<
+    Record<string, LeadControlDraft>
+  >({});
+  const statusMutation = useUpdateLeadProcessingStatusMutation();
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -39,6 +61,7 @@ export default function LeadsOverviewDashboard() {
     pageSize,
     q: query || undefined,
     status: status === "all" ? undefined : status,
+    resolution: resolution === "all" ? undefined : resolution,
     campaign: campaign || undefined,
   };
   const {
@@ -63,6 +86,12 @@ export default function LeadsOverviewDashboard() {
   const currentPage = Math.min(page, totalPages);
 
   const handleLeadStatusChange = (id: string, nextStatus: LeadStageStatus) => {
+    const currentLead = leads.find((lead) => lead.id === id);
+    const previousStatus = currentLead
+      ? currentLead.statusCode ?? currentLead.processingStatus ?? currentLead.status
+      : null;
+    const normalizedPreviousStatus = normalizeLeadStageStatus(previousStatus);
+
     setControlDrafts((previous) => ({
       ...previous,
       [id]: {
@@ -71,6 +100,40 @@ export default function LeadsOverviewDashboard() {
         statusCode: nextStatus,
       },
     }));
+
+    statusMutation.mutate(
+      { lead: id, status: nextStatus },
+      {
+        onSuccess: (response) => {
+          toast.success(`Đã cập nhật trạng thái Lead: ${response.status}.`);
+        },
+        onError: (statusError) => {
+          setControlDrafts((previous) => {
+            const draft = previous[id];
+            if (!draft) return previous;
+            if (normalizedPreviousStatus) {
+              return {
+                ...previous,
+                [id]: {
+                  ...draft,
+                  status: leadStageStatusLabel[normalizedPreviousStatus],
+                  statusCode: normalizedPreviousStatus,
+                },
+              };
+            }
+            const restoredDraft = { ...draft };
+            delete restoredDraft.status;
+            delete restoredDraft.statusCode;
+            return { ...previous, [id]: restoredDraft };
+          });
+          toast.error(
+            statusError instanceof Error
+              ? statusError.message
+              : "Chưa thể cập nhật trạng thái Lead.",
+          );
+        },
+      },
+    );
   };
 
   const handleLeadResultChange = (id: string, result: LeadResultStatus) => {
@@ -85,8 +148,13 @@ export default function LeadsOverviewDashboard() {
     setPage(1);
   };
 
-  const handleStatusChange = (value: LeadStatus | "all") => {
+  const handleStatusChange = (value: LeadStageStatus | "all") => {
     setStatus(value);
+    setPage(1);
+  };
+
+  const handleResolutionChange = (value: LeadResultFilter | "all") => {
+    setResolution(value);
     setPage(1);
   };
 
@@ -98,8 +166,38 @@ export default function LeadsOverviewDashboard() {
   const resetFilters = () => {
     setQuery("");
     setStatus("all");
+    setResolution("all");
     setCampaign("");
     setPage(1);
+  };
+
+  const runAutomaticAssignment = async () => {
+    try {
+      const result = await runUnassignedMutation.mutateAsync({});
+      await queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all });
+      await queryClient.invalidateQueries({
+        queryKey: leadAssignmentBatchKeys.all,
+      });
+
+      if (!result.batch) {
+        toast.info("Không có Lead chưa phân công", {
+          description:
+            result.message ?? "Tất cả Lead hiện tại đã được xử lý.",
+        });
+        return;
+      }
+
+      toast.success("Đã phân công tự động", {
+        description: `${result.batch.summary.assigned} Lead đã được giao cho Sale/CTV; ${result.batch.summary.manualReview} Lead cần rà soát.`,
+      });
+    } catch (mutationError) {
+      toast.error("Không thể phân công tự động", {
+        description:
+          mutationError instanceof Error
+            ? mutationError.message
+            : "Vui lòng thử lại.",
+      });
+    }
   };
 
   return (
@@ -118,7 +216,7 @@ export default function LeadsOverviewDashboard() {
         </Card>
       )}
 
-      <header className="flex flex-col gap-5 rounded-xl border border-card-border bg-card-background p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
+      <header className="flex flex-col gap-5 rounded-xl border border-card-border bg-card-background p-5 lg:flex-row lg:items-center lg:justify-between lg:p-6">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge color="primary">FAIP · Danh sách Lead</Badge>
@@ -133,19 +231,35 @@ export default function LeadsOverviewDashboard() {
             Toàn cảnh Lead tiếp nhận trước khi được phân công cho đội ngũ Sale.
           </p>
         </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 max-sm:w-full">
+          <Button
+            size="md"
+            variant="primary"
+            appearance="fill"
+            onPress={runAutomaticAssignment}
+            isDisabled={runUnassignedMutation.isPending}
+            aria-label="Phân công tự động các Lead chưa có người phụ trách"
+          >
+            <Bolt1 size={18} aria-hidden="true" />
+            {runUnassignedMutation.isPending
+              ? "Đang phân công…"
+              : "Phân công tự động"}
+          </Button>
+        </div>
       </header>
 
       <LeadListToolbar
         query={query}
         status={status}
+        resolution={resolution}
         campaign={campaign}
-        statusOptions={meta?.statusOptions ?? []}
         campaigns={availableCampaigns}
         campaignLoading={campaignsQuery.isPending}
         campaignError={campaignsQuery.error?.message}
         resultCount={totalCount}
         onQueryChange={handleQueryChange}
         onStatusChange={handleStatusChange}
+        onResolutionChange={handleResolutionChange}
         onCampaignChange={handleCampaignChange}
         onReset={resetFilters}
       />
@@ -176,6 +290,7 @@ export default function LeadsOverviewDashboard() {
             ) : (
               <LeadList
                 leads={displayedLeads}
+                isStatusUpdating={statusMutation.isPending}
                 onStatusChange={handleLeadStatusChange}
                 onResultChange={handleLeadResultChange}
               />
@@ -218,6 +333,7 @@ export default function LeadsOverviewDashboard() {
           </div>
         )}
       </Card>
+
     </main>
   );
 }

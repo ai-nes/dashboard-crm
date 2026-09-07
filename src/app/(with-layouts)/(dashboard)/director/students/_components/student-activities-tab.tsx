@@ -164,9 +164,9 @@ export default function StudentActivitiesTab({
     initialData: initialStudentInteractions ?? undefined,
   });
 
-  // Gọi Frappe RPC crm.api.note.list_notes
+  // Student Detail stores activity references on the canonical CRM Student.
   const { data: crmNotesData } = useCrmNotesQuery({
-    referenceDoctype: "CRM Lead",
+    referenceDoctype: "CRM Student",
     referenceDocname: studentDocname,
   });
   const crmTasksQuery = useCrmTasksQuery({
@@ -260,7 +260,7 @@ export default function StudentActivitiesTab({
 
     try {
       const createdNote = await createNoteMutation.mutateAsync({
-        referenceDoctype: "CRM Lead",
+        referenceDoctype: "CRM Student",
         referenceDocname: studentDocname,
         content: note.content,
       });

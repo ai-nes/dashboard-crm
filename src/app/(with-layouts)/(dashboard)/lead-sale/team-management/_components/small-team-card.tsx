@@ -26,6 +26,7 @@ interface SmallTeamCardProps {
   onEdit: (name: string) => void;
   onDelete: () => void;
   onLeadChange: (leadId: string | null) => void;
+  canManageTeam?: boolean;
 }
 
 export default function SmallTeamCard({
@@ -35,6 +36,7 @@ export default function SmallTeamCard({
   onEdit,
   onDelete,
   onLeadChange,
+  canManageTeam = false,
 }: SmallTeamCardProps) {
   const visibleMembers = members.slice(0, MAX_AVATARS);
   const remaining = members.length - visibleMembers.length;
@@ -44,7 +46,11 @@ export default function SmallTeamCard({
       <div className="flex min-w-0 flex-1 flex-col gap-4 p-5">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <EditableTeamTitle name={smallTeam.name} onSave={onEdit} />
+            <EditableTeamTitle
+              name={smallTeam.name}
+              onSave={onEdit}
+              isDisabled={!canManageTeam}
+            />
             <Badge
               size="sm"
               color="gray"
@@ -68,8 +74,9 @@ export default function SmallTeamCard({
           </div>
           <TeamCardActions
             name={smallTeam.name}
-            kind="nhóm"
+            kind="đội"
             onDelete={onDelete}
+            isDisabled={!canManageTeam}
           />
         </div>
 
@@ -101,6 +108,7 @@ export default function SmallTeamCard({
               candidates={members}
               value={smallTeam.leadId}
               onChange={onLeadChange}
+              isDisabled={!canManageTeam}
               ariaLabel={`Trưởng nhóm ${smallTeam.name}`}
               placeholder={
                 members.length === 0 ? "Chưa có thành viên" : "Chọn trưởng nhóm"
@@ -114,7 +122,7 @@ export default function SmallTeamCard({
           href={`/lead-sale/team-management/${encodeURIComponent(bigTeamId)}/${encodeURIComponent(smallTeam.id)}`}
           className="mt-auto inline-flex items-center gap-1.5 rounded-lg text-sm font-semibold text-badge-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500"
         >
-          Xem thành viên
+          Xem thành viên Team
           <ArrowRight size={15} aria-hidden="true" />
         </Link>
       </div>

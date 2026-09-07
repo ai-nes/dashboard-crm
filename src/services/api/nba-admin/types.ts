@@ -199,7 +199,7 @@ export interface RulePreviewPayload {
   rule: RecommendationRulePayload;
   context: {
     student: string;
-    lifecycleStage?: string;
+    studentStage?: string;
     ownerStaff?: string;
   };
 }

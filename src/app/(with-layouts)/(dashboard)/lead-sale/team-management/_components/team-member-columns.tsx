@@ -19,8 +19,9 @@ export function createTeamMemberColumns(
   smallTeam: SmallTeam,
   onUpdate: UpdateMember,
   onRemove: (id: string) => void,
+  canManageMembers: boolean,
 ): ColumnDef<TeamMember>[] {
-  return [
+  const columns: ColumnDef<TeamMember>[] = [
     {
       accessorKey: "name",
       header: "Thành viên",
@@ -35,6 +36,7 @@ export function createTeamMemberColumns(
           <EditableMemberField
             value={row.original.name}
             label={`Chỉnh sửa tên ${row.original.name}`}
+            readOnly={!canManageMembers}
             onSave={(value) => onUpdate(row.original.id, "name", value)}
           />
         </div>
@@ -82,7 +84,10 @@ export function createTeamMemberColumns(
         </Badge>
       ),
     },
-    {
+  ];
+
+  if (canManageMembers) {
+    columns.push({
       id: "actions",
       header: "Thao tác",
       size: 10,
@@ -99,6 +104,8 @@ export function createTeamMemberColumns(
           <Trash1 size={16} aria-hidden="true" />
         </Button>
       ),
-    },
-  ];
+    });
+  }
+
+  return columns;
 }

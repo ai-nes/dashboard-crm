@@ -130,7 +130,7 @@ export default function RuleEditorDialog({ rule, canEdit, onClose }: RuleEditorD
   const actualRule = detailQuery.data ?? rule;
   const [form, setForm] = useState(() => formFromRule(rule));
   const [student, setStudent] = useState("STU-0001");
-  const [lifecycleStage, setLifecycleStage] = useState("Lead");
+  const [studentStage, setStudentStage] = useState("New");
   const [ownerStaff, setOwnerStaff] = useState("");
   const [preview, setPreview] = useState<RulePreviewResult | null>(null);
   const isNew = !actualRule;
@@ -212,7 +212,7 @@ export default function RuleEditorDialog({ rule, canEdit, onClose }: RuleEditorD
       return;
     }
     try {
-      const result = await previewRecommendationRule({ rule: payloadFromForm(form, isNew), context: { student: student.trim(), lifecycleStage: lifecycleStage.trim(), ownerStaff: ownerStaff.trim() } });
+      const result = await previewRecommendationRule({ rule: payloadFromForm(form, isNew), context: { student: student.trim(), studentStage: studentStage.trim(), ownerStaff: ownerStaff.trim() } });
       setPreview(result);
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "Chưa thể xem trước quy tắc.");
@@ -254,7 +254,7 @@ export default function RuleEditorDialog({ rule, canEdit, onClose }: RuleEditorD
 
           <label className="block space-y-1"><span className="text-xs font-medium text-input-label-text">Điều kiện dừng</span><TextArea value={form.stopConditions} onChange={(event) => setField("stopConditions", event.target.value)} disabled={!canEdit} rows={2} placeholder="Mỗi điều kiện một dòng, ví dụ: student_converted" className="px-3 py-2.5 text-sm" /></label>
 
-          <section className="space-y-2.5 rounded-lg border border-card-border bg-background-gray-secondary_alt p-3"><div><h3 className="text-[13px] font-semibold text-text-primary">Thử trên hồ sơ tuyển sinh</h3><p className="mt-0.5 text-[11px] leading-4 text-text-secondary">Preview trả kết quả đủ điều kiện và cảnh báo, không tạo Recommendation thật.</p></div><div className="grid gap-2 sm:grid-cols-3"><label className="space-y-1"><span className="text-[11px] font-medium text-input-label-text">Mã hồ sơ</span><Input value={student} onChange={(event) => setStudent(event.target.value)} className="h-9 w-full px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-[11px] font-medium text-input-label-text">Giai đoạn</span><Input value={lifecycleStage} onChange={(event) => setLifecycleStage(event.target.value)} className="h-9 w-full px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-[11px] font-medium text-input-label-text">Nhân viên phụ trách</span><Input value={ownerStaff} onChange={(event) => setOwnerStaff(event.target.value)} className="h-9 w-full px-3 py-2 text-sm" /></label></div><Button size="sm" appearance="outline" onPress={() => void handlePreview()} isDisabled={fieldsQuery.isPending}><Eye size={16} aria-hidden="true" />Xem trước</Button>{preview && <PreviewResult result={preview} />}</section>
+          <section className="space-y-2.5 rounded-lg border border-card-border bg-background-gray-secondary_alt p-3"><div><h3 className="text-[13px] font-semibold text-text-primary">Thử trên hồ sơ tuyển sinh</h3><p className="mt-0.5 text-[11px] leading-4 text-text-secondary">Preview trả kết quả đủ điều kiện và cảnh báo, không tạo Recommendation thật.</p></div><div className="grid gap-2 sm:grid-cols-3"><label className="space-y-1"><span className="text-[11px] font-medium text-input-label-text">Mã hồ sơ</span><Input value={student} onChange={(event) => setStudent(event.target.value)} className="h-9 w-full px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-[11px] font-medium text-input-label-text">Student stage</span><Select value={studentStage} onChange={(next) => setStudentStage(String(next))} aria-label="Student stage"><SelectTrigger className="h-9 w-full text-sm"><SelectValue /></SelectTrigger><SelectContent>{["New", "Attempting", "Connected", "Qualified", "Disqualified"].map((stage) => <SelectItem key={stage} id={stage}>{stage}</SelectItem>)}</SelectContent></Select></label><label className="space-y-1"><span className="text-[11px] font-medium text-input-label-text">Nhân viên phụ trách</span><Input value={ownerStaff} onChange={(event) => setOwnerStaff(event.target.value)} className="h-9 w-full px-3 py-2 text-sm" /></label></div><Button size="sm" appearance="outline" onPress={() => void handlePreview()} isDisabled={fieldsQuery.isPending}><Eye size={16} aria-hidden="true" />Xem trước</Button>{preview && <PreviewResult result={preview} />}</section>
         </DialogBody>
 
         <DialogFooter className="border-t border-card-border px-5 py-3 sm:justify-between">

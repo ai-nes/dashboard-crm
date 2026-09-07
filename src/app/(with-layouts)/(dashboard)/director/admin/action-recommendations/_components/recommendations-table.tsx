@@ -82,7 +82,7 @@ export default function RecommendationsTable({ onInspect }: RecommendationsTable
             <TableRow key={recommendation.id} className="hover:bg-background-gray-secondary_alt">
               <TableCell className="min-w-56">
                 <p className="font-semibold text-text-primary">{recommendation.studentName}</p>
-                <p className="mt-1 font-mono text-[11px] text-text-tertiary">{recommendation.studentCode} · {recommendation.lifecycleStage}</p>
+                <p className="mt-1 font-mono text-[11px] text-text-tertiary">{recommendation.studentCode} · {recommendation.studentStage}</p>
               </TableCell>
               <TableCell className="min-w-52">
                 <p className="text-sm font-medium text-text-primary">{recommendation.actionLabel}</p>

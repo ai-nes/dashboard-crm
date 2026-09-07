@@ -13,38 +13,42 @@ import type { BigTeam, TeamMember } from "./types";
 
 interface BigTeamCardProps {
   bigTeam: BigTeam;
-  allMembers: TeamMember[];
   smallTeamCount: number;
   memberCount: number;
+  allMembers: TeamMember[];
+  canManageGroup: boolean;
   onEdit: (name: string) => void;
   onDelete: () => void;
   onLeadChange: (leadId: string | null) => void;
-  canManageLead?: boolean;
 }
 
 export default function BigTeamCard({
   bigTeam,
-  allMembers,
   smallTeamCount,
   memberCount,
+  allMembers,
+  canManageGroup,
   onEdit,
   onDelete,
   onLeadChange,
-  canManageLead = true,
 }: BigTeamCardProps) {
   return (
     <Card className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-card-border p-0 transition-shadow hover:shadow-md">
       <div className="flex min-w-0 flex-1 flex-col gap-5 p-5">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <EditableTeamTitle name={bigTeam.name} onSave={onEdit} />
+            <EditableTeamTitle
+              name={bigTeam.name}
+              onSave={onEdit}
+              isDisabled={!canManageGroup}
+            />
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge
                 size="sm"
                 color="gray"
                 prefixIcon={<Layers2 size={12} aria-hidden="true" />}
               >
-                {smallTeamCount} nhóm
+                {smallTeamCount} Team
               </Badge>
               <Badge
                 size="sm"
@@ -54,31 +58,39 @@ export default function BigTeamCard({
                 {memberCount} thành viên
               </Badge>
             </div>
+            <p className="mt-2 text-xs text-text-secondary">
+              Tỉnh: {bigTeam.provinceName ?? "Chưa chọn tỉnh"}
+            </p>
+            <div className="mt-4 rounded-xl bg-background-gray-secondary/60 p-3.5">
+              <label className="block space-y-1.5">
+                <span className="text-xs font-medium text-text-secondary">
+                  Trưởng Group
+                </span>
+                <LeadPickerField
+                  candidates={allMembers}
+                  value={bigTeam.groupLeadId}
+                  onChange={onLeadChange}
+                  isDisabled={!canManageGroup}
+                  ariaLabel={`Trưởng Group ${bigTeam.name}`}
+                  placeholder="Chọn Trưởng Group"
+                  className="w-full"
+                />
+              </label>
+            </div>
           </div>
-          <TeamCardActions name={bigTeam.name} kind="đội" onDelete={onDelete} />
-        </div>
-
-        <div className="rounded-xl bg-background-gray-secondary/60 p-3.5">
-          <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-text-secondary">
-              Trưởng đội
-            </span>
-            <LeadPickerField
-              candidates={allMembers}
-              value={bigTeam.leadId}
-              onChange={onLeadChange}
-              isDisabled={!canManageLead}
-              ariaLabel={`Trưởng đội ${bigTeam.name}`}
-              className="w-full"
-            />
-          </label>
+          <TeamCardActions
+            name={bigTeam.name}
+            kind="nhóm"
+            onDelete={onDelete}
+            isDisabled={!canManageGroup}
+          />
         </div>
 
         <Link
           href={`/lead-sale/team-management/${encodeURIComponent(bigTeam.id)}`}
           className="mt-auto inline-flex items-center gap-1.5 rounded-lg text-sm font-semibold text-badge-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500"
         >
-          Xem nhóm
+          Xem Team
           <ArrowRight size={15} aria-hidden="true" />
         </Link>
       </div>

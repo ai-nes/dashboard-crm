@@ -41,6 +41,7 @@ interface LeadResultCellProps {
   leadName: string;
   status: LeadStageStatus | null;
   result: LeadResultStatus | "";
+  isUpdating?: boolean;
   onChange: (result: LeadResultStatus) => void;
 }
 
@@ -48,6 +49,7 @@ export default function LeadResultCell({
   leadName,
   status,
   result,
+  isUpdating = false,
   onChange,
   compact = false,
 }: LeadResultCellProps) {
@@ -58,7 +60,7 @@ export default function LeadResultCell({
       value={result}
       onChange={(value) => onChange(String(value) as LeadResultStatus)}
       aria-label={`Cập nhật kết quả ${leadName}`}
-      isDisabled={!editable}
+      isDisabled={!editable || isUpdating}
       className={compact ? "w-fit max-w-full" : "w-fit min-w-36"}
     >
       <SelectTrigger

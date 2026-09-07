@@ -30,13 +30,13 @@ describe("NBA admin API", () => {
       rule_key: "unaddressed_intent",
       display_name: "Xử lý nhu cầu chưa được phản hồi",
       action: "CALL",
-      conditions: JSON.stringify({ all: [{ field: "student.lifecycle_stage", operator: "in", value: ["Lead", "MQL"] }], any: [] }),
+      conditions: JSON.stringify({ all: [{ field: "student.student_stage", operator: "in", value: ["New", "Connected"] }], any: [] }),
       stop_conditions: '["student_converted"]',
       status: "draft",
       version: 1,
     })).toMatchObject({
       actionCode: "CALL",
-      conditions: { all: [{ field: "student.lifecycle_stage", operator: "in", value: ["Lead", "MQL"] }] },
+      conditions: { all: [{ field: "student.student_stage", operator: "in", value: ["New", "Connected"] }] },
       stopConditions: ["student_converted"],
     });
   });
@@ -57,12 +57,12 @@ describe("NBA admin API", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: { eligible: false, reason_code: "ACTION_DISABLED", warnings: [] } }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     try {
-      await previewRecommendationRule({ rule: { actionCode: "CALL", priority: "high", conditions: { all: [], any: [] } }, context: { student: "STU-0001", lifecycleStage: "Lead" } }, { baseUrl: "http://frappe:8000" });
+      await previewRecommendationRule({ rule: { actionCode: "CALL", priority: "high", conditions: { all: [], any: [] } }, context: { student: "STU-0001", studentStage: "New" } }, { baseUrl: "http://frappe:8000" });
     } finally {
       vi.unstubAllGlobals();
     }
     const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
-    expect(body).toMatchObject({ rule: { action_code: "CALL", priority: "high" }, context: { student: "STU-0001", lifecycle_stage: "Lead" } });
+    expect(body).toMatchObject({ rule: { action_code: "CALL", priority: "high" }, context: { student: "STU-0001", student_stage: "New" } });
   });
 });
 

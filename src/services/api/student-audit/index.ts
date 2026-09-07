@@ -1,4 +1,5 @@
 import type {
+  LeadAuditLogsParams,
   StudentAuditLog,
   StudentAuditLogsParams,
   StudentAuditLogsResponse,
@@ -7,6 +8,7 @@ import type {
 export type * from "./types";
 
 const METHOD = "crm.api.audit.get_student_audit_logs";
+const LEAD_METHOD = "crm.api.audit.get_lead_audit_logs";
 
 export type RequestOptions = {
   baseUrl?: string;
@@ -191,21 +193,23 @@ function isAuditLogsResponse(value: unknown): value is {
   );
 }
 
-export async function getStudentAuditLogs(
+async function getAuditLogs(
   params: StudentAuditLogsParams,
   options: RequestOptions = {},
+  method = METHOD,
+  entityLabel = "học sinh",
 ): Promise<StudentAuditLogsResponse> {
   const student = params.student.trim();
   if (!student) {
     throw new StudentAuditApiError(
       417,
       "INVALID_STUDENT",
-      "Cần cung cấp mã học sinh để tải nhật ký.",
+      `Cần cung cấp mã ${entityLabel} để tải nhật ký.`,
     );
   }
 
-  const url = new URL(`${resolveBaseUrl(options)}/api/method/${METHOD}`);
-  url.searchParams.set("student", student);
+  const url = new URL(`${resolveBaseUrl(options)}/api/method/${method}`);
+  url.searchParams.set(method === LEAD_METHOD ? "lead_id" : "student", student);
   url.searchParams.set("start", String(params.start ?? 0));
   url.searchParams.set("page_length", String(params.pageLength ?? 100));
 
@@ -223,7 +227,7 @@ export async function getStudentAuditLogs(
     throw new StudentAuditApiError(
       503,
       "AUDIT_API_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ nhật ký học sinh.",
+      `Không thể kết nối đến máy chủ nhật ký ${entityLabel}.`,
     );
   }
 
@@ -238,7 +242,7 @@ export async function getStudentAuditLogs(
     throw new StudentAuditApiError(
       502,
       "INVALID_AUDIT_RESPONSE",
-      "Phản hồi nhật ký học sinh không hợp lệ.",
+      `Phản hồi nhật ký ${entityLabel} không hợp lệ.`,
     );
   }
 
@@ -250,4 +254,23 @@ export async function getStudentAuditLogs(
     pageLength: data.page_length,
     readOnly: data.read_only,
   };
+}
+
+export async function getStudentAuditLogs(
+  params: StudentAuditLogsParams,
+  options: RequestOptions = {},
+): Promise<StudentAuditLogsResponse> {
+  return getAuditLogs(params, options);
+}
+
+export async function getLeadAuditLogs(
+  params: LeadAuditLogsParams,
+  options: RequestOptions = {},
+): Promise<StudentAuditLogsResponse> {
+  return getAuditLogs(
+    { student: params.lead, start: params.start, pageLength: params.pageLength },
+    options,
+    LEAD_METHOD,
+    "Lead",
+  );
 }

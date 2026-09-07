@@ -74,7 +74,7 @@ describe("Lead Sale campaign API contract", () => {
     );
 
     await expect(
-      getCampaign(" Tuyen sinh mua thu 2026 ", {
+      getCampaign(" CAM-2026-00001 ", {
         baseUrl: "http://frappe:8000",
       }),
     ).resolves.toMatchObject({
@@ -84,7 +84,7 @@ describe("Lead Sale campaign API contract", () => {
     });
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.campaign.get_campaign?name=Tuyen+sinh+mua+thu+2026",
+      "http://frappe:8000/api/method/crm.api.campaign.get_campaign?code=CAM-2026-00001",
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
   });

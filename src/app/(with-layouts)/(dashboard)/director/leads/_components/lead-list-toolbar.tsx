@@ -19,23 +19,30 @@ import {
 
 import type {
   LeadSaleCampaign,
-  LeadStatus,
-  LeadStatusOption,
 } from "@/services/api/lead-sale";
 
 import CampaignFilter from "./campaign-filter";
+import {
+  leadResultFilterLabel,
+  leadResultFilterOptions,
+  leadStageStatusLabel,
+  leadStageStatusOptions,
+  type LeadResultFilter,
+  type LeadStageStatus,
+} from "./lead-status";
 
 interface LeadListToolbarProps {
   query: string;
-  status: LeadStatus | "all";
+  status: LeadStageStatus | "all";
+  resolution: LeadResultFilter | "all";
   campaign: string;
-  statusOptions: LeadStatusOption[];
   campaigns: LeadSaleCampaign[];
   campaignLoading: boolean;
   campaignError?: string;
   resultCount: number;
   onQueryChange: (value: string) => void;
-  onStatusChange: (value: LeadStatus | "all") => void;
+  onStatusChange: (value: LeadStageStatus | "all") => void;
+  onResolutionChange: (value: LeadResultFilter | "all") => void;
   onCampaignChange: (value: string) => void;
   onReset: () => void;
 }
@@ -43,19 +50,23 @@ interface LeadListToolbarProps {
 export default function LeadListToolbar({
   query,
   status,
+  resolution,
   campaign,
-  statusOptions,
   campaigns,
   campaignLoading,
   campaignError,
   resultCount,
   onQueryChange,
   onStatusChange,
+  onResolutionChange,
   onCampaignChange,
   onReset,
 }: LeadListToolbarProps) {
   const hasFilter =
-    query.trim().length > 0 || status !== "all" || campaign !== "";
+    query.trim().length > 0 ||
+    status !== "all" ||
+    resolution !== "all" ||
+    campaign !== "";
 
   return (
     <div className="space-y-4">
@@ -76,7 +87,9 @@ export default function LeadListToolbar({
           <Select
             className="min-w-0 sm:w-52"
             value={status}
-            onChange={(value) => onStatusChange(value as LeadStatus | "all")}
+            onChange={(value) =>
+              onStatusChange(value as LeadStageStatus | "all")
+            }
             aria-label="Lọc theo tình trạng lead"
           >
             <SelectTrigger size="sm" className="w-full">
@@ -88,13 +101,41 @@ export default function LeadListToolbar({
               <SelectItem id="all" textValue="Tất cả tình trạng">
                 Tất cả tình trạng
               </SelectItem>
-              {statusOptions.map((item) => (
+              {leadStageStatusOptions.map((item) => (
                 <SelectItem
-                  key={item.value}
-                  id={item.value}
-                  textValue={item.label}
+                  key={item}
+                  id={item}
+                  textValue={leadStageStatusLabel[item]}
                 >
-                  {item.label}
+                  {leadStageStatusLabel[item]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            className="min-w-0 sm:w-52"
+            value={resolution}
+            onChange={(value) =>
+              onResolutionChange(value as LeadResultFilter | "all")
+            }
+            aria-label="Lọc theo kết quả lead"
+          >
+            <SelectTrigger size="sm" className="w-full">
+              <Filter size={15} className="shrink-0 text-icon-tertiary" />
+              <SelectValue />
+              <SelectIndicator />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem id="all" textValue="Tất cả kết quả">
+                Tất cả kết quả
+              </SelectItem>
+              {leadResultFilterOptions.map((item) => (
+                <SelectItem
+                  key={item}
+                  id={item}
+                  textValue={leadResultFilterLabel[item]}
+                >
+                  {leadResultFilterLabel[item]}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -1,6 +1,8 @@
 "use client";
 
 import { Plus } from "@tailgrids/icons";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -9,18 +11,31 @@ import { Button } from "@/components/tailgrids/core/button";
 import OverviewFact from "./overview-fact";
 import BigTeamCard from "./big-team-card";
 import CreateTeamDialog from "./create-team-dialog";
-import { membersOfBigTeam, smallTeamsOfBigTeam } from "./team-management-utils";
+import {
+  getTeamManagementEntryPath,
+  membersOfBigTeam,
+  smallTeamsOfBigTeam,
+} from "./team-management-utils";
 import { useTeamManagement } from "./use-team-management";
 
 export default function BigTeamOverviewDashboard() {
   const { state, isLoading, error, saveGroup } = useTeamManagement();
+  const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
+  const entryPath = state ? getTeamManagementEntryPath(state) : null;
+
+  useEffect(() => {
+    if (entryPath) router.replace(entryPath);
+  }, [entryPath, router]);
 
   if (isLoading && !state) return <LoadingState />;
   if (error && !state) return <ErrorState message={error} />;
   if (!state) return null;
+  if (entryPath) {
+    return <LoadingState message="Đang mở phạm vi đội ngũ của bạn..." />;
+  }
 
-  const canManage = state.permissions?.canManage ?? false;
+  const canManageGroups = state.permissions?.canManageGroups ?? false;
   const run = async (action: () => Promise<void>, success: string) => {
     try {
       await action();
@@ -41,32 +56,36 @@ export default function BigTeamOverviewDashboard() {
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary-600">
-              Đội ngũ kinh doanh
+              GROUP & TEAM
             </p>
             <h1 className="mt-2 text-balance text-2xl leading-8 font-semibold tracking-[-0.4px] text-text-primary lg:text-[28px]">
-              Quản lý đội ngũ
+              Quản lý Group & Team
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
-              Theo dõi các đội kinh doanh, phân công người phụ trách và quản lý
-              các nhóm trực thuộc.
+              Group đại diện cho một tỉnh. Mỗi Group có nhiều Team; Team chứa
+              các Sale và CTV Sale để nhận Lead trong tỉnh đó.
             </p>
           </div>
           <Button
             className="shrink-0"
             onPress={() => setIsCreating(true)}
-            isDisabled={!canManage}
+            isDisabled={!canManageGroups}
           >
             <Plus size={16} aria-hidden="true" />
-            Tạo đội
+            Tạo Group
           </Button>
         </div>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <OverviewFact kind="teams" label="Đội" value={state.bigTeams.length} />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <OverviewFact
+          kind="teams"
+          label="Group tỉnh"
+          value={state.bigTeams.length}
+        />
         <OverviewFact
           kind="groups"
-          label="Nhóm"
+          label="Team"
           value={state.smallTeams.length}
         />
         <OverviewFact label="Thành viên" value={state.members.length} />
@@ -74,7 +93,9 @@ export default function BigTeamOverviewDashboard() {
 
       {state.bigTeams.length === 0 ? (
         <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-tertiary">
-          Chưa có đội nào. Bấm &quot;Tạo đội&quot; để bắt đầu.
+          {canManageGroups
+            ? 'Chưa có Group nào. Bấm "Tạo Group" để bắt đầu.'
+            : "Bạn chưa được phân công vào Group hoặc Team nào."}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -82,12 +103,12 @@ export default function BigTeamOverviewDashboard() {
             <BigTeamCard
               key={bigTeam.id}
               bigTeam={bigTeam}
+              smallTeamCount={smallTeamsOfBigTeam(state, bigTeam).length}
+              memberCount={membersOfBigTeam(state, bigTeam).length}
               allMembers={state.members.filter(
                 (member) => member.isActive !== false,
               )}
-              canManageLead={state.permissions?.canManageAll ?? false}
-              smallTeamCount={smallTeamsOfBigTeam(state, bigTeam).length}
-              memberCount={membersOfBigTeam(state, bigTeam).length}
+              canManageGroup={canManageGroups}
               onEdit={(name) =>
                 void run(
                   () =>
@@ -96,7 +117,7 @@ export default function BigTeamOverviewDashboard() {
                       groupName: name,
                       expectedRevision: bigTeam.revision,
                     }),
-                  "Đã cập nhật tên đội.",
+                  "Đã cập nhật tên Group.",
                 )
               }
               onDelete={() =>
@@ -108,7 +129,7 @@ export default function BigTeamOverviewDashboard() {
                       isActive: false,
                       expectedRevision: bigTeam.revision,
                     }),
-                  `Đã ngừng hoạt động đội "${bigTeam.name}".`,
+                  `Đã ngừng hoạt động Group "${bigTeam.name}".`,
                 )
               }
               onLeadChange={(leadId) =>
@@ -121,7 +142,7 @@ export default function BigTeamOverviewDashboard() {
                       clearGroupLead: leadId === null,
                       expectedRevision: bigTeam.revision,
                     }),
-                  leadId ? "Đã cập nhật trưởng đội." : "Đã bỏ trưởng đội.",
+                  leadId ? "Đã cập nhật Trưởng Group." : "Đã bỏ Trưởng Group.",
                 )
               }
             />
@@ -131,16 +152,17 @@ export default function BigTeamOverviewDashboard() {
 
       {isCreating && (
         <CreateTeamDialog
-          title="Tạo đội"
-          description="Đội quản lý một khu vực hoặc mảng nghiệp vụ, bên trong có thể chứa nhiều nhóm."
-          fieldLabel="Tên đội"
-          placeholder="Ví dụ: Đội Tư vấn TP.HCM"
-          submitLabel="Tạo đội"
+          title="Tạo Group theo tỉnh"
+          description="Mỗi Group đại diện cho một tỉnh. Sau đó bạn tạo các Team thuộc Group này."
+          fieldLabel="Tên Group"
+          placeholder="Ví dụ: Group Tuyển sinh TP.HCM"
+          submitLabel="Tạo Group"
+          provinceOptions={state.options?.provinces}
           onClose={() => setIsCreating(false)}
-          onSubmit={(name) =>
+          onSubmit={(name, _campusId, provinceId) =>
             void run(
-              () => saveGroup({ groupName: name }),
-              `Đã tạo đội "${name}".`,
+              () => saveGroup({ groupName: name, provinceId }),
+              `Đã tạo Group "${name}".`,
             ).finally(() => setIsCreating(false))
           }
         />
@@ -149,11 +171,15 @@ export default function BigTeamOverviewDashboard() {
   );
 }
 
-function LoadingState() {
+function LoadingState({
+  message = "Đang tải dữ liệu đội ngũ...",
+}: {
+  message?: string;
+}) {
   return (
     <main id="main-content" className="min-w-0 p-6">
       <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-secondary">
-        Đang tải dữ liệu đội ngũ...
+        {message}
       </div>
     </main>
   );

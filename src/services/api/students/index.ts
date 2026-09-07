@@ -694,6 +694,7 @@ export function computeStudent360(
     ...student360Data,
     student: {
       ...student360Data.student,
+      id: student.id,
       initials: student.initials,
       name: student.name,
       code: student.code,
@@ -701,6 +702,8 @@ export function computeStudent360(
       major: student.major,
       province: student.province,
       counselor: student.owner,
+      revision: student.revision,
+      studentStage: student.studentStage,
       grade: learningStage,
     },
     classification,

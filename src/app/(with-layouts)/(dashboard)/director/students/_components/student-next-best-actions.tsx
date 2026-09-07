@@ -18,6 +18,7 @@ import {
   type NbaDecisionRequest,
   type NbaRecommendation,
 } from "@/services/api/nba";
+import type { Student360Data } from "@/services/api/students/types";
 import StudentNbaRecommendationCard from "./student-nba-recommendation-card";
 import StudentNbaDecisionDialog from "./student-nba-decision-dialog";
 import {
@@ -27,15 +28,28 @@ import {
 } from "./student-nba-ui";
 
 interface StudentNextBestActionsProps {
+  data: Student360Data;
   studentId: string;
   onActionsCountChange?: (count: number) => void;
 }
 
 export default function StudentNextBestActions({
+  data,
   studentId,
   onActionsCountChange,
 }: StudentNextBestActionsProps) {
   const router = useRouter();
+  const studentStage = data.student.studentStage;
+  const studentStageKnown = [
+    "New",
+    "Attempting",
+    "Connected",
+    "Qualified",
+    "Disqualified",
+  ].includes(studentStage ?? "");
+  const terminalStage =
+    studentStage === "Qualified" || studentStage === "Disqualified";
+  const nbaBlocked = !studentStageKnown || terminalStage;
   const [decision, setDecision] = useState<{
     recommendation: NbaRecommendation;
     operation: NbaDecisionOperation;
@@ -55,10 +69,11 @@ export default function StudentNextBestActions({
   const worklistActions = useMemo(
     // The Frappe endpoint applies the student filter and resolves legacy Lead
     // ids to the canonical CRM Student id before returning this list.
-    () => query.data?.items ?? [],
-    [query.data?.items],
+    () => (nbaBlocked ? [] : query.data?.items ?? []),
+    [query.data?.items, nbaBlocked],
   );
   const actions = useMemo(() => {
+    if (nbaBlocked) return [];
     if (postRecommendations === null) return worklistActions;
 
     return postRecommendations.map((recommendation) => {
@@ -81,7 +96,7 @@ export default function StudentNextBestActions({
         permittedDecisions: worklistItem.permittedDecisions,
       };
     });
-  }, [postRecommendations, worklistActions]);
+  }, [nbaBlocked, postRecommendations, worklistActions]);
   useEffect(() => {
     onActionsCountChange?.(actions.length);
   }, [actions.length, onActionsCountChange]);
@@ -196,12 +211,17 @@ export default function StudentNextBestActions({
           <div className="min-w-0">
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {studentStage && (
+              <span className="rounded-full border border-card-border bg-background-gray-secondary px-2.5 py-1 text-xs font-semibold text-text-secondary">
+              </span>
+            )}
             <Button
               variant="primary"
               appearance="outline"
               size="sm"
               onPress={() => void runNba()}
               isDisabled={
+                nbaBlocked ||
                 query.isFetching ||
                 runMutation.isPending ||
                 decisionMutation.isPending
@@ -211,6 +231,26 @@ export default function StudentNextBestActions({
             </Button>
           </div>
         </div>
+
+        {terminalStage && (
+          <div
+            className="mt-4 rounded-lg border border-card-border bg-background-gray-secondary px-3 py-2.5 text-xs leading-5 text-text-secondary"
+            role="status"
+          >
+            Student stage <strong>{studentStage}</strong> là terminal; hiện không
+            phát sinh NBA mới.
+          </div>
+        )}
+
+        {!studentStageKnown && (
+          <div
+            className="mt-4 rounded-lg border border-card-border bg-background-gray-secondary px-3 py-2.5 text-xs leading-5 text-text-secondary"
+            role="status"
+          >
+            Student stage chưa được xác định; hệ thống tạm thời chưa phát sinh
+            NBA cho hồ sơ này.
+          </div>
+        )}
 
         {query.isLoading && <NbaPanelSkeleton />}
 
@@ -262,7 +302,10 @@ export default function StudentNextBestActions({
         )}
 
         {!query.isLoading && !query.isError && actions.length > 0 && (
-          <div className="mt-5 space-y-3" aria-label="Danh sách đề xuất NBA">
+          <div
+            className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-3"
+            aria-label="Danh sách đề xuất NBA"
+          >
             {actions.map((action) => (
               <StudentNbaRecommendationCard
                 key={action.id}
@@ -371,8 +414,12 @@ function decisionErrorMessage(error: unknown): string {
 
 function NbaPanelSkeleton() {
   return (
-    <div className="mt-5 space-y-3" role="status" aria-live="polite">
-      {["w-36", "w-11/12"].map((width, index) => (
+    <div
+      className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-3"
+      role="status"
+      aria-live="polite"
+    >
+      {["w-36", "w-11/12", "w-4/5"].map((width, index) => (
         <div
           key={`nba-skeleton-${index}`}
           className="rounded-xl border border-card-border p-4"

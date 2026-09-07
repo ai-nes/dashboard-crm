@@ -44,6 +44,12 @@ Quan hệ nghiệp vụ:
 Không được chặn Lead mới chỉ vì trùng phone/email. Việc phân loại trùng được thực hiện
 ở bước processing.
 
+Trang danh sách học sinh chỉ hiển thị `CRM Student` thật đã được tạo hoặc enrich qua
+handoff (có `source_lead` và `converted_at`) và có người phụ trách hợp lệ. Lead `ASSIGNED` chưa handoff vẫn thuộc màn hình
+Lead/cần xử lý, không được hiển thị như Student. `processingStatus` và `resolution`
+chỉ là metadata của Lead nguồn; trạng thái Student dùng `studentStage`,
+`enrollmentStatus` và `lifecycleStatus`.
+
 ### 2.2. Hai nhóm status cần phân biệt
 
 `CRM Lead.lead_status` là lifecycle CRM hiện có, còn `processing_status` là workflow
@@ -58,7 +64,7 @@ server-managed của intake/assignment. FE không tự ghi hai field này.
 |  | `CLOSED` | Lead invalid/duplicate hoặc đã handoff thành công. |
 | `resolution` | `PENDING` | Chưa phân loại. |
 |  | `MATCHED` | Khớp một Student đã có. |
-|  | `CREATED` | Chưa có Student phù hợp; sẽ tạo Student ở bước handoff. |
+|  | `CREATED` | Chưa có Student phù hợp; tạo Student ngay sau khi ghi ownership. |
 |  | `DUPLICATE` | Trùng Lead/Student không thể tự quyết định duy nhất. |
 |  | `INVALID` | Thiếu dữ liệu bắt buộc. |
 |  | `SPAM` / `FAILED` | Kết quả kết thúc do xử lý thủ công hoặc lỗi nghiệp vụ. |
@@ -159,12 +165,18 @@ NEW / PENDING
           Team/Sale ownership thành công
               ↓
           ASSIGNED
-              ↓ Sale handoff
+              ↓ tự động handoff trong cùng lần chạy
           Student New + Lead CLOSED
 ```
 
-`CREATED` ở bước `PROCESSED` có nghĩa là “sẵn sàng tạo Student khi handoff”, chưa phải
-Student đã được insert.
+`CREATED` ở bước `PROCESSED` là quyết định tạo Student sau khi hệ thống ghi ownership.
+Khi nút phân công chạy thành công, BE gọi handoff ngay trong cùng item; vì vậy kết quả
+cuối cùng là Student đã được insert với owner và Lead đã `CLOSED`.
+
+BE chỉ gọi `crm.api.lead_processing.handoff_lead` sau khi Lead đã `ASSIGNED`, trong
+cùng lần chạy phân công. Lead `CLOSED / INVALID`, `CLOSED / DUPLICATE` và Lead không
+được gán owner không được tạo Student. Nếu một Lead đã có `converted_student` từ dữ
+liệu cũ, BE không tạo thêm Student.
 
 ### 4.1. Quy tắc MATCHED/DUPLICATE
 
@@ -176,6 +188,12 @@ BE xử lý theo thứ tự:
 4. Nhiều Student phù hợp → `DUPLICATE / CLOSED`.
 5. Không có Student nhưng có Lead trùng → `DUPLICATE / CLOSED`.
 6. Không có match → `CREATED / PROCESSED`.
+
+Student đã ở trạng thái đóng/lost không tự tạo bản ghi mới nếu Lead có thể chứng minh
+đúng cùng một Student bằng CCCD hoặc bộ fallback `phone + email + province`; khi đó
+resolution vẫn là `MATCHED` và Lead được enrich bản ghi canonical đó. Nếu không đủ
+định danh để chứng minh, BE không được đoán và phải để kết quả cần rà soát thay vì
+tự tạo bản ghi trùng.
 
 Không được FE tự quyết định `MATCHED` hay `CREATED`.
 
@@ -216,7 +234,7 @@ Tất cả API trả dữ liệu trong `response.message` theo chuẩn Frappe.
 | `crm.api.lead_assignment_batch.import_leads_to_assignment_batch` | POST | Tạo Lead mới từ rows/CSV và đưa vào đợt `draft`; chưa phân công. |
 | `crm.api.lead_assignment_batch.create_lead_assignment_batch` | POST | Tạo đợt từ các Lead đã có bằng `lead_ids`; chưa phân công. |
 | `crm.api.lead_assignment_batch.preview_lead_assignment_batch` | POST | Kiểm tra điều kiện và thông tin tuyến, chuyển đợt sang `ready`. |
-| `crm.api.lead_assignment_batch.run_lead_assignment_batch` | POST | Tự kiểm tra nếu cần, sau đó xử lý Lead và phân công trong một lần bấm. |
+| `crm.api.lead_assignment_batch.run_lead_assignment_batch` | POST | Tự kiểm tra, phân công và chuyển Lead hợp lệ thành Student trong một lần bấm. |
 | `crm.api.lead_assignment_batch.retry_lead_assignment_batch` | POST | Chạy lại hồ sơ tạm hoãn, cần kiểm tra hoặc gặp lỗi. |
 | `crm.api.lead_assignment_batch.get_lead_assignment_batch` | GET | Lấy chi tiết một đợt và các hồ sơ trong đợt. |
 | `crm.api.lead_assignment_batch.list_lead_assignment_batches` | GET | Lấy lịch sử các đợt phân công. |
@@ -275,6 +293,11 @@ Khi chạy, nếu đợt còn ở `draft`, BE tự kiểm tra điều kiện tr�
 5. Ghi ownership thành công mới đổi Lead thành `ASSIGNED`, item thành `assigned`.
 6. Không đủ capacity/policy/mapping thì Lead giữ `PROCESSED`, item thành `deferred`.
 
+Mỗi item thành công phải được ghi bền vững là `assigned` cùng Team, Sale, lý do,
+`activeLoad`, giới hạn nhận và `executionId` trước khi trả response. Summary batch
+được tính lại từ các item đã lưu; không được trả `assigned_count = 0` hoặc item
+`pending` khi Lead tương ứng đã ở `ASSIGNED`.
+
 FE không hiển thị nút “chạy ngầm”, không polling worker và không tự đổi status.
 
 ## 6. Thứ tự phân công
@@ -303,14 +326,20 @@ reason
 
 FE chỉ hiển thị các giá trị BE trả về. Không tính lại phần trăm tải hoặc tự chọn người.
 
+Tải hiện tại của một Sale/CTV là số Lead chưa `CLOSED`, chưa có
+`conversion_status = Converted` và chưa có `converted_student` mà người đó đang sở
+hữu (`owner_staff` hoặc `assigned_to`). Không dùng `lifecycle_stage` để tính tải vì
+field này có thể để trống trong lúc Lead đã được phân công.
+
 `pool` vẫn tồn tại trong BE như lớp tương thích nội bộ với engine routing hiện tại. FE
 không cần bắt người dùng hiểu hoặc chọn “hàng chờ đầu vào”; nếu BE trả lỗi liên quan
 `MISSING_INPUT_QUEUE` hoặc `MULTIPLE_INPUT_QUEUES`, hiển thị là “Cấu hình phân công
 chưa hoàn tất, cần quản trị viên kiểm tra Team/Zone”.
 
-## 7. Handoff sau khi Sale xử lý
+## 7. Handoff trong luồng phân công
 
-Đây không phải bước của nút phân công batch. Khi Sale hoàn tất xử lý Lead, gọi:
+Đây là bước backend tự gọi sau khi chọn được owner. API vẫn được giữ để retry hoặc
+cho các luồng nội bộ cần handoff riêng:
 
 ```text
 POST crm.api.lead_processing.handoff_lead
@@ -327,12 +356,21 @@ Kết quả thành công:
 
 - `MATCHED`: dùng `matched_student` để enrich Student hiện có.
 - `CREATED`: tạo Student mới từ snapshot Lead.
+- Handoff chỉ được phép khi Lead có `owner_staff` và `assigned_to` trùng nhau; Staff
+  và User phụ trách phải đang hoạt động.
+- Student sau khi tạo/enrich bắt buộc phải có `assigned_to`; nếu không, toàn bộ handoff
+  rollback với lỗi `OWNER_REQUIRED`.
 - CRM Student được đưa về stage `New`.
 - Lead được `CLOSED`.
 - `converted_student` và `conversion_status = Converted` được ghi bởi BE.
 
 Handoff yêu cầu `idempotency_key` và `expected_lifecycle_revision` để chống xử lý lặp
 hoặc ghi đè dữ liệu mới.
+
+Các endpoint conversion cũ cũng phải đi qua cùng điều kiện: Lead mới phải ở
+`ASSIGNED` với resolution `MATCHED` hoặc `CREATED` và có ownership hợp lệ. Nếu chưa
+đạt status, BE trả `LEAD_NOT_ASSIGNED`; nếu thiếu người phụ trách, BE trả
+`OWNER_REQUIRED` và không insert Student.
 
 ## 8. Contract UI cho FE
 
@@ -341,7 +379,7 @@ hoặc ghi đè dữ liệu mới.
 - Dùng catalog Frappe cho province, high school, major, source.
 - Hiển thị rõ hai bước: “Tiếp nhận Lead” và “Phân công tự động”.
 - Cho tạo nhiều batch; mỗi batch có tên, mô tả, số lượng và status.
-- Hiển thị một nút chạy toàn bộ luồng kiểm tra, phân tuyến và phân công.
+- Hiển thị một nút chạy toàn bộ luồng kiểm tra, phân tuyến, phân công và chuyển Student.
 - Hiển thị kết quả từng item: đã phân công, chờ xử lý, cần bổ sung, lỗi.
 - Sau khi run, gọi lại `get_lead_assignment_batch` để lấy trạng thái cuối.
 - Cho retry riêng các item `deferred`, `manual_review`, `failed`.
@@ -351,7 +389,8 @@ hoặc ghi đè dữ liệu mới.
 
 - Không tự ghi `processing_status`, `resolution`, `owner_staff`, `owning_team`.
 - Không tự tính hoặc tự chọn Sale/Team/Zone.
-- Không tạo CRM Student ở bước nhập Lead hoặc phân công.
+- Không tạo CRM Student ở bước nhập Lead. Khi phân công thành công, BE tự handoff;
+  FE không cần gọi thêm API conversion.
 - Không gọi worker hoặc endpoint routing cũ thay cho batch API.
 - Không dùng `lead_status` để thay thế `processing_status`.
 - Không hardcode dữ liệu tỉnh, trường, ngành, nguồn.
@@ -368,6 +407,8 @@ hoặc ghi đè dữ liệu mới.
 | `CAPACITY_BLOCKED` | Sale/Team đã đủ giới hạn nhận Lead. |
 | `NO_ACTIVE_POLICY` | Chưa có cách chia Lead đang hiệu lực cho Team. |
 | `STALE_OWNERSHIP_REVISION` | Dữ liệu đã thay đổi; tải lại batch rồi retry. |
+| `LEAD_NOT_ASSIGNED` | Lead chưa được phân công nên chưa thể tạo Student. |
+| `OWNER_REQUIRED` | Lead/Student chưa có người phụ trách hợp lệ. |
 | `FORBIDDEN` / `OUT_OF_SCOPE` | Tài khoản không có quyền hoặc ngoài phạm vi Team/cơ sở. |
 
 ## 10. Trạng thái triển khai hiện tại

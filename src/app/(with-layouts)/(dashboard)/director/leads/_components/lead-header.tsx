@@ -7,6 +7,7 @@ import {
   MapMarker5,
   Phone,
   Sparkle,
+  Trash1,
 } from "@tailgrids/icons";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -17,21 +18,23 @@ import {
   AvatarFallback,
 } from "@/components/tailgrids/core/avatar";
 import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
 import { formatDate, formatDateTime } from "@/utils/format-date";
 
 import StudentCopyBadge from "../../students/_components/student-copy-badge";
-import StudentGaugeChart from "../../students/_components/student-gauge-chart";
-import { conversionPotentialScore, leadStatusColor } from "./mappings";
+import { leadStatusColor } from "./mappings";
 import type { LeadDetail } from "./types";
 
 export default function LeadHeader({
   lead,
   children,
   createdAt,
+  onDeleteRequest,
 }: {
   lead: LeadDetail;
   children?: ReactNode;
   createdAt?: string;
+  onDeleteRequest?: () => void;
 }) {
   const subtitle = [
     lead.branch,
@@ -39,7 +42,6 @@ export default function LeadHeader({
   ]
     .filter(Boolean)
     .join(" · ");
-  const score = conversionPotentialScore(lead.conversionPotential);
 
   return (
     <header className="min-w-0 shrink-0">
@@ -53,7 +55,7 @@ export default function LeadHeader({
 
       <div className="min-w-0 overflow-hidden rounded-2xl border border-card-border bg-card-background">
         <div className="min-w-0 p-3 lg:p-4">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-center">
+          <div className="min-w-0">
             <div className="flex min-w-0 items-start gap-3">
               <Avatar size="md">
                 <AvatarFallback>{lead.initials || "L"}</AvatarFallback>
@@ -64,7 +66,9 @@ export default function LeadHeader({
                   <h1 className="min-w-0 text-balance text-xl font-semibold tracking-[-0.4px] text-text-primary lg:text-2xl lg:leading-8">
                     {lead.name || "-"}
                   </h1>
-                  <Badge color={leadStatusColor(lead.lifecycleStatus ?? lead.status)}>
+                  <Badge
+                    color={leadStatusColor(lead.lifecycleStatus ?? lead.status)}
+                  >
                     {(lead.lifecycleStatus ?? lead.status) || "-"}
                   </Badge>
                   {lead.source && <Badge color="primary">{lead.source}</Badge>}
@@ -75,6 +79,18 @@ export default function LeadHeader({
                   >
                     Sao chép ID
                   </StudentCopyBadge>
+                  {onDeleteRequest && (
+                    <Button
+                      aria-label="Xóa Lead"
+                      appearance="ghost"
+                      onPress={onDeleteRequest}
+                      size="sm"
+                      variant="danger"
+                    >
+                      <Trash1 size={15} aria-hidden="true" />
+                      Xóa Lead
+                    </Button>
+                  )}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-text-tertiary">
                   {subtitle && <span>{subtitle}</span>}
@@ -118,18 +134,6 @@ export default function LeadHeader({
               </div>
             </div>
 
-            <div className="flex justify-center border-t border-card-border pt-3 lg:border-t-0 lg:pt-0">
-              {score === null ? (
-                <div
-                  className="flex min-h-28 items-center justify-center text-sm font-medium text-text-tertiary"
-                  role="status"
-                >
-                  Chưa có dữ liệu
-                </div>
-              ) : (
-                <StudentGaugeChart score={score} label="Khả năng chuyển đổi" />
-              )}
-            </div>
           </div>
 
           {children}

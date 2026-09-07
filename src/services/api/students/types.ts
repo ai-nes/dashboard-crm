@@ -5,14 +5,34 @@ export type StudentJourneyStage =
   | "Ứng tuyển"
   | "Nhập học";
 
-export type StudentStatus =
+export type StudentStage =
   | "New"
   | "Attempting"
   | "Connected"
   | "Qualified"
   | "Disqualified";
 
+// Kept as an alias for the existing student status controls while the NBA
+// contract uses the canonical StudentStage name.
+export type StudentStatus = StudentStage;
+
 export type StudentAssignmentStatus = "assigned" | "unassigned";
+
+export type LeadProcessingStatus =
+  | "NEW"
+  | "PROCESSING"
+  | "PROCESSED"
+  | "ASSIGNED"
+  | "CLOSED";
+
+export type LeadResolution =
+  | "PENDING"
+  | "MATCHED"
+  | "CREATED"
+  | "DUPLICATE"
+  | "INVALID"
+  | "SPAM"
+  | "FAILED";
 
 export type StudentLifecycleStatus =
   | "Lead"
@@ -178,6 +198,8 @@ export interface StudentClassificationDimension {
 
 export interface StudentListItem {
   id: string;
+  /** Canonical CRM Student name used by Student stage commands. */
+  studentId?: string | null;
   initials: string;
   name: string;
   code: string;
@@ -188,6 +210,10 @@ export interface StudentListItem {
   stage: StudentJourneyStage;
   /** Contact-stage enum used by the editable status control. */
   studentStage?: StudentStatus | null;
+  processingStatus?: LeadProcessingStatus | null;
+  resolution?: LeadResolution | null;
+  sourceLead?: string | null;
+  recordType?: "student";
   assignmentStatus?: StudentAssignmentStatus;
   lifecycleStatus?: StudentLifecycleStatus | null;
   score: number;
@@ -234,6 +260,10 @@ export interface StudentJourneyEvent {
 
 export interface Student360Data {
   student: {
+    /** CRM Lead name used to load the Student 360 projection. */
+    id?: string;
+    /** Canonical CRM Student name used by Student stage commands. */
+    studentId?: string | null;
     initials: string;
     name: string;
     code: string;
@@ -249,6 +279,8 @@ export interface Student360Data {
     ward?: string | null;
     counselor: string;
     ownerId?: string | null;
+    /** Ownership revision used as the CAS token when changing the owner. */
+    revision?: number;
     priority?: StudentPriority | null;
     verificationStatus?: StudentVerificationStatus | null;
     contactConsent?: StudentContactConsent | null;

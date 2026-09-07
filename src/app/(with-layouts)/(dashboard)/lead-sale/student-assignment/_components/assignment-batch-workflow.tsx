@@ -56,7 +56,7 @@ export default function AssignmentBatchWorkflow() {
   const isRunning = activeBatch?.status === "running";
 
   const phaseBadgeLabel = !activeBatch
-    ? "Chưa chọn đợt"
+    ? "Chưa có lần chạy"
     : isRunning
       ? "Đang phân công"
       : currentPhase && currentPhaseState
@@ -81,7 +81,7 @@ export default function AssignmentBatchWorkflow() {
                 Quy trình phân công tự động
               </h2>
               <p className="mt-1 text-xs leading-5 text-text-tertiary">
-                Chọn một bước để xem điều kiện và kết quả xử lý của đợt.
+                Chọn một bước để xem điều kiện và kết quả xử lý.
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -124,7 +124,7 @@ export default function AssignmentBatchWorkflow() {
               <span>
                 {isRunning
                   ? "Hệ thống đang xử lý phân công. Kết quả sẽ cập nhật sau khi hoàn tất."
-                  : "Sơ đồ hiển thị theo trạng thái của đợt và kết quả từng Lead."}
+                  : "Sơ đồ hiển thị theo trạng thái xử lý và kết quả từng Lead."}
               </span>
               <span className="tabular-nums">
                 {formatCount(activeBatch.summary.assigned)} đã giao ·{" "}
@@ -194,7 +194,7 @@ export default function AssignmentBatchWorkflow() {
                     {index < visibleSteps.length - 1 && (
                       <div className="my-2 flex items-center gap-2 pl-6 text-xs text-text-tertiary">
                         {step.id === "matching" ? (
-                          "Có tuyến và sức chứa"
+                          "Đã tìm Team theo tỉnh"
                         ) : (
                           <ArrowDownward size={14} aria-hidden="true" />
                         )}
@@ -279,7 +279,7 @@ export default function AssignmentBatchWorkflow() {
           </p>
           <div className="my-6 rounded-xl border border-card-border bg-background-gray-secondary p-4">
             <p className="text-xs text-text-tertiary">
-              {activeBatch ? "Trong đợt đang chọn" : "Chưa chọn đợt"}
+              {activeBatch ? "Trong lần chạy đang xem" : "Chưa có lần chạy"}
             </p>
             <p className="mt-2 text-lg font-semibold text-text-primary">
               {getBatchWorkflowStepMetric(selectedWorkflowStep)}

@@ -8,6 +8,25 @@ export function decodeTeamRouteParam(value: string): string {
   }
 }
 
+export function getTeamManagementEntryPath(state: TeamOrgState): string | null {
+  const permissions = state.permissions;
+  if (!permissions || permissions.canManageAll) return null;
+
+  const managedGroup = state.bigTeams.find((group) =>
+    permissions.managedGroupIds.includes(group.id),
+  );
+  if (managedGroup) {
+    return `/lead-sale/team-management/${encodeURIComponent(managedGroup.id)}`;
+  }
+
+  const visibleTeam = state.smallTeams.find((team) =>
+    permissions.visibleTeamIds.includes(team.id),
+  );
+  if (!visibleTeam || !visibleTeam.bigTeamId) return null;
+
+  return `/lead-sale/team-management/${encodeURIComponent(visibleTeam.bigTeamId)}/${encodeURIComponent(visibleTeam.id)}`;
+}
+
 export function findMember(
   members: TeamMember[],
   id: string | null,

@@ -10,7 +10,6 @@ import type {
 
 import StudentOwnerCell from "./student-owner-cell";
 import StudentStatusSelect from "./student-status-select";
-import { defaultStudentStatus } from "./student-status";
 
 interface StudentListProps {
   isStatusUpdating?: boolean;
@@ -26,7 +25,7 @@ function getScoreTone(score: number): "success" | "warning" | "error" {
 }
 
 export const studentListGrid =
-  "lg:grid-cols-[minmax(250px,1.35fr)_minmax(170px,0.9fr)_120px_130px_minmax(200px,1.2fr)_110px]";
+  "lg:grid-cols-[minmax(250px,1.35fr)_minmax(170px,0.9fr)_minmax(12rem,1.1fr)_130px_minmax(200px,1.2fr)_110px]";
 
 export default function StudentList({
   isStatusUpdating,
@@ -55,7 +54,7 @@ export default function StudentList({
     <ul className="divide-y divide-card-border" aria-label="Danh sách học sinh">
       {students.map((student) => {
         const scoreTone = getScoreTone(student.score);
-        const status = student.studentStage ?? defaultStudentStatus;
+        const status = student.studentStage;
 
         return (
           <li key={student.id}>
@@ -69,7 +68,7 @@ export default function StudentList({
                 </span>
                 <div className="min-w-0">
                   <Link
-                    href={`/director/students/${student.id}`}
+                    href={`/director/students/${encodeURIComponent(student.code || student.id)}`}
                     aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
                     className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
                   >
@@ -107,14 +106,21 @@ export default function StudentList({
                 <p className="text-xs text-text-tertiary lg:hidden">
                   Trạng thái
                 </p>
-                <StudentStatusSelect
-                  studentName={student.name}
-                  value={status}
-                  isDisabled={isStatusUpdating}
-                  onChange={(nextStatus) =>
-                    onStatusChange(student.id, nextStatus)
-                  }
-                />
+                {status ? (
+                  <StudentStatusSelect
+                    studentName={student.name}
+                    value={status}
+                    className="min-w-48"
+                    isDisabled={isStatusUpdating}
+                    onChange={(nextStatus) =>
+                      onStatusChange(student.id, nextStatus)
+                    }
+                  />
+                ) : (
+                  <span className="text-sm text-text-tertiary">
+                    Chưa có CRM Student
+                  </span>
+                )}
               </div>
 
               {/* Cột 4: Điểm tiềm năng */}
@@ -148,7 +154,7 @@ export default function StudentList({
               <div className="flex items-center justify-between gap-2 lg:justify-center">
                 <p className="text-xs text-text-tertiary lg:hidden">Thao tác</p>
                 <Link
-                  href={`/director/students/${student.id}`}
+                  href={`/director/students/${encodeURIComponent(student.code || student.id)}`}
                   aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
                   className="text-xs font-medium text-warning-500 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
                 >

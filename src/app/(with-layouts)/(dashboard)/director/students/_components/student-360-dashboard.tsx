@@ -14,7 +14,11 @@ import {
 } from "@/components/common/auth/permissions";
 import type { DetailTabItem } from "@/components/common/detail-tabs";
 import { Card } from "@/components/tailgrids/core/card";
-import { useStudent360Query } from "@/hooks/use-students-queries";
+import {
+  useAssignedStudentsQuery,
+  useDirectorStudentsQuery,
+  useStudent360Query,
+} from "@/hooks/use-students-queries";
 import {
   deleteStudent,
   requestStudentStageTransition,
@@ -34,10 +38,7 @@ import StudentDocumentsTab from "./student-documents-tab";
 import StudentFamilyTab from "./student-family-tab";
 import StudentHeader from "./student-header";
 import StudentSourceContext from "./student-source-context";
-import {
-  canTransitionStudentStatus,
-  defaultStudentStatus,
-} from "./student-status";
+import { canTransitionStudentStatus } from "./student-status";
 
 interface Student360DashboardProps {
   studentId?: string;
@@ -51,6 +52,7 @@ interface Student360DashboardProps {
 
 interface StudentStageTransitionVariables {
   student: string;
+  targetStudent: string;
   targetStage: StudentStatus;
 }
 
@@ -73,6 +75,10 @@ export default function Student360Dashboard({
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user?.roles);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [studentOwnerDraft, setStudentOwnerDraft] = useState<{
+    studentId: string;
+    owner: string;
+  } | null>(null);
   const [studentStatusDraft, setStudentStatusDraft] = useState<{
     studentId: string;
     status: StudentStatus;
@@ -94,9 +100,9 @@ export default function Student360Dashboard({
     },
   });
   const stageTransitionMutation = useMutation({
-    mutationFn: ({ student, targetStage }: StudentStageTransitionVariables) =>
+    mutationFn: ({ targetStudent, targetStage }: StudentStageTransitionVariables) =>
       requestStudentStageTransition({
-        student,
+        student: targetStudent,
         target_stage: targetStage,
       }),
     onSuccess: async (_result, variables) => {
@@ -149,6 +155,50 @@ export default function Student360Dashboard({
       studentOwnership,
       user,
     );
+  const canAssignStudent =
+    permissions.student.canAssign && canUpdateStudent;
+  const readScope = permissions.student.readScope ?? permissions.student.scope;
+  const isSessionScopedStudentQuery =
+    readScope === "assigned" || readScope === "team";
+  const revisionLookupParams = {
+    admissionYear: 2026,
+    page: 1,
+    pageSize: 1,
+    q: data?.student.code || targetId,
+  };
+  const needsRevisionLookup = data?.student.revision === undefined;
+  const sessionScopedRevisionQuery = useAssignedStudentsQuery(
+    revisionLookupParams,
+    user?.user,
+    {
+      enabled:
+        isSessionScopedStudentQuery &&
+        canAssignStudent &&
+        needsRevisionLookup &&
+        Boolean(data) &&
+        !isAuthLoading,
+    },
+  );
+  const allStudentsRevisionQuery = useDirectorStudentsQuery(
+    revisionLookupParams,
+    {
+      enabled:
+        !isSessionScopedStudentQuery &&
+        canAssignStudent &&
+        needsRevisionLookup &&
+        Boolean(data) &&
+        !isAuthLoading,
+    },
+  );
+  const revisionLookupData = isSessionScopedStudentQuery
+    ? sessionScopedRevisionQuery.data
+    : allStudentsRevisionQuery.data;
+  const ownerRevision =
+    data?.student.revision ??
+    revisionLookupData?.data.find(
+      (student) =>
+        student.id === targetId || student.code === data?.student.code,
+    )?.revision;
   const canDeleteStudent =
     !isAuthLoading &&
     canPerformStudentAction(
@@ -162,8 +212,23 @@ export default function Student360Dashboard({
       ? studentStatusDraft.status
       : null) ??
     data?.student.studentStage ??
-    defaultStudentStatus;
+    null;
+  const canonicalStudentId = data?.student.studentId;
+  const studentOwner =
+    (studentOwnerDraft?.studentId === targetId
+      ? studentOwnerDraft.owner
+      : null) ??
+    data?.student.counselor ??
+    "";
   const handleStudentStatusChange = (nextStatus: StudentStatus) => {
+    if (!canonicalStudentId) {
+      toast.error("Hồ sơ này chưa được liên kết với bản ghi CRM Student.");
+      return;
+    }
+    if (!studentStatus) {
+      toast.error("Hồ sơ chưa có trạng thái Student hợp lệ.");
+      return;
+    }
     if (!canTransitionStudentStatus(studentStatus, nextStatus)) {
       toast.error("Trạng thái chỉ được chuyển theo đúng quy trình.");
       return;
@@ -172,8 +237,12 @@ export default function Student360Dashboard({
     setStudentStatusDraft({ studentId: targetId, status: nextStatus });
     stageTransitionMutation.mutate({
       student: targetId,
+      targetStudent: canonicalStudentId,
       targetStage: nextStatus,
     });
+  };
+  const handleStudentOwnerChange = (owner: string) => {
+    setStudentOwnerDraft({ studentId: targetId, owner });
   };
 
   if (!isAuthLoading && data && !hasStudentAccess) {
@@ -242,6 +311,11 @@ export default function Student360Dashboard({
           onDeleteRequest={
             canDeleteStudent ? () => setDeleteDialogOpen(true) : undefined
           }
+          onOwnerChange={handleStudentOwnerChange}
+          owner={studentOwner}
+          ownerEditable={canAssignStudent}
+          ownerRevision={ownerRevision}
+          studentId={targetId}
         />
       </div>
 
@@ -253,7 +327,7 @@ export default function Student360Dashboard({
           initialChatwootInteractions={initialChatwootInteractions}
           initialStudentInteractions={initialStudentInteractions}
           initialTaskId={initialTaskId}
-          studentId={targetId}
+          studentId={canonicalStudentId || targetId}
         />
       </div>
       <DeleteRecordDialog
@@ -273,6 +347,7 @@ function getStudentTabs(
   analysisTargetId: string,
   canEditStudent: boolean,
 ): DetailTabItem[] {
+  const auditStudentId = data.student.studentId || analysisTargetId;
   return [
     {
       id: "decision",
@@ -287,7 +362,7 @@ function getStudentTabs(
     {
       id: "audit",
       label: "Nhật ký",
-      content: <StudentAuditTab studentId={analysisTargetId} />,
+      content: <StudentAuditTab studentId={auditStudentId} />,
     },
     {
       id: "profile",
