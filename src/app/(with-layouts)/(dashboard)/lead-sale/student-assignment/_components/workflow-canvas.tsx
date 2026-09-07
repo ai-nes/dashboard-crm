@@ -11,9 +11,12 @@ import {
 } from "@xyflow/react";
 import { ExpandArrow6 } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
-import { useAssignment } from "./assignment-context";
-import { workflowConnections as defaultWorkflowConnections } from "./data";
-import { getWorkflowPhaseState } from "./mappings";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
+import {
+  workflowConnections as defaultWorkflowConnections,
+  workflowPositions,
+} from "../../_shared/student-assignment/data";
+import { getWorkflowPhaseState } from "../../_shared/student-assignment/mappings";
 import WorkflowNode, { type AssignmentFlowNode } from "./workflow-node";
 import type { AssignmentWorkflowConnection } from "@/services/api/lead-sale";
 import "@xyflow/react/dist/style.css";
@@ -36,9 +39,9 @@ const connectionHandles: Record<
   },
   "classification:review": {
     sourceHandle: "out-bottom",
-    targetHandle: "in-left",
+    targetHandle: "in-top",
   },
-  "matching:review": { sourceHandle: "out-bottom", targetHandle: "in-right" },
+  "matching:review": { sourceHandle: "out-review", targetHandle: "in-review" },
   "matching:assignment": {
     sourceHandle: "out-bottom",
     targetHandle: "in-top",
@@ -81,7 +84,7 @@ export default function WorkflowCanvas() {
       workflowSteps.map((step) => ({
         id: step.id,
         type: "assignmentStep",
-        position: step.position,
+        position: workflowPositions[step.id],
         data: {
           step,
           metric: isRunning
@@ -124,7 +127,8 @@ export default function WorkflowCanvas() {
         return {
           ...connection,
           id: `${connection.source}-${connection.target}`,
-          type: "straight",
+          type: "smoothstep",
+          pathOptions: { borderRadius: 16, offset: 28 },
           animated: isRunning,
           selectable: false,
           focusable: false,
@@ -159,7 +163,7 @@ export default function WorkflowCanvas() {
   );
 
   return (
-    <div className="relative h-[660px] min-w-0 border-t border-card-border bg-background-gray-secondary/50">
+    <div className="relative h-[560px] min-w-0 border-t border-card-border bg-background-gray-secondary/50">
       <ReactFlow<AssignmentFlowNode>
         id="assignment-workflow-canvas"
         aria-label="Sơ đồ phân công học sinh tự động"
@@ -172,7 +176,7 @@ export default function WorkflowCanvas() {
         onNodeClick={(_, node) => selectStep(node.data.step.id)}
         fitView
         fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
-        minZoom={0.65}
+        minZoom={0.4}
         maxZoom={1.2}
         nodesDraggable={false}
         nodesConnectable={false}

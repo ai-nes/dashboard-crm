@@ -2,9 +2,9 @@
 
 import { Check, InfoCircle } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
-import { useAssignment } from "./assignment-context";
-import DetailDrawer from "./detail-drawer";
-import { stepMetrics } from "./mappings";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
+import DetailDrawer from "../../_shared/student-assignment/detail-drawer";
+import { stepMetrics } from "../../_shared/student-assignment/mappings";
 
 export default function StepDetail() {
   const { selectedStep, selectStep, workflowSteps, setFilter } = useAssignment();

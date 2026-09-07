@@ -1,13 +1,12 @@
 "use client";
 
-import { AssignmentProvider } from "./assignment-context";
-import AssignmentDetail from "./assignment-detail";
+import { AssignmentProvider } from "../../_shared/student-assignment/assignment-context";
+import AssignmentDetail from "../../_shared/student-assignment/assignment-detail";
 import AssignmentHeader from "./assignment-header";
-import AssignmentHistory from "./assignment-history";
 import ReviewQueue from "./review-queue";
 import StepDetail from "./step-detail";
 import WorkflowSection from "./workflow-section";
-import { useAssignment } from "./assignment-context";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
 
 export default function AssignmentWorkspace() {
   return (
@@ -30,7 +29,6 @@ function AssignmentWorkspaceContent() {
         <AssignmentHeader />
         <ReviewQueue />
         <WorkflowSection />
-        <AssignmentHistory />
       </main>
       <AssignmentDetail />
       <StepDetail />

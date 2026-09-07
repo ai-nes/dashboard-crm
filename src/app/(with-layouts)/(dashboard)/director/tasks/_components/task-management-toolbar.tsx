@@ -3,10 +3,17 @@
 import {
   BarChart2,
   Check,
+  ChevronDown,
   Funnel1,
   Layout6,
+  Search1,
 } from "@tailgrids/icons";
 
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/tailgrids/core/input-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +33,8 @@ interface TaskManagementToolbarProps {
   onLayoutChange: (value: TaskLayout) => void;
   resultCount: number;
   totalCount: number;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
 }
 
 const filters: { id: TaskView; label: string }[] = [
@@ -55,22 +64,19 @@ export default function TaskManagementToolbar({
   onLayoutChange,
   resultCount,
   totalCount,
+  searchQuery,
+  onSearchQueryChange,
 }: TaskManagementToolbarProps) {
   const activeFilter = filters.find((item) => item.id === view);
-  const hasActiveFilter =
-    (activeFilter && activeFilter.id !== "all") || statusFilter !== "all";
 
   return (
-    <div className="border-b border-card-border bg-card-background/80 px-4 py-2.5 lg:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="shrink-0 bg-transparent px-0 py-2.5">
+      <div className="flex flex-wrap items-center gap-3">
         <nav
           aria-label="Kiểu hiển thị task"
           role="tablist"
           className="flex items-center gap-1"
         >
-          <span className="mr-2 text-sm font-semibold text-text-secondary">
-            Task
-          </span>
           <button
             type="button"
             role="tab"
@@ -79,7 +85,7 @@ export default function TaskManagementToolbar({
             onClick={() => onLayoutChange("kanban")}
             className={
               layout === "kanban"
-                ? "relative inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-semibold text-primary-500 after:absolute after:right-2.5 after:bottom-[-11px] after:left-2.5 after:h-0.5 after:rounded-full after:bg-primary-500"
+                ? "inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-semibold text-primary-500"
                 : "inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-text-secondary transition hover:bg-background-gray-secondary_alt hover:text-text-primary"
             }
           >
@@ -94,7 +100,7 @@ export default function TaskManagementToolbar({
             onClick={() => onLayoutChange("table")}
             className={
               layout === "table"
-                ? "relative inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-semibold text-primary-500 after:absolute after:right-2.5 after:bottom-[-11px] after:left-2.5 after:h-0.5 after:rounded-full after:bg-primary-500"
+                ? "inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-semibold text-primary-500"
                 : "inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-medium text-text-secondary transition hover:bg-background-gray-secondary_alt hover:text-text-primary"
             }
           >
@@ -107,21 +113,31 @@ export default function TaskManagementToolbar({
               : `${totalCount} task`}
           </span>
         </nav>
+      </div>
 
-        <div className="flex items-center gap-1">
+      {layout === "table" && (
+        <div className="mt-2 flex w-full flex-wrap items-center justify-start gap-2">
+          <InputGroup className="w-full sm:w-[420px]">
+            <InputGroupAddon className="pr-0 text-text-tertiary">
+              <Search1 size={16} aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
+              aria-label="Tìm task"
+              placeholder="Tìm theo tên task, học sinh hoặc người phụ trách"
+              value={searchQuery}
+              onChange={(event) => onSearchQueryChange(event.target.value)}
+            />
+          </InputGroup>
           <DropdownMenu>
             <DropdownMenuTrigger
-              aria-label="Lọc task"
-              className={toolbarActionClass}
+              aria-label={`Lọc theo khoảng thời gian: ${activeFilter?.label ?? "Tất cả task"}`}
+              className={`${toolbarActionClass} w-full justify-between border border-card-border px-2.5 sm:w-auto sm:min-w-40`}
             >
-              <Funnel1 size={16} aria-hidden="true" />
-              Filter
-              {hasActiveFilter && (
-                <span
-                  className="size-1.5 rounded-full bg-primary-500"
-                  aria-hidden="true"
-                />
-              )}
+              <span className="flex min-w-0 items-center gap-1.5">
+                <Funnel1 size={16} aria-hidden="true" />
+                <span className="truncate">{activeFilter?.label}</span>
+              </span>
+              <ChevronDown size={14} aria-hidden="true" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
               placement="bottom start"
@@ -143,28 +159,35 @@ export default function TaskManagementToolbar({
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuSection>
-              <DropdownMenuHeader className="px-2.5 py-1.5 text-[11px] font-semibold text-text-tertiary">
-                Trạng thái
-              </DropdownMenuHeader>
-              <DropdownMenuSection className="p-1">
-                {statusFilters.map((item) => (
-                  <DropdownMenuItem
-                    key={item.id}
-                    onAction={() => onStatusFilterChange(item.id)}
-                    className="justify-between px-2.5 py-1.5 text-xs"
-                  >
-                    {item.label}
-                    {statusFilter === item.id && (
-                      <Check size={14} aria-hidden="true" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSection>
             </DropdownMenuContent>
           </DropdownMenu>
-
         </div>
-      </div>
+      )}
+
+      {layout === "table" && (
+        <nav
+          aria-label="Lọc theo trạng thái task"
+          role="tablist"
+          className="mt-2 flex min-w-0 gap-1 overflow-x-auto pt-2"
+        >
+          {statusFilters.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === item.id}
+              onClick={() => onStatusFilterChange(item.id)}
+              className={
+                statusFilter === item.id
+                  ? "shrink-0 rounded-md bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-500"
+                  : "shrink-0 rounded-md px-3 py-1.5 text-xs font-medium text-text-secondary transition hover:bg-background-gray-secondary_alt hover:text-text-primary"
+              }
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

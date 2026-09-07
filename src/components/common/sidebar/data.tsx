@@ -11,6 +11,7 @@ import {
 } from "./icon";
 import {
   Buildings11,
+  ClockThree,
   MapMarker5,
   Target3,
   UserMultiple4,
@@ -363,6 +364,11 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         title: "Phân công tự động",
         url: "/lead-sale/student-assignment",
         icon: <UserPencil size={18} />,
+      }),
+      navItem({
+        title: "Lịch sử phân công",
+        url: "/lead-sale/assignment-history",
+        icon: <ClockThree size={18} />,
       }),
     ],
   },

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { workflowSteps } from "./data";
+import { workflowSteps } from "../../_shared/student-assignment/data";
 import {
   getCurrentWorkflowPhaseId,
   getWorkflowPhaseState,
-} from "./mappings";
+} from "../../_shared/student-assignment/mappings";
 
 function stepsWithStatuses(
   statuses: Array<"idle" | "running" | "success" | "warning" | "error">,
