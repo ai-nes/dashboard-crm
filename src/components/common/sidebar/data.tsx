@@ -346,6 +346,11 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         url: "/lead-sale/leads",
         icon: <Target3 size={18} />,
       }),
+       navItem({
+        title: "Chiến dịch tuyển sinh",
+        url: "/lead-sale/campaigns",
+        icon: <Megaphone1 size={18} />,
+      }),
       navItem({
         title: "Danh sách Học sinh",
         url: "/lead-sale/students",
@@ -375,11 +380,6 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         title: "Lịch sử phân công",
         url: "/lead-sale/assignment-history",
         icon: <ClockThree size={18} />,
-      }),
-      navItem({
-        title: "Chiến dịch tuyển sinh",
-        url: "/lead-sale/campaigns",
-        icon: <Megaphone1 size={18} />,
       }),
     ],
   },
