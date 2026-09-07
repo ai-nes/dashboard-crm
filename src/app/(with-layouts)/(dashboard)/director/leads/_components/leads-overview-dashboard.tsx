@@ -98,7 +98,7 @@ export default function LeadsOverviewDashboard() {
             </span>
           </div>
           <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
-            Danh sách Lead
+            Danh sách Leads
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
             Toàn cảnh Lead tiếp nhận trước khi được phân công cho đội ngũ Sale.
@@ -106,21 +106,22 @@ export default function LeadsOverviewDashboard() {
         </div>
       </header>
 
+      <LeadListToolbar
+        query={query}
+        status={status}
+        campaign={campaign}
+        statusOptions={meta?.statusOptions ?? []}
+        campaigns={availableCampaigns}
+        campaignLoading={campaignsQuery.isPending}
+        campaignError={campaignsQuery.error?.message}
+        resultCount={totalCount}
+        onQueryChange={handleQueryChange}
+        onStatusChange={handleStatusChange}
+        onCampaignChange={handleCampaignChange}
+        onReset={resetFilters}
+      />
+
       <Card className="min-w-0 overflow-hidden p-0">
-        <LeadListToolbar
-          query={query}
-          status={status}
-          campaign={campaign}
-          statusOptions={meta?.statusOptions ?? []}
-          campaigns={availableCampaigns}
-          campaignLoading={campaignsQuery.isPending}
-          campaignError={campaignsQuery.error?.message}
-          resultCount={totalCount}
-          onQueryChange={handleQueryChange}
-          onStatusChange={handleStatusChange}
-          onCampaignChange={handleCampaignChange}
-          onReset={resetFilters}
-        />
         <div
           className={`hidden ${leadListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
           aria-hidden="true"

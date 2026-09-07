@@ -258,19 +258,20 @@ export default function StudentsOverviewDashboard() {
 
       <StudentKpiStrip summary={summary} />
 
+      <StudentListToolbar
+        query={query}
+        stage={stage}
+        province={province}
+        assignmentStatus={assignmentStatus}
+        resultCount={totalCount}
+        onQueryChange={handleQueryChange}
+        onStageChange={handleStageChange}
+        onProvinceChange={handleProvinceChange}
+        onAssignmentStatusChange={handleAssignmentStatusChange}
+        onReset={resetFilters}
+      />
+
       <Card className="min-w-0 overflow-hidden p-0">
-        <StudentListToolbar
-          query={query}
-          stage={stage}
-          province={province}
-          assignmentStatus={assignmentStatus}
-          resultCount={totalCount}
-          onQueryChange={handleQueryChange}
-          onStageChange={handleStageChange}
-          onProvinceChange={handleProvinceChange}
-          onAssignmentStatusChange={handleAssignmentStatusChange}
-          onReset={resetFilters}
-        />
         <div
           className={`hidden ${studentListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
           aria-hidden="true"

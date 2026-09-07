@@ -1,6 +1,6 @@
 "use client";
 
-import { Filter, Search1 } from "@tailgrids/icons";
+import { Search1 } from "@tailgrids/icons";
 
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -78,7 +78,7 @@ export default function StudentListToolbar({
   const provinceOptions = provinceOptionsQuery.data?.options ?? [];
 
   return (
-    <div className="border-b border-card-border p-4 lg:p-5">
+    <div className="space-y-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 flex-1 flex-col gap-2.5 md:flex-row">
           <InputGroup className="h-8 min-w-0 md:max-w-sm">
@@ -171,33 +171,31 @@ export default function StudentListToolbar({
           )}
         </div>
       </div>
-      <div className="mt-3 flex flex-col gap-2 border-t border-card-border pt-3 sm:flex-row sm:items-center">
-        <div className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-text-secondary">
-          <Filter size={15} className="text-icon-tertiary" aria-hidden="true" />
-          <span>Giai đoạn</span>
-        </div>
-        <div
-          className="flex flex-wrap gap-2"
-          role="group"
-          aria-label="Lọc theo giai đoạn"
-        >
-          {stages.map((item) => {
-            const isSelected = stage === item;
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label="Lọc theo giai đoạn"
+      >
+        {stages.map((item) => {
+          const isSelected = stage === item;
 
-            return (
-              <Button
-                key={item}
-                size="sm"
-                variant="primary"
-                appearance={isSelected ? "fill" : "outline"}
-                aria-pressed={isSelected}
-                onPress={() => onStageChange(item)}
-              >
-                {getStageLabel(item)}
-              </Button>
-            );
-          })}
-        </div>
+          return (
+            <Button
+              key={item}
+              size="sm"
+              appearance="ghost"
+              className={
+                isSelected
+                  ? "bg-badge-primary-background text-badge-primary-text"
+                  : "text-text-secondary"
+              }
+              aria-pressed={isSelected}
+              onPress={() => onStageChange(item)}
+            >
+              {getStageLabel(item)}
+            </Button>
+          );
+        })}
       </div>
     </div>
   );
