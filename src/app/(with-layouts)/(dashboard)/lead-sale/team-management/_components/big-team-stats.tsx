@@ -1,38 +1,27 @@
 "use client";
 
-import LeadPickerField from "./lead-picker-field";
 import OverviewFact from "./overview-fact";
-import type { BigTeam, TeamMember } from "./types";
+import type { BigTeam } from "./types";
 
 interface BigTeamStatsProps {
   bigTeam: BigTeam;
-  allMembers: TeamMember[];
   smallTeamCount: number;
   memberCount: number;
-  onLeadChange: (leadId: string | null) => void;
-  canManageLead?: boolean;
 }
 
 export default function BigTeamStats({
   bigTeam,
-  allMembers,
   smallTeamCount,
   memberCount,
-  onLeadChange,
-  canManageLead = true,
 }: BigTeamStatsProps) {
   return (
     <section aria-label="Tổng quan đội" className="grid gap-3 sm:grid-cols-3">
       <OverviewFact kind="groups" label="Số nhóm" value={smallTeamCount} />
       <OverviewFact label="Tổng thành viên" value={memberCount} />
-      <OverviewFact label="Trưởng đội" kind="lead">
-        <LeadPickerField
-          candidates={allMembers}
-          value={bigTeam.leadId}
-          onChange={onLeadChange}
-          isDisabled={!canManageLead}
-          ariaLabel={`Trưởng đội ${bigTeam.name}`}
-        />
+      <OverviewFact label="Tỉnh quản lý">
+        <p className="truncate text-base font-semibold text-text-primary">
+          {bigTeam.provinceName ?? "Chưa chọn tỉnh"}
+        </p>
       </OverviewFact>
     </section>
   );

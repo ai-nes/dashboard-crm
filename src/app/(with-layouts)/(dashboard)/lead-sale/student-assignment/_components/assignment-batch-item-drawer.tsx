@@ -71,10 +71,10 @@ export default function AssignmentBatchItemDrawer() {
           Thông tin tuyến phân công
         </h2>
         <dl className="mt-3 grid grid-cols-[126px_1fr] gap-x-3 gap-y-3 text-sm">
-          <dt className="text-text-tertiary">Tầng phân công</dt>
-          <dd className="text-text-primary">{item.routingTier ?? "—"}</dd>
-          <dt className="text-text-tertiary">Khu vực</dt>
-          <dd className="text-text-primary">{item.zone ?? "—"}</dd>
+          <dt className="text-text-tertiary">Cách tìm Team</dt>
+          <dd className="text-text-primary">
+            {item.province ? `Theo tỉnh ${item.province}` : "—"}
+          </dd>
           <dt className="text-text-tertiary">Đội</dt>
           <dd className="text-text-primary">{item.team ?? "—"}</dd>
           <dt className="text-text-tertiary">Tư vấn viên</dt>
@@ -85,8 +85,8 @@ export default function AssignmentBatchItemDrawer() {
               ? `${item.activeLoad}/${item.capacityLimit} · còn ${item.remainingCapacity ?? "—"}`
               : "—"}
           </dd>
-          <dt className="text-text-tertiary">Phiên bản quy tắc</dt>
-          <dd className="text-text-primary">{item.policyVersion ?? "—"}</dd>
+          <dt className="text-text-tertiary">Lý do chọn</dt>
+          <dd className="text-text-primary">{item.reason ?? "—"}</dd>
         </dl>
       </section>
 

@@ -1,7 +1,10 @@
 export interface TeamManagementGroup {
   id: string;
   name: string;
-  leadId: string | null;
+  provinceId: string | null;
+  provinceName: string | null;
+  provinceCode: string | null;
+  groupLeadId: string | null;
   teamIds: string[];
   teamCount: number;
   memberCount: number;
@@ -62,6 +65,7 @@ export interface TeamManagementWorkspace {
   members: TeamManagementMember[];
   options: {
     campuses: Array<{ id: string; label: string }>;
+    provinces: Array<{ id: string; label: string; code?: string | null }>;
     functions: Array<{ value: string; label: string }>;
   };
   permissions: { canManage: boolean; canManageAll: boolean };
@@ -273,6 +277,7 @@ export async function saveTeamGroup(
   payload: {
     groupId?: string;
     groupName: string;
+    provinceId?: string | null;
     groupLeadStaff?: string | null;
     clearGroupLead?: boolean;
     isActive?: boolean;
@@ -283,6 +288,7 @@ export async function saveTeamGroup(
   return call<TeamManagementMutationResponse>(METHODS.SAVE_GROUP, options, {
     group_id: payload.groupId,
     group_name: payload.groupName,
+    province: payload.provinceId,
     group_lead_staff: payload.groupLeadStaff,
     clear_group_lead: payload.clearGroupLead ?? false,
     is_active: payload.isActive ?? true,

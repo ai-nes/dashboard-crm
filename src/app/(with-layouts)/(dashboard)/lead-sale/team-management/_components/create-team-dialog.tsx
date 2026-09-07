@@ -23,8 +23,10 @@ interface CreateTeamDialogProps {
   submitLabel: string;
   campusOptions?: { id: string; label: string }[];
   initialCampusId?: string;
+  provinceOptions?: { id: string; label: string }[];
+  initialProvinceId?: string;
   onClose: () => void;
-  onSubmit: (name: string, campusId?: string) => void;
+  onSubmit: (name: string, campusId?: string, provinceId?: string) => void;
 }
 
 export default function CreateTeamDialog({
@@ -36,12 +38,17 @@ export default function CreateTeamDialog({
   submitLabel,
   campusOptions = [],
   initialCampusId,
+  provinceOptions = [],
+  initialProvinceId,
   onClose,
   onSubmit,
 }: CreateTeamDialogProps) {
   const [name, setName] = useState(initialName);
   const [campusId, setCampusId] = useState<string | null>(
     initialCampusId ?? null,
+  );
+  const [provinceId, setProvinceId] = useState<string | null>(
+    initialProvinceId ?? null,
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +62,11 @@ export default function CreateTeamDialog({
       setError("Vui lòng chọn cơ sở.");
       return;
     }
-    onSubmit(name.trim(), campusId ?? undefined);
+    if (provinceOptions.length > 0 && !provinceId) {
+      setError("Vui lòng chọn tỉnh quản lý.");
+      return;
+    }
+    onSubmit(name.trim(), campusId ?? undefined, provinceId ?? undefined);
   };
 
   return (
@@ -102,6 +113,29 @@ export default function CreateTeamDialog({
                       textValue={campus.label}
                     >
                       {campus.label}
+                    </ComboboxItem>
+                  ))}
+                </Combobox>
+              </label>
+            )}
+            {provinceOptions.length > 0 && (
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-input-label-text">
+                  Tỉnh quản lý
+                </span>
+                <Combobox
+                  value={provinceId}
+                  onChange={(key) => setProvinceId(key ? String(key) : null)}
+                  aria-label="Chọn tỉnh quản lý"
+                  placeholder="Chọn tỉnh..."
+                >
+                  {provinceOptions.map((province) => (
+                    <ComboboxItem
+                      key={province.id}
+                      id={province.id}
+                      textValue={province.label}
+                    >
+                      {province.label}
                     </ComboboxItem>
                   ))}
                 </Combobox>

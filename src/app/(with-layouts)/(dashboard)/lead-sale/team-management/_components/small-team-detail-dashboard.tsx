@@ -160,12 +160,13 @@ export default function SmallTeamDetailDashboard({
               <LeadPickerField
                 candidates={members}
                 value={smallTeam.leadId}
-                onChange={(leadId) =>
+              onChange={(leadId) =>
                   void run(
                     () => saveCurrentTeam(leadId),
                     leadId ? "Đã cập nhật trưởng nhóm." : "Đã bỏ trưởng nhóm.",
                   )
-                }
+              }
+                isDisabled={!state.permissions?.canManage}
                 ariaLabel={`Trưởng nhóm ${smallTeam.name}`}
                 placeholder={
                   members.length === 0

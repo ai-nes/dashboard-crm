@@ -5,8 +5,10 @@ import { toast } from "sonner";
 import {
   useLeadAssignmentBatchDetailQuery,
   useLeadAssignmentBatchListQuery,
+  usePreviewLeadAssignmentBatchMutation,
   useRetryLeadAssignmentBatchMutation,
   useRunLeadAssignmentBatchMutation,
+  useRunUnassignedLeadAssignmentMutation,
 } from "@/hooks/use-lead-assignment-batch-queries";
 import type {
   LeadAssignmentBatch,
@@ -24,11 +26,15 @@ interface BatchAssignmentContextValue {
   selectedItemId: string | null;
   selectBatch: (batchId: string) => void;
   inspectItem: (itemId: string | null) => void;
+  previewBatch: () => Promise<void>;
   runBatch: () => Promise<void>;
+  runUnassignedLeads: () => Promise<void>;
   retryBatch: (itemIds?: string[]) => Promise<void>;
   isLoading: boolean;
   isDetailLoading: boolean;
+  isPreviewing: boolean;
   isRunning: boolean;
+  isRunningUnassigned: boolean;
   isRetrying: boolean;
   error: Error | null;
   listPagination: LeadAssignmentPagination | null;
@@ -62,11 +68,15 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
     () => listQuery.data?.items ?? [],
     [listQuery.data?.items],
   );
-  const effectiveSelectedBatchId = selectedBatchId ?? batches[0]?.id ?? null;
+  // Do not open an old audit run automatically.  The primary action on this
+  // screen is the new system-wide scan; history remains available on demand.
+  const effectiveSelectedBatchId = selectedBatchId;
   const detailQuery = useLeadAssignmentBatchDetailQuery(
     effectiveSelectedBatchId,
   );
+  const previewMutation = usePreviewLeadAssignmentBatchMutation();
   const runMutation = useRunLeadAssignmentBatchMutation();
+  const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
   const retryMutation = useRetryLeadAssignmentBatchMutation();
   const activeBatch = useMemo(() => {
     return (
@@ -93,6 +103,24 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
     setPageState(1);
   };
 
+  const previewBatch = async () => {
+    if (!activeBatch) return;
+    try {
+      await previewMutation.mutateAsync({ batchId: activeBatch.id });
+      toast.success("Đã xem trước kết quả", {
+        description:
+          "Bạn có thể kiểm tra tỉnh, Team và Sale/CTV trước khi phân công.",
+      });
+    } catch (mutationError) {
+      toast.error("Không thể xem trước đợt Lead", {
+        description:
+          mutationError instanceof Error
+            ? mutationError.message
+            : "Vui lòng thử lại.",
+      });
+    }
+  };
+
   const runBatch = async () => {
     if (!activeBatch) return;
     try {
@@ -102,6 +130,32 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
       });
     } catch (mutationError) {
       toast.error("Không thể chạy luồng phân công", {
+        description:
+          mutationError instanceof Error
+            ? mutationError.message
+            : "Vui lòng thử lại.",
+      });
+    }
+  };
+
+  const runUnassignedLeads = async () => {
+    try {
+      const result = await runUnassignedMutation.mutateAsync({});
+      if (!result.batch) {
+        toast.success("Không có Lead mới cần phân công", {
+          description:
+            result.message ??
+            "Mọi Lead hiện tại đã có người phụ trách hoặc đã được xử lý.",
+        });
+        return;
+      }
+
+      selectBatch(result.batch.id);
+      toast.success("Đã phân công Lead", {
+        description: `${result.batch.summary.assigned} Lead đã được giao cho Sale/CTV.`,
+      });
+    } catch (mutationError) {
+      toast.error("Không thể phân công Lead", {
         description:
           mutationError instanceof Error
             ? mutationError.message
@@ -138,11 +192,15 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
         selectedItemId,
         selectBatch,
         inspectItem: setSelectedItemId,
+        previewBatch,
         runBatch,
+        runUnassignedLeads,
         retryBatch,
         isLoading: listQuery.isLoading,
         isDetailLoading: detailQuery.isLoading,
+        isPreviewing: previewMutation.isPending,
         isRunning: runMutation.isPending,
+        isRunningUnassigned: runUnassignedMutation.isPending,
         isRetrying: retryMutation.isPending,
         error,
         listPagination: listQuery.data?.pagination ?? null,

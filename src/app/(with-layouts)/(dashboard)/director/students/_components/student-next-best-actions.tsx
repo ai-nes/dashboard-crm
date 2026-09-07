@@ -303,7 +303,10 @@ export default function StudentNextBestActions({
         )}
 
         {!query.isLoading && !query.isError && actions.length > 0 && (
-          <div className="mt-5 space-y-3" aria-label="Danh sách đề xuất NBA">
+          <div
+            className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-3"
+            aria-label="Danh sách đề xuất NBA"
+          >
             {actions.map((action) => (
               <StudentNbaRecommendationCard
                 key={action.id}
@@ -412,8 +415,12 @@ function decisionErrorMessage(error: unknown): string {
 
 function NbaPanelSkeleton() {
   return (
-    <div className="mt-5 space-y-3" role="status" aria-live="polite">
-      {["w-36", "w-11/12"].map((width, index) => (
+    <div
+      className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-3"
+      role="status"
+      aria-live="polite"
+    >
+      {["w-36", "w-11/12", "w-4/5"].map((width, index) => (
         <div
           key={`nba-skeleton-${index}`}
           className="rounded-xl border border-card-border p-4"

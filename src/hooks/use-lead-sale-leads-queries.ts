@@ -1,14 +1,21 @@
 "use client";
 
 import {
+  useMutation,
   useQuery,
+  useQueryClient,
   type UseQueryOptions,
   type UseQueryResult,
 } from "@tanstack/react-query";
 
 import {
+  createLead,
+  deleteLead,
   getLeadDetail,
   getLeadList,
+  updateLead,
+  type LeadCreateFields,
+  type LeadUpdateFields,
   type LeadDetailResponse,
   type LeadListParams,
   type LeadListResponse,
@@ -57,5 +64,44 @@ export function useLeadSaleLeadQuery<TData = LeadDetailResponse | null>(
     queryFn: () => getLeadDetail(leadId),
     enabled: Boolean(leadId),
     ...options,
+  });
+}
+
+export function useUpdateLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    LeadDetailResponse,
+    Error,
+    { leadId: string; fields: LeadUpdateFields }
+  >({
+    mutationFn: ({ leadId, fields }) => updateLead(leadId, fields),
+    onSuccess: (_data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(variables.leadId),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
+  });
+}
+
+export function useCreateLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadDetailResponse, Error, LeadCreateFields>({
+    mutationFn: (fields) => createLead(fields),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+  });
+}
+
+export function useDeleteLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ deleted: string }, Error, string>({
+    mutationFn: (leadId) => deleteLead(leadId),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
   });
 }

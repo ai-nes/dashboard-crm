@@ -17,7 +17,6 @@ import type {
 import { StudentTaskTypeBadge } from "./student-task-badges";
 import {
   formatNbaDateTime,
-  formatNbaDecisionStatus,
   getPermittedOperations,
   NBA_OPERATION_DESCRIPTIONS,
   NBA_OPERATION_LABELS,
@@ -48,8 +47,8 @@ export default function StudentNbaRecommendationCard({
     "Chưa có căn cứ cho đề xuất này.";
 
   return (
-    <article className="overflow-hidden rounded-xl border border-card-border bg-card-background">
-      <div className="px-4 py-4 sm:px-5 sm:py-5">
+    <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-card-border bg-card-background">
+      <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <StudentTaskTypeBadge actionCode={recommendation.action.code} />
@@ -82,25 +81,38 @@ export default function StudentNbaRecommendationCard({
             {reason}
           </p>
         </div>
+
+        {recommendation.objective && (
+          <div className="mt-3 border-t border-card-border pt-3">
+            <p className="text-xs font-semibold text-text-tertiary">Mục tiêu</p>
+            <p className="mt-1.5 max-w-3xl text-sm leading-5 text-text-primary">
+              {recommendation.objective}
+            </p>
+          </div>
+        )}
+
+        {recommendation.context.length > 0 && (
+          <div className="mt-3 border-t border-card-border pt-3">
+            <p className="text-xs font-semibold text-text-tertiary">Bối cảnh</p>
+            <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sm leading-5 text-text-primary">
+              {recommendation.context.map((fact, index) => (
+                <li key={`${recommendation.id}-context-${index}`}>{fact}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-4 py-3 sm:px-5">
-        <Badge
-          color={
-            recommendation.status.decision === "pending" ? "primary" : "gray"
-          }
-        >
-          {formatNbaDecisionStatus(recommendation.status.decision)}
-        </Badge>
-        {hasRevision && (
+      {hasRevision && (
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-card-border px-4 py-3 sm:px-5">
           <DecisionActions
             operations={operations}
             onBeginDecision={(operation) =>
               onBeginDecision(recommendation, operation)
             }
           />
-        )}
-      </div>
+        </div>
+      )}
     </article>
   );
 }
@@ -138,13 +150,8 @@ function DecisionActions({
   const primaryOperation = operations.includes("ACCEPT")
     ? "ACCEPT"
     : operations[0];
-  const secondaryOperation =
-    primaryOperation === "ACCEPT" && operations.includes("ACCEPT_WITH_CHANGES")
-      ? "ACCEPT_WITH_CHANGES"
-      : null;
   const overflowOperations = operations.filter(
-    (operation) =>
-      operation !== primaryOperation && operation !== secondaryOperation,
+    (operation) => operation !== primaryOperation,
   );
 
   if (!primaryOperation) return null;
@@ -155,12 +162,6 @@ function DecisionActions({
         operation={primaryOperation}
         onPress={() => onBeginDecision(primaryOperation)}
       />
-      {secondaryOperation && (
-        <NbaOperationButton
-          operation={secondaryOperation}
-          onPress={() => onBeginDecision(secondaryOperation)}
-        />
-      )}
       {overflowOperations.length > 0 && (
         <DecisionOverflowMenu
           operations={overflowOperations}
