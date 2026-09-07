@@ -1,5 +1,10 @@
 # API cho /lead-sale/student-assignment
 
+> **Legacy:** Contract này mô tả workspace phân công theo Student và đã được thay thế
+> bởi [contract phân công Lead theo batch](./lead-student-assignment-backend-contract.md).
+> Route dashboard hiện tại dùng batch contract mới; giữ tài liệu này chỉ để tham chiếu
+> các endpoint Student assignment cũ.
+
 Tài liệu này định nghĩa contract backend cần có để thay thế fixture của màn
 hình **Phân công học sinh**. Màn hình dành cho role **Lead Sales**, dùng để
 theo dõi luồng phân công tự động, xem kết quả/giải thích, xử lý hồ sơ chưa thể
@@ -11,15 +16,15 @@ tự động phân công và xem kết quả phân công theo từng học sinh.
 
 ## 1. Phạm vi màn hình
 
-| Vùng UI | Dữ liệu cần | API sử dụng |
-|---|---|---|
-| Header/KPI | Tổng tiếp nhận, đã phân công, cần xử lý, thời điểm snapshot, trạng thái automation | get_student_assignment_workspace |
-| Sơ đồ workflow | Các bước, điều kiện, metric từng bước, trạng thái automation | get_student_assignment_workspace |
-| Review queue | Số hồ sơ no_match, missing_data và tên các hồ sơ cần xử lý | get_student_assignment_workspace |
-| Lịch sử phân công | Danh sách, tìm kiếm, filter, pagination và kết quả gần nhất của từng hồ sơ | get_student_assignment_workspace |
-| Drawer chi tiết | Thông tin hồ sơ, owner, match score, lý do, ứng viên được cân nhắc | get_student_assignment_detail |
-| Form xử lý thủ công | Chọn owner, bổ sung khu vực, ghi lý do | resolve_student_assignment |
-| Nút "Chạy pipeline" | Chạy pipeline phân công thật trong phạm vi team hiện tại | run_student_assignment_pipeline |
+| Vùng UI             | Dữ liệu cần                                                                        | API sử dụng                      |
+| ------------------- | ---------------------------------------------------------------------------------- | -------------------------------- |
+| Header/KPI          | Tổng tiếp nhận, đã phân công, cần xử lý, thời điểm snapshot, trạng thái automation | get_student_assignment_workspace |
+| Sơ đồ workflow      | Các bước, điều kiện, metric từng bước, trạng thái automation                       | get_student_assignment_workspace |
+| Review queue        | Số hồ sơ no_match, missing_data và tên các hồ sơ cần xử lý                         | get_student_assignment_workspace |
+| Lịch sử phân công   | Danh sách, tìm kiếm, filter, pagination và kết quả gần nhất của từng hồ sơ         | get_student_assignment_workspace |
+| Drawer chi tiết     | Thông tin hồ sơ, owner, match score, lý do, ứng viên được cân nhắc                 | get_student_assignment_detail    |
+| Form xử lý thủ công | Chọn owner, bổ sung khu vực, ghi lý do                                             | resolve_student_assignment       |
+| Nút "Chạy pipeline" | Chạy pipeline phân công thật trong phạm vi team hiện tại                           | run_student_assignment_pipeline  |
 
 Nguồn tham chiếu frontend:
 
@@ -37,20 +42,20 @@ Nguồn tham chiếu frontend:
 
 Các endpoint dùng Frappe method:
 
-~~~http
+```http
 GET  {NEXT_PUBLIC_FRAPPE_URL}/api/method/{method}
 POST {NEXT_PUBLIC_FRAPPE_URL}/api/method/{method}
 Cookie: sid=<Frappe session cookie>
 Accept: application/json
-~~~
+```
 
 Request POST cần thêm:
 
-~~~http
+```http
 Content-Type: application/json
 X-Frappe-CSRF-Token: <csrf-token>
 Idempotency-Key: <unique-command-key>
-~~~
+```
 
 Response thành công được Frappe bọc trong message. Frontend phải unwrap
 json.message; không fallback về fixture khi API trả lỗi hoặc response sai
@@ -83,25 +88,25 @@ khi user tìm kiếm, đổi filter hoặc chuyển trang; các thao tác đó c
 Đây là endpoint duy nhất cho lần tải đầu của màn hình. Frontend gọi lại cùng
 endpoint khi thay đổi từ khóa, filter hoặc pagination.
 
-~~~http
+```http
 GET /api/method/crm.api.lead_sale.get_student_assignment_workspace?admissionYear=2026&date=2026-09-05&timezone=Asia%2FHo_Chi_Minh&filter=all&q=nguyen&page=1&pageSize=20&sort=receivedAt&order=desc
-~~~
+```
 
 Không có request body.
 
 ### 3.1. Query parameters
 
-| Tên | Kiểu | Bắt buộc | Mặc định | Ràng buộc / mô tả |
-|---|---|---:|---|---|
-| admissionYear | integer | Không | Kỳ active | Kỳ tuyển sinh Lead Sales được phép xem |
-| date | YYYY-MM-DD | Không | Ngày hiện tại theo timezone | Dùng cho snapshot và phạm vi "hôm nay" |
-| timezone | IANA timezone | Không | Asia/Ho_Chi_Minh | Dùng cắt ngày và format thời gian nghiệp vụ |
-| filter | enum | Không | all | all, assigned, review, no_match, missing_data, error; review là alias của các hồ sơ chưa có owner |
-| q | string | Không | "" | Tìm không phân biệt hoa thường/dấu trong mã, tên học sinh, trường, owner |
-| page | integer | Không | 1 | Bắt đầu từ 1 |
-| pageSize | integer | Không | 20 | Giá trị 1..100; UI có thể chọn page size riêng |
-| sort | enum | Không | receivedAt | receivedAt, name, status, owner, matchScore |
-| order | enum | Không | desc | asc hoặc desc |
+| Tên           | Kiểu          | Bắt buộc | Mặc định                    | Ràng buộc / mô tả                                                                                 |
+| ------------- | ------------- | -------: | --------------------------- | ------------------------------------------------------------------------------------------------- |
+| admissionYear | integer       |    Không | Kỳ active                   | Kỳ tuyển sinh Lead Sales được phép xem                                                            |
+| date          | YYYY-MM-DD    |    Không | Ngày hiện tại theo timezone | Dùng cho snapshot và phạm vi "hôm nay"                                                            |
+| timezone      | IANA timezone |    Không | Asia/Ho_Chi_Minh            | Dùng cắt ngày và format thời gian nghiệp vụ                                                       |
+| filter        | enum          |    Không | all                         | all, assigned, review, no_match, missing_data, error; review là alias của các hồ sơ chưa có owner |
+| q             | string        |    Không | ""                          | Tìm không phân biệt hoa thường/dấu trong mã, tên học sinh, trường, owner                          |
+| page          | integer       |    Không | 1                           | Bắt đầu từ 1                                                                                      |
+| pageSize      | integer       |    Không | 20                          | Giá trị 1..100; UI có thể chọn page size riêng                                                    |
+| sort          | enum          |    Không | receivedAt                  | receivedAt, name, status, owner, matchScore                                                       |
+| order         | enum          |    Không | desc                        | asc hoặc desc                                                                                     |
 
 Quy tắc filter/search:
 
@@ -118,7 +123,7 @@ Quy tắc filter/search:
 
 ### 3.2. Response 200 OK
 
-~~~json
+```json
 {
   "message": {
     "meta": {
@@ -158,7 +163,7 @@ Quy tắc filter/search:
       "policyVersion": "student-assignment-r1"
     },
     "workflow": {
-        "mode": "live",
+      "mode": "live",
       "version": "student-assignment-r1",
       "steps": [
         {
@@ -201,7 +206,11 @@ Quy tắc filter/search:
       ],
       "connections": [
         { "source": "input", "target": "validation", "label": null },
-        { "source": "validation", "target": "classification", "label": "Đủ thông tin" },
+        {
+          "source": "validation",
+          "target": "classification",
+          "label": "Đủ thông tin"
+        },
         { "source": "validation", "target": "review", "label": "Cần bổ sung" },
         { "source": "classification", "target": "matching", "label": null },
         { "source": "matching", "target": "assignment", "label": "Phù hợp" },
@@ -255,7 +264,7 @@ Quy tắc filter/search:
     }
   }
 }
-~~~
+```
 
 Response trên rút gọn workflow.steps và items; response thật phải trả đủ 6
 step hiện đang hiển thị trong route: input, validation, classification,
@@ -263,13 +272,9 @@ matching, review, assignment.
 
 ### 3.3. TypeScript contract
 
-~~~typescript
+```typescript
 type AssignmentWorkspaceStatus = "available" | "partial" | "unavailable";
-type AssignmentItemStatus =
-  | "assigned"
-  | "no_match"
-  | "missing_data"
-  | "error";
+type AssignmentItemStatus = "assigned" | "no_match" | "missing_data" | "error";
 type AssignmentFilter =
   | "all"
   | "assigned"
@@ -320,7 +325,13 @@ interface AssignmentWorkspaceResponse {
 }
 
 interface AssignmentWorkflowStep {
-  id: "input" | "validation" | "classification" | "matching" | "review" | "assignment";
+  id:
+    | "input"
+    | "validation"
+    | "classification"
+    | "matching"
+    | "review"
+    | "assignment";
   order: number;
   title: string;
   description: string;
@@ -370,7 +381,7 @@ interface AssignmentPagination {
   totalPages: number;
   hasNextPage: boolean;
 }
-~~~
+```
 
 initials, nhãn tiếng Việt, màu badge, icon, time dạng 09:42 và chuỗi metric
 như "12 học sinh chờ phân công" là presentation của frontend. Backend chỉ trả
@@ -405,20 +416,20 @@ phải bổ sung trạng thái lỗi hoặc map nó vào nhánh review có warni
 Gọi khi user mở drawer từ review queue hoặc history. Response trả luôn danh sách
 ứng viên để form không phải gọi thêm endpoint riêng.
 
-~~~http
+```http
 GET /api/method/crm.api.lead_sale.get_student_assignment_detail?studentId=HS-003&admissionYear=2026
-~~~
+```
 
 Query:
 
-| Tên | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| studentId | string | Có | Mã hồ sơ/học sinh cần xem |
-| admissionYear | integer | Không | Dùng kiểm tra kỳ; backend vẫn phải kiểm tra student thuộc kỳ nào |
+| Tên           | Kiểu    | Bắt buộc | Mô tả                                                            |
+| ------------- | ------- | -------: | ---------------------------------------------------------------- |
+| studentId     | string  |       Có | Mã hồ sơ/học sinh cần xem                                        |
+| admissionYear | integer |    Không | Dùng kiểm tra kỳ; backend vẫn phải kiểm tra student thuộc kỳ nào |
 
 Response rút gọn:
 
-~~~json
+```json
 {
   "message": {
     "item": {
@@ -486,7 +497,7 @@ Response rút gọn:
     }
   }
 }
-~~~
+```
 
 Quy tắc response:
 
@@ -514,18 +525,18 @@ Dùng cho nút **Xác nhận phân công thử** hiện tại. Tên nút ở UI 
 nhưng khi kết nối backend thật, command này là mutation thật và phải có confirm,
 audit và xử lý xung đột.
 
-~~~http
+```http
 POST /api/method/crm.api.lead_sale.resolve_student_assignment
 Cookie: sid=<Frappe session cookie>
 Content-Type: application/json
 Accept: application/json
 X-Frappe-CSRF-Token: <csrf-token>
 Idempotency-Key: assign:HS-003:20260905:01
-~~~
+```
 
 Request:
 
-~~~json
+```json
 {
   "studentId": "HS-003",
   "ownerId": "USR-SALE-001",
@@ -533,15 +544,15 @@ Request:
   "reason": "Đã thống nhất với Sale phụ trách khu vực lân cận để hỗ trợ hồ sơ này.",
   "expectedRevision": 1
 }
-~~~
+```
 
-| Field | Kiểu | Bắt buộc | Ràng buộc |
-|---|---|---:|---|
-| studentId | string | Có | Hồ sơ phải thuộc team và kỳ được phép xem |
-| ownerId | string | Có | User active thuộc team; không nhận display name |
-| region | string | Có khi hồ sơ thiếu region | Trim, độ dài tối đa do backend công bố; phải là địa bàn hợp lệ |
-| reason | string | Có | Trim, tối thiểu 10 và tối đa 500 ký tự |
-| expectedRevision | integer | Có | CAS token lấy từ list/detail |
+| Field            | Kiểu    |                  Bắt buộc | Ràng buộc                                                      |
+| ---------------- | ------- | ------------------------: | -------------------------------------------------------------- |
+| studentId        | string  |                        Có | Hồ sơ phải thuộc team và kỳ được phép xem                      |
+| ownerId          | string  |                        Có | User active thuộc team; không nhận display name                |
+| region           | string  | Có khi hồ sơ thiếu region | Trim, độ dài tối đa do backend công bố; phải là địa bàn hợp lệ |
+| reason           | string  |                        Có | Trim, tối thiểu 10 và tối đa 500 ký tự                         |
+| expectedRevision | integer |                        Có | CAS token lấy từ list/detail                                   |
 
 Quy tắc command:
 
@@ -563,7 +574,7 @@ Quy tắc command:
 
 Response thành công 200 OK:
 
-~~~json
+```json
 {
   "message": {
     "studentId": "HS-003",
@@ -586,7 +597,7 @@ Response thành công 200 OK:
     }
   }
 }
-~~~
+```
 
 Frontend nên dùng assignment trong response để cập nhật drawer, sau đó refetch
 get_student_assignment_workspace để đồng bộ summary, workflow metrics, review
@@ -600,29 +611,29 @@ Dùng cho nút **Chạy pipeline**. Đây là command chạy đồng bộ pipeli
 canonical trên các hồ sơ thuộc team Lead Sale hiện tại; không phải animation mô
 phỏng ở client.
 
-~~~http
+```http
 POST /api/method/crm.api.lead_sale.run_student_assignment_pipeline
 Cookie: sid=<Frappe session cookie>
 Content-Type: application/json
 Accept: application/json
 X-Frappe-CSRF-Token: <csrf-token>
-~~~
+```
 
 Request:
 
-~~~json
+```json
 {
   "admissionYear": 2026,
   "timezone": "Asia/Ho_Chi_Minh",
   "limit": 50
 }
-~~~
+```
 
-| Field | Kiểu | Bắt buộc | Ràng buộc |
-|---|---|---:|---|
-| admissionYear | integer | Không | Kỳ tuyển sinh; mặc định theo workspace hiện tại |
-| timezone | string | Không | IANA timezone; mặc định `Asia/Ho_Chi_Minh` |
-| limit | integer | Không | 1–100; mặc định 50 |
+| Field         | Kiểu    | Bắt buộc | Ràng buộc                                       |
+| ------------- | ------- | -------: | ----------------------------------------------- |
+| admissionYear | integer |    Không | Kỳ tuyển sinh; mặc định theo workspace hiện tại |
+| timezone      | string  |    Không | IANA timezone; mặc định `Asia/Ho_Chi_Minh`      |
+| limit         | integer |    Không | 1–100; mặc định 50                              |
 
 Backend chỉ chọn hồ sơ thuộc scope team hiện tại, có pool ownership và chưa có
 owner cá nhân. Hồ sơ đã phân công không bị chạy lại. Hồ sơ deferred được retry;
@@ -630,7 +641,7 @@ hồ sơ chưa có routing request được enqueue trước khi xử lý.
 
 Response 200 OK trả snapshot workspace mới cùng báo cáo lần chạy:
 
-~~~json
+```json
 {
   "message": {
     "meta": {},
@@ -668,7 +679,7 @@ Response 200 OK trả snapshot workspace mới cùng báo cáo lần chạy:
     ]
   }
 }
-~~~
+```
 
 `run.status` là `completed` hoặc `completed_with_errors`. Mỗi result có status
 `applied`, `deferred`, `queued`, `failed` hoặc `superseded` (request bị thay thế
@@ -678,7 +689,7 @@ trang hiện tại.
 
 ## 7. Error contract
 
-~~~json
+```json
 {
   "error": {
     "code": "STALE_REVISION",
@@ -687,25 +698,25 @@ trang hiện tại.
     "requestId": "req_01J..."
   }
 }
-~~~
+```
 
-| HTTP | Code | API | Khi dùng |
-|---:|---|---|---|
-| 400 | INVALID_QUERY / INVALID_PAYLOAD | GET/POST | Query/body sai kiểu, thiếu field hoặc filter không hợp lệ |
-| 401 | UNAUTHENTICATED | GET/POST | Session không tồn tại hoặc hết hạn |
-| 403 | FORBIDDEN | GET/POST | Không phải Lead Sales, ngoài team scope hoặc không có quyền override |
-| 404 | STUDENT_NOT_FOUND | Detail/POST | Không tìm thấy hồ sơ trong scope |
-| 404 | ASSIGNMENT_OWNER_NOT_FOUND | POST | ownerId không tồn tại hoặc không thuộc team |
-| 409 | STALE_REVISION | POST | Hồ sơ đã thay đổi sau lần đọc cuối |
-| 409 | ALREADY_ASSIGNED | POST | Hồ sơ đã có owner; không được ghi đè bằng command resolve |
-| 409 | IDEMPOTENCY_KEY_REUSED | POST | Cùng key nhưng payload khác request trước |
-| 422 | INVALID_ASSIGNMENT | POST | Region/owner không hợp lệ hoặc không đạt policy bắt buộc |
-| 502 | INVALID_ASSIGNMENT_RESPONSE | GET/POST | Backend trả payload thiếu field/sai kiểu |
-| 503 | STUDENT_ASSIGNMENT_UNAVAILABLE | GET/POST | Không đọc được dữ liệu học sinh, team, rule hoặc assignment store |
+| HTTP | Code                            | API         | Khi dùng                                                             |
+| ---: | ------------------------------- | ----------- | -------------------------------------------------------------------- |
+|  400 | INVALID_QUERY / INVALID_PAYLOAD | GET/POST    | Query/body sai kiểu, thiếu field hoặc filter không hợp lệ            |
+|  401 | UNAUTHENTICATED                 | GET/POST    | Session không tồn tại hoặc hết hạn                                   |
+|  403 | FORBIDDEN                       | GET/POST    | Không phải Lead Sales, ngoài team scope hoặc không có quyền override |
+|  404 | STUDENT_NOT_FOUND               | Detail/POST | Không tìm thấy hồ sơ trong scope                                     |
+|  404 | ASSIGNMENT_OWNER_NOT_FOUND      | POST        | ownerId không tồn tại hoặc không thuộc team                          |
+|  409 | STALE_REVISION                  | POST        | Hồ sơ đã thay đổi sau lần đọc cuối                                   |
+|  409 | ALREADY_ASSIGNED                | POST        | Hồ sơ đã có owner; không được ghi đè bằng command resolve            |
+|  409 | IDEMPOTENCY_KEY_REUSED          | POST        | Cùng key nhưng payload khác request trước                            |
+|  422 | INVALID_ASSIGNMENT              | POST        | Region/owner không hợp lệ hoặc không đạt policy bắt buộc             |
+|  502 | INVALID_ASSIGNMENT_RESPONSE     | GET/POST    | Backend trả payload thiếu field/sai kiểu                             |
+|  503 | STUDENT_ASSIGNMENT_UNAVAILABLE  | GET/POST    | Không đọc được dữ liệu học sinh, team, rule hoặc assignment store    |
 
 Danh sách rỗng là response hợp lệ 200 OK, ví dụ:
 
-~~~json
+```json
 {
   "message": {
     "items": [],
@@ -718,7 +729,7 @@ Danh sách rỗng là response hợp lệ 200 OK, ví dụ:
     }
   }
 }
-~~~
+```
 
 Trong response workspace đầy đủ, meta, summary và workflow vẫn phải có dù
 items rỗng để canvas workflow tiếp tục hiển thị.
@@ -739,7 +750,7 @@ với fromOwnerId, toOwnerId, reason, expectedRevision và policy/audit tương 
 
 ## 9. Luồng gọi API của frontend
 
-~~~text
+```text
 Mở trang
   └─ GET get_student_assignment_workspace
        ├─ header + health + workflow canvas
@@ -762,14 +773,14 @@ Chạy pipeline
   └─ POST run_student_assignment_pipeline
        ├─ nhận run report
        └─ invalidate workspace/detail để đồng bộ toàn trang
-~~~
+```
 
 Query key nên bao gồm toàn bộ tham số ảnh hưởng đến response:
 
-~~~text
+```text
 ["lead-sale", "student-assignment", admissionYear, date, timezone,
  filter, q, page, pageSize, sort, order]
-~~~
+```
 
 Không cache lâu hơn snapshot policy nếu dữ liệu assignment thay đổi thường
 xuyên. Sau mutation, invalidate mọi query workspace của cùng admissionYear,
@@ -779,18 +790,18 @@ từ response command.
 ## 10. Checklist backend/FE handoff
 
 - [ ] Tạo crm.api.lead_sale.get_student_assignment_workspace với team scope
-  lấy từ session.
+      lấy từ session.
 - [ ] Tạo crm.api.lead_sale.get_student_assignment_detail và trả top
-  candidates + explainability trong cùng response.
+      candidates + explainability trong cùng response.
 - [ ] Tạo crm.api.lead_sale.resolve_student_assignment với CSRF,
-  Idempotency-Key, CAS revision và audit.
+      Idempotency-Key, CAS revision và audit.
 - [ ] Tạo crm.api.lead_sale.run_student_assignment_pipeline với team scope,
-  giới hạn batch và run report.
+      giới hạn batch và run report.
 - [ ] Summary/workflow metrics dùng cùng meta.asOf, không phụ thuộc page hoặc
-  filter của danh sách.
+      filter của danh sách.
 - [ ] Bảo đảm ownerId chỉ nhận user active trong team; không nhận display name.
 - [ ] Bổ sung response validation/normalizer tại src/services/api/lead-sale
-  và hook query cho workspace/detail.
+      và hook query cho workspace/detail.
 - [ ] Thêm test cho permission scope, empty state, missing region,
-  no-match/manual override, stale revision, retry idempotency và invariant count.
+      no-match/manual override, stale revision, retry idempotency và invariant count.
 - [ ] Nút chạy pipeline không dùng animation mô phỏng thay cho command backend.

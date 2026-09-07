@@ -3,22 +3,29 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import type { StudentListItem } from "@/services/api/students/types";
+import {
+  Select,
+  SelectContent,
+  SelectIndicator,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/tailgrids/core/select";
+import type { StudentListItem, StudentStatus } from "@/services/api/students/types";
 
 import StudentOwnerCell from "./student-owner-cell";
+import {
+  defaultStudentStatus,
+  studentStatusLabel,
+  studentStatusOptions,
+  studentStatusTriggerClass,
+} from "./student-status";
 
 interface StudentListProps {
   students: StudentListItem[];
   ownerEditable?: boolean;
+  onStatusChange: (id: string, status: StudentStatus) => void;
 }
-
-const stageColor = {
-  "Quan tâm": "gray",
-  "Tìm hiểu": "sky",
-  "Tư vấn": "primary",
-  "Ứng tuyển": "warning",
-  "Nhập học": "success",
-} as const;
 
 function getScoreTone(score: number): "success" | "warning" | "error" {
   if (score >= 75) return "success";
@@ -32,10 +39,11 @@ export const studentListGrid =
 export default function StudentList({
   students,
   ownerEditable = false,
+  onStatusChange,
 }: StudentListProps) {
-  const [ownerOverrides, setOwnerOverrides] = useState<
-    Record<string, string>
-  >({});
+  const [ownerOverrides, setOwnerOverrides] = useState<Record<string, string>>(
+    {},
+  );
 
   if (students.length === 0) {
     return (
@@ -50,6 +58,7 @@ export default function StudentList({
     <ul className="divide-y divide-card-border" aria-label="Danh sách học sinh">
       {students.map((student) => {
         const scoreTone = getScoreTone(student.score);
+        const status = student.studentStage ?? defaultStudentStatus;
 
         return (
           <li key={student.id}>
@@ -60,7 +69,13 @@ export default function StudentList({
                   {student.initials || "HS"}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-text-primary">{student.name || "-"}</p>
+                  <Link
+                    href={`/director/students/${student.id}`}
+                    aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
+                    className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+                  >
+                    {student.name || "-"}
+                  </Link>
                   <p className="mt-1 truncate text-xs text-text-tertiary">{student.school || "-"}</p>
                   <p className="mt-1 flex items-center gap-1 text-xs text-text-secondary">
                     <MapMarker5 size={13} className="shrink-0 text-icon-tertiary" aria-hidden="true" />
@@ -80,15 +95,43 @@ export default function StudentList({
               {/* Cột 3: Trạng thái */}
               <div className="flex items-center justify-between gap-2 lg:justify-start">
                 <p className="text-xs text-text-tertiary lg:hidden">Trạng thái</p>
-                {student.stage && stageColor[student.stage] ? (
-                  <Badge color={stageColor[student.stage]}>{student.stage}</Badge>
-                ) : (
-                  <span className="text-xs font-medium text-text-tertiary">-</span>
-                )}
+                <Select
+                  value={status}
+                  onChange={(value) =>
+                    onStatusChange(
+                      student.id,
+                      String(value) as StudentStatus,
+                    )
+                  }
+                  aria-label={`Đổi trạng thái học sinh ${student.name}`}
+                  className="w-fit min-w-32"
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className={`w-full ${studentStatusTriggerClass[status]}`}
+                  >
+                    <SelectValue>
+                      {studentStatusLabel[status]}
+                    </SelectValue>
+                    <SelectIndicator />
+                  </SelectTrigger>
+                  <SelectContent className="min-w-44">
+                    {studentStatusOptions.map((status) => (
+                      <SelectItem
+                        key={status}
+                        id={status}
+                        textValue={studentStatusLabel[status]}
+                        className="whitespace-nowrap"
+                      >
+                        {studentStatusLabel[status]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Cột 4: Điểm tiềm năng */}
-              <div className="flex items-center justify-between gap-2 lg:justify-start">
+              <div className="flex items-center justify-between gap-2 lg:justify-center">
                 <p className="text-xs text-text-tertiary lg:hidden">Điểm tiềm năng</p>
                 <Badge color={scoreTone}>{student.score}</Badge>
               </div>
@@ -102,8 +145,8 @@ export default function StudentList({
                   owner={ownerOverrides[student.id] ?? student.owner}
                   editable={ownerEditable}
                   onChange={(next) =>
-                    setOwnerOverrides((prev) => ({
-                      ...prev,
+                    setOwnerOverrides((previous) => ({
+                      ...previous,
                       [student.id]: next,
                     }))
                   }

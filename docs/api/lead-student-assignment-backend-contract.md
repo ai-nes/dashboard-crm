@@ -181,20 +181,20 @@ Không được FE tự quyết định `MATCHED` hay `CREATED`.
 
 ## 5. Batch assignment contract
 
-### 5.1. Batch status
+### 5.1. Trạng thái đợt
 
-| Status batch | Ý nghĩa |
+| Trạng thái đợt | Ý nghĩa |
 | --- | --- |
-| `draft` | Batch mới tạo, chưa xem trước/chạy. |
-| `ready` | Đã xem trước; các item đã có context phân công. |
+| `draft` | Đợt mới tạo, chưa chạy. |
+| `ready` | Đã kiểm tra điều kiện; các hồ sơ đã có thông tin tuyến phân công. |
 | `running` | Đang xử lý một lần. Không cho chạy đồng thời. |
-| `completed` | Tất cả item đã xử lý thành công hoặc bỏ qua hợp lệ. |
-| `completed_with_errors` | Có item deferred, manual review hoặc failed. |
+| `completed` | Tất cả hồ sơ đã xử lý thành công hoặc được bỏ qua hợp lệ. |
+| `completed_with_errors` | Còn hồ sơ tạm hoãn, cần kiểm tra hoặc gặp lỗi. |
 | `cancelled` | Không chạy tiếp. |
 
-### 5.2. Batch item status
+### 5.2. Trạng thái hồ sơ trong đợt
 
-| Status item | Ý nghĩa |
+| Trạng thái hồ sơ | Ý nghĩa |
 | --- | --- |
 | `pending` | Chờ chạy. |
 | `assigned` | Đã chọn Sale và ghi ownership. |
@@ -203,8 +203,9 @@ Không được FE tự quyết định `MATCHED` hay `CREATED`.
 | `failed` | Lỗi xử lý item. |
 | `skipped` | Lead đã converted hoặc đã có owner từ trước. |
 
-Batch không chạy bằng worker nền. Người dùng bấm một lần để chạy batch; chạy lại chỉ
-dành cho item `deferred`, `manual_review` hoặc `failed`.
+Đợt không chạy bằng worker nền. Người dùng bấm một lần để hệ thống kiểm tra điều kiện,
+phân tuyến và ghi nhận người phụ trách; chạy lại chỉ dành cho hồ sơ `deferred`,
+`manual_review` hoặc `failed`.
 
 ### 5.3. API chính
 
@@ -212,13 +213,13 @@ Tất cả API trả dữ liệu trong `response.message` theo chuẩn Frappe.
 
 | Method | HTTP | Mục đích |
 | --- | --- | --- |
-| `crm.api.lead_assignment_batch.import_leads_to_assignment_batch` | POST | Tạo Lead mới từ rows/CSV và đưa vào batch `draft`; chưa phân công. |
-| `crm.api.lead_assignment_batch.create_lead_assignment_batch` | POST | Tạo batch từ các Lead đã có bằng `lead_ids`; chưa phân công. |
-| `crm.api.lead_assignment_batch.preview_lead_assignment_batch` | POST | Kiểm tra điều kiện và routing context, chuyển batch sang `ready`. |
-| `crm.api.lead_assignment_batch.run_lead_assignment_batch` | POST | Xử lý Lead và phân công một lần. |
-| `crm.api.lead_assignment_batch.retry_lead_assignment_batch` | POST | Chạy lại item lỗi/deferred/manual review. |
-| `crm.api.lead_assignment_batch.get_lead_assignment_batch` | GET | Lấy chi tiết một batch và item. |
-| `crm.api.lead_assignment_batch.list_lead_assignment_batches` | GET | Lấy lịch sử các batch. |
+| `crm.api.lead_assignment_batch.import_leads_to_assignment_batch` | POST | Tạo Lead mới từ rows/CSV và đưa vào đợt `draft`; chưa phân công. |
+| `crm.api.lead_assignment_batch.create_lead_assignment_batch` | POST | Tạo đợt từ các Lead đã có bằng `lead_ids`; chưa phân công. |
+| `crm.api.lead_assignment_batch.preview_lead_assignment_batch` | POST | Kiểm tra điều kiện và thông tin tuyến, chuyển đợt sang `ready`. |
+| `crm.api.lead_assignment_batch.run_lead_assignment_batch` | POST | Tự kiểm tra nếu cần, sau đó xử lý Lead và phân công trong một lần bấm. |
+| `crm.api.lead_assignment_batch.retry_lead_assignment_batch` | POST | Chạy lại hồ sơ tạm hoãn, cần kiểm tra hoặc gặp lỗi. |
+| `crm.api.lead_assignment_batch.get_lead_assignment_batch` | GET | Lấy chi tiết một đợt và các hồ sơ trong đợt. |
+| `crm.api.lead_assignment_batch.list_lead_assignment_batches` | GET | Lấy lịch sử các đợt phân công. |
 | `crm.api.lead_assignment_batch.get_lead_assignment_batch_options` | GET | Lấy option pool nội bộ nếu cần kiểm tra quyền; không cần hiển thị cho người dùng thường. |
 
 ### 5.4. Import batch
@@ -250,22 +251,22 @@ CCCD có thể dùng `CCCD`, `Số căn cước` hoặc `id_number`.
 Import chỉ tạo Lead `NEW / PENDING` và item `pending`. Không gọi routing trong bước
 import.
 
-### 5.5. Preview và run
+### 5.5. Kiểm tra và chạy toàn bộ luồng
 
-FE nên gọi theo thứ tự:
+Luồng chính của FE chỉ cần một nút chạy:
 
 ```text
 import/create batch
-  → preview batch
-  → hiển thị số Lead hợp lệ / cần bổ sung
-  → run batch
+  → run đợt
+  → BE tự kiểm tra điều kiện, phân tuyến và ghi nhận người phụ trách
   → refresh batch detail
 ```
 
-`run` cũng có thể nhận batch `draft`, nhưng UI nên preview trước để người dùng thấy
-ảnh hưởng.
+`run` nhận cả đợt `draft` và sẽ tự thực hiện bước kiểm tra trước khi phân công.
+API `preview` vẫn được giữ cho màn hình hoặc công cụ cần xem kết quả trước mà chưa
+chạy phân công.
 
-Khi chạy:
+Khi chạy, nếu đợt còn ở `draft`, BE tự kiểm tra điều kiện trước khi phân công:
 
 1. Lead `NEW` được BE đưa sang `PROCESSING`.
 2. Lead không hợp lệ thành `CLOSED / INVALID`, item thành `manual_review`.
@@ -338,9 +339,9 @@ hoặc ghi đè dữ liệu mới.
 ### FE phải làm
 
 - Dùng catalog Frappe cho province, high school, major, source.
-- Hiển thị rõ hai bước: “Nhập Lead” và “Phân công batch”.
+- Hiển thị rõ hai bước: “Tiếp nhận Lead” và “Phân công tự động”.
 - Cho tạo nhiều batch; mỗi batch có tên, mô tả, số lượng và status.
-- Cho xem preview trước nút phân công.
+- Hiển thị một nút chạy toàn bộ luồng kiểm tra, phân tuyến và phân công.
 - Hiển thị kết quả từng item: đã phân công, chờ xử lý, cần bổ sung, lỗi.
 - Sau khi run, gọi lại `get_lead_assignment_batch` để lấy trạng thái cuối.
 - Cho retry riêng các item `deferred`, `manual_review`, `failed`.

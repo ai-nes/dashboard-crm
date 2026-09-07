@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import type {
   LeadResultStatus,
-  LeadStatusCode,
+  LeadStageStatus,
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
 import { Card } from "@/components/tailgrids/core/card";
 import {
@@ -51,10 +51,10 @@ export default function CampaignDetailDashboard({
     [fetchedLeads, leadOverrides],
   );
 
-  const handleStatusChange = (id: string, status: LeadStatusCode) => {
+  const handleStatusChange = (id: string, status: LeadStageStatus) => {
     setLeadOverrides((current) => ({
       ...current,
-      [id]: { ...current[id], status },
+      [id]: { ...current[id], status, processingStatus: status },
     }));
   };
 

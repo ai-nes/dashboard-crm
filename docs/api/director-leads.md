@@ -10,9 +10,9 @@ Each `data` row includes the fields used by the Lead list:
 
 | Field | Meaning |
 | --- | --- |
-| `status` / `statusCode` | Lead status enum from `CRM Lead.lead_status`, e.g. `New`, `Working`, `Contacted`, `Qualified`, `Converted`, or `Lost`. |
-| `result` | Lead resolution: `MATCHED`, `CREATED`, `DUPLICATE`, `INVALID`, `SPAM`, `FAILED`, or `""` while pending. |
-| `processingStatus` | Server-managed processing workflow: `NEW`, `PROCESSING`, `PROCESSED`, `ASSIGNED`, or `CLOSED`. |
+| `status` / `statusCode` | Form Submission Status enum, sourced from `CRM Lead.processing_status`: `NEW`, `PROCESSED`, `ASSIGNED`, or `CLOSED`. |
+| `result` | Lead resolution from `CRM Lead.resolution`: `MATCHED`, `CREATED`, `DUPLICATE`, `INVALID`, `SPAM`, `FAILED`, or `""` while pending. |
+| `processingStatus` | Backward-compatible alias of the server-managed status value. |
 | `contactNoAnswer` | Number of failed/no-answer call attempts. |
 | `contactSuccess` | Number of connected call attempts. |
 | `createdAt` | Lead creation timestamp in ISO-8601 format. |

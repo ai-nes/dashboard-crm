@@ -64,8 +64,8 @@ export default function LeadHeader({
                   <h1 className="min-w-0 text-balance text-xl font-semibold tracking-[-0.4px] text-text-primary lg:text-2xl lg:leading-8">
                     {lead.name || "-"}
                   </h1>
-                  <Badge color={leadStatusColor(lead.status)}>
-                    {lead.status || "-"}
+                  <Badge color={leadStatusColor(lead.lifecycleStatus ?? lead.status)}>
+                    {(lead.lifecycleStatus ?? lead.status) || "-"}
                   </Badge>
                   {lead.source && <Badge color="primary">{lead.source}</Badge>}
                   <StudentCopyBadge

@@ -28,7 +28,6 @@ export default function CampaignDetailStats({
     campaignStats?.inProgress ??
     leads.filter(
       (lead) =>
-        lead.processingStatus === "PROCESSING" ||
         lead.processingStatus === "PROCESSED" ||
         lead.processingStatus === "ASSIGNED",
     ).length;

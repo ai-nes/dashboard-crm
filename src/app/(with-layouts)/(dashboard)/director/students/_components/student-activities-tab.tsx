@@ -11,7 +11,6 @@ import {
 } from "@/components/tailgrids/core/tabs";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { getCrmPermissions } from "@/components/common/auth/permissions";
-import { useStudentAuditLogsQuery } from "@/hooks/use-student-audit-query";
 import {
   useStudentChatwootInteractionsQuery,
   useStudentInteractionsQuery,
@@ -29,7 +28,6 @@ import {
   useDeleteCrmNoteMutation,
   useUpdateCrmNoteMutation,
 } from "@/hooks/use-crm-notes-queries";
-import type { StudentAuditLog } from "@/services/api/student-audit";
 import type {
   StudentChatwootInteractionsResponse,
   StudentInteractionsResponse,
@@ -37,7 +35,6 @@ import type {
   StudentTaskItem,
 } from "@/services/api/students/types";
 
-import StudentAllActivitiesFeed from "./student-all-activities-feed";
 import StudentCallsTab from "./student-calls-tab";
 import StudentNotesTab from "./student-notes-tab";
 import StudentDeleteTaskDialog from "./student-delete-task-dialog";
@@ -64,8 +61,6 @@ interface StudentActivitiesTabProps extends Student360SectionProps {
   initialStudentInteractions?: StudentInteractionsResponse | null;
   initialTaskId?: string;
 }
-
-const EMPTY_AUDIT_LOGS: StudentAuditLog[] = [];
 
 function generateId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -106,7 +101,7 @@ export default function StudentActivitiesTab({
   const { user } = useAuth();
   const permissions = getCrmPermissions(user?.roles);
   const taskAssigneesQuery = useTaskAssigneesQuery();
-  const [activeTab, setActiveTab] = useState(initialTaskId ? "tasks" : "all");
+  const [activeTab, setActiveTab] = useState(initialTaskId ? "tasks" : "notes");
   const assignedTo = data.student.counselor || "Chưa phân công";
   const taskAssignees = useMemo(() => {
     const currentSessionUser = user
@@ -176,10 +171,6 @@ export default function StudentActivitiesTab({
   const crmTasksQuery = useCrmTasksQuery({
     referenceDoctype: "CRM Lead",
     referenceDocname: studentDocname,
-  });
-  const studentAuditQuery = useStudentAuditLogsQuery({
-    student: studentDocname,
-    pageLength: 100,
   });
 
   const createNoteMutation = useCreateCrmNoteMutation();
@@ -253,7 +244,6 @@ export default function StudentActivitiesTab({
   const zaloMessages =
     chatwootInteractionsQuery.data?.zalo_messages ?? data.zaloMessages ?? [];
   const calls = studentInteractionsQuery.data?.calls ?? [];
-  const auditEvents = studentAuditQuery.data?.logs ?? EMPTY_AUDIT_LOGS;
 
   // Tạo ghi chú qua crm.api.note.create_note
   const handleCreateNote = async (
@@ -487,30 +477,18 @@ export default function StudentActivitiesTab({
 
   return (
     <TabRoot
-      defaultValue="all"
+      defaultValue="notes"
       value={activeTab}
       onValueChange={setActiveTab}
       variant="minimal"
       className="rounded-none border-0"
     >
       <TabList>
-        <TabTrigger value="all">Tất cả hoạt động</TabTrigger>
         <TabTrigger value="notes">Ghi chú</TabTrigger>
         <TabTrigger value="tasks">Task</TabTrigger>
         <TabTrigger value="zalo">Zalo</TabTrigger>
         <TabTrigger value="calls">Cuộc gọi</TabTrigger>
       </TabList>
-      <TabContent value="all">
-        <StudentAllActivitiesFeed
-          studentId={studentDocname}
-          studentStage={data.student.studyStage ?? undefined}
-          calls={calls}
-          tasks={tasks}
-          zaloMessages={zaloMessages}
-          auditEvents={auditEvents}
-          onUpdateTask={handleUpdateTask}
-        />
-      </TabContent>
       <TabContent value="notes">
         <StudentNotesTab
           studentName={data.student.name}

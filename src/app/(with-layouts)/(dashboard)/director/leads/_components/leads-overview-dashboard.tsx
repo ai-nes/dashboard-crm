@@ -13,9 +13,9 @@ import type { LeadListItem, LeadListParams } from "@/services/api/lead-sale";
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
 import {
-  leadStatusLabel,
+  leadStageStatusLabel,
   type LeadResultStatus,
-  type LeadStatusCode,
+  type LeadStageStatus,
 } from "./lead-status";
 import type { LeadStatus } from "./types";
 
@@ -62,12 +62,12 @@ export default function LeadsOverviewDashboard() {
   );
   const currentPage = Math.min(page, totalPages);
 
-  const handleLeadStatusChange = (id: string, nextStatus: LeadStatusCode) => {
+  const handleLeadStatusChange = (id: string, nextStatus: LeadStageStatus) => {
     setControlDrafts((previous) => ({
       ...previous,
       [id]: {
         ...previous[id],
-        status: leadStatusLabel[nextStatus],
+        status: leadStageStatusLabel[nextStatus],
         statusCode: nextStatus,
       },
     }));

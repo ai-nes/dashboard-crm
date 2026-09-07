@@ -22,8 +22,8 @@ function listFixture() {
         phone: "0900000000",
         school: "THPT Châu Văn Liêm",
         status: "Đang xử lý",
-        statusCode: "Working",
-        processingStatus: "ASSIGNED",
+        statusCode: "PROCESSED",
+        processingStatus: "PROCESSED",
         result: "MATCHED",
         source: "Website",
         owner: "Chưa phân công",
@@ -77,8 +77,8 @@ describe("Lead list/detail API contract", () => {
     expect(result.data[0]?.leadCode).toBe("LD-2026-00001");
     expect(result.data[0]?.studentId).toBe("LEAD-2026-00001");
     expect(result.data[0]?.status).toBe("Đang xử lý");
-    expect(result.data[0]?.statusCode).toBe("Working");
-    expect(result.data[0]?.processingStatus).toBe("ASSIGNED");
+    expect(result.data[0]?.statusCode).toBe("PROCESSED");
+    expect(result.data[0]?.processingStatus).toBe("PROCESSED");
     expect(result.data[0]?.result).toBe("MATCHED");
     expect(result.data[0]?.contactNoAnswer).toBe(2);
     expect(result.data[0]?.contactSuccess).toBe(3);

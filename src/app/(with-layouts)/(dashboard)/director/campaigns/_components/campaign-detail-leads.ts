@@ -1,8 +1,6 @@
 import {
-  normalizeLeadStatus,
   normalizeLeadStageStatus,
   type LeadResultStatus,
-  type LeadStatusCode,
   type LeadStageStatus,
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
 import type { LeadListItem } from "@/services/api/lead-sale";
@@ -13,7 +11,7 @@ export interface CampaignLeadRow {
   initials: string;
   phone: string;
   school: string;
-  status: LeadStatusCode | null;
+  status: LeadStageStatus | null;
   processingStatus: LeadStageStatus | null;
   result: LeadResultStatus | "";
   source: string;
@@ -24,8 +22,10 @@ export interface CampaignLeadRow {
 }
 
 export function toCampaignLeadRow(lead: LeadListItem): CampaignLeadRow {
-  const status = normalizeLeadStatus(lead.statusCode ?? lead.status);
-  const processingStatus = normalizeLeadStageStatus(lead.processingStatus);
+  const status = normalizeLeadStageStatus(
+    lead.statusCode ?? lead.status ?? lead.processingStatus,
+  );
+  const processingStatus = status;
   return {
     id: lead.id,
     name: lead.name || lead.id,

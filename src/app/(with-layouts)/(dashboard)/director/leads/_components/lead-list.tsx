@@ -5,13 +5,12 @@ import { formatDate } from "@/utils/format-date";
 import LeadContactLogCell from "./lead-contact-log-cell";
 import LeadResultCell from "./lead-result-cell";
 import {
-  leadStatusLabel,
-  leadStatusOptions,
-  leadStatusTriggerClass,
-  normalizeLeadStatus,
+  leadStageStatusLabel,
+  leadStageStatusOptions,
+  leadStageTriggerClass,
   normalizeLeadStageStatus,
   type LeadResultStatus,
-  type LeadStatusCode,
+  type LeadStageStatus,
 } from "./lead-status";
 import { leadTableGrid } from "./lead-table-grid";
 import type { LeadListItem } from "./types";
@@ -28,7 +27,7 @@ export const leadListGrid = leadTableGrid;
 
 interface LeadListProps {
   leads: LeadListItem[];
-  onStatusChange: (id: string, status: LeadStatusCode) => void;
+  onStatusChange: (id: string, status: LeadStageStatus) => void;
   onResultChange: (id: string, result: LeadResultStatus) => void;
 }
 
@@ -49,8 +48,9 @@ export default function LeadList({ leads, onStatusChange, onResultChange }: Lead
   return (
     <ul className="divide-y divide-card-border" aria-label="Danh sách lead">
       {leads.map((lead) => {
-        const status = normalizeLeadStatus(lead.statusCode ?? lead.status);
-        const processingStatus = normalizeLeadStageStatus(lead.processingStatus);
+        const status = normalizeLeadStageStatus(
+          lead.statusCode ?? lead.status ?? lead.processingStatus,
+        );
         return (
           <li key={lead.id}>
             <div
@@ -99,18 +99,18 @@ export default function LeadList({ leads, onStatusChange, onResultChange }: Lead
                 {status ? (
                   <Select
                     value={status}
-                    onChange={(value) => onStatusChange(lead.id, String(value) as LeadStatusCode)}
+                    onChange={(value) => onStatusChange(lead.id, String(value) as LeadStageStatus)}
                     aria-label={`Đổi trạng thái lead ${lead.name}`}
                     className="w-fit min-w-32"
                   >
-                    <SelectTrigger size="sm" className={`w-full ${leadStatusTriggerClass[status]}`}>
+                    <SelectTrigger size="sm" className={`w-full ${leadStageTriggerClass[status]}`}>
                       <SelectValue />
                       <SelectIndicator />
                     </SelectTrigger>
                     <SelectContent>
-                      {leadStatusOptions.map((option) => (
-                        <SelectItem key={option} id={option} textValue={leadStatusLabel[option]}>
-                          {leadStatusLabel[option]}
+                      {leadStageStatusOptions.map((option) => (
+                        <SelectItem key={option} id={option} textValue={leadStageStatusLabel[option]}>
+                          {leadStageStatusLabel[option]}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -124,7 +124,7 @@ export default function LeadList({ leads, onStatusChange, onResultChange }: Lead
                 <p className="text-xs text-text-tertiary lg:hidden">Kết quả</p>
                 <LeadResultCell
                   leadName={lead.name}
-                  status={processingStatus}
+                  status={status}
                   result={lead.result}
                   onChange={(result) => onResultChange(lead.id, result)}
                 />

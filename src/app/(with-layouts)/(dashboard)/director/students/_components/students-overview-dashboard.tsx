@@ -28,7 +28,7 @@ import {
 } from "@/services/api/student-school-update";
 import type {
   StudentAssignmentStatus,
-  StudentJourneyStage,
+  StudentStatus,
 } from "@/services/api/students/types";
 
 import StudentCreateDialog from "./student-create-dialog";
@@ -36,6 +36,7 @@ import LeadImportDialog from "./lead-import-dialog";
 import StudentKpiStrip from "./student-kpi-strip";
 import StudentList, { studentListGrid } from "./student-list";
 import StudentListToolbar from "./student-list-toolbar";
+import { defaultStudentStatus } from "./student-status";
 
 export default function StudentsOverviewDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -53,11 +54,16 @@ export default function StudentsOverviewDashboard() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const ownerId = searchParams.get("owner")?.trim() || undefined;
   const [query, setQuery] = useState("");
-  const [stage, setStage] = useState<StudentJourneyStage | "all">("all");
+  const [studentStatus, setStudentStatus] = useState<StudentStatus | "all">(
+    "all",
+  );
   const [province, setProvince] = useState("all");
   const [assignmentStatus, setAssignmentStatus] = useState<
     StudentAssignmentStatus | "all"
   >("all");
+  const [statusDrafts, setStatusDrafts] = useState<
+    Record<string, StudentStatus>
+  >({});
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -66,7 +72,6 @@ export default function StudentsOverviewDashboard() {
     page,
     pageSize,
     q: query || undefined,
-    stage,
     province,
     assignmentStatus,
     // Session-scoped roles must never be able to widen the list with an owner
@@ -90,15 +95,24 @@ export default function StudentsOverviewDashboard() {
     : allStudentsQuery;
   const { data: response, isError, error, isPlaceholderData } = studentsQuery;
 
-  const students = response?.data ?? [];
+  const students = (response?.data ?? []).map((student) => ({
+    ...student,
+    studentStage:
+      statusDrafts[student.id] ?? student.studentStage ?? defaultStudentStatus,
+  }));
+  const filteredStudents =
+    studentStatus === "all"
+      ? students
+      : students.filter((student) => student.studentStage === studentStatus);
   const summary = response?.summary;
   const meta = response?.meta;
 
-  const totalCount = meta?.total ?? students.length;
-  const totalPages = Math.max(
-    1,
-    meta?.totalPages ?? Math.ceil(totalCount / pageSize),
-  );
+  const totalCount =
+    studentStatus === "all" ? (meta?.total ?? students.length) : filteredStudents.length;
+  const totalPages =
+    studentStatus === "all"
+      ? Math.max(1, meta?.totalPages ?? Math.ceil(totalCount / pageSize))
+      : Math.max(1, Math.ceil(totalCount / pageSize));
   const currentPage = meta ? Math.min(page, totalPages) : page;
 
   const createMutation = useMutation({
@@ -156,8 +170,8 @@ export default function StudentsOverviewDashboard() {
     setImportDialogOpen(true);
   };
 
-  const handleStageChange = (val: StudentJourneyStage | "all") => {
-    setStage(val);
+  const handleStudentStatusFilterChange = (val: StudentStatus | "all") => {
+    setStudentStatus(val);
     setPage(1);
   };
 
@@ -173,9 +187,19 @@ export default function StudentsOverviewDashboard() {
     setPage(1);
   };
 
+  const handleStudentStatusDraftChange = (
+    id: string,
+    nextStatus: StudentStatus,
+  ) => {
+    setStatusDrafts((previous) => ({
+      ...previous,
+      [id]: nextStatus,
+    }));
+  };
+
   const resetFilters = () => {
     setQuery("");
-    setStage("all");
+    setStudentStatus("all");
     setProvince("all");
     setAssignmentStatus("all");
     setPage(1);
@@ -260,33 +284,38 @@ export default function StudentsOverviewDashboard() {
 
       <StudentListToolbar
         query={query}
-        stage={stage}
+        studentStatus={studentStatus}
         province={province}
         assignmentStatus={assignmentStatus}
         resultCount={totalCount}
         onQueryChange={handleQueryChange}
-        onStageChange={handleStageChange}
+        onStatusChange={handleStudentStatusFilterChange}
         onProvinceChange={handleProvinceChange}
         onAssignmentStatusChange={handleAssignmentStatusChange}
         onReset={resetFilters}
       />
 
       <Card className="min-w-0 overflow-hidden p-0">
-        <div
-          className={`hidden ${studentListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
-          aria-hidden="true"
-        >
-          <span>Họ tên · THPT · Quê quán</span>
-          <span>Ngành quan tâm</span>
-          <span>Trạng thái</span>
-          <span>Điểm tiềm năng</span>
-          <span>Người phụ trách</span>
-          <span className="text-center">Thao tác</span>
+        <div className="lg:overflow-x-auto">
+          <div className="lg:min-w-[1100px]">
+            <div
+              className={`hidden ${studentListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
+              aria-hidden="true"
+            >
+              <span>Họ tên · THPT · Quê quán</span>
+              <span>Ngành quan tâm</span>
+              <span>Trạng thái</span>
+              <span className="text-center">Điểm tiềm năng</span>
+              <span>Người phụ trách</span>
+              <span className="text-center">Thao tác</span>
+            </div>
+            <StudentList
+              students={filteredStudents}
+              ownerEditable={permissions.student.canAssign}
+              onStatusChange={handleStudentStatusDraftChange}
+            />
+          </div>
         </div>
-        <StudentList
-          students={students}
-          ownerEditable={permissions.student.canAssign}
-        />
 
         {totalCount > 0 && (
           <div className="flex flex-col gap-3 border-t border-card-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">

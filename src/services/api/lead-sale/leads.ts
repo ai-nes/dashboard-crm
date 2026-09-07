@@ -41,6 +41,8 @@ export type ConversionPotential =
 export type FptAspiration = string;
 
 export interface LeadDetail extends LeadListItem {
+  lifecycleStatus?: string | null;
+  lifecycleStatusCode?: string | null;
   email: string;
   secondaryEmail: string;
   province: string;

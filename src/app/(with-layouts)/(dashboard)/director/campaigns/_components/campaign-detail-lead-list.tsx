@@ -3,11 +3,11 @@ import Link from "next/link";
 import LeadContactLogCell from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-contact-log-cell";
 import LeadResultCell from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-result-cell";
 import {
-  leadStatusLabel,
-  leadStatusOptions,
-  leadStatusTriggerClass,
+  leadStageStatusLabel,
+  leadStageStatusOptions,
+  leadStageTriggerClass,
   type LeadResultStatus,
-  type LeadStatusCode,
+  type LeadStageStatus,
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
 import { leadTableGrid } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-table-grid";
 import {
@@ -26,7 +26,7 @@ export const campaignLeadListGrid = leadTableGrid;
 
 interface CampaignDetailLeadListProps {
   leads: CampaignLeadRow[];
-  onStatusChange: (id: string, status: LeadStatusCode) => void;
+  onStatusChange: (id: string, status: LeadStageStatus) => void;
   onResultChange: (id: string, result: LeadResultStatus) => void;
 }
 
@@ -86,18 +86,18 @@ export default function CampaignDetailLeadList({
               {lead.status ? (
                 <Select
                   value={lead.status}
-                  onChange={(value) => onStatusChange(lead.id, String(value) as LeadStatusCode)}
+                  onChange={(value) => onStatusChange(lead.id, String(value) as LeadStageStatus)}
                   aria-label={`Đổi trạng thái lead ${lead.name}`}
                   className="w-fit min-w-32"
                 >
-                  <SelectTrigger size="sm" className={`w-full ${leadStatusTriggerClass[lead.status]}`}>
+                  <SelectTrigger size="sm" className={`w-full ${leadStageTriggerClass[lead.status]}`}>
                     <SelectValue />
                     <SelectIndicator />
                   </SelectTrigger>
                   <SelectContent>
-                    {leadStatusOptions.map((status) => (
-                      <SelectItem key={status} id={status} textValue={leadStatusLabel[status]}>
-                        {leadStatusLabel[status]}
+                    {leadStageStatusOptions.map((status) => (
+                      <SelectItem key={status} id={status} textValue={leadStageStatusLabel[status]}>
+                        {leadStageStatusLabel[status]}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -1,69 +1,13 @@
 import type { LeadResolution } from "@/services/api/lead-sale";
 
-export type LeadStatusCode =
-  | "New"
-  | "Working"
-  | "Contacted"
-  | "Nurturing"
-  | "Qualified"
-  | "Unqualified"
-  | "Converted"
-  | "Lost";
-
-export const leadStatusOptions: LeadStatusCode[] = [
-  "New",
-  "Working",
-  "Contacted",
-  "Nurturing",
-  "Qualified",
-  "Unqualified",
-  "Converted",
-  "Lost",
-];
-
-export const leadStatusLabel: Record<LeadStatusCode, string> = {
-  New: "Mới",
-  Working: "Đang xử lý",
-  Contacted: "Đã liên hệ",
-  Nurturing: "Đang nuôi dưỡng",
-  Qualified: "Đủ điều kiện",
-  Unqualified: "Không đủ điều kiện",
-  Converted: "Đã chuyển đổi",
-  Lost: "Đã mất",
-};
-
-export const leadStatusTriggerClass: Record<LeadStatusCode, string> = {
-  New: "border-transparent bg-badge-gray-background text-badge-gray-text",
-  Working: "border-transparent bg-badge-sky-background text-badge-sky-text",
-  Contacted: "border-transparent bg-badge-primary-background text-badge-primary-text",
-  Nurturing: "border-transparent bg-badge-warning-background text-badge-warning-text",
-  Qualified: "border-transparent bg-badge-success-background text-badge-success-text",
-  Unqualified: "border-transparent bg-badge-rose-background text-badge-rose-text",
-  Converted: "border-transparent bg-badge-success-background text-badge-success-text",
-  Lost: "border-transparent bg-badge-error-background text-badge-error-text",
-};
-
-export function normalizeLeadStatus(value: unknown): LeadStatusCode | null {
-  const candidate = typeof value === "string" ? value.trim().toLowerCase() : "";
-  return (
-    leadStatusOptions.find(
-      (status) =>
-        status.toLowerCase() === candidate ||
-        leadStatusLabel[status].toLowerCase() === candidate,
-    ) ?? null
-  );
-}
-
 export type LeadStageStatus =
   | "NEW"
-  | "PROCESSING"
   | "PROCESSED"
   | "ASSIGNED"
   | "CLOSED";
 
 export const leadStageStatusLabel: Record<LeadStageStatus, string> = {
   NEW: "Mới",
-  PROCESSING: "Đang xử lý",
   PROCESSED: "Đã xử lý",
   ASSIGNED: "Đã phân công",
   CLOSED: "Đã đóng",
@@ -74,7 +18,6 @@ export const leadStageStatusColor: Record<
   "gray" | "sky" | "warning" | "success"
 > = {
   NEW: "gray",
-  PROCESSING: "sky",
   PROCESSED: "sky",
   ASSIGNED: "warning",
   CLOSED: "success",
@@ -82,7 +25,6 @@ export const leadStageStatusColor: Record<
 
 export const leadStageStatusOptions: LeadStageStatus[] = [
   "NEW",
-  "PROCESSING",
   "PROCESSED",
   "ASSIGNED",
   "CLOSED",
@@ -90,7 +32,6 @@ export const leadStageStatusOptions: LeadStageStatus[] = [
 
 export const leadStageTriggerClass: Record<LeadStageStatus, string> = {
   NEW: "border-transparent bg-badge-gray-background text-badge-gray-text",
-  PROCESSING: "border-transparent bg-badge-sky-background text-badge-sky-text",
   PROCESSED: "border-transparent bg-badge-sky-background text-badge-sky-text",
   ASSIGNED: "border-transparent bg-badge-warning-background text-badge-warning-text",
   CLOSED: "border-transparent bg-badge-success-background text-badge-success-text",

@@ -5,6 +5,13 @@ export type StudentJourneyStage =
   | "Ứng tuyển"
   | "Nhập học";
 
+export type StudentStatus =
+  | "New"
+  | "Attempting"
+  | "Connected"
+  | "Qualified"
+  | "Disqualified";
+
 export type StudentAssignmentStatus = "assigned" | "unassigned";
 
 export type StudentLifecycleStatus =
@@ -178,6 +185,8 @@ export interface StudentListItem {
   provinceId?: string | null;
   major: string;
   stage: StudentJourneyStage;
+  /** Contact-stage enum used by the editable status control. */
+  studentStage?: StudentStatus | null;
   assignmentStatus?: StudentAssignmentStatus;
   lifecycleStatus?: StudentLifecycleStatus | null;
   score: number;

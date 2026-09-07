@@ -15,8 +15,8 @@ describe("toCampaignLeadRow", () => {
       phone: "0900000000",
       school: "THPT Châu Văn Liêm",
       status: "Đang xử lý",
-      statusCode: "Working",
-      processingStatus: "ASSIGNED",
+      statusCode: "PROCESSED",
+      processingStatus: "PROCESSED",
       result: "MATCHED",
       source: "Website",
       owner: "Trần Quốc Bảo",
@@ -26,8 +26,8 @@ describe("toCampaignLeadRow", () => {
     };
 
     expect(toCampaignLeadRow(lead)).toMatchObject({
-      status: "Working",
-      processingStatus: "ASSIGNED",
+      status: "PROCESSED",
+      processingStatus: "PROCESSED",
       result: "MATCHED",
       contactNoAnswer: 2,
       contactSuccess: 3,

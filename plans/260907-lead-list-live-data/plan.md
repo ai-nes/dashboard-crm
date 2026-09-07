@@ -1,6 +1,6 @@
 ---
 title: Lead list live workflow columns
-status: in-progress
+status: completed
 created: 2026-09-07
 ---
 
@@ -20,9 +20,11 @@ pagination, and envelope. Each row additionally returns:
 - `result`: the Lead resolution code, or an empty value while pending;
 - `contactNoAnswer`: count of failed/no-answer call attempts;
 - `contactSuccess`: count of connected call attempts;
-- `status` / `statusCode` map the `CRM Lead.lead_status` enum used by the status
-  column; existing `processingStatus` remains the source for the internal
-  processing workflow and result editability.
+- `status` / `statusCode` map the Form Submission Status enum (sourced from
+  `processing_status`) used
+  by the status column: `NEW`, `PROCESSED`, `ASSIGNED`, or `CLOSED`.
+- `processingStatus` remains as a backward-compatible alias for result
+  editability.
 - `createdAt` remains the source for the creation-date column.
 
 Call Logs linked to the Lead are counted first. CRM Interaction phone-call
