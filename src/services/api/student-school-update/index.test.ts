@@ -12,6 +12,7 @@ import {
   importLeads,
   getStudent,
   StudentSchoolUpdateApiError,
+  requestStudentStageTransition,
   updateSchool,
   updateStudent,
 } from ".";
@@ -22,6 +23,40 @@ afterEach(() => {
 });
 
 describe("student and school update contract", () => {
+  it("requests a documented student stage transition", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            student: "CRMC-2026-00001",
+            target_stage: "Attempting",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      requestStudentStageTransition({
+        student: "CRMC-2026-00001",
+        target_stage: "Attempting",
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.student_stage.request_transition",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({
+          student: "CRMC-2026-00001",
+          target_stage: "Attempting",
+        }),
+      }),
+    );
+  });
+
   it("reads a student through the documented RPC", async () => {
     vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(

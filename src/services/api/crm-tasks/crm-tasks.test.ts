@@ -38,8 +38,8 @@ describe("CRM Tasks API Service", () => {
               status: "Todo",
               priority: "High",
               due_date: "2026-09-05 17:00:00",
-              reference_doctype: "CRM Lead",
-              reference_docname: "ENR-2026-00005",
+              reference_doctype: "CRM Student",
+              reference_docname: "STU-2026-00005",
             },
           ],
         },
@@ -48,15 +48,15 @@ describe("CRM Tasks API Service", () => {
 
     const result = await listTasks(
       {
-        referenceDoctype: "CRM Lead",
-        referenceDocname: "ENR-2026-00005",
+        referenceDoctype: "CRM Student",
+        referenceDocname: "STU-2026-00005",
         status: "Todo",
       },
       { baseUrl },
     );
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      `${baseUrl}/api/method/crm.api.task.list_tasks?reference_doctype=CRM+Lead&reference_docname=ENR-2026-00005&status=Todo&start=0&page_length=20`,
+      `${baseUrl}/api/method/crm.api.task.list_tasks?reference_doctype=CRM+Student&reference_docname=STU-2026-00005&status=Todo&start=0&page_length=20`,
       expect.objectContaining({ method: "GET" }),
     );
     expect(result.tasks[0]).toMatchObject({
@@ -100,8 +100,8 @@ describe("CRM Tasks API Service", () => {
         message: {
           name: "1",
           title: "Gọi lại tư vấn viên",
-          reference_doctype: "CRM Lead",
-          reference_docname: "ENR-2026-00005",
+          reference_doctype: "CRM Student",
+          reference_docname: "STU-2026-00005",
         },
       }),
     });
@@ -123,16 +123,16 @@ describe("CRM Tasks API Service", () => {
         message: {
           name: "2",
           title: "Gọi lại tư vấn viên",
-          reference_doctype: "CRM Lead",
-          reference_docname: "ENR-2026-00005",
+          reference_doctype: "CRM Student",
+          reference_docname: "STU-2026-00005",
         },
       }),
     });
 
     await createTask(
       {
-        referenceDoctype: "CRM Lead",
-        referenceDocname: "ENR-2026-00005",
+        referenceDoctype: "CRM Student",
+        referenceDocname: "STU-2026-00005",
         title: "Gọi lại tư vấn viên",
         description: "Xác nhận lịch tư vấn.",
         actionCode: "CALL_BACK",
@@ -148,8 +148,8 @@ describe("CRM Tasks API Service", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
-          reference_doctype: "CRM Lead",
-          reference_docname: "ENR-2026-00005",
+          reference_doctype: "CRM Student",
+          reference_docname: "STU-2026-00005",
           title: "Gọi lại tư vấn viên",
           description: "Xác nhận lịch tư vấn.",
           action_code: "CALL_BACK",
@@ -170,8 +170,8 @@ describe("CRM Tasks API Service", () => {
           name: "2",
           title: "Gọi lại lần 2",
           status: "In Progress",
-          reference_doctype: "CRM Lead",
-          reference_docname: "ENR-2026-00005",
+          reference_doctype: "CRM Student",
+          reference_docname: "STU-2026-00005",
         },
       }),
     });

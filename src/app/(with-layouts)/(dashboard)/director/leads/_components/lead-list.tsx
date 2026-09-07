@@ -25,6 +25,10 @@ import {
 
 export const leadListGrid = leadTableGrid;
 
+export function getLeadDetailHref(leadId: string) {
+  return `/director/leads/${leadId}`;
+}
+
 interface LeadListProps {
   leads: LeadListItem[];
   onStatusChange: (id: string, status: LeadStageStatus) => void;
@@ -62,7 +66,7 @@ export default function LeadList({ leads, onStatusChange, onResultChange }: Lead
                 </span>
                 <div className="min-w-0">
                   <Link
-                    href={`/director/leads/${lead.id}`}
+                    href={getLeadDetailHref(lead.id)}
                     className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
                   >
                     {lead.name || "-"}

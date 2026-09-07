@@ -138,7 +138,7 @@ export class LeadApiError extends Error {
 }
 
 const LIST_METHOD = "crm.api.director_leads.get_director_leads";
-const DETAIL_METHOD = "crm.api.director_leads.get_director_lead";
+const DETAIL_METHOD = "crm.api.lead.get_lead";
 const LEAD_RESOLUTION_CODES = new Set<LeadResolution>([
   "MATCHED",
   "CREATED",
@@ -162,6 +162,14 @@ function nullableText(value: unknown): string | null {
   return typeof value === "string" && value ? value : null;
 }
 
+function firstText(values: unknown[], fallback = ""): string {
+  for (const value of values) {
+    const candidate = nullableText(value);
+    if (candidate) return candidate;
+  }
+  return fallback;
+}
+
 function count(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.max(0, Math.floor(value))
@@ -181,33 +189,104 @@ function unwrapMessage(value: unknown): unknown {
 }
 
 function stringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string")
+  let parsed = value;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(parsed)
+    ? parsed.filter((item): item is string => typeof item === "string")
     : [];
+}
+
+function integerOrNull(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.floor(value);
+  }
+  if (typeof value === "string" && /^\d+$/.test(value.trim())) {
+    return Number.parseInt(value, 10);
+  }
+  return null;
+}
+
+function initials(value: string): string {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  return parts
+    .slice(-2)
+    .map((part) => part[0]?.toLocaleUpperCase("vi-VN") ?? "")
+    .join("") || "L";
+}
+
+function normalizeConversionPotential(
+  value: unknown,
+): ConversionPotential | null {
+  const candidate = nullableText(value)?.toLocaleLowerCase("vi-VN");
+  if (!candidate) return null;
+  if (candidate === "cao" || candidate === "high") return "Cao";
+  if (candidate === "trung bình" || candidate === "medium") {
+    return "Trung bình";
+  }
+  if (candidate === "thấp" || candidate === "low") return "Thấp";
+  if (candidate === "chưa xác định" || candidate === "unknown") {
+    return "Chưa xác định";
+  }
+  return null;
 }
 
 function normalizeListItem(value: unknown): LeadListItem {
   const row = asRecord(value) ?? {};
-  const processingStatus = nullableText(
-    row.processingStatus ?? row.processing_status,
+  const id = firstText([row.id, row.name]);
+  const name = firstText([row.studentName, row.student_name, row.name], id);
+  const processingStatus = firstText([
+    row.processingStatus,
+    row.processing_status,
+  ]);
+  const createdAt = firstText([
+    row.createdAt,
+    row.created_at,
+    row.creation,
+  ]);
+  const owner = firstText(
+    [row.ownerStaff, row.owner_staff, row.assignedTo, row.assigned_to, row.owner],
+    "Chưa phân công",
   );
-  const createdAt = nullableText(row.createdAt ?? row.created_at);
   return {
-    id: text(row.id),
-    leadCode: text(row.leadCode ?? row.lead_code),
-    studentId: text(row.studentId ?? row.student_id, text(row.id)),
-    initials: text(row.initials),
-    name: text(row.name),
-    phone: text(row.phone),
-    school: text(row.school),
-    status: text(row.status),
-    statusCode: nullableText(row.statusCode ?? row.status_code),
+    id,
+    leadCode: firstText([row.leadCode, row.lead_code]),
+    studentId: firstText(
+      [row.studentId, row.student_id, row.student, row.matched_student],
+      id,
+    ),
+    initials: firstText([row.initials], initials(name)),
+    name,
+    phone: firstText([row.phone]),
+    school: firstText([row.school, row.highSchool, row.high_school]),
+    status: firstText([
+      row.status,
+      row.processingStatus,
+      row.processing_status,
+      row.leadStatus,
+      row.lead_status,
+    ]),
+    statusCode: firstText([
+      row.statusCode,
+      row.status_code,
+      row.processingStatus,
+      row.processing_status,
+    ]) || null,
     ...(processingStatus ? { processingStatus } : {}),
     result: normalizeResolution(row.result ?? row.resolution),
-    source: text(row.source),
-    owner: text(row.owner),
-    contactNoAnswer: count(row.contactNoAnswer ?? row.contact_no_answer),
-    contactSuccess: count(row.contactSuccess ?? row.contact_success),
+    source: firstText([row.source]),
+    owner,
+    contactNoAnswer: count(
+      row.contactNoAnswer ?? row.contact_no_answer ?? row.no_answer_calls,
+    ),
+    contactSuccess: count(
+      row.contactSuccess ?? row.contact_success ?? row.success_calls,
+    ),
     ...(createdAt ? { createdAt } : {}),
   };
 }
@@ -269,38 +348,61 @@ export function normalizeLeadList(value: unknown): LeadListResponse {
 
 function normalizeDetail(value: unknown): LeadDetail {
   const row = asRecord(value) ?? {};
-  const conversionPotential =
-    row.conversionPotential ?? row.conversion_potential;
-  const validConversionPotential =
-    conversionPotential === "Cao" ||
-    conversionPotential === "Trung bình" ||
-    conversionPotential === "Thấp" ||
-    conversionPotential === "Chưa xác định"
-      ? conversionPotential
-      : null;
-  const enrollmentYear = row.enrollmentYear ?? row.enrollment_year;
+  const enrollmentYear =
+    row.enrollmentYear ?? row.enrollment_year ?? row.admission_year;
 
   return {
     ...normalizeListItem(row),
-    email: text(row.email),
-    secondaryEmail: text(row.secondaryEmail ?? row.secondary_email),
-    province: text(row.province),
-    interestedMajor: text(row.interestedMajor ?? row.interested_major),
-    adChannel: text(row.adChannel ?? row.ad_channel),
+    lifecycleStatus: firstText([
+      row.lifecycleStatus,
+      row.lifecycle_status,
+      row.enrollmentStatus,
+      row.enrollment_status,
+    ]) || null,
+    lifecycleStatusCode: firstText([
+      row.lifecycleStatusCode,
+      row.lifecycle_status_code,
+      row.enrollmentStatus,
+      row.enrollment_status,
+    ]) || null,
+    email: firstText([row.email]),
+    secondaryEmail: firstText([
+      row.secondaryEmail,
+      row.secondary_email,
+      row.other_email,
+    ]),
+    province: firstText([row.province]),
+    interestedMajor: firstText([
+      row.interestedMajor,
+      row.interested_major,
+      row.major,
+    ]),
+    adChannel: firstText([
+      row.adChannel,
+      row.ad_channel,
+      row.advertising_channel,
+    ]),
     segments: stringArray(row.segments),
-    enrollmentYear:
-      typeof enrollmentYear === "number" && Number.isFinite(enrollmentYear)
-        ? Math.floor(enrollmentYear)
-        : null,
-    conversionPotential: validConversionPotential,
-    branch: text(row.branch),
+    enrollmentYear: integerOrNull(enrollmentYear),
+    conversionPotential: normalizeConversionPotential(
+      row.conversionPotential ?? row.conversion_potential,
+    ),
+    branch: firstText([row.branch]),
     tags: stringArray(row.tags),
-    fptAspiration: text(row.fptAspiration ?? row.fpt_aspiration),
+    fptAspiration: firstText([
+      row.fptAspiration,
+      row.fpt_aspiration,
+      row.aspiration,
+    ]),
     eventsParticipated: stringArray(
       row.eventsParticipated ?? row.events_participated,
     ),
-    description: text(row.description),
-    modifiedAt: nullableText(row.modifiedAt ?? row.modified_at),
+    description: firstText([row.description, row.notes]),
+    modifiedAt: firstText([
+      row.modifiedAt,
+      row.modified_at,
+      row.modified,
+    ]) || null,
   };
 }
 
@@ -328,14 +430,33 @@ function normalizeLogEntry(value: unknown): LeadLogEntry {
 
 export function normalizeLeadDetail(value: unknown): LeadDetailResponse {
   const payload = asRecord(unwrapMessage(value));
-  if (!payload || !asRecord(payload.lead) || !Array.isArray(payload.log)) {
+  if (!payload) {
     throw new Error("Invalid Lead detail response");
   }
+
+  const legacyLead = asRecord(payload.lead);
+  if (legacyLead && Array.isArray(payload.log)) {
+    const meta = asRecord(payload.meta) ?? {};
+    return {
+      lead: normalizeDetail(legacyLead),
+      log: payload.log.map(normalizeLogEntry),
+      meta: { asOf: nullableText(meta.asOf ?? meta.as_of) },
+    };
+  }
+
+  if (!firstText([payload.name, payload.id])) {
+    throw new Error("Invalid Lead detail response");
+  }
+
   const meta = asRecord(payload.meta) ?? {};
   return {
-    lead: normalizeDetail(payload.lead),
-    log: payload.log.map(normalizeLogEntry),
-    meta: { asOf: nullableText(meta.asOf ?? meta.as_of) },
+    lead: normalizeDetail(payload),
+    log: [],
+    meta: {
+      asOf:
+        nullableText(meta.asOf ?? meta.as_of) ??
+        nullableText(payload.modifiedAt ?? payload.modified_at ?? payload.modified),
+    },
   };
 }
 
@@ -469,7 +590,7 @@ export async function getLeadDetail(
   leadId: string,
   options: LeadApiRequestOptions = {},
 ): Promise<LeadDetailResponse | null> {
-  const searchParams = new URLSearchParams({ lead_id: leadId });
+  const searchParams = new URLSearchParams({ name: leadId });
   try {
     const payload = await request(DETAIL_METHOD, searchParams, options);
     return normalizeLeadDetail(payload);

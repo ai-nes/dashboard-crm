@@ -1,4 +1,5 @@
-export type CRMTaskReferenceDoctype = "CRM Lead" | "CRM Student";
+/** CRM Student is canonical; CRM Lead is retained only for legacy adapters. */
+export type CRMTaskReferenceDoctype = "CRM Student" | "CRM Lead";
 export type CRMTaskPriority = "Low" | "Medium" | "High";
 export type CRMTaskStatus =
   | "Backlog"

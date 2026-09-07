@@ -161,7 +161,7 @@ export async function getStudentWorklistActions(
 
   const baseUrl = resolveBaseUrl(options);
   const query = new URLSearchParams({
-    doctype: "CRM Lead",
+    doctype: "CRM Student",
     name: normalizedStudentId,
     page_size: "50",
   });

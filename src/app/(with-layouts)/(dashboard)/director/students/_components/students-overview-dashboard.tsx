@@ -23,8 +23,10 @@ import {
 import {
   createLead,
   importLeads,
+  requestStudentStageTransition,
   type LeadCreateFields,
   type LeadImportResponse,
+  type StudentStageTransitionRequest,
 } from "@/services/api/student-school-update";
 import type {
   StudentAssignmentStatus,
@@ -36,7 +38,10 @@ import LeadImportDialog from "./lead-import-dialog";
 import StudentKpiStrip from "./student-kpi-strip";
 import StudentList, { studentListGrid } from "./student-list";
 import StudentListToolbar from "./student-list-toolbar";
-import { defaultStudentStatus } from "./student-status";
+import {
+  canTransitionStudentStatus,
+  defaultStudentStatus,
+} from "./student-status";
 
 export default function StudentsOverviewDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -108,7 +113,9 @@ export default function StudentsOverviewDashboard() {
   const meta = response?.meta;
 
   const totalCount =
-    studentStatus === "all" ? (meta?.total ?? students.length) : filteredStudents.length;
+    studentStatus === "all"
+      ? (meta?.total ?? students.length)
+      : filteredStudents.length;
   const totalPages =
     studentStatus === "all"
       ? Math.max(1, meta?.totalPages ?? Math.ceil(totalCount / pageSize))
@@ -154,6 +161,27 @@ export default function StudentsOverviewDashboard() {
       );
     },
   });
+  const statusMutation = useMutation({
+    mutationFn: (request: StudentStageTransitionRequest) =>
+      requestStudentStageTransition(request),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["director-students"] });
+      await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
+      toast.success("Đã cập nhật trạng thái học sinh.");
+    },
+    onError: (error, variables) => {
+      setStatusDrafts((previous) => {
+        const next = { ...previous };
+        delete next[variables.student];
+        return next;
+      });
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Chưa thể cập nhật trạng thái học sinh.",
+      );
+    },
+  });
 
   const handleQueryChange = (val: string) => {
     setQuery(val);
@@ -191,10 +219,21 @@ export default function StudentsOverviewDashboard() {
     id: string,
     nextStatus: StudentStatus,
   ) => {
+    const currentStudent = students.find((student) => student.id === id);
+    const currentStatus = currentStudent?.studentStage ?? defaultStudentStatus;
+    if (!canTransitionStudentStatus(currentStatus, nextStatus)) {
+      toast.error("Trạng thái chỉ được chuyển theo đúng quy trình.");
+      return;
+    }
+
     setStatusDrafts((previous) => ({
       ...previous,
       [id]: nextStatus,
     }));
+    statusMutation.mutate({
+      student: id,
+      target_stage: nextStatus,
+    });
   };
 
   const resetFilters = () => {
@@ -311,6 +350,7 @@ export default function StudentsOverviewDashboard() {
             </div>
             <StudentList
               students={filteredStudents}
+              isStatusUpdating={statusMutation.isPending}
               ownerEditable={permissions.student.canAssign}
               onStatusChange={handleStudentStatusDraftChange}
             />

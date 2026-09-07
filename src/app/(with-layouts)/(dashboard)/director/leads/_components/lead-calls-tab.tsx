@@ -21,7 +21,9 @@ import { formatDateTime } from "@/utils/format-date";
 import {
   getSttJobStatus,
   isSttCallUuid,
+  isSttSummaryTerminalStatus,
   isSttTerminalStatus,
+  triggerSttSummary,
   triggerSttTranscription,
   type SttJobStatus,
 } from "@/services/api/stt";
@@ -194,6 +196,7 @@ export function LeadCallDetails({
   onCallUpdated?: () => void;
 }) {
   const outcome = outcomeConfig[call.outcome];
+  const hasSummary = call.summaryAvailable ?? Boolean(call.summary);
 
   if (compact) {
     return (
@@ -232,7 +235,7 @@ export function LeadCallDetails({
         <span>Thời lượng: {formatDuration(call.durationSeconds)}</span>
       </div>
 
-      {call.summary ? (
+      {call.summary && hasSummary ? (
         <div className="rounded-lg bg-background-gray-secondary/60 px-4 py-3">
           <p className="text-xs font-medium text-text-tertiary">Tóm tắt cuộc gọi</p>
           <p className="mt-1 text-sm leading-6 text-text-primary">{call.summary}</p>
@@ -243,6 +246,10 @@ export function LeadCallDetails({
 
       {!call.transcript && isSttCallUuid(call.id) ? (
         <LeadCallTranscriptionAction callUuid={call.id} onCompleted={onCallUpdated} />
+      ) : null}
+
+      {call.transcript && !hasSummary && isSttCallUuid(call.id) ? (
+        <LeadCallSummaryAction callUuid={call.id} onCompleted={onCallUpdated} />
       ) : null}
 
       <LeadCallRecording recordingUrl={call.recordingUrl} durationSeconds={call.durationSeconds} />
@@ -336,6 +343,94 @@ function LeadCallTranscriptionAction({
   );
 }
 
+function LeadCallSummaryAction({
+  callUuid,
+  onCompleted,
+}: {
+  callUuid: string;
+  onCompleted?: () => void;
+}) {
+  const [job, setJob] = useState<SttJobStatus | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!job?.summary_status || isSttSummaryTerminalStatus(job.summary_status)) return;
+
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      try {
+        const next = await getSttJobStatus(callUuid);
+        if (disposed) return;
+        if (next) {
+          setJob(next);
+          setError(null);
+          if (isSttSummaryTerminalStatus(next.summary_status)) {
+            if (next.summary_status === "COMPLETED") onCompleted?.();
+            return;
+          }
+        }
+      } catch (pollError) {
+        if (!disposed) {
+          setError(pollError instanceof Error ? pollError.message : "Không lấy được trạng thái tóm tắt.");
+        }
+      }
+      if (!disposed) timer = setTimeout(poll, 3000);
+    };
+
+    void poll();
+    return () => {
+      disposed = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [callUuid, job?.summary_status, onCompleted]);
+
+  const startSummary = async () => {
+    setIsStarting(true);
+    setError(null);
+    try {
+      await triggerSttSummary(callUuid);
+      setJob({ status: "COMPLETED", summary_status: "PROCESSING" });
+    } catch (startError) {
+      setError(startError instanceof Error ? startError.message : "Không thể tạo tóm tắt AI.");
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  const isProcessing = Boolean(
+    job?.summary_status && !isSttSummaryTerminalStatus(job.summary_status),
+  );
+  const buttonLabel = isStarting
+    ? "Đang gửi…"
+    : isProcessing
+      ? "Đang tóm tắt…"
+      : job?.summary_status === "FAILED"
+        ? "Thử lại tóm tắt"
+        : "Tạo tóm tắt AI";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-card-border px-3 py-2">
+      <Button
+        type="button"
+        appearance="outline"
+        size="sm"
+        onPress={startSummary}
+        isDisabled={isStarting || isProcessing}
+      >
+        {buttonLabel}
+      </Button>
+      {job?.summary_status ? (
+        <span className="text-xs text-text-tertiary" role="status">
+          AI: {formatSummaryStatus(job.summary_status)}
+        </span>
+      ) : null}
+      {error ? <span className="text-xs text-error-600">{error}</span> : null}
+    </div>
+  );
+}
+
 function formatSttStatus(status: string): string {
   return (
     {
@@ -345,6 +440,17 @@ function formatSttStatus(status: string): string {
       SENDING_TO_CRM: "đang lưu CRM",
       COMPLETED: "hoàn tất",
       COMPLETED_LOCAL_ONLY: "hoàn tất tại STT",
+      FAILED: "thất bại",
+    }[status] ?? status
+  );
+}
+
+function formatSummaryStatus(status: string): string {
+  return (
+    {
+      QUEUED: "đang xếp hàng",
+      PROCESSING: "đang tạo",
+      COMPLETED: "hoàn tất",
       FAILED: "thất bại",
     }[status] ?? status
   );

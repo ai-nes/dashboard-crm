@@ -20,35 +20,42 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { formatDateTime } from "@/utils/format-date";
 import type {
-  StudentContactConsent,
   StudentPriority,
+  StudentStatus,
   StudentVerificationStatus,
 } from "@/services/api/students/types";
 
 import StudentCopyBadge from "./student-copy-badge";
 import StudentGaugeChart from "./student-gauge-chart";
+import StudentStatusSelect from "./student-status-select";
+import { defaultStudentStatus, studentStatusLabel } from "./student-status";
 import type { Student360SectionProps } from "./types";
 
 interface StudentHeaderProps extends Student360SectionProps {
+  contactCount?: number;
+  isStatusUpdating?: boolean;
   onDeleteRequest?: () => void;
+  onStatusChange?: (status: StudentStatus) => void;
+  status?: StudentStatus | null;
 }
 
 export default function StudentHeader({
+  contactCount,
   data,
+  isStatusUpdating,
   onDeleteRequest,
+  onStatusChange,
+  status,
 }: StudentHeaderProps) {
   const { student } = data;
   const subtitle = student.grade || "-";
-  const hasMetadata = Boolean(
-    student.verificationStatus ||
-    student.contactConsent ||
-    student.lastUpdatedAt,
-  );
+  const hasMetadata = Boolean(student.lastUpdatedAt);
   const scoreCandidate = data.insight.signalScore ?? data.insight.probability;
   const score =
     typeof scoreCandidate === "number" && Number.isFinite(scoreCandidate)
       ? scoreCandidate
       : null;
+  const studentStatus = status ?? student.studentStage ?? defaultStudentStatus;
 
   return (
     <header className="min-w-0 shrink-0">
@@ -166,17 +173,30 @@ export default function StudentHeader({
             </div>
           </div>
 
-          <div className="mt-3 border-t border-card-border">
+          <div className="mt-3 grid divide-y divide-card-border border-t border-card-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div className="min-w-0 px-3 py-2">
+              <p className="text-[11px] text-text-tertiary">Trạng thái</p>
+              {onStatusChange ? (
+                <StudentStatusSelect
+                  studentName={student.name || "học sinh"}
+                  value={studentStatus}
+                  isDisabled={isStatusUpdating}
+                  onChange={onStatusChange}
+                />
+              ) : (
+                <p className="mt-0.5 text-sm font-semibold text-text-primary">
+                  {studentStatusLabel[studentStatus]}
+                </p>
+              )}
+            </div>
             <HeaderFact label="Phụ trách" value={student.counselor || "-"} />
+            <HeaderFact
+              label="Số lần liên hệ"
+              value={`${contactCount ?? 0} lần liên hệ`}
+            />
           </div>
           {hasMetadata && (
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-card-border pt-3 text-xs">
-              {student.contactConsent && (
-                <HeaderMeta
-                  label="Đồng ý tư vấn"
-                  value={formatConsent(student.contactConsent)}
-                />
-              )}
               {student.lastUpdatedAt && (
                 <HeaderMeta
                   label="Cập nhật"
@@ -213,13 +233,6 @@ function HeaderMeta({ label, value }: { label: string; value: string }) {
       <span className="font-medium text-text-secondary">{value || "-"}</span>
     </span>
   );
-}
-
-function formatConsent(consent: StudentContactConsent): string {
-  const channels = consent.channels
-    .filter((channel) => channel !== "Zalo")
-    .join(", ");
-  return channels ? `${consent.status} · ${channels}` : consent.status;
 }
 
 function getPriorityColor(priority: StudentPriority) {

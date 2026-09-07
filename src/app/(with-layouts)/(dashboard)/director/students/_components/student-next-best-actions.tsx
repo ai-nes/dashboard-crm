@@ -53,38 +53,35 @@ export default function StudentNextBestActions({
   const runMutation = useRunStudentNbaEvaluation();
 
   const worklistActions = useMemo(
-    () =>
-      (query.data?.items ?? []).filter(
-        (item) => item.studentId === studentId.trim(),
-      ),
-    [query.data?.items, studentId],
+    // The Frappe endpoint applies the student filter and resolves legacy Lead
+    // ids to the canonical CRM Student id before returning this list.
+    () => query.data?.items ?? [],
+    [query.data?.items],
   );
   const actions = useMemo(() => {
     if (postRecommendations === null) return worklistActions;
 
-    return postRecommendations
-      .filter((recommendation) => recommendation.studentId === studentId.trim())
-      .map((recommendation) => {
-        const worklistItem = worklistActions.find((item) =>
-          sameNbaRecommendation(item, recommendation),
-        );
+    return postRecommendations.map((recommendation) => {
+      const worklistItem = worklistActions.find((item) =>
+        sameNbaRecommendation(item, recommendation),
+      );
 
-        if (!worklistItem) return recommendation;
+      if (!worklistItem) return recommendation;
 
-        // The worklist owns the persisted recommendation content and decision
-        // metadata. Keep the POST explanation only while GET is incomplete.
-        return {
-          ...recommendation,
-          ...worklistItem,
-          explanation: worklistItem.explanation ?? recommendation.explanation,
-          explanationSource:
-            worklistItem.explanationSource ?? recommendation.explanationSource,
-          expectedRevision: worklistItem.expectedRevision,
-          revision: worklistItem.revision,
-          permittedDecisions: worklistItem.permittedDecisions,
-        };
-      });
-  }, [postRecommendations, studentId, worklistActions]);
+      // The worklist owns the persisted recommendation content and decision
+      // metadata. Keep the POST explanation only while GET is incomplete.
+      return {
+        ...recommendation,
+        ...worklistItem,
+        explanation: worklistItem.explanation ?? recommendation.explanation,
+        explanationSource:
+          worklistItem.explanationSource ?? recommendation.explanationSource,
+        expectedRevision: worklistItem.expectedRevision,
+        revision: worklistItem.revision,
+        permittedDecisions: worklistItem.permittedDecisions,
+      };
+    });
+  }, [postRecommendations, worklistActions]);
   useEffect(() => {
     onActionsCountChange?.(actions.length);
   }, [actions.length, onActionsCountChange]);
@@ -100,14 +97,22 @@ export default function StudentNextBestActions({
     if (!decisionMutation.isPending) setDecision(null);
   };
 
-  const runNba = async () => {
-    try {
-      const result = await runMutation.mutateAsync({ studentId });
-      await query.refetch();
-      const recommendations = result.recommendations.filter(
-        (recommendation) => recommendation.studentId === studentId.trim(),
-      );
-      setPostRecommendations(recommendations);
+	const runNba = async () => {
+		try {
+			const result = await runMutation.mutateAsync({ studentId });
+			const refreshed = await query.refetch();
+			// The run endpoint is already scoped to this one requested student. Its
+			// recommendation target uses the canonical CRM Student id, which may
+			// differ from the legacy Lead id used by the detail route. If the
+			// inline read-back is unavailable, use the permission-filtered worklist
+			// returned by the same server-side scope instead of hiding new rows.
+			const recommendations =
+				result.recommendations.length > 0
+					? result.recommendations
+					: result.recommendationCount > 0
+						? refreshed.data?.items ?? []
+						: [];
+			setPostRecommendations(recommendations);
 
       if (recommendations.length > 0 || result.recommendationCount > 0) {
         toast.success("Đã tạo đề xuất NBA cho học sinh.");
