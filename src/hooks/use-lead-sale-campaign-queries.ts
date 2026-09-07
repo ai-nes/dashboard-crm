@@ -10,6 +10,7 @@ import {
 
 import {
   createCampaign,
+  getCampaign,
   getCampaignChannelTypes,
   getCampaignList,
   updateCampaign,
@@ -28,6 +29,7 @@ export const leadSaleCampaignKeys = {
     ["lead-sale-campaigns", "list", params] as const,
   channelTypes: (params: CampaignChannelTypeListParams = {}) =>
     ["lead-sale-campaigns", "channel-types", params] as const,
+  detail: (name: string) => ["lead-sale-campaigns", "detail", name] as const,
 };
 
 export function useLeadSaleCampaignsQuery<TData = CampaignListResponse>(
@@ -66,6 +68,26 @@ export function useLeadSaleCampaignChannelTypesQuery<
   return useQuery({
     queryKey: leadSaleCampaignKeys.channelTypes(params),
     queryFn: () => getCampaignChannelTypes(params),
+    ...options,
+  });
+}
+
+export function useLeadSaleCampaignQuery(
+  name: string,
+  options?: Omit<
+    UseQueryOptions<
+      LeadSaleCampaign | null,
+      Error,
+      LeadSaleCampaign | null,
+      ReturnType<typeof leadSaleCampaignKeys.detail>
+    >,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<LeadSaleCampaign | null, Error> {
+  return useQuery({
+    queryKey: leadSaleCampaignKeys.detail(name),
+    queryFn: () => getCampaign(name),
+    enabled: Boolean(name),
     ...options,
   });
 }

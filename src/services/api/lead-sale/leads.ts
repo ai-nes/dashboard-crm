@@ -15,8 +15,10 @@ export interface LeadListItem {
   school: string;
   status: LeadStatus;
   statusCode?: string | null;
+  processingStatus?: string | null;
   source: string;
   owner: string;
+  createdAt?: string | null;
 }
 
 export type ConversionPotential =
@@ -76,7 +78,15 @@ export interface LeadListMeta {
   query: string;
   status: string | null;
   statusOptions: LeadStatusOption[];
+  stats?: LeadCampaignStats;
   asOf?: string | null;
+}
+
+export interface LeadCampaignStats {
+  total: number;
+  inProgress: number;
+  closed: number;
+  conversionRate: number;
 }
 
 export interface LeadListResponse {
@@ -141,6 +151,10 @@ function stringArray(value: unknown): string[] {
 
 function normalizeListItem(value: unknown): LeadListItem {
   const row = asRecord(value) ?? {};
+  const processingStatus = nullableText(
+    row.processingStatus ?? row.processing_status,
+  );
+  const createdAt = nullableText(row.createdAt ?? row.created_at);
   return {
     id: text(row.id),
     leadCode: text(row.leadCode ?? row.lead_code),
@@ -151,8 +165,10 @@ function normalizeListItem(value: unknown): LeadListItem {
     school: text(row.school),
     status: text(row.status),
     statusCode: nullableText(row.statusCode ?? row.status_code),
+    ...(processingStatus ? { processingStatus } : {}),
     source: text(row.source),
     owner: text(row.owner),
+    ...(createdAt ? { createdAt } : {}),
   };
 }
 
@@ -165,6 +181,17 @@ function normalizeMeta(value: unknown): LeadListMeta {
       : null;
   const rawOptions = meta.statusOptions ?? meta.status_options;
   const options: unknown[] = Array.isArray(rawOptions) ? rawOptions : [];
+  const rawStats = asRecord(meta.stats);
+  const stats = rawStats
+    ? {
+        total: count(rawStats.total),
+        inProgress: count(rawStats.inProgress ?? rawStats.in_progress),
+        closed: count(rawStats.closed),
+        conversionRate: count(
+          rawStats.conversionRate ?? rawStats.conversion_rate,
+        ),
+      }
+    : undefined;
 
   return {
     total: count(meta.total),
@@ -184,6 +211,7 @@ function normalizeMeta(value: unknown): LeadListMeta {
         return value ? { value, label } : null;
       })
       .filter((option): option is LeadStatusOption => option !== null),
+    ...(stats ? { stats } : {}),
     asOf: nullableText(meta.asOf ?? meta.as_of),
   };
 }

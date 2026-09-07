@@ -22,8 +22,10 @@ function listFixture() {
         school: "THPT Châu Văn Liêm",
         status: "Mới",
         statusCode: "NEW",
+        processingStatus: "ASSIGNED",
         source: "Website",
         owner: "Chưa phân công",
+        createdAt: "2026-09-07T10:00:00+07:00",
       },
     ],
     meta: {
@@ -37,6 +39,7 @@ function listFixture() {
       query: "Nguyễn",
       status: null,
       statusOptions: [{ value: "NEW", label: "Mới" }],
+      stats: { total: 1, inProgress: 1, closed: 0, conversionRate: 0 },
       asOf: "2026-09-07T10:00:00+07:00",
     },
   };
@@ -69,7 +72,15 @@ describe("Lead list/detail API contract", () => {
     expect(result.data[0]?.name).toBe("Nguyễn Minh An");
     expect(result.data[0]?.leadCode).toBe("LD-2026-00001");
     expect(result.data[0]?.studentId).toBe("LEAD-2026-00001");
+    expect(result.data[0]?.processingStatus).toBe("ASSIGNED");
+    expect(result.data[0]?.createdAt).toBe("2026-09-07T10:00:00+07:00");
     expect(result.meta.statusOptions).toEqual([{ value: "NEW", label: "Mới" }]);
+    expect(result.meta.stats).toEqual({
+      total: 1,
+      inProgress: 1,
+      closed: 0,
+      conversionRate: 0,
+    });
   });
 
   it("rejects an invalid list envelope with a stable typed error", async () => {

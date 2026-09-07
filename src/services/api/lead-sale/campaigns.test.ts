@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CampaignApiError,
   createCampaign,
+  getCampaign,
   getCampaignList,
   normalizeCampaignList,
   updateCampaign,
@@ -33,10 +34,7 @@ describe("Lead Sale campaign API contract", () => {
       ),
     );
 
-    const result = await getCampaignList(
-      {},
-      { baseUrl: "http://frappe:8000" },
-    );
+    const result = await getCampaignList({}, { baseUrl: "http://frappe:8000" });
 
     expect(fetchSpy).toHaveBeenCalledWith(
       "http://frappe:8000/api/method/crm.api.campaign.list_campaigns?start=0&page_length=100",
@@ -53,6 +51,42 @@ describe("Lead Sale campaign API contract", () => {
         },
       ],
     });
+  });
+
+  it("gets one campaign through the detail endpoint", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            name: "Tuyen sinh mua thu 2026",
+            stable_code: "CAM-2026-00001",
+            title: "Tuyển sinh mùa thu 2026",
+            status: "ACTIVE",
+            start_date: "2026-09-01",
+            end_date: "2026-09-30",
+            channel_boundary: "Digital",
+            channel_type: "FACEBOOK_LEAD_FORM",
+            channel_url: "https://example.com/lead-form",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      getCampaign(" Tuyen sinh mua thu 2026 ", {
+        baseUrl: "http://frappe:8000",
+      }),
+    ).resolves.toMatchObject({
+      name: "Tuyen sinh mua thu 2026",
+      stableCode: "CAM-2026-00001",
+      channelType: "FACEBOOK_LEAD_FORM",
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.campaign.get_campaign?name=Tuyen+sinh+mua+thu+2026",
+      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    );
   });
 
   it("serializes the campaign search parameter", async () => {
@@ -127,7 +161,9 @@ describe("Lead Sale campaign API contract", () => {
           channel_type: "FACEBOOK_LEAD_FORM",
           channel_url: "https://example.com/lead-form",
         }),
-        headers: expect.objectContaining({ "Content-Type": "application/json" }),
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
       }),
     );
     expect(result).toMatchObject({

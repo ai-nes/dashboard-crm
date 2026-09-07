@@ -66,6 +66,7 @@ export class CampaignApiError extends Error {
 
 const METHODS = {
   LIST: "crm.api.campaign.list_campaigns",
+  DETAIL: "crm.api.campaign.get_campaign",
   CREATE: "crm.api.campaign.create_campaign",
   UPDATE: "crm.api.campaign.update_campaign",
 } as const;
@@ -185,7 +186,9 @@ async function requestHeaders(
           `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
           { credentials: "include", headers: { Accept: "application/json" } },
         );
-        const sessionPayload = (await sessionResponse.json().catch(() => null)) as {
+        const sessionPayload = (await sessionResponse
+          .json()
+          .catch(() => null)) as {
           message?: { csrf_token?: unknown };
         } | null;
         const csrfToken = sessionPayload?.message?.csrf_token;
@@ -227,9 +230,10 @@ function errorDetails(
 
 async function callCampaignApi<T>(
   method: string,
-  requestMethod: "POST" | "PUT",
+  requestMethod: "GET" | "POST" | "PUT",
   options: CampaignApiRequestOptions,
-  body: Record<string, unknown>,
+  body?: Record<string, unknown>,
+  queryParams?: URLSearchParams,
 ): Promise<T> {
   const baseUrl = resolveBaseUrl(options);
   if (!baseUrl) {
@@ -242,15 +246,19 @@ async function callCampaignApi<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/api/method/${method}`, {
-      method: requestMethod,
-      headers: await requestHeaders(options, true),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-      body: JSON.stringify(body),
-    });
+    const query = queryParams?.toString();
+    response = await fetch(
+      `${baseUrl}/api/method/${method}${query ? `?${query}` : ""}`,
+      {
+        method: requestMethod,
+        headers: await requestHeaders(options, requestMethod !== "GET"),
+        ...(typeof window !== "undefined"
+          ? { credentials: "include" as RequestCredentials }
+          : {}),
+        cache: "no-store",
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      },
+    );
   } catch {
     throw new CampaignApiError(
       503,
@@ -280,7 +288,9 @@ function toCreateBody(payload: CreateCampaignPayload): Record<string, unknown> {
     ...(payload.status ? { status: payload.status } : {}),
     ...(payload.startDate ? { start_date: payload.startDate } : {}),
     ...(payload.endDate ? { end_date: payload.endDate } : {}),
-    ...(payload.channelBoundary ? { channel_boundary: payload.channelBoundary } : {}),
+    ...(payload.channelBoundary
+      ? { channel_boundary: payload.channelBoundary }
+      : {}),
     ...(payload.channelType ? { channel_type: payload.channelType } : {}),
     ...(payload.channelUrl ? { channel_url: payload.channelUrl } : {}),
   };
@@ -289,17 +299,25 @@ function toCreateBody(payload: CreateCampaignPayload): Record<string, unknown> {
 function toUpdateBody(payload: UpdateCampaignPayload): Record<string, unknown> {
   return {
     name: payload.name,
-    ...(payload.stableCode !== undefined ? { stable_code: payload.stableCode } : {}),
+    ...(payload.stableCode !== undefined
+      ? { stable_code: payload.stableCode }
+      : {}),
     ...(payload.title !== undefined ? { title: payload.title } : {}),
     ...(payload.campus !== undefined ? { campus: payload.campus } : {}),
     ...(payload.status !== undefined ? { status: payload.status } : {}),
-    ...(payload.startDate !== undefined ? { start_date: payload.startDate } : {}),
+    ...(payload.startDate !== undefined
+      ? { start_date: payload.startDate }
+      : {}),
     ...(payload.endDate !== undefined ? { end_date: payload.endDate } : {}),
     ...(payload.channelBoundary !== undefined
       ? { channel_boundary: payload.channelBoundary }
       : {}),
-    ...(payload.channelType !== undefined ? { channel_type: payload.channelType } : {}),
-    ...(payload.channelUrl !== undefined ? { channel_url: payload.channelUrl } : {}),
+    ...(payload.channelType !== undefined
+      ? { channel_type: payload.channelType }
+      : {}),
+    ...(payload.channelUrl !== undefined
+      ? { channel_url: payload.channelUrl }
+      : {}),
   };
 }
 
@@ -319,7 +337,11 @@ export async function getCampaignList(
   const search = params.search?.trim();
   const pageLength = Math.max(
     1,
-    Math.floor(Number.isFinite(params.pageLength) ? params.pageLength! : DEFAULT_PAGE_LENGTH),
+    Math.floor(
+      Number.isFinite(params.pageLength)
+        ? params.pageLength!
+        : DEFAULT_PAGE_LENGTH,
+    ),
   );
   let nextStart = Math.max(
     0,
@@ -335,7 +357,8 @@ export async function getCampaignList(
     });
     if (search) searchParams.set("search", search);
     if (params.leadOnly) searchParams.set("lead_only", "1");
-    if (params.channelType) searchParams.set("channel_type", params.channelType);
+    if (params.channelType)
+      searchParams.set("channel_type", params.channelType);
 
     const url = `${baseUrl}/api/method/${METHODS.LIST}?${searchParams.toString()}`;
     let response: Response;
@@ -359,7 +382,11 @@ export async function getCampaignList(
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       const details = errorDetails(payload, response.status);
-      throw new CampaignApiError(response.status, details.code, details.message);
+      throw new CampaignApiError(
+        response.status,
+        details.code,
+        details.message,
+      );
     }
 
     let page: CampaignListResponse;
@@ -392,7 +419,12 @@ export async function createCampaign(
   options: CampaignApiRequestOptions = {},
 ): Promise<LeadSaleCampaign> {
   try {
-    const raw = await callCampaignApi<unknown>(METHODS.CREATE, "POST", options, toCreateBody(payload));
+    const raw = await callCampaignApi<unknown>(
+      METHODS.CREATE,
+      "POST",
+      options,
+      toCreateBody(payload),
+    );
     return normalizeCampaignRecord(raw);
   } catch (error) {
     if (error instanceof CampaignApiError) throw error;
@@ -404,12 +436,50 @@ export async function createCampaign(
   }
 }
 
+export async function getCampaign(
+  name: string,
+  options: CampaignApiRequestOptions = {},
+): Promise<LeadSaleCampaign | null> {
+  const campaignName = name.trim();
+  if (!campaignName) {
+    throw new CampaignApiError(
+      400,
+      "INVALID_CAMPAIGN_NAME",
+      "Mã campaign không được để trống.",
+    );
+  }
+
+  try {
+    const raw = await callCampaignApi<unknown>(
+      METHODS.DETAIL,
+      "GET",
+      options,
+      undefined,
+      new URLSearchParams({ name: campaignName }),
+    );
+    return normalizeCampaignRecord(raw);
+  } catch (error) {
+    if (error instanceof CampaignApiError && error.status === 404) return null;
+    if (error instanceof CampaignApiError) throw error;
+    throw new CampaignApiError(
+      502,
+      "INVALID_CAMPAIGN_RESPONSE",
+      "Phản hồi chi tiết campaign không hợp lệ.",
+    );
+  }
+}
+
 export async function updateCampaign(
   payload: UpdateCampaignPayload,
   options: CampaignApiRequestOptions = {},
 ): Promise<LeadSaleCampaign> {
   try {
-    const raw = await callCampaignApi<unknown>(METHODS.UPDATE, "PUT", options, toUpdateBody(payload));
+    const raw = await callCampaignApi<unknown>(
+      METHODS.UPDATE,
+      "PUT",
+      options,
+      toUpdateBody(payload),
+    );
     return normalizeCampaignRecord(raw);
   } catch (error) {
     if (error instanceof CampaignApiError) throw error;

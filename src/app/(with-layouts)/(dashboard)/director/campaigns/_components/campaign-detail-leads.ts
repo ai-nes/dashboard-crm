@@ -1,8 +1,10 @@
 import { defaultLeadOverlay } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-mock-overlay";
-import type {
-  LeadResultStatus,
-  LeadStageStatus,
+import {
+  leadStageStatusOptions,
+  type LeadResultStatus,
+  type LeadStageStatus,
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
+import type { LeadListItem } from "@/services/api/lead-sale";
 
 export interface CampaignLeadRow {
   id: string;
@@ -18,6 +20,28 @@ export interface CampaignLeadRow {
   contactSuccess: number;
   note: string;
   createdAt: string;
+}
+
+export function toCampaignLeadRow(lead: LeadListItem): CampaignLeadRow {
+  const candidate = String(
+    lead.processingStatus ?? "",
+  ).toUpperCase() as LeadStageStatus;
+  const status = leadStageStatusOptions.includes(candidate) ? candidate : "NEW";
+  return {
+    id: lead.id,
+    name: lead.name || lead.id,
+    initials: lead.initials || lead.name.charAt(0).toUpperCase(),
+    phone: lead.phone,
+    school: lead.school,
+    status,
+    result: "",
+    source: lead.source,
+    owner: lead.owner,
+    contactNoAnswer: 0,
+    contactSuccess: 0,
+    note: "",
+    createdAt: lead.createdAt ?? "",
+  };
 }
 
 const FIRST_NAMES = [
@@ -61,9 +85,22 @@ const SCHOOLS = [
   "THPT Nguyễn Hữu Huân",
 ];
 
-const SOURCES = ["Facebook Ads", "TikTok Ads", "Website", "Zalo OA", "Giới thiệu", "Sự kiện tại trường"];
+const SOURCES = [
+  "Facebook Ads",
+  "TikTok Ads",
+  "Website",
+  "Zalo OA",
+  "Giới thiệu",
+  "Sự kiện tại trường",
+];
 
-const OWNERS = ["Nguyễn Văn Phúc", "Trần Thị Mai", "Lê Hoàng Anh", "Phạm Quốc Bảo", "Đỗ Thùy Linh"];
+const OWNERS = [
+  "Nguyễn Văn Phúc",
+  "Trần Thị Mai",
+  "Lê Hoàng Anh",
+  "Phạm Quốc Bảo",
+  "Đỗ Thùy Linh",
+];
 
 function hashSeed(value: string): number {
   let hash = 0;
