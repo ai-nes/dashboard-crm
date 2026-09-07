@@ -1,13 +1,14 @@
 "use client";
 
 import { keepPreviousData } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
+import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-queries";
 import { useLeadSaleLeadsQuery } from "@/hooks/use-lead-sale-leads-queries";
-import type { LeadListParams } from "@/services/api/lead-sale";
+import type { LeadListParams, LeadSaleCampaign } from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
@@ -18,13 +19,38 @@ const pageSize = 10;
 export default function LeadsOverviewDashboard() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStatus | "all">("all");
+  const [campaign, setCampaign] = useState("");
+  const [campaignSearch, setCampaignSearch] = useState("");
+  const [campaignSearchQuery, setCampaignSearchQuery] = useState("");
+  const [selectedCampaign, setSelectedCampaign] = useState<LeadSaleCampaign | null>(null);
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setCampaignSearchQuery(campaignSearch.trim()),
+      250,
+    );
+    return () => window.clearTimeout(timer);
+  }, [campaignSearch]);
+
+  const campaignsQuery = useLeadSaleCampaignsQuery({
+    search: campaignSearchQuery || undefined,
+    leadOnly: true,
+  });
+  const availableCampaigns = campaignsQuery.data?.campaigns ?? [];
+  const campaigns =
+    campaign &&
+    selectedCampaign &&
+    !availableCampaigns.some((item) => item.name === campaign)
+      ? [selectedCampaign, ...availableCampaigns]
+      : availableCampaigns;
   const listParams: LeadListParams = {
     admissionYear: 2026,
     page,
     pageSize,
     q: query || undefined,
     status: status === "all" ? undefined : status,
+    campaign: campaign || undefined,
   };
   const {
     data: response,
@@ -53,9 +79,25 @@ export default function LeadsOverviewDashboard() {
     setPage(1);
   };
 
+  const handleCampaignChange = (value: string) => {
+    setCampaign(value);
+    setSelectedCampaign(
+      campaigns.find((item) => item.name === value) ?? null,
+    );
+    setPage(1);
+  };
+
+  const handleCampaignSearchChange = (value: string) => {
+    setCampaignSearch(value);
+  };
+
   const resetFilters = () => {
     setQuery("");
     setStatus("all");
+    setCampaign("");
+    setCampaignSearch("");
+    setCampaignSearchQuery("");
+    setSelectedCampaign(null);
     setPage(1);
   };
 
@@ -105,10 +147,17 @@ export default function LeadsOverviewDashboard() {
         <LeadListToolbar
           query={query}
           status={status}
+          campaign={campaign}
+          campaignSearch={campaignSearch}
           statusOptions={meta?.statusOptions ?? []}
+          campaigns={campaigns}
+          campaignLoading={campaignsQuery.isPending}
+          campaignError={campaignsQuery.error?.message}
           resultCount={totalCount}
           onQueryChange={handleQueryChange}
           onStatusChange={handleStatusChange}
+          onCampaignSearchChange={handleCampaignSearchChange}
+          onCampaignChange={handleCampaignChange}
           onReset={resetFilters}
         />
         <div

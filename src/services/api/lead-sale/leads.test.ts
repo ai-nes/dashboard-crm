@@ -14,6 +14,8 @@ function listFixture() {
     data: [
       {
         id: "LEAD-2026-00001",
+        leadCode: "LD-2026-00001",
+        studentId: "LEAD-2026-00001",
         initials: "MA",
         name: "Nguyễn Minh An",
         phone: "0900000000",
@@ -55,15 +57,18 @@ describe("Lead list/detail API contract", () => {
         pageSize: 10,
         q: "Nguyễn",
         status: "NEW",
+        campaign: "CAM-2026-00001",
       },
       { baseUrl: "http://frappe:8000" },
     );
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.director_leads.get_director_leads?admissionYear=2026&page=1&pageSize=10&q=Nguy%E1%BB%85n&status=NEW",
+      "http://frappe:8000/api/method/crm.api.director_leads.get_director_leads?admissionYear=2026&page=1&pageSize=10&q=Nguy%E1%BB%85n&status=NEW&campaign=CAM-2026-00001",
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(result.data[0]?.name).toBe("Nguyễn Minh An");
+    expect(result.data[0]?.leadCode).toBe("LD-2026-00001");
+    expect(result.data[0]?.studentId).toBe("LEAD-2026-00001");
     expect(result.meta.statusOptions).toEqual([{ value: "NEW", label: "Mới" }]);
   });
 
