@@ -326,7 +326,7 @@ export default function Student360Dashboard({
           initialChatwootInteractions={initialChatwootInteractions}
           initialStudentInteractions={initialStudentInteractions}
           initialTaskId={initialTaskId}
-          studentId={targetId}
+          studentId={canonicalStudentId || targetId}
         />
       </div>
       <DeleteRecordDialog
@@ -346,6 +346,7 @@ function getStudentTabs(
   analysisTargetId: string,
   canEditStudent: boolean,
 ): DetailTabItem[] {
+  const auditStudentId = data.student.studentId || analysisTargetId;
   return [
     {
       id: "decision",
@@ -360,7 +361,7 @@ function getStudentTabs(
     {
       id: "audit",
       label: "Nhật ký",
-      content: <StudentAuditTab studentId={analysisTargetId} />,
+      content: <StudentAuditTab studentId={auditStudentId} />,
     },
     {
       id: "profile",

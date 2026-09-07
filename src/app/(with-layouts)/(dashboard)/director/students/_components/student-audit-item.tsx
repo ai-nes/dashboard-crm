@@ -60,7 +60,6 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
           </p>
           <p className="mt-0.5 text-xs text-text-tertiary">
             Nguồn cập nhật: {getStudentAuditSourceLabel(event.source)}
-            {event.sourceName ? ` · ${event.sourceName}` : ""}
             {event.doctype
               ? ` (${getStudentAuditDoctypeLabel(event.doctype)})`
               : ""}
@@ -79,15 +78,7 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
       <div className="mt-3 w-fit max-w-2xl rounded-2xl rounded-bl-md bg-background-gray-secondary px-4 py-3">
         {event.action === "created" ? (
           <p className="text-sm leading-6 text-text-primary">
-            Đã tạo hồ sơ học sinh{" "}
-            {event.docname ? (
-              <span className="font-semibold text-text-primary">
-                {event.docname}
-              </span>
-            ) : (
-              ""
-            )}{" "}
-            thành công.
+            Đã tạo hồ sơ học sinh thành công.
           </p>
         ) : event.action === "deleted" ? (
           <p className="text-sm leading-6 text-text-primary">
@@ -100,7 +91,7 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
             <p className="text-sm leading-6 text-text-primary">
               Cập nhật trường{" "}
               <span className="font-semibold text-text-primary">
-                {event.fieldLabel || event.fieldname || "dữ liệu"}
+                {event.fieldLabel || "dữ liệu"}
               </span>
               :
             </p>
@@ -135,11 +126,6 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
           <Badge color="gray" size="sm">
             {getStudentAuditSourceLabel(event.source)}
           </Badge>
-        )}
-        {event.sourceName && (
-          <span className="font-mono text-xs text-text-tertiary">
-            #{event.sourceName}
-          </span>
         )}
       </div>
       {event.reason && (

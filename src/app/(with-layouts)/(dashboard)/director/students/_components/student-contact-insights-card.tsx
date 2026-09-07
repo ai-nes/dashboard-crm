@@ -9,30 +9,22 @@ import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import type { AnalysisReport } from "@/services/api/analysis-runs";
 import { AnalysisAdvisorySignalList } from "@/components/analysis-runs/analysis-report-signal-lists";
-import type { Student360Data } from "@/services/api/students/types";
 import StudentAICardHeader from "./student-ai-card-header";
 import StudentCardEmptyState from "./student-card-empty-state";
 
 interface StudentContactInsightsCardProps {
-  data: Student360Data;
   report?: AnalysisReport | null;
-  policyRevision?: string | null;
   isRefreshing?: boolean;
   onRefresh?: () => void;
   onOpenAskAI?: () => void;
 }
 
 export default function StudentContactInsightsCard({
-  data,
   report,
-  policyRevision,
   isRefreshing,
   onRefresh,
   onOpenAskAI,
 }: StudentContactInsightsCardProps) {
-  const timestamp = data.classification.updatedAt
-    ? `Cập nhật lúc ${data.classification.updatedAt}${policyRevision ? ` (Chính sách: ${policyRevision})` : ""}`
-    : undefined;
   const advisorySignals = report?.advisorySignals ?? [];
   const hasOverview = Boolean(report?.title || report?.summary);
   const hasAnalysis = hasOverview || advisorySignals.length > 0;
@@ -46,7 +38,6 @@ export default function StudentContactInsightsCard({
             count={getAnalysisSourceCount(advisorySignals)}
           />
         }
-        timestamp={timestamp}
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}
       />

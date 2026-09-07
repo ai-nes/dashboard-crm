@@ -71,12 +71,6 @@ export default function StudentClassificationCockpit({
       run?.stages.find((stage) => stage.stageKind === "student_360") ?? null,
     [run],
   );
-  const nbaStage = useMemo(
-    () =>
-      run?.stages.find((stage) => stage.stageKind === "next_best_action") ??
-      null,
-    [run],
-  );
   const report = student360Stage?.report ?? null;
   const risks = report?.risks ?? [];
   const recommendations =
@@ -181,22 +175,16 @@ export default function StudentClassificationCockpit({
                   <div className="space-y-4">
                     {/* Supporting contact context */}
                     <StudentContactInsightsCard
-                      data={data}
                       report={report}
-                      policyRevision={
-                        nbaStage?.policyRevision ??
-                        student360Stage?.policyRevision
-                      }
                       isRefreshing={Boolean(isAnalysisActive)}
                       onRefresh={handleAnalysisRequest}
                       onOpenAskAI={() => setIsAskDialogOpen(true)}
                     />
-
                   </div>
 
                   {/* Card 2: Recent interactions */}
                   <StudentRecentInteractionsCard
-                    data={data}
+                    studentId={data.student.studentId}
                     recentChanges={report?.recentChanges}
                     isRefreshing={Boolean(isAnalysisActive)}
                     onRefresh={handleAnalysisRequest}
@@ -238,28 +226,28 @@ export default function StudentClassificationCockpit({
                   <StudentSentimentGaugeCard
                     data={data}
                     reportSummary={reportSummary}
-                    modelRevision={student360Stage?.modelRevision}
-                    policyRevision={student360Stage?.policyRevision}
                     isRefreshing={Boolean(isAnalysisActive)}
                     onRefresh={handleAnalysisRequest}
                   />
 
-                  {/* Card 4: Challenges */}
-                  <StudentChallengesCard
-                    data={data}
-                    risks={risks}
-                    isRefreshing={Boolean(isAnalysisActive)}
-                    onRefresh={handleAnalysisRequest}
-                  />
+                  <div className="grid items-stretch gap-4 lg:grid-cols-2">
+                    {/* Card 4: Challenges */}
+                    <StudentChallengesCard
+                      data={data}
+                      risks={risks}
+                      isRefreshing={Boolean(isAnalysisActive)}
+                      onRefresh={handleAnalysisRequest}
+                    />
 
-                  {/* Card 5: Positive feedback */}
-                  <StudentPositiveFeedbackCard
-                    data={data}
-                    recommendations={recommendations}
-                    opportunities={opportunities}
-                    isRefreshing={Boolean(isAnalysisActive)}
-                    onRefresh={handleAnalysisRequest}
-                  />
+                    {/* Card 5: Positive feedback */}
+                    <StudentPositiveFeedbackCard
+                      data={data}
+                      recommendations={recommendations}
+                      opportunities={opportunities}
+                      isRefreshing={Boolean(isAnalysisActive)}
+                      onRefresh={handleAnalysisRequest}
+                    />
+                  </div>
                 </div>
               )}
             </section>
