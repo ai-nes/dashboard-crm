@@ -170,11 +170,11 @@ export default function StudentActivitiesTab({
 
   // Gọi Frappe RPC crm.api.note.list_notes
   const { data: crmNotesData } = useCrmNotesQuery({
-    referenceDoctype: "CRM Student",
+    referenceDoctype: "CRM Lead",
     referenceDocname: studentDocname,
   });
   const crmTasksQuery = useCrmTasksQuery({
-    referenceDoctype: "CRM Student",
+    referenceDoctype: "CRM Lead",
     referenceDocname: studentDocname,
   });
   const studentAuditQuery = useStudentAuditLogsQuery({
@@ -269,7 +269,7 @@ export default function StudentActivitiesTab({
 
     try {
       const createdNote = await createNoteMutation.mutateAsync({
-        referenceDoctype: "CRM Student",
+        referenceDoctype: "CRM Lead",
         referenceDocname: studentDocname,
         content: note.content,
       });
@@ -310,7 +310,7 @@ export default function StudentActivitiesTab({
 
         try {
           const createdTask = await createTaskMutation.mutateAsync({
-            referenceDoctype: "CRM Student",
+            referenceDoctype: "CRM Lead",
             referenceDocname: studentDocname,
             title: getFollowUpTaskTitle(note.content),
             description: note.content,

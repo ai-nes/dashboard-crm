@@ -9,6 +9,7 @@ export type StudentUpdateFields = Partial<{
   student_name: StudentUpdateFieldValue;
   phone: StudentUpdateFieldValue;
   email: StudentUpdateFieldValue;
+  other_email: StudentUpdateFieldValue;
   gender: StudentUpdateFieldValue;
   date_of_birth: StudentUpdateFieldValue;
   province: StudentUpdateFieldValue;
@@ -20,6 +21,8 @@ export type StudentUpdateFields = Partial<{
   major: StudentUpdateFieldValue;
   aspiration: StudentUpdateFieldValue;
   advertising_channel: StudentUpdateFieldValue;
+  conversion_potential: StudentUpdateFieldValue;
+  segments: StudentUpdateFieldValue;
   admission_year: StudentUpdateFieldValue;
   alt_name: StudentUpdateFieldValue;
   alt_phone: StudentUpdateFieldValue;
@@ -32,6 +35,36 @@ export type StudentUpdateFields = Partial<{
 
 export type StudentCreateFields = StudentUpdateFields & {
   student_name: string;
+};
+
+export type LeadCreateFields = {
+  student_name: string;
+  phone: string;
+  province: string;
+  source: string;
+  email?: string | null;
+  other_email?: string | null;
+  gender?: string | null;
+  date_of_birth?: string | null;
+  high_school?: string | null;
+  major?: string | null;
+  current_grade?: string | null;
+  study_stage?: string | null;
+  advertising_channel?: string | null;
+  segments?: string | null;
+  admission_year?: string | null;
+  conversion_potential?: string | null;
+  enrollment_status?: string | null;
+  assigned_to?: string | null;
+  branch?: string | null;
+  tags?: string | null;
+  aspiration?: string | null;
+  event_participated?: string | null;
+  description?: string | null;
+  ward?: string | null;
+  alt_name?: string | null;
+  alt_phone?: string | null;
+  alt_address?: string | null;
 };
 
 export type SchoolUpdateFieldValue = string | number | null;
@@ -61,7 +94,7 @@ export type SchoolCreateFields = SchoolUpdateFields & {
 export type CrudFieldValue = string | number | boolean | null;
 
 export interface StudentSchoolRecord<TFields = Record<string, unknown>> {
-  doctype: "CRM Student" | "CRM High School";
+  doctype: "CRM Lead" | "CRM High School";
   name: string;
   fields: TFields;
 }
@@ -83,11 +116,37 @@ export interface FieldOption {
 }
 
 export interface GetFieldOptionsResponse {
-  doctype: "CRM Student" | "CRM High School";
+  doctype: "CRM Lead" | "CRM High School";
   fieldname: string;
   fieldtype: "Link" | "Select";
   target_doctype: string | null;
   options: FieldOption[];
+}
+
+export interface LeadOption extends FieldOption {
+  user?: string | null;
+}
+
+export interface GetLeadOptionsResponse {
+  staff: LeadOption[];
+  segments: LeadOption[];
+  events: LeadOption[];
+  advertising_channel: FieldOption[];
+}
+
+export interface LeadImportError {
+  row: number;
+  code: string;
+  message: string;
+}
+
+export interface LeadImportResponse {
+  filename: string | null;
+  total: number;
+  created: number;
+  failed: number;
+  students: Array<{ row: number; name: string }>;
+  errors: LeadImportError[];
 }
 
 export interface GetSchoolsParams {
@@ -98,7 +157,7 @@ export interface GetSchoolsParams {
 }
 
 export interface GetFieldOptionsParams {
-  doctype: "CRM Student" | "CRM High School";
+  doctype: "CRM Lead" | "CRM High School";
   fieldname: string;
   search?: string;
   filters?: Record<string, CrudFieldValue>;
@@ -107,19 +166,19 @@ export interface GetFieldOptionsParams {
 }
 
 export interface UpdateRecordResponse<TFields> {
-  doctype: "CRM Student" | "CRM High School";
+  doctype: "CRM Lead" | "CRM High School";
   name: string;
   updated_fields: TFields;
 }
 
 export interface CreateRecordResponse<TFields> {
-  doctype: "CRM Student" | "CRM High School";
+  doctype: "CRM Lead" | "CRM High School";
   name: string;
   created_fields: TFields;
 }
 
 export interface DeleteRecordResponse {
-  doctype: "CRM Student" | "CRM High School";
+  doctype: "CRM Lead" | "CRM High School";
   name: string;
   deleted: true;
 }
@@ -136,7 +195,7 @@ export class StudentSchoolUpdateApiError extends Error {
 }
 
 /**
- * Keeps the CRUD payload aligned with CRM Student's grade/study-stage contract.
+ * Keeps the CRUD payload aligned with CRM Lead's grade/study-stage contract.
  * The backend deliberately does not infer study_stage, so the client must
  * remove an unknown or incompatible stage instead of sending a wrong value.
  */
@@ -495,8 +554,7 @@ export async function getFieldOptions(
   const message = getMessage(payload);
   assertObject(message);
   if (
-    (message.doctype !== "CRM Student" &&
-      message.doctype !== "CRM High School") ||
+    (message.doctype !== "CRM Lead" && message.doctype !== "CRM High School") ||
     typeof message.fieldname !== "string" ||
     (message.fieldtype !== "Link" && message.fieldtype !== "Select") ||
     !(
@@ -520,6 +578,75 @@ export async function getFieldOptions(
   }
 
   return message as unknown as GetFieldOptionsResponse;
+}
+
+export async function getLeadOptions(
+  limit = 100,
+): Promise<GetLeadOptionsResponse> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    throw new StudentSchoolUpdateApiError(
+      503,
+      "STUDENT_SCHOOL_READ_UNAVAILABLE",
+      "Chưa cấu hình Frappe CRM API nên không thể tải lựa chọn Lead.",
+    );
+  }
+
+  const url = new URL(
+    `${baseUrl}/api/method/crm.api.lead_mapping.get_lead_options`,
+  );
+  url.searchParams.set("limit", String(limit));
+  const response = await fetch(url.toString(), getReadRequestInit());
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const details = getErrorDetails(payload, response.status, "read");
+    throw new StudentSchoolUpdateApiError(
+      response.status,
+      details.code,
+      details.message,
+    );
+  }
+
+  const message = getMessage(payload);
+  assertObject(message);
+  if (
+    !isLeadOptionArray(message.staff) ||
+    !isLeadOptionArray(message.segments) ||
+    !isLeadOptionArray(message.events) ||
+    !isFieldOptionArray(message.advertising_channel)
+  ) {
+    throw new StudentSchoolUpdateApiError(
+      502,
+      "INVALID_LEAD_OPTIONS_RESPONSE",
+      "Phản hồi lựa chọn Lead không hợp lệ.",
+    );
+  }
+
+  return message as unknown as GetLeadOptionsResponse;
+}
+
+function isFieldOptionArray(value: unknown): value is FieldOption[] {
+  return Array.isArray(value) && value.every(isFieldOption);
+}
+
+function isLeadOptionArray(value: unknown): value is LeadOption[] {
+  return (
+    Array.isArray(value) &&
+    value.every((option) => {
+      if (!isFieldOption(option)) return false;
+      const user = (option as LeadOption).user;
+      return user === undefined || user === null || typeof user === "string";
+    })
+  );
+}
+
+function isFieldOption(value: unknown): value is FieldOption {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    typeof (value as Record<string, unknown>).value === "string" &&
+    typeof (value as Record<string, unknown>).label === "string",
+  );
 }
 
 async function updateRecord<TFields>(
@@ -603,8 +730,9 @@ export function updateSchool(name: string, fields: SchoolUpdateFields) {
 }
 
 async function createRecord<TFields>(
-  method: "create_student" | "create_school",
+  method: "create_student" | "create_school" | "create_lead",
   fields: TFields,
+  apiModule: "student_school" | "lead_mapping" = "student_school",
 ): Promise<CreateRecordResponse<TFields>> {
   if (
     !fields ||
@@ -628,7 +756,7 @@ async function createRecord<TFields>(
   }
 
   const response = await fetch(
-    `${baseUrl}/api/method/crm.api.student_school.${method}`,
+    `${baseUrl}/api/method/crm.api.${apiModule}.${method}`,
     {
       method: "POST",
       credentials: "include",
@@ -666,6 +794,60 @@ async function createRecord<TFields>(
 
 export function createStudent(fields: StudentCreateFields) {
   return createRecord("create_student", normalizeStudentFields(fields));
+}
+
+export function createLead(fields: LeadCreateFields) {
+  return createRecord("create_lead", fields, "lead_mapping");
+}
+
+export async function importLeads(
+  csvContent: string,
+  filename?: string,
+): Promise<LeadImportResponse> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    throw new StudentSchoolUpdateApiError(
+      503,
+      "LEAD_IMPORT_UNAVAILABLE",
+      "Chưa cấu hình Frappe CRM API nên không thể nhập CSV.",
+    );
+  }
+
+  const response = await fetch(
+    `${baseUrl}/api/method/crm.api.lead_mapping.import_leads`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: await getRequestHeaders(),
+      body: JSON.stringify({ csv_content: csvContent, filename }),
+    },
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const details = getErrorDetails(payload, response.status, "create");
+    throw new StudentSchoolUpdateApiError(
+      response.status,
+      details.code,
+      details.message,
+    );
+  }
+
+  const message = payload?.message ?? payload;
+  assertObject(message);
+  if (
+    typeof message.total !== "number" ||
+    typeof message.created !== "number" ||
+    typeof message.failed !== "number" ||
+    !Array.isArray(message.errors) ||
+    !Array.isArray(message.students)
+  ) {
+    throw new StudentSchoolUpdateApiError(
+      502,
+      "INVALID_LEAD_IMPORT_RESPONSE",
+      "Phản hồi nhập CSV không hợp lệ.",
+    );
+  }
+  return message as unknown as LeadImportResponse;
 }
 
 export function createSchool(fields: SchoolCreateFields) {

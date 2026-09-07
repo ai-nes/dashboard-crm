@@ -96,13 +96,13 @@ export default function StudentDetailsTab({
   const personalEditing = editingCard === "personal";
   const academicEditing = editingCard === "academic";
   const provinceOptionsQuery = useStudentSchoolFieldOptions(
-    { doctype: "CRM Student", fieldname: "province" },
+    { doctype: "CRM Lead", fieldname: "province" },
     personalEditing,
   );
   const wardOptionsQuery = useStudentSchoolFieldOptions(
     personalForm.province
       ? {
-          doctype: "CRM Student",
+          doctype: "CRM Lead",
           fieldname: "ward",
           province: personalForm.province,
         }
@@ -369,8 +369,9 @@ export default function StudentDetailsTab({
             <dt className="text-xs text-text-tertiary">Trường THPT</dt>
             {academicEditing ? (
               <SchoolCombobox
-                isDisabled={!personalForm.province || !personalForm.ward}
+                isDisabled={!personalForm.province}
                 province={personalForm.province}
+                requiresWard={false}
                 value={academicForm.high_school}
                 ward={personalForm.ward}
                 onChange={(value) =>

@@ -25,6 +25,7 @@ interface SchoolComboboxProps {
   value: string;
   province?: string;
   ward?: string;
+  requiresWard?: boolean;
   onChange: (value: string) => void;
   ariaLabel?: string;
   isDisabled?: boolean;
@@ -35,6 +36,7 @@ export function SchoolCombobox({
   value,
   province = "",
   ward = "",
+  requiresWard = true,
   onChange,
   ariaLabel = "Chọn trường THPT",
   isDisabled = false,
@@ -50,11 +52,12 @@ export function SchoolCombobox({
   } = useSchoolDirectoryQuery(
     deferredQuery,
     { province, ward },
-    isOpen && Boolean(province && ward) && !isDisabled,
+    isOpen && Boolean(province && (requiresWard ? ward : true)) && !isDisabled,
   );
 
   const selectedSchool = useMemo(
-    () => schools.find((school) => school.id === value || school.name === value),
+    () =>
+      schools.find((school) => school.id === value || school.name === value),
     [schools, value],
   );
 

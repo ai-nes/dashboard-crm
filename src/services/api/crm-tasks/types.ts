@@ -1,4 +1,4 @@
-export type CRMTaskReferenceDoctype = "CRM Student" | "CRM Contact";
+export type CRMTaskReferenceDoctype = "CRM Lead" | "CRM Student";
 export type CRMTaskPriority = "Low" | "Medium" | "High";
 export type CRMTaskStatus =
   | "Backlog"

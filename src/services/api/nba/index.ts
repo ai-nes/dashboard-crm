@@ -195,7 +195,7 @@ function normalizeRecommendation(
   return {
     id,
     target: {
-      type: text(target?.type) ?? "CRM Student",
+      type: text(target?.type) ?? "CRM Lead",
       id: studentId,
     },
     action: {

@@ -16,7 +16,7 @@ describe("student audit API contract", () => {
                 event_id: "abc123:0",
                 action: "updated",
                 change_type: "changed",
-                doctype: "CRM Student",
+                doctype: "CRM Lead",
                 docname: "ENR-2026-00001",
                 fieldname: "student_name",
                 field_label: "Student Name",

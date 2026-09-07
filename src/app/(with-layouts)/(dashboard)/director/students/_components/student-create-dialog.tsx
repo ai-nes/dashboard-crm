@@ -13,8 +13,9 @@ import {
 import { MultiStepDialog } from "@/components/common/multi-step-dialog";
 import { SchoolCombobox } from "@/components/common/school-combobox";
 import { Button } from "@/components/tailgrids/core/button";
+import { useLeadMappingOptions } from "@/hooks/use-lead-mapping-options";
 import { useStudentSchoolFieldOptions } from "@/hooks/use-student-school-field-options";
-import type { StudentCreateFields } from "@/services/api/student-school-update";
+import type { LeadCreateFields } from "@/services/api/student-school-update";
 import {
   getStudentStudyStageForPayload,
   studentStudyStageOptions,
@@ -24,7 +25,7 @@ interface StudentCreateDialogProps {
   isOpen: boolean;
   isSubmitting?: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreate: (fields: StudentCreateFields) => Promise<void>;
+  onCreate: (fields: LeadCreateFields) => Promise<void>;
 }
 
 interface StudentCreateForm {
@@ -33,6 +34,10 @@ interface StudentCreateForm {
   gender: string;
   phone: string;
   email: string;
+  other_email: string;
+  source: string;
+  enrollment_status: string;
+  advertising_channel: string;
   high_school: string;
   province: string;
   ward: string;
@@ -41,10 +46,16 @@ interface StudentCreateForm {
   major: string;
   aspiration: string;
   admission_year: string;
+  conversion_potential: string;
+  branch: string;
+  assigned_to: string;
+  segments: string;
+  tags: string;
+  event_participated: string;
+  description: string;
   alt_name: string;
   alt_phone: string;
   alt_address: string;
-  notes: string;
 }
 
 const steps = ["Cơ bản", "Học tập", "Liên hệ"];
@@ -67,6 +78,10 @@ const initialForm: StudentCreateForm = {
   gender: "",
   phone: "",
   email: "",
+  other_email: "",
+  source: "",
+  enrollment_status: "NEW",
+  advertising_channel: "",
   high_school: "",
   province: "",
   ward: "",
@@ -75,10 +90,16 @@ const initialForm: StudentCreateForm = {
   major: "",
   aspiration: "",
   admission_year: "2026",
+  conversion_potential: "",
+  branch: "",
+  assigned_to: "",
+  segments: "",
+  tags: "",
+  event_participated: "",
+  description: "",
   alt_name: "",
   alt_phone: "",
   alt_address: "",
-  notes: "",
 };
 
 export default function StudentCreateDialog({
@@ -90,19 +111,44 @@ export default function StudentCreateDialog({
   const [form, setForm] = useState<StudentCreateForm>(initialForm);
   const [currentStep, setCurrentStep] = useState(0);
   const provinceOptionsQuery = useStudentSchoolFieldOptions(
-    { doctype: "CRM Student", fieldname: "province" },
+    { doctype: "CRM Lead", fieldname: "province" },
     isOpen,
   );
   const wardOptionsQuery = useStudentSchoolFieldOptions(
     form.province
       ? {
-          doctype: "CRM Student",
+          doctype: "CRM Lead",
           fieldname: "ward",
           province: form.province,
         }
       : null,
     isOpen,
   );
+  const sourceOptionsQuery = useStudentSchoolFieldOptions(
+    { doctype: "CRM Lead", fieldname: "source", limit: 100 },
+    isOpen,
+  );
+  const statusOptionsQuery = useStudentSchoolFieldOptions(
+    { doctype: "CRM Lead", fieldname: "enrollment_status", limit: 100 },
+    isOpen,
+  );
+  const branchOptionsQuery = useStudentSchoolFieldOptions(
+    { doctype: "CRM Lead", fieldname: "branch", limit: 100 },
+    isOpen,
+  );
+  const majorOptionsQuery = useStudentSchoolFieldOptions(
+    { doctype: "CRM Lead", fieldname: "major", limit: 100 },
+    isOpen,
+  );
+  const aspirationOptionsQuery = useStudentSchoolFieldOptions(
+    { doctype: "CRM Lead", fieldname: "aspiration", limit: 100 },
+    isOpen,
+  );
+  const conversionPotentialOptionsQuery = useStudentSchoolFieldOptions(
+    { doctype: "CRM Lead", fieldname: "conversion_potential", limit: 100 },
+    isOpen,
+  );
+  const leadOptionsQuery = useLeadMappingOptions(isOpen);
 
   const provinceOptions =
     provinceOptionsQuery.data?.options.map(({ value, label }) => ({
@@ -114,6 +160,22 @@ export default function StudentCreateDialog({
       id: value,
       label,
     })) ?? [];
+  const sourceOptions = toSelectOptions(sourceOptionsQuery.data?.options);
+  const statusOptions = toSelectOptions(statusOptionsQuery.data?.options);
+  const branchOptions = toSelectOptions(branchOptionsQuery.data?.options);
+  const majorOptions = toSelectOptions(majorOptionsQuery.data?.options);
+  const aspirationOptions = toSelectOptions(
+    aspirationOptionsQuery.data?.options,
+  );
+  const advertisingChannelOptions = sourceOptions;
+  const conversionPotentialOptions = toSelectOptions(
+    conversionPotentialOptionsQuery.data?.options,
+  );
+  const assignedToOptions =
+    leadOptionsQuery.data?.staff
+      .filter((option) => option.user)
+      .map((option) => ({ id: option.user as string, label: option.label })) ??
+    [];
 
   const setField = <TField extends keyof StudentCreateForm>(
     field: TField,
@@ -134,8 +196,26 @@ export default function StudentCreateDialog({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (currentStep === 0 && !form.student_name.trim()) {
-      toast.error("Họ và tên học sinh là bắt buộc.");
+    if (currentStep === 0) {
+      if (!form.student_name.trim()) {
+        toast.error("Họ và tên học sinh là bắt buộc.");
+        return;
+      }
+      if (!form.phone.trim()) {
+        toast.error("Di động là bắt buộc.");
+        return;
+      }
+      if (!form.source.trim()) {
+        toast.error("Nguồn là bắt buộc.");
+        return;
+      }
+    }
+    if (currentStep === 1 && !form.province.trim()) {
+      toast.error("Tỉnh / thành phố là bắt buộc.");
+      return;
+    }
+    if (currentStep === 2 && !form.assigned_to.trim()) {
+      toast.error("Giao cho là bắt buộc.");
       return;
     }
 
@@ -144,7 +224,7 @@ export default function StudentCreateDialog({
       return;
     }
 
-    await onCreate(toStudentCreateFields(form));
+    await onCreate(toLeadCreateFields(form));
     reset();
   };
 
@@ -219,7 +299,7 @@ export default function StudentCreateDialog({
               onChange={(value) => setField("gender", value)}
             />
           </CreateDialogField>
-          <CreateDialogField label="Số điện thoại">
+          <CreateDialogField label="Số điện thoại" required>
             <CreateDialogInput
               label="Số điện thoại"
               placeholder="0900000000"
@@ -237,12 +317,52 @@ export default function StudentCreateDialog({
               onChange={(event) => setField("email", event.target.value)}
             />
           </CreateDialogField>
+          <CreateDialogField label="Email khác">
+            <CreateDialogInput
+              label="Email khác"
+              placeholder="khac@example.com"
+              type="email"
+              value={form.other_email}
+              onChange={(event) => setField("other_email", event.target.value)}
+            />
+          </CreateDialogField>
+          <CreateDialogField label="Nguồn" required>
+            <CreateDialogSelect
+              label="Nguồn"
+              options={sourceOptions}
+              value={form.source}
+              isDisabled={sourceOptionsQuery.isLoading}
+              onChange={(value) => setField("source", value)}
+            />
+          </CreateDialogField>
+          <CreateDialogField label="Tình trạng Lead">
+            <CreateDialogSelect
+              label="Tình trạng Lead"
+              options={statusOptions}
+              value={form.enrollment_status}
+              isDisabled={statusOptionsQuery.isLoading}
+              onChange={(value) => setField("enrollment_status", value)}
+            />
+          </CreateDialogField>
+          <CreateDialogField label="Kênh quảng cáo">
+            <CreateDialogSelect
+              label="Kênh quảng cáo"
+              options={advertisingChannelOptions}
+              value={form.advertising_channel}
+              isDisabled={sourceOptionsQuery.isLoading}
+              onChange={(value) => setField("advertising_channel", value)}
+            />
+          </CreateDialogField>
         </div>
       )}
 
       {currentStep === 1 && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <CreateDialogField className="sm:col-span-2" label="Tỉnh / thành phố">
+          <CreateDialogField
+            className="sm:col-span-2"
+            label="Tỉnh / thành phố"
+            required
+          >
             <CreateDialogSelect
               label="Tỉnh / thành phố"
               options={provinceOptions}
@@ -276,8 +396,9 @@ export default function StudentCreateDialog({
           <CreateDialogField className="sm:col-span-2" label="Trường THPT">
             <SchoolCombobox
               ariaLabel="Chọn trường THPT"
-              isDisabled={!form.province || !form.ward}
+              isDisabled={!form.province}
               province={form.province}
+              requiresWard={false}
               value={form.high_school}
               ward={form.ward}
               onChange={(value) => setField("high_school", value)}
@@ -321,19 +442,39 @@ export default function StudentCreateDialog({
             />
           </CreateDialogField>
           <CreateDialogField label="Ngành quan tâm">
-            <CreateDialogInput
+            <CreateDialogSelect
               label="Ngành quan tâm"
-              placeholder="Tên CRM Major"
+              options={majorOptions}
               value={form.major}
-              onChange={(event) => setField("major", event.target.value)}
+              isDisabled={majorOptionsQuery.isLoading}
+              onChange={(value) => setField("major", value)}
             />
           </CreateDialogField>
           <CreateDialogField label="Nguyện vọng ưu tiên">
-            <CreateDialogInput
+            <CreateDialogSelect
               label="Nguyện vọng ưu tiên"
-              placeholder="Tên CRM Aspiration"
+              options={aspirationOptions}
               value={form.aspiration}
-              onChange={(event) => setField("aspiration", event.target.value)}
+              isDisabled={aspirationOptionsQuery.isLoading}
+              onChange={(value) => setField("aspiration", value)}
+            />
+          </CreateDialogField>
+          <CreateDialogField label="Khả năng chuyển đổi">
+            <CreateDialogSelect
+              label="Khả năng chuyển đổi"
+              options={conversionPotentialOptions}
+              value={form.conversion_potential}
+              isDisabled={conversionPotentialOptionsQuery.isLoading}
+              onChange={(value) => setField("conversion_potential", value)}
+            />
+          </CreateDialogField>
+          <CreateDialogField label="Chi nhánh">
+            <CreateDialogSelect
+              label="Chi nhánh"
+              options={branchOptions}
+              value={form.branch}
+              isDisabled={branchOptionsQuery.isLoading}
+              onChange={(value) => setField("branch", value)}
             />
           </CreateDialogField>
         </div>
@@ -341,6 +482,45 @@ export default function StudentCreateDialog({
 
       {currentStep === 2 && (
         <div className="grid gap-4 sm:grid-cols-2">
+          <CreateDialogField
+            className="sm:col-span-2"
+            label="Giao cho"
+            required
+          >
+            <CreateDialogSelect
+              label="Giao cho"
+              options={assignedToOptions}
+              value={form.assigned_to}
+              isDisabled={leadOptionsQuery.isLoading}
+              onChange={(value) => setField("assigned_to", value)}
+            />
+          </CreateDialogField>
+          <CreateDialogField label="Segments">
+            <CreateDialogInput
+              label="Segments"
+              placeholder="Segment A; Segment B"
+              value={form.segments}
+              onChange={(event) => setField("segments", event.target.value)}
+            />
+          </CreateDialogField>
+          <CreateDialogField label="Tags">
+            <CreateDialogInput
+              label="Tags"
+              placeholder="Tag A; Tag B"
+              value={form.tags}
+              onChange={(event) => setField("tags", event.target.value)}
+            />
+          </CreateDialogField>
+          <CreateDialogField className="sm:col-span-2" label="Sự kiện tham gia">
+            <CreateDialogInput
+              label="Sự kiện tham gia"
+              placeholder="Ngày hội tư vấn; Open day"
+              value={form.event_participated}
+              onChange={(event) =>
+                setField("event_participated", event.target.value)
+              }
+            />
+          </CreateDialogField>
           <CreateDialogField label="Tên phụ huynh / người liên hệ">
             <CreateDialogInput
               label="Tên phụ huynh / người liên hệ"
@@ -367,13 +547,13 @@ export default function StudentCreateDialog({
               onChange={(event) => setField("alt_address", event.target.value)}
             />
           </CreateDialogField>
-          <CreateDialogField className="sm:col-span-2" label="Ghi chú">
+          <CreateDialogField className="sm:col-span-2" label="Mô tả">
             <CreateDialogTextArea
-              label="Ghi chú"
+              label="Mô tả"
               placeholder="Thông tin bổ sung về hồ sơ…"
               rows={3}
-              value={form.notes}
-              onChange={(event) => setField("notes", event.target.value)}
+              value={form.description}
+              onChange={(event) => setField("description", event.target.value)}
             />
           </CreateDialogField>
         </div>
@@ -382,7 +562,7 @@ export default function StudentCreateDialog({
   );
 }
 
-function toStudentCreateFields(form: StudentCreateForm): StudentCreateFields {
+function toLeadCreateFields(form: StudentCreateForm): LeadCreateFields {
   const studyStage = getStudentStudyStageForPayload(
     form.current_grade,
     form.study_stage,
@@ -390,25 +570,39 @@ function toStudentCreateFields(form: StudentCreateForm): StudentCreateFields {
 
   return {
     student_name: form.student_name.trim(),
+    phone: form.phone.trim(),
+    province: form.province.trim(),
+    source: form.source.trim(),
     ...compactFields({
       date_of_birth: form.date_of_birth,
       gender: form.gender,
-      phone: form.phone,
       email: form.email,
+      other_email: form.other_email,
+      enrollment_status: form.enrollment_status,
+      advertising_channel: form.advertising_channel,
       high_school: form.high_school,
-      province: form.province,
       ward: form.ward,
       current_grade: form.current_grade,
       study_stage: studyStage ?? "",
       major: form.major,
       aspiration: form.aspiration,
       admission_year: form.admission_year,
+      conversion_potential: form.conversion_potential,
+      branch: form.branch,
+      assigned_to: form.assigned_to,
+      segments: form.segments,
+      tags: form.tags,
+      event_participated: form.event_participated,
+      description: form.description,
       alt_name: form.alt_name,
       alt_phone: form.alt_phone,
       alt_address: form.alt_address,
-      notes: form.notes,
     }),
   };
+}
+
+function toSelectOptions(options?: { value: string; label: string }[]) {
+  return options?.map(({ value, label }) => ({ id: value, label })) ?? [];
 }
 
 function compactFields(fields: Record<string, string>) {
