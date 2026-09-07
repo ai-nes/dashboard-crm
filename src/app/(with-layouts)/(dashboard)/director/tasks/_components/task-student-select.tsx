@@ -35,6 +35,7 @@ interface TaskStudentSelectProps {
   onChange: (value: string) => void;
   isDisabled?: boolean;
   isLoading?: boolean;
+  hideLabel?: boolean;
 }
 
 const SEARCH_THRESHOLD = 8;
@@ -59,6 +60,7 @@ function SearchableStudentSelect({
   onChange,
   isDisabled,
   isLoading,
+  hideLabel = false,
 }: TaskStudentSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -89,12 +91,12 @@ function SearchableStudentSelect({
 
   return (
     <div className="flex w-full flex-col gap-2">
-      <Label>Học sinh *</Label>
+      {!hideLabel && <Label>Học sinh *</Label>}
       <DialogTrigger isOpen={isOpen} onOpenChange={handleOpenChange}>
         <Button
           appearance="outline"
           aria-label="Chọn học sinh liên kết với task"
-          className="w-full justify-between border-card-border bg-button-primary-outline-background pr-2.5 pl-3 text-sm shadow-xs"
+          className="h-9 w-full justify-between border-card-border bg-card-background pr-2.5 pl-3 text-sm font-medium shadow-xs"
           isDisabled={isDisabled || isLoading}
         >
           <span className="truncate text-left">
@@ -107,7 +109,7 @@ function SearchableStudentSelect({
         </Button>
         <Popover
           placement="bottom start"
-          className="w-(--trigger-width) overflow-hidden rounded-lg border border-card-border bg-background-white-secondary shadow-md"
+          className="w-(--trigger-width) min-w-[340px] sm:min-w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-card-border bg-background-white-secondary shadow-lg"
         >
           <div className="border-b border-card-border p-2">
             <InputGroup>
@@ -189,12 +191,12 @@ export default function TaskStudentSelect(props: TaskStudentSelectProps) {
         props.isLoading || props.students.length === 0 || props.isDisabled
       }
     >
-      <SelectLabel>Học sinh *</SelectLabel>
-      <SelectTrigger className="w-full">
+      {!props.hideLabel && <SelectLabel>Học sinh *</SelectLabel>}
+      <SelectTrigger className="h-9 w-full border-card-border bg-card-background text-sm font-medium shadow-xs">
         <SelectValue />
         <SelectIndicator />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="min-w-[340px] sm:min-w-[380px] max-w-[calc(100vw-2rem)]">
         {props.students.map((student) => (
           <SelectItem
             key={student.id}

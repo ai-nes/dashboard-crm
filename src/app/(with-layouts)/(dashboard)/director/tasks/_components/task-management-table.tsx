@@ -1,17 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { CalendarTime, Trash1 } from "@tailgrids/icons";
+import { useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { ArrowLeft, ArrowRight, CalendarTime } from "@tailgrids/icons";
 
-import { Button } from "@/components/tailgrids/core/button";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
 import {
   TableBody,
   TableCell,
@@ -20,59 +11,90 @@ import {
   TableRoot,
   TableRow,
 } from "@/components/tailgrids/core/table";
-import type { StudentTaskItem } from "@/services/api/students/types";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
+import type { StudentTaskItem } from "@/services/api/students/types";
+import { cn } from "@/utils/cn";
 import { formatDate } from "@/utils/format-date";
 
 import {
   StudentTaskPriority,
   StudentTaskStatusBadge,
-  taskStatusLabel,
-  taskTypeLabel,
+  StudentTaskTypeBadge,
 } from "../../students/_components/student-task-badges";
+import TaskManagementTaskActions from "./task-management-task-actions";
+import type { TaskLanePagination } from "./types";
 
 interface TaskManagementTableProps {
   tasks: TaskManagementItem[];
+  onOpenTask: (task: TaskManagementItem) => void;
   onUpdateTask: (
     id: string,
     updates: Partial<StudentTaskItem>,
   ) => void | Promise<void>;
-  onDeleteTask: (id: string) => void;
+  onDeleteTask?: (id: string) => void;
+  lanePagination?: Partial<
+    Record<TaskManagementItem["status"], TaskLanePagination>
+  >;
+  isLoading?: boolean;
+}
+
+const statuses: TaskManagementItem["status"][] = [
+  "todo",
+  "in-progress",
+  "done",
+  "canceled",
+];
+const TABLE_PAGE_SIZE = 10;
+
+function getInitials(name?: string, fallback = "--"): string {
+  const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  if (parts.length === 0) return fallback;
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts.at(-1)?.[0] ?? ""}`.toUpperCase();
 }
 
 function isOverdue(task: TaskManagementItem): boolean {
   if (task.status === "done" || task.status === "canceled") return false;
-  const dueDate = task.dueDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  const date = dueDate
-    ? `${dueDate[3]}-${dueDate[2]}-${dueDate[1]}`
+
+  const ddmmyyyy = task.dueDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const date = ddmmyyyy
+    ? `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`
     : task.dueDate;
 
   return new Date(`${date}T${task.dueTime || "23:59"}`).getTime() < Date.now();
 }
 
-function taskHref(task: TaskManagementItem): string {
-  return `/director/students/${task.studentId}?tab=activities&taskId=${task.id}`;
+function handleRowKeyDown(
+  event: KeyboardEvent<HTMLTableRowElement>,
+  task: TaskManagementItem,
+  onOpenTask: (task: TaskManagementItem) => void,
+) {
+  if (event.target !== event.currentTarget) return;
+  if (event.key !== "Enter" && event.key !== " ") return;
+
+  event.preventDefault();
+  onOpenTask(task);
 }
 
-function TaskStudentSummary({
-  task,
-  className = "",
-}: {
-  task: TaskManagementItem;
-  className?: string;
-}) {
+function handleRowClick(
+  event: MouseEvent<HTMLTableRowElement>,
+  task: TaskManagementItem,
+  onOpenTask: (task: TaskManagementItem) => void,
+) {
+  if ((event.target as HTMLElement).closest("button, a")) return;
+  onOpenTask(task);
+}
+
+function TaskPerson({ name, fallback }: { name?: string; fallback?: string }) {
   return (
-    <Link
-      href={taskHref(task)}
-      className={`flex min-w-0 items-center gap-2 text-text-primary hover:text-primary-500 ${className}`}
-    >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-xs font-semibold text-badge-primary-text">
-        {task.studentInitials}
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background-gray-secondary text-[10px] font-semibold text-text-secondary">
+        {getInitials(name, fallback)}
       </span>
-      <span className="min-w-0 truncate text-[13px] font-semibold">
-        {task.studentName}
+      <span className="block whitespace-nowrap text-xs font-semibold text-text-primary">
+        {name || "Chưa phân công"}
       </span>
-    </Link>
+    </div>
   );
 }
 
@@ -80,236 +102,224 @@ function TaskDeadline({ task }: { task: TaskManagementItem }) {
   const overdue = isOverdue(task);
 
   return (
-    <div className="min-w-0">
-      <span
-        className={
-          overdue
-            ? "inline-flex max-w-full items-center gap-1.5 truncate text-[13px] font-semibold text-error-500"
-            : "inline-flex max-w-full items-center gap-1.5 truncate text-[13px] text-text-secondary"
-        }
-      >
-        <CalendarTime size={14} aria-hidden="true" />
-        <span className="truncate">
-          {formatDate(task.dueDate)}
-          {task.dueTime && (
-            <span className="text-[11px]"> · {task.dueTime}</span>
-          )}
-        </span>
-      </span>
-      {overdue && (
-        <span className="mt-0.5 block text-[11px] font-medium text-error-500">
-          Quá hạn
-        </span>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap text-xs",
+        overdue ? "font-semibold text-error-500" : "text-text-secondary",
       )}
-    </div>
+      aria-label={`${overdue ? "Quá hạn" : "Hạn xử lý"}: ${formatDate(task.dueDate)}${task.dueTime ? `, ${task.dueTime}` : ""}`}
+    >
+      <CalendarTime size={14} aria-hidden="true" />
+      <span>
+        {formatDate(task.dueDate)}
+        {task.dueTime && ` · ${task.dueTime}`}
+      </span>
+    </span>
   );
 }
 
-function DeleteTaskButton({
+function TaskTableRow({
   task,
+  onOpenTask,
+  onUpdateTask,
   onDeleteTask,
 }: {
   task: TaskManagementItem;
-  onDeleteTask: (id: string) => void;
+  onOpenTask: (task: TaskManagementItem) => void;
+  onUpdateTask: TaskManagementTableProps["onUpdateTask"];
+  onDeleteTask?: TaskManagementTableProps["onDeleteTask"];
 }) {
   return (
-    <Button
-      iconOnly
-      size="sm"
-      variant="ghost"
-      appearance="ghost"
-      aria-label={`Xóa task ${task.title}`}
-      className="shrink-0 text-text-tertiary hover:text-error-500"
-      onPress={() => onDeleteTask(task.id)}
+    <TableRow
+      tabIndex={0}
+      onClick={(event) => handleRowClick(event, task, onOpenTask)}
+      onKeyDown={(event) => handleRowKeyDown(event, task, onOpenTask)}
+      className="cursor-pointer transition-colors hover:bg-background-gray-secondary_alt/55 focus-visible:bg-background-gray-secondary_alt/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
     >
-      <Trash1 size={16} aria-hidden="true" />
-    </Button>
+      <TableCell className="w-44 align-middle">
+        <StudentTaskTypeBadge
+          actionCode={task.actionCode}
+          taskType={task.taskType}
+          size="sm"
+          compact
+          className="max-w-[9rem] truncate whitespace-nowrap"
+        />
+      </TableCell>
+      <TableCell className="w-[40%] max-w-0 align-middle">
+        <button
+          type="button"
+          onClick={() => onOpenTask(task)}
+          title={task.title}
+          className="block max-w-full truncate text-left text-sm font-semibold text-text-primary outline-none hover:text-primary-500 focus-visible:underline"
+        >
+          {task.title}
+        </button>
+      </TableCell>
+      <TableCell className="align-middle">
+        <TaskPerson name={task.assignee} />
+      </TableCell>
+      <TableCell className="whitespace-nowrap align-middle">
+        <TaskDeadline task={task} />
+      </TableCell>
+      <TableCell className="align-middle">
+        <StudentTaskPriority priority={task.priority} size="sm" />
+      </TableCell>
+      <TableCell className="align-middle">
+        <StudentTaskStatusBadge status={task.status} size="sm" />
+      </TableCell>
+      <TableCell className="w-12 whitespace-nowrap text-right align-middle">
+        <TaskManagementTaskActions
+          task={task}
+          onUpdateTask={onUpdateTask}
+          onDeleteTask={onDeleteTask}
+        />
+      </TableCell>
+    </TableRow>
   );
 }
 
 export default function TaskManagementTable({
   tasks,
+  onOpenTask,
   onUpdateTask,
   onDeleteTask,
+  lanePagination,
+  isLoading = false,
 }: TaskManagementTableProps) {
-  if (tasks.length === 0) {
-    return (
-      <div className="px-5 py-16 text-center">
-        <p className="font-medium text-text-primary">
-          Không tìm thấy task phù hợp
-        </p>
-        <p className="mt-1 text-sm text-text-tertiary">
-          Thử thay đổi từ khóa hoặc bộ lọc để xem thêm task.
-        </p>
-      </div>
+  const [currentPage, setCurrentPage] = useState(1);
+  const paginatedLanes = statuses
+    .map((status) => lanePagination?.[status])
+    .filter((pagination): pagination is TaskLanePagination =>
+      Boolean(pagination),
     );
-  }
-
-  return (
-    <>
-      <div className="hidden w-full lg:block">
-        <TableRoot className="w-full table-fixed rounded-none border-none">
-          <colgroup>
-            <col className="w-[26%]" />
-            <col className="w-[18%]" />
-            <col className="w-[15%]" />
-            <col className="w-[19%]" />
-            <col className="w-[8%]" />
-            <col className="w-[11%]" />
-            <col className="w-[3%]" />
-          </colgroup>
-          <TableHeader className="bg-background-gray-secondary/50 [&_th]:border-t">
-            <TableRow>
-              <TableHead className="px-3 py-2.5 text-[11px] leading-4 font-semibold text-text-secondary lg:px-4">
-                Tên task
-              </TableHead>
-              <TableHead className="px-3 py-2.5 text-[11px] leading-4 font-semibold text-text-secondary lg:px-4">
-                Học sinh
-              </TableHead>
-              <TableHead className="px-3 py-2.5 text-[11px] leading-4 font-semibold text-text-secondary lg:px-4">
-                Trạng thái
-              </TableHead>
-              <TableHead className="px-3 py-2.5 text-[11px] leading-4 font-semibold text-text-secondary lg:px-4">
-                Hạn xử lý
-              </TableHead>
-              <TableHead className="px-3 py-2.5 text-[11px] leading-4 font-semibold text-text-secondary lg:px-4">
-                Loại
-              </TableHead>
-              <TableHead className="px-3 py-2.5 text-[11px] leading-4 font-semibold text-text-secondary lg:px-4">
-                Ưu tiên
-              </TableHead>
-              <TableHead className="px-1 py-2.5" aria-label="Thao tác" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tasks.map((task) => (
-              <TableRow
-                key={task.id}
-                className="transition hover:bg-background-soft-50"
-              >
-                <TableCell className="max-w-0 px-3 py-2.5 lg:px-4">
-                  <Link
-                    href={taskHref(task)}
-                    className="group block min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-                  >
-                    <p className="truncate text-[13px] leading-5 font-semibold text-text-primary group-hover:text-primary-500 group-hover:underline">
-                      {task.title}
-                    </p>
-                  </Link>
-                </TableCell>
-                <TableCell className="max-w-0 px-3 py-2.5 lg:px-4">
-                  <TaskStudentSummary task={task} />
-                </TableCell>
-                <TableCell className="max-w-0 px-3 py-2.5 lg:px-4">
-                  <SelectStatus
-                    task={task}
-                    onUpdateTask={onUpdateTask}
-                    compact
-                  />
-                </TableCell>
-                <TableCell className="max-w-0 px-3 py-2.5 lg:px-4">
-                  <TaskDeadline task={task} />
-                </TableCell>
-                <TableCell className="max-w-0 px-3 py-2.5 lg:px-4">
-                  <span className="block truncate text-[13px] font-medium text-text-primary">
-                    {taskTypeLabel[task.taskType ?? "todo"]}
-                  </span>
-                </TableCell>
-                <TableCell className="px-3 py-2.5 lg:px-4">
-                  <StudentTaskPriority priority={task.priority} size="sm" />
-                </TableCell>
-                <TableCell className="px-1 py-2.5">
-                  <DeleteTaskButton task={task} onDeleteTask={onDeleteTask} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </TableRoot>
-      </div>
-
-      <div className="divide-y divide-card-border lg:hidden">
-        {tasks.map((task) => (
-          <article key={task.id} className="p-4">
-            <div className="flex items-start gap-3">
-              <Link
-                href={taskHref(task)}
-                className="min-w-0 flex-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-              >
-                <p className="truncate font-semibold text-text-primary">
-                  {task.title}
-                </p>
-              </Link>
-              <DeleteTaskButton task={task} onDeleteTask={onDeleteTask} />
-            </div>
-            <div className="mt-3 flex min-w-0 items-center justify-between gap-3">
-              <TaskStudentSummary task={task} className="flex-1" />
-              <SelectStatus task={task} onUpdateTask={onUpdateTask} compact />
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-              <TaskDeadline task={task} />
-              <span className="font-medium text-text-primary">
-                {taskTypeLabel[task.taskType ?? "todo"]}
-              </span>
-              <StudentTaskPriority priority={task.priority} size="sm" />
-            </div>
-          </article>
-        ))}
-      </div>
-    </>
+  const hasMoreTasks = paginatedLanes.some((pagination) => pagination.hasMore);
+  const isLoadingMore = paginatedLanes.some(
+    (pagination) => pagination.isLoading,
   );
-}
+  const pageCount = Math.max(1, Math.ceil(tasks.length / TABLE_PAGE_SIZE));
+  const activePage = Math.min(currentPage, pageCount);
+  const visibleTasks = useMemo(() => {
+    const start = (activePage - 1) * TABLE_PAGE_SIZE;
+    return tasks.slice(start, start + TABLE_PAGE_SIZE);
+  }, [activePage, tasks]);
+  const firstVisibleIndex =
+    tasks.length === 0 ? 0 : (activePage - 1) * TABLE_PAGE_SIZE + 1;
+  const lastVisibleIndex = Math.min(activePage * TABLE_PAGE_SIZE, tasks.length);
+  const pageNumbers = Array.from(
+    { length: pageCount },
+    (_, index) => index + 1,
+  );
 
-function SelectStatus({
-  task,
-  onUpdateTask,
-  compact = false,
-}: {
-  task: TaskManagementItem;
-  onUpdateTask: TaskManagementTableProps["onUpdateTask"];
-  compact?: boolean;
-}) {
-  const options: StudentTaskItem["status"][] = [
-    "todo",
-    "in-progress",
-    "done",
-    "canceled",
-  ];
+  const loadMoreTasks = () => {
+    paginatedLanes.forEach((pagination) => {
+      if (pagination.hasMore && !pagination.isLoading) {
+        pagination.onLoadMore();
+      }
+    });
+  };
 
   return (
-    <Select
-      value={task.status}
-      onChange={(value) =>
-        onUpdateTask(task.id, {
-          status: String(value) as StudentTaskItem["status"],
-        })
-      }
-      aria-label={`Cập nhật trạng thái task ${task.title}`}
-    >
-      <SelectTrigger
-        size="sm"
-        className="max-w-full border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus:ring-0"
-      >
-        <StudentTaskStatusBadge
-          status={task.status}
-          size={compact ? "sm" : "md"}
-        />
-        <SelectValue className="sr-only" />
-        <SelectIndicator className="ml-1 shrink-0 text-text-primary" />
-      </SelectTrigger>
-      <SelectContent className="min-w-40">
-        {options.map((option) => (
-          <SelectItem
-            key={option}
-            id={option}
-            textValue={taskStatusLabel[option]}
-          >
-            <StudentTaskStatusBadge
-              status={option}
-              size={compact ? "sm" : "md"}
-            />
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="bg-transparent px-0 pb-0 pt-1">
+      <div className="overflow-hidden rounded-xl border border-card-border bg-card-background">
+        <div>
+          <TableRoot fullBleed className="w-full min-w-0 table-fixed border-0">
+            <TableHeader>
+              <TableRow className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card-background">
+                <TableHead className="w-44">Loại task</TableHead>
+                <TableHead className="w-[40%]">Tên task</TableHead>
+                <TableHead className="w-48">Phụ trách</TableHead>
+                <TableHead className="w-44">Hạn xử lý</TableHead>
+                <TableHead className="w-28">Ưu tiên</TableHead>
+                <TableHead className="w-32">Trạng thái</TableHead>
+                <TableHead
+                  aria-label="Thao tác"
+                  className="w-12 whitespace-nowrap text-right"
+                />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visibleTasks.length > 0 ? (
+                visibleTasks.map((task) => (
+                  <TaskTableRow
+                    key={task.id}
+                    task={task}
+                    onOpenTask={onOpenTask}
+                    onUpdateTask={onUpdateTask}
+                    onDeleteTask={onDeleteTask}
+                  />
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="py-10 text-center text-xs text-text-tertiary"
+                  >
+                    {isLoading ? "Đang tải task..." : "Chưa có task"}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </TableRoot>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-5 py-3">
+          <span className="text-xs text-text-tertiary">
+            {tasks.length > 0
+              ? `Hiển thị ${firstVisibleIndex}–${lastVisibleIndex} / ${tasks.length} task`
+              : "0 task"}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Trang trước"
+              disabled={activePage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-background-gray-secondary_alt disabled:cursor-not-allowed disabled:text-text-tertiary"
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+            </button>
+            {pageNumbers.map((page) => (
+              <button
+                key={page}
+                type="button"
+                aria-label={`Trang ${page}`}
+                aria-current={activePage === page ? "page" : undefined}
+                onClick={() => setCurrentPage(page)}
+                className={cn(
+                  "inline-flex size-8 items-center justify-center rounded-md text-xs font-semibold transition",
+                  activePage === page
+                    ? "bg-primary-500 text-white"
+                    : "text-text-secondary hover:bg-background-gray-secondary_alt",
+                )}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              type="button"
+              aria-label="Trang sau"
+              disabled={activePage === pageCount}
+              onClick={() =>
+                setCurrentPage((page) =>
+                  Math.min(pageCount, Math.max(activePage, page) + 1),
+                )
+              }
+              className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-background-gray-secondary_alt disabled:cursor-not-allowed disabled:text-text-tertiary"
+            >
+              <ArrowRight size={14} aria-hidden="true" />
+            </button>
+          </div>
+          {hasMoreTasks && (
+            <button
+              type="button"
+              disabled={isLoadingMore}
+              onClick={loadMoreTasks}
+              className="text-xs font-semibold text-primary-500 hover:text-primary-600 disabled:cursor-not-allowed disabled:text-text-tertiary"
+            >
+              {isLoadingMore ? "Đang tải..." : "Xem thêm task"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

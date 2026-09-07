@@ -8,5 +8,5 @@ interface Props {
 }
 
 export default function SchoolDetailPageClient({ data }: Props) {
-  return <SchoolIntelligenceDashboard data={data} />;
+  return <SchoolIntelligenceDashboard key={data.school.id} data={data} />;
 }

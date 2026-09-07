@@ -1,18 +1,26 @@
 # API cho `/director/campaign-intelligence`
 
-Tài liệu này mô tả contract dữ liệu cho màn **Campaign Intelligence** của Director. Màn hình dùng cùng component với `/marketing`, nhưng route Director là entry point chính cho việc theo dõi chi phí, lead đủ điều kiện, hồ sơ, nhập học và doanh thu đã xác nhận.
+Tài liệu này mô tả contract dữ liệu cho màn **Campaign Intelligence**. `/marketing`
+vẫn dùng đầy đủ contract để theo dõi hiệu quả marketing; route
+`/director/activity-campaign?tab=campaign` dùng cùng API nhưng chỉ hiển thị Lead
+tuyển sinh theo campaign và trạng thái chuyển đổi.
 
 ## 1. Phạm vi màn hình
 
 | Vùng UI | Field | Cách sử dụng |
 |---|---|---|
 | Header | thời gian, kênh, campus | Hiển thị context của snapshot; hiện frontend còn hard-code và chưa gửi query |
-| Recommendation banner | `recommendation` | Khuyến nghị tái phân bổ, tác động ước tính và độ tin cậy |
-| KPI strip | `summary` | Ngân sách, qualified leads, hồ sơ, nhập học, doanh thu xác nhận, ROAS |
-| Performance trend | `trend[]` | Hai đường chi phí và doanh thu xác nhận theo kỳ |
-| Full funnel | `funnel[]` | Số lượng và tỷ lệ chuyển tiếp qua từng giai đoạn |
-| Campaign table | `campaigns[]` | Chi phí, qualified, nhập học, doanh thu, ROAS và trạng thái từng campaign |
-| Channel mix | `campaigns[]` | Donut doanh thu xác nhận theo kênh; frontend tính tỷ trọng từ danh sách campaign |
+| Recommendation banner | `recommendation` | Chỉ dùng trên `/marketing` cho khuyến nghị tái phân bổ |
+| KPI strip | `summary` | Chỉ dùng trên `/marketing` cho ngân sách, hồ sơ, doanh thu và ROAS |
+| Performance trend | `trend[]` | Chỉ dùng trên `/marketing` cho chi phí và doanh thu theo kỳ |
+| Full funnel | `funnel[]` | Chỉ dùng trên `/marketing` cho lifecycle marketing |
+| Lead overview | `campaigns[]` | Tổng lead và phân bổ 5 nhóm trạng thái theo campaign; không chứa PII |
+| Campaign table | `campaigns[]` | Director: tổng Lead, đang xử lý, chưa kết nối, chuyển đổi và tỷ lệ; Marketing: bảng tài chính legacy |
+| Channel mix | `campaigns[]` | Chỉ dùng trên `/marketing`; donut doanh thu xác nhận theo kênh |
+
+Trang Director không render budget, spend, revenue, ROAS, financial trend,
+marketing funnel hoặc recommendation banner. Các field tài chính vẫn có trong
+response để giữ tương thích với dashboard `/marketing`.
 
 Nguồn tham chiếu trực tiếp:
 
@@ -24,17 +32,11 @@ Nguồn tham chiếu trực tiếp:
 
 ## 2. Tình trạng tích hợp hiện tại
 
-Service `getCampaignIntelligence()` hiện chỉ đọc fixture local `campaignIntelligenceMock` và thêm delay mô phỏng. Chưa có client gọi Frappe thật, chưa có query parameters và các nút chọn thời gian/kênh/campus chỉ hiển thị toast.
-
-Fixture hiện tại chỉ phục vụ bố cục UI; trước khi dùng production cần đối soát lại aggregate `summary`/`funnel` với danh sách `campaigns[]` theo các invariant ở mục 8.
-
-Mock HTTP route:
-
-```http
-GET /api/mock/campaign-intelligence
-```
-
-Response mock trả trực tiếp object `{ generatedAt, summary, trend, funnel, campaigns, recommendation }`, không bọc trong `message`. Khi kết nối Frappe, frontend cần hỗ trợ envelope chuẩn bên dưới và không fallback im lặng về fixture khi request production lỗi.
+Service `getCampaignIntelligence()` gọi endpoint Frappe thật với query filters
+và không fallback im lặng về fixture khi request production lỗi.
+Campaign Intelligence có thêm service `getCampaignLeads()` để tải danh sách
+lead phân trang cho campaign được chọn. Response thành công của Frappe vẫn
+được bọc trong `message`.
 
 ## 3. Endpoint production và quyền truy cập
 
@@ -122,6 +124,15 @@ Ví dụ response:
         "id": "school-event",
         "name": "School Event — Khối 12",
         "channel": "School Event",
+        "leadCount": 264,
+        "statusBreakdown": [
+          { "code": "new", "label": "Mới", "count": 42, "share": 15.9 },
+          { "code": "in_progress", "label": "Đang xử lý", "count": 116, "share": 43.9 },
+          { "code": "no_response", "label": "Chưa kết nối", "count": 38, "share": 14.4 },
+          { "code": "disqualified", "label": "Không phù hợp", "count": 46, "share": 17.4 },
+          { "code": "converted", "label": "Đã chuyển đổi", "count": 22, "share": 8.3 }
+        ],
+        "qualityCount": 0,
         "spend": 180000000,
         "qualifiedLeads": 168,
         "applications": 67,
@@ -217,6 +228,14 @@ type CampaignRecord = {
   id: string;
   name: string;
   channel: string;
+  leadCount: number | null;
+  statusBreakdown: Array<{
+    code: "new" | "in_progress" | "no_response" | "disqualified" | "converted";
+    label: string;
+    count: number;
+    share: number;
+  }> | null;
+  qualityCount: number | null;
   spend: number;
   qualifiedLeads: number;
   applications: number;
@@ -236,6 +255,9 @@ type CampaignRecord = {
 | `id` | ID campaign ổn định, không dùng label làm khóa |
 | `name` | Tên campaign để hiển thị |
 | `channel` | Tên/mã kênh canonical từ `CAMPAIGN_CHANNELS` |
+| `leadCount` | Tổng lead unique sau primary attribution trong snapshot; `null` khi nguồn lead chưa sẵn sàng |
+| `statusBreakdown` | 5 nhóm trạng thái dùng cho biểu đồ; có thể `null` khi nguồn lead chưa sẵn sàng |
+| `qualityCount` | Tổng `Sai số`, `Lead trùng` và trạng thái chưa phân loại; không phải series chính |
 | `spend` | Chi phí đã ghi nhận trong khoảng lọc |
 | `qualifiedLeads` | Lead đủ điều kiện, unique theo định danh canonical |
 | `applications` | Hồ sơ đăng ký của campaign theo attribution model đã công bố |
@@ -250,7 +272,72 @@ type CampaignRecord = {
 
 `roas`, `cpql` và `enrollmentRate` là metric không cộng được. Không tính các metric này từ tổng các campaign nếu denominator đã bị deduplicate khác nhau.
 
-### 6.6. `recommendation`
+### 6.7. Lead status breakdown
+
+Biểu đồ dùng tối đa 5 nhóm trạng thái để tránh tạo quá nhiều series:
+
+| Code | Nhãn | Trạng thái gốc |
+|---|---|---|
+| `new` | Mới | Mới |
+| `in_progress` | Đang xử lý | Hẹn liên hệ sau, Đang suy nghĩ, Có triển vọng |
+| `no_response` | Chưa kết nối | Không nghe máy lần 1/2/3, Không liên lạc được |
+| `disqualified` | Không phù hợp | Không quan tâm, Không triển vọng, Không đủ tài chính, Sai đối tượng |
+| `converted` | Đã chuyển đổi | Đã chuyển đổi, Đã nhập học |
+
+`Sai số`, `Lead trùng` và giá trị không map được không nằm trong 5 series
+chính. Chúng được cộng vào `qualityCount` và vẫn giữ nguyên ở detail.
+
+`share` là phần trăm của `count / leadCount * 100`, làm tròn tối đa một chữ
+số thập phân. Tổng các series chính có thể nhỏ hơn `leadCount` do quality
+statuses.
+
+### 6.8. Campaign lead detail
+
+```http
+GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.director_campaign_intelligence.get_campaign_leads?campaignId=school-event&admissionYear=2026&page=1&pageSize=20&statusGroup=all
+```
+
+Response Frappe:
+
+```json
+{
+  "message": {
+    "meta": {
+      "admissionYear": 2026,
+      "from": "2026-01-01",
+      "to": "2026-12-31",
+      "scope": "all",
+      "attributionRule": "first_touch_weight_confidence_earliest_v1",
+      "warnings": []
+    },
+    "campaignId": "school-event",
+    "items": [
+      {
+        "id": "ENR-2026-06661",
+        "leadCode": "LD-2026-06661",
+        "name": "Võ Bá Bảo",
+        "school": "THPT Hòa Hội",
+        "status": "Mới",
+        "statusCode": "NEW",
+        "statusGroup": "new",
+        "owner": "Sale Demo",
+        "source": "Mass Mailing",
+        "contactAttemptCount": 0,
+        "lastContactAt": null,
+        "modifiedAt": "2026-09-06T15:10:45+07:00"
+      }
+    ],
+    "pagination": { "page": 1, "pageSize": 20, "total": 1, "totalPages": 1 }
+  }
+}
+```
+
+Detail response không trả `phone` hoặc `email`. `leadCode` là mã hiển thị; `id`
+là document id dùng để mở route detail hiện có. `campaignId`, status group, campus,
+scope và khoảng ngày phải được kiểm tra lại ở backend; client không được tự
+mở rộng phạm vi quyền.
+
+### 6.9. `recommendation`
 
 | Field | Kiểu | Semantics |
 |---|---|---|
@@ -263,7 +350,8 @@ type CampaignRecord = {
 
 ## 7. Nguồn dữ liệu và quy tắc tổng hợp
 
-- Campaign và channel: `CAMPAIGNS`, `CAMPAIGN_CHANNELS`.
+- Campaign và channel: `CRM Campaign`, `CRM Campaign Channel Assignment`.
+- Lead status và lead context: `CRM Lead`, `CRM Enrollment Status`.
 - Impressions, clicks, landing visits, leads, qualified leads, spend và revenue theo kỳ: `CAMPAIGN_PERFORMANCE_PERIODS`.
 - Funnel stage: `CAMPAIGN_FUNNEL_METRICS`.
 - Attribution: `CAMPAIGN_ATTRIBUTIONS` cùng `attribution_model`, `attribution_weight` và thời điểm touchpoint.
@@ -271,7 +359,8 @@ type CampaignRecord = {
 - Revenue phải cùng currency và được quy đổi trước khi aggregate nếu có nhiều currency.
 - Dedupe theo student/contact canonical trước khi đếm lead, application và enrollment.
 - Offline/referral/school event vẫn phải giữ như channel hợp lệ; không loại vì không có spend quảng cáo.
-- Không trả PII ở aggregate endpoint.
+- Không trả PII ở aggregate endpoint hoặc trong danh sách campaign overview.
+- Detail chỉ trả field allow-list cần cho dashboard; phone/email vẫn bị loại bỏ.
 
 ## 8. Tính nhất quán cần kiểm tra
 

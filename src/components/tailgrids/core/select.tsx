@@ -217,9 +217,11 @@ function SelectIndicator({ className, children, ...props }: ComponentProps<"span
 
 // Select Content
 
-type SelectContentProps = PopoverProps;
+type SelectContentProps = PopoverProps & {
+  header?: React.ReactNode;
+};
 
-function SelectContent({ children, className, ...props }: SelectContentProps) {
+function SelectContent({ children, className, header, ...props }: SelectContentProps) {
   const context = useContext(SelectContext);
 
   if (context) {
@@ -234,6 +236,7 @@ function SelectContent({ children, className, ...props }: SelectContentProps) {
         )}
         {...props}
       >
+        {header}
         <ListBox
           className="bg-background-white-secondary p-1.5 outline-none"
           selectionMode={context.selectionMode}
@@ -265,6 +268,7 @@ function SelectContent({ children, className, ...props }: SelectContentProps) {
       )}
       {...props}
     >
+      {header}
       <ListBox className="p-1.5 outline-none">{children}</ListBox>
     </Popover>
   );

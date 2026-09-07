@@ -6,14 +6,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import {
   useDecideNbaRecommendation,
@@ -26,8 +18,6 @@ import {
   type NbaDecisionRequest,
   type NbaRecommendation,
 } from "@/services/api/nba";
-import type { Student360Data } from "@/services/api/students/types";
-
 import StudentNbaRecommendationCard from "./student-nba-recommendation-card";
 import StudentNbaDecisionDialog from "./student-nba-decision-dialog";
 import {
@@ -37,22 +27,15 @@ import {
 } from "./student-nba-ui";
 
 interface StudentNextBestActionsProps {
-  data: Student360Data;
   studentId: string;
   onActionsCountChange?: (count: number) => void;
 }
 
-type NbaExpansionMode = "collapse" | "expand";
-
 export default function StudentNextBestActions({
-  data,
   studentId,
   onActionsCountChange,
 }: StudentNextBestActionsProps) {
   const router = useRouter();
-  const [expandedRecommendationIds, setExpandedRecommendationIds] = useState<
-    Set<string> | null
-  >(null);
   const [decision, setDecision] = useState<{
     recommendation: NbaRecommendation;
     operation: NbaDecisionOperation;
@@ -70,70 +53,38 @@ export default function StudentNextBestActions({
   const runMutation = useRunStudentNbaEvaluation();
 
   const worklistActions = useMemo(
-    () =>
-      (query.data?.items ?? []).filter(
-        (item) => item.studentId === studentId.trim(),
-      ),
-    [query.data?.items, studentId],
+    // The Frappe endpoint applies the student filter and resolves legacy Lead
+    // ids to the canonical CRM Student id before returning this list.
+    () => query.data?.items ?? [],
+    [query.data?.items],
   );
   const actions = useMemo(() => {
     if (postRecommendations === null) return worklistActions;
 
-    return postRecommendations
-      .filter((recommendation) => recommendation.studentId === studentId.trim())
-      .map((recommendation) => {
-        const worklistItem = worklistActions.find((item) =>
-          sameNbaRecommendation(item, recommendation),
-        );
+    return postRecommendations.map((recommendation) => {
+      const worklistItem = worklistActions.find((item) =>
+        sameNbaRecommendation(item, recommendation),
+      );
 
-        if (!worklistItem) return recommendation;
+      if (!worklistItem) return recommendation;
 
-        // The worklist owns the persisted recommendation content and decision
-        // metadata. Keep the POST explanation only while GET is incomplete.
-        return {
-          ...recommendation,
-          ...worklistItem,
-          explanation: worklistItem.explanation ?? recommendation.explanation,
-          explanationSource:
-            worklistItem.explanationSource ?? recommendation.explanationSource,
-          expectedRevision: worklistItem.expectedRevision,
-          revision: worklistItem.revision,
-          permittedDecisions: worklistItem.permittedDecisions,
-        };
-      });
-  }, [postRecommendations, studentId, worklistActions]);
+      // The worklist owns the persisted recommendation content and decision
+      // metadata. Keep the POST explanation only while GET is incomplete.
+      return {
+        ...recommendation,
+        ...worklistItem,
+        explanation: worklistItem.explanation ?? recommendation.explanation,
+        explanationSource:
+          worklistItem.explanationSource ?? recommendation.explanationSource,
+        expectedRevision: worklistItem.expectedRevision,
+        revision: worklistItem.revision,
+        permittedDecisions: worklistItem.permittedDecisions,
+      };
+    });
+  }, [postRecommendations, worklistActions]);
   useEffect(() => {
     onActionsCountChange?.(actions.length);
   }, [actions.length, onActionsCountChange]);
-  const areAllRecommendationsExpanded =
-    actions.length > 0 &&
-    (expandedRecommendationIds === null ||
-      actions.every((recommendation) =>
-        expandedRecommendationIds.has(recommendation.id),
-      ));
-  const handleExpansionModeChange = (mode: NbaExpansionMode) => {
-    setExpandedRecommendationIds(
-      mode === "expand"
-        ? new Set(actions.map((recommendation) => recommendation.id))
-        : new Set(),
-    );
-  };
-  const handleRecommendationExpandedChange = (
-    id: string,
-    expanded: boolean,
-  ) => {
-    setExpandedRecommendationIds((current) => {
-      const next = new Set(
-        current ?? actions.map((recommendation) => recommendation.id),
-      );
-      if (expanded) {
-        next.add(id);
-      } else {
-        next.delete(id);
-      }
-      return next;
-    });
-  };
   const beginDecision = (
     recommendation: NbaRecommendation,
     operation: NbaDecisionOperation,
@@ -146,14 +97,22 @@ export default function StudentNextBestActions({
     if (!decisionMutation.isPending) setDecision(null);
   };
 
-  const runNba = async () => {
-    try {
-      const result = await runMutation.mutateAsync({ studentId });
-      await query.refetch();
-      const recommendations = result.recommendations.filter(
-        (recommendation) => recommendation.studentId === studentId.trim(),
-      );
-      setPostRecommendations(recommendations);
+	const runNba = async () => {
+		try {
+			const result = await runMutation.mutateAsync({ studentId });
+			const refreshed = await query.refetch();
+			// The run endpoint is already scoped to this one requested student. Its
+			// recommendation target uses the canonical CRM Student id, which may
+			// differ from the legacy Lead id used by the detail route. If the
+			// inline read-back is unavailable, use the permission-filtered worklist
+			// returned by the same server-side scope instead of hiding new rows.
+			const recommendations =
+				result.recommendations.length > 0
+					? result.recommendations
+					: result.recommendationCount > 0
+						? refreshed.data?.items ?? []
+						: [];
+			setPostRecommendations(recommendations);
 
       if (recommendations.length > 0 || result.recommendationCount > 0) {
         toast.success("Đã tạo đề xuất NBA cho học sinh.");
@@ -237,12 +196,6 @@ export default function StudentNextBestActions({
           <div className="min-w-0">
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {actions.length > 0 && (
-              <NbaExpansionSelect
-                value={areAllRecommendationsExpanded ? "expand" : "collapse"}
-                onChange={handleExpansionModeChange}
-              />
-            )}
             <Button
               variant="primary"
               appearance="outline"
@@ -314,13 +267,6 @@ export default function StudentNextBestActions({
               <StudentNbaRecommendationCard
                 key={action.id}
                 recommendation={action}
-                expanded={
-                  expandedRecommendationIds === null ||
-                  expandedRecommendationIds.has(action.id)
-                }
-                onExpandedChange={(expanded) =>
-                  handleRecommendationExpandedChange(action.id, expanded)
-                }
                 onBeginDecision={beginDecision}
               />
             ))}
@@ -342,39 +288,6 @@ export default function StudentNextBestActions({
       )}
 
     </>
-  );
-}
-
-function NbaExpansionSelect({
-  value,
-  onChange,
-}: {
-  value: NbaExpansionMode;
-  onChange: (value: NbaExpansionMode) => void;
-}) {
-  return (
-    <Select
-      value={value}
-      onChange={(key) => onChange(String(key) as NbaExpansionMode)}
-      aria-label="Hiển thị đề xuất NBA"
-      className="w-fit"
-    >
-      <SelectTrigger
-        appearance="ghost"
-        className="h-auto min-h-8 justify-start gap-1.5 whitespace-nowrap rounded-lg border-0 bg-transparent px-2 text-sm font-semibold text-text-primary shadow-none hover:bg-background-gray-secondary hover:text-text-primary"
-      >
-        <SelectValue className="max-w-none text-sm font-semibold text-text-primary" />
-        <SelectIndicator className="text-text-primary" />
-      </SelectTrigger>
-      <SelectContent className="min-w-44">
-        <SelectItem id="collapse" textValue="Thu gọn tất cả" className="py-2 whitespace-nowrap">
-          Thu gọn tất cả
-        </SelectItem>
-        <SelectItem id="expand" textValue="Mở rộng tất cả" className="py-2 whitespace-nowrap">
-          Mở rộng tất cả
-        </SelectItem>
-      </SelectContent>
-    </Select>
   );
 }
 

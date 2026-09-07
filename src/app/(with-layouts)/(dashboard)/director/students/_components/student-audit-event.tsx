@@ -2,6 +2,7 @@ import { ArrowRight, FileText } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { StudentAuditLog } from "@/services/api/student-audit";
 import { formatDateTime } from "@/utils/format-date";
+import { formatAuditMetadataKey } from "@/utils/format-audit-metadata";
 
 import { parseStudentActivityDate } from "./student-activity-utils";
 
@@ -25,15 +26,46 @@ export function getStudentAuditSourceLabel(source?: string | null): string {
 }
 
 export function getStudentAuditDoctypeLabel(doctype?: string | null): string {
-  return doctype === "CRM Student" ? "Hồ sơ học sinh" : doctype || "Hồ sơ";
+  return doctype === "CRM Lead" ? "Hồ sơ học sinh" : doctype || "Hồ sơ";
 }
 
 export function getStudentAuditActionLabel(event: StudentAuditLog): string {
   if (event.action === "created") return "Tạo hồ sơ học sinh";
   if (event.action === "deleted") return "Xóa hồ sơ học sinh";
+  if (event.eventType === "status_initialized") {
+    return "Gán tình trạng ban đầu";
+  }
+
+  if (event.category === "status") return "Cập nhật tình trạng học sinh";
+  if (event.category === "lifecycle") return "Cập nhật vòng đời hồ sơ";
+  if (event.category === "assignment") return "Thay đổi phân công";
+  if (event.category === "processing") return "Cập nhật xử lý Lead";
+  if (event.category === "conversion") return "Cập nhật chuyển đổi";
+  if (event.category === "outcome") return "Ghi nhận kết quả";
 
   const field = event.fieldLabel || event.fieldname;
   return field ? `Cập nhật ${field}` : "Cập nhật hồ sơ học sinh";
+}
+
+export function getStudentAuditCategoryLabel(
+  category?: StudentAuditLog["category"],
+): string | null {
+  switch (category) {
+    case "status":
+      return "Tình trạng";
+    case "lifecycle":
+      return "Vòng đời";
+    case "assignment":
+      return "Phân công";
+    case "processing":
+      return "Xử lý Lead";
+    case "conversion":
+      return "Chuyển đổi";
+    case "outcome":
+      return "Kết quả";
+    default:
+      return null;
+  }
 }
 
 export function getStudentAuditActivityDescription(
@@ -61,6 +93,14 @@ export function getStudentAuditStatus(event: StudentAuditLog): string {
   if (event.action === "deleted") {
     return event.restored ? "Đã khôi phục" : "Đã xóa";
   }
+  if (event.eventType === "status_initialized") return "Đã gán ban đầu";
+
+  if (event.category === "status") return "Đã đổi tình trạng";
+  if (event.category === "lifecycle") return "Đã đổi vòng đời";
+  if (event.category === "assignment") return "Đã đổi phân công";
+  if (event.category === "processing") return "Đã cập nhật xử lý";
+  if (event.category === "conversion") return "Đã cập nhật chuyển đổi";
+  if (event.category === "outcome") return "Đã ghi nhận kết quả";
 
   if (event.changeType === "added") return "Đã thêm";
   if (event.changeType === "removed") return "Đã xóa trường";
@@ -75,6 +115,10 @@ export function getStudentAuditTone(event: StudentAuditLog): StudentAuditTone {
     return "success";
   }
   if (event.action === "deleted") return "error";
+  if (event.category === "outcome") return "success";
+  if (event.category === "assignment" || event.category === "processing") {
+    return "warning";
+  }
   if (event.changeType === "removed") return "warning";
   return "primary";
 }
@@ -174,6 +218,23 @@ export function StudentAuditEventDetails({
                   {formatStudentAuditValue(event.newValue)}
                 </p>
               </div>
+            </div>
+          )}
+          {event.reason && (
+            <p className="text-xs text-text-secondary">Lý do: {event.reason}</p>
+          )}
+          {event.metadata && Object.keys(event.metadata).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 text-[11px] text-text-tertiary">
+              {Object.entries(event.metadata)
+                .filter(([, value]) => value !== null && value !== undefined && value !== "")
+                .map(([key, value]) => (
+                  <span
+                    key={key}
+                    className="rounded-md border border-card-border/50 bg-background-gray-secondary/40 px-2 py-1"
+                  >
+                    {formatAuditMetadataKey(key)}: {formatStudentAuditValue(value)}
+                  </span>
+                ))}
             </div>
           )}
         </div>

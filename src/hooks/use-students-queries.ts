@@ -1,30 +1,50 @@
 "use client";
 
-import { useQuery, type UseQueryOptions, type UseQueryResult } from "@tanstack/react-query";
+import {
+  useQuery,
+  type UseQueryOptions,
+  type UseQueryResult,
+} from "@tanstack/react-query";
 import {
   getDirectorStudents,
   getStudent360,
   getStudentChatwootInteractions,
+  getStudentInteractions,
 } from "@/services/api/students";
 import type {
   DirectorStudentsParams,
   DirectorStudentsResponse,
   StudentChatwootInteractionsResponse,
+  StudentInteractionsResponse,
   Student360Data,
 } from "@/services/api/students";
 
 export const studentsKeys = {
   all: ["students"] as const,
-  directorStudents: (params?: DirectorStudentsParams) => ["director-students", params] as const,
-  assignedStudents: (params?: DirectorStudentsParams, sessionUser?: string | null) =>
-    ["assigned-students", sessionUser ?? "anonymous", params] as const,
+  directorStudents: (params?: DirectorStudentsParams) =>
+    ["director-students", params] as const,
+  assignedStudents: (
+    params?: DirectorStudentsParams,
+    sessionUser?: string | null,
+  ) => ["assigned-students", sessionUser ?? "anonymous", params] as const,
   student360: (studentId: string) => ["student-360", studentId] as const,
-  studentChatwootInteractions: (studentId: string) => ["student-chatwoot-interactions", studentId] as const,
+  studentChatwootInteractions: (studentId: string) =>
+    ["student-chatwoot-interactions", studentId] as const,
+  studentInteractions: (studentId: string) =>
+    ["student-interactions", studentId] as const,
 };
 
 export function useDirectorStudentsQuery<TData = DirectorStudentsResponse>(
   params?: DirectorStudentsParams,
-  options?: Omit<UseQueryOptions<DirectorStudentsResponse, Error, TData, ReturnType<typeof studentsKeys.directorStudents>>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<
+      DirectorStudentsResponse,
+      Error,
+      TData,
+      ReturnType<typeof studentsKeys.directorStudents>
+    >,
+    "queryKey" | "queryFn"
+  >,
 ): UseQueryResult<TData, Error> {
   return useQuery({
     queryKey: studentsKeys.directorStudents(params),
@@ -35,7 +55,15 @@ export function useDirectorStudentsQuery<TData = DirectorStudentsResponse>(
 
 export function useStudent360Query<TData = Student360Data | null>(
   studentId: string,
-  options?: Omit<UseQueryOptions<Student360Data | null, Error, TData, ReturnType<typeof studentsKeys.student360>>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<
+      Student360Data | null,
+      Error,
+      TData,
+      ReturnType<typeof studentsKeys.student360>
+    >,
+    "queryKey" | "queryFn"
+  >,
 ): UseQueryResult<TData, Error> {
   return useQuery({
     queryKey: studentsKeys.student360(studentId),
@@ -46,12 +74,16 @@ export function useStudent360Query<TData = Student360Data | null>(
 
 /**
  * Loads the students visible to the authenticated Frappe user.
- * The user id is only a cache scope; the backend derives ownership from the session cookie.
+ * The user id is only a cache scope; the backend derives the allowed
+ * assigned/pool/team scope from the session and its capabilities.
  */
 export function useAssignedStudentsQuery(
   params: DirectorStudentsParams | undefined,
   sessionUser: string | null | undefined,
-  options?: Omit<UseQueryOptions<DirectorStudentsResponse, Error>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<DirectorStudentsResponse, Error>,
+    "queryKey" | "queryFn"
+  >,
 ): UseQueryResult<DirectorStudentsResponse, Error> {
   const { enabled = true, ...queryOptions } = options ?? {};
 
@@ -85,3 +117,24 @@ export function useStudentChatwootInteractionsQuery<
   });
 }
 
+export function useStudentInteractionsQuery<
+  TData = StudentInteractionsResponse | null,
+>(
+  studentId: string,
+  options?: Omit<
+    UseQueryOptions<
+      StudentInteractionsResponse | null,
+      Error,
+      TData,
+      ReturnType<typeof studentsKeys.studentInteractions>
+    >,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<TData, Error> {
+  return useQuery({
+    queryKey: studentsKeys.studentInteractions(studentId),
+    queryFn: () => getStudentInteractions(studentId),
+    enabled: Boolean(studentId),
+    ...options,
+  });
+}

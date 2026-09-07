@@ -1,4 +1,12 @@
-import type { CampaignIntelligenceResponse, CampaignRecord } from "./types";
+import type {
+  CampaignIntelligenceResponse,
+  CampaignRecord,
+  CampaignScopeParams,
+  CampaignLeadsParams,
+  CampaignLeadsResponse,
+  LeadStatusBreakdown,
+  LeadStatusFilter,
+} from "./types";
 
 const METHOD =
   "crm.api.director_campaign_intelligence.get_director_campaign_intelligence";
@@ -71,10 +79,36 @@ function normalizeCampaign(row: unknown): CampaignRecord | null {
     !["high", "medium", "low"].includes(String(confidence))
   )
     return null;
+  const leadCount = value.leadCount == null ? null : value.leadCount;
+  if (leadCount !== null && (!Number.isInteger(leadCount) || Number(leadCount) < 0)) return null;
+  let statusBreakdown: LeadStatusBreakdown[] | null = null;
+  if (value.statusBreakdown != null) {
+    if (!Array.isArray(value.statusBreakdown)) return null;
+    const seen = new Set<string>();
+    statusBreakdown = [];
+    for (const row of value.statusBreakdown) {
+      const item = asRecord(row);
+      const code = textValue(item?.code);
+      if (!item || !["new", "in_progress", "no_response", "disqualified", "converted"].includes(code)
+        || seen.has(code) || !Number.isInteger(item.count) || Number(item.count) < 0
+        || typeof item.share !== "number" || !Number.isFinite(item.share) || item.share < 0) return null;
+      seen.add(code);
+      statusBreakdown.push({ code: code as LeadStatusBreakdown["code"], label: textValue(item.label), count: Number(item.count), share: item.share });
+    }
+    if (leadCount === null || statusBreakdown.reduce((sum, item) => sum + item.count, 0) > Number(leadCount)) return null;
+  }
   return {
     id: textValue(value.id),
     name: textValue(value.name),
     channel: displayChannel(value.channel),
+    leadCount: leadCount === null ? null : Number(leadCount),
+    statusBreakdown,
+    qualityCount:
+      value.qualityCount == null
+        ? null
+        : Number.isInteger(value.qualityCount) && Number(value.qualityCount) >= 0
+          ? Number(value.qualityCount)
+          : null,
     spend: numberValue(value.spend),
     qualifiedLeads: numberValue(value.qualifiedLeads),
     applications: numberValue(value.applications),
@@ -155,7 +189,7 @@ function normalizeResponse(
   };
 }
 
-export async function getCampaignIntelligence(): Promise<CampaignIntelligenceResponse> {
+async function requestCampaignData(method: string, params: CampaignScopeParams | CampaignLeadsParams, signal?: AbortSignal): Promise<unknown> {
   const baseUrl = (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
     /\/+$/,
     "",
@@ -167,13 +201,20 @@ export async function getCampaignIntelligence(): Promise<CampaignIntelligenceRes
       "Chưa cấu hình địa chỉ Frappe CRM API.",
     );
   let response: Response;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
+  const suffix = query.size ? `?${query}` : "";
   try {
-    response = await fetch(`${baseUrl}/api/method/${METHOD}`, {
+    response = await fetch(`${baseUrl}/api/method/${method}${suffix}`, {
       headers: { Accept: "application/json" },
       credentials: "include",
       cache: "no-store",
+      ...(signal ? { signal } : {}),
     });
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
     throw new CampaignIntelligenceApiError(
       503,
       "CAMPAIGN_INTELLIGENCE_DATA_UNAVAILABLE",
@@ -189,7 +230,11 @@ export async function getCampaignIntelligence(): Promise<CampaignIntelligenceRes
       error.message ?? `Lỗi HTTP ${response.status}: ${response.statusText}`,
     );
   }
-  const data = normalizeResponse(asRecord(payload)?.message);
+  return asRecord(payload)?.message;
+}
+
+export async function getCampaignIntelligence(params: CampaignScopeParams = {}, signal?: AbortSignal): Promise<CampaignIntelligenceResponse> {
+  const data = normalizeResponse(await requestCampaignData(METHOD, params, signal));
   if (!data)
     throw new CampaignIntelligenceApiError(
       502,
@@ -197,4 +242,46 @@ export async function getCampaignIntelligence(): Promise<CampaignIntelligenceRes
       "Phản hồi campaign intelligence không hợp lệ.",
     );
   return data;
+}
+
+export async function getCampaignLeads(params: CampaignLeadsParams, signal?: AbortSignal): Promise<CampaignLeadsResponse> {
+  const data = asRecord(await requestCampaignData("crm.api.director_campaign_intelligence.get_campaign_leads", params, signal));
+  const invalid = () => new CampaignIntelligenceApiError(502, "INVALID_CAMPAIGN_LEADS_RESPONSE", "Phản hồi danh sách lead không hợp lệ.");
+  const meta = asRecord(data?.meta);
+  const pagination = asRecord(data?.pagination);
+  const page = pagination?.page;
+  const pageSize = pagination?.pageSize;
+  const total = pagination?.total;
+  const totalPages = pagination?.totalPages;
+  if (!data || !meta || !textValue(data.campaignId) || !pagination || !Array.isArray(data.items)
+    || !Number.isInteger(page) || Number(page) < 1 || !Number.isInteger(pageSize) || Number(pageSize) < 1
+    || !Number.isInteger(total) || Number(total) < 0 || !Number.isInteger(totalPages) || Number(totalPages) < 0) throw invalid();
+  const leads = data.items.map((row) => {
+    const item = asRecord(row);
+    if (!item || !textValue(item.leadCode) || !textValue(item.name)) throw invalid();
+    if (item.contactAttemptCount != null && (!Number.isInteger(item.contactAttemptCount) || Number(item.contactAttemptCount) < 0)) throw invalid();
+    const statusGroup = textValue(item.statusGroup, "unknown") as LeadStatusFilter;
+    if (!["all", "new", "in_progress", "no_response", "disqualified", "converted", "invalid", "duplicate", "unknown"].includes(statusGroup)) throw invalid();
+    return {
+      ...(textValue(item.id) ? { id: textValue(item.id) } : {}),
+      leadCode: textValue(item.leadCode), name: textValue(item.name), school: textValue(item.school),
+      status: textValue(item.status), statusCode: textValue(item.statusCode), owner: textValue(item.owner),
+      source: textValue(item.source), modifiedAt: item.modifiedAt == null ? null : textValue(item.modifiedAt),
+      statusGroup,
+      lastContactAt: item.lastContactAt == null ? null : textValue(item.lastContactAt),
+      contactAttemptCount: item.contactAttemptCount == null ? null : Number(item.contactAttemptCount),
+    };
+  });
+  if (leads.length > Number(pageSize) || leads.length > Number(total) || Number(page) > Number(totalPages || 1)) throw invalid();
+  return {
+    meta,
+    campaignId: textValue(data.campaignId),
+    items: leads,
+    pagination: {
+      page: Number(page),
+      pageSize: Number(pageSize),
+      total: Number(total),
+      totalPages: Number(totalPages),
+    },
+  };
 }

@@ -148,6 +148,7 @@ function normalizeCRMTask(raw: unknown): CRMTask {
     name: String(obj.name || ""),
     title: String(obj.title || ""),
     description: optionalString(obj.description),
+    actionCode: optionalString(obj.action_code ?? obj.actionCode),
     student: optionalString(obj.student),
     linkedInteraction: optionalString(
       obj.linked_interaction ?? obj.linkedInteraction,
@@ -236,6 +237,9 @@ function toCreateBody(payload: CreateTaskPayload): Record<string, unknown> {
     title: payload.title,
     ...(payload.description !== undefined
       ? { description: payload.description }
+      : {}),
+    ...(payload.actionCode !== undefined
+      ? { action_code: payload.actionCode }
       : {}),
     ...(payload.priority !== undefined ? { priority: payload.priority } : {}),
     ...(payload.startDate !== undefined

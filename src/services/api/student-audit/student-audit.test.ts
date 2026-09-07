@@ -16,7 +16,7 @@ describe("student audit API contract", () => {
                 event_id: "abc123:0",
                 action: "updated",
                 change_type: "changed",
-                doctype: "CRM Student",
+                doctype: "CRM Lead",
                 docname: "ENR-2026-00001",
                 fieldname: "student_name",
                 field_label: "Student Name",
@@ -27,6 +27,10 @@ describe("student audit API contract", () => {
                 occurred_at: "2026-09-04 10:30:00.000000",
                 source: "Version",
                 source_name: "abc123",
+                event_type: "status_changed",
+                category: "status",
+                reason: "Phụ huynh xác nhận tiếp tục quan tâm",
+                metadata: { old_code: "NEW", new_code: "PROSPECT" },
               },
             ],
             total: 1,
@@ -60,6 +64,10 @@ describe("student audit API contract", () => {
       occurredAt: "2026-09-04 10:30:00.000000",
       oldValue: "Nguyen Van A",
       newValue: "Nguyen Van An",
+      eventType: "status_changed",
+      category: "status",
+      reason: "Phụ huynh xác nhận tiếp tục quan tâm",
+      metadata: { old_code: "NEW", new_code: "PROSPECT" },
     });
   });
 

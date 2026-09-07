@@ -5,6 +5,22 @@ export type StudentJourneyStage =
   | "Ứng tuyển"
   | "Nhập học";
 
+export type StudentStatus =
+  | "New"
+  | "Attempting"
+  | "Connected"
+  | "Qualified"
+  | "Disqualified";
+
+export type StudentAssignmentStatus = "assigned" | "unassigned";
+
+export type StudentLifecycleStatus =
+  | "Lead"
+  | "MQL"
+  | "Applicant"
+  | "Enrolled"
+  | "Lost";
+
 export type StudentPriority = "Cao" | "Trung bình" | "Thấp";
 
 export type StudentVerificationStatus =
@@ -120,7 +136,16 @@ export interface StudentCallRecord {
   durationSeconds?: number;
   topic?: string;
   summary?: string;
+  summaryAvailable?: boolean;
+  transcript?: string | null;
   recordingUrl?: string;
+}
+
+export interface StudentInteractionsResponse {
+  student_id: string;
+  zalo_messages: StudentZaloMessage[];
+  calls: StudentCallRecord[];
+  total_interactions: number;
 }
 
 export type StudentClassificationTone =
@@ -158,14 +183,20 @@ export interface StudentListItem {
   code: string;
   school: string;
   province: string;
+  provinceId?: string | null;
   major: string;
   stage: StudentJourneyStage;
+  /** Contact-stage enum used by the editable status control. */
+  studentStage?: StudentStatus | null;
+  assignmentStatus?: StudentAssignmentStatus;
+  lifecycleStatus?: StudentLifecycleStatus | null;
   score: number;
   scoreDelta: number;
   lastActivity: string;
   nextAction: string;
   owner: string;
-  revision?: number;
+  /** Ownership CAS revision returned by the student list API. */
+  revision: number;
   source: string;
   priority: StudentPriority;
 }
@@ -173,6 +204,7 @@ export interface StudentListItem {
 export interface StudentTaskItem {
   id: string;
   title: string;
+  actionCode?: string;
   assignee: string;
   assigneeId?: string;
   activityDate?: string;
@@ -207,11 +239,16 @@ export interface Student360Data {
     code: string;
     school: string;
     grade: string;
+    /** Contact-stage enum used by the editable status control. */
+    studentStage?: StudentStatus | null;
+    studyStage?: string | null;
     major: string;
     phone: string;
     email: string;
     province: string;
+    ward?: string | null;
     counselor: string;
+    ownerId?: string | null;
     priority?: StudentPriority | null;
     verificationStatus?: StudentVerificationStatus | null;
     contactConsent?: StudentContactConsent | null;
@@ -322,7 +359,10 @@ export interface DirectorStudentsParams {
   q?: string;
   stage?: StudentJourneyStage | "all" | string;
   province?: string;
+  provinceId?: string;
   ownerId?: string;
+  assignmentStatus?: StudentAssignmentStatus | "all" | string;
+  lifecycleStatus?: StudentLifecycleStatus | "all" | string;
   sort?: "score" | "priority" | "lastActivityAt" | "nextActionDueAt" | string;
   order?: "asc" | "desc";
 }
@@ -354,6 +394,8 @@ export interface DirectorStudentsMeta {
   query?: string;
   filters?: {
     stage?: string;
+    assignmentStatus?: string;
+    lifecycleStatus?: string;
     province?: string;
   };
   sort?: {

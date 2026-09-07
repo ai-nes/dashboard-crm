@@ -45,6 +45,17 @@ export function getInteractionLabel(
   );
 }
 
+export function isCallInteraction(interaction: InteractionSummary): boolean {
+  const interactionType = interaction.interaction_type.trim().toUpperCase();
+  const channel = interaction.channel?.trim().toLocaleLowerCase("en-US");
+
+  return (
+    interactionType === "PHONE_CALL" ||
+    channel === "call" ||
+    channel === "phone"
+  );
+}
+
 export function getInteractionActivityTitle(
   interaction: InteractionSummary,
   catalog?: Map<string, InteractionCatalogItem>,
@@ -59,10 +70,16 @@ export function getInteractionActivityTitle(
 
   let sourceLabel: string;
   switch (interactionType) {
-    case "COUNSELING":
     case "CONNECTED":
     case "PHONE_CALL":
-      sourceLabel = "Cuộc gọi tư vấn";
+      sourceLabel = isCallInteraction(interaction)
+        ? "Cuộc gọi tư vấn"
+        : getMessageActivityLabel(interaction.channel);
+      break;
+    case "COUNSELING":
+      sourceLabel = isCallInteraction(interaction)
+        ? "Cuộc gọi tư vấn"
+        : "Tư vấn tuyển sinh";
       break;
     case "MESSAGE":
     case "MESSAGE_CHATWOOT":
@@ -201,7 +218,7 @@ export function getDirectionLabel(direction?: string | null): string {
     case "internal":
       return "Trao đổi nội bộ";
     default:
-      return direction || "Chưa xác định chiều liên hệ";
+      return direction || "-";
   }
 }
 
@@ -222,7 +239,7 @@ export function getChannelLabel(channel?: string | null): string {
     case "internal":
       return "Nội bộ";
     default:
-      return channel || "Chưa xác định kênh";
+      return channel || "-";
   }
 }
 
@@ -231,7 +248,7 @@ export function getEpisodeStateLabel(state?: string | null): string {
     ? "Đang theo dõi"
     : state === "sealed"
       ? "Đã kết thúc"
-      : "Chưa xác định trạng thái";
+      : "-";
 }
 
 export function getIntentLabel(

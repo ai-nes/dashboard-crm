@@ -1,31 +1,25 @@
 "use client";
 
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  ClockThree,
-  Pencil1,
-  Xmark,
-} from "@tailgrids/icons";
-import { useState } from "react";
-
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/tailgrids/core/tooltip";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSection,
+  DropdownMenuTrigger,
+} from "@/components/tailgrids/core/dropdown";
 import type {
   NbaDecisionOperation,
   NbaRecommendation,
 } from "@/services/api/nba";
 
+import { StudentTaskTypeBadge } from "./student-task-badges";
 import {
-  actionLabel,
   formatNbaDateTime,
+  formatNbaDecisionStatus,
   getPermittedOperations,
+  NBA_OPERATION_DESCRIPTIONS,
   NBA_OPERATION_LABELS,
   NBA_PRIORITY_COLORS,
   NBA_PRIORITY_LABELS,
@@ -33,9 +27,6 @@ import {
 
 interface StudentNbaRecommendationCardProps {
   recommendation: NbaRecommendation;
-  defaultExpanded?: boolean;
-  expanded?: boolean;
-  onExpandedChange?: (expanded: boolean) => void;
   onBeginDecision: (
     recommendation: NbaRecommendation,
     operation: NbaDecisionOperation,
@@ -44,165 +35,73 @@ interface StudentNbaRecommendationCardProps {
 
 export default function StudentNbaRecommendationCard({
   recommendation,
-  defaultExpanded = false,
-  expanded: expandedProp,
-  onExpandedChange,
   onBeginDecision,
 }: StudentNbaRecommendationCardProps) {
-  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
-  const expanded = expandedProp ?? internalExpanded;
-  const operations = getPermittedOperations(recommendation).filter(
-    (operation) => operation !== "DISMISS",
-  );
+  const operations = getPermittedOperations(recommendation);
   const hasRevision = Boolean(recommendation.expectedRevision);
-  const summary = recommendation.explanation?.summary ?? recommendation.reason;
-  const toggleExpanded = () => {
-    const nextExpanded = !expanded;
-    if (expandedProp === undefined) setInternalExpanded(nextExpanded);
-    onExpandedChange?.(nextExpanded);
-  };
+  const scheduledAt =
+    recommendation.timing.scheduledAt ?? recommendation.generatedAt;
+  const scheduleLabel = formatNbaDateTime(scheduledAt);
+  const reason =
+    recommendation.reason ||
+    recommendation.context[0] ||
+    "Chưa có căn cứ cho đề xuất này.";
 
   return (
-    <article className="overflow-hidden rounded-xl border border-card-border bg-card-background shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-background-gray-secondary/30 px-4 py-4 sm:px-5">
-        <button
-          type="button"
-          onClick={toggleExpanded}
-          aria-expanded={expanded}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left text-base font-semibold text-text-primary outline-none transition hover:text-text-secondary focus-visible:ring-2 focus-visible:ring-primary-500"
-        >
-          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          <span className="truncate">{actionLabel(recommendation.actionId)}</span>
-          <Badge color={NBA_PRIORITY_COLORS[recommendation.priority]} size="sm">
+    <article className="overflow-hidden rounded-xl border border-card-border bg-card-background">
+      <div className="px-4 py-4 sm:px-5 sm:py-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <StudentTaskTypeBadge actionCode={recommendation.action.code} />
+            <Badge
+              color="gray"
+              prefixIcon={
+                <span
+                  className="size-1.5 rounded-full bg-current"
+                  aria-hidden="true"
+                />
+              }
+              title={`Thời gian thực hiện: ${scheduleLabel}${recommendation.timing.timezone ? ` · ${recommendation.timing.timezone}` : ""}`}
+              className="whitespace-nowrap"
+            >
+              {scheduleLabel}
+            </Badge>
+          </div>
+          <Badge color={NBA_PRIORITY_COLORS[recommendation.priority]}>
             {NBA_PRIORITY_LABELS[recommendation.priority]}
           </Badge>
-        </button>
+        </div>
 
-        <div className="flex shrink-0 items-center gap-3">
-          <EvidenceCount count={recommendation.explanation?.evidence.length ?? 0} />
-          <NbaQuickActions
-            hasRevision={hasRevision}
+        <h3 className="mt-3 break-words text-lg leading-7 font-semibold text-text-primary">
+          {recommendation.action.title}
+        </h3>
+
+        <div className="mt-3 border-t border-card-border pt-3">
+          <p className="text-xs font-semibold text-text-tertiary">Lý do</p>
+          <p className="mt-1.5 max-w-3xl text-sm leading-5 text-text-primary">
+            {reason}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-4 py-3 sm:px-5">
+        <Badge
+          color={
+            recommendation.status.decision === "pending" ? "primary" : "gray"
+          }
+        >
+          {formatNbaDecisionStatus(recommendation.status.decision)}
+        </Badge>
+        {hasRevision && (
+          <DecisionActions
             operations={operations}
             onBeginDecision={(operation) =>
               onBeginDecision(recommendation, operation)
             }
           />
-          <Badge
-            color="orange"
-            prefixIcon={
-              <span className="text-xs leading-none" aria-hidden="true">
-                ✦
-              </span>
-            }
-            title="Đề xuất từ AI"
-          >
-            AI
-          </Badge>
-        </div>
+        )}
       </div>
-
-      {!expanded && (
-        <div className="border-t border-card-border px-4 py-5 sm:px-5">
-          <p className="line-clamp-2 text-sm leading-6 text-text-secondary">
-            {summary || "Chưa có tóm tắt cho đề xuất này."}
-          </p>
-        </div>
-      )}
-
-      {expanded && <NbaRecommendationReasons recommendation={recommendation} />}
     </article>
-  );
-}
-
-function NbaQuickActions({
-  hasRevision,
-  operations,
-  onBeginDecision,
-}: {
-  hasRevision: boolean;
-  operations: NbaDecisionOperation[];
-  onBeginDecision: (operation: NbaDecisionOperation) => void;
-}) {
-  if (!hasRevision) return null;
-
-  return (
-    <div className="flex shrink-0 items-center gap-1" aria-label="Thao tác nhanh">
-      {operations.map((operation) => (
-        <NbaOperationButton
-          key={operation}
-          operation={operation}
-          onPress={() => onBeginDecision(operation)}
-        />
-      ))}
-    </div>
-  );
-}
-
-function NbaRecommendationReasons({
-  recommendation,
-}: {
-  recommendation: NbaRecommendation;
-}) {
-  const explanation = recommendation.explanation;
-  const fallback = "Chưa có dữ liệu cho phần này.";
-  const summary = recommendation.explanation?.summary ?? recommendation.reason;
-
-  return (
-    <div className="space-y-4 border-t border-card-border px-4 py-4 sm:px-5">
-      <div className="rounded-lg border border-card-border bg-background-soft-50 px-4 py-3">
-        <p className="text-sm font-medium leading-6 text-text-primary">
-          {summary || "Chưa có tóm tắt cho đề xuất này."}
-        </p>
-      </div>
-
-      <div className="divide-y divide-card-border">
-        <RecommendationReason
-          label="Lý do đề xuất"
-          value={explanation?.why_action || recommendation.reason || fallback}
-        />
-        <RecommendationReason
-          label="Tại sao cần làm ngay"
-          value={explanation?.why_now || fallback}
-        />
-        <RecommendationReason
-          label="Thời điểm phù hợp"
-          value={
-            explanation
-              ? `${formatNbaDateTime(explanation.timing.recommended_at)} — ${explanation.timing.reason}`
-              : fallback
-          }
-        />
-        <RecommendationReason
-          label="Thông tin còn thiếu"
-          value={explanation?.uncertainty || fallback}
-        />
-      </div>
-    </div>
-  );
-}
-
-function EvidenceCount({ count }: { count: number }) {
-  if (count === 0) return null;
-
-  return (
-    <p className="text-xs font-medium whitespace-nowrap text-text-tertiary">
-      {count} nguồn
-    </p>
-  );
-}
-
-function RecommendationReason({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-  }) {
-  return (
-    <div className="py-3 first:pt-0 last:pb-0">
-      <p className="text-sm font-semibold text-text-primary">{label}</p>
-      <p className="mt-1.5 text-sm leading-5 text-text-secondary">{value}</p>
-    </div>
   );
 }
 
@@ -213,45 +112,96 @@ function NbaOperationButton({
   operation: NbaDecisionOperation;
   onPress: () => void;
 }) {
+  const isAccept = operation === "ACCEPT";
+  const isDestructive = operation === "REJECT" || operation === "DISMISS";
+
   return (
-    <Tooltip placement="top">
-      <TooltipTrigger asChild>
-        <Button
-          iconOnly
-          size="sm"
-          variant={
-            operation === "ACCEPT"
-              ? "success"
-              : operation === "REJECT"
-                ? "danger"
-                : "primary"
-          }
-          appearance="outline"
-          aria-label={NBA_OPERATION_LABELS[operation]}
-          onPress={onPress}
-          className={
-            operation === "DEFER"
-              ? "border-badge-orange-icon-color bg-badge-orange-background text-badge-orange-text hover:bg-badge-orange-background hover:text-badge-orange-text focus:ring-warning-500 data-[focused=true]:ring-warning-500"
-              : undefined
-          }
-        >
-          <NbaOperationIcon operation={operation} />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>{NBA_OPERATION_LABELS[operation]}</p>
-      </TooltipContent>
-    </Tooltip>
+    <Button
+      size="sm"
+      variant={isAccept ? "success" : isDestructive ? "danger" : "primary"}
+      appearance={isAccept ? "fill" : "outline"}
+      onPress={onPress}
+      className="whitespace-nowrap"
+    >
+      <span>{NBA_OPERATION_LABELS[operation]}</span>
+    </Button>
   );
 }
 
-function NbaOperationIcon({ operation }: { operation: NbaDecisionOperation }) {
-  if (operation === "ACCEPT") return <Check size={16} aria-hidden="true" />;
-  if (operation === "ACCEPT_WITH_CHANGES") {
-    return <Pencil1 size={16} aria-hidden="true" />;
-  }
-  if (operation === "DEFER") {
-    return <ClockThree size={16} aria-hidden="true" />;
-  }
-  return <Xmark size={16} aria-hidden="true" />;
+function DecisionActions({
+  operations,
+  onBeginDecision,
+}: {
+  operations: NbaDecisionOperation[];
+  onBeginDecision: (operation: NbaDecisionOperation) => void;
+}) {
+  const primaryOperation = operations.includes("ACCEPT")
+    ? "ACCEPT"
+    : operations[0];
+  const secondaryOperation =
+    primaryOperation === "ACCEPT" && operations.includes("ACCEPT_WITH_CHANGES")
+      ? "ACCEPT_WITH_CHANGES"
+      : null;
+  const overflowOperations = operations.filter(
+    (operation) =>
+      operation !== primaryOperation && operation !== secondaryOperation,
+  );
+
+  if (!primaryOperation) return null;
+
+  return (
+    <div className="flex flex-wrap justify-end gap-2">
+      <NbaOperationButton
+        operation={primaryOperation}
+        onPress={() => onBeginDecision(primaryOperation)}
+      />
+      {secondaryOperation && (
+        <NbaOperationButton
+          operation={secondaryOperation}
+          onPress={() => onBeginDecision(secondaryOperation)}
+        />
+      )}
+      {overflowOperations.length > 0 && (
+        <DecisionOverflowMenu
+          operations={overflowOperations}
+          onBeginDecision={onBeginDecision}
+        />
+      )}
+    </div>
+  );
+}
+
+function DecisionOverflowMenu({
+  operations,
+  onBeginDecision,
+}: {
+  operations: NbaDecisionOperation[];
+  onBeginDecision: (operation: NbaDecisionOperation) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="inline-flex h-8 items-center justify-center rounded-lg border border-button-primary-outline-stroke bg-button-primary-outline-background px-3 text-sm font-medium text-button-primary-outline-text outline-none transition hover:bg-button-primary-outline-hover-background focus-visible:ring-4 focus-visible:ring-button-outline-focus-ring">
+        Khác
+      </DropdownMenuTrigger>
+      <DropdownMenuContent placement="top end" className="w-64 p-1.5">
+        <DropdownMenuSection>
+          {operations.map((operation) => (
+            <DropdownMenuItem
+              key={operation}
+              id={operation}
+              onAction={() => onBeginDecision(operation)}
+              className="flex-col items-start gap-0.5 px-3 py-2"
+            >
+              <span className="font-medium text-text-primary">
+                {NBA_OPERATION_LABELS[operation]}
+              </span>
+              <span className="text-xs leading-4 text-text-secondary">
+                {NBA_OPERATION_DESCRIPTIONS[operation]}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuSection>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }

@@ -50,6 +50,7 @@ export function crmTaskToManagementItem(
       task.assignedTo || "Chưa phân công",
       assignees,
     ),
+    actionCode: task.actionCode,
     studentId,
     studentName,
     studentCode: student?.code || "",

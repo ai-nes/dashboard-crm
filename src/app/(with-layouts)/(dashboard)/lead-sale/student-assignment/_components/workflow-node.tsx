@@ -2,11 +2,18 @@
 
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { ArrowRight } from "@tailgrids/icons";
+import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { cn } from "@/utils/cn";
-import { useAssignment } from "./assignment-context";
-import { stepIcons, toneClasses } from "./mappings";
-import type { WorkflowStep } from "./types";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
+import {
+  stepIcons,
+  toneClasses,
+  workflowPhaseStateColors,
+  workflowPhaseStateLabels,
+} from "../../_shared/student-assignment/mappings";
+import type { WorkflowPhaseState } from "../../_shared/student-assignment/types";
+import type { WorkflowStep } from "../../_shared/student-assignment/types";
 
 export type AssignmentFlowNode = Node<
   {
@@ -16,6 +23,7 @@ export type AssignmentFlowNode = Node<
     muted: boolean;
     active: boolean;
     completed: boolean;
+    phaseState: WorkflowPhaseState;
   },
   "assignmentStep"
 >;
@@ -32,6 +40,26 @@ export default function WorkflowNode({ data }: NodeProps<AssignmentFlowNode>) {
   const Icon = stepIcons[data.step.id];
   return (
     <>
+      {data.step.id === "matching" && (
+        <Handle
+          id="out-review"
+          type="source"
+          position={Position.Bottom}
+          isConnectable={false}
+          className="invisible"
+          style={{ left: "25%" }}
+        />
+      )}
+      {data.step.id === "review" && (
+        <Handle
+          id="in-review"
+          type="target"
+          position={Position.Top}
+          isConnectable={false}
+          className="invisible"
+          style={{ left: "85%" }}
+        />
+      )}
       {Object.entries(sides).map(([id, position]) => (
         <Handle
           key={`in-${id}`}
@@ -44,7 +72,7 @@ export default function WorkflowNode({ data }: NodeProps<AssignmentFlowNode>) {
       ))}
       <Button
         appearance="ghost"
-        aria-label={`${data.step.title}. ${data.metric}. Xem chi tiết bước`}
+        aria-label={`${data.step.title}. Trạng thái: ${workflowPhaseStateLabels[data.phaseState]}. ${data.metric}. Xem chi tiết bước`}
         onPress={() => selectStep(data.step.id)}
         className={cn(
           "block h-auto w-[234px] rounded-xl border border-card-border bg-card-background p-4 text-left text-text-primary shadow-xs transition-none hover:bg-card-background hover:text-text-primary",
@@ -54,6 +82,14 @@ export default function WorkflowNode({ data }: NodeProps<AssignmentFlowNode>) {
           data.muted && "opacity-45",
         )}
       >
+        <div className="mb-2 flex justify-end">
+          <Badge
+            color={workflowPhaseStateColors[data.phaseState]}
+            className="text-[10px]"
+          >
+            {workflowPhaseStateLabels[data.phaseState]}
+          </Badge>
+        </div>
         <div className="flex items-center gap-2.5">
           <span
             className={cn(
@@ -67,7 +103,7 @@ export default function WorkflowNode({ data }: NodeProps<AssignmentFlowNode>) {
           </span>
           <span className="text-[13px] font-semibold">{data.step.title}</span>
         </div>
-        <p className="mt-3 text-xs font-normal text-text-tertiary">
+        <p className="mt-3 min-h-8 whitespace-normal text-xs font-normal text-text-tertiary">
           {data.step.description}
         </p>
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-card-border pt-2.5">

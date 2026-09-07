@@ -104,6 +104,7 @@ export function crmTaskToStudentTask(
   return {
     id: task.name,
     title: task.title,
+    actionCode: task.actionCode,
     assignee: assignedUser?.full_name || task.assignedTo || fallbackAssignee,
     assigneeId: task.assignedTo,
     activityDate: task.creation || task.modified || task.dueDate,
@@ -126,6 +127,7 @@ export function studentTaskToCreatePayload(
     referenceDocname,
     title: task.title,
     description: task.notes,
+    actionCode: task.actionCode,
     priority: priorityToApi[task.priority],
     status: studentTaskStatusToCrmStatus(task.status),
     dueDate: toFrappeDateTime(task.dueDate, task.dueTime),

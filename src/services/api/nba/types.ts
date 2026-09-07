@@ -14,6 +14,28 @@ export interface NbaExplanationAction {
   title: string;
 }
 
+export interface NbaRecommendationTarget {
+  type: string;
+  id: string;
+}
+
+export interface NbaRecommendationAction {
+  code: string;
+  title: string;
+}
+
+export interface NbaRecommendationTiming {
+  scheduledAt: string | null;
+  expiresAt: string | null;
+  timezone: string | null;
+}
+
+export interface NbaRecommendationStatus {
+  lifecycle: string;
+  decision: string;
+  execution: string;
+}
+
 export interface NbaExplanationEvidence {
   summary: string;
   evidence_ref: string;
@@ -46,6 +68,8 @@ export interface NbaEvaluationReference {
  */
 export interface NbaRecommendation {
   id: string;
+  target: NbaRecommendationTarget;
+  action: NbaRecommendationAction;
   rank: number;
   recommendationKey: string;
   studentId: string;
@@ -54,6 +78,10 @@ export interface NbaRecommendation {
   priority: NbaRecommendationPriority;
   channel: string | null;
   reason: string;
+  objective: string | null;
+  context: string[];
+  timing: NbaRecommendationTiming;
+  status: NbaRecommendationStatus;
   aiPayload: Record<string, unknown>;
   explanation: NbaExplanation | null;
   explanationSource: "model" | null;
