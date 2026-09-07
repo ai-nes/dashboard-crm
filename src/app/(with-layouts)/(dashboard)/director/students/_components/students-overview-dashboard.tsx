@@ -350,7 +350,7 @@ export default function StudentsOverviewDashboard() {
 
       <Card className="min-w-0 overflow-hidden p-0">
         <div className="lg:overflow-x-auto">
-          <div className="lg:min-w-[1100px]">
+          <div className="lg:min-w-[1180px]">
             <div
               className={`hidden ${studentListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
               aria-hidden="true"

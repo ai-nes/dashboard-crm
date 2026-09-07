@@ -25,7 +25,7 @@ function getScoreTone(score: number): "success" | "warning" | "error" {
 }
 
 export const studentListGrid =
-  "lg:grid-cols-[minmax(250px,1.35fr)_minmax(170px,0.9fr)_120px_130px_minmax(200px,1.2fr)_110px]";
+  "lg:grid-cols-[minmax(250px,1.35fr)_minmax(170px,0.9fr)_minmax(12rem,1.1fr)_130px_minmax(200px,1.2fr)_110px]";
 
 export default function StudentList({
   isStatusUpdating,
@@ -110,6 +110,7 @@ export default function StudentList({
                   <StudentStatusSelect
                     studentName={student.name}
                     value={status}
+                    className="min-w-48"
                     isDisabled={isStatusUpdating}
                     onChange={(nextStatus) =>
                       onStatusChange(student.id, nextStatus)
