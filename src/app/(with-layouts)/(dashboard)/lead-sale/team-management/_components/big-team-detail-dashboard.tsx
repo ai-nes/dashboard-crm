@@ -21,7 +21,7 @@ export default function BigTeamDetailDashboard({
 }: {
   bigTeamId: string;
 }) {
-  const { state, isLoading, error, saveGroup, saveTeam } = useTeamManagement();
+  const { state, isLoading, error, saveTeam } = useTeamManagement();
   const [isCreating, setIsCreating] = useState(false);
 
   if (isLoading && !state) return <LoadingState />;
@@ -75,34 +75,19 @@ export default function BigTeamDetailDashboard({
       />
       <BigTeamStats
         bigTeam={bigTeam}
-        allMembers={state.members.filter((member) => member.isActive !== false)}
         smallTeamCount={smallTeams.length}
         memberCount={membersOfBigTeam(state, bigTeam).length}
-        canManageLead={state.permissions?.canManageAll ?? false}
-        onLeadChange={(leadId) =>
-          void run(
-            () =>
-              saveGroup({
-                groupId: bigTeam.id,
-                groupName: bigTeam.name,
-                groupLeadStaff: leadId,
-                clearGroupLead: leadId === null,
-                expectedRevision: bigTeam.revision,
-              }),
-            leadId ? "Đã cập nhật trưởng đội." : "Đã bỏ trưởng đội.",
-          )
-        }
       />
 
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-text-primary">
-          Nhóm trong {bigTeam.name}
+          Team trong {bigTeam.name}
         </h2>
       </div>
 
       {smallTeams.length === 0 ? (
         <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-tertiary">
-          Chưa có nhóm nào trong đội này.
+          Chưa có Team nào trong Group này.
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -130,6 +115,7 @@ export default function BigTeamDetailDashboard({
                   leadId ? "Đã cập nhật trưởng nhóm." : "Đã bỏ trưởng nhóm.",
                 )
               }
+              canManageLead={state.permissions?.canManage ?? false}
             />
           ))}
         </div>
@@ -137,11 +123,11 @@ export default function BigTeamDetailDashboard({
 
       {isCreating && (
         <CreateTeamDialog
-          title="Tạo nhóm"
-          description={`Nhóm thuộc ${bigTeam.name}, gồm trưởng nhóm và các thành viên Sale/CTV Sale.`}
-          fieldLabel="Tên nhóm"
-          placeholder="Ví dụ: Nhóm Tư vấn Quận 1"
-          submitLabel="Tạo nhóm"
+          title="Tạo Team"
+          description={`Team thuộc Group ${bigTeam.name} (${bigTeam.provinceName ?? "chưa có tỉnh"}), gồm trưởng nhóm và các thành viên Sale/CTV Sale.`}
+          fieldLabel="Tên Team"
+          placeholder="Ví dụ: Team Tư vấn Khu Đông"
+          submitLabel="Tạo Team"
           campusOptions={state.options?.campuses}
           onClose={() => setIsCreating(false)}
           onSubmit={(name, campusId) => {
@@ -155,7 +141,7 @@ export default function BigTeamDetailDashboard({
                   campus: campusId,
                   isActive: true,
                 }),
-              `Đã tạo nhóm "${name}".`,
+              `Đã tạo Team "${name}".`,
             ).finally(() => setIsCreating(false));
           }}
         />

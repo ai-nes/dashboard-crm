@@ -24,13 +24,13 @@ export default function SmallTeamDetailHeader({
             className="inline-flex items-center gap-1 text-xs font-medium text-text-tertiary hover:text-text-primary"
           >
             <ChevronLeft size={14} aria-hidden="true" />
-            Quay lại {bigTeam.name}
+            Quay lại Group {bigTeam.name}
           </Link>
           <h1 className="mt-3 text-balance text-2xl leading-8 font-semibold tracking-[-0.4px] text-text-primary lg:text-[28px]">
             {smallTeam.name}
           </h1>
           <p className="mt-2 text-sm leading-6 text-text-secondary">
-            Thuộc {bigTeam.name}
+            Thuộc Group {bigTeam.name} · {bigTeam.provinceName ?? "Chưa chọn tỉnh"}
           </p>
         </div>
         <Button size="sm" onPress={onCreate} className="shrink-0">

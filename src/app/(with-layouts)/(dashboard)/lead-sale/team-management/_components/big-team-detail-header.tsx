@@ -29,10 +29,13 @@ export default function BigTeamDetailHeader({
         <h1 className="mt-3 text-balance text-2xl leading-8 font-semibold tracking-[-0.4px] text-text-primary lg:text-[28px]">
           {bigTeam.name}
         </h1>
+        <p className="mt-2 text-sm text-text-secondary">
+          Tỉnh quản lý: {bigTeam.provinceName ?? "Chưa chọn tỉnh"}
+        </p>
       </div>
       <Button onPress={onCreate} className="shrink-0 self-start">
         <Plus size={16} aria-hidden="true" />
-        Tạo nhóm
+        Tạo Team
       </Button>
     </header>
   );

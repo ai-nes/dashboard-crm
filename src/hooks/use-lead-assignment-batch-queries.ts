@@ -16,6 +16,7 @@ import {
   previewLeadAssignmentBatch,
   retryLeadAssignmentBatch,
   runLeadAssignmentBatch,
+  runUnassignedLeadAssignment,
   type CreateLeadAssignmentBatchRequest,
   type ImportLeadAssignmentBatchRequest,
   type LeadAssignmentBatchCatalogParams,
@@ -23,6 +24,7 @@ import {
   type LeadAssignmentBatchListParams,
   type LeadAssignmentBatchListResponse,
   type LeadAssignmentBatchMutationResponse,
+  type LeadAssignmentAutoRunResponse,
   type LeadAssignmentCatalogs,
   type LeadAssignmentBatchActionRequest,
   type RetryLeadAssignmentBatchRequest,
@@ -142,6 +144,15 @@ export function useRunLeadAssignmentBatchMutation() {
     runLeadAssignmentBatch(request, {
       idempotencyKey: `lead-run:${request.batchId}`,
     }),
+  );
+}
+
+export function useRunUnassignedLeadAssignmentMutation() {
+  return useBatchMutation<Record<string, never>, LeadAssignmentAutoRunResponse>(
+    () =>
+      runUnassignedLeadAssignment({
+        idempotencyKey: `lead-run-unassigned:${Date.now()}`,
+      }),
   );
 }
 

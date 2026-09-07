@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowRight } from "@tailgrids/icons";
+import { ArrowRight, Play } from "@tailgrids/icons";
 import Link from "next/link";
 import { Badge } from "@/components/tailgrids/core/badge";
-import { buttonStyles } from "@/components/tailgrids/core/button";
+import { Button, buttonStyles } from "@/components/tailgrids/core/button";
 import { cn } from "@/utils/cn";
 import { useBatchAssignment } from "../../_shared/lead-assignment-batch/batch-assignment-context";
 import {
@@ -13,7 +13,12 @@ import {
 } from "../../_shared/lead-assignment-batch/batch-assignment-mappings";
 
 export default function AssignmentBatchHeader() {
-  const { activeBatch, isLoading } = useBatchAssignment();
+  const {
+    activeBatch,
+    isLoading,
+    runUnassignedLeads,
+    isRunningUnassigned,
+  } = useBatchAssignment();
 
   return (
     <header className="space-y-5">
@@ -28,10 +33,19 @@ export default function AssignmentBatchHeader() {
             Phân công tự động
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Theo dõi các bước kiểm tra và phân công theo từng đợt Lead.
+            Hệ thống sẽ quét các Lead chưa có người phụ trách và phân công theo
+            cấu hình hiện tại.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            size="md"
+            onPress={() => void runUnassignedLeads()}
+            isDisabled={isRunningUnassigned}
+          >
+            <Play size={15} aria-hidden="true" />
+            {isRunningUnassigned ? "Đang phân công…" : "Phân công Lead"}
+          </Button>
           <Link
             href="/lead-sale/assignment-history"
             className={cn(
@@ -43,7 +57,7 @@ export default function AssignmentBatchHeader() {
               "border-card-border text-text-secondary",
             )}
           >
-            Lịch sử đợt <ArrowRight size={16} aria-hidden="true" />
+            Lịch sử chạy <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
       </div>
@@ -51,12 +65,12 @@ export default function AssignmentBatchHeader() {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-card-border bg-card-background px-5 py-4">
         <div className="min-w-0">
           <p className="text-xs font-medium text-text-tertiary">
-            ĐỢT ĐANG CHỌN
+            LẦN CHẠY GẦN NHẤT
           </p>
           <p className="mt-1 truncate text-sm font-semibold text-text-primary">
             {isLoading
-              ? "Đang tải đợt…"
-              : (activeBatch?.batchName ?? "Chưa chọn đợt")}
+              ? "Đang tải kết quả…"
+              : (activeBatch?.batchName ?? "Chưa có lần chạy")}
           </p>
           {activeBatch && (
             <p className="mt-1 text-xs text-text-tertiary">
@@ -71,7 +85,7 @@ export default function AssignmentBatchHeader() {
           </Badge>
         ) : (
           <span className="text-sm text-text-tertiary">
-            Chọn một đợt từ lịch sử để xem kết quả
+            Chưa chọn lần chạy. Bấm “Phân công Lead” để quét hệ thống
           </span>
         )}
       </div>

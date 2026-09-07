@@ -19,7 +19,10 @@ function normalizeWorkspace(workspace: TeamManagementWorkspace): TeamOrgState {
   const groups: BigTeam[] = workspace.groups.map((group) => ({
     id: group.id,
     name: group.name,
-    leadId: group.leadId,
+    provinceId: group.provinceId,
+    provinceName: group.provinceName,
+    provinceCode: group.provinceCode,
+    groupLeadId: group.groupLeadId,
     smallTeamIds: group.teamIds,
     teamCount: group.teamCount,
     memberCount: group.memberCount,

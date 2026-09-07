@@ -5,6 +5,7 @@ import {
   InfoCircle,
   Play,
   RefreshCircle1Clockwise,
+  Search1,
 } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -29,8 +30,10 @@ export default function AssignmentBatchExecution() {
     activeBatch,
     items,
     isDetailLoading,
+    isPreviewing,
     isRunning,
     isRetrying,
+    previewBatch,
     runBatch,
     retryBatch,
     inspectItem,
@@ -49,7 +52,7 @@ export default function AssignmentBatchExecution() {
       <Card className="p-0">
         <CardHeader className="border-b border-card-border px-5 py-4">
           <div>
-            <CardTitle className="text-base">Kết quả và thao tác đợt</CardTitle>
+            <CardTitle className="text-base">Kết quả phân công</CardTitle>
             <p className="mt-1 text-sm text-text-secondary">
               Một lần bấm sẽ kiểm tra điều kiện và phân công hồ sơ đủ điều kiện;
               hồ sơ cần bổ sung sẽ được giữ lại để xử lý tiếp.
@@ -85,21 +88,34 @@ export default function AssignmentBatchExecution() {
               aria-hidden="true"
             />
             <span>
-              Tuyến phân công, đội, tư vấn viên và sức chứa lấy từ kết quả hệ
-              thống. Bước này chưa tạo hồ sơ Student.
+              Tỉnh, Team, Sale/CTV và tải nhận Lead lấy từ kết quả hệ thống.
+              Bước này chưa tạo hồ sơ Student.
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
             {(activeBatch.status === "draft" ||
               activeBatch.status === "ready") && (
-              <Button
-                size="md"
-                onPress={() => void runBatch()}
-                isDisabled={isRunning}
-              >
-                <Play size={15} aria-hidden="true" />
-                {isRunning ? "Đang xử lý phân công…" : "Chạy phân công tự động"}
-              </Button>
+              <>
+                {activeBatch.status === "draft" && (
+                  <Button
+                    appearance="outline"
+                    size="md"
+                    onPress={() => void previewBatch()}
+                    isDisabled={isPreviewing || isRunning}
+                  >
+                    <Search1 size={15} aria-hidden="true" />
+                    {isPreviewing ? "Đang xem trước…" : "Xem trước"}
+                  </Button>
+                )}
+                <Button
+                  size="md"
+                  onPress={() => void runBatch()}
+                  isDisabled={isRunning || isPreviewing}
+                >
+                  <Play size={15} aria-hidden="true" />
+                  {isRunning ? "Đang phân công…" : "Phân công tự động"}
+                </Button>
+              </>
             )}
             {retryableItems.length > 0 && activeBatch.status !== "running" && (
               <Button
@@ -127,7 +143,7 @@ export default function AssignmentBatchExecution() {
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
             <div>
               <h2 className="text-sm font-semibold text-text-primary">
-                Danh sách hồ sơ trong đợt
+                Lead đã được xử lý trong lần chạy
               </h2>
               <p className="mt-1 text-xs text-text-tertiary">
                 Cập nhật lúc: {formatDateTime(activeBatch.updatedAt)}
@@ -142,7 +158,7 @@ export default function AssignmentBatchExecution() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[780px] text-left text-sm">
               <caption className="sr-only">
-                Danh sách hồ sơ Lead trong đợt {activeBatch.batchName}
+                Danh sách Lead trong lần chạy {activeBatch.batchName}
               </caption>
               <thead className="border-y border-card-border bg-background-gray-secondary/60 text-xs text-text-tertiary">
                 <tr>
@@ -189,9 +205,7 @@ export default function AssignmentBatchExecution() {
                         {item.ownerStaff ?? "Chưa có tư vấn viên"}
                       </span>
                       <span className="block text-text-tertiary">
-                        {item.team ??
-                          item.zone ??
-                          "Chưa xác định tuyến phân công"}
+                        {item.team ?? "Chưa tìm được Team theo tỉnh"}
                       </span>
                     </td>
                     <td className="px-4 py-4">
