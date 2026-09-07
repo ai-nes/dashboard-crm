@@ -37,22 +37,36 @@ export default function LeadHeader({ lead }: { lead: LeadDetail }) {
                 <h1 className="min-w-0 text-balance text-xl font-semibold tracking-[-0.4px] text-text-primary lg:text-2xl lg:leading-8">
                   {lead.name || "-"}
                 </h1>
-                <Badge color={leadStatusColor[lead.status]}>{lead.status}</Badge>
-                <Badge color="primary">{lead.source}</Badge>
+                <Badge color={leadStatusColor(lead.status)}>
+                  {lead.status || "-"}
+                </Badge>
+                {lead.source && <Badge color="primary">{lead.source}</Badge>}
               </div>
               <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs text-text-secondary">
                 {lead.phone && (
-                  <StudentCopyBadge icon={Phone} label="số điện thoại" value={lead.phone}>
+                  <StudentCopyBadge
+                    icon={Phone}
+                    label="số điện thoại"
+                    value={lead.phone}
+                  >
                     {lead.phone}
                   </StudentCopyBadge>
                 )}
                 {lead.email && (
-                  <StudentCopyBadge icon={Envelope1} label="email" value={lead.email}>
+                  <StudentCopyBadge
+                    icon={Envelope1}
+                    label="email"
+                    value={lead.email}
+                  >
                     {lead.email}
                   </StudentCopyBadge>
                 )}
                 <span className="flex items-center gap-1.5">
-                  <MapMarker5 size={14} className="text-icon-tertiary" aria-hidden="true" />
+                  <MapMarker5
+                    size={14}
+                    className="text-icon-tertiary"
+                    aria-hidden="true"
+                  />
                   {lead.school || "-"}
                 </span>
               </div>
@@ -62,7 +76,10 @@ export default function LeadHeader({ lead }: { lead: LeadDetail }) {
           <div className="mt-3 grid divide-y divide-card-border border-t border-card-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <HeaderFact label="Giao cho" value={lead.owner} />
             <HeaderFact label="Chi nhánh" value={lead.branch} />
-            <HeaderFact label="Năm tuyển sinh" value={String(lead.enrollmentYear)} />
+            <HeaderFact
+              label="Năm tuyển sinh"
+              value={lead.enrollmentYear ? String(lead.enrollmentYear) : ""}
+            />
           </div>
         </div>
       </div>
@@ -75,7 +92,10 @@ function HeaderFact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 px-3 py-2">
       <p className="text-[11px] text-text-tertiary">{label}</p>
-      <p className="mt-0.5 truncate text-sm font-semibold text-text-primary" title={displayValue}>
+      <p
+        className="mt-0.5 truncate text-sm font-semibold text-text-primary"
+        title={displayValue}
+      >
         {displayValue}
       </p>
     </div>

@@ -15,6 +15,7 @@ import type {
 } from "./types";
 
 export type * from "./types";
+export * from "./leads";
 export * from "./student-assignment";
 export * from "./sales-team";
 
