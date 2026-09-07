@@ -197,7 +197,7 @@ export default function StudentHeader({
                 />
               ) : studentStatus ? (
                 <p className="mt-0.5 text-sm font-semibold text-text-primary">
-                  {studentStatusLabel[studentStatus]}
+                  {studentStatus ? studentStatusLabel[studentStatus] : "Chưa xác định"}
                 </p>
               ) : (
                 <p className="mt-0.5 text-sm text-text-tertiary">

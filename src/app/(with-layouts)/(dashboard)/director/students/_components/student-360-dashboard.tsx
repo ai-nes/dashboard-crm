@@ -38,10 +38,7 @@ import StudentDocumentsTab from "./student-documents-tab";
 import StudentFamilyTab from "./student-family-tab";
 import StudentHeader from "./student-header";
 import StudentSourceContext from "./student-source-context";
-import {
-  canTransitionStudentStatus,
-  defaultStudentStatus,
-} from "./student-status";
+import { canTransitionStudentStatus } from "./student-status";
 
 interface Student360DashboardProps {
   studentId?: string;
@@ -215,7 +212,7 @@ export default function Student360Dashboard({
       ? studentStatusDraft.status
       : null) ??
     data?.student.studentStage ??
-    defaultStudentStatus;
+    null;
   const canonicalStudentId = data?.student.studentId;
   const studentOwner =
     (studentOwnerDraft?.studentId === targetId
@@ -226,6 +223,10 @@ export default function Student360Dashboard({
   const handleStudentStatusChange = (nextStatus: StudentStatus) => {
     if (!canonicalStudentId) {
       toast.error("Hồ sơ này chưa được liên kết với bản ghi CRM Student.");
+      return;
+    }
+    if (!studentStatus) {
+      toast.error("Hồ sơ chưa có trạng thái Student hợp lệ.");
       return;
     }
     if (!canTransitionStudentStatus(studentStatus, nextStatus)) {

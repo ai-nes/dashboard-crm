@@ -121,6 +121,7 @@ export type LeadAssignmentBatchItem = LeadAssignmentRoutingContext & {
   status: LeadAssignmentBatchItemStatus;
   processingStatus: LeadProcessingStatus | null;
   resolution: LeadAssignmentResolution | null;
+  convertedStudent: string | null;
   reason: string | null;
   errorCode: string | null;
   missingFields: string[];
@@ -440,6 +441,9 @@ function normalizeItem(value: unknown, index: number): LeadAssignmentBatchItem {
     )
       ? (source.resolution as LeadAssignmentResolution)
       : null,
+    convertedStudent: nullableText(
+      source.convertedStudent ?? source.converted_student,
+    ),
     routingTier: nullableStringOrNumber(
       source.routingTier ?? source.routing_tier,
     ),
