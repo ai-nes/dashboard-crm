@@ -207,7 +207,10 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
     path: "/lead-sale/assignment-history",
     roles: ROLE_ROUTE_ROLES["lead-sale"],
   },
-  { path: "/lead-sale/sales-team", roles: ROLE_ROUTE_ROLES["lead-sale"] },
+  {
+    path: "/lead-sale/team-management",
+    roles: ROLE_ROUTE_ROLES["lead-sale"],
+  },
   { path: "/lead-sale/campaigns", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/director/ai/next-best-action", roles: OVERVIEW_ACTION_ROLES },
   { path: "/director/ai", roles: AI_CENTER_ROLES },

@@ -19,7 +19,6 @@ export * from "./leads";
 export * from "./campaigns";
 export * from "./campaign-channel-types";
 export * from "./student-assignment";
-export * from "./sales-team";
 
 const METHOD = "crm.api.lead_sale.get_lead_sale_overview";
 const KPI_IDS = [

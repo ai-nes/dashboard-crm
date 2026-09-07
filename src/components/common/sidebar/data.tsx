@@ -351,8 +351,8 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
     label: "ĐỘI NGŨ",
     items: [
       navItem({
-        title: "Đội ngũ Sale",
-        url: "/lead-sale/sales-team",
+        title: "Quản lý Team",
+        url: "/lead-sale/team-management",
         icon: <UserMultiple4 size={18} />,
       }),
     ],
