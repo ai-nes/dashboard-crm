@@ -38,7 +38,6 @@ import type {
 } from "@/services/api/students/types";
 
 import StudentAllActivitiesFeed from "./student-all-activities-feed";
-import StudentAuditCard from "./student-audit-card";
 import StudentCallsTab from "./student-calls-tab";
 import StudentNotesTab from "./student-notes-tab";
 import StudentDeleteTaskDialog from "./student-delete-task-dialog";
@@ -498,7 +497,6 @@ export default function StudentActivitiesTab({
         <TabTrigger value="all">Tất cả hoạt động</TabTrigger>
         <TabTrigger value="notes">Ghi chú</TabTrigger>
         <TabTrigger value="tasks">Task</TabTrigger>
-        <TabTrigger value="log">Lịch sử hoạt động</TabTrigger>
         <TabTrigger value="zalo">Zalo</TabTrigger>
         <TabTrigger value="calls">Cuộc gọi</TabTrigger>
       </TabList>
@@ -544,13 +542,6 @@ export default function StudentActivitiesTab({
           isCreating={createTaskMutation.isPending}
           isLoading={crmTasksQuery.isPending}
           initialTaskId={initialTaskId}
-        />
-      </TabContent>
-      <TabContent value="log">
-        <StudentAuditCard
-          events={auditEvents}
-          isLoading={studentAuditQuery.isPending}
-          error={studentAuditQuery.error}
         />
       </TabContent>
       <TabContent value="zalo">
