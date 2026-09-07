@@ -108,7 +108,7 @@ export default function CampaignList({
                 <Badge color={campaignStatusColor[campaign.status]}>{campaignStatusLabel[campaign.status]}</Badge>
               </div>
               <Link
-                href={`/lead-sale/campaigns/${campaign.id}`}
+                href={`/lead-sale/campaigns/${campaign.code}`}
                 className="mt-1.5 block text-sm font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
               >
                 {campaign.name}

@@ -25,18 +25,18 @@ import CampaignDetailStats from "./campaign-detail-stats";
 import { toCampaignListItem } from "./campaign-mappers";
 
 export default function CampaignDetailDashboard({
-  campaignId,
+  campaignCode,
 }: {
-  campaignId: string;
+  campaignCode: string;
 }) {
-  const campaignQuery = useLeadSaleCampaignQuery(campaignId);
+  const campaignQuery = useLeadSaleCampaignQuery(campaignCode);
   const { data: channelTypeData } = useLeadSaleCampaignChannelTypesQuery();
   const campaign = useMemo(
     () => (campaignQuery.data ? toCampaignListItem(campaignQuery.data) : null),
     [campaignQuery.data],
   );
   const leadsQuery = useLeadSaleLeadsQuery(
-    { campaign: campaignId, page: 1, pageSize: 100 },
+    { campaign: campaignQuery.data?.name ?? "", page: 1, pageSize: 100 },
     { enabled: Boolean(campaignQuery.data) },
   );
   const fetchedLeads = useMemo(

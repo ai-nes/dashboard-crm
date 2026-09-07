@@ -51,3 +51,9 @@ export interface StudentAuditLogsResponse {
   pageLength: number;
   readOnly: boolean;
 }
+
+export interface LeadAuditLogsParams {
+  lead: string;
+  start?: number;
+  pageLength?: number;
+}

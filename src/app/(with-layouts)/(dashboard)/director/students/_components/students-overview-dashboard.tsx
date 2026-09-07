@@ -38,10 +38,11 @@ import LeadImportDialog from "./lead-import-dialog";
 import StudentKpiStrip from "./student-kpi-strip";
 import StudentList, { studentListGrid } from "./student-list";
 import StudentListToolbar from "./student-list-toolbar";
-import {
-  canTransitionStudentStatus,
-  defaultStudentStatus,
-} from "./student-status";
+import { canTransitionStudentStatus } from "./student-status";
+
+interface StudentStageTransitionVariables extends StudentStageTransitionRequest {
+  rowId: string;
+}
 
 export default function StudentsOverviewDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -102,8 +103,7 @@ export default function StudentsOverviewDashboard() {
 
   const students = (response?.data ?? []).map((student) => ({
     ...student,
-    studentStage:
-      statusDrafts[student.id] ?? student.studentStage ?? defaultStudentStatus,
+    studentStage: statusDrafts[student.id] ?? student.studentStage,
   }));
   const filteredStudents =
     studentStatus === "all"
@@ -162,8 +162,11 @@ export default function StudentsOverviewDashboard() {
     },
   });
   const statusMutation = useMutation({
-    mutationFn: (request: StudentStageTransitionRequest) =>
-      requestStudentStageTransition(request),
+    mutationFn: (variables: StudentStageTransitionVariables) =>
+      requestStudentStageTransition({
+        student: variables.student,
+        target_stage: variables.target_stage,
+      }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
@@ -172,7 +175,7 @@ export default function StudentsOverviewDashboard() {
     onError: (error, variables) => {
       setStatusDrafts((previous) => {
         const next = { ...previous };
-        delete next[variables.student];
+        delete next[variables.rowId];
         return next;
       });
       toast.error(
@@ -220,7 +223,17 @@ export default function StudentsOverviewDashboard() {
     nextStatus: StudentStatus,
   ) => {
     const currentStudent = students.find((student) => student.id === id);
-    const currentStatus = currentStudent?.studentStage ?? defaultStudentStatus;
+    const currentStatus = currentStudent?.studentStage;
+    if (!currentStudent?.studentId) {
+      toast.error(
+        "Hồ sơ này chưa được liên kết với bản ghi CRM Student.",
+      );
+      return;
+    }
+    if (!currentStatus) {
+      toast.error("Hồ sơ Student chưa có trạng thái hiện tại để chuyển tiếp.");
+      return;
+    }
     if (!canTransitionStudentStatus(currentStatus, nextStatus)) {
       toast.error("Trạng thái chỉ được chuyển theo đúng quy trình.");
       return;
@@ -231,7 +244,8 @@ export default function StudentsOverviewDashboard() {
       [id]: nextStatus,
     }));
     statusMutation.mutate({
-      student: id,
+      rowId: id,
+      student: currentStudent.studentId,
       target_stage: nextStatus,
     });
   };
@@ -336,7 +350,7 @@ export default function StudentsOverviewDashboard() {
 
       <Card className="min-w-0 overflow-hidden p-0">
         <div className="lg:overflow-x-auto">
-          <div className="lg:min-w-[1100px]">
+          <div className="lg:min-w-[1180px]">
             <div
               className={`hidden ${studentListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
               aria-hidden="true"

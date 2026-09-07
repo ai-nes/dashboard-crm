@@ -225,6 +225,16 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
       }),
     ],
   },
+  {
+    label: "ĐỘI NGŨ",
+    items: [
+      navItem({
+        title: "Quản lý Team",
+        url: "/lead-sale/team-management",
+        icon: <UserMultiple4 size={18} />,
+      }),
+    ],
+  },
 ];
 
 /**
@@ -273,6 +283,16 @@ export const SALE_NAV_DATA: NavigationSection[] = [
       }),
     ],
   },
+  {
+    label: "ĐỘI NGŨ",
+    items: [
+      navItem({
+        title: "Quản lý Team",
+        url: "/lead-sale/team-management",
+        icon: <UserMultiple4 size={18} />,
+      }),
+    ],
+  },
 ];
 
 /**
@@ -315,7 +335,7 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         url: "/lead-sale/leads",
         icon: <Target3 size={18} />,
       }),
-       navItem({
+      navItem({
         title: "Chiến dịch tuyển sinh",
         url: "/lead-sale/campaigns",
         icon: <Megaphone1 size={18} />,
@@ -366,14 +386,14 @@ export function getNavigationDataForRoles(
   const navigation =
     effectiveRoles.includes("Admissions Director") ||
     effectiveRoles.includes("Administrator")
-    ? DIRECTOR_NAV_DATA
-    : effectiveRoles.includes("CTV Sale")
-      ? CTV_SALE_NAV_DATA
-      : effectiveRoles.includes("Lead Sale")
-        ? LEAD_SALE_NAV_DATA
-        : effectiveRoles.includes("Sale")
-          ? SALE_NAV_DATA
-          : NAV_DATA;
+      ? DIRECTOR_NAV_DATA
+      : effectiveRoles.includes("CTV Sale")
+        ? CTV_SALE_NAV_DATA
+        : effectiveRoles.includes("Lead Sale")
+          ? LEAD_SALE_NAV_DATA
+          : effectiveRoles.includes("Sale")
+            ? SALE_NAV_DATA
+            : NAV_DATA;
 
   const workspaceRoute = getDefaultRouteForRoles(userRoles);
 

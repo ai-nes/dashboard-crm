@@ -13,6 +13,17 @@ export type LeadResolution =
   | "SPAM"
   | "FAILED";
 
+export type LeadResolutionFilter = "PENDING" | LeadResolution;
+
+export type LeadProcessStatus =
+  | "NEW"
+  | "PROCESSING"
+  | "PROCESSED"
+  | "ASSIGNED"
+  | "CLOSED";
+
+export type LeadProcessResolution = "PENDING" | LeadResolution;
+
 export interface LeadListItem {
   id: string;
   leadCode: string;
@@ -85,6 +96,7 @@ export interface LeadListParams {
   pageSize?: number;
   q?: string;
   status?: string;
+  resolution?: LeadResolutionFilter | string;
   campaign?: string;
   order?: "asc" | "desc";
 }
@@ -100,6 +112,8 @@ export interface LeadListMeta {
   query: string;
   status: string | null;
   statusOptions: LeadStatusOption[];
+  resolution: string | null;
+  resolutionOptions: LeadStatusOption[];
   stats?: LeadCampaignStats;
   asOf?: string | null;
 }
@@ -120,6 +134,26 @@ export interface LeadDetailResponse {
   lead: LeadDetail;
   log: LeadLogEntry[];
   meta: { asOf?: string | null };
+}
+
+export interface LeadProcessRequest {
+  lead: string;
+  resolution?: LeadResolution;
+  reason?: string;
+}
+
+export interface LeadStatusUpdateRequest {
+  lead: string;
+  status: LeadProcessStatus;
+  reason?: string;
+}
+
+export interface LeadProcessResponse {
+  status: LeadProcessStatus;
+  resolution: LeadProcessResolution;
+  lead: string;
+  targetStudent: string | null;
+  validation: Record<string, boolean>;
 }
 
 export interface LeadApiRequestOptions {
@@ -169,10 +203,28 @@ export class LeadApiError extends Error {
 }
 
 const LIST_METHOD = "crm.api.director_leads.get_director_leads";
-const DETAIL_METHOD = "crm.api.lead.get_lead";
+const DETAIL_METHOD = "crm.api.director_leads.get_director_lead";
 const CREATE_METHOD = "crm.api.lead.create_lead";
 const UPDATE_METHOD = "crm.api.lead.update_lead";
 const DELETE_METHOD = "crm.api.lead.delete_lead";
+const PROCESS_METHOD = "crm.api.lead_processing.process_lead";
+const STATUS_UPDATE_METHOD = "crm.api.lead_processing.update_processing_status";
+const LEAD_PROCESS_STATUSES = new Set<LeadProcessStatus>([
+  "NEW",
+  "PROCESSING",
+  "PROCESSED",
+  "ASSIGNED",
+  "CLOSED",
+]);
+const LEAD_PROCESS_RESOLUTIONS = new Set<LeadProcessResolution>([
+  "PENDING",
+  "MATCHED",
+  "CREATED",
+  "DUPLICATE",
+  "INVALID",
+  "SPAM",
+  "FAILED",
+]);
 const LEAD_RESOLUTION_CODES = new Set<LeadResolution>([
   "MATCHED",
   "CREATED",
@@ -215,6 +267,34 @@ function normalizeResolution(value: unknown): LeadResolution | "" {
   return LEAD_RESOLUTION_CODES.has(candidate as LeadResolution)
     ? (candidate as LeadResolution)
     : "";
+}
+
+function normalizeProcessResponse(value: unknown): LeadProcessResponse {
+  const payload = asRecord(unwrapMessage(value));
+  const status = text(payload?.status).toUpperCase() as LeadProcessStatus;
+  const resolution = text(
+    payload?.resolution,
+    "PENDING",
+  ).toUpperCase() as LeadProcessResolution;
+  if (
+    !payload ||
+    !LEAD_PROCESS_STATUSES.has(status) ||
+    !LEAD_PROCESS_RESOLUTIONS.has(resolution)
+  ) {
+    throw new Error("Invalid Lead processing response");
+  }
+
+  const rawValidation = asRecord(payload.validation) ?? {};
+  return {
+    status,
+    resolution,
+    lead: firstText([payload.lead]),
+    targetStudent:
+      firstText([payload.targetStudent, payload.target_student]) || null,
+    validation: Object.fromEntries(
+      Object.entries(rawValidation).map(([key, item]) => [key, Boolean(item)]),
+    ),
+  };
 }
 
 function unwrapMessage(value: unknown): unknown {
@@ -339,6 +419,11 @@ function normalizeMeta(value: unknown): LeadListMeta {
       : null;
   const rawOptions = meta.statusOptions ?? meta.status_options;
   const options: unknown[] = Array.isArray(rawOptions) ? rawOptions : [];
+  const rawResolutionOptions =
+    meta.resolutionOptions ?? meta.resolution_options;
+  const resolutionOptions: unknown[] = Array.isArray(rawResolutionOptions)
+    ? rawResolutionOptions
+    : [];
   const rawStats = asRecord(meta.stats);
   const stats = rawStats
     ? {
@@ -362,6 +447,15 @@ function normalizeMeta(value: unknown): LeadListMeta {
     query: text(meta.query),
     status: nullableText(meta.status),
     statusOptions: options
+      .map((option): LeadStatusOption | null => {
+        const row = asRecord(option) ?? {};
+        const value = text(row.value);
+        const label = text(row.label, value);
+        return value ? { value, label } : null;
+      })
+      .filter((option): option is LeadStatusOption => option !== null),
+    resolution: nullableText(meta.resolution),
+    resolutionOptions: resolutionOptions
       .map((option): LeadStatusOption | null => {
         const row = asRecord(option) ?? {};
         const value = text(row.value);
@@ -667,6 +761,8 @@ export async function getLeadList(
   if (params.q) searchParams.set("q", params.q);
   if (params.status && params.status !== "all")
     searchParams.set("status", params.status);
+  if (params.resolution && params.resolution !== "all")
+    searchParams.set("resolution", params.resolution);
   if (params.campaign && params.campaign !== "all")
     searchParams.set("campaign", params.campaign);
   if (params.order) searchParams.set("order", params.order);
@@ -687,7 +783,7 @@ export async function getLeadDetail(
   leadId: string,
   options: LeadApiRequestOptions = {},
 ): Promise<LeadDetailResponse | null> {
-  const searchParams = new URLSearchParams({ name: leadId });
+  const searchParams = new URLSearchParams({ lead_id: leadId });
   try {
     const payload = await request(DETAIL_METHOD, searchParams, options);
     return normalizeLeadDetail(payload);
@@ -771,6 +867,84 @@ export async function updateLead(
       502,
       "INVALID_LEAD_UPDATE_RESPONSE",
       "Phản hồi cập nhật Lead không hợp lệ.",
+    );
+  }
+}
+
+export async function processLead(
+  request: LeadProcessRequest,
+  options: LeadApiRequestOptions = {},
+): Promise<LeadProcessResponse> {
+  const lead = request.lead.trim();
+  const requestedResolution = request.resolution as string | undefined;
+  if (!lead) {
+    throw new LeadApiError(
+      400,
+      "INVALID_LEAD_NAME",
+      "Thiếu mã Lead cần xử lý.",
+    );
+  }
+  if (requestedResolution === "PENDING") {
+    throw new LeadApiError(
+      400,
+      "INVALID_LEAD_RESOLUTION",
+      "Không truyền PENDING khi gọi API xử lý Lead.",
+    );
+  }
+
+  const body: Record<string, unknown> = { lead };
+  if (request.resolution) body.resolution = request.resolution;
+  if (request.reason?.trim()) body.reason = request.reason.trim();
+
+  const payload = await mutationRequest(PROCESS_METHOD, "POST", body, options);
+  try {
+    return normalizeProcessResponse(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_PROCESS_RESPONSE",
+      "Phản hồi xử lý Lead không hợp lệ.",
+    );
+  }
+}
+
+export async function updateLeadProcessingStatus(
+  request: LeadStatusUpdateRequest,
+  options: LeadApiRequestOptions = {},
+): Promise<LeadProcessResponse> {
+  const lead = request.lead.trim();
+  const status = String(request.status ?? "").trim().toUpperCase();
+  if (!lead) {
+    throw new LeadApiError(
+      400,
+      "INVALID_LEAD_NAME",
+      "Thiếu mã Lead cần cập nhật.",
+    );
+  }
+  if (!LEAD_PROCESS_STATUSES.has(status as LeadProcessStatus)) {
+    throw new LeadApiError(
+      400,
+      "INVALID_LEAD_STATUS",
+      "Trạng thái xử lý Lead không hợp lệ.",
+    );
+  }
+
+  const body: Record<string, unknown> = { lead, status };
+  if (request.reason?.trim()) body.reason = request.reason.trim();
+
+  const payload = await mutationRequest(
+    STATUS_UPDATE_METHOD,
+    "POST",
+    body,
+    options,
+  );
+  try {
+    return normalizeProcessResponse(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_STATUS_UPDATE_RESPONSE",
+      "Phản hồi cập nhật trạng thái Lead không hợp lệ.",
     );
   }
 }

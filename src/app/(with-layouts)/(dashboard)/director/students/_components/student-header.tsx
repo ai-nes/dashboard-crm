@@ -27,15 +27,21 @@ import type {
 
 import StudentCopyBadge from "./student-copy-badge";
 import StudentGaugeChart from "./student-gauge-chart";
+import StudentOwnerCell from "./student-owner-cell";
 import StudentStatusSelect from "./student-status-select";
-import { defaultStudentStatus, studentStatusLabel } from "./student-status";
+import { studentStatusLabel } from "./student-status";
 import type { Student360SectionProps } from "./types";
 
 interface StudentHeaderProps extends Student360SectionProps {
   contactCount?: number;
   isStatusUpdating?: boolean;
   onDeleteRequest?: () => void;
+  onOwnerChange?: (owner: string) => void;
   onStatusChange?: (status: StudentStatus) => void;
+  owner?: string | null;
+  ownerEditable?: boolean;
+  ownerRevision?: number;
+  studentId: string;
   status?: StudentStatus | null;
 }
 
@@ -44,7 +50,12 @@ export default function StudentHeader({
   data,
   isStatusUpdating,
   onDeleteRequest,
+  onOwnerChange,
   onStatusChange,
+  owner,
+  ownerEditable = false,
+  ownerRevision,
+  studentId,
   status,
 }: StudentHeaderProps) {
   const { student } = data;
@@ -55,7 +66,8 @@ export default function StudentHeader({
     typeof scoreCandidate === "number" && Number.isFinite(scoreCandidate)
       ? scoreCandidate
       : null;
-  const studentStatus = status ?? student.studentStage ?? defaultStudentStatus;
+  const studentStatus = status ?? student.studentStage;
+  const studentOwner = owner ?? student.counselor ?? "";
 
   return (
     <header className="min-w-0 shrink-0">
@@ -176,20 +188,33 @@ export default function StudentHeader({
           <div className="mt-3 grid divide-y divide-card-border border-t border-card-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <div className="min-w-0 px-3 py-2">
               <p className="text-[11px] text-text-tertiary">Trạng thái</p>
-              {onStatusChange ? (
+              {onStatusChange && studentStatus ? (
                 <StudentStatusSelect
                   studentName={student.name || "học sinh"}
                   value={studentStatus}
                   isDisabled={isStatusUpdating}
                   onChange={onStatusChange}
                 />
-              ) : (
+              ) : studentStatus ? (
                 <p className="mt-0.5 text-sm font-semibold text-text-primary">
                   {studentStatusLabel[studentStatus]}
                 </p>
+              ) : (
+                <p className="mt-0.5 text-sm text-text-tertiary">
+                  Chưa có CRM Student
+                </p>
               )}
             </div>
-            <HeaderFact label="Phụ trách" value={student.counselor || "-"} />
+            <div className="min-w-0 px-3 py-2">
+              <p className="text-[11px] text-text-tertiary">Phụ trách</p>
+              <StudentOwnerCell
+                studentId={studentId}
+                expectedRevision={ownerRevision}
+                owner={studentOwner}
+                editable={ownerEditable}
+                onChange={onOwnerChange ?? (() => undefined)}
+              />
+            </div>
             <HeaderFact
               label="Số lần liên hệ"
               value={`${contactCount ?? 0} lần liên hệ`}

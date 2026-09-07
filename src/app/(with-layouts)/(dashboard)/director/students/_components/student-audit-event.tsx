@@ -43,7 +43,7 @@ export function getStudentAuditActionLabel(event: StudentAuditLog): string {
   if (event.category === "conversion") return "Cập nhật chuyển đổi";
   if (event.category === "outcome") return "Ghi nhận kết quả";
 
-  const field = event.fieldLabel || event.fieldname;
+  const field = event.fieldLabel;
   return field ? `Cập nhật ${field}` : "Cập nhật hồ sơ học sinh";
 }
 
@@ -78,7 +78,7 @@ export function getStudentAuditActivityDescription(
       : "đã xóa hồ sơ học sinh";
   }
 
-  const field = event.fieldLabel || event.fieldname;
+  const field = event.fieldLabel;
   if (event.changeType === "added") {
     return `đã thêm ${field || "dữ liệu hồ sơ"}`;
   }
@@ -125,13 +125,52 @@ export function getStudentAuditTone(event: StudentAuditLog): StudentAuditTone {
 
 export function formatStudentAuditValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "string") return value;
+  if (typeof value === "string") {
+    return isStudentAuditIdentifier(value) ? "—" : value;
+  }
 
   try {
-    return JSON.stringify(value);
+    return JSON.stringify(redactStudentAuditIdentifiers(value));
   } catch {
     return String(value);
   }
+}
+
+function isStudentAuditIdentifier(value: string): boolean {
+  const normalizedValue = value.trim();
+
+  return (
+    /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(
+      normalizedValue,
+    ) || /^(?=.*[a-z])(?=.*\d)[a-z\d]{8,}$/.test(normalizedValue)
+  );
+}
+
+function redactStudentAuditIdentifiers(value: unknown): unknown {
+  if (typeof value === "string") {
+    return isStudentAuditIdentifier(value) ? "—" : value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(redactStudentAuditIdentifiers);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => !isStudentAuditIdentifierKey(key))
+        .map(([key, nestedValue]) => [
+          key,
+          redactStudentAuditIdentifiers(nestedValue),
+        ]),
+    );
+  }
+
+  return value;
+}
+
+function isStudentAuditIdentifierKey(key: string): boolean {
+  return /(^id$|_id$|Id$|ID$)/.test(key);
 }
 
 export function formatStudentAuditRelativeTime(value: string): string {
@@ -189,11 +228,6 @@ export function StudentAuditEventDetails({
               <span className="font-medium text-text-primary">
                 {event.fieldLabel}
               </span>
-              {event.fieldname && event.fieldname !== event.fieldLabel && (
-                <span className="ml-1 text-text-tertiary">
-                  ({event.fieldname})
-                </span>
-              )}
             </p>
           )}
 
@@ -226,13 +260,20 @@ export function StudentAuditEventDetails({
           {event.metadata && Object.keys(event.metadata).length > 0 && (
             <div className="flex flex-wrap gap-1.5 text-[11px] text-text-tertiary">
               {Object.entries(event.metadata)
-                .filter(([, value]) => value !== null && value !== undefined && value !== "")
+                .filter(
+                  ([key, value]) =>
+                    !isStudentAuditIdentifierKey(key) &&
+                    value !== null &&
+                    value !== undefined &&
+                    value !== "",
+                )
                 .map(([key, value]) => (
                   <span
                     key={key}
                     className="rounded-md border border-card-border/50 bg-background-gray-secondary/40 px-2 py-1"
                   >
-                    {formatAuditMetadataKey(key)}: {formatStudentAuditValue(value)}
+                    {formatAuditMetadataKey(key)}:{" "}
+                    {formatStudentAuditValue(value)}
                   </span>
                 ))}
             </div>
@@ -247,11 +288,6 @@ export function StudentAuditEventDetails({
             <span>
               Nguồn cập nhật: {getStudentAuditSourceLabel(event.source)}
             </span>
-            {event.sourceName && (
-              <span className="font-mono font-medium text-text-primary">
-                · {event.sourceName}
-              </span>
-            )}
           </span>
           {event.doctype && (
             <span className="rounded-md border border-card-border/40 bg-background-gray-secondary/30 px-2 py-1 text-text-secondary">

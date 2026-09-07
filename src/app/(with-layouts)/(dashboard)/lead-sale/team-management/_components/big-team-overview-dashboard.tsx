@@ -1,6 +1,8 @@
 "use client";
 
 import { Plus } from "@tailgrids/icons";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -9,23 +11,31 @@ import { Button } from "@/components/tailgrids/core/button";
 import OverviewFact from "./overview-fact";
 import BigTeamCard from "./big-team-card";
 import CreateTeamDialog from "./create-team-dialog";
-import { membersOfBigTeam, smallTeamsOfBigTeam } from "./team-management-utils";
+import {
+  getTeamManagementEntryPath,
+  membersOfBigTeam,
+  smallTeamsOfBigTeam,
+} from "./team-management-utils";
 import { useTeamManagement } from "./use-team-management";
 
 export default function BigTeamOverviewDashboard() {
-  const {
-    state,
-    isLoading,
-    error,
-    saveGroup,
-  } = useTeamManagement();
+  const { state, isLoading, error, saveGroup } = useTeamManagement();
+  const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
+  const entryPath = state ? getTeamManagementEntryPath(state) : null;
+
+  useEffect(() => {
+    if (entryPath) router.replace(entryPath);
+  }, [entryPath, router]);
 
   if (isLoading && !state) return <LoadingState />;
   if (error && !state) return <ErrorState message={error} />;
   if (!state) return null;
+  if (entryPath) {
+    return <LoadingState message="Đang mở phạm vi đội ngũ của bạn..." />;
+  }
 
-  const canManage = state.permissions?.canManage ?? false;
+  const canManageGroups = state.permissions?.canManageGroups ?? false;
   const run = async (action: () => Promise<void>, success: string) => {
     try {
       await action();
@@ -59,7 +69,7 @@ export default function BigTeamOverviewDashboard() {
           <Button
             className="shrink-0"
             onPress={() => setIsCreating(true)}
-            isDisabled={!canManage}
+            isDisabled={!canManageGroups}
           >
             <Plus size={16} aria-hidden="true" />
             Tạo Group
@@ -68,7 +78,11 @@ export default function BigTeamOverviewDashboard() {
       </header>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <OverviewFact kind="teams" label="Group tỉnh" value={state.bigTeams.length} />
+        <OverviewFact
+          kind="teams"
+          label="Group tỉnh"
+          value={state.bigTeams.length}
+        />
         <OverviewFact
           kind="groups"
           label="Team"
@@ -79,7 +93,9 @@ export default function BigTeamOverviewDashboard() {
 
       {state.bigTeams.length === 0 ? (
         <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-tertiary">
-          Chưa có Group nào. Bấm &quot;Tạo Group&quot; để bắt đầu.
+          {canManageGroups
+            ? 'Chưa có Group nào. Bấm "Tạo Group" để bắt đầu.'
+            : "Bạn chưa được phân công vào Group hoặc Team nào."}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -89,8 +105,10 @@ export default function BigTeamOverviewDashboard() {
               bigTeam={bigTeam}
               smallTeamCount={smallTeamsOfBigTeam(state, bigTeam).length}
               memberCount={membersOfBigTeam(state, bigTeam).length}
-              allMembers={state.members.filter((member) => member.isActive !== false)}
-              canManageLead={state.permissions?.canManage ?? false}
+              allMembers={state.members.filter(
+                (member) => member.isActive !== false,
+              )}
+              canManageGroup={canManageGroups}
               onEdit={(name) =>
                 void run(
                   () =>
@@ -124,9 +142,7 @@ export default function BigTeamOverviewDashboard() {
                       clearGroupLead: leadId === null,
                       expectedRevision: bigTeam.revision,
                     }),
-                  leadId
-                    ? "Đã cập nhật Trưởng Group."
-                    : "Đã bỏ Trưởng Group.",
+                  leadId ? "Đã cập nhật Trưởng Group." : "Đã bỏ Trưởng Group.",
                 )
               }
             />
@@ -155,11 +171,15 @@ export default function BigTeamOverviewDashboard() {
   );
 }
 
-function LoadingState() {
+function LoadingState({
+  message = "Đang tải dữ liệu đội ngũ...",
+}: {
+  message?: string;
+}) {
   return (
     <main id="main-content" className="min-w-0 p-6">
       <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-secondary">
-        Đang tải dữ liệu đội ngũ...
+        {message}
       </div>
     </main>
   );

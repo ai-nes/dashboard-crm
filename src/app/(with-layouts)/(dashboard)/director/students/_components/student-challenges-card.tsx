@@ -51,7 +51,7 @@ export default function StudentChallengesCard({
           evidence: r.provenanceIds,
           badgeText: r.severity
             ? `Mức độ ${formatAnalysisLevel(r.severity)}`
-            : confidence?.label ?? "Rủi ro AI",
+            : (confidence?.label ?? "Rủi ro AI"),
           badgeColor: "warning",
         });
       });
@@ -75,7 +75,12 @@ export default function StudentChallengesCard({
     const concerns = cleanTextList(data.parentProfile?.concerns);
     if (concerns.length > 0) {
       const topConcern = concerns[0];
-      if (!items.some((i) => i.detail?.includes(topConcern) || i.headline.includes(topConcern))) {
+      if (
+        !items.some(
+          (i) =>
+            i.detail?.includes(topConcern) || i.headline.includes(topConcern),
+        )
+      ) {
         items.push({
           headline: `Băn khoăn phụ huynh: ${topConcern}`,
           detail: `Phụ huynh (${data.parentProfile?.name}) đang cần thông tin rõ ràng về: ${concerns.join(", ")}.`,
@@ -91,16 +96,11 @@ export default function StudentChallengesCard({
   const hasChallenges = allChallenges.length > 0;
 
   return (
-    <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
+    <Card className="h-full min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
         title="Rào cản tuyển sinh"
         rightAction={
           <AnalysisSourceCountBadge count={getAnalysisSourceCount(risks)} />
-        }
-        timestamp={
-          data.classification.updatedAt
-            ? `Cập nhật lúc ${data.classification.updatedAt}`
-            : "Được phát hiện từ hồ sơ và lịch sử tương tác"
         }
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}
@@ -108,21 +108,27 @@ export default function StudentChallengesCard({
 
       <div className="mt-4">
         {hasChallenges ? (
-          <div className="space-y-3">
+          <div className="divide-y divide-card-border">
             {allChallenges.map((item, index) => (
               <div
                 key={index}
-                className="flex items-start justify-between gap-3 rounded-xl border border-card-border bg-background-soft-50/70 p-3.5 text-xs text-text-primary dark:bg-card-background/60"
+                className="flex items-start justify-between gap-3 py-4 text-sm text-text-primary first:pt-0 last:pb-0"
               >
-                <div className="flex items-start gap-2.5 min-w-0">
+                <div className="flex min-w-0 items-start gap-3">
                   <InfoTriangle
-                    size={16}
+                    size={18}
                     className="mt-0.5 shrink-0 text-warning-500"
                     aria-hidden="true"
                   />
                   <div className="min-w-0">
-                    <p className="font-semibold text-text-primary">{item.headline}</p>
-                    {item.detail && <p className="mt-1 leading-relaxed text-text-secondary">{item.detail}</p>}
+                    <p className="text-sm font-semibold text-text-primary">
+                      {item.headline}
+                    </p>
+                    {item.detail && (
+                      <p className="mt-1 text-sm leading-6 text-text-secondary">
+                        {item.detail}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {item.badgeText && (

@@ -22,8 +22,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import { formatDate, formatDateTime } from "@/utils/format-date";
 
 import StudentCopyBadge from "../../students/_components/student-copy-badge";
-import StudentGaugeChart from "../../students/_components/student-gauge-chart";
-import { conversionPotentialScore, leadStatusColor } from "./mappings";
+import { leadStatusColor } from "./mappings";
 import type { LeadDetail } from "./types";
 
 export default function LeadHeader({
@@ -43,7 +42,6 @@ export default function LeadHeader({
   ]
     .filter(Boolean)
     .join(" · ");
-  const score = conversionPotentialScore(lead.conversionPotential);
 
   return (
     <header className="min-w-0 shrink-0">
@@ -57,7 +55,7 @@ export default function LeadHeader({
 
       <div className="min-w-0 overflow-hidden rounded-2xl border border-card-border bg-card-background">
         <div className="min-w-0 p-3 lg:p-4">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-center">
+          <div className="min-w-0">
             <div className="flex min-w-0 items-start gap-3">
               <Avatar size="md">
                 <AvatarFallback>{lead.initials || "L"}</AvatarFallback>
@@ -136,18 +134,6 @@ export default function LeadHeader({
               </div>
             </div>
 
-            <div className="flex justify-center border-t border-card-border pt-3 lg:border-t-0 lg:pt-0">
-              {score === null ? (
-                <div
-                  className="flex min-h-28 items-center justify-center text-sm font-medium text-text-tertiary"
-                  role="status"
-                >
-                  Chưa có dữ liệu
-                </div>
-              ) : (
-                <StudentGaugeChart score={score} label="Khả năng chuyển đổi" />
-              )}
-            </div>
           </div>
 
           {children}

@@ -466,14 +466,14 @@ export async function createCampaign(
 }
 
 export async function getCampaign(
-  name: string,
+  code: string,
   options: CampaignApiRequestOptions = {},
 ): Promise<LeadSaleCampaign | null> {
-  const campaignName = name.trim();
-  if (!campaignName) {
+  const campaignCode = code.trim();
+  if (!campaignCode) {
     throw new CampaignApiError(
       400,
-      "INVALID_CAMPAIGN_NAME",
+      "INVALID_CAMPAIGN_CODE",
       "Mã campaign không được để trống.",
     );
   }
@@ -484,7 +484,7 @@ export async function getCampaign(
       "GET",
       options,
       undefined,
-      new URLSearchParams({ name: campaignName }),
+      new URLSearchParams({ code: campaignCode }),
     );
     return normalizeCampaignRecord(raw);
   } catch (error) {

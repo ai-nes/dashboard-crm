@@ -60,17 +60,21 @@ export default function StudentPositiveFeedbackCard({
         evidence: rec.provenanceIds,
         badgeText: rec.strength
           ? `Mức độ ${formatAnalysisLevel(rec.strength)}`
-          : confidence?.label ??
+          : (confidence?.label ??
             (rec.kind === "opportunity"
               ? "Cơ hội tuyển sinh"
-              : "Khuyến nghị 360"),
+              : "Khuyến nghị 360")),
       });
     });
 
     // 2. From Student360 classification (fit and interest)
     const dimensions = data.classification?.dimensions || [];
     const fit = dimensions.find((d) => d.id === "fit");
-    if (fit && typeof fit.value === "string" && fit.value.toLowerCase().includes("cao")) {
+    if (
+      fit &&
+      typeof fit.value === "string" &&
+      fit.value.toLowerCase().includes("cao")
+    ) {
       items.push({
         headline: `Nền tảng học tập: ${fit.value}`,
         detail: fit.description || "Hồ sơ học tập phù hợp với yêu cầu đầu vào.",
@@ -102,36 +106,37 @@ export default function StudentPositiveFeedbackCard({
   const hasPositives = allPositives.length > 0;
 
   return (
-    <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
+    <Card className="h-full min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
         title="Tín hiệu thuận lợi"
         rightAction={<AnalysisSourceCountBadge count={sourceCount} />}
-        timestamp={
-          data.classification.updatedAt
-            ? `Cập nhật lúc ${data.classification.updatedAt}`
-            : "Được ghi nhận từ các điểm chạm chuyển đổi tích cực"
-        }
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}
       />
 
       <div className="mt-4">
         {hasPositives ? (
-          <div className="space-y-3">
+          <div className="divide-y divide-card-border">
             {allPositives.map((item, index) => (
               <div
                 key={index}
-                className="flex items-start justify-between gap-3 rounded-xl border border-card-border bg-background-soft-50/70 p-3.5 text-xs text-text-primary dark:bg-card-background/60"
+                className="flex items-start justify-between gap-3 py-4 text-sm text-text-primary first:pt-0 last:pb-0"
               >
-                <div className="flex items-start gap-2.5 min-w-0">
+                <div className="flex min-w-0 items-start gap-3">
                   <CheckCircle1
-                    size={16}
+                    size={18}
                     className="mt-0.5 shrink-0 text-success-500"
                     aria-hidden="true"
                   />
                   <div className="min-w-0">
-                    <p className="font-semibold text-text-primary">{item.headline}</p>
-                    {item.detail && <p className="mt-1 leading-relaxed text-text-secondary">{item.detail}</p>}
+                    <p className="text-sm font-semibold text-text-primary">
+                      {item.headline}
+                    </p>
+                    {item.detail && (
+                      <p className="mt-1 text-sm leading-6 text-text-secondary">
+                        {item.detail}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {item.badgeText && (

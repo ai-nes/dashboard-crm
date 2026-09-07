@@ -52,7 +52,7 @@ export function TaskActionSelect({
 
     return TASK_ACTION_OPTIONS.filter((option) =>
       normalizeSearchValue(
-        `${option.displayName} ${option.code} ${option.categoryLabel} ${option.description}`,
+        `${option.displayName} ${option.categoryLabel} ${option.description}`,
       ).includes(normalizedQuery),
     );
   }, [query]);
@@ -106,7 +106,7 @@ export function TaskActionSelect({
               <InputGroupInput
                 autoFocus
                 aria-label="Tìm loại task"
-                placeholder="Tìm theo tên hoặc mã..."
+                placeholder="Tìm theo tên..."
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -123,7 +123,7 @@ export function TaskActionSelect({
             {(option) => (
               <ListBoxItem
                 id={option.code}
-                textValue={`${option.displayName} ${option.code} ${option.categoryLabel} ${option.description}`}
+                textValue={`${option.displayName} ${option.categoryLabel} ${option.description}`}
                 className="group/item relative flex w-full cursor-pointer items-center rounded-md py-2 pr-8 pl-2 text-sm text-text-secondary outline-hidden select-none focus:bg-background-gray-secondary_alt focus:text-text-primary"
               >
                 {({ isSelected }) => (
@@ -133,7 +133,7 @@ export function TaskActionSelect({
                         {option.displayName}
                       </span>
                       <span className="mt-0.5 block truncate text-xs text-text-tertiary">
-                        {option.categoryLabel} · {option.code}
+                        {option.categoryLabel}
                       </span>
                     </span>
                     {isSelected && (

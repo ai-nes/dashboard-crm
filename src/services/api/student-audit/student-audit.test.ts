@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getStudentAuditLogs, StudentAuditApiError } from "./index";
+import {
+  getLeadAuditLogs,
+  getStudentAuditLogs,
+  StudentAuditApiError,
+} from "./index";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -106,6 +110,37 @@ describe("student audit API contract", () => {
         status: 502,
         code: "INVALID_AUDIT_RESPONSE",
       }),
+    );
+  });
+
+  it("calls the Lead-specific read-only audit endpoint", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            lead_id: "LEAD-1",
+            student: "LEAD-1",
+            logs: [],
+            total: 0,
+            start: 0,
+            page_length: 100,
+            read_only: true,
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      getLeadAuditLogs(
+        { lead: "LEAD-1", pageLength: 100 },
+        { baseUrl: "http://frappe:8000" },
+      ),
+    ).resolves.toMatchObject({ student: "LEAD-1", readOnly: true });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.audit.get_lead_audit_logs?lead_id=LEAD-1&start=0&page_length=100",
+      expect.objectContaining({ method: "GET" }),
     );
   });
 });

@@ -22,15 +22,17 @@ export default async function StudentDetailPage({
 }) {
   const { studentId } = await params;
   const { tab, taskId } = await searchParams;
-  const [data, chatwootInteractions, interactions] = await Promise.all([
-    getStudent360(studentId).catch(() => null),
-    getStudentChatwootInteractions(studentId).catch(() => null),
-    getStudentInteractions(studentId).catch(() => null),
+  const data = await getStudent360(studentId).catch(() => null);
+  const leadId = data?.student.id || studentId;
+  const canonicalStudentId = data?.student.studentId || leadId;
+  const [chatwootInteractions, interactions] = await Promise.all([
+    getStudentChatwootInteractions(canonicalStudentId).catch(() => null),
+    getStudentInteractions(canonicalStudentId).catch(() => null),
   ]);
 
   return (
     <Student360Dashboard
-      studentId={studentId}
+      studentId={leadId}
       initialData={data}
       initialChatwootInteractions={chatwootInteractions}
       initialStudentInteractions={interactions}

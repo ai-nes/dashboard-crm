@@ -19,6 +19,21 @@ export default function StudentAICardHeader({
   onRefresh,
   rightAction,
 }: StudentAICardHeaderProps) {
+  const refreshButton = onRefresh ? (
+    <button
+      type="button"
+      onClick={onRefresh}
+      disabled={isRefreshing}
+      aria-label="Làm mới phân tích"
+      className={cn(
+        "inline-flex cursor-pointer rounded-sm p-0.5 text-text-tertiary transition-colors hover:text-text-primary focus:outline-hidden",
+        isRefreshing && "animate-spin text-primary-500",
+      )}
+    >
+      <RefreshCircle1Clockwise size={13} aria-hidden="true" />
+    </button>
+  ) : null;
+
   return (
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -27,6 +42,7 @@ export default function StudentAICardHeader({
         </h3>
         <div className="flex items-center gap-2">
           {rightAction}
+          {!timestamp && refreshButton}
           <Badge
             color="primary"
             prefixIcon={
@@ -45,20 +61,7 @@ export default function StudentAICardHeader({
       {timestamp && (
         <div className="flex items-center gap-1.5 text-xs text-text-tertiary">
           <span>{timestamp}</span>
-          {onRefresh && (
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              aria-label="Làm mới phân tích"
-              className={cn(
-                "inline-flex cursor-pointer rounded-sm p-0.5 text-text-tertiary transition-colors hover:text-text-primary focus:outline-hidden",
-                isRefreshing && "animate-spin text-primary-500",
-              )}
-            >
-              <RefreshCircle1Clockwise size={13} aria-hidden="true" />
-            </button>
-          )}
+          {refreshButton}
         </div>
       )}
     </div>

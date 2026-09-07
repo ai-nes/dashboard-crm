@@ -19,6 +19,8 @@ import { useLeadCallLogsQuery } from "@/hooks/use-lead-call-logs-query";
 import {
   useDeleteLeadMutation,
   useLeadSaleLeadQuery,
+  useProcessLeadMutation,
+  useUpdateLeadProcessingStatusMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 
 import LeadCallsTab from "./lead-calls-tab";
@@ -28,23 +30,25 @@ import LeadLogTab from "./lead-log-tab";
 import LeadNotesTab from "./lead-notes-tab";
 import LeadWorkflowSection from "./lead-workflow-section";
 import {
+  canEditLeadResult,
   normalizeLeadStageStatus,
   type LeadResultStatus,
   type LeadStageStatus,
 } from "./lead-status";
-import type { LeadDetail } from "./types";
 
 export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user?.roles);
   const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId);
-  const callLogsQuery = useLeadCallLogsQuery(leadId);
+  const [activeTab, setActiveTab] = useState("details");
+  const callLogsQuery = useLeadCallLogsQuery(leadId, {
+    enabled: activeTab === "calls",
+  });
   const deleteMutation = useDeleteLeadMutation();
+  const processMutation = useProcessLeadMutation();
+  const statusMutation = useUpdateLeadProcessingStatusMutation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [workflowDraft, setWorkflowDraft] = useState<
-    Partial<Pick<LeadDetail, "processingStatus" | "result">>
-  >({});
 
   const leadOwnership = { owner: data?.lead.owner };
   const hasLeadAccess =
@@ -58,21 +62,68 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const canDeleteLead =
     !isAuthLoading &&
     canPerformStudentAction(permissions.lead, "delete", leadOwnership, user);
+  const isWorkflowUpdating =
+    processMutation.isPending || statusMutation.isPending;
 
-  const handleStatusChange = (status: LeadStageStatus) => {
-    const nextResult =
-      status === "ASSIGNED" || status === "CLOSED"
-        ? (workflowDraft.result ?? data?.lead.result ?? "")
-        : "";
-    setWorkflowDraft((prev) => ({
-      ...prev,
-      processingStatus: status,
-      result: nextResult,
-    }));
+  const processWorkflow = (
+    resolution: LeadResultStatus | undefined,
+    successMessage: string,
+  ) => {
+    processMutation.mutate(
+      { lead: leadId, ...(resolution ? { resolution } : {}) },
+      {
+        onSuccess: (response) => {
+          toast.success(
+            `${successMessage} Trạng thái hiện tại: ${response.status}.`,
+          );
+        },
+        onError: (processError) => {
+          toast.error(
+            processError instanceof Error
+              ? processError.message
+              : "Chưa thể xử lý Lead.",
+          );
+        },
+      },
+    );
+  };
+
+  const handleStatusChange = (nextStatus: LeadStageStatus) => {
+    if (
+      !canUpdateLead ||
+      isWorkflowUpdating ||
+      nextStatus === status
+    ) {
+      return;
+    }
+
+    statusMutation.mutate(
+      { lead: leadId, status: nextStatus },
+      {
+        onSuccess: (response) => {
+          toast.success(`Đã cập nhật trạng thái Lead: ${response.status}.`);
+        },
+        onError: (statusError) => {
+          toast.error(
+            statusError instanceof Error
+              ? statusError.message
+              : "Chưa thể cập nhật trạng thái Lead.",
+          );
+        },
+      },
+    );
   };
 
   const handleResultChange = (result: LeadResultStatus) => {
-    setWorkflowDraft((prev) => ({ ...prev, result }));
+    if (
+      !canUpdateLead ||
+      isWorkflowUpdating ||
+      !canEditLeadResult(status)
+    ) {
+      return;
+    }
+
+    processWorkflow(result, "Đã xử lý Lead với kết quả đã chọn.");
   };
 
   const handleDelete = () => {
@@ -146,10 +197,8 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     );
   }
 
-  const status = normalizeLeadStageStatus(
-    workflowDraft.processingStatus ?? data.lead.processingStatus,
-  );
-  const result = workflowDraft.result ?? data.lead.result;
+  const status = normalizeLeadStageStatus(data.lead.processingStatus);
+  const result = data.lead.result;
 
   const tabs: DetailTabItem[] = [
     {
@@ -179,9 +228,20 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     {
       id: "notes",
       label: "Ghi chú",
-      content: <LeadNotesTab entries={data.log} />,
+      content: (
+        <LeadNotesTab
+          canManageNotes={canUpdateLead}
+          enabled={activeTab === "notes"}
+          leadId={leadId}
+          leadName={data.lead.name}
+        />
+      ),
     },
-    { id: "log", label: "Nhật ký", content: <LeadLogTab entries={data.log} /> },
+    {
+      id: "log",
+      label: "Nhật ký",
+      content: <LeadLogTab enabled={activeTab === "log"} leadId={leadId} />,
+    },
   ];
 
   return (
@@ -203,6 +263,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
             result={result}
             contactNoAnswer={data.lead.contactNoAnswer}
             contactSuccess={data.lead.contactSuccess}
+            isUpdating={isWorkflowUpdating}
             onStatusChange={handleStatusChange}
             onResultChange={handleResultChange}
           />
@@ -212,6 +273,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
         <DetailTabs
           ariaLabel="Các phần trong hồ sơ Lead"
           defaultSelectedKey="details"
+          onSelectionChange={setActiveTab}
           tabs={tabs}
         />
       </div>

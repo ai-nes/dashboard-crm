@@ -106,6 +106,7 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
 ```json
 {
   "student": {
+    "id": "ENR-2026-00018",
     "initials": "MA",
     "name": "Nguyễn Minh An",
     "code": "STU-2026-04821",
@@ -116,6 +117,7 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
     "email": "a••••@gmail.com",
     "province": "Cần Thơ",
     "counselor": "Trần Quốc Bảo",
+    "revision": 4,
     "priority": "Cao",
     "verificationStatus": "Đã xác thực",
     "contactConsent": {
@@ -377,6 +379,7 @@ Schema nguồn hiện tại nằm tại [types.ts](../../src/services/api/studen
 
 | Field | Kiểu | Bắt buộc | Dùng ở UI |
 |---|---|---:|---|
+| `id` | string | Có | Mã canonical nội bộ; URL có thể dùng mã hiển thị `HS-YYYY-HCM-NNNNNN` |
 | `initials` | string | Có | Avatar |
 | `name` | string | Có | Header và hồ sơ |
 | `code` | string | Có | Mã hồ sơ |
@@ -387,6 +390,7 @@ Schema nguồn hiện tại nằm tại [types.ts](../../src/services/api/studen
 | `email` | string | Có | Liên hệ; production phải theo policy PII |
 | `province` | string | Có | Khu vực |
 | `counselor` | string | Có | Người phụ trách |
+| `revision` | number | Có | Ownership revision dùng làm CAS token khi phân công |
 | `priority` | enum | Có | Mức ưu tiên hiển thị ở header: `Cao`, `Trung bình`, `Thấp` |
 | `verificationStatus` | enum | Có | Trạng thái xác thực hồ sơ: `Đã xác thực`, `Chưa xác thực`, `Cần xác minh` |
 | `contactConsent` | object | Có | Trạng thái và các kênh học sinh đã đồng ý nhận tư vấn |

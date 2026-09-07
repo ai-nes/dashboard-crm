@@ -2,9 +2,9 @@ import type { StudentTaskItem } from "@/services/api/students/types";
 
 import StudentInlineEditableText from "../student-inline-editable-text";
 import {
-  StudentTaskPriority,
-  StudentTaskStatusBadge,
-} from "../student-task-badges";
+  StudentTaskPrioritySelect,
+  StudentTaskStatusSelect,
+} from "../student-task-selects";
 import TaskCardQuickStatusButton from "./task-card-quick-status-button";
 import type { TaskDeadlineStatus } from "./task-card-utils";
 
@@ -42,8 +42,16 @@ export default function TaskCardHero({
             className="-mx-2 min-w-0"
           />
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <StudentTaskStatusBadge status={task.status} size="sm" />
-            <StudentTaskPriority priority={task.priority} size="sm" />
+            <StudentTaskStatusSelect
+              taskTitle={task.title}
+              status={task.status}
+              onChange={(status) => onUpdateTask({ status })}
+            />
+            <StudentTaskPrioritySelect
+              taskTitle={task.title}
+              priority={task.priority}
+              onChange={(priority) => onUpdateTask({ priority })}
+            />
             {studentStage ? (
               <span className="text-sm text-text-secondary">
                 · {studentStage}
@@ -76,8 +84,16 @@ export default function TaskCardHero({
           />
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <StudentTaskStatusBadge status={task.status} size="sm" />
-            <StudentTaskPriority priority={task.priority} size="sm" />
+            <StudentTaskStatusSelect
+              taskTitle={task.title}
+              status={task.status}
+              onChange={(status) => onUpdateTask({ status })}
+            />
+            <StudentTaskPrioritySelect
+              taskTitle={task.title}
+              priority={task.priority}
+              onChange={(priority) => onUpdateTask({ priority })}
+            />
           </div>
         </div>
       </div>

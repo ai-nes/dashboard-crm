@@ -15,6 +15,7 @@ import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-querie
 import {
   useCreateLeadMutation,
   useLeadSaleLeadsQuery,
+  useUpdateLeadProcessingStatusMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 import type {
   LeadCreateFields,
@@ -26,11 +27,12 @@ import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
 import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 import {
+  type LeadResultFilter,
   leadStageStatusLabel,
+  normalizeLeadStageStatus,
   type LeadResultStatus,
   type LeadStageStatus,
 } from "./lead-status";
-import type { LeadStatus } from "./types";
 
 const pageSize = 10;
 type LeadControlDraft = Partial<
@@ -43,13 +45,17 @@ export default function LeadsOverviewDashboard() {
   const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<LeadStatus | "all">("all");
+  const [status, setStatus] = useState<LeadStageStatus | "all">("all");
+  const [resolution, setResolution] = useState<LeadResultFilter | "all">(
+    "all",
+  );
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
   const [controlDrafts, setControlDrafts] = useState<
     Record<string, LeadControlDraft>
   >({});
   const createMutation = useCreateLeadMutation();
+  const statusMutation = useUpdateLeadProcessingStatusMutation();
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -61,6 +67,7 @@ export default function LeadsOverviewDashboard() {
     pageSize,
     q: query || undefined,
     status: status === "all" ? undefined : status,
+    resolution: resolution === "all" ? undefined : resolution,
     campaign: campaign || undefined,
   };
   const {
@@ -85,6 +92,12 @@ export default function LeadsOverviewDashboard() {
   const currentPage = Math.min(page, totalPages);
 
   const handleLeadStatusChange = (id: string, nextStatus: LeadStageStatus) => {
+    const currentLead = leads.find((lead) => lead.id === id);
+    const previousStatus = currentLead
+      ? currentLead.statusCode ?? currentLead.processingStatus ?? currentLead.status
+      : null;
+    const normalizedPreviousStatus = normalizeLeadStageStatus(previousStatus);
+
     setControlDrafts((previous) => ({
       ...previous,
       [id]: {
@@ -93,6 +106,40 @@ export default function LeadsOverviewDashboard() {
         statusCode: nextStatus,
       },
     }));
+
+    statusMutation.mutate(
+      { lead: id, status: nextStatus },
+      {
+        onSuccess: (response) => {
+          toast.success(`Đã cập nhật trạng thái Lead: ${response.status}.`);
+        },
+        onError: (statusError) => {
+          setControlDrafts((previous) => {
+            const draft = previous[id];
+            if (!draft) return previous;
+            if (normalizedPreviousStatus) {
+              return {
+                ...previous,
+                [id]: {
+                  ...draft,
+                  status: leadStageStatusLabel[normalizedPreviousStatus],
+                  statusCode: normalizedPreviousStatus,
+                },
+              };
+            }
+            const restoredDraft = { ...draft };
+            delete restoredDraft.status;
+            delete restoredDraft.statusCode;
+            return { ...previous, [id]: restoredDraft };
+          });
+          toast.error(
+            statusError instanceof Error
+              ? statusError.message
+              : "Chưa thể cập nhật trạng thái Lead.",
+          );
+        },
+      },
+    );
   };
 
   const handleLeadResultChange = (id: string, result: LeadResultStatus) => {
@@ -107,8 +154,13 @@ export default function LeadsOverviewDashboard() {
     setPage(1);
   };
 
-  const handleStatusChange = (value: LeadStatus | "all") => {
+  const handleStatusChange = (value: LeadStageStatus | "all") => {
     setStatus(value);
+    setPage(1);
+  };
+
+  const handleResolutionChange = (value: LeadResultFilter | "all") => {
+    setResolution(value);
     setPage(1);
   };
 
@@ -120,6 +172,7 @@ export default function LeadsOverviewDashboard() {
   const resetFilters = () => {
     setQuery("");
     setStatus("all");
+    setResolution("all");
     setCampaign("");
     setPage(1);
   };
@@ -176,14 +229,15 @@ export default function LeadsOverviewDashboard() {
       <LeadListToolbar
         query={query}
         status={status}
+        resolution={resolution}
         campaign={campaign}
-        statusOptions={meta?.statusOptions ?? []}
         campaigns={availableCampaigns}
         campaignLoading={campaignsQuery.isPending}
         campaignError={campaignsQuery.error?.message}
         resultCount={totalCount}
         onQueryChange={handleQueryChange}
         onStatusChange={handleStatusChange}
+        onResolutionChange={handleResolutionChange}
         onCampaignChange={handleCampaignChange}
         onReset={resetFilters}
       />
@@ -214,6 +268,7 @@ export default function LeadsOverviewDashboard() {
             ) : (
               <LeadList
                 leads={displayedLeads}
+                isStatusUpdating={statusMutation.isPending}
                 onStatusChange={handleLeadStatusChange}
                 onResultChange={handleLeadResultChange}
               />

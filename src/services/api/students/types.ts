@@ -182,6 +182,8 @@ export interface StudentClassificationDimension {
 
 export interface StudentListItem {
   id: string;
+  /** Canonical CRM Student name used by Student stage commands. */
+  studentId?: string | null;
   initials: string;
   name: string;
   code: string;
@@ -238,6 +240,10 @@ export interface StudentJourneyEvent {
 
 export interface Student360Data {
   student: {
+    /** CRM Lead name used to load the Student 360 projection. */
+    id?: string;
+    /** Canonical CRM Student name used by Student stage commands. */
+    studentId?: string | null;
     initials: string;
     name: string;
     code: string;
@@ -253,6 +259,8 @@ export interface Student360Data {
     ward?: string | null;
     counselor: string;
     ownerId?: string | null;
+    /** Ownership revision used as the CAS token when changing the owner. */
+    revision?: number;
     priority?: StudentPriority | null;
     verificationStatus?: StudentVerificationStatus | null;
     contactConsent?: StudentContactConsent | null;
