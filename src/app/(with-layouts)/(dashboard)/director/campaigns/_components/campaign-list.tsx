@@ -2,6 +2,7 @@
 
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { Pencil1, Search1, Trash1 } from "@tailgrids/icons";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -12,6 +13,7 @@ import { formatDate } from "@/utils/format-date";
 
 import CampaignChannelCell from "./campaign-channel-cell";
 import { campaignColumns } from "./campaign-columns";
+import type { ChannelTypeValue } from "./channel-types";
 import { campaignModeColor, campaignModeLabel, campaignStatusColor, campaignStatusLabel } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -26,6 +28,7 @@ interface CampaignListProps {
   campaigns: CampaignListItem[];
   onStatusChange: (id: string, status: CampaignStatus) => void;
   onModeChange: (id: string, mode: CampaignMode) => void;
+  onChannelTypeChange: (id: string, channelType: ChannelTypeValue | "") => void;
   onChannelUrlChange: (id: string, channelUrl: string) => void;
   onEdit: (campaign: CampaignListItem) => void;
   onDelete: (campaign: CampaignListItem) => void;
@@ -38,6 +41,7 @@ export default function CampaignList({
   campaigns,
   onStatusChange,
   onModeChange,
+  onChannelTypeChange,
   onChannelUrlChange,
   onEdit,
   onDelete,
@@ -47,7 +51,7 @@ export default function CampaignList({
 }: CampaignListProps) {
   const table = useReactTable({
     data: campaigns,
-    columns: campaignColumns({ onStatusChange, onModeChange, onChannelUrlChange, onEdit, onDelete }),
+    columns: campaignColumns({ onStatusChange, onModeChange, onChannelTypeChange, onChannelUrlChange, onEdit, onDelete }),
     getCoreRowModel: getCoreRowModel(),
     getRowId: (campaign) => campaign.id,
   });
@@ -60,15 +64,15 @@ export default function CampaignList({
 
       <Card className="overflow-hidden p-0">
         <div className="hidden overflow-x-auto lg:block">
-          <table className="w-full min-w-[1150px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[1200px] table-fixed text-left text-sm">
             <caption className="sr-only">Danh sách chiến dịch tuyển sinh</caption>
             <colgroup>
-              <col className="w-[140px]" />
-              <col className="w-[260px]" />
-              <col className="w-[200px]" />
-              <col className="w-[160px]" />
-              <col className="w-[140px]" />
-              <col className="w-[180px]" />
+              <col className="w-[130px]" />
+              <col className="w-[240px]" />
+              <col className="w-[190px]" />
+              <col className="w-[150px]" />
+              <col className="w-[220px]" />
+              <col className="w-[170px]" />
               <col className="w-[110px]" />
             </colgroup>
             <thead className="border-y border-card-border bg-background-gray-secondary/60 text-xs text-text-tertiary">
@@ -103,7 +107,12 @@ export default function CampaignList({
                 <p className="font-mono text-xs font-semibold text-text-primary">{campaign.code}</p>
                 <Badge color={campaignStatusColor[campaign.status]}>{campaignStatusLabel[campaign.status]}</Badge>
               </div>
-              <p className="mt-1.5 text-sm font-semibold text-text-primary">{campaign.name}</p>
+              <Link
+                href={`/lead-sale/campaigns/${campaign.id}`}
+                className="mt-1.5 block text-sm font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
+              >
+                {campaign.name}
+              </Link>
               <p className="mt-1 text-xs text-text-tertiary">
                 {formatDate(campaign.startDate)} – {formatDate(campaign.endDate)}
               </p>
@@ -111,8 +120,11 @@ export default function CampaignList({
                 <Badge color={campaignModeColor[campaign.mode]}>{campaignModeLabel[campaign.mode]}</Badge>
                 <CampaignChannelCell
                   campaignName={campaign.name}
+                  mode={campaign.mode}
+                  channelType={campaign.channelType}
                   channelUrl={campaign.channelUrl}
-                  onChange={(url) => onChannelUrlChange(campaign.id, url)}
+                  onChannelTypeChange={(channelType) => onChannelTypeChange(campaign.id, channelType)}
+                  onChannelUrlChange={(url) => onChannelUrlChange(campaign.id, url)}
                 />
               </div>
               <div className="mt-3 flex items-center justify-end gap-2 border-t border-card-border/60 pt-2.5">

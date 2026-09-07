@@ -1,5 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Pencil1, Trash1 } from "@tailgrids/icons";
+import Link from "next/link";
 
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -13,6 +14,7 @@ import {
 import { formatDate } from "@/utils/format-date";
 
 import CampaignChannelCell from "./campaign-channel-cell";
+import type { ChannelTypeValue } from "./channel-types";
 import { campaignModeLabel, campaignModeOptions, campaignStatusLabel, campaignStatusOptions } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -26,12 +28,12 @@ const statusTriggerClass: Record<CampaignStatus, string> = {
 const modeTriggerClass: Record<CampaignMode, string> = {
   ONLINE: "border-transparent bg-badge-sky-background text-badge-sky-text",
   OFFLINE: "border-transparent bg-badge-gray-background text-badge-gray-text",
-  HYBRID: "border-transparent bg-badge-violet-background text-badge-violet-text",
 };
 
 interface CampaignColumnHandlers {
   onStatusChange: (id: string, status: CampaignStatus) => void;
   onModeChange: (id: string, mode: CampaignMode) => void;
+  onChannelTypeChange: (id: string, channelType: ChannelTypeValue | "") => void;
   onChannelUrlChange: (id: string, channelUrl: string) => void;
   onEdit: (campaign: CampaignListItem) => void;
   onDelete: (campaign: CampaignListItem) => void;
@@ -40,6 +42,7 @@ interface CampaignColumnHandlers {
 export function campaignColumns({
   onStatusChange,
   onModeChange,
+  onChannelTypeChange,
   onChannelUrlChange,
   onEdit,
   onDelete,
@@ -55,7 +58,14 @@ export function campaignColumns({
     {
       accessorKey: "name",
       header: "Tên chiến dịch",
-      cell: ({ row }) => <span className="font-medium text-text-primary">{row.original.name}</span>,
+      cell: ({ row }) => (
+        <Link
+          href={`/lead-sale/campaigns/${row.original.id}`}
+          className="font-medium text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
+        >
+          {row.original.name}
+        </Link>
+      ),
     },
     {
       id: "duration",
@@ -94,15 +104,18 @@ export function campaignColumns({
       },
     },
     {
-      id: "channelUrl",
-      header: "Kênh online",
+      id: "channelType",
+      header: "Loại kênh",
       cell: ({ row }) => {
         const campaign = row.original;
         return (
           <CampaignChannelCell
             campaignName={campaign.name}
+            mode={campaign.mode}
+            channelType={campaign.channelType}
             channelUrl={campaign.channelUrl}
-            onChange={(url) => onChannelUrlChange(campaign.id, url)}
+            onChannelTypeChange={(channelType) => onChannelTypeChange(campaign.id, channelType)}
+            onChannelUrlChange={(url) => onChannelUrlChange(campaign.id, url)}
           />
         );
       },

@@ -19,13 +19,11 @@ export const campaignStatusOptions: CampaignStatus[] = ["DRAFT", "UPCOMING", "AC
 export const campaignModeLabel: Record<CampaignMode, string> = {
   ONLINE: "Trực tuyến",
   OFFLINE: "Trực tiếp",
-  HYBRID: "Kết hợp",
 };
 
-export const campaignModeColor: Record<CampaignMode, "sky" | "gray" | "violet"> = {
+export const campaignModeColor: Record<CampaignMode, "sky" | "gray"> = {
   ONLINE: "sky",
   OFFLINE: "gray",
-  HYBRID: "violet",
 };
 
-export const campaignModeOptions: CampaignMode[] = ["ONLINE", "OFFLINE", "HYBRID"];
+export const campaignModeOptions: CampaignMode[] = ["ONLINE", "OFFLINE"];

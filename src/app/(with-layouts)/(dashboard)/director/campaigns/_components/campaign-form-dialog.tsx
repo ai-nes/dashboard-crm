@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
+import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
 import { Dialog, DialogBody, DialogClose, DialogFooter, DialogTitle } from "@/components/tailgrids/core/dialog";
 import { Input } from "@/components/tailgrids/core/input";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
@@ -14,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/tailgrids/core/select";
 
+import { channelTypeOptionsForMode, isChannelTypeValidForMode, type ChannelTypeValue } from "./channel-types";
 import { campaignModeLabel, campaignModeOptions, campaignStatusLabel, campaignStatusOptions } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -31,6 +33,7 @@ interface CampaignForm {
   endDate: string;
   status: CampaignStatus;
   mode: CampaignMode;
+  channelType: ChannelTypeValue | "";
   channelUrl: string;
 }
 
@@ -43,6 +46,7 @@ function formFromCampaign(campaign: CampaignListItem | null): CampaignForm {
     endDate: campaign?.endDate ?? "",
     status: campaign?.status ?? "DRAFT",
     mode: campaign?.mode ?? "OFFLINE",
+    channelType: campaign?.channelType ?? "",
     channelUrl: campaign?.channelUrl ?? "",
   };
 }
@@ -79,8 +83,17 @@ export default function CampaignFormDialog({ campaign, onClose, onSubmit }: Camp
       endDate: form.endDate,
       status: form.status,
       mode: form.mode,
-      channelUrl: form.mode === "OFFLINE" ? "" : form.channelUrl.trim(),
+      channelType: form.channelType,
+      channelUrl: form.channelUrl.trim(),
     });
+  };
+
+  const handleModeChange = (nextMode: CampaignMode) => {
+    setForm((current) => ({
+      ...current,
+      mode: nextMode,
+      channelType: isChannelTypeValidForMode(current.channelType, nextMode) ? current.channelType : "",
+    }));
   };
 
   return (
@@ -153,7 +166,7 @@ export default function CampaignFormDialog({ campaign, onClose, onSubmit }: Camp
                 <span className="text-xs font-medium text-input-label-text">Hình thức</span>
                 <Select
                   value={form.mode}
-                  onChange={(value) => setField("mode", String(value) as CampaignMode)}
+                  onChange={(value) => handleModeChange(String(value) as CampaignMode)}
                   aria-label="Hình thức chiến dịch"
                 >
                   <SelectTrigger className="h-9 w-full text-sm">
@@ -170,17 +183,31 @@ export default function CampaignFormDialog({ campaign, onClose, onSubmit }: Camp
               </label>
             </div>
 
-            {form.mode !== "OFFLINE" && (
-              <label className="block space-y-1">
-                <span className="text-xs font-medium text-input-label-text">Channel URL</span>
-                <Input
-                  value={form.channelUrl}
-                  onChange={(event) => setField("channelUrl", event.target.value)}
-                  placeholder="Ví dụ: https://meet.google.com/..."
-                  className="h-9 w-full px-3 py-2 text-sm"
-                />
-              </label>
-            )}
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-input-label-text">Loại kênh</span>
+              <Combobox
+                value={form.channelType || null}
+                onChange={(key) => setField("channelType", (key as ChannelTypeValue) ?? "")}
+                aria-label="Loại kênh"
+                placeholder="Chọn loại kênh"
+              >
+                {channelTypeOptionsForMode(form.mode).map((option) => (
+                  <ComboboxItem key={option.value} id={option.value} textValue={option.label}>
+                    {option.label}
+                  </ComboboxItem>
+                ))}
+              </Combobox>
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-input-label-text">Channel URL</span>
+              <Input
+                value={form.channelUrl}
+                onChange={(event) => setField("channelUrl", event.target.value)}
+                placeholder={form.mode === "OFFLINE" ? "Ví dụ: https://forms.gle/..." : "Ví dụ: https://meet.google.com/..."}
+                className="h-9 w-full px-3 py-2 text-sm"
+              />
+            </label>
 
             {error && <p className="text-xs text-badge-error-text">{error}</p>}
           </DialogBody>

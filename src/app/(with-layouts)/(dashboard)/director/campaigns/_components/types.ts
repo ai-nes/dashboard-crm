@@ -1,6 +1,8 @@
+import type { ChannelTypeValue } from "./channel-types";
+
 export type CampaignStatus = "DRAFT" | "UPCOMING" | "ACTIVE" | "CLOSED";
 
-export type CampaignMode = "ONLINE" | "OFFLINE" | "HYBRID";
+export type CampaignMode = "ONLINE" | "OFFLINE";
 
 export interface CampaignListItem {
   id: string;
@@ -11,6 +13,7 @@ export interface CampaignListItem {
   endDate: string;
   status: CampaignStatus;
   mode: CampaignMode;
+  channelType: ChannelTypeValue | "";
   channelUrl: string;
 }
 

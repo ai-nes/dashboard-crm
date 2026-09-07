@@ -5,31 +5,45 @@ import { useState } from "react";
 import { DialogTrigger } from "react-aria-components";
 
 import { Button } from "@/components/tailgrids/core/button";
+import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
 import { Input } from "@/components/tailgrids/core/input";
 import { Popover } from "@/components/tailgrids/core/popover";
 
+import { channelTypeLabel, channelTypeOptionsForMode, type ChannelTypeValue } from "./channel-types";
+import type { CampaignMode } from "./types";
+
 interface CampaignChannelCellProps {
   campaignName: string;
+  mode: CampaignMode;
+  channelType: ChannelTypeValue | "";
   channelUrl: string;
-  onChange: (url: string) => void;
+  onChannelTypeChange: (channelType: ChannelTypeValue | "") => void;
+  onChannelUrlChange: (url: string) => void;
 }
 
-export default function CampaignChannelCell({ campaignName, channelUrl, onChange }: CampaignChannelCellProps) {
+export default function CampaignChannelCell({
+  campaignName,
+  mode,
+  channelType,
+  channelUrl,
+  onChannelTypeChange,
+  onChannelUrlChange,
+}: CampaignChannelCellProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [value, setValue] = useState(channelUrl);
+  const [pendingType, setPendingType] = useState(channelType);
+  const [pendingUrl, setPendingUrl] = useState(channelUrl);
 
   const handleOpenChange = (open: boolean) => {
     setIsEditing(open);
-    if (open) setValue(channelUrl);
+    if (open) {
+      setPendingType(channelType);
+      setPendingUrl(channelUrl);
+    }
   };
 
   const handleSave = () => {
-    onChange(value.trim());
-    setIsEditing(false);
-  };
-
-  const handleClear = () => {
-    onChange("");
+    onChannelTypeChange(pendingType);
+    onChannelUrlChange(pendingUrl.trim());
     setIsEditing(false);
   };
 
@@ -41,10 +55,10 @@ export default function CampaignChannelCell({ campaignName, channelUrl, onChange
           appearance="ghost"
           size="xs"
           className="group/channel min-w-0 max-w-full justify-start gap-1.5 truncate px-1 py-0.5 text-left text-xs font-medium hover:bg-background-soft-50"
-          aria-label={channelUrl ? `Sửa liên kết kênh online của ${campaignName}` : `Thêm liên kết kênh online cho ${campaignName}`}
+          aria-label={channelType ? `Sửa loại kênh của ${campaignName}` : `Chọn loại kênh cho ${campaignName}`}
         >
-          <span className={channelUrl ? "truncate text-primary-600" : "truncate text-text-tertiary italic"}>
-            {channelUrl ? "Mở kênh" : "Thêm kênh"}
+          <span className={channelType ? "truncate text-text-primary" : "truncate text-text-tertiary italic"}>
+            {channelType ? channelTypeLabel[channelType] : "Chọn loại kênh"}
           </span>
           <Pencil1
             size={12}
@@ -53,12 +67,26 @@ export default function CampaignChannelCell({ campaignName, channelUrl, onChange
           />
         </Button>
         <Popover className="w-80 p-3">
-          <p className="text-xs font-medium text-text-tertiary">Channel URL</p>
+          <p className="text-xs font-medium text-text-tertiary">Loại kênh</p>
+          <Combobox
+            value={pendingType || null}
+            onChange={(key) => setPendingType((key as ChannelTypeValue) ?? "")}
+            aria-label={`Loại kênh của ${campaignName}`}
+            placeholder="Chọn loại kênh"
+            className="mt-1.5"
+          >
+            {channelTypeOptionsForMode(mode).map((option) => (
+              <ComboboxItem key={option.value} id={option.value} textValue={option.label}>
+                {option.label}
+              </ComboboxItem>
+            ))}
+          </Combobox>
+
+          <p className="mt-3 text-xs font-medium text-text-tertiary">Channel URL</p>
           <Input
-            autoFocus
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-            placeholder="https://meet.google.com/..."
+            value={pendingUrl}
+            onChange={(event) => setPendingUrl(event.target.value)}
+            placeholder={mode === "OFFLINE" ? "https://forms.gle/..." : "https://meet.google.com/..."}
             className="mt-1.5 h-9 w-full px-3 py-2 text-sm"
             onKeyDown={(event) => {
               if (event.key === "Enter") {
@@ -67,20 +95,14 @@ export default function CampaignChannelCell({ campaignName, channelUrl, onChange
               }
             }}
           />
-          <div className="mt-3 flex items-center justify-between gap-2">
-            {channelUrl && (
-              <Button type="button" appearance="ghost" size="xs" variant="danger" onPress={handleClear}>
-                Xóa liên kết
-              </Button>
-            )}
-            <div className="ml-auto flex gap-2">
-              <Button type="button" appearance="outline" size="xs" onPress={() => setIsEditing(false)}>
-                Hủy
-              </Button>
-              <Button type="button" size="xs" onPress={handleSave}>
-                Lưu
-              </Button>
-            </div>
+
+          <div className="mt-3 flex items-center justify-end gap-2">
+            <Button type="button" appearance="outline" size="xs" onPress={() => setIsEditing(false)}>
+              Hủy
+            </Button>
+            <Button type="button" size="xs" onPress={handleSave}>
+              Lưu
+            </Button>
           </div>
         </Popover>
       </DialogTrigger>

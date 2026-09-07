@@ -12,6 +12,7 @@ import CampaignFormDialog from "./campaign-form-dialog";
 import CampaignList from "./campaign-list";
 import CampaignStats from "./campaign-stats";
 import CampaignToolbar from "./campaign-toolbar";
+import { isChannelTypeValidForMode, type ChannelTypeValue } from "./channel-types";
 import { initialCampaigns } from "./data";
 import type { CampaignListItem, CampaignMode, CampaignStatus, CampaignStatusFilter } from "./types";
 
@@ -74,10 +75,23 @@ export default function CampaignsOverviewDashboard() {
   const handleModeChange = (id: string, nextMode: CampaignMode) => {
     setCampaigns((current) =>
       current.map((campaign) =>
-        campaign.id === id ? { ...campaign, mode: nextMode, channelUrl: nextMode === "OFFLINE" ? "" : campaign.channelUrl } : campaign,
+        campaign.id === id
+          ? {
+              ...campaign,
+              mode: nextMode,
+              channelType: isChannelTypeValidForMode(campaign.channelType, nextMode) ? campaign.channelType : "",
+            }
+          : campaign,
       ),
     );
     toast.success("Đã cập nhật hình thức chiến dịch.");
+  };
+
+  const handleChannelTypeChange = (id: string, channelType: ChannelTypeValue | "") => {
+    setCampaigns((current) =>
+      current.map((campaign) => (campaign.id === id ? { ...campaign, channelType } : campaign)),
+    );
+    toast.success(channelType ? "Đã cập nhật loại kênh." : "Đã bỏ chọn loại kênh.");
   };
 
   const handleChannelUrlChange = (id: string, channelUrl: string) => {
@@ -134,6 +148,7 @@ export default function CampaignsOverviewDashboard() {
         campaigns={pageCampaigns}
         onStatusChange={handleStatusChange}
         onModeChange={handleModeChange}
+        onChannelTypeChange={handleChannelTypeChange}
         onChannelUrlChange={handleChannelUrlChange}
         onEdit={(campaign) => setFormDialog({ mode: "edit", campaign })}
         onDelete={setDeletingCampaign}
