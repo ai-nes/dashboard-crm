@@ -1,4 +1,5 @@
 import { formatDate } from "@/utils/format-date";
+import type { StudentZaloMessage } from "@/services/api/students/types";
 
 export type ActivityTimeFilter =
   | "all"
@@ -8,7 +9,10 @@ export type ActivityTimeFilter =
   | "last-week"
   | "last-7-days";
 
-export const activityTimeFilterOptions: { id: ActivityTimeFilter; label: string }[] = [
+export const activityTimeFilterOptions: {
+  id: ActivityTimeFilter;
+  label: string;
+}[] = [
   { id: "all", label: "Tất cả thời gian" },
   { id: "today", label: "Hôm nay" },
   { id: "yesterday", label: "Hôm qua" },
@@ -26,6 +30,12 @@ export function getStudentZaloConversationTitle(title?: string): string {
   return title?.trim() || "Trao đổi Zalo";
 }
 
+export function getStudentZaloActivityTitle(
+  message: StudentZaloMessage,
+): string {
+  return `Zalo · ${getStudentZaloConversationTitle(message.conversationTitle)}`;
+}
+
 export interface StudentActivityGroup<T> {
   id: string;
   label: string;
@@ -36,10 +46,18 @@ export interface StudentActivityGroup<T> {
 export function parseStudentActivityDate(value?: string): Date {
   if (!value) return new Date(0);
 
-  const vnMatch = value.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*·\s*(\d{1,2}):(\d{2}))?/);
+  const vnMatch = value.match(
+    /(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*·\s*(\d{1,2}):(\d{2}))?/,
+  );
   if (vnMatch) {
     const [, day, month, year, hour = "0", minute = "0"] = vnMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+    );
   }
 
   const parsed = new Date(value);
@@ -105,7 +123,9 @@ function dateKey(date: Date): string {
 function getDateGroupLabel(date: Date): string {
   const today = startOfDay(new Date());
   const activityDay = startOfDay(date);
-  const daysFromToday = Math.round((today.getTime() - activityDay.getTime()) / 86_400_000);
+  const daysFromToday = Math.round(
+    (today.getTime() - activityDay.getTime()) / 86_400_000,
+  );
 
   if (daysFromToday === 0) return "Hôm nay";
   if (daysFromToday === 1) return "Hôm qua";
@@ -131,7 +151,11 @@ function groupActivityItems<T>(
     } else {
       groups.set(id, {
         id,
-        label: overdue ? "Quá hạn" : validDate ? getDateGroupLabel(date) : "Chưa xác định thời gian",
+        label: overdue
+          ? "Quá hạn"
+          : validDate
+            ? getDateGroupLabel(date)
+            : "Chưa xác định thời gian",
         items: [item],
         sortTime: overdue
           ? Number.MAX_SAFE_INTEGER

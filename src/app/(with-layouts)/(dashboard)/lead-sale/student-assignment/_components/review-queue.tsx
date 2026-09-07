@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
-import { useAssignment } from "./assignment-context";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
 
 const groups = [
   {

@@ -1,10 +1,10 @@
 "use client";
 
 import { Pencil1 } from "@tailgrids/icons";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
-import { Input } from "@/components/tailgrids/core/input";
+import { TextArea } from "@/components/tailgrids/core/text-area";
 import { cn } from "@/utils/cn";
 
 interface StudentInlineEditableTextProps {
@@ -28,6 +28,28 @@ export default function StudentInlineEditableText({
 }: StudentInlineEditableTextProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!editing) return;
+
+    const textarea =
+      editorContainerRef.current?.querySelector<HTMLTextAreaElement>(
+        "textarea",
+      );
+    if (!textarea) return;
+
+    const resize = () => {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    };
+
+    resize();
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(textarea);
+
+    return () => resizeObserver.disconnect();
+  }, [draft, editing]);
 
   const commit = () => {
     const trimmed = draft.trim();
@@ -46,20 +68,24 @@ export default function StudentInlineEditableText({
 
   if (editing) {
     return (
-      <div className={cn("space-y-2", className)}>
-        <Input
-          autoFocus
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") commit();
-            if (event.key === "Escape") cancel();
-          }}
-          placeholder={placeholder}
-          aria-label={placeholder ?? "Nội dung"}
-          className="h-10 text-sm"
-        />
-        <div className="flex gap-2">
+      <div className={cn("min-w-0 flex-1 space-y-2.5", className)}>
+        <div ref={editorContainerRef} className="min-w-0">
+          <TextArea
+            autoFocus
+            maxLength={120}
+            rows={1}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") commit();
+              if (event.key === "Escape") cancel();
+            }}
+            placeholder={placeholder}
+            aria-label={placeholder ?? "Nội dung"}
+            className="min-h-10 w-full min-w-0 resize-none overflow-hidden border-0 bg-transparent px-3 py-2 text-base font-medium shadow-none focus:border-0 focus:ring-0"
+          />
+        </div>
+        <div className="flex justify-end gap-2">
           <Button size="xs" appearance="outline" onPress={cancel}>
             Hủy
           </Button>
@@ -81,13 +107,13 @@ export default function StudentInlineEditableText({
         setEditing(true);
       }}
       className={cn(
-        "group inline-flex min-h-8 max-w-full items-center justify-start gap-1.5 rounded-lg border border-transparent px-2 py-1 text-left hover:border-card-border hover:bg-background-gray-secondary",
+        "group inline-flex h-auto min-h-8 w-full max-w-full items-start justify-start gap-1.5 rounded-lg border border-transparent px-2 py-1 text-left hover:border-card-border hover:bg-background-gray-secondary",
         className,
       )}
     >
       <span
         className={cn(
-          "truncate text-sm text-text-primary",
+          "min-w-0 whitespace-normal break-words text-sm text-text-primary",
           textClassName,
           strikethrough && "text-text-tertiary line-through",
         )}

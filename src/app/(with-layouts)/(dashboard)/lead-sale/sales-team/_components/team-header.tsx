@@ -42,7 +42,7 @@ export default function TeamHeader({ meta }: TeamHeaderProps) {
             className="inline-flex items-center gap-2 rounded-lg bg-button-primary-background px-3.5 py-2.5 text-sm font-semibold text-button-primary-text transition-colors hover:bg-button-primary-hover-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
           >
             <UserPencil size={16} aria-hidden="true" />
-            Phân công học sinh
+            Phân công tự động
           </Link>
           <Link
             href="/lead-sale/students"

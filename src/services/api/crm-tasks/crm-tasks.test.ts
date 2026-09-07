@@ -33,6 +33,7 @@ describe("CRM Tasks API Service", () => {
               name: "1",
               title: "Gọi lại tư vấn viên",
               description: "Xác nhận lịch tư vấn.",
+              action_code: "CALL_BACK",
               assigned_to: "sale@example.com",
               status: "Todo",
               priority: "High",
@@ -64,7 +65,31 @@ describe("CRM Tasks API Service", () => {
       status: "Todo",
       priority: "High",
       dueDate: "2026-09-05 17:00:00",
+      actionCode: "CALL_BACK",
     });
+  });
+
+  it("list task theo scope session khi không truyền hồ sơ", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        message: {
+          total: 0,
+          start: 0,
+          page_length: 100,
+          tasks: [],
+        },
+      }),
+    });
+
+    const result = await listTasks({ start: 0, pageLength: 100 }, { baseUrl });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      `${baseUrl}/api/method/crm.api.task.list_tasks?start=0&page_length=100`,
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(result.total).toBe(0);
   });
 
   it("get task theo name", async () => {
@@ -110,6 +135,7 @@ describe("CRM Tasks API Service", () => {
         referenceDocname: "ENR-2026-00005",
         title: "Gọi lại tư vấn viên",
         description: "Xác nhận lịch tư vấn.",
+        actionCode: "CALL_BACK",
         priority: "High",
         status: "Todo",
         dueDate: "2026-09-05 17:00:00",
@@ -126,6 +152,7 @@ describe("CRM Tasks API Service", () => {
           reference_docname: "ENR-2026-00005",
           title: "Gọi lại tư vấn viên",
           description: "Xác nhận lịch tư vấn.",
+          action_code: "CALL_BACK",
           priority: "High",
           status: "Todo",
           due_date: "2026-09-05 17:00:00",

@@ -85,7 +85,7 @@ export default function ActionTypeDetailDialog({ actionType, canEdit, onClose }:
         />
 
         <DialogBody className="max-h-[min(36rem,calc(100vh-10rem))] space-y-4 overflow-y-auto px-5 py-4">
-          {!canEdit && <Alert status="info"><AlertIndicator><InfoCircle aria-hidden="true" /></AlertIndicator><AlertContent><AlertDescription>Bạn có thể xem cấu hình. Chỉ System Manager được thay đổi nhóm hành động.</AlertDescription></AlertContent></Alert>}
+          {!canEdit && <Alert status="info"><AlertIndicator><InfoCircle aria-hidden="true" /></AlertIndicator><AlertContent><AlertDescription>Bạn có thể xem cấu hình. Chỉ Administrator được thay đổi nhóm hành động.</AlertDescription></AlertContent></Alert>}
           {isBuiltIn && <Alert status="info"><AlertIndicator /><AlertContent><AlertDescription>Đây là nhóm built-in. Không thể xóa vĩnh viễn; hãy tắt nhóm nếu không muốn sử dụng.</AlertDescription></AlertContent></Alert>}
           {detailQuery.isPending && !isNew ? <p className="text-sm text-text-tertiary">Đang tải thông tin nhóm…</p> : <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1 sm:col-span-2"><span className="text-xs font-medium text-input-label-text">Mã nhóm</span><Input value={record?.actionType ?? actionTypeCode} onChange={(event) => setActionTypeCode(event.target.value.toUpperCase())} readOnly={!isNew} disabled={!canEdit || !isNew} placeholder="Ví dụ: CUSTOM_SALES" className="h-9 w-full px-3 py-2 text-sm" /><span className="block text-[11px] leading-4 text-text-tertiary">Mã không thể thay đổi sau khi tạo.</span></label>

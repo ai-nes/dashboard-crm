@@ -92,6 +92,28 @@ describe("director students API contract", () => {
     );
   });
 
+  it("passes assignment, lifecycle, and province filters to the students endpoint", async () => {
+    const mockData = computeDirectorStudents({ admissionYear: 2026 });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockData }), { status: 200 }),
+    );
+
+    await getDirectorStudents(
+      {
+        admissionYear: 2026,
+        provinceId: "PROVINCE-01",
+        assignmentStatus: "assigned",
+        lifecycleStatus: "Applicant",
+      },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_director_students?admissionYear=2026&provinceId=PROVINCE-01&assignmentStatus=assigned&lifecycleStatus=Applicant",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+  });
+
   it("throws DirectorStudentsApiError on authorization failure", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
@@ -113,6 +135,25 @@ describe("director students API contract", () => {
   it("rejects invalid students envelope with 502", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ message: { data: "not-an-array" } }), { status: 200 }),
+    );
+
+    await expect(
+      getDirectorStudents({ admissionYear: 2026 }, { baseUrl: "http://frappe:8000" }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<DirectorStudentsApiError>>({
+        status: 502,
+        code: "INVALID_STUDENTS_RESPONSE",
+      }),
+    );
+  });
+
+  it("rejects a student list record without an ownership revision", async () => {
+    const payload = computeDirectorStudents({ admissionYear: 2026 });
+    const firstRecord = payload.data[0] as unknown as Record<string, unknown>;
+    delete firstRecord.revision;
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: payload }), { status: 200 }),
     );
 
     await expect(

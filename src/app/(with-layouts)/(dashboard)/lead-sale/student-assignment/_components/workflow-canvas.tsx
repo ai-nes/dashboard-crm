@@ -11,71 +11,54 @@ import {
 } from "@xyflow/react";
 import { ExpandArrow6 } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
-import { useAssignment } from "./assignment-context";
-import { automationPath } from "./data";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
+import {
+  workflowConnections as defaultWorkflowConnections,
+  workflowPositions,
+} from "../../_shared/student-assignment/data";
+import { getWorkflowPhaseState } from "../../_shared/student-assignment/mappings";
 import WorkflowNode, { type AssignmentFlowNode } from "./workflow-node";
-import type { StepId } from "./types";
+import type { AssignmentWorkflowConnection } from "@/services/api/lead-sale";
 import "@xyflow/react/dist/style.css";
 
-const nodeTypes = { assignmentStep: WorkflowNode };
-const connections: {
-  source: StepId;
-  target: StepId;
-  sourceHandle: string;
-  targetHandle: string;
-  label?: string;
-  labelOffsetY?: number;
-}[] = [
+const connectionHandles: Record<
+  string,
   {
-    source: "input",
-    target: "validation",
+    sourceHandle: string;
+    targetHandle: string;
+  }
+> = {
+  "input:validation": { sourceHandle: "out-right", targetHandle: "in-left" },
+  "validation:classification": {
     sourceHandle: "out-right",
     targetHandle: "in-left",
   },
-  {
-    source: "validation",
-    target: "classification",
+  "classification:matching": {
     sourceHandle: "out-right",
     targetHandle: "in-left",
-    label: "Pool hợp lệ",
   },
-  {
-    source: "classification",
-    target: "matching",
-    sourceHandle: "out-bottom",
-    targetHandle: "in-right",
-    label: "Xác định Tier",
-  },
-  {
-    source: "classification",
-    target: "review",
-    sourceHandle: "out-left",
-    targetHandle: "in-top",
-    label: "Tier 3/4 hoặc lỗi địa bàn",
-    labelOffsetY: 88,
-  },
-  {
-    source: "matching",
-    target: "review",
-    sourceHandle: "out-left",
-    targetHandle: "in-right",
-    label: "Deferred / queue",
-  },
-  {
-    source: "matching",
-    target: "assignment",
+  "classification:review": {
     sourceHandle: "out-bottom",
     targetHandle: "in-top",
-    label: "Tier 1/2 · áp dụng",
   },
-  {
-    source: "review",
-    target: "assignment",
+  "matching:review": { sourceHandle: "out-review", targetHandle: "in-review" },
+  "matching:assignment": {
     sourceHandle: "out-bottom",
-    targetHandle: "in-left",
-    label: "Resolve thủ công",
+    targetHandle: "in-top",
   },
-];
+  "review:assignment": { sourceHandle: "out-right", targetHandle: "in-left" },
+};
+
+function getConnectionLayout(connection: AssignmentWorkflowConnection) {
+  const handles =
+    connectionHandles[`${connection.source}:${connection.target}`] ??
+    connectionHandles["input:validation"];
+  return {
+    ...connection,
+    ...handles,
+    label: connection.label ?? undefined,
+  };
+}
 
 const canvasStyle = {
   "--xy-background-color-default": "var(--background-gray-secondary)",
@@ -84,55 +67,58 @@ const canvasStyle = {
 } as CSSProperties;
 
 export default function WorkflowCanvas() {
-  const { workflowSteps, selectStep, testRun } = useAssignment();
+  const {
+    workflowSteps,
+    workflowConnections,
+    currentPhaseId,
+    selectStep,
+    isRunningPipeline,
+    pipelineRun,
+  } = useAssignment();
+  const nodeTypes = useMemo(() => ({ assignmentStep: WorkflowNode }), []);
   const instance = useRef<ReactFlowInstance<AssignmentFlowNode> | null>(null);
-  const path = automationPath;
-  const isRunning = testRun.status === "running";
-  const hasRun = testRun.status !== "idle";
-  const activeStepId = isRunning ? path[testRun.stepIndex] : undefined;
+  const isRunning = isRunningPipeline;
+  const hasRun = Boolean(pipelineRun);
   const nodes: AssignmentFlowNode[] = useMemo(
     () =>
       workflowSteps.map((step) => ({
         id: step.id,
         type: "assignmentStep",
-        position: step.position,
+        position: workflowPositions[step.id],
         data: {
           step,
-          metric:
-            isRunning && activeStepId === step.id
-              ? "Đang xử lý"
-              : `${step.metrics.successCount} thành công · ${step.metrics.warningCount + step.metrics.errorCount} cần xử lý`,
-          highlighted:
-            hasRun &&
-            path.includes(step.id) &&
-            (!isRunning || path.indexOf(step.id) <= testRun.stepIndex),
-          muted: isRunning ? path.indexOf(step.id) > testRun.stepIndex : false,
-          active: activeStepId === step.id,
-          completed: isRunning && path.indexOf(step.id) < testRun.stepIndex,
+          metric: isRunning
+            ? "Đang xử lý trên máy chủ"
+            : `${step.metrics.successCount} thành công · ${step.metrics.warningCount + step.metrics.errorCount} cần xử lý`,
+          highlighted: hasRun && step.status !== "idle",
+          muted: false,
+          active: false,
+          completed: hasRun && step.status === "success",
+          phaseState: getWorkflowPhaseState(step, currentPhaseId),
         },
       })),
-    [workflowSteps, path, hasRun, isRunning, testRun.stepIndex, activeStepId],
+    [workflowSteps, currentPhaseId, hasRun, isRunning],
   );
 
   const edges: Edge[] = useMemo(
     () =>
-      connections.map((connection) => {
+      (workflowConnections.length > 0
+        ? workflowConnections
+        : defaultWorkflowConnections
+      ).map((rawConnection) => {
+        const connection = getConnectionLayout(rawConnection);
+        const warning = connection.target === "review";
+        const sourceStep = workflowSteps.find(
+          (step) => step.id === connection.source,
+        );
+        const targetStep = workflowSteps.find(
+          (step) => step.id === connection.target,
+        );
         const highlighted =
           hasRun &&
-          path.some(
-            (id, index) =>
-              id === connection.source && path[index + 1] === connection.target,
-          );
-        const sourceIndex = path.indexOf(connection.source);
-        const targetIndex = path.indexOf(connection.target);
-        const active =
-          isRunning &&
-          sourceIndex === testRun.stepIndex &&
-          targetIndex === testRun.stepIndex + 1;
-        const visible =
-          !isRunning || (sourceIndex >= 0 && sourceIndex <= testRun.stepIndex);
-        const warning = connection.target === "review";
-        const labelOffsetY = connection.labelOffsetY ?? -12;
+          sourceStep?.status === "success" &&
+          targetStep?.status === "success";
+        const labelOffsetY = -12;
         const color = highlighted
           ? "var(--primary-500)"
           : warning
@@ -142,7 +128,8 @@ export default function WorkflowCanvas() {
           ...connection,
           id: `${connection.source}-${connection.target}`,
           type: "smoothstep",
-          animated: active,
+          pathOptions: { borderRadius: 16, offset: 28 },
+          animated: isRunning,
           selectable: false,
           focusable: false,
           markerEnd: {
@@ -153,9 +140,9 @@ export default function WorkflowCanvas() {
           },
           style: {
             stroke: color,
-            strokeWidth: highlighted ? 2 : 1.3,
-            opacity: visible ? (path.length && !highlighted ? 0.55 : 0.9) : 0.2,
-            strokeDasharray: active ? "6 4" : warning ? "4 4" : undefined,
+            strokeWidth: 1.3,
+            opacity: 0.9,
+            strokeDasharray: warning ? "4 4" : undefined,
           },
           labelStyle: {
             fill: warning
@@ -172,11 +159,11 @@ export default function WorkflowCanvas() {
           labelBgBorderRadius: 4,
         };
       }),
-    [path, hasRun, isRunning, testRun.stepIndex],
+    [workflowConnections, workflowSteps, hasRun, isRunning],
   );
 
   return (
-    <div className="relative h-[660px] min-w-0 border-t border-card-border bg-background-gray-secondary/50">
+    <div className="relative h-[560px] min-w-0 border-t border-card-border bg-background-gray-secondary/50">
       <ReactFlow<AssignmentFlowNode>
         id="assignment-workflow-canvas"
         aria-label="Sơ đồ phân công học sinh tự động"
@@ -189,7 +176,7 @@ export default function WorkflowCanvas() {
         onNodeClick={(_, node) => selectStep(node.data.step.id)}
         fitView
         fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
-        minZoom={0.65}
+        minZoom={0.4}
         maxZoom={1.2}
         nodesDraggable={false}
         nodesConnectable={false}

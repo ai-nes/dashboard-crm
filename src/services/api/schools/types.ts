@@ -9,6 +9,13 @@ export interface SchoolDirectoryRecord {
   address: string;
   area: string;
   isBoardingSchool: boolean;
+  phone?: string | null;
+  email?: string | null;
+  schoolType?: string | null;
+  schoolTier?: string | null;
+  boardingType?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface TrendPoint {
@@ -381,6 +388,13 @@ export interface DirectorSchoolDetailData {
     address: string | null;
     area: string | null;
     isBoardingSchool: boolean | null;
+    phone?: string | null;
+    email?: string | null;
+    schoolType?: string | null;
+    schoolTier?: string | null;
+    boardingType?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   potentialScore: number | null;
   grade12Students: number | null;

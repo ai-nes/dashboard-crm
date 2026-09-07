@@ -11,6 +11,7 @@ export interface CRMTask {
   name: string;
   title: string;
   description?: string;
+  actionCode?: string;
   student?: string;
   linkedInteraction?: string;
   priority?: CRMTaskPriority;
@@ -26,8 +27,12 @@ export interface CRMTask {
 }
 
 export interface ListTasksParams {
-  referenceDoctype: CRMTaskReferenceDoctype;
-  referenceDocname: string;
+  /**
+   * Optional for the management screen. When omitted, the backend must derive
+   * the allowed own/team scope from the authenticated session.
+   */
+  referenceDoctype?: CRMTaskReferenceDoctype;
+  referenceDocname?: string;
   search?: string;
   status?: CRMTaskStatus;
   start?: number;
@@ -46,6 +51,7 @@ export interface CreateTaskPayload {
   referenceDocname: string;
   title: string;
   description?: string;
+  actionCode?: string;
   priority?: CRMTaskPriority;
   startDate?: string;
   assignedTo?: string;

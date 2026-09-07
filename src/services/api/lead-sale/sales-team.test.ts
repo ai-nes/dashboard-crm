@@ -34,7 +34,7 @@ function member(overrides: Record<string, unknown> = {}) {
 function workspaceFixture() {
   return {
     meta: {
-      viewer: { id: "lead@example.test", displayName: "Lead Sales" },
+      viewer: { id: "lead@example.test", displayName: "Lead Sale" },
       team: { id: "TEAM-1", name: "Đội Sale" },
       admissionYear: 2026,
       date: "2026-09-05",

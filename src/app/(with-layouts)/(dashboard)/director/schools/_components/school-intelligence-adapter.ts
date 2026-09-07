@@ -290,6 +290,13 @@ function toDirectorySchool(
     address: school.address ?? "",
     area: school.area ?? "",
     isBoardingSchool: school.isBoardingSchool ?? false,
+    phone: school.phone,
+    email: school.email,
+    schoolType: school.schoolType,
+    schoolTier: school.schoolTier,
+    boardingType: school.boardingType,
+    latitude: school.latitude,
+    longitude: school.longitude,
   };
 }
 
@@ -336,7 +343,29 @@ function toSchoolActivity(activity: DirectorSchoolActivity): SchoolActivity {
   };
 }
 
+// Maps `CRM School Activity Type` codes (backend lookup doctype) to the
+// display buckets this UI supports. Falls back to a substring check for
+// legacy free-text values (pre-lookup-doctype data) before defaulting.
 function normalizeActivityType(value: string | null): SchoolActivity["type"] {
+  switch (value) {
+    case "SCHOOL_VISIT":
+      return "Thăm trường";
+    case "CAREER_TALK":
+    case "CAREER_EXPERIENCE_PROGRAM":
+      return "Career Talk";
+    case "SEMINAR":
+    case "OPEN_DAY":
+    case "AWARENESS":
+    case "NCDT":
+      return "Hội thảo";
+    case "PARENT_MEETING":
+      return "Gặp phụ huynh";
+    case "COUNSELING":
+    case "PRINCIPAL_MEETING":
+    case "RELATIONSHIP_TOUCH":
+      return "Tư vấn";
+  }
+
   if (value?.includes("Career")) return "Career Talk";
   if (value?.includes("hội thảo")) return "Hội thảo";
   if (value?.includes("thăm")) return "Thăm trường";

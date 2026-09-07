@@ -6,37 +6,47 @@
  * contract for dashboard navigation.
  */
 export const CRM_ROLES = [
-  "Sale",
   "CTV Sale",
-  "Lead Sales",
+  "Sale",
+  "Lead Sale",
   "Promoter",
   "Lead Promoter",
   "Marketing",
   "Lead Marketing",
   "Admissions Director",
-  "CEO",
-  "System Manager",
+  "Administrator",
 ] as const;
 
 export type CrmRole = (typeof CRM_ROLES)[number];
 
+/** Frappe roles used for technical access, not CRM permission profiles. */
+export const FRAPPE_TECHNICAL_ROLES = ["System Manager"] as const;
+
+export type FrappeTechnicalRole = (typeof FRAPPE_TECHNICAL_ROLES)[number];
+export type DashboardRole = CrmRole | FrappeTechnicalRole;
+
+const DASHBOARD_ROLES = [
+  ...CRM_ROLES,
+  ...FRAPPE_TECHNICAL_ROLES,
+] as const satisfies readonly DashboardRole[];
+
 const CUSTOMER_DATA_ROLES = [
   "Sale",
   "CTV Sale",
-  "Lead Sales",
+  "Lead Sale",
   "Admissions Director",
-  "CEO",
+  "Administrator",
 ] as const satisfies readonly CrmRole[];
 
 const AI_CENTER_ROLES = [
-  "Lead Sales",
+  "Lead Sale",
   "Lead Promoter",
   "Marketing",
   "Lead Marketing",
   "Admissions Director",
-  "CEO",
+  "Administrator",
   "System Manager",
-] as const satisfies readonly CrmRole[];
+] as const satisfies readonly DashboardRole[];
 
 const DEMOGRAPHICS_ROLES = AI_CENTER_ROLES.filter(
   (role) => role !== "System Manager",
@@ -45,40 +55,40 @@ const DEMOGRAPHICS_ROLES = AI_CENTER_ROLES.filter(
 const OVERVIEW_ACTION_ROLES = [
   "Sale",
   "CTV Sale",
-  "Lead Sales",
+  "Lead Sale",
   "Promoter",
   "Lead Promoter",
   "Admissions Director",
-  "CEO",
+  "Administrator",
   "System Manager",
-] as const satisfies readonly CrmRole[];
+] as const satisfies readonly DashboardRole[];
 
 const SCHOOL_INTELLIGENCE_ROLES = [
   "Sale",
   "CTV Sale",
-  "Lead Sales",
+  "Lead Sale",
   "Promoter",
   "Lead Promoter",
   "Marketing",
   "Lead Marketing",
   "Admissions Director",
-  "CEO",
+  "Administrator",
 ] as const satisfies readonly CrmRole[];
 
 const REGIONAL_PERFORMANCE_ROLES = [
-  "Lead Sales",
+  "Lead Sale",
   "Lead Promoter",
   "Lead Marketing",
   "Admissions Director",
-  "CEO",
+  "Administrator",
 ] as const satisfies readonly CrmRole[];
 
 const MARKETING_ANALYTICS_ROLES = [
-  "Lead Sales",
+  "Lead Sale",
   "Marketing",
   "Lead Marketing",
   "Admissions Director",
-  "CEO",
+  "Administrator",
 ] as const satisfies readonly CrmRole[];
 
 const ACTIVITY_CAMPAIGN_ROLES = [
@@ -87,63 +97,61 @@ const ACTIVITY_CAMPAIGN_ROLES = [
   "Marketing",
   "Lead Marketing",
   "Admissions Director",
-  "CEO",
+  "Administrator",
 ] as const satisfies readonly CrmRole[];
 
 const SLA_ROLES = [
   "Sale",
-  "Lead Sales",
+  "Lead Sale",
   "Promoter",
   "Lead Promoter",
   "Admissions Director",
-  "CEO",
+  "Administrator",
 ] as const satisfies readonly CrmRole[];
 
 const ALERT_ROLES = [
   ...SLA_ROLES,
   "System Manager",
-] as const satisfies readonly CrmRole[];
+] as const satisfies readonly DashboardRole[];
 
 const DATA_HEALTH_ROLES = [
   "Admissions Director",
-  "CEO",
+  "Administrator",
   "System Manager",
-] as const satisfies readonly CrmRole[];
+] as const satisfies readonly DashboardRole[];
 
 const NBA_ACTIONS_READ_ROLES = [
   "System Manager",
-] as const satisfies readonly CrmRole[];
+] as const satisfies readonly DashboardRole[];
 
 const CAMPAIGN_INTELLIGENCE_ROLES = [
   "Marketing",
   "Lead Marketing",
   "Admissions Director",
-  "CEO",
+  "Administrator",
 ] as const satisfies readonly CrmRole[];
 
 const SCHOOL_FIELD_ACTIVITY_ROLES = [
   "Promoter",
   "Lead Promoter",
   "Admissions Director",
-  "CEO",
+  "Administrator",
 ] as const satisfies readonly CrmRole[];
 
-const NON_SYSTEM_MANAGER_ROLES = CRM_ROLES.filter(
-  (role) => role !== "System Manager",
-);
+const NON_SYSTEM_MANAGER_ROLES = CRM_ROLES;
 
 /**
  * Public workspace routes. A workspace is the stable entry point for a role;
  * feature screens can be added below it without changing the login contract.
  */
 export const ROLE_ROUTE_ROLES = {
-  director: ["Admissions Director", "CEO"],
+  director: ["Admissions Director", "Administrator"],
   admin: ["System Manager"],
   marketing: ["Marketing", "Lead Marketing"],
   sale: ["Sale"],
   "ctv-sale": ["CTV Sale"],
-  "lead-sale": ["Lead Sales"],
-} as const satisfies Record<string, readonly CrmRole[]>;
+  "lead-sale": ["Lead Sale"],
+} as const satisfies Record<string, readonly DashboardRole[]>;
 
 export type RoleRouteSlug = keyof typeof ROLE_ROUTE_ROLES;
 
@@ -158,7 +166,7 @@ export const ROLE_ROUTE_PATHS: Record<RoleRouteSlug, string> = {
 
 export interface RouteAccessRule {
   path: string;
-  roles: readonly CrmRole[];
+  roles: readonly DashboardRole[];
 }
 
 /**
@@ -167,7 +175,7 @@ export interface RouteAccessRule {
  * `/director/ai/next-best-action` can differ from `/director/ai`.
  */
 export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
-  { path: "/", roles: CRM_ROLES },
+  { path: "/", roles: DASHBOARD_ROLES },
   { path: "/crm-chatbot", roles: NON_SYSTEM_MANAGER_ROLES },
   { path: "/director", roles: ROLE_ROUTE_ROLES.director },
   { path: "/admin", roles: ROLE_ROUTE_ROLES.admin },
@@ -188,10 +196,15 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
     roles: ROLE_ROUTE_ROLES["lead-sale"],
   },
   { path: "/lead-sale/students", roles: ROLE_ROUTE_ROLES["lead-sale"] },
+  { path: "/lead-sale/leads", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/lead-sale/tasks", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/lead-sale/demographics", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   {
     path: "/lead-sale/student-assignment",
+    roles: ROLE_ROUTE_ROLES["lead-sale"],
+  },
+  {
+    path: "/lead-sale/assignment-history",
     roles: ROLE_ROUTE_ROLES["lead-sale"],
   },
   { path: "/lead-sale/sales-team", roles: ROLE_ROUTE_ROLES["lead-sale"] },
@@ -199,6 +212,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/director/ai", roles: AI_CENTER_ROLES },
   { path: "/director/demographics", roles: DEMOGRAPHICS_ROLES },
   { path: "/director/students", roles: CUSTOMER_DATA_ROLES },
+  { path: "/director/leads", roles: CUSTOMER_DATA_ROLES },
   { path: "/director/market-intelligence", roles: SCHOOL_INTELLIGENCE_ROLES },
   { path: "/director/schools", roles: SCHOOL_INTELLIGENCE_ROLES },
   { path: "/director/school", roles: SCHOOL_INTELLIGENCE_ROLES },
@@ -223,34 +237,33 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
 ];
 
 /**
- * The first matching role is only used for a fallback destination. In normal
- * cases sidebar and route access use the union of exact roles. System Manager
- * is intentionally exclusive so an extra backend role cannot expand its small
- * administration workspace.
+ * The first matching role is only used for a fallback destination. System
+ * Manager remains an internal technical role and keeps its small administration
+ * workspace isolated from CRM business roles.
  */
-const ROLE_PRIORITY: readonly CrmRole[] = [
+const ROLE_PRIORITY: readonly DashboardRole[] = [
   "System Manager",
-  "CEO",
+  "Administrator",
   "Admissions Director",
   "Lead Marketing",
   "Marketing",
   "Lead Promoter",
   "Promoter",
-  "Lead Sales",
+  "Lead Sale",
   "Sale",
   "CTV Sale",
 ];
 
-const ROLE_DEFAULT_ROUTES: Record<CrmRole, string> = {
+const ROLE_DEFAULT_ROUTES: Record<DashboardRole, string> = {
   Sale: ROLE_ROUTE_PATHS.sale,
   "CTV Sale": ROLE_ROUTE_PATHS["ctv-sale"],
-  "Lead Sales": ROLE_ROUTE_PATHS["lead-sale"],
+  "Lead Sale": ROLE_ROUTE_PATHS["lead-sale"],
   Promoter: "/director/school-field-activity",
   "Lead Promoter": "/director/school-field-activity",
   Marketing: ROLE_ROUTE_PATHS.marketing,
   "Lead Marketing": ROLE_ROUTE_PATHS.marketing,
   "Admissions Director": ROLE_ROUTE_PATHS.director,
-  CEO: ROLE_ROUTE_PATHS.director,
+  Administrator: ROLE_ROUTE_PATHS.director,
   "System Manager": ROLE_ROUTE_PATHS.admin,
 };
 
@@ -263,13 +276,30 @@ export function getRecognizedRoles(
   return CRM_ROLES.filter((role) => roles.includes(role));
 }
 
-export function getEffectiveCrmRoles(
+export function getRecognizedDashboardRoles(
   roles: readonly string[] | null | undefined,
-): CrmRole[] {
-  const recognizedRoles = getRecognizedRoles(roles);
+): DashboardRole[] {
+  if (!roles?.length) return [];
+
+  return [
+    ...getRecognizedRoles(roles),
+    ...FRAPPE_TECHNICAL_ROLES.filter((role) => roles.includes(role)),
+  ];
+}
+
+export function getEffectiveDashboardRoles(
+  roles: readonly string[] | null | undefined,
+): DashboardRole[] {
+  const recognizedRoles = getRecognizedDashboardRoles(roles);
   return recognizedRoles.includes("System Manager")
     ? ["System Manager"]
     : recognizedRoles;
+}
+
+export function getEffectiveCrmRoles(
+  roles: readonly string[] | null | undefined,
+): DashboardRole[] {
+  return getEffectiveDashboardRoles(roles);
 }
 
 export function hasCrmRole(
@@ -279,7 +309,14 @@ export function hasCrmRole(
   return roles?.includes(role) ?? false;
 }
 
-export function getRolesForRoute(path: string): readonly CrmRole[] {
+export function hasFrappeTechnicalRole(
+  roles: readonly string[] | null | undefined,
+  role: FrappeTechnicalRole,
+): boolean {
+  return roles?.includes(role) ?? false;
+}
+
+export function getRolesForRoute(path: string): readonly DashboardRole[] {
   return ROUTE_ACCESS.find((rule) => rule.path === path)?.roles ?? [];
 }
 
@@ -315,13 +352,13 @@ export function canAccessDashboardPath(
   const rule = findRouteAccessRule(pathname);
   if (!rule) return false;
 
-  return rule.roles.some((role) => getEffectiveCrmRoles(roles).includes(role));
+  return rule.roles.some((role) => getEffectiveDashboardRoles(roles).includes(role));
 }
 
 export function getDefaultRouteForRoles(
   roles: readonly string[] | null | undefined,
 ): string {
-  const recognizedRoles = getRecognizedRoles(roles);
+  const recognizedRoles = getRecognizedDashboardRoles(roles);
   const primaryRole = ROLE_PRIORITY.find((role) =>
     recognizedRoles.includes(role),
   );

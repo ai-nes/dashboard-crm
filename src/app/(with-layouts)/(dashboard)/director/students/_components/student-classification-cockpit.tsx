@@ -122,7 +122,6 @@ export default function StudentClassificationCockpit({
 
         <TabContent value="next-actions">
           <StudentNextBestActions
-            data={data}
             studentId={analysisTargetId}
             onActionsCountChange={setNbaCount}
           />

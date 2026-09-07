@@ -1,18 +1,28 @@
 "use client";
 
 import {
-  ArrowDownward,
+  ArrowRight,
   Bolt1,
   CheckCircle1,
   ClockThree,
   InfoCircle,
 } from "@tailgrids/icons";
+import Link from "next/link";
+import { useState } from "react";
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
-import { useAssignment } from "./assignment-context";
+import { buttonStyles } from "@/components/tailgrids/core/button";
+import { Toggle } from "@/components/tailgrids/core/toggle";
+import { cn } from "@/utils/cn";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
 
 export default function AssignmentHeader() {
-  const { setFilter, summary, health, meta, isLoading } = useAssignment();
+  const { summary, health, meta, isLoading } = useAssignment();
+  const [automationOverride, setAutomationOverride] = useState<
+    boolean | null
+  >(null);
+  const automationEnabled =
+    automationOverride ?? health?.automationEnabled ?? true;
+
   const assigned = summary?.assigned ?? 0;
   const pending = summary?.pending ?? 0;
   const received = summary?.received ?? 0;
@@ -33,25 +43,21 @@ export default function AssignmentHeader() {
             <span>PHÂN CÔNG</span>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[28px]">
-            Phân công học sinh
+            Phân công tự động
           </h1>
           <p className="mt-2 text-sm leading-6 text-text-secondary">
             Theo dõi phân công tự động và xử lý những trường hợp cần bạn hỗ trợ.
           </p>
         </div>
-        <Button
-          appearance="outline"
-          size="md"
-          className="shrink-0 border-card-border text-text-secondary"
-          onPress={() => {
-            setFilter("all");
-            document
-              .getElementById("assignment-history")
-              ?.scrollIntoView({ block: "start" });
-          }}
+        <Link
+          href="/lead-sale/assignment-history"
+          className={cn(
+            buttonStyles({ variant: "primary", appearance: "outline", size: "md" }),
+            "shrink-0 border-card-border text-text-secondary",
+          )}
         >
-          Xem lịch sử <ArrowDownward size={16} aria-hidden="true" />
-        </Button>
+          Xem lịch sử <ArrowRight size={16} aria-hidden="true" />
+        </Link>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-card-border bg-card-background">
@@ -60,16 +66,25 @@ export default function AssignmentHeader() {
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-badge-success-background text-badge-success-text">
               <Bolt1 size={20} aria-hidden="true" />
             </span>
-            <div>
-              <p className="text-sm font-semibold text-text-primary">
-                Phân công tự động
-              </p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-text-primary">
+                  Phân công tự động
+                </p>
+                <Toggle
+                  aria-label="Bật/tắt phân công tự động"
+                  checked={automationEnabled}
+                  onChange={(event) =>
+                    setAutomationOverride(event.target.checked)
+                  }
+                />
+              </div>
               <Badge
-                color="success"
+                color={automationEnabled ? "success" : "gray"}
                 className="mt-1 gap-1.5 px-0 bg-transparent"
               >
                 <CheckCircle1 size={12} aria-hidden="true" />
-                {health?.automationEnabled ? "Đang bật" : "Đang tạm dừng"}
+                {automationEnabled ? "Đang bật" : "Đang tạm dừng"}
               </Badge>
             </div>
           </div>

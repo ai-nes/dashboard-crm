@@ -4,33 +4,69 @@ import dynamic from "next/dynamic";
 import {
   ArrowDownward,
   ArrowRight,
-  Close,
   InfoCircle,
   Play,
+  RefreshCircle1Clockwise,
 } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { cn } from "@/utils/cn";
-import { useAssignment } from "./assignment-context";
-import { automationPath } from "./data";
-import { stepIcons, stepMetrics, toneClasses } from "./mappings";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
+import {
+  getWorkflowPhaseState,
+  stepIcons,
+  stepMetrics,
+  toneClasses,
+  workflowPhaseStateColors,
+  workflowPhaseStateLabels,
+} from "../../_shared/student-assignment/mappings";
 
 const WorkflowCanvas = dynamic(() => import("./workflow-canvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[660px] items-center justify-center border-t border-card-border bg-background-gray-secondary text-sm text-text-tertiary">
+    <div className="flex h-[560px] items-center justify-center border-t border-card-border bg-background-gray-secondary text-sm text-text-tertiary">
       Đang tải sơ đồ phân công…
     </div>
   ),
 });
 
 export default function WorkflowSection() {
-  const { workflowSteps, selectStep, testRun, startTest, stopTest } = useAssignment();
-  const path = testRun.status === "idle" ? [] : automationPath;
-  const activeStepId =
-    testRun.status === "running" ? path[testRun.stepIndex] : undefined;
-  const activeStep = workflowSteps.find((step) => step.id === activeStepId);
+  const {
+    workflowSteps,
+    selectStep,
+    workflowMode,
+    currentPhaseId,
+    pipelineRun,
+    isRunningPipeline,
+    runPipeline,
+    meta,
+  } = useAssignment();
+  const canRunPipeline = workflowMode === "live" && Boolean(meta);
+  const currentPhase = workflowSteps.find(
+    (step) => step.id === currentPhaseId,
+  );
+  const currentPhaseState = currentPhase
+    ? getWorkflowPhaseState(currentPhase, currentPhaseId)
+    : null;
+  const reviewStep = workflowSteps.find((step) => step.id === "review");
+  const reviewPhaseState = reviewStep
+    ? getWorkflowPhaseState(reviewStep, currentPhaseId)
+    : "pending";
+  const phaseBadgeColor = isRunningPipeline
+    ? "primary"
+    : currentPhaseState
+      ? workflowPhaseStateColors[currentPhaseState]
+      : pipelineRun
+        ? "success"
+        : "gray";
+  const phaseBadgeLabel = isRunningPipeline
+    ? "Đang chạy pipeline"
+    : currentPhase && currentPhaseState
+      ? `${workflowPhaseStateLabels[currentPhaseState]} · ${currentPhase.title}`
+      : pipelineRun
+        ? "Pipeline đã hoàn tất"
+        : "Chưa có trạng thái phase";
   return (
     <section
       id="assignment-workflow"
@@ -52,49 +88,66 @@ export default function WorkflowSection() {
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Badge color="gray">Chỉ xem</Badge>
+            <Badge
+              color={phaseBadgeColor}
+              className="max-w-[280px] truncate"
+              title={phaseBadgeLabel}
+            >
+              {phaseBadgeLabel}
+            </Badge>
+            <Badge color={canRunPipeline ? "success" : "gray"}>
+              {canRunPipeline ? "Có thể chạy" : "Chỉ xem"}
+            </Badge>
             <Button
               size="sm"
-              appearance={testRun.status === "running" ? "outline" : "fill"}
+              appearance={isRunningPipeline ? "outline" : "fill"}
               className={
-                testRun.status === "running"
+                isRunningPipeline
                   ? "border-card-border text-text-secondary"
                   : ""
               }
-              onPress={testRun.status === "running" ? stopTest : startTest}
+              onPress={() => void runPipeline()}
+              isDisabled={!canRunPipeline || isRunningPipeline}
             >
-              {testRun.status === "running" ? (
-                <Close size={15} aria-hidden="true" />
+              {isRunningPipeline ? (
+                <RefreshCircle1Clockwise
+                  size={15}
+                  className="animate-spin"
+                  aria-hidden="true"
+                />
               ) : (
                 <Play size={15} aria-hidden="true" />
               )}
-              {testRun.status === "running"
-                ? "Dừng chạy thử"
-                : testRun.status === "completed"
-                  ? "Chạy lại luồng"
-                  : "Chạy thử luồng"}
+              {isRunningPipeline
+                ? "Đang chạy pipeline…"
+                : pipelineRun
+                  ? "Chạy lại pipeline"
+                  : "Chạy pipeline"}
             </Button>
           </div>
         </div>
-        {testRun.status !== "idle" && (
+        {(isRunningPipeline || pipelineRun) && (
           <div
             className={cn(
               "flex flex-wrap items-center justify-between gap-2 border-t border-card-border px-5 py-2.5 text-xs",
-              testRun.status === "running"
+              isRunningPipeline
                 ? "bg-badge-primary-background text-badge-primary-text"
-                : "bg-badge-success-background text-badge-success-text",
+                : pipelineRun?.status === "completed_with_errors"
+                  ? "bg-badge-warning-background text-badge-warning-text"
+                  : "bg-badge-success-background text-badge-success-text",
             )}
           >
             <span>
-              {testRun.status === "running"
-                ? `Đang chạy thử · ${activeStep?.title ?? "Chuẩn bị luồng"}`
-                : "Đã chạy xong quy trình phân công tự động"}
+              {isRunningPipeline
+                ? "Đang chạy pipeline phân công trên máy chủ…"
+                : "Pipeline phân công đã cập nhật workspace"}
             </span>
-            <span className="tabular-nums">
-              {testRun.status === "running"
-                ? `${Math.max(0, testRun.stepIndex + 1)}/${path.length} bước`
-                : `${automationPath.length}/${automationPath.length} bước`}
-            </span>
+            {pipelineRun && !isRunningPipeline && (
+              <span className="tabular-nums">
+                {pipelineRun.assigned} gán · {pipelineRun.deferred} chờ ·{" "}
+                {pipelineRun.failed} lỗi
+              </span>
+            )}
           </div>
         )}
         <div className="hidden xl:block">
@@ -105,6 +158,7 @@ export default function WorkflowSection() {
             .filter((step) => step.id !== "review")
             .map((step, index, steps) => {
               const Icon = stepIcons[step.id];
+              const phaseState = getWorkflowPhaseState(step, currentPhaseId);
               return (
                 <li key={step.id}>
                   <Button
@@ -112,7 +166,7 @@ export default function WorkflowSection() {
                     onPress={() => selectStep(step.id)}
                     className={cn(
                       "h-auto w-full justify-start gap-3 border border-card-border px-3 py-3 text-left text-text-primary hover:bg-background-gray-secondary",
-                      path.includes(step.id) &&
+                      isRunningPipeline &&
                         "border-primary-400 bg-badge-primary-background",
                     )}
                   >
@@ -132,6 +186,12 @@ export default function WorkflowSection() {
                         {stepMetrics(step)}
                       </span>
                     </span>
+                    <Badge
+                      color={workflowPhaseStateColors[phaseState]}
+                      className="shrink-0 text-[10px]"
+                    >
+                      {workflowPhaseStateLabels[phaseState]}
+                    </Badge>
                     <ArrowRight size={14} aria-hidden="true" />
                   </Button>
                   {index < steps.length - 1 && (
@@ -153,9 +213,17 @@ export default function WorkflowSection() {
             className="h-auto w-full justify-start whitespace-normal border border-card-border bg-badge-warning-background p-3 text-left text-badge-warning-text"
             onPress={() => selectStep("review")}
           >
-            <span>
-              <span className="block text-sm font-semibold">
-                Nhánh cần trưởng nhóm xử lý
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold">
+                  Nhánh cần trưởng nhóm xử lý
+                </span>
+                <Badge
+                  color={workflowPhaseStateColors[reviewPhaseState]}
+                  className="shrink-0 text-[10px]"
+                >
+                  {workflowPhaseStateLabels[reviewPhaseState]}
+                </Badge>
               </span>
               <span className="mt-1 block text-xs font-normal">
                 Thiếu thông tin hoặc chưa có người phù hợp → Xem xét → Phân
@@ -168,8 +236,9 @@ export default function WorkflowSection() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-card-border px-5 py-3 text-xs text-text-tertiary">
           <span className="inline-flex items-center gap-1.5">
             <InfoCircle size={14} aria-hidden="true" />
-            Sơ đồ mô tả quy trình chung; nút chạy thử chỉ mô phỏng trên giao
-            diện.
+            {canRunPipeline
+              ? "Sơ đồ lấy trạng thái từ backend; nút chạy sẽ xử lý dữ liệu thực tế."
+              : "Sơ đồ đang ở chế độ chỉ xem; backend chưa cho phép chạy pipeline."}
           </span>
           <span className="inline-flex items-center gap-2">
             <span
@@ -177,6 +246,21 @@ export default function WorkflowSection() {
               aria-hidden="true"
             />
             Nhánh cần xử lý
+          </span>
+          <span className="flex flex-wrap items-center gap-1.5">
+            <span>Phase:</span>
+            <Badge color="primary" className="text-[10px]">
+              Phase hiện tại
+            </Badge>
+            <Badge color="success" className="text-[10px]">
+              Đã hoàn tất
+            </Badge>
+            <Badge color="warning" className="text-[10px]">
+              Cần xử lý
+            </Badge>
+            <Badge color="gray" className="text-[10px]">
+              Chưa tới
+            </Badge>
           </span>
         </div>
       </Card>

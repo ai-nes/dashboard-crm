@@ -15,7 +15,6 @@ import type {
 
 import StudentNbaDecisionForm from "./student-nba-decision-form";
 import {
-  actionLabel,
   formatNbaChannel,
   NBA_PRIORITY_LABELS,
   type DecisionFields,
@@ -44,7 +43,8 @@ const DIALOG_COPY: Record<
   },
   REJECT: {
     title: "Từ chối đề xuất",
-    description: "Cho biết lý do để lưu lại đầy đủ lịch sử quyết định.",
+    description:
+      "Đánh dấu đề xuất không phù hợp với hồ sơ hiện tại và lưu lại lý do.",
   },
   DEFER: {
     title: "Trì hoãn đề xuất",
@@ -52,7 +52,8 @@ const DIALOG_COPY: Record<
   },
   DISMISS: {
     title: "Bỏ qua đề xuất",
-    description: "Đề xuất sẽ được loại khỏi danh sách cần xử lý.",
+    description:
+      "Loại đề xuất khỏi hàng đợi hiện tại mà không đánh giá là không phù hợp.",
   },
 };
 
@@ -98,7 +99,7 @@ export default function StudentNbaDecisionDialog({
           >
             <p className="text-xs font-semibold text-text-tertiary">Đề xuất</p>
             <p className="mt-1.5 text-sm leading-5 font-semibold text-text-primary">
-              {actionLabel(recommendation.actionId)}
+              {recommendation.action.title}
             </p>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-text-secondary">
               <span>{studentName}</span>

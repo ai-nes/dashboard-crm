@@ -6,9 +6,8 @@ theo dõi luồng phân công tự động, xem kết quả/giải thích, xử 
 tự động phân công và xem kết quả phân công theo từng học sinh.
 
 > Trạng thái: **đã triển khai backend và dashboard**. Dữ liệu hồ sơ, summary,
-> candidates và mutation lấy từ API; React Flow vẫn dùng pipeline tĩnh trong
-> `student-assignment/_components/data.ts` để mô tả nghiệp vụ, chỉ phủ metrics
-> snapshot lên các node.
+> candidates, workflow và mutation lấy từ API; React Flow chỉ giữ layout node,
+> còn step metrics và các nhánh kết nối lấy từ snapshot backend.
 
 ## 1. Phạm vi màn hình
 
@@ -20,7 +19,7 @@ tự động phân công và xem kết quả phân công theo từng học sinh.
 | Lịch sử phân công | Danh sách, tìm kiếm, filter, pagination và kết quả gần nhất của từng hồ sơ | get_student_assignment_workspace |
 | Drawer chi tiết | Thông tin hồ sơ, owner, match score, lý do, ứng viên được cân nhắc | get_student_assignment_detail |
 | Form xử lý thủ công | Chọn owner, bổ sung khu vực, ghi lý do | resolve_student_assignment |
-| Nút "Chạy thử luồng" | Animation mô phỏng 5 bước trên giao diện | Không gọi API trong v1 |
+| Nút "Chạy pipeline" | Chạy pipeline phân công thật trong phạm vi team hiện tại | run_student_assignment_pipeline |
 
 Nguồn tham chiếu frontend:
 
@@ -159,7 +158,7 @@ Quy tắc filter/search:
       "policyVersion": "student-assignment-r1"
     },
     "workflow": {
-      "mode": "read-only",
+        "mode": "live",
       "version": "student-assignment-r1",
       "steps": [
         {
@@ -311,7 +310,7 @@ interface AssignmentWorkspaceResponse {
     policyVersion: string;
   };
   workflow: {
-    mode: "read-only";
+    mode: "read-only" | "live";
     version: string;
     steps: AssignmentWorkflowStep[];
     connections: AssignmentWorkflowConnection[];
@@ -593,7 +592,91 @@ Frontend nên dùng assignment trong response để cập nhật drawer, sau đ�
 get_student_assignment_workspace để đồng bộ summary, workflow metrics, review
 queue và pagination. Không chỉ xóa item khỏi local array.
 
-## 6. Error contract
+## 6. API chạy pipeline thật
+
+### POST crm.api.lead_sale.run_student_assignment_pipeline
+
+Dùng cho nút **Chạy pipeline**. Đây là command chạy đồng bộ pipeline routing
+canonical trên các hồ sơ thuộc team Lead Sale hiện tại; không phải animation mô
+phỏng ở client.
+
+~~~http
+POST /api/method/crm.api.lead_sale.run_student_assignment_pipeline
+Cookie: sid=<Frappe session cookie>
+Content-Type: application/json
+Accept: application/json
+X-Frappe-CSRF-Token: <csrf-token>
+~~~
+
+Request:
+
+~~~json
+{
+  "admissionYear": 2026,
+  "timezone": "Asia/Ho_Chi_Minh",
+  "limit": 50
+}
+~~~
+
+| Field | Kiểu | Bắt buộc | Ràng buộc |
+|---|---|---:|---|
+| admissionYear | integer | Không | Kỳ tuyển sinh; mặc định theo workspace hiện tại |
+| timezone | string | Không | IANA timezone; mặc định `Asia/Ho_Chi_Minh` |
+| limit | integer | Không | 1–100; mặc định 50 |
+
+Backend chỉ chọn hồ sơ thuộc scope team hiện tại, có pool ownership và chưa có
+owner cá nhân. Hồ sơ đã phân công không bị chạy lại. Hồ sơ deferred được retry;
+hồ sơ chưa có routing request được enqueue trước khi xử lý.
+
+Response 200 OK trả snapshot workspace mới cùng báo cáo lần chạy:
+
+~~~json
+{
+  "message": {
+    "meta": {},
+    "summary": {},
+    "health": {},
+    "workflow": {
+      "mode": "live",
+      "version": "student-assignment-r1",
+      "steps": [],
+      "connections": [],
+      "lastRun": {}
+    },
+    "run": {
+      "id": "assignment-pipeline-…",
+      "status": "completed",
+      "startedAt": "2026-09-05T09:15:00+07:00",
+      "completedAt": "2026-09-05T09:15:02+07:00",
+      "checked": 2,
+      "assigned": 1,
+      "deferred": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    "results": [
+      {
+        "student": "HS-001",
+        "request": "ROUTE-1",
+        "status": "applied",
+        "tier": "tier_1",
+        "queue": null,
+        "ownerStaff": "STAFF-1",
+        "reason": null,
+        "errorCode": null
+      }
+    ]
+  }
+}
+~~~
+
+`run.status` là `completed` hoặc `completed_with_errors`. Mỗi result có status
+`applied`, `deferred`, `queued`, `failed` hoặc `superseded` (request bị thay thế
+do ownership revision đã đổi). Sau khi nhận response, frontend
+phải invalidate workspace/detail queries để lấy snapshot đầy đủ theo filter và
+trang hiện tại.
+
+## 7. Error contract
 
 ~~~json
 {
@@ -640,26 +723,21 @@ Danh sách rỗng là response hợp lệ 200 OK, ví dụ:
 Trong response workspace đầy đủ, meta, summary và workflow vẫn phải có dù
 items rỗng để canvas workflow tiếp tục hiển thị.
 
-## 7. Những thao tác không tạo API trong v1
+## 8. Những thao tác không tạo API trong v1
 
-### 7.1. "Chạy thử luồng"
+### 8.1. Chỉnh topology workflow
 
-Theo màn hình hiện tại, nút này chỉ chạy animation tuần tự qua
-input → validation → classification → matching → assignment trong React state.
-Nó không chạy lại rule backend, không tạo execution, không thay đổi ownership và
-không cần POST /run.
+Lead Sale không chỉnh topology workflow trên dashboard. FE dùng connection từ
+workspace snapshot để hiển thị đúng workflow backend; layout node là concern của
+presentation.
 
-Nếu sau này cần chạy automation thật cho một cohort, phải thiết kế riêng
-command bất đồng bộ với preview/confirm, idempotency, progress và quyền bulk;
-không dùng endpoint mô phỏng của v1.
-
-### 7.2. Chuyển hồ sơ đã có owner
+### 8.2. Chuyển hồ sơ đã có owner
 
 Current UI chỉ xử lý hồ sơ chưa phân công. Không expose quyền chuyển ngầm trong
 resolve_student_assignment. Khi có UX cho chuyển hồ sơ, bổ sung command riêng
 với fromOwnerId, toOwnerId, reason, expectedRevision và policy/audit tương ứng.
 
-## 8. Luồng gọi API của frontend
+## 9. Luồng gọi API của frontend
 
 ~~~text
 Mở trang
@@ -679,6 +757,11 @@ Xác nhận xử lý hồ sơ chờ
   └─ POST resolve_student_assignment
        ├─ cập nhật drawer từ response
        └─ refetch workspace để đồng bộ toàn trang
+
+Chạy pipeline
+  └─ POST run_student_assignment_pipeline
+       ├─ nhận run report
+       └─ invalidate workspace/detail để đồng bộ toàn trang
 ~~~
 
 Query key nên bao gồm toàn bộ tham số ảnh hưởng đến response:
@@ -693,7 +776,7 @@ xuyên. Sau mutation, invalidate mọi query workspace của cùng admissionYear
 date, timezone; detail của hồ sơ vừa xử lý cũng phải được refetch hoặc cập nhật
 từ response command.
 
-## 9. Checklist backend/FE handoff
+## 10. Checklist backend/FE handoff
 
 - [ ] Tạo crm.api.lead_sale.get_student_assignment_workspace với team scope
   lấy từ session.
@@ -701,6 +784,8 @@ từ response command.
   candidates + explainability trong cùng response.
 - [ ] Tạo crm.api.lead_sale.resolve_student_assignment với CSRF,
   Idempotency-Key, CAS revision và audit.
+- [ ] Tạo crm.api.lead_sale.run_student_assignment_pipeline với team scope,
+  giới hạn batch và run report.
 - [ ] Summary/workflow metrics dùng cùng meta.asOf, không phụ thuộc page hoặc
   filter của danh sách.
 - [ ] Bảo đảm ownerId chỉ nhận user active trong team; không nhận display name.
@@ -708,5 +793,4 @@ từ response command.
   và hook query cho workspace/detail.
 - [ ] Thêm test cho permission scope, empty state, missing region,
   no-match/manual override, stale revision, retry idempotency và invariant count.
-- [ ] Không tạo API cho "Chạy thử luồng" cho đến khi có yêu cầu chạy automation
-  thật.
+- [ ] Nút chạy pipeline không dùng animation mô phỏng thay cho command backend.

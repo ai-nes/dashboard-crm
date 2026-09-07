@@ -367,7 +367,7 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
 }
 ```
 
-`journey` trong ví dụ được rút gọn còn ba event; response thật phải trả toàn bộ event timeline mà backend có.
+`journey` trong ví dụ được rút gọn còn ba mốc; response thật chỉ trả các mốc nghiệp vụ tuyển sinh quan trọng như nộp hồ sơ, đổi giai đoạn, cập nhật tài liệu hoặc hoàn tất nhập học. Note, chat và các hoạt động tương tác thông thường vẫn thuộc các nguồn Activity/Interaction tương ứng.
 
 ## 5. Data contract chi tiết
 
@@ -520,7 +520,7 @@ Một `dimension`:
 |---|---|---|
 | `id` | string | ID event |
 | `date` | string | Nhãn ngày hiển thị hiện tại; nên bổ sung `occurredAt` ISO |
-| `title` | string | Tên điểm chạm |
+| `title` | string | Tên mốc nghiệp vụ tuyển sinh |
 | `description` | string | Mô tả/tóm tắt kết quả |
 | `channel` | enum | `Website`, `Sự kiện`, `Cuộc gọi`, `Zalo`, `Hồ sơ` |
 | `status` | enum | `completed`, `current`, `upcoming` |

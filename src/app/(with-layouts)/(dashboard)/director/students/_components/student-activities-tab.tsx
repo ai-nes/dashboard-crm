@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -10,8 +10,12 @@ import {
   TabTrigger,
 } from "@/components/tailgrids/core/tabs";
 import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { useStudentAuditLogsQuery } from "@/hooks/use-student-audit-query";
-import { useStudentChatwootInteractionsQuery } from "@/hooks/use-students-queries";
+import {
+  useStudentChatwootInteractionsQuery,
+  useStudentInteractionsQuery,
+} from "@/hooks/use-students-queries";
 import {
   useCreateCrmTaskMutation,
   useCrmTasksQuery,
@@ -28,6 +32,7 @@ import {
 import type { StudentAuditLog } from "@/services/api/student-audit";
 import type {
   StudentChatwootInteractionsResponse,
+  StudentInteractionsResponse,
   StudentNoteItem,
   StudentTaskItem,
 } from "@/services/api/students/types";
@@ -44,8 +49,8 @@ import {
   studentTaskToUpdatePayload,
 } from "./student-task-mappers";
 import {
-  filterAssigneesToCurrentUser,
-  isCtvSaleUser,
+  getTaskAssignmentMessage,
+  resolveStudentTaskAssignee,
 } from "./student-task-assignee-policy";
 import StudentZaloTab from "./student-zalo-tab";
 import type {
@@ -57,6 +62,7 @@ import type {
 interface StudentActivitiesTabProps extends Student360SectionProps {
   studentId: string;
   initialChatwootInteractions?: StudentChatwootInteractionsResponse | null;
+  initialStudentInteractions?: StudentInteractionsResponse | null;
   initialTaskId?: string;
 }
 
@@ -95,14 +101,14 @@ export default function StudentActivitiesTab({
   data,
   studentId,
   initialChatwootInteractions,
+  initialStudentInteractions,
   initialTaskId,
 }: StudentActivitiesTabProps) {
   const { user } = useAuth();
+  const permissions = getCrmPermissions(user?.roles);
   const taskAssigneesQuery = useTaskAssigneesQuery();
   const [activeTab, setActiveTab] = useState(initialTaskId ? "tasks" : "all");
   const assignedTo = data.student.counselor || "Chưa phân công";
-  const currentUserId = user?.user || user?.email;
-  const isSelfAssignmentOnly = isCtvSaleUser(user);
   const taskAssignees = useMemo(() => {
     const currentSessionUser = user
       ? {
@@ -122,14 +128,27 @@ export default function StudentActivitiesTab({
         allUsers.findIndex((item) => item.name === candidate.name) === index,
     );
   }, [taskAssigneesQuery.data, user]);
-  const assignableTaskAssignees = useMemo(() => {
-    if (!isSelfAssignmentOnly) return taskAssignees;
-
-    return filterAssigneesToCurrentUser(taskAssignees, [
-      user?.user,
-      user?.email,
-    ]);
-  }, [isSelfAssignmentOnly, taskAssignees, user?.email, user?.user]);
+  const studentTaskAssignee = resolveStudentTaskAssignee(
+    assignedTo,
+    taskAssignees,
+  );
+  const taskAssignmentMessage = getTaskAssignmentMessage(
+    assignedTo,
+    studentTaskAssignee,
+    {
+      isLoading: taskAssigneesQuery.isPending,
+      hasError: taskAssigneesQuery.isError,
+    },
+  );
+  const canCreateTask = Boolean(
+    permissions.task.canCreate &&
+    studentTaskAssignee &&
+    !taskAssigneesQuery.isPending &&
+    !taskAssigneesQuery.isError,
+  );
+  const taskCreationDisabledReason = permissions.task.canCreate
+    ? taskAssignmentMessage || undefined
+    : "CTV Sale không có quyền tạo task.";
   const currentUserIdentifiers = useMemo(
     () =>
       [user?.user, user?.email]
@@ -146,6 +165,9 @@ export default function StudentActivitiesTab({
       initialData: initialChatwootInteractions ?? undefined,
     },
   );
+  const studentInteractionsQuery = useStudentInteractionsQuery(studentDocname, {
+    initialData: initialStudentInteractions ?? undefined,
+  });
 
   // Gọi Frappe RPC crm.api.note.list_notes
   const { data: crmNotesData } = useCrmNotesQuery({
@@ -217,6 +239,7 @@ export default function StudentActivitiesTab({
   const [taskToDelete, setTaskToDelete] = useState<StudentTaskItem | null>(
     null,
   );
+  const pendingTaskUpdates = useRef(new Set<string>());
   const tasks = useMemo(() => {
     const serverIds = new Set(serverTasks.map((task) => task.id));
     const visibleServerTasks = serverTasks
@@ -229,10 +252,8 @@ export default function StudentActivitiesTab({
     return [...pendingCreatedTasks, ...visibleServerTasks];
   }, [createdTasks, deletedTaskIds, serverTasks, taskOverrides]);
   const zaloMessages =
-    chatwootInteractionsQuery.data?.zalo_messages ??
-    data.zaloMessages ??
-    [];
-  const calls = data.calls ?? [];
+    chatwootInteractionsQuery.data?.zalo_messages ?? data.zaloMessages ?? [];
+  const calls = studentInteractionsQuery.data?.calls ?? [];
   const auditEvents = studentAuditQuery.data?.logs ?? EMPTY_AUDIT_LOGS;
 
   // Tạo ghi chú qua crm.api.note.create_note
@@ -278,6 +299,16 @@ export default function StudentActivitiesTab({
       );
 
       if (options.createFollowUpTask) {
+        if (!canCreateTask || !studentTaskAssignee) {
+          toast.error(
+            `Ghi chú đã tạo nhưng ${
+              taskAssignmentMessage ||
+              "student chưa được giao cho Sale/CTV nên chưa thể tạo task."
+            }`,
+          );
+          return;
+        }
+
         try {
           const createdTask = await createTaskMutation.mutateAsync({
             referenceDoctype: "CRM Student",
@@ -289,7 +320,7 @@ export default function StudentActivitiesTab({
             ...(options.followUpDueDate
               ? { dueDate: `${options.followUpDueDate} 23:59:00` }
               : {}),
-            ...(currentUserId ? { assignedTo: currentUserId } : {}),
+            assignedTo: studentTaskAssignee.name,
           });
           setCreatedTasks((prev) => [
             crmTaskToStudentTask(createdTask, assignedTo, taskAssignees),
@@ -339,21 +370,23 @@ export default function StudentActivitiesTab({
   };
 
   const handleCreateTask = async (task: StudentTaskItem) => {
-    const enforcedAssigneeId = isSelfAssignmentOnly
-      ? currentUserId
-      : task.assigneeId;
-    const taskToCreate = isSelfAssignmentOnly
-      ? {
-          ...task,
-          assigneeId: enforcedAssigneeId,
-          assignee: user?.full_name || task.assignee,
-        }
-      : task;
+    if (!canCreateTask || !studentTaskAssignee) {
+      throw new Error(
+        taskAssignmentMessage ||
+          "Student chưa được giao cho Sale/CTV nên chưa thể tạo task.",
+      );
+    }
+
+    const taskToCreate = {
+      ...task,
+      assigneeId: studentTaskAssignee.name,
+      assignee: studentTaskAssignee.full_name,
+    };
     const optimisticId = generateId("task");
     const optimisticTask = {
       ...taskToCreate,
       id: optimisticId,
-      assignee: taskToCreate.assignee || assignedTo,
+      activityDate: new Date().toISOString(),
     };
     setCreatedTasks((prev) => [optimisticTask, ...prev]);
 
@@ -362,7 +395,7 @@ export default function StudentActivitiesTab({
         studentTaskToCreatePayload(
           taskToCreate,
           studentDocname,
-          enforcedAssigneeId,
+          studentTaskAssignee.name,
         ),
       );
       const serverTask = crmTaskToStudentTask(
@@ -387,8 +420,14 @@ export default function StudentActivitiesTab({
     id: string,
     updates: Partial<StudentTaskItem>,
   ) => {
+    if (!permissions.task.canUpdate) {
+      toast.error("Bạn không có quyền sửa task.");
+      return;
+    }
     const currentTask = tasks.find((task) => task.id === id);
     if (!currentTask) return;
+    if (pendingTaskUpdates.current.has(id)) return;
+    pendingTaskUpdates.current.add(id);
 
     const updatedTask = {
       ...currentTask,
@@ -414,15 +453,19 @@ export default function StudentActivitiesTab({
       toast.error(
         error instanceof Error ? error.message : "Không thể cập nhật task.",
       );
+    } finally {
+      pendingTaskUpdates.current.delete(id);
     }
   };
 
   const handleRequestDeleteTask = (id: string) => {
+    if (!permissions.task.canDelete) return;
     const task = tasks.find((current) => current.id === id);
     if (task) setTaskToDelete(task);
   };
 
   const handleConfirmDeleteTask = async () => {
+    if (!permissions.task.canDelete) return;
     const task = taskToDelete;
     if (!task) return;
 
@@ -461,13 +504,13 @@ export default function StudentActivitiesTab({
       </TabList>
       <TabContent value="all">
         <StudentAllActivitiesFeed
-          notes={notes}
+          studentId={studentDocname}
+          studentStage={data.student.studyStage ?? undefined}
+          calls={calls}
           tasks={tasks}
           zaloMessages={zaloMessages}
-          calls={calls}
           auditEvents={auditEvents}
           onUpdateTask={handleUpdateTask}
-          onOpenZalo={() => setActiveTab("zalo")}
         />
       </TabContent>
       <TabContent value="notes">
@@ -480,20 +523,24 @@ export default function StudentActivitiesTab({
           isCreating={
             createNoteMutation.isPending || createTaskMutation.isPending
           }
+          canCreateFollowUpTask={canCreateTask}
+          followUpTaskDisabledReason={taskCreationDisabledReason}
         />
       </TabContent>
       <TabContent value="tasks">
         <StudentTasksTab
           studentName={data.student.name}
           assignee={assignedTo}
+          studentStage={data.student.studyStage ?? undefined}
           tasks={tasks}
           onCreateTask={handleCreateTask}
           onUpdateTask={handleUpdateTask}
-          onDeleteTask={handleRequestDeleteTask}
-          assignees={assignableTaskAssignees}
-          currentUserId={currentUserId}
-          isSelfAssignmentOnly={isSelfAssignmentOnly}
-          isLoadingAssignees={taskAssigneesQuery.isPending}
+          onDeleteTask={
+            permissions.task.canDelete ? handleRequestDeleteTask : undefined
+          }
+          canCreateTask={canCreateTask}
+          createTaskDisabledReason={taskCreationDisabledReason}
+          assigneeId={studentTaskAssignee?.name}
           isCreating={createTaskMutation.isPending}
           isLoading={crmTasksQuery.isPending}
           initialTaskId={initialTaskId}
@@ -512,14 +559,16 @@ export default function StudentActivitiesTab({
       <TabContent value="calls">
         <StudentCallsTab calls={calls} />
       </TabContent>
-      <StudentDeleteTaskDialog
-        task={taskToDelete}
-        isDeleting={deleteTaskMutation.isPending}
-        onOpenChange={(open) => {
-          if (!open && !deleteTaskMutation.isPending) setTaskToDelete(null);
-        }}
-        onConfirm={handleConfirmDeleteTask}
-      />
+      {permissions.task.canDelete && (
+        <StudentDeleteTaskDialog
+          task={taskToDelete}
+          isDeleting={deleteTaskMutation.isPending}
+          onOpenChange={(open) => {
+            if (!open && !deleteTaskMutation.isPending) setTaskToDelete(null);
+          }}
+          onConfirm={handleConfirmDeleteTask}
+        />
+      )}
     </TabRoot>
   );
 }

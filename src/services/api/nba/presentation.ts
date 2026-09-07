@@ -81,12 +81,48 @@ export function getNbaFallbackFacts(
   return facts;
 }
 
-export function formatNbaDateTime(value: string): string {
-  if (!value) return "chưa xác định";
+export function formatNbaDateTime(value: string | null | undefined): string {
+  if (!value) return "Chưa xác định";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString("vi-VN", {
     dateStyle: "short",
     timeStyle: "short",
   });
+}
+
+export function formatNbaLifecycle(value: string): string {
+  const labels: Record<string, string> = {
+    proposed: "Mới",
+    active: "Đang mở",
+    expired: "Hết hạn",
+    completed: "Hoàn tất",
+    dismissed: "Đã bỏ qua",
+  };
+
+  return labels[value] ?? value;
+}
+
+export function formatNbaDecisionStatus(value: string): string {
+  const labels: Record<string, string> = {
+    pending: "Chờ quyết định",
+    accepted: "Đã chấp nhận",
+    rejected: "Đã từ chối",
+    deferred: "Đã trì hoãn",
+    dismissed: "Đã bỏ qua",
+  };
+
+  return labels[value] ?? value;
+}
+
+export function formatNbaExecutionStatus(value: string): string {
+  const labels: Record<string, string> = {
+    not_started: "Chưa thực hiện",
+    queued: "Đang chờ",
+    in_progress: "Đang thực hiện",
+    completed: "Đã thực hiện",
+    failed: "Thực hiện lỗi",
+  };
+
+  return labels[value] ?? value;
 }

@@ -349,7 +349,7 @@ function errorDetails(
       text(message?.message) ||
       text(root?.message) ||
       text(root?.exception) ||
-      `Không thể tải tổng quan Lead Sales (${status}).`,
+      `Không thể tải tổng quan Lead Sale (${status}).`,
   };
 }
 
@@ -379,7 +379,7 @@ export async function getLeadSaleOverview(
     throw new LeadSaleOverviewApiError(
       503,
       "LEAD_SALE_OVERVIEW_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ tổng quan Lead Sales.",
+      "Không thể kết nối đến máy chủ tổng quan Lead Sale.",
     );
   }
 
@@ -399,7 +399,7 @@ export async function getLeadSaleOverview(
     throw new LeadSaleOverviewApiError(
       502,
       "INVALID_LEAD_SALE_OVERVIEW_RESPONSE",
-      "Phản hồi tổng quan Lead Sales không hợp lệ.",
+      "Phản hồi tổng quan Lead Sale không hợp lệ.",
     );
   }
 }

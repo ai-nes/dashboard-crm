@@ -1,16 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { CalendarTime } from "@tailgrids/icons";
+import { useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { ArrowLeft, ArrowRight, CalendarTime } from "@tailgrids/icons";
 
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
 import {
   TableBody,
   TableCell,
@@ -19,197 +11,315 @@ import {
   TableRoot,
   TableRow,
 } from "@/components/tailgrids/core/table";
-import type { StudentTaskItem } from "@/services/api/students/types";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
+import type { StudentTaskItem } from "@/services/api/students/types";
+import { cn } from "@/utils/cn";
 import { formatDate } from "@/utils/format-date";
 
 import {
   StudentTaskPriority,
   StudentTaskStatusBadge,
-  taskStatusLabel,
-  taskTypeLabel,
+  StudentTaskTypeBadge,
 } from "../../students/_components/student-task-badges";
+import TaskManagementTaskActions from "./task-management-task-actions";
+import type { TaskLanePagination } from "./types";
 
 interface TaskManagementTableProps {
   tasks: TaskManagementItem[];
-  onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
+  onOpenTask: (task: TaskManagementItem) => void;
+  onUpdateTask: (
+    id: string,
+    updates: Partial<StudentTaskItem>,
+  ) => void | Promise<void>;
+  onDeleteTask?: (id: string) => void;
+  lanePagination?: Partial<
+    Record<TaskManagementItem["status"], TaskLanePagination>
+  >;
+  isLoading?: boolean;
+}
+
+const statuses: TaskManagementItem["status"][] = [
+  "todo",
+  "in-progress",
+  "done",
+  "canceled",
+];
+const TABLE_PAGE_SIZE = 10;
+
+function getInitials(name?: string, fallback = "--"): string {
+  const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  if (parts.length === 0) return fallback;
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts.at(-1)?.[0] ?? ""}`.toUpperCase();
 }
 
 function isOverdue(task: TaskManagementItem): boolean {
-  if (task.status === "done") return false;
+  if (task.status === "done" || task.status === "canceled") return false;
+
+  const ddmmyyyy = task.dueDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const date = ddmmyyyy
+    ? `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`
+    : task.dueDate;
+
+  return new Date(`${date}T${task.dueTime || "23:59"}`).getTime() < Date.now();
+}
+
+function handleRowKeyDown(
+  event: KeyboardEvent<HTMLTableRowElement>,
+  task: TaskManagementItem,
+  onOpenTask: (task: TaskManagementItem) => void,
+) {
+  if (event.target !== event.currentTarget) return;
+  if (event.key !== "Enter" && event.key !== " ") return;
+
+  event.preventDefault();
+  onOpenTask(task);
+}
+
+function handleRowClick(
+  event: MouseEvent<HTMLTableRowElement>,
+  task: TaskManagementItem,
+  onOpenTask: (task: TaskManagementItem) => void,
+) {
+  if ((event.target as HTMLElement).closest("button, a")) return;
+  onOpenTask(task);
+}
+
+function TaskPerson({ name, fallback }: { name?: string; fallback?: string }) {
   return (
-    new Date(`${task.dueDate}T${task.dueTime || "23:59"}`).getTime() <
-    Date.now()
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background-gray-secondary text-[10px] font-semibold text-text-secondary">
+        {getInitials(name, fallback)}
+      </span>
+      <span className="block whitespace-nowrap text-xs font-semibold text-text-primary">
+        {name || "Chưa phân công"}
+      </span>
+    </div>
   );
 }
 
-function taskHref(task: TaskManagementItem): string {
-  return `/director/students/${task.studentId}?tab=activities&taskId=${task.id}`;
+function TaskDeadline({ task }: { task: TaskManagementItem }) {
+  const overdue = isOverdue(task);
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap text-xs",
+        overdue ? "font-semibold text-error-500" : "text-text-secondary",
+      )}
+      aria-label={`${overdue ? "Quá hạn" : "Hạn xử lý"}: ${formatDate(task.dueDate)}${task.dueTime ? `, ${task.dueTime}` : ""}`}
+    >
+      <CalendarTime size={14} aria-hidden="true" />
+      <span>
+        {formatDate(task.dueDate)}
+        {task.dueTime && ` · ${task.dueTime}`}
+      </span>
+    </span>
+  );
 }
 
-function plainText(value: string): string {
-  return value
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+function TaskTableRow({
+  task,
+  onOpenTask,
+  onUpdateTask,
+  onDeleteTask,
+}: {
+  task: TaskManagementItem;
+  onOpenTask: (task: TaskManagementItem) => void;
+  onUpdateTask: TaskManagementTableProps["onUpdateTask"];
+  onDeleteTask?: TaskManagementTableProps["onDeleteTask"];
+}) {
+  return (
+    <TableRow
+      tabIndex={0}
+      onClick={(event) => handleRowClick(event, task, onOpenTask)}
+      onKeyDown={(event) => handleRowKeyDown(event, task, onOpenTask)}
+      className="cursor-pointer transition-colors hover:bg-background-gray-secondary_alt/55 focus-visible:bg-background-gray-secondary_alt/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+    >
+      <TableCell className="w-44 align-middle">
+        <StudentTaskTypeBadge
+          actionCode={task.actionCode}
+          taskType={task.taskType}
+          size="sm"
+          compact
+          className="max-w-[9rem] truncate whitespace-nowrap"
+        />
+      </TableCell>
+      <TableCell className="w-[40%] max-w-0 align-middle">
+        <button
+          type="button"
+          onClick={() => onOpenTask(task)}
+          title={task.title}
+          className="block max-w-full truncate text-left text-sm font-semibold text-text-primary outline-none hover:text-primary-500 focus-visible:underline"
+        >
+          {task.title}
+        </button>
+      </TableCell>
+      <TableCell className="align-middle">
+        <TaskPerson name={task.assignee} />
+      </TableCell>
+      <TableCell className="whitespace-nowrap align-middle">
+        <TaskDeadline task={task} />
+      </TableCell>
+      <TableCell className="align-middle">
+        <StudentTaskPriority priority={task.priority} size="sm" />
+      </TableCell>
+      <TableCell className="align-middle">
+        <StudentTaskStatusBadge status={task.status} size="sm" />
+      </TableCell>
+      <TableCell className="w-12 whitespace-nowrap text-right align-middle">
+        <TaskManagementTaskActions
+          task={task}
+          onUpdateTask={onUpdateTask}
+          onDeleteTask={onDeleteTask}
+        />
+      </TableCell>
+    </TableRow>
+  );
 }
 
 export default function TaskManagementTable({
   tasks,
+  onOpenTask,
   onUpdateTask,
+  onDeleteTask,
+  lanePagination,
+  isLoading = false,
 }: TaskManagementTableProps) {
-  if (tasks.length === 0) {
-    return (
-      <div className="px-5 py-16 text-center">
-        <p className="font-medium text-text-primary">
-          Không tìm thấy task phù hợp
-        </p>
-        <p className="mt-1 text-sm text-text-tertiary">
-          Thử thay đổi từ khóa hoặc bộ lọc để xem thêm task.
-        </p>
-      </div>
+  const [currentPage, setCurrentPage] = useState(1);
+  const paginatedLanes = statuses
+    .map((status) => lanePagination?.[status])
+    .filter((pagination): pagination is TaskLanePagination =>
+      Boolean(pagination),
     );
-  }
-
-  return (
-    <TableRoot className="w-full min-w-225 rounded-none border-none">
-      <TableHeader className="bg-background-gray-secondary/50 [&_th]:border-t">
-        <TableRow>
-          <TableHead className="min-w-72 text-xs leading-4 font-semibold text-text-secondary">
-            Tên task
-          </TableHead>
-          <TableHead className="min-w-48 text-xs leading-4 font-semibold text-text-secondary">
-            Học sinh
-          </TableHead>
-          <TableHead className="min-w-36 text-xs leading-4 font-semibold text-text-secondary">
-            Trạng thái
-          </TableHead>
-          <TableHead className="min-w-40 text-xs leading-4 font-semibold text-text-secondary">
-            Hạn xử lý
-          </TableHead>
-          <TableHead className="min-w-32 text-xs leading-4 font-semibold text-text-secondary">
-            Loại task
-          </TableHead>
-          <TableHead className="min-w-32 text-xs leading-4 font-semibold text-text-secondary">
-            Ưu tiên
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {tasks.map((task) => {
-          const overdue = isOverdue(task);
-          return (
-            <TableRow
-              key={task.id}
-              className="transition hover:bg-background-soft-50"
-            >
-              <TableCell>
-                <Link
-                  href={taskHref(task)}
-                  className="group block min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-                >
-                  <p className="truncate font-semibold text-text-primary group-hover:text-primary-500 group-hover:underline">
-                    {task.title}
-                  </p>
-                  {task.notes && (
-                    <p className="mt-1 max-w-80 truncate text-xs text-text-tertiary">
-                      {plainText(task.notes)}
-                    </p>
-                  )}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Link
-                  href={taskHref(task)}
-                  className="flex items-center gap-2 text-text-primary hover:text-primary-500"
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-xs font-semibold text-badge-primary-text">
-                    {task.studentInitials}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold">
-                      {task.studentName}
-                    </span>
-                    <span className="block truncate text-xs text-text-tertiary">
-                      {task.studentCode}
-                    </span>
-                  </span>
-                </Link>
-              </TableCell>
-              <TableCell>
-                <SelectStatus task={task} onUpdateTask={onUpdateTask} />
-              </TableCell>
-              <TableCell>
-                <span
-                  className={
-                    overdue
-                      ? "inline-flex items-center gap-1.5 font-semibold text-error-500"
-                      : "inline-flex items-center gap-1.5 text-text-secondary"
-                  }
-                >
-                  <CalendarTime size={15} aria-hidden="true" />
-                  {formatDate(task.dueDate)}
-                  <span className="text-xs">{task.dueTime}</span>
-                </span>
-                {overdue && (
-                  <span className="mt-1 block text-xs font-medium text-error-500">
-                    Quá hạn
-                  </span>
-                )}
-              </TableCell>
-              <TableCell>
-                <span className="text-sm font-medium text-text-primary">
-                  {taskTypeLabel[task.taskType ?? "todo"]}
-                </span>
-              </TableCell>
-              <TableCell>
-                <StudentTaskPriority priority={task.priority} />
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </TableRoot>
+  const hasMoreTasks = paginatedLanes.some((pagination) => pagination.hasMore);
+  const isLoadingMore = paginatedLanes.some(
+    (pagination) => pagination.isLoading,
   );
-}
+  const pageCount = Math.max(1, Math.ceil(tasks.length / TABLE_PAGE_SIZE));
+  const activePage = Math.min(currentPage, pageCount);
+  const visibleTasks = useMemo(() => {
+    const start = (activePage - 1) * TABLE_PAGE_SIZE;
+    return tasks.slice(start, start + TABLE_PAGE_SIZE);
+  }, [activePage, tasks]);
+  const firstVisibleIndex =
+    tasks.length === 0 ? 0 : (activePage - 1) * TABLE_PAGE_SIZE + 1;
+  const lastVisibleIndex = Math.min(activePage * TABLE_PAGE_SIZE, tasks.length);
+  const pageNumbers = Array.from(
+    { length: pageCount },
+    (_, index) => index + 1,
+  );
 
-function SelectStatus({
-  task,
-  onUpdateTask,
-}: {
-  task: TaskManagementItem;
-  onUpdateTask: TaskManagementTableProps["onUpdateTask"];
-}) {
-  const options: StudentTaskItem["status"][] = ["todo", "in-progress", "done"];
-  return (
-    <Select
-      value={task.status}
-      onChange={(value) =>
-        onUpdateTask(task.id, {
-          status: String(value) as StudentTaskItem["status"],
-        })
+  const loadMoreTasks = () => {
+    paginatedLanes.forEach((pagination) => {
+      if (pagination.hasMore && !pagination.isLoading) {
+        pagination.onLoadMore();
       }
-      aria-label={`Cập nhật trạng thái task ${task.title}`}
-    >
-      <SelectTrigger
-        size="sm"
-        className="w-fit border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus:ring-0"
-      >
-        <StudentTaskStatusBadge status={task.status} />
-        <SelectValue className="sr-only" />
-        <SelectIndicator className="ml-1 text-text-primary" />
-      </SelectTrigger>
-      <SelectContent className="min-w-40">
-        {options.map((option) => (
-          <SelectItem
-            key={option}
-            id={option}
-            textValue={taskStatusLabel[option]}
-          >
-            <StudentTaskStatusBadge status={option} />
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    });
+  };
+
+  return (
+    <div className="bg-transparent px-0 pb-0 pt-1">
+      <div className="overflow-hidden rounded-xl border border-card-border bg-card-background">
+        <div>
+          <TableRoot fullBleed className="w-full min-w-0 table-fixed border-0">
+            <TableHeader>
+              <TableRow className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card-background">
+                <TableHead className="w-44">Loại task</TableHead>
+                <TableHead className="w-[40%]">Tên task</TableHead>
+                <TableHead className="w-48">Phụ trách</TableHead>
+                <TableHead className="w-44">Hạn xử lý</TableHead>
+                <TableHead className="w-28">Ưu tiên</TableHead>
+                <TableHead className="w-32">Trạng thái</TableHead>
+                <TableHead
+                  aria-label="Thao tác"
+                  className="w-12 whitespace-nowrap text-right"
+                />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visibleTasks.length > 0 ? (
+                visibleTasks.map((task) => (
+                  <TaskTableRow
+                    key={task.id}
+                    task={task}
+                    onOpenTask={onOpenTask}
+                    onUpdateTask={onUpdateTask}
+                    onDeleteTask={onDeleteTask}
+                  />
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="py-10 text-center text-xs text-text-tertiary"
+                  >
+                    {isLoading ? "Đang tải task..." : "Chưa có task"}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </TableRoot>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-5 py-3">
+          <span className="text-xs text-text-tertiary">
+            {tasks.length > 0
+              ? `Hiển thị ${firstVisibleIndex}–${lastVisibleIndex} / ${tasks.length} task`
+              : "0 task"}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Trang trước"
+              disabled={activePage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-background-gray-secondary_alt disabled:cursor-not-allowed disabled:text-text-tertiary"
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+            </button>
+            {pageNumbers.map((page) => (
+              <button
+                key={page}
+                type="button"
+                aria-label={`Trang ${page}`}
+                aria-current={activePage === page ? "page" : undefined}
+                onClick={() => setCurrentPage(page)}
+                className={cn(
+                  "inline-flex size-8 items-center justify-center rounded-md text-xs font-semibold transition",
+                  activePage === page
+                    ? "bg-primary-500 text-white"
+                    : "text-text-secondary hover:bg-background-gray-secondary_alt",
+                )}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              type="button"
+              aria-label="Trang sau"
+              disabled={activePage === pageCount}
+              onClick={() =>
+                setCurrentPage((page) =>
+                  Math.min(pageCount, Math.max(activePage, page) + 1),
+                )
+              }
+              className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-background-gray-secondary_alt disabled:cursor-not-allowed disabled:text-text-tertiary"
+            >
+              <ArrowRight size={14} aria-hidden="true" />
+            </button>
+          </div>
+          {hasMoreTasks && (
+            <button
+              type="button"
+              disabled={isLoadingMore}
+              onClick={loadMoreTasks}
+              className="text-xs font-semibold text-primary-500 hover:text-primary-600 disabled:cursor-not-allowed disabled:text-text-tertiary"
+            >
+              {isLoadingMore ? "Đang tải..." : "Xem thêm task"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

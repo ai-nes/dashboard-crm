@@ -16,11 +16,11 @@ import type { AssignmentFilter } from "./types";
 
 const filters: { id: AssignmentFilter; label: string }[] = [
   { id: "all", label: "Tất cả" },
-  { id: "assigned", label: "Đã phân công" },
   { id: "review", label: "Chờ phân công" },
   { id: "no_match", label: "Chưa có người phù hợp" },
   { id: "missing_data", label: "Thiếu thông tin" },
   { id: "error", label: "Lỗi tự động" },
+  { id: "assigned", label: "Đã phân công" },
 ];
 
 export default function AssignmentHistory() {
@@ -49,34 +49,29 @@ export default function AssignmentHistory() {
   const pageSize = pagination?.pageSize ?? 20;
 
   return (
-    <section id="assignment-history" aria-labelledby="history-heading" className="scroll-mt-24">
-      <Card className="overflow-hidden p-0">
-        <div className="flex flex-wrap items-start justify-between gap-4 px-5 pt-5">
-          <div>
-            <h2 id="history-heading" className="text-base font-semibold text-text-primary">Lịch sử phân công</h2>
-            <p className="mt-1 text-xs leading-5 text-text-tertiary">Xem kết quả và lý do phân công của từng học sinh.</p>
-          </div>
-          <TextField value={query} onChange={setQuery} className="w-full sm:w-64">
-            <Label className="sr-only">Tìm học sinh, trường hoặc người phụ trách</Label>
-            <div className="relative">
-              <Search1 size={16} aria-hidden="true" className="pointer-events-none absolute top-3 left-3 text-text-tertiary" />
-              <Input placeholder="Tìm học sinh, nhân sự…" className="h-10 w-full pr-8 pl-9 text-sm" />
-              {query && (
-                <Button iconOnly appearance="ghost" size="xs" aria-label="Xóa tìm kiếm" className="absolute top-1.5 right-1 text-text-tertiary" onPress={() => setQuery("")}>
-                  <Close size={13} />
-                </Button>
-              )}
-            </div>
-          </TextField>
-        </div>
-        <div className="flex flex-wrap gap-1.5 px-5 py-4" role="group" aria-label="Lọc kết quả phân công">
-          {filters.map((item) => (
-            <Button key={item.id} appearance="ghost" size="sm" aria-pressed={filter === item.id} className={cn("text-text-secondary", filter === item.id && "bg-badge-primary-background text-badge-primary-text")} onPress={() => setFilter(item.id)}>
-              {item.label}
+    <section id="assignment-history" aria-labelledby="history-heading" className="scroll-mt-24 space-y-4">
+      <h2 id="history-heading" className="sr-only">Lịch sử phân công</h2>
+      <TextField value={query} onChange={setQuery} className="w-full sm:w-64">
+        <Label className="sr-only">Tìm học sinh, trường hoặc người phụ trách</Label>
+        <div className="relative">
+          <Search1 size={16} aria-hidden="true" className="pointer-events-none absolute top-3 left-3 text-text-tertiary" />
+          <Input placeholder="Tìm học sinh, nhân sự…" className="h-10 w-full pr-8 pl-9 text-sm" />
+          {query && (
+            <Button iconOnly appearance="ghost" size="xs" aria-label="Xóa tìm kiếm" className="absolute top-1.5 right-1 text-text-tertiary" onPress={() => setQuery("")}>
+              <Close size={13} />
             </Button>
-          ))}
+          )}
         </div>
+      </TextField>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Lọc kết quả phân công">
+        {filters.map((item) => (
+          <Button key={item.id} appearance="ghost" size="sm" aria-pressed={filter === item.id} className={cn("text-text-secondary", filter === item.id && "bg-badge-primary-background text-badge-primary-text")} onPress={() => setFilter(item.id)}>
+            {item.label}
+          </Button>
+        ))}
+      </div>
 
+      <Card className="overflow-hidden p-0">
         <div className="hidden overflow-x-auto xl:block">
           <table className="w-full table-fixed text-left text-sm">
             <caption className="sr-only">Lịch sử phân công học sinh</caption>

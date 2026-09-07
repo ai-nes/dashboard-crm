@@ -30,6 +30,11 @@ describe("NBA review API contract", () => {
             recommendations: [
               {
                 id: "eval-1-1",
+                target: { type: "CRM Student", id: "ENR-2026-00002" },
+                action: {
+                  code: "ACTIVATE_WINBACK",
+                  title: "Kích hoạt lại quan tâm",
+                },
                 rank: 1,
                 recommendationKey: "NBAEVAL-1:ACTIVATE_WINBACK:1",
                 studentId: "ENR-2026-00002",
@@ -37,6 +42,18 @@ describe("NBA review API contract", () => {
                 priority: "high",
                 channel: null,
                 reason: "Chưa có liên lạc trong 5 ngày.",
+                objective: "Khôi phục liên hệ với học viên.",
+                context: ["Chưa có liên lạc trong 5 ngày."],
+                timing: {
+                  scheduled_at: "2026-09-05T09:00:00+07:00",
+                  expires_at: "2026-09-10 18:00:00",
+                  timezone: "Asia/Ho_Chi_Minh",
+                },
+                status: {
+                  lifecycle: "proposed",
+                  decision: "pending",
+                  execution: "not_started",
+                },
                 aiPayload: { score: 0.8, score_band: "cao" },
                 explanation: null,
                 explanationSource: null,
@@ -72,6 +89,24 @@ describe("NBA review API contract", () => {
       }),
     );
     expect(result.recommendations[0]?.aiPayload.score).toBe(0.8);
+    expect(result.recommendations[0]).toEqual(
+      expect.objectContaining({
+        target: { type: "CRM Student", id: "ENR-2026-00002" },
+        action: { code: "ACTIVATE_WINBACK", title: "Kích hoạt lại quan tâm" },
+        objective: "Khôi phục liên hệ với học viên.",
+        context: ["Chưa có liên lạc trong 5 ngày."],
+        timing: {
+          scheduledAt: "2026-09-05T09:00:00+07:00",
+          expiresAt: "2026-09-10 18:00:00",
+          timezone: "Asia/Ho_Chi_Minh",
+        },
+        status: {
+          lifecycle: "proposed",
+          decision: "pending",
+          execution: "not_started",
+        },
+      }),
+    );
   });
 
   it("keeps a director row without inventing a missing short reason", async () => {
@@ -300,7 +335,8 @@ describe("NBA review API contract", () => {
                       evidence_ref: "INT-845",
                     },
                   ],
-                  uncertainty: "Chưa rõ mức độ ưu tiên của lần tương tác trước.",
+                  uncertainty:
+                    "Chưa rõ mức độ ưu tiên của lần tương tác trước.",
                   timing: {
                     recommended_at: "2026-09-04T18:30:00+07:00",
                     reason: "Nên thực hiện trong hôm nay.",

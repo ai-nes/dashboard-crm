@@ -4,7 +4,7 @@ import { useAuth } from "@/components/common/auth/auth-provider";
 import {
   canAccessDashboardPath,
   getDefaultRouteForRoles,
-  getRecognizedRoles,
+  getRecognizedDashboardRoles,
   isProtectedDashboardPath,
 } from "@/components/common/auth/rbac";
 import Link from "next/link";
@@ -20,7 +20,7 @@ export function DashboardAccessGuard({
   const pathname = usePathname();
   const router = useRouter();
   const recognizedRoles = useMemo(
-    () => getRecognizedRoles(user?.roles),
+    () => getRecognizedDashboardRoles(user?.roles),
     [user?.roles],
   );
   const isProtectedPath = isProtectedDashboardPath(pathname);

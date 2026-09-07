@@ -7,6 +7,7 @@ import {
   MapMarker5,
   Phone,
   Sparkle,
+  Trash1,
 } from "@tailgrids/icons";
 import Link from "next/link";
 
@@ -16,6 +17,7 @@ import {
   AvatarFallback,
 } from "@/components/tailgrids/core/avatar";
 import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
 import { formatDateTime } from "@/utils/format-date";
 import type {
   StudentContactConsent,
@@ -27,7 +29,14 @@ import StudentCopyBadge from "./student-copy-badge";
 import StudentGaugeChart from "./student-gauge-chart";
 import type { Student360SectionProps } from "./types";
 
-export default function StudentHeader({ data }: Student360SectionProps) {
+interface StudentHeaderProps extends Student360SectionProps {
+  onDeleteRequest?: () => void;
+}
+
+export default function StudentHeader({
+  data,
+  onDeleteRequest,
+}: StudentHeaderProps) {
   const { student } = data;
   const subtitle = student.grade || "-";
   const hasMetadata = Boolean(
@@ -87,6 +96,18 @@ export default function StudentHeader({ data }: Student360SectionProps) {
                     >
                       Sao chép ID
                     </StudentCopyBadge>
+                  )}
+                  {onDeleteRequest && (
+                    <Button
+                      aria-label="Xóa hồ sơ học sinh"
+                      appearance="ghost"
+                      onPress={onDeleteRequest}
+                      size="sm"
+                      variant="danger"
+                    >
+                      <Trash1 size={15} aria-hidden="true" />
+                      Xóa hồ sơ
+                    </Button>
                   )}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-text-tertiary">
