@@ -7,7 +7,10 @@ import { formatCompactCurrency } from "./formatters";
 
 export function RecommendationBanner({
   recommendation,
-}: Pick<CampaignIntelligenceResponse, "recommendation">) {
+  compact = false,
+}: Pick<CampaignIntelligenceResponse, "recommendation"> & {
+  compact?: boolean;
+}) {
   const confidence = {
     high: { label: "Cao", color: "success" as const },
     medium: { label: "Trung bình", color: "warning" as const },
@@ -17,11 +20,11 @@ export function RecommendationBanner({
   return (
     <section
       aria-label="Khuyến nghị phân bổ ngân sách"
-      className="relative overflow-hidden rounded-xl border border-primary-500/20 bg-gradient-to-r from-primary-500/5 via-card-background to-card-background p-5"
+      className={`relative overflow-hidden rounded-xl border border-primary-500/20 bg-gradient-to-r from-primary-500/5 via-card-background to-card-background ${compact ? "p-4" : "p-5"}`}
     >
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-4">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-500 text-white-100 shadow-sm shadow-primary-500/20">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-500 text-white-100 shadow-sm shadow-primary-500/20">
             <Sparkle size={20} />
           </div>
 
@@ -45,10 +48,12 @@ export function RecommendationBanner({
               {recommendation.title}
             </h2>
 
-            <p className="mt-1 text-xs text-text-secondary">
-              Dựa trên khoản thu đã đối soát và hiệu quả chi phí giữa các kênh
-              tuyển sinh.
-            </p>
+            {!compact && (
+              <p className="mt-1 text-xs text-text-secondary">
+                Dựa trên khoản thu đã đối soát và hiệu quả chi phí giữa các kênh
+                tuyển sinh.
+              </p>
+            )}
           </div>
         </div>
       </div>

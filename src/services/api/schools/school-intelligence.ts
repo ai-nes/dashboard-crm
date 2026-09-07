@@ -479,6 +479,13 @@ export function normalizeSchoolIntelligence(
       isBoardingSchool: boolean(
         school.isBoardingSchool ?? school.is_boarding_school,
       ),
+      phone: text(school.phone),
+      email: text(school.email),
+      schoolType: text(school.schoolType ?? school.school_type),
+      schoolTier: text(school.schoolTier ?? school.school_tier),
+      boardingType: text(school.boardingType ?? school.boarding_type),
+      latitude: number(school.latitude),
+      longitude: number(school.longitude),
     },
     potentialScore: number(data.potentialScore),
     grade12Students: number(data.grade12Students),

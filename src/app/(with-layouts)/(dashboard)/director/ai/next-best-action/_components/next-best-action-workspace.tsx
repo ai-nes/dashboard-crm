@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
-import { useDirectorNextBestActionQuery } from "@/hooks/use-director-next-best-action-queries";
 import { useDirectorNbaRecommendationsQuery } from "@/hooks/use-director-nba-recommendations-queries";
 import type { DirectorNbaRecommendation } from "@/services/api/nba";
 
@@ -14,7 +13,6 @@ import DirectorRecommendationDetail from "./director-recommendation-detail";
 import DirectorRecommendationList, {
   DirectorRecommendationListSkeleton,
 } from "./director-recommendation-list";
-import DirectorOperationalOverview from "./director-operational-overview";
 import NextBestActionHeader from "./next-best-action-header";
 import { useRecommendationStudentNames } from "./use-recommendation-student-names";
 
@@ -24,12 +22,6 @@ export default function NextBestActionWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const query = useDirectorNbaRecommendationsQuery({
     limit: RECOMMENDATION_LIMIT,
-  });
-  const operationalQuery = useDirectorNextBestActionQuery({
-    queueFilter: "all",
-    page: 1,
-    pageSize: 8,
-    outcomePeriod: "30d",
   });
   const recommendations = query.data?.recommendations ?? [];
   const studentNameById = useRecommendationStudentNames(recommendations);
@@ -95,20 +87,17 @@ export default function NextBestActionWorkspace() {
             className="min-w-0 border-b border-card-border xl:border-r xl:border-b-0"
             aria-labelledby="recommendation-queue-heading"
           >
-            <div className="flex items-start justify-between gap-3 border-b border-card-border px-5 py-4">
+            <div className="flex items-center justify-between gap-3 border-b border-card-border px-4 py-3.5 sm:px-5">
               <div>
                 <h2
                   id="recommendation-queue-heading"
                   className="text-sm font-semibold text-text-primary"
                 >
-                  Đề xuất cần xem xét
+                  Hàng đợi
                 </h2>
-                <p className="mt-1 text-xs leading-5 text-text-tertiary">
-                  Thứ tự do bộ quyết định NBA tính theo tín hiệu hồ sơ.
-                </p>
               </div>
               <span className="shrink-0 text-xs text-text-tertiary">
-                {recommendations.length} đề xuất
+                {recommendations.length} việc
               </span>
             </div>
             <DirectorRecommendationList
@@ -125,12 +114,6 @@ export default function NextBestActionWorkspace() {
           />
         </Card>
       )}
-
-      <DirectorOperationalOverview
-        data={operationalQuery.data}
-        isLoading={operationalQuery.isLoading}
-        isError={operationalQuery.isError}
-      />
     </main>
   );
 }
@@ -145,11 +128,10 @@ function EmptyRecommendationState() {
       />
       <div>
         <p className="text-sm font-semibold text-text-primary">
-          Chưa có đề xuất cần xem xét
+          Chưa có việc cần xử lý
         </p>
-        <p className="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
-          Hiện chưa có đề xuất NBA nào ở trạng thái cần được xem xét. Hàng đợi
-          sẽ cập nhật khi một lần đánh giá hoàn tất và tạo đề xuất mới.
+        <p className="mt-1 max-w-xl text-sm leading-6 text-text-secondary">
+          Hàng đợi sẽ cập nhật khi hệ thống tạo đề xuất mới.
         </p>
       </div>
     </Card>
@@ -158,7 +140,7 @@ function EmptyRecommendationState() {
 
 function RecommendationWorkspaceSkeleton() {
   return (
-    <Card className="grid min-h-[520px] min-w-0 overflow-hidden p-0 xl:grid-cols-[minmax(320px,0.78fr)_minmax(0,1.22fr)]">
+    <Card className="grid min-h-[420px] min-w-0 overflow-hidden p-0 xl:grid-cols-[minmax(320px,0.78fr)_minmax(0,1.22fr)]">
       <section className="border-b border-card-border xl:border-r xl:border-b-0">
         <div className="border-b border-card-border px-5 py-4">
           <div className="h-4 w-40 animate-pulse-custom rounded-full bg-skeleton-gradient-50" />

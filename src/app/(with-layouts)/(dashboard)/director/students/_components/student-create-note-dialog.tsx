@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { DatePickerField } from "@/components/common/date-picker-field";
 import { Button } from "@/components/tailgrids/core/button";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import {
@@ -13,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/tailgrids/core/dialog";
-import { Input } from "@/components/tailgrids/core/input";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
 import { RichTextEditor } from "@/components/tailgrids/core/rich-text-editor";
 import { Close } from "@tailgrids/icons";
@@ -205,13 +205,12 @@ export default function StudentCreateNoteDialog({
                   </Button>
                 </div>
                 {isCustomFollowUpDate && (
-                  <Input
-                    type="date"
-                    value={followUpDueDate}
-                    min={getDateInputValue(0)}
-                    onChange={(event) => setFollowUpDueDate(event.target.value)}
-                    aria-label="Chọn ngày follow-up tùy chọn"
+                  <DatePickerField
+                    ariaLabel="Chọn ngày follow-up tùy chọn"
                     className="mt-2 h-9 max-w-52 bg-background-white-primary"
+                    min={getDateInputValue(0)}
+                    onChange={setFollowUpDueDate}
+                    value={followUpDueDate}
                   />
                 )}
               </div>

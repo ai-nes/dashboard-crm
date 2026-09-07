@@ -1,69 +1,205 @@
 "use client";
 
-import { keepPreviousData } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import {
+  keepPreviousData,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { Plus } from "@tailgrids/icons";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { Button } from "@/components/tailgrids/core/button";
+import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
-import { useDirectorStudentsQuery } from "@/hooks/use-students-queries";
-import type { StudentJourneyStage } from "@/services/api/students/types";
+import {
+  useAssignedStudentsQuery,
+  useDirectorStudentsQuery,
+} from "@/hooks/use-students-queries";
+import {
+  createLead,
+  importLeads,
+  requestStudentStageTransition,
+  type LeadCreateFields,
+  type LeadImportResponse,
+  type StudentStageTransitionRequest,
+} from "@/services/api/student-school-update";
+import type {
+  StudentAssignmentStatus,
+  StudentStatus,
+} from "@/services/api/students/types";
 
+import StudentCreateDialog from "./student-create-dialog";
+import LeadImportDialog from "./lead-import-dialog";
 import StudentKpiStrip from "./student-kpi-strip";
 import StudentList, { studentListGrid } from "./student-list";
 import StudentListToolbar from "./student-list-toolbar";
+import {
+  canTransitionStudentStatus,
+  defaultStudentStatus,
+} from "./student-status";
 
 export default function StudentsOverviewDashboard() {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const permissions = getCrmPermissions(user?.roles);
+  const canReadStudents = permissions.student.canRead;
+  const readScope = permissions.student.readScope ?? permissions.student.scope;
+  const isSessionScoped = readScope === "assigned" || readScope === "team";
   const isLeadSale = user?.roles?.includes("Lead Sale") ?? false;
+  const canCreateStudent = permissions.student.canCreate;
   const pageTitle = isLeadSale ? "Danh sách học sinh" : "Hồ sơ học sinh 360°";
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const ownerId = searchParams.get("owner")?.trim() || undefined;
   const [query, setQuery] = useState("");
-  const [stage, setStage] = useState<StudentJourneyStage | "all">("all");
+  const [studentStatus, setStudentStatus] = useState<StudentStatus | "all">(
+    "all",
+  );
   const [province, setProvince] = useState("all");
+  const [assignmentStatus, setAssignmentStatus] = useState<
+    StudentAssignmentStatus | "all"
+  >("all");
+  const [statusDrafts, setStatusDrafts] = useState<
+    Record<string, StudentStatus>
+  >({});
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const {
-    data: response,
-    isError,
-    error,
-    isPlaceholderData,
-  } = useDirectorStudentsQuery(
+  const studentsQueryParams = {
+    admissionYear: 2026,
+    page,
+    pageSize,
+    q: query || undefined,
+    province,
+    assignmentStatus,
+    // Session-scoped roles must never be able to widen the list with an owner
+    // query parameter. The backend derives pool/team scope from the session.
+    ownerId: isSessionScoped ? undefined : ownerId,
+  };
+  const sessionScopedStudentsQuery = useAssignedStudentsQuery(
+    studentsQueryParams,
+    user?.user,
     {
-      admissionYear: 2026,
-      page,
-      pageSize,
-      q: query || undefined,
-      stage,
-      province,
-      ownerId,
+      enabled: canReadStudents && isSessionScoped && !isAuthLoading,
+      placeholderData: keepPreviousData,
     },
-    { placeholderData: keepPreviousData },
   );
+  const allStudentsQuery = useDirectorStudentsQuery(studentsQueryParams, {
+    enabled: canReadStudents && !isSessionScoped && !isAuthLoading,
+    placeholderData: keepPreviousData,
+  });
+  const studentsQuery = isSessionScoped
+    ? sessionScopedStudentsQuery
+    : allStudentsQuery;
+  const { data: response, isError, error, isPlaceholderData } = studentsQuery;
 
-  const students = response?.data ?? [];
+  const students = (response?.data ?? []).map((student) => ({
+    ...student,
+    studentStage:
+      statusDrafts[student.id] ?? student.studentStage ?? defaultStudentStatus,
+  }));
+  const filteredStudents =
+    studentStatus === "all"
+      ? students
+      : students.filter((student) => student.studentStage === studentStatus);
   const summary = response?.summary;
   const meta = response?.meta;
 
-  const totalCount = meta?.total ?? students.length;
-  const totalAll = meta?.totalAll ?? totalCount;
-  const totalPages = Math.max(
-    1,
-    meta?.totalPages ?? Math.ceil(totalCount / pageSize),
-  );
+  const totalCount =
+    studentStatus === "all"
+      ? (meta?.total ?? students.length)
+      : filteredStudents.length;
+  const totalPages =
+    studentStatus === "all"
+      ? Math.max(1, meta?.totalPages ?? Math.ceil(totalCount / pageSize))
+      : Math.max(1, Math.ceil(totalCount / pageSize));
   const currentPage = meta ? Math.min(page, totalPages) : page;
+
+  const createMutation = useMutation({
+    mutationFn: (fields: LeadCreateFields) => createLead(fields),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: ["director-students"] });
+      setCreateDialogOpen(false);
+      toast.success("Đã tạo hồ sơ học sinh.");
+      if (response.name) {
+        router.push(`/director/students/${encodeURIComponent(response.name)}`);
+      }
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Chưa thể tạo hồ sơ học sinh.",
+      );
+    },
+  });
+
+  const importMutation = useMutation({
+    mutationFn: ({
+      csvContent,
+      filename,
+    }: {
+      csvContent: string;
+      filename: string;
+    }) => importLeads(csvContent, filename),
+    onSuccess: async (result: LeadImportResponse) => {
+      await queryClient.invalidateQueries({ queryKey: ["director-students"] });
+      toast.success(
+        result.failed
+          ? `Đã nhập ${result.created}/${result.total} Lead; ${result.failed} dòng lỗi.`
+          : `Đã nhập thành công ${result.created} Lead.`,
+      );
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Chưa thể nhập dữ liệu Lead.",
+      );
+    },
+  });
+  const statusMutation = useMutation({
+    mutationFn: (request: StudentStageTransitionRequest) =>
+      requestStudentStageTransition(request),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["director-students"] });
+      await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
+      toast.success("Đã cập nhật trạng thái học sinh.");
+    },
+    onError: (error, variables) => {
+      setStatusDrafts((previous) => {
+        const next = { ...previous };
+        delete next[variables.student];
+        return next;
+      });
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Chưa thể cập nhật trạng thái học sinh.",
+      );
+    },
+  });
 
   const handleQueryChange = (val: string) => {
     setQuery(val);
     setPage(1);
   };
 
-  const handleStageChange = (val: StudentJourneyStage | "all") => {
-    setStage(val);
+  const openCreateDialog = () => {
+    createMutation.reset();
+    setCreateDialogOpen(true);
+  };
+
+  const openImportDialog = () => {
+    importMutation.reset();
+    setImportDialogOpen(true);
+  };
+
+  const handleStudentStatusFilterChange = (val: StudentStatus | "all") => {
+    setStudentStatus(val);
     setPage(1);
   };
 
@@ -72,10 +208,39 @@ export default function StudentsOverviewDashboard() {
     setPage(1);
   };
 
+  const handleAssignmentStatusChange = (
+    val: StudentAssignmentStatus | "all",
+  ) => {
+    setAssignmentStatus(val);
+    setPage(1);
+  };
+
+  const handleStudentStatusDraftChange = (
+    id: string,
+    nextStatus: StudentStatus,
+  ) => {
+    const currentStudent = students.find((student) => student.id === id);
+    const currentStatus = currentStudent?.studentStage ?? defaultStudentStatus;
+    if (!canTransitionStudentStatus(currentStatus, nextStatus)) {
+      toast.error("Trạng thái chỉ được chuyển theo đúng quy trình.");
+      return;
+    }
+
+    setStatusDrafts((previous) => ({
+      ...previous,
+      [id]: nextStatus,
+    }));
+    statusMutation.mutate({
+      student: id,
+      target_stage: nextStatus,
+    });
+  };
+
   const resetFilters = () => {
     setQuery("");
-    setStage("all");
+    setStudentStatus("all");
     setProvince("all");
+    setAssignmentStatus("all");
     setPage(1);
   };
 
@@ -115,45 +280,82 @@ export default function StudentsOverviewDashboard() {
             Từ toàn cảnh tệp học sinh đến hành động tiếp theo cho từng hồ sơ.
           </p>
         </div>
+        {canCreateStudent && (
+          <div className="flex shrink-0 flex-wrap gap-2 self-start lg:self-auto">
+            <Button
+              isDisabled={createMutation.isPending || importMutation.isPending}
+              onPress={openImportDialog}
+              appearance="outline"
+            >
+              Nhập CSV
+            </Button>
+            <Button
+              isDisabled={createMutation.isPending || importMutation.isPending}
+              onPress={openCreateDialog}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Thêm học sinh
+            </Button>
+          </div>
+        )}
       </header>
+
+      <StudentCreateDialog
+        isOpen={createDialogOpen}
+        isSubmitting={createMutation.isPending}
+        onCreate={(fields) =>
+          createMutation.mutateAsync(fields).then(() => undefined)
+        }
+        onOpenChange={setCreateDialogOpen}
+      />
+
+      <LeadImportDialog
+        isOpen={importDialogOpen}
+        isSubmitting={importMutation.isPending}
+        result={importMutation.data}
+        onImport={(csvContent, filename) =>
+          importMutation.mutateAsync({ csvContent, filename })
+        }
+        onOpenChange={setImportDialogOpen}
+      />
 
       <StudentKpiStrip summary={summary} />
 
+      <StudentListToolbar
+        query={query}
+        studentStatus={studentStatus}
+        province={province}
+        assignmentStatus={assignmentStatus}
+        resultCount={totalCount}
+        onQueryChange={handleQueryChange}
+        onStatusChange={handleStudentStatusFilterChange}
+        onProvinceChange={handleProvinceChange}
+        onAssignmentStatusChange={handleAssignmentStatusChange}
+        onReset={resetFilters}
+      />
+
       <Card className="min-w-0 overflow-hidden p-0">
-        <CardHeader className="border-b border-card-border p-5">
-          <div>
-            <CardTitle>Danh sách học sinh</CardTitle>
-            <p className="mt-1 text-xs leading-5 text-text-tertiary">
-              Theo dõi hồ sơ, trạng thái, mức độ ưu tiên và hành động tiếp theo
-              của từng học sinh.
-            </p>
+        <div className="lg:overflow-x-auto">
+          <div className="lg:min-w-[1100px]">
+            <div
+              className={`hidden ${studentListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
+              aria-hidden="true"
+            >
+              <span>Họ tên · THPT · Quê quán</span>
+              <span>Ngành quan tâm</span>
+              <span>Trạng thái</span>
+              <span className="text-center">Điểm tiềm năng</span>
+              <span>Người phụ trách</span>
+              <span className="text-center">Thao tác</span>
+            </div>
+            <StudentList
+              students={filteredStudents}
+              isStatusUpdating={statusMutation.isPending}
+              ownerEditable={permissions.student.canAssign}
+              onStatusChange={handleStudentStatusDraftChange}
+            />
           </div>
-          <Badge color="primary">
-            {totalCount}/{totalAll} hồ sơ
-          </Badge>
-        </CardHeader>
-        <StudentListToolbar
-          query={query}
-          stage={stage}
-          province={province}
-          resultCount={totalCount}
-          onQueryChange={handleQueryChange}
-          onStageChange={handleStageChange}
-          onProvinceChange={handleProvinceChange}
-          onReset={resetFilters}
-        />
-        <div
-          className={`hidden ${studentListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
-          aria-hidden="true"
-        >
-          <span>Họ tên · THPT · Quê quán</span>
-          <span>Ngành quan tâm</span>
-          <span>Trạng thái</span>
-          <span>Điểm tiềm năng</span>
-          <span>Người phụ trách</span>
-          <span className="text-center">Thao tác</span>
         </div>
-        <StudentList students={students} ownerEditable={isLeadSale} />
 
         {totalCount > 0 && (
           <div className="flex flex-col gap-3 border-t border-card-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">

@@ -14,6 +14,7 @@
       "lastActivity": "4 phút trước",
       "nextAction": "Gọi phụ huynh về học phí",
       "owner": "Trần Quốc Bảo",
+      "revision": 4,
       "source": "Career Talk 28/05",
       "priority": "Cao"
     },
@@ -31,6 +32,7 @@
       "lastActivity": "28 phút trước",
       "nextAction": "Gửi lộ trình học bổng",
       "owner": "Lê Hoàng Nam",
+      "revision": 2,
       "source": "Website tuyển sinh",
       "priority": "Cao"
     },
@@ -48,6 +50,7 @@
       "lastActivity": "1 giờ trước",
       "nextAction": "Nhắc hoàn tất hồ sơ",
       "owner": "Nguyễn Thu Hà",
+      "revision": 7,
       "source": "Ngày hội tư vấn",
       "priority": "Cao"
     },
@@ -65,6 +68,7 @@
       "lastActivity": "3 giờ trước",
       "nextAction": "Mời tham gia campus tour",
       "owner": "Phạm Minh Khoa",
+      "revision": 1,
       "source": "TikTok Ads",
       "priority": "Trung bình"
     },
@@ -82,6 +86,7 @@
       "lastActivity": "Hôm qua",
       "nextAction": "Phân loại nhu cầu ngành học",
       "owner": "Đỗ Thanh Vân",
+      "revision": 3,
       "source": "Landing page ngành học",
       "priority": "Trung bình"
     },
@@ -99,6 +104,7 @@
       "lastActivity": "Hôm qua",
       "nextAction": "Chia sẻ trải nghiệm sinh viên",
       "owner": "Trần Quốc Bảo",
+      "revision": 5,
       "source": "Open Day Hà Nội",
       "priority": "Trung bình"
     },
@@ -116,6 +122,7 @@
       "lastActivity": "2 ngày trước",
       "nextAction": "Kích hoạt lại điểm chạm",
       "owner": "Lê Hoàng Nam",
+      "revision": 2,
       "source": "Facebook Lead Ads",
       "priority": "Thấp"
     },
@@ -133,6 +140,7 @@
       "lastActivity": "2 ngày trước",
       "nextAction": "Theo dõi xác nhận nhập học",
       "owner": "Nguyễn Thu Hà",
+      "revision": 6,
       "source": "Giới thiệu cựu sinh viên",
       "priority": "Cao"
     }
@@ -148,7 +156,9 @@
       "phone": "09•• ••• 412",
       "email": "a••••@gmail.com",
       "province": "Cần Thơ",
-      "counselor": "Trần Quốc Bảo"
+      "ward": "Phường An Cư",
+      "counselor": "Trần Quốc Bảo",
+      "studentStage": "Connected"
     },
     "readiness": [
       {

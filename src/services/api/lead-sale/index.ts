@@ -15,8 +15,12 @@ import type {
 } from "./types";
 
 export type * from "./types";
+export * from "./leads";
+export * from "./campaigns";
+export * from "./campaign-channel-types";
 export * from "./student-assignment";
-export * from "./sales-team";
+export * from "./team-management";
+export * from "./lead-assignment-batch";
 
 const METHOD = "crm.api.lead_sale.get_lead_sale_overview";
 const KPI_IDS = [

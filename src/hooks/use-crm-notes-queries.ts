@@ -19,6 +19,7 @@ import {
   type ListNotesResponse,
   type UpdateNotePayload,
 } from "@/services/api/crm-notes";
+import { interactionIntelligenceKeys } from "@/hooks/use-interaction-intelligence-queries";
 
 export const crmNotesKeys = {
   all: ["crm-notes"] as const,
@@ -72,6 +73,9 @@ export function useCreateCrmNoteMutation() {
     mutationFn: (payload: CreateNotePayload) => createNote(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: crmNotesKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: interactionIntelligenceKeys.all,
+      });
     },
   });
 }
@@ -82,6 +86,9 @@ export function useUpdateCrmNoteMutation() {
     mutationFn: (payload: UpdateNotePayload) => updateNote(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: crmNotesKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: interactionIntelligenceKeys.all,
+      });
     },
   });
 }
@@ -92,7 +99,9 @@ export function useDeleteCrmNoteMutation() {
     mutationFn: (name: string) => deleteNote(name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: crmNotesKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: interactionIntelligenceKeys.all,
+      });
     },
   });
 }
-

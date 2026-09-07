@@ -6,14 +6,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import {
   useDecideNbaRecommendation,
@@ -27,7 +19,6 @@ import {
   type NbaRecommendation,
 } from "@/services/api/nba";
 import type { Student360Data } from "@/services/api/students/types";
-
 import StudentNbaRecommendationCard from "./student-nba-recommendation-card";
 import StudentNbaDecisionDialog from "./student-nba-decision-dialog";
 import {
@@ -42,8 +33,6 @@ interface StudentNextBestActionsProps {
   onActionsCountChange?: (count: number) => void;
 }
 
-type NbaExpansionMode = "collapse" | "expand";
-
 export default function StudentNextBestActions({
   data,
   studentId,
@@ -51,11 +40,16 @@ export default function StudentNextBestActions({
 }: StudentNextBestActionsProps) {
   const router = useRouter();
   const studentStage = data.student.studentStage;
+  const studentStageKnown = [
+    "New",
+    "Attempting",
+    "Connected",
+    "Qualified",
+    "Disqualified",
+  ].includes(studentStage ?? "");
   const terminalStage =
     studentStage === "Qualified" || studentStage === "Disqualified";
-  const [expandedRecommendationIds, setExpandedRecommendationIds] = useState<
-    Set<string> | null
-  >(null);
+  const nbaBlocked = !studentStageKnown || terminalStage;
   const [decision, setDecision] = useState<{
     recommendation: NbaRecommendation;
     operation: NbaDecisionOperation;
@@ -73,71 +67,39 @@ export default function StudentNextBestActions({
   const runMutation = useRunStudentNbaEvaluation();
 
   const worklistActions = useMemo(
-    () =>
-      (query.data?.items ?? []).filter(
-        (item) => item.studentId === studentId.trim() && !terminalStage,
-      ),
-    [query.data?.items, studentId, terminalStage],
+    // The Frappe endpoint applies the student filter and resolves legacy Lead
+    // ids to the canonical CRM Student id before returning this list.
+    () => (nbaBlocked ? [] : query.data?.items ?? []),
+    [query.data?.items, nbaBlocked],
   );
   const actions = useMemo(() => {
-    if (terminalStage) return [];
+    if (nbaBlocked) return [];
     if (postRecommendations === null) return worklistActions;
 
-    return postRecommendations
-      .filter((recommendation) => recommendation.studentId === studentId.trim())
-      .map((recommendation) => {
-        const worklistItem = worklistActions.find((item) =>
-          sameNbaRecommendation(item, recommendation),
-        );
+    return postRecommendations.map((recommendation) => {
+      const worklistItem = worklistActions.find((item) =>
+        sameNbaRecommendation(item, recommendation),
+      );
 
-        if (!worklistItem) return recommendation;
+      if (!worklistItem) return recommendation;
 
-        // The worklist owns the persisted recommendation content and decision
-        // metadata. Keep the POST explanation only while GET is incomplete.
-        return {
-          ...recommendation,
-          ...worklistItem,
-          explanation: worklistItem.explanation ?? recommendation.explanation,
-          explanationSource:
-            worklistItem.explanationSource ?? recommendation.explanationSource,
-          expectedRevision: worklistItem.expectedRevision,
-          revision: worklistItem.revision,
-          permittedDecisions: worklistItem.permittedDecisions,
-        };
-      });
-  }, [postRecommendations, studentId, terminalStage, worklistActions]);
+      // The worklist owns the persisted recommendation content and decision
+      // metadata. Keep the POST explanation only while GET is incomplete.
+      return {
+        ...recommendation,
+        ...worklistItem,
+        explanation: worklistItem.explanation ?? recommendation.explanation,
+        explanationSource:
+          worklistItem.explanationSource ?? recommendation.explanationSource,
+        expectedRevision: worklistItem.expectedRevision,
+        revision: worklistItem.revision,
+        permittedDecisions: worklistItem.permittedDecisions,
+      };
+    });
+  }, [nbaBlocked, postRecommendations, worklistActions]);
   useEffect(() => {
     onActionsCountChange?.(actions.length);
   }, [actions.length, onActionsCountChange]);
-  const areAllRecommendationsExpanded =
-    actions.length > 0 &&
-    (expandedRecommendationIds === null ||
-      actions.every((recommendation) =>
-        expandedRecommendationIds.has(recommendation.id),
-      ));
-  const handleExpansionModeChange = (mode: NbaExpansionMode) => {
-    setExpandedRecommendationIds(
-      mode === "expand"
-        ? new Set(actions.map((recommendation) => recommendation.id))
-        : new Set(),
-    );
-  };
-  const handleRecommendationExpandedChange = (
-    id: string,
-    expanded: boolean,
-  ) => {
-    setExpandedRecommendationIds((current) => {
-      const next = new Set(
-        current ?? actions.map((recommendation) => recommendation.id),
-      );
-      if (expanded) {
-        next.add(id);
-      } else {
-        next.delete(id);
-      }
-      return next;
-    });
-  };
   const beginDecision = (
     recommendation: NbaRecommendation,
     operation: NbaDecisionOperation,
@@ -150,14 +112,22 @@ export default function StudentNextBestActions({
     if (!decisionMutation.isPending) setDecision(null);
   };
 
-  const runNba = async () => {
-    try {
-      const result = await runMutation.mutateAsync({ studentId });
-      await query.refetch();
-      const recommendations = result.recommendations.filter(
-        (recommendation) => recommendation.studentId === studentId.trim(),
-      );
-      setPostRecommendations(recommendations);
+	const runNba = async () => {
+		try {
+			const result = await runMutation.mutateAsync({ studentId });
+			const refreshed = await query.refetch();
+			// The run endpoint is already scoped to this one requested student. Its
+			// recommendation target uses the canonical CRM Student id, which may
+			// differ from the legacy Lead id used by the detail route. If the
+			// inline read-back is unavailable, use the permission-filtered worklist
+			// returned by the same server-side scope instead of hiding new rows.
+			const recommendations =
+				result.recommendations.length > 0
+					? result.recommendations
+					: result.recommendationCount > 0
+						? refreshed.data?.items ?? []
+						: [];
+			setPostRecommendations(recommendations);
 
       if (recommendations.length > 0 || result.recommendationCount > 0) {
         toast.success("Đã tạo đề xuất NBA cho học sinh.");
@@ -246,19 +216,13 @@ export default function StudentNextBestActions({
                 Student stage: {studentStage}
               </span>
             )}
-            {actions.length > 0 && (
-              <NbaExpansionSelect
-                value={areAllRecommendationsExpanded ? "expand" : "collapse"}
-                onChange={handleExpansionModeChange}
-              />
-            )}
             <Button
               variant="primary"
               appearance="outline"
               size="sm"
               onPress={() => void runNba()}
               isDisabled={
-                terminalStage ||
+                nbaBlocked ||
                 query.isFetching ||
                 runMutation.isPending ||
                 decisionMutation.isPending
@@ -276,6 +240,16 @@ export default function StudentNextBestActions({
           >
             Student stage <strong>{studentStage}</strong> là terminal; hiện không
             phát sinh NBA mới.
+          </div>
+        )}
+
+        {!studentStageKnown && (
+          <div
+            className="mt-4 rounded-lg border border-card-border bg-background-gray-secondary px-3 py-2.5 text-xs leading-5 text-text-secondary"
+            role="status"
+          >
+            Student stage chưa được xác định; hệ thống tạm thời chưa phát sinh
+            NBA cho hồ sơ này.
           </div>
         )}
 
@@ -334,13 +308,6 @@ export default function StudentNextBestActions({
               <StudentNbaRecommendationCard
                 key={action.id}
                 recommendation={action}
-                expanded={
-                  expandedRecommendationIds === null ||
-                  expandedRecommendationIds.has(action.id)
-                }
-                onExpandedChange={(expanded) =>
-                  handleRecommendationExpandedChange(action.id, expanded)
-                }
                 onBeginDecision={beginDecision}
               />
             ))}
@@ -362,39 +329,6 @@ export default function StudentNextBestActions({
       )}
 
     </>
-  );
-}
-
-function NbaExpansionSelect({
-  value,
-  onChange,
-}: {
-  value: NbaExpansionMode;
-  onChange: (value: NbaExpansionMode) => void;
-}) {
-  return (
-    <Select
-      value={value}
-      onChange={(key) => onChange(String(key) as NbaExpansionMode)}
-      aria-label="Hiển thị đề xuất NBA"
-      className="w-fit"
-    >
-      <SelectTrigger
-        appearance="ghost"
-        className="h-auto min-h-8 justify-start gap-1.5 whitespace-nowrap rounded-lg border-0 bg-transparent px-2 text-sm font-semibold text-text-primary shadow-none hover:bg-background-gray-secondary hover:text-text-primary"
-      >
-        <SelectValue className="max-w-none text-sm font-semibold text-text-primary" />
-        <SelectIndicator className="text-text-primary" />
-      </SelectTrigger>
-      <SelectContent className="min-w-44">
-        <SelectItem id="collapse" textValue="Thu gọn tất cả" className="py-2 whitespace-nowrap">
-          Thu gọn tất cả
-        </SelectItem>
-        <SelectItem id="expand" textValue="Mở rộng tất cả" className="py-2 whitespace-nowrap">
-          Mở rộng tất cả
-        </SelectItem>
-      </SelectContent>
-    </Select>
   );
 }
 

@@ -1,8 +1,10 @@
 import { Badge } from "@/components/tailgrids/core/badge";
+import { getTaskActionMetadata } from "@/services/api/tasks/action-catalog";
 import type {
   StudentTaskItem,
   StudentTaskType,
 } from "@/services/api/students/types";
+import { cn } from "@/utils/cn";
 
 type BadgeColor = "gray" | "warning" | "success" | "error";
 
@@ -17,7 +19,7 @@ export const taskStatusColor: Record<StudentTaskItem["status"], BadgeColor> = {
   todo: "gray",
   "in-progress": "warning",
   done: "success",
-  canceled: "error",
+  canceled: "gray",
 };
 
 export const taskTypeLabel: Record<StudentTaskType, string> = {
@@ -26,10 +28,69 @@ export const taskTypeLabel: Record<StudentTaskType, string> = {
   todo: "Việc cần làm",
 };
 
+const compactTaskActionLabels: Record<string, string> = {
+  REQUEST_MISSING_DOCUMENT: "Bổ sung giấy tờ",
+  GUIDE_NEXT_STEP: "Hướng dẫn",
+  CONTACT_PARENT: "Liên hệ PH",
+  ESCALATE_TO_SENIOR: "Chuyển cấp cao",
+  ADVISE_MAJOR: "Tư vấn ngành",
+};
+
+export function StudentTaskTypeBadge({
+  actionCode,
+  taskType = "todo",
+  size = "sm",
+  className,
+  compact = false,
+}: {
+  actionCode?: string;
+  taskType?: StudentTaskType;
+  size?: "sm" | "md";
+  className?: string;
+  compact?: boolean;
+}) {
+  const code = actionCode?.trim();
+  const action = getTaskActionMetadata(code);
+  const normalizedCode = code?.toUpperCase();
+  const fullLabel = action?.displayName || taskTypeLabel[taskType];
+  const label =
+    (compact && normalizedCode && compactTaskActionLabels[normalizedCode]) ||
+    fullLabel;
+
+  return (
+    <Badge
+      color={action?.color ?? "gray"}
+      size={size}
+      prefixIcon={
+        action ? (
+          <span
+            className="size-1.5 rounded-full bg-current"
+            aria-hidden="true"
+          />
+        ) : undefined
+      }
+      title={
+        code
+          ? `${code} · ${fullLabel}${action?.description ? ` · ${action.description}` : ""}`
+          : `Loại task: ${fullLabel}`
+      }
+      className={cn("whitespace-nowrap font-semibold", className)}
+    >
+      {label}
+    </Badge>
+  );
+}
+
 const priorityDotClass: Record<StudentTaskItem["priority"], string> = {
   Cao: "bg-badge-error-icon-color",
   "Trung bình": "bg-badge-warning-icon-color",
-  Thấp: "bg-badge-success-icon-color",
+  Thấp: "bg-badge-neutral-icon-color",
+};
+
+const priorityBadgeColor: Record<StudentTaskItem["priority"], BadgeColor> = {
+  Cao: "error",
+  "Trung bình": "warning",
+  Thấp: "gray",
 };
 
 export function StudentTaskStatusBadge({
@@ -57,18 +118,20 @@ export function StudentTaskPriority({
   size?: "sm" | "md";
 }) {
   return (
-    <span
-      className={`inline-flex items-center whitespace-nowrap font-semibold text-text-primary ${
-        size === "sm" ? "gap-1.5 text-sm" : "gap-2 text-base"
-      }`}
+    <Badge
+      color={priorityBadgeColor[priority]}
+      size={size}
+      prefixIcon={
+        <span
+          className={`shrink-0 rounded-full ${
+            size === "sm" ? "size-1.5" : "size-2"
+          } ${priorityDotClass[priority]}`}
+          aria-hidden="true"
+        />
+      }
+      className="whitespace-nowrap font-semibold"
     >
-      <span
-        className={`shrink-0 rounded-full ${
-          size === "sm" ? "size-2" : "size-2.5"
-        } ${priorityDotClass[priority]}`}
-        aria-hidden="true"
-      />
       {priority}
-    </span>
+    </Badge>
   );
 }

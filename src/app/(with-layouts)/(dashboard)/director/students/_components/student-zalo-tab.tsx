@@ -1,14 +1,11 @@
 "use client";
 
-import { ArrowRight, ChevronDown, ChevronRight, FileText } from "@tailgrids/icons";
+import { ArrowRight, ChevronDown, ChevronRight } from "@tailgrids/icons";
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import type {
-  StudentZaloMessage,
-  StudentZaloMessageStatus,
-} from "@/services/api/students/types";
+import type { StudentZaloMessage } from "@/services/api/students/types";
 import { formatDateTime } from "@/utils/format-date";
 
 import StudentActivityToolbar, {
@@ -22,6 +19,9 @@ import {
   parseStudentActivityDate,
   type ActivityTimeFilter,
 } from "./student-activity-utils";
+import StudentZaloMessageDetails, {
+  zaloMessageStatusConfig,
+} from "./student-zalo-message-details";
 
 interface StudentZaloTabProps {
   messages: StudentZaloMessage[];
@@ -34,24 +34,18 @@ interface StudentZaloConversation {
   latestMessage: StudentZaloMessage;
 }
 
-const statusConfig: Record<
-  StudentZaloMessageStatus,
-  { label: string; color: "gray" | "primary" | "success" | "error" }
-> = {
-  sent: { label: "Đã gửi", color: "gray" },
-  delivered: { label: "Đã nhận", color: "primary" },
-  read: { label: "Đã xem", color: "success" },
-  failed: { label: "Gửi lỗi", color: "error" },
-};
-
 export default function StudentZaloTab({ messages }: StudentZaloTabProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<ActivityTimeFilter>("all");
-  const [expansionMode, setExpansionMode] = useState<ActivityExpansionMode>("collapse");
-  const allConversations = useMemo(() => groupConversations(messages), [messages]);
-  const [expandedConversationIds, setExpandedConversationIds] = useState<Set<string>>(
-    () => new Set(allConversations.map((conversation) => conversation.id)),
+  const [expansionMode, setExpansionMode] =
+    useState<ActivityExpansionMode>("collapse");
+  const allConversations = useMemo(
+    () => groupConversations(messages),
+    [messages],
   );
+  const [expandedConversationIds, setExpandedConversationIds] = useState<
+    Set<string>
+  >(() => new Set(allConversations.map((conversation) => conversation.id)));
 
   const filteredMessages = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("vi-VN");
@@ -68,7 +62,9 @@ export default function StudentZaloTab({ messages }: StudentZaloTabProps) {
           message.recipientRole,
           message.conversationTitle,
           message.attachmentName,
-          message.status ? statusConfig[message.status].label : undefined,
+          message.status
+            ? zaloMessageStatusConfig[message.status].label
+            : undefined,
         ]
           .filter(Boolean)
           .some((value) => value?.toLocaleLowerCase("vi-VN").includes(query));
@@ -85,7 +81,11 @@ export default function StudentZaloTab({ messages }: StudentZaloTabProps) {
   const handleExpansionModeChange = (mode: ActivityExpansionMode) => {
     setExpansionMode(mode);
     setExpandedConversationIds(
-      new Set(mode === "expand" ? allConversations.map((conversation) => conversation.id) : []),
+      new Set(
+        mode === "expand"
+          ? allConversations.map((conversation) => conversation.id)
+          : [],
+      ),
     );
   };
 
@@ -120,32 +120,54 @@ export default function StudentZaloTab({ messages }: StudentZaloTabProps) {
       </div>
 
       {messages.length === 0 ? (
-        <p className="py-2 text-xs text-text-tertiary">Chưa có tin nhắn Zalo.</p>
+        <p className="py-2 text-xs text-text-tertiary">
+          Chưa có tin nhắn Zalo.
+        </p>
       ) : filteredMessages.length === 0 ? (
-        <p className="py-2 text-xs text-text-tertiary">Không tìm thấy tin nhắn phù hợp.</p>
+        <p className="py-2 text-xs text-text-tertiary">
+          Không tìm thấy tin nhắn phù hợp.
+        </p>
       ) : (
         <div className="space-y-8">
           {conversations.map((conversation) => {
             const expanded = expandedConversationIds.has(conversation.id);
             return (
-              <section key={conversation.id} aria-labelledby={`${conversation.id}-heading`}>
+              <section
+                key={conversation.id}
+                aria-labelledby={`${conversation.id}-heading`}
+              >
                 <div className="flex flex-col gap-2 border-b border-card-border pb-3 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
                     onClick={() =>
-                      handleConversationExpandedChange(conversation.id, !expanded)
+                      handleConversationExpandedChange(
+                        conversation.id,
+                        !expanded,
+                      )
                     }
                     aria-expanded={expanded}
                     aria-labelledby={`${conversation.id}-heading`}
                     className="flex min-w-0 items-center gap-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                   >
-                    <span className="shrink-0 text-text-tertiary" aria-hidden="true">
-                      {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    <span
+                      className="shrink-0 text-text-tertiary"
+                      aria-hidden="true"
+                    >
+                      {expanded ? (
+                        <ChevronDown size={16} />
+                      ) : (
+                        <ChevronRight size={16} />
+                      )}
                     </span>
-                    <span id={`${conversation.id}-heading`} className="truncate text-base font-semibold text-text-primary">
+                    <span
+                      id={`${conversation.id}-heading`}
+                      className="truncate text-base font-semibold text-text-primary"
+                    >
                       {conversation.title}
                     </span>
-                    <Badge color="sky">{conversation.messages.length} tin</Badge>
+                    <Badge color="sky">
+                      {conversation.messages.length} tin
+                    </Badge>
                   </button>
                   <time className="pl-9 text-sm text-text-tertiary sm:pl-0">
                     {formatDateTime(conversation.latestMessage.time)}
@@ -174,7 +196,9 @@ export default function StudentZaloTab({ messages }: StudentZaloTabProps) {
   );
 }
 
-function groupConversations(messages: StudentZaloMessage[]): StudentZaloConversation[] {
+function groupConversations(
+  messages: StudentZaloMessage[],
+): StudentZaloConversation[] {
   const conversations = new Map<string, StudentZaloMessage[]>();
 
   for (const message of messages) {
@@ -208,9 +232,6 @@ function groupConversations(messages: StudentZaloMessage[]): StudentZaloConversa
 }
 
 function ZaloMessageStep({ message }: { message: StudentZaloMessage }) {
-  const status = statusConfig[message.status ?? "sent"];
-  const isOutbound = message.direction === "outbound";
-
   return (
     <li className="relative">
       <span
@@ -220,40 +241,7 @@ function ZaloMessageStep({ message }: { message: StudentZaloMessage }) {
         <span className="size-2.5 rounded-full bg-badge-sky-text" />
       </span>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-text-primary">
-            {message.senderName}
-            {message.senderRole ? (
-              <span className="ml-2 font-normal text-text-tertiary">{message.senderRole}</span>
-            ) : null}
-          </p>
-          <p className="mt-0.5 text-xs text-text-tertiary">Gửi đến {message.recipientName}</p>
-        </div>
-        <time className="shrink-0 text-xs text-text-tertiary">{formatDateTime(message.time)}</time>
-      </div>
-
-      <div
-        className={
-          isOutbound
-            ? "mt-3 w-fit max-w-2xl rounded-2xl rounded-br-md bg-badge-sky-background px-4 py-3"
-            : "mt-3 w-fit max-w-2xl rounded-2xl rounded-bl-md bg-background-gray-secondary px-4 py-3"
-        }
-      >
-        <p className="whitespace-pre-line text-sm leading-6 text-text-primary">{message.content}</p>
-      </div>
-
-      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
-        <Badge color={isOutbound ? "sky" : "gray"}>
-          {isOutbound ? "Tin nhắn gửi" : "Tin nhắn đến"}
-        </Badge>
-        <Badge color={status.color}>{status.label}</Badge>
-        {message.attachmentName ? (
-          <Badge color="primary" prefixIcon={<FileText size={12} />}>
-            {message.attachmentName}
-          </Badge>
-        ) : null}
-      </div>
+      <StudentZaloMessageDetails message={message} />
     </li>
   );
 }
@@ -269,9 +257,10 @@ export function StudentZaloSummary({
 
   const latestMessage = [...messages].sort(
     (a, b) =>
-      parseStudentActivityDate(b.time).getTime() - parseStudentActivityDate(a.time).getTime(),
+      parseStudentActivityDate(b.time).getTime() -
+      parseStudentActivityDate(a.time).getTime(),
   )[0];
-  const status = statusConfig[latestMessage.status ?? "sent"];
+  const status = zaloMessageStatusConfig[latestMessage.status ?? "sent"];
 
   return (
     <div className="space-y-3">
@@ -279,7 +268,9 @@ export function StudentZaloSummary({
         <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
           <Badge color="sky">Zalo</Badge>
           <span>{messages.length} tin nhắn</span>
-          <span className="text-text-tertiary">· {latestMessage.senderName}</span>
+          <span className="text-text-tertiary">
+            · {latestMessage.senderName}
+          </span>
         </div>
         <Badge color={status.color}>{status.label}</Badge>
       </div>

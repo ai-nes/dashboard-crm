@@ -12,6 +12,7 @@ import type {
   DirectorNbaRecommendationsResponse,
   StudentNbaWorklistResponse,
 } from "./types";
+import { actionLabel } from "./presentation";
 
 export type * from "./types";
 
@@ -151,9 +152,13 @@ function normalizeRecommendation(
   const record = asRecord(value);
   if (!record) return null;
 
+  const target = asRecord(record.target);
+  const viewAction = asRecord(record.action);
   const id = text(record.id) ?? text(record.recommendation);
-  const studentId = text(record.studentId) ?? text(record.student_id);
-  const actionId = text(record.actionId) ?? text(record.action_id);
+  const studentId =
+    text(record.studentId) ?? text(record.student_id) ?? text(target?.id);
+  const actionId =
+    text(record.actionId) ?? text(record.action_id) ?? text(viewAction?.code);
   const reason = text(record.reason);
   if (
     !id ||
@@ -171,12 +176,35 @@ function normalizeRecommendation(
       ? record.priority
       : "medium";
   const explanationSource =
-    record.explanationSource === "model" || record.explanation_source === "model"
+    record.explanationSource === "model" ||
+    record.explanation_source === "model"
       ? "model"
       : null;
+  const explanation = normalizeExplanation(
+    record.explanation ?? record.explanation_json ?? record.explanationJson,
+  );
+  const status = asRecord(record.status);
+  const timing = asRecord(record.timing);
+  const context = Array.isArray(record.context)
+    ? record.context.filter(
+        (item): item is string =>
+          typeof item === "string" && item.trim() !== "",
+      )
+    : [];
 
   return {
     id,
+    target: {
+      type: text(target?.type) ?? "CRM Lead",
+      id: studentId,
+    },
+    action: {
+      code: text(viewAction?.code) ?? actionId,
+      title:
+        text(viewAction?.title) ??
+        explanation?.action.title ??
+        actionLabel(actionId),
+    },
     rank: number(record.rank, 1),
     recommendationKey:
       text(record.recommendationKey) ?? text(record.recommendation_key) ?? id,
@@ -186,10 +214,24 @@ function normalizeRecommendation(
     priority,
     channel: text(record.channel),
     reason: reason ?? "",
+    objective: text(record.objective),
+    context,
+    timing: {
+      scheduledAt:
+        text(timing?.scheduled_at) ??
+        text(timing?.scheduledAt) ??
+        explanation?.timing.recommended_at ??
+        null,
+      expiresAt: text(timing?.expires_at) ?? text(timing?.expiresAt),
+      timezone: text(timing?.timezone),
+    },
+    status: {
+      lifecycle: text(status?.lifecycle) ?? "proposed",
+      decision: text(status?.decision) ?? "pending",
+      execution: text(status?.execution) ?? "not_started",
+    },
     aiPayload,
-    explanation: normalizeExplanation(
-      record.explanation ?? record.explanation_json ?? record.explanationJson,
-    ),
+    explanation,
     explanationSource,
     evaluation: normalizeEvaluation(record.evaluation),
     generatedAt: text(record.generatedAt) ?? text(record.generated_at) ?? "",

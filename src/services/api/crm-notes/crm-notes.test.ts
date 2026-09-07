@@ -26,7 +26,7 @@ describe("CRM Notes API Service", () => {
         {
           name: "NOTE-001",
           content: "<p>Đã trao đổi về học bổng 30%</p>",
-          reference_doctype: "CRM Student",
+          reference_doctype: "CRM Lead",
           reference_docname: "STU-0001",
           modified: "2026-09-04 10:00:00",
           creation: "2026-09-04 09:30:00",
@@ -50,7 +50,7 @@ describe("CRM Notes API Service", () => {
 
       const result = await listNotes(
         {
-          referenceDoctype: "CRM Student",
+          referenceDoctype: "CRM Lead",
           referenceDocname: "STU-0001",
           search: "học bổng",
         },
@@ -58,7 +58,7 @@ describe("CRM Notes API Service", () => {
       );
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        `${baseUrl}/api/method/crm.api.note.list_notes?reference_doctype=CRM+Student&reference_docname=STU-0001&start=0&page_length=20&search=h%E1%BB%8Dc+b%E1%BB%95ng`,
+        `${baseUrl}/api/method/crm.api.note.list_notes?reference_doctype=CRM+Lead&reference_docname=STU-0001&start=0&page_length=20&search=h%E1%BB%8Dc+b%E1%BB%95ng`,
         expect.objectContaining({
           method: "GET",
         }),
@@ -67,7 +67,7 @@ describe("CRM Notes API Service", () => {
       expect(result.total).toBe(1);
       expect(result.notes[0].name).toBe("NOTE-001");
       expect(result.notes[0].ownerFullName).toBe("Trần Quốc Bảo");
-      expect(result.notes[0].referenceDoctype).toBe("CRM Student");
+      expect(result.notes[0].referenceDoctype).toBe("CRM Lead");
     });
   });
 
@@ -76,7 +76,7 @@ describe("CRM Notes API Service", () => {
       const createdNote = {
         name: "NOTE-002",
         content: "<p>Phụ huynh đồng ý nộp hồ sơ</p>",
-        reference_doctype: "CRM Student",
+        reference_doctype: "CRM Lead",
         reference_docname: "STU-0001",
       };
 
@@ -90,7 +90,7 @@ describe("CRM Notes API Service", () => {
 
       const result = await createNote(
         {
-          referenceDoctype: "CRM Student",
+          referenceDoctype: "CRM Lead",
           referenceDocname: "STU-0001",
           content: "<p>Phụ huynh đồng ý nộp hồ sơ</p>",
         },
@@ -102,7 +102,7 @@ describe("CRM Notes API Service", () => {
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
-            reference_doctype: "CRM Student",
+            reference_doctype: "CRM Lead",
             reference_docname: "STU-0001",
             content: "<p>Phụ huynh đồng ý nộp hồ sơ</p>",
           }),
@@ -122,7 +122,7 @@ describe("CRM Notes API Service", () => {
           message: {
             name: "NOTE-002",
             content: "<p>Đã nộp hồ sơ</p>",
-            reference_doctype: "CRM Student",
+            reference_doctype: "CRM Lead",
             reference_docname: "STU-0001",
           },
         }),
@@ -182,7 +182,7 @@ describe("CRM Notes API Service", () => {
           message: {
             name: "NOTE-001",
             content: "Nội dung",
-            reference_doctype: "CRM Student",
+            reference_doctype: "CRM Lead",
             reference_docname: "STU-0001",
           },
         }),
@@ -222,7 +222,7 @@ describe("CRM Notes API Service", () => {
 
       await expect(
         listNotes(
-          { referenceDoctype: "CRM Student", referenceDocname: "STU-0001" },
+          { referenceDoctype: "CRM Lead", referenceDocname: "STU-0001" },
           { baseUrl },
         ),
       ).rejects.toThrow(CrmNoteApiError);

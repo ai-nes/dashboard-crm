@@ -19,10 +19,11 @@ import {
 interface StudentTasksTabProps {
   studentName: string;
   assignee: string;
+  studentStage?: string;
   tasks: StudentTaskItem[];
   onCreateTask: (task: StudentTaskItem) => Promise<void>;
   onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
-  onDeleteTask: (id: string) => void;
+  onDeleteTask?: (id: string) => void;
   canCreateTask: boolean;
   createTaskDisabledReason?: string;
   assigneeId?: string;
@@ -98,6 +99,7 @@ function groupTasks(tasks: StudentTaskItem[]): StudentTaskGroup[] {
 export default function StudentTasksTab({
   studentName,
   assignee,
+  studentStage,
   tasks,
   onCreateTask,
   onUpdateTask,
@@ -230,6 +232,7 @@ export default function StudentTasksTab({
                     task={task}
                     onUpdateTask={onUpdateTask}
                     onDeleteTask={onDeleteTask}
+                    studentStage={studentStage}
                     expanded={expandedTaskIds.has(task.id)}
                     onExpandedChange={(expanded) =>
                       handleTaskExpandedChange(task.id, expanded)
@@ -248,7 +251,6 @@ export default function StudentTasksTab({
         studentName={studentName}
         assignee={assignee}
         assigneeId={assigneeId}
-        assignmentDisabledReason={createTaskDisabledReason}
         isAssignmentLocked
         onCreate={handleCreateTask}
         isSubmitting={isCreating}

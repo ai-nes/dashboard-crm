@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
-import { useAssignment } from "./assignment-context";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
 
 const groups = [
   {
@@ -61,7 +61,7 @@ export default function ReviewQueue() {
           Đã xử lý hết các trường hợp trong snapshot hiện tại.
         </Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-3">
           {groups.map((group) => {
             const items = records.filter(
               (record) => record.status === group.status,

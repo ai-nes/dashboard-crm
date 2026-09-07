@@ -1,15 +1,11 @@
 "use client";
 
-import { ChevronRight, ClockThree } from "@tailgrids/icons";
+import { ChevronRight } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import type { DirectorNbaRecommendation } from "@/services/api/nba";
-import {
-  actionLabel,
-  formatNbaChannel,
-  formatNbaDateTime,
-} from "@/services/api/nba/presentation";
+import { formatNbaDateTime } from "@/services/api/nba/presentation";
 import { cn } from "@/utils/cn";
 
 interface DirectorRecommendationListProps {
@@ -20,9 +16,9 @@ interface DirectorRecommendationListProps {
 }
 
 const priorityLabels = {
-  high: "Ưu tiên cao",
-  medium: "Ưu tiên vừa",
-  low: "Ưu tiên thấp",
+  high: "Cao",
+  medium: "Vừa",
+  low: "Thấp",
 } as const;
 
 const priorityColors = {
@@ -38,7 +34,7 @@ export default function DirectorRecommendationList({
   onSelect,
 }: DirectorRecommendationListProps) {
   return (
-    <ol className="divide-y divide-card-border">
+    <ol className="divide-y divide-card-border xl:max-h-[calc(100vh-16rem)] xl:overflow-y-auto">
       {recommendations.map((recommendation) => {
         const isSelected = recommendation.id === selectedId;
         const studentName =
@@ -53,20 +49,15 @@ export default function DirectorRecommendationList({
               onClick={() => onSelect(recommendation.id)}
               aria-current={isSelected ? "true" : undefined}
               className={cn(
-                "group flex w-full items-start gap-3 px-4 py-4 text-left outline-none transition-colors hover:bg-background-soft-50 focus-visible:ring-4 focus-visible:ring-button-primary-focus-ring sm:px-5",
+                "group flex w-full items-start gap-3 px-4 py-3.5 text-left outline-none transition-colors hover:bg-background-soft-50 focus-visible:ring-4 focus-visible:ring-button-primary-focus-ring sm:px-5",
                 isSelected && "bg-badge-primary-background/35",
               )}
             >
               <span
-                className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-                  isSelected
-                    ? "bg-button-primary-background text-button-primary-text"
-                    : "bg-background-soft-50 text-text-secondary",
-                )}
+                className="pt-1 text-xs font-semibold tabular-nums text-text-tertiary"
                 aria-hidden="true"
               >
-                #{recommendation.rank}
+                {String(recommendation.rank).padStart(2, "0")}
               </span>
 
               <span className="min-w-0 flex-1">
@@ -78,23 +69,20 @@ export default function DirectorRecommendationList({
                     {priorityLabels[recommendation.priority]}
                   </Badge>
                 </span>
-                {studentName !== recommendation.studentId && (
-                  <span className="mt-1 block truncate text-xs text-text-secondary">
-                    {recommendation.studentId}
-                  </span>
-                )}
-                <span className="mt-2 block text-sm leading-5 text-text-primary">
-                  {actionLabel(recommendation.actionId)}
+                <span className="mt-1 block truncate text-xs text-text-tertiary">
+                  {recommendation.target.id}
                 </span>
-                <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
-                  <span className="inline-flex items-center gap-1.5">
-                    <ClockThree size={13} aria-hidden="true" />
-                    {formatNbaDateTime(recommendation.generatedAt)}
-                  </span>
-                  {recommendation.channel && (
-                    <span>
-                      Kênh: {formatNbaChannel(recommendation.channel)}
-                    </span>
+                <span className="mt-2 block truncate text-sm leading-5 text-text-primary">
+                  {recommendation.action.title}
+                </span>
+                <span className="mt-1 block line-clamp-1 text-xs leading-5 text-text-secondary">
+                  {(recommendation.objective ?? recommendation.reason) ||
+                    "Chưa có mục tiêu cho đề xuất này."}
+                </span>
+                <span className="mt-1.5 block text-xs text-text-tertiary">
+                  {formatNbaDateTime(
+                    recommendation.timing.scheduledAt ??
+                      recommendation.generatedAt,
                   )}
                 </span>
               </span>

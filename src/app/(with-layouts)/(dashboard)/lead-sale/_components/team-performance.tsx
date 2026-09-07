@@ -21,7 +21,7 @@ export default function TeamPerformance({
           </p>
         </div>
         <Link
-          href="/lead-sale/sales-team"
+          href="/lead-sale/team-management"
           className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 transition-colors hover:text-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
         >
           Xem đội ngũ

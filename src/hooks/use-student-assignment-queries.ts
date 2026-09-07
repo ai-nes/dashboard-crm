@@ -11,11 +11,14 @@ import {
 import {
   getStudentAssignmentDetail,
   getStudentAssignmentWorkspace,
+  runStudentAssignmentPipeline,
   resolveStudentAssignment,
   type AssignmentDetailResponse,
   type AssignmentWorkspaceResponse,
   type ResolveStudentAssignmentRequest,
   type ResolveStudentAssignmentResponse,
+  type RunStudentAssignmentPipelineRequest,
+  type RunStudentAssignmentPipelineResponse,
   type StudentAssignmentWorkspaceParams,
 } from "@/services/api/lead-sale";
 
@@ -24,10 +27,18 @@ export const studentAssignmentKeys = {
   workspace: (params: StudentAssignmentWorkspaceParams = {}) =>
     ["lead-sale", "student-assignment", "workspace", params] as const,
   detail: (studentId: string, admissionYear?: number) =>
-    ["lead-sale", "student-assignment", "detail", studentId, admissionYear] as const,
+    [
+      "lead-sale",
+      "student-assignment",
+      "detail",
+      studentId,
+      admissionYear,
+    ] as const,
 };
 
-export function useStudentAssignmentWorkspaceQuery<TData = AssignmentWorkspaceResponse>(
+export function useStudentAssignmentWorkspaceQuery<
+  TData = AssignmentWorkspaceResponse,
+>(
   params: StudentAssignmentWorkspaceParams = {},
   options?: Omit<
     UseQueryOptions<
@@ -46,7 +57,9 @@ export function useStudentAssignmentWorkspaceQuery<TData = AssignmentWorkspaceRe
   });
 }
 
-export function useStudentAssignmentDetailQuery<TData = AssignmentDetailResponse>(
+export function useStudentAssignmentDetailQuery<
+  TData = AssignmentDetailResponse,
+>(
   studentId: string | null,
   admissionYear?: number,
   options?: Omit<
@@ -67,6 +80,22 @@ export function useStudentAssignmentDetailQuery<TData = AssignmentDetailResponse
   });
 }
 
+export function useRunStudentAssignmentPipelineMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    RunStudentAssignmentPipelineResponse,
+    Error,
+    RunStudentAssignmentPipelineRequest
+  >({
+    mutationFn: (request) => runStudentAssignmentPipeline(request),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: studentAssignmentKeys.all,
+      });
+    },
+  });
+}
+
 export function useResolveStudentAssignmentMutation() {
   const queryClient = useQueryClient();
   return useMutation<
@@ -76,7 +105,9 @@ export function useResolveStudentAssignmentMutation() {
   >({
     mutationFn: (request) => resolveStudentAssignment(request),
     onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: studentAssignmentKeys.all });
+      await queryClient.invalidateQueries({
+        queryKey: studentAssignmentKeys.all,
+      });
       await queryClient.invalidateQueries({
         queryKey: studentAssignmentKeys.detail(response.studentId, undefined),
       });

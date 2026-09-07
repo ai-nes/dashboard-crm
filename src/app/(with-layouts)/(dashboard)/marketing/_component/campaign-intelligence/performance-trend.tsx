@@ -17,17 +17,14 @@ export function PerformanceTrend({
     <Card className="flex h-full flex-col p-0">
       <CardHeader className="flex flex-col gap-2 border-b border-card-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <CardTitle>Chi phí và khoản thu đã đối soát</CardTitle>
-          <p className="mt-0.5 text-xs text-text-tertiary">
-            Theo dõi hiệu quả đã được CRM đối soát
-          </p>
+          <CardTitle>Chi phí & doanh thu</CardTitle>
         </div>
 
         {/* Legend */}
         <div className="flex items-center gap-4 text-xs font-medium text-text-secondary">
           <div className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full bg-primary-500" />
-            <span>Khoản thu đã đối soát</span>
+            <span>Doanh thu</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-0.5 w-3 rounded-full border-t-2 border-dashed border-text-300" />

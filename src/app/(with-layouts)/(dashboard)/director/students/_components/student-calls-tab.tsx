@@ -57,7 +57,8 @@ const directionBadgeColor: Record<
 export default function StudentCallsTab({ calls }: StudentCallsTabProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<ActivityTimeFilter>("all");
-  const [expansionMode, setExpansionMode] = useState<ActivityExpansionMode>("collapse");
+  const [expansionMode, setExpansionMode] =
+    useState<ActivityExpansionMode>("collapse");
   const [expandedCallIds, setExpandedCallIds] = useState<Set<string>>(
     () => new Set(calls.map((call) => call.id)),
   );
@@ -88,13 +89,18 @@ export default function StudentCallsTab({ calls }: StudentCallsTabProps) {
   }, [calls, search, timeFilter]);
 
   const groupedCalls = useMemo(
-    () => groupActivitiesByDate(filteredCalls, (call) => parseStudentActivityDate(call.time)),
+    () =>
+      groupActivitiesByDate(filteredCalls, (call) =>
+        parseStudentActivityDate(call.time),
+      ),
     [filteredCalls],
   );
 
   const handleExpansionModeChange = (mode: ActivityExpansionMode) => {
     setExpansionMode(mode);
-    setExpandedCallIds(new Set(mode === "expand" ? calls.map((call) => call.id) : []));
+    setExpandedCallIds(
+      new Set(mode === "expand" ? calls.map((call) => call.id) : []),
+    );
   };
 
   const handleCallExpandedChange = (id: string, expanded: boolean) => {
@@ -128,9 +134,13 @@ export default function StudentCallsTab({ calls }: StudentCallsTabProps) {
       </div>
 
       {calls.length === 0 ? (
-        <p className="py-2 text-xs text-text-tertiary">Chưa có lịch sử cuộc gọi.</p>
+        <p className="py-2 text-xs text-text-tertiary">
+          Chưa có lịch sử cuộc gọi.
+        </p>
       ) : filteredCalls.length === 0 ? (
-        <p className="py-2 text-xs text-text-tertiary">Không tìm thấy cuộc gọi phù hợp.</p>
+        <p className="py-2 text-xs text-text-tertiary">
+          Không tìm thấy cuộc gọi phù hợp.
+        </p>
       ) : (
         <div className="space-y-6">
           {groupedCalls.map((group) => (
@@ -144,18 +154,13 @@ export default function StudentCallsTab({ calls }: StudentCallsTabProps) {
                 return (
                   <StudentActivityCard
                     key={call.id}
-                    title={
-                      <>
-                        <strong className="font-semibold text-text-primary">Cuộc gọi</strong>
-                        <span className="hidden text-sm font-medium text-text-secondary sm:inline">
-                          {` · ${call.topic || directionLabel[call.direction]}`}
-                        </span>
-                      </>
-                    }
+                    title={<StudentCallActivityTitle call={call} />}
                     timestamp={formatDateTime(call.time)}
                     preview={<StudentCallDetails call={call} compact />}
                     expanded={expandedCallIds.has(call.id)}
-                    onExpandedChange={(expanded) => handleCallExpandedChange(call.id, expanded)}
+                    onExpandedChange={(expanded) =>
+                      handleCallExpandedChange(call.id, expanded)
+                    }
                   >
                     <StudentCallDetails call={call} />
                   </StudentActivityCard>
@@ -183,8 +188,12 @@ export function StudentCallDetails({
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-secondary">
-            <span>{call.callerName} → {call.receiverName}</span>
-            <span className="text-text-tertiary">{formatDuration(call.durationSeconds)}</span>
+            <span>
+              {call.callerName} → {call.receiverName}
+            </span>
+            <span className="text-text-tertiary">
+              {formatDuration(call.durationSeconds)}
+            </span>
           </div>
           <Badge color={outcome.color}>{outcome.label}</Badge>
         </div>
@@ -196,8 +205,16 @@ export function StudentCallDetails({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <CallMeta label="Người gọi" value={call.callerName} detail={call.callerRole} />
-        <CallMeta label="Người nhận" value={call.receiverName} detail={call.receiverRole} />
+        <CallMeta
+          label="Người gọi"
+          value={call.callerName}
+          detail={call.callerRole}
+        />
+        <CallMeta
+          label="Người nhận"
+          value={call.receiverName}
+          detail={call.receiverRole}
+        />
         <CallMeta label="Số điện thoại" value={call.phoneNumber || "-"} />
         <div className="min-w-0">
           <p className="text-xs text-text-tertiary">Kết quả</p>
@@ -217,8 +234,12 @@ export function StudentCallDetails({
 
       {call.summary ? (
         <div className="rounded-lg bg-background-gray-secondary/60 px-4 py-3">
-          <p className="text-xs font-medium text-text-tertiary">Tóm tắt cuộc gọi</p>
-          <p className="mt-1 text-sm leading-6 text-text-primary">{call.summary}</p>
+          <p className="text-xs font-medium text-text-tertiary">
+            Tóm tắt cuộc gọi
+          </p>
+          <p className="mt-1 text-sm leading-6 text-text-primary">
+            {call.summary}
+          </p>
         </div>
       ) : null}
 
@@ -227,14 +248,42 @@ export function StudentCallDetails({
   );
 }
 
-function CallMeta({ label, value, detail }: { label: string; value: string; detail?: string }) {
+export function StudentCallActivityTitle({
+  call,
+}: {
+  call: StudentCallRecord;
+}) {
+  return (
+    <>
+      <strong className="font-semibold text-text-primary">Cuộc gọi</strong>
+      <span className="hidden text-sm font-medium text-text-secondary sm:inline">
+        {` · ${call.topic || directionLabel[call.direction]}`}
+      </span>
+    </>
+  );
+}
+
+function CallMeta({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+}) {
   return (
     <div className="min-w-0">
       <p className="text-xs text-text-tertiary">{label}</p>
-      <p className="mt-1 truncate text-sm font-semibold text-text-primary" title={value}>
+      <p
+        className="mt-1 truncate text-sm font-semibold text-text-primary"
+        title={value}
+      >
         {value || "-"}
       </p>
-      {detail ? <p className="mt-0.5 truncate text-xs text-text-tertiary">{detail}</p> : null}
+      {detail ? (
+        <p className="mt-0.5 truncate text-xs text-text-tertiary">{detail}</p>
+      ) : null}
     </div>
   );
 }

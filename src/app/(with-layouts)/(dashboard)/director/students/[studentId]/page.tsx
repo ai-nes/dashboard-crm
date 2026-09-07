@@ -4,6 +4,7 @@ import Student360Dashboard from "../_components/student-360-dashboard";
 import {
   getStudent360,
   getStudentChatwootInteractions,
+  getStudentInteractions,
 } from "@/services/api/students";
 
 export const metadata: Metadata = {
@@ -21,9 +22,10 @@ export default async function StudentDetailPage({
 }) {
   const { studentId } = await params;
   const { tab, taskId } = await searchParams;
-  const [data, chatwootInteractions] = await Promise.all([
+  const [data, chatwootInteractions, interactions] = await Promise.all([
     getStudent360(studentId).catch(() => null),
     getStudentChatwootInteractions(studentId).catch(() => null),
+    getStudentInteractions(studentId).catch(() => null),
   ]);
 
   return (
@@ -31,6 +33,7 @@ export default async function StudentDetailPage({
       studentId={studentId}
       initialData={data}
       initialChatwootInteractions={chatwootInteractions}
+      initialStudentInteractions={interactions}
       initialTab={tab}
       initialTaskId={taskId}
     />

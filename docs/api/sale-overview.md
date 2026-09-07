@@ -412,7 +412,7 @@ Các route con hiện tái sử dụng component của Director. Chúng cần co
 
 | Route | API hiện có / cần dùng | Ghi chú |
 |---|---|---|
-| `/sale/students` | `crm.api.director_students.get_director_students`, `get_director_student` | Bắt buộc lọc `assigned_to` theo Sale ở backend; tham khảo [director-students.md](./director-students.md) và [director-student-detail.md](./director-student-detail.md) |
+| `/sale/students` | `crm.api.director_students.get_director_students`, `get_director_student` | Danh sách đọc theo pool + team của Sale; các mutation trên hồ sơ vẫn chỉ trong scope assigned của Sale. Backend phải suy ra scope từ session/capability; tham khảo [director-students.md](./director-students.md) và [director-student-detail.md](./director-student-detail.md) |
 | `/sale/tasks` | `crm.api.task.list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task` | CRUD task phải kiểm tra owner/assignment; service hiện có tại [crm-tasks/index.ts](<../../src/services/api/crm-tasks/index.ts>) |
 | `/sale/next-best-action` | NBA recommendation/operational APIs hiện có | Chỉ trả recommendation của student thuộc Sale; tham khảo [director-next-best-action.md](./director-next-best-action.md) |
 | `/sale/demographics` | `director_demographics` overview/segment | Nếu cho Sale xem, backend phải áp dụng scope own trước khi aggregate; không dùng mặc định `scope=all` |

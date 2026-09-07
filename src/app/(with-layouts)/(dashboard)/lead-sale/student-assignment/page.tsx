@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
-import AssignmentWorkspace from "./_components/assignment-workspace";
+import AssignmentBatchWorkspace from "./_components/assignment-batch-workspace";
 
 export const metadata: Metadata = {
   title: "Phân công tự động",
   description:
-    "Theo dõi phân công tự động, xem lý do và xử lý học sinh đang chờ phân công.",
+    "Theo dõi các bước kiểm tra và phân công Lead theo từng đợt.",
 };
 
 export default function LeadSaleStudentAssignmentPage() {
-  return <AssignmentWorkspace />;
+  return <AssignmentBatchWorkspace />;
 }

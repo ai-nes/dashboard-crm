@@ -1,193 +1,367 @@
 "use client";
 
 import { CheckCircle1, ClockThree } from "@tailgrids/icons";
-import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 
 import type {
+  InteractionCatalogItem,
+  InteractionFeedFilters,
+  InteractionSummary,
+} from "@/services/api/interaction-intelligence";
+import {
+  useInteractionCatalogQuery,
+  useInteractionFeedQuery,
+} from "@/hooks/use-interaction-intelligence-queries";
+import type { StudentAuditLog } from "@/services/api/student-audit";
+import type {
   StudentCallRecord,
-  StudentNoteItem,
   StudentTaskItem,
   StudentZaloMessage,
 } from "@/services/api/students/types";
-import type { StudentAuditLog } from "@/services/api/student-audit";
 import { formatDateTime } from "@/utils/format-date";
 
+import StudentActivityAiInsight from "./student-activity-ai-insight";
 import StudentActivityCard from "./student-activity-card";
 import StudentActivityGroup from "./student-activity-group";
+import StudentInteractionFilterBar from "./student-interaction-filter-bar";
+import type { ActivityExpansionMode } from "./student-activity-toolbar";
 import {
   getStudentAuditActor,
   getStudentAuditTone,
   StudentAuditEventDetails,
 } from "./student-audit-event";
-import { StudentCallDetails } from "./student-calls-tab";
 import {
-  getStudentZaloConversationTitle,
+  getStudentZaloActivityTitle,
   groupActivitiesWithOverdue,
   parseStudentActivityDate,
 } from "./student-activity-utils";
+import {
+  StudentCallActivityTitle,
+  StudentCallDetails,
+} from "./student-calls-tab";
+import StudentInteractionActivityDetails from "./student-interaction-activity-details";
+import {
+  createZaloMessageIndex,
+  findZaloMessageForInteraction,
+} from "./student-interaction-source-matching";
+import {
+  getInteractionActivityTitle,
+  isCallInteraction,
+} from "./student-interaction-utils";
 import StudentTaskCard, { isTaskOverdue } from "./student-task-card";
-import { StudentZaloSummary } from "./student-zalo-tab";
+import StudentZaloMessageDetails from "./student-zalo-message-details";
 
 interface ActivityFeedItem {
   id: string;
   date: Date;
+  call?: StudentCallRecord;
+  interaction?: InteractionSummary;
+  zaloMessage?: StudentZaloMessage | null;
   task?: StudentTaskItem;
-  icon?: ReactNode;
-  iconClassName?: string;
-  title?: ReactNode;
-  timestamp?: string;
-  preview?: ReactNode;
-  body?: ReactNode;
-  zaloMessages?: StudentZaloMessage[];
+  auditEvent?: StudentAuditLog;
 }
 
 interface StudentAllActivitiesFeedProps {
-  notes: StudentNoteItem[];
+  studentId: string;
+  studentStage?: string;
+  calls: StudentCallRecord[];
   tasks: StudentTaskItem[];
   zaloMessages: StudentZaloMessage[];
-  calls: StudentCallRecord[];
   auditEvents: StudentAuditLog[];
   onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
-  onOpenZalo: () => void;
 }
 
-const richTextClassName =
-  "text-sm leading-6 text-text-secondary [&_a]:text-primary-500 [&_a]:underline [&_p]:my-1";
+function getActivitySearchText(
+  item: ActivityFeedItem,
+  interactionCatalog: Map<string, InteractionCatalogItem>,
+): string {
+  const values = [
+    item.call
+      ? [
+          "cuộc gọi",
+          item.call.topic,
+          item.call.summary,
+          item.call.callerName,
+          item.call.callerRole,
+          item.call.receiverName,
+          item.call.receiverRole,
+          item.call.phoneNumber,
+          item.call.direction,
+          item.call.outcome,
+        ]
+      : [],
+    item.interaction
+      ? [
+          getInteractionActivityTitle(item.interaction, interactionCatalog),
+          item.interaction.interaction_label,
+          item.interaction.summary,
+          item.interaction.outcome,
+          item.interaction.channel,
+          item.interaction.direction,
+          item.interaction.semantic?.purpose,
+          item.interaction.semantic?.disposition,
+          item.interaction.source_type,
+          item.interaction.source_id,
+        ]
+      : [],
+    item.zaloMessage
+      ? [
+          "zalo",
+          item.zaloMessage.conversationTitle,
+          item.zaloMessage.senderName,
+          item.zaloMessage.senderRole,
+          item.zaloMessage.recipientName,
+          item.zaloMessage.recipientRole,
+          item.zaloMessage.content,
+          item.zaloMessage.status,
+          item.zaloMessage.attachmentName,
+        ]
+      : [],
+    item.task
+      ? [
+          "task",
+          item.task.title,
+          item.task.assignee,
+          item.task.status,
+          item.task.priority,
+          item.task.taskType,
+          item.task.notes,
+        ]
+      : [],
+    item.auditEvent
+      ? [
+          "cập nhật hồ sơ",
+          item.auditEvent.action,
+          item.auditEvent.changeType,
+          item.auditEvent.doctype,
+          item.auditEvent.docname,
+          item.auditEvent.fieldname,
+          item.auditEvent.fieldLabel,
+          item.auditEvent.ownerFullName,
+          item.auditEvent.source,
+          item.auditEvent.sourceName,
+        ]
+      : [],
+  ]
+    .flat()
+    .filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0,
+    )
+    .join(" ")
+    .toLocaleLowerCase("vi-VN");
+
+  return values;
+}
 
 export default function StudentAllActivitiesFeed({
-  notes,
+  studentId,
+  studentStage,
+  calls,
   tasks,
   zaloMessages,
-  calls,
   auditEvents,
   onUpdateTask,
-  onOpenZalo,
 }: StudentAllActivitiesFeedProps) {
-  const items = useMemo<ActivityFeedItem[]>(() => {
-    const noteItems: ActivityFeedItem[] = notes
-      .filter((note) => note.author !== "AI Student Insight")
-      .map((note) => ({
-        id: `note-${note.author}-${note.date}`,
-        date: parseStudentActivityDate(note.date),
-        title: (
-          <>
-            <strong className="font-semibold text-text-primary">Ghi chú</strong>{" "}
-            của {note.author}
-          </>
-        ),
-        timestamp: formatDateTime(note.date),
-        body: (
-          <div
-            className={richTextClassName}
-            dangerouslySetInnerHTML={{ __html: note.content }}
-          />
-        ),
-      }));
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const search = searchParams.get("q") ?? "";
+  const [interactionFilters, setInteractionFilters] =
+    useState<InteractionFeedFilters>({});
+  const [expansionMode, setExpansionMode] =
+    useState<ActivityExpansionMode>("collapse");
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [collapsedItemIds, setCollapsedItemIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const interactionQueryFilters = useMemo(
+    () => ({ ...interactionFilters, limit: 100 }),
+    [interactionFilters],
+  );
+  const interactionQuery = useInteractionFeedQuery(
+    studentId,
+    interactionQueryFilters,
+    true,
+  );
+  const interactionCatalogQuery = useInteractionCatalogQuery();
+  const interactions = useMemo(
+    () => interactionQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [interactionQuery.data?.pages],
+  );
+  const interactionCatalog = useMemo(
+    () =>
+      new Map(
+        (interactionCatalogQuery.data?.interactionTypes ?? []).map((item) => [
+          item.code,
+          item,
+        ]),
+      ),
+    [interactionCatalogQuery.data?.interactionTypes],
+  );
+  const zaloMessageIndex = useMemo(
+    () => createZaloMessageIndex(zaloMessages),
+    [zaloMessages],
+  );
 
-    const taskItems: ActivityFeedItem[] = tasks.map((task) => ({
-      id: `task-${task.id}`,
-      date: parseStudentActivityDate(task.dueDate),
-      task,
-    }));
+  const handleSearchChange = (value: string) => {
+    const nextSearchParams = new URLSearchParams(searchParams.toString());
+    const normalizedValue = value.trim();
 
-    const zaloThreads = new Map<string, StudentZaloMessage[]>();
-    for (const message of zaloMessages) {
-      const threadKey = getStudentZaloConversationTitle(message.conversationTitle);
-      const thread = zaloThreads.get(threadKey) ?? [];
-      thread.push(message);
-      zaloThreads.set(threadKey, thread);
-    }
+    if (normalizedValue) nextSearchParams.set("q", value);
+    else nextSearchParams.delete("q");
 
-    const zaloItems: ActivityFeedItem[] = Array.from(zaloThreads.entries()).map(
-      ([threadKey, threadMessages]) => {
-        const latestMessage = [...threadMessages].sort(
-          (a, b) =>
-            parseStudentActivityDate(b.time).getTime() -
-            parseStudentActivityDate(a.time).getTime(),
-        )[0];
+    const query = nextSearchParams.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  };
 
-        return {
-          id: `zalo-thread-${threadKey}`,
-          date: parseStudentActivityDate(latestMessage.time),
-          title: (
-            <>
-              <strong className="font-semibold text-text-primary">Zalo</strong>{" "}
-              · {threadKey}
-            </>
-          ),
-          timestamp: formatDateTime(latestMessage.time),
-          zaloMessages: threadMessages,
-        };
-      },
+  const items = useMemo<ActivityFeedItem[]>(
+    () =>
+      [
+        ...calls.map((call) => ({
+          id: `call-${call.id}`,
+          date: parseStudentActivityDate(call.time),
+          call,
+        })),
+        ...interactions
+          .filter((interaction) => !isCallInteraction(interaction))
+          .map((interaction) => ({
+            id: `interaction-${interaction.id}`,
+            date: parseStudentActivityDate(
+              interaction.occurred_at ?? undefined,
+            ),
+            interaction,
+            zaloMessage: findZaloMessageForInteraction(
+              interaction,
+              zaloMessageIndex,
+            ),
+          })),
+        ...tasks.map((task) => ({
+          id: `task-${task.id}`,
+          date: parseStudentActivityDate(task.activityDate ?? task.dueDate),
+          task,
+        })),
+        ...auditEvents.map((event) => ({
+          id: `audit-${event.eventId}`,
+          date: parseStudentActivityDate(event.occurredAt),
+          auditEvent: event,
+        })),
+      ].sort((a, b) => b.date.getTime() - a.date.getTime()),
+    [auditEvents, calls, interactions, tasks, zaloMessageIndex],
+  );
+
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("vi-VN");
+    if (!query) return items;
+
+    return items.filter((item) =>
+      getActivitySearchText(item, interactionCatalog).includes(query),
     );
-
-    const callItems: ActivityFeedItem[] = calls.map((call) => ({
-      id: `call-${call.id}`,
-      date: parseStudentActivityDate(call.time),
-      title: (
-        <>
-          <strong className="font-semibold text-text-primary">Cuộc gọi</strong>{" "}
-          · {call.topic || "Liên hệ"}
-        </>
-      ),
-      timestamp: formatDateTime(call.time),
-      preview: <StudentCallDetails call={call} compact />,
-      body: <StudentCallDetails call={call} />,
-    }));
-
-    const logItems: ActivityFeedItem[] = auditEvents.map((event) => ({
-      id: `log-${event.eventId}`,
-      date: parseStudentActivityDate(event.occurredAt),
-      icon:
-        getStudentAuditTone(event) === "success" ? (
-          <CheckCircle1 size={14} />
-        ) : (
-          <ClockThree size={14} />
-        ),
-      iconClassName:
-        getStudentAuditTone(event) === "success"
-          ? "bg-badge-success-background text-success-500"
-          : "bg-badge-primary-background text-badge-primary-text",
-      title: (
-        <>
-          <strong className="font-semibold text-text-primary">Nhật ký</strong> ·{" "}
-          {getStudentAuditActor(event)}
-        </>
-      ),
-      timestamp: formatDateTime(event.occurredAt),
-      body: <StudentAuditEventDetails event={event} />,
-    }));
-
-    return [
-      ...noteItems,
-      ...taskItems,
-      ...zaloItems,
-      ...callItems,
-      ...logItems,
-    ].sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [notes, tasks, zaloMessages, calls, auditEvents]);
+  }, [interactionCatalog, items, search]);
 
   const groupedItems = useMemo(
     () =>
       groupActivitiesWithOverdue(
-        items,
+        filteredItems,
         (item) => item.date,
         (item) => Boolean(item.task && isTaskOverdue(item.task)),
       ),
-    [items],
+    [filteredItems],
   );
+
+  const handleExpansionModeChange = (mode: ActivityExpansionMode) => {
+    setExpansionMode(mode);
+    setExpandedItemIds(
+      new Set(mode === "expand" ? items.map((item) => item.id) : []),
+    );
+    setCollapsedItemIds(new Set());
+  };
+
+  const handleItemExpandedChange = (id: string, expanded: boolean) => {
+    if (expansionMode === "expand") {
+      setCollapsedItemIds((current) => {
+        const next = new Set(current);
+        if (expanded) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      return;
+    }
+
+    setExpandedItemIds((current) => {
+      const next = new Set(current);
+      if (expanded) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const isItemExpanded = (id: string) =>
+    expansionMode === "expand"
+      ? !collapsedItemIds.has(id)
+      : expandedItemIds.has(id);
+
+  const filterBar = (
+    <StudentInteractionFilterBar
+      filters={interactionFilters}
+      expansionMode={expansionMode}
+      search={search}
+      onChange={setInteractionFilters}
+      onSearchChange={handleSearchChange}
+      onExpansionModeChange={handleExpansionModeChange}
+    />
+  );
+
+  if (interactionQuery.isPending && items.length === 0) {
+    return (
+      <div className="space-y-4">
+        {filterBar}
+        <p className="py-2 text-xs text-text-tertiary">Đang tải hoạt động...</p>
+      </div>
+    );
+  }
+
+  if (interactionQuery.isError && items.length === 0) {
+    return (
+      <div className="space-y-4">
+        {filterBar}
+        <p className="py-2 text-xs text-error-600">
+          Không thể tải danh sách hoạt động.
+        </p>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
-      <p className="py-2 text-xs text-text-tertiary">
-        Chưa có hoạt động nào cho học sinh này.
-      </p>
+      <div className="space-y-4">
+        {filterBar}
+        <p className="py-2 text-xs text-text-tertiary">
+          Chưa có hoạt động nào cho học sinh này.
+        </p>
+      </div>
+    );
+  }
+
+  if (filteredItems.length === 0) {
+    return (
+      <div className="space-y-4">
+        {filterBar}
+        <p className="py-2 text-xs text-text-tertiary">
+          Không tìm thấy hoạt động phù hợp.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {filterBar}
       {groupedItems.map((group) => (
         <StudentActivityGroup
           key={group.id}
@@ -197,41 +371,91 @@ export default function StudentAllActivitiesFeed({
           tone={group.id === "overdue" ? "danger" : "default"}
         >
           {group.items.map((item) =>
-            item.zaloMessages ? (
+            item.call ? (
               <StudentActivityCard
                 key={item.id}
-                icon={item.icon ?? null}
-                iconClassName={item.iconClassName}
-                title={item.title ?? null}
-                timestamp={item.timestamp ?? ""}
-                defaultExpanded={false}
-                onExpandedChange={onOpenZalo}
+                title={<StudentCallActivityTitle call={item.call} />}
+                timestamp={formatDateTime(item.call.time)}
+                expanded={isItemExpanded(item.id)}
+                onExpandedChange={(expanded) =>
+                  handleItemExpandedChange(item.id, expanded)
+                }
               >
-                <StudentZaloSummary
-                  messages={item.zaloMessages}
-                  onOpen={onOpenZalo}
-                />
+                <StudentCallDetails call={item.call} />
               </StudentActivityCard>
             ) : item.task ? (
               <StudentTaskCard
                 key={item.id}
                 task={item.task}
                 onUpdateTask={onUpdateTask}
-                defaultExpanded={false}
+                studentStage={studentStage}
+                expanded={isItemExpanded(item.id)}
+                onExpandedChange={(expanded) =>
+                  handleItemExpandedChange(item.id, expanded)
+                }
               />
-            ) : (
+            ) : item.auditEvent ? (
               <StudentActivityCard
                 key={item.id}
-                icon={item.icon ?? null}
-                iconClassName={item.iconClassName}
-                title={item.title ?? null}
-                timestamp={item.timestamp ?? ""}
-                preview={item.preview}
-                defaultExpanded={false}
+                icon={
+                  getStudentAuditTone(item.auditEvent) === "success" ? (
+                    <CheckCircle1 size={14} />
+                  ) : (
+                    <ClockThree size={14} />
+                  )
+                }
+                iconClassName={
+                  getStudentAuditTone(item.auditEvent) === "success"
+                    ? "bg-badge-success-background text-success-500"
+                    : "bg-badge-primary-background text-badge-primary-text"
+                }
+                title={
+                  <>
+                    <strong className="font-semibold text-text-primary">
+                      Cập nhật hồ sơ
+                    </strong>{" "}
+                    · {getStudentAuditActor(item.auditEvent)}
+                  </>
+                }
+                timestamp={formatDateTime(item.auditEvent.occurredAt)}
+                expanded={isItemExpanded(item.id)}
+                onExpandedChange={(expanded) =>
+                  handleItemExpandedChange(item.id, expanded)
+                }
               >
-                {item.body}
+                <StudentAuditEventDetails event={item.auditEvent} />
               </StudentActivityCard>
-            ),
+            ) : item.interaction ? (
+              <StudentActivityCard
+                key={item.id}
+                title={
+                  item.zaloMessage
+                    ? getStudentZaloActivityTitle(item.zaloMessage)
+                    : getInteractionActivityTitle(
+                        item.interaction,
+                        interactionCatalog,
+                      )
+                }
+                timestamp={formatDateTime(item.interaction.occurred_at)}
+                expanded={isItemExpanded(item.id)}
+                onExpandedChange={(expanded) =>
+                  handleItemExpandedChange(item.id, expanded)
+                }
+                aiInsight={
+                  <StudentActivityAiInsight
+                    interactionIds={[item.interaction.id]}
+                  />
+                }
+              >
+                {item.zaloMessage ? (
+                  <StudentZaloMessageDetails message={item.zaloMessage} />
+                ) : (
+                  <StudentInteractionActivityDetails
+                    interaction={item.interaction}
+                  />
+                )}
+              </StudentActivityCard>
+            ) : null,
           )}
         </StudentActivityGroup>
       ))}
