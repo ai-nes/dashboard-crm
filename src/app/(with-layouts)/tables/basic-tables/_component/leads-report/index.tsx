@@ -49,55 +49,66 @@ export default function LeadsReport() {
           </TableHeader>
 
           <TableBody>
-            {data?.data.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="px-6 py-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage
-                        src={item.representative.avatarUrl}
-                        alt={item.representative.fullName}
-                      />
-                      <AvatarFallback>
-                        {item.representative.fullName
-                          .split(" ")
-                          .map((name) => name[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    <div>
-                      <p className="text-sm font-medium whitespace-nowrap text-text-primary">
-                        {item.representative.fullName}
-                      </p>
-                      <small className="block text-xs leading-4 font-normal text-text-tertiary">
-                        {item.representative.roleTitle}
-                      </small>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="px-6 py-3 text-sm font-normal text-text-primary">
-                  {item.metrics.dealsClosedCount}
-                </TableCell>
-                <TableCell className="px-6 py-3 text-sm font-medium text-text-primary">
-                  ${formatNumber({ value: item.metrics.totalRevenueUsd })}
-                </TableCell>
-                <TableCell className="px-6 py-3">
-                  <Badge
-                    color={
-                      item.metrics.performanceTargetPercentage > 85
-                        ? "success"
-                        : item.metrics.performanceTargetPercentage > 75
-                          ? "primary"
-                          : "warning"
-                    }
-                    className="px-2.5 text-sm"
-                  >
-                    {item.metrics.performanceTargetPercentage}%
-                  </Badge>
+            {data.data.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className="px-6 py-10 text-center text-sm text-text-tertiary"
+                >
+                  Chưa có dữ liệu lead.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              data.data.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="px-6 py-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage
+                          src={item.representative.avatarUrl}
+                          alt={item.representative.fullName}
+                        />
+                        <AvatarFallback>
+                          {item.representative.fullName
+                            .split(" ")
+                            .map((name) => name[0])
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div>
+                        <p className="text-sm font-medium whitespace-nowrap text-text-primary">
+                          {item.representative.fullName}
+                        </p>
+                        <small className="block text-xs leading-4 font-normal text-text-tertiary">
+                          {item.representative.roleTitle}
+                        </small>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-6 py-3 text-sm font-normal text-text-primary">
+                    {item.metrics.dealsClosedCount}
+                  </TableCell>
+                  <TableCell className="px-6 py-3 text-sm font-medium text-text-primary">
+                    ${formatNumber({ value: item.metrics.totalRevenueUsd })}
+                  </TableCell>
+                  <TableCell className="px-6 py-3">
+                    <Badge
+                      color={
+                        item.metrics.performanceTargetPercentage > 85
+                          ? "success"
+                          : item.metrics.performanceTargetPercentage > 75
+                            ? "primary"
+                            : "warning"
+                      }
+                      className="px-2.5 text-sm"
+                    >
+                      {item.metrics.performanceTargetPercentage}%
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </TableRoot>
       </CardContent>

@@ -7,6 +7,8 @@ export interface LeadStatusOption {
 
 export interface LeadListItem {
   id: string;
+  leadCode: string;
+  studentId: string;
   initials: string;
   name: string;
   phone: string;
@@ -59,6 +61,7 @@ export interface LeadListParams {
   pageSize?: number;
   q?: string;
   status?: string;
+  campaign?: string;
   order?: "asc" | "desc";
 }
 
@@ -140,6 +143,8 @@ function normalizeListItem(value: unknown): LeadListItem {
   const row = asRecord(value) ?? {};
   return {
     id: text(row.id),
+    leadCode: text(row.leadCode ?? row.lead_code),
+    studentId: text(row.studentId ?? row.student_id, text(row.id)),
     initials: text(row.initials),
     name: text(row.name),
     phone: text(row.phone),
@@ -367,6 +372,8 @@ export async function getLeadList(
   if (params.q) searchParams.set("q", params.q);
   if (params.status && params.status !== "all")
     searchParams.set("status", params.status);
+  if (params.campaign && params.campaign !== "all")
+    searchParams.set("campaign", params.campaign);
   if (params.order) searchParams.set("order", params.order);
 
   const payload = await request(LIST_METHOD, searchParams, options);
