@@ -44,7 +44,10 @@ function resolvePath(path: string[]): { endpoint: string; callUuid?: string } | 
     return { endpoint: "health" };
   }
 
-  if (path.length === 2 && (path[0] === "transcribe" || path[0] === "status")) {
+  if (
+    path.length === 2 &&
+    (path[0] === "transcribe" || path[0] === "summarize" || path[0] === "status")
+  ) {
     const callUuid = path[1];
     return CALL_UUID_PATTERN.test(callUuid) ? { endpoint: path[0], callUuid } : null;
   }
@@ -71,6 +74,9 @@ async function forward(
     return json({ error: "Method not allowed" }, 405);
   }
   if (resolved.endpoint === "transcribe" && method !== "POST") {
+    return json({ error: "Method not allowed" }, 405);
+  }
+  if (resolved.endpoint === "summarize" && method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
   }
 

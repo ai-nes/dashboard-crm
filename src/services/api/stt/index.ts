@@ -1,11 +1,14 @@
 const CALL_UUID_PATTERN = /^\d+\.\d+$/;
 const TERMINAL_STATUSES = new Set(["COMPLETED", "COMPLETED_LOCAL_ONLY", "FAILED"]);
+const TERMINAL_SUMMARY_STATUSES = new Set(["COMPLETED", "FAILED"]);
 
 export interface SttJobStatus {
   status?: string;
   updated_at?: string;
   completed_at?: string;
   error_type?: string;
+  summary_status?: string;
+  summary_error_type?: string;
 }
 
 export class SttApiError extends Error {
@@ -63,6 +66,12 @@ export async function triggerSttTranscription(callUuid: string): Promise<void> {
   await sttRequest<string>(`transcribe/${encodeURIComponent(normalized)}`, { method: "POST" });
 }
 
+export async function triggerSttSummary(callUuid: string): Promise<void> {
+  const normalized = callUuid.trim();
+  if (!isSttCallUuid(normalized)) throw new SttApiError(400, "Call UUID không hợp lệ.");
+  await sttRequest<string>(`summarize/${encodeURIComponent(normalized)}`, { method: "POST" });
+}
+
 export async function getSttJobStatus(callUuid: string): Promise<SttJobStatus | null> {
   const normalized = callUuid.trim();
   if (!isSttCallUuid(normalized)) return null;
@@ -80,4 +89,8 @@ export async function getSttJobStatus(callUuid: string): Promise<SttJobStatus | 
 
 export function isSttTerminalStatus(status?: string): boolean {
   return Boolean(status && TERMINAL_STATUSES.has(status));
+}
+
+export function isSttSummaryTerminalStatus(status?: string): boolean {
+  return Boolean(status && TERMINAL_SUMMARY_STATUSES.has(status));
 }

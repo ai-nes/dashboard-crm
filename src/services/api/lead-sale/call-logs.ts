@@ -53,6 +53,7 @@ function normalizeCall(value: unknown): LeadCallRecord | null {
       : {}),
     ...(typeof row.topic === "string" ? { topic: row.topic } : {}),
     ...(typeof row.summary === "string" ? { summary: row.summary } : {}),
+    ...(typeof row.summaryAvailable === "boolean" ? { summaryAvailable: row.summaryAvailable } : {}),
     ...(typeof row.transcript === "string" && row.transcript.trim()
       ? { transcript: row.transcript }
       : {}),

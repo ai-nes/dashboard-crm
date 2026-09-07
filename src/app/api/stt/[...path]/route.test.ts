@@ -47,6 +47,18 @@ describe("STT dashboard proxy", () => {
     expect(String(fetchMock.mock.calls[0][0])).toBe("https://stt.faip.pro/health");
   });
 
+  it("forwards a summary backfill request with the server-only secret", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response("OK", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(request, context(["summarize", "1788077950.625384"]));
+
+    expect(response.status).toBe(200);
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      "https://stt.faip.pro/summarize/1788077950.625384?secret=test-secret",
+    );
+  });
+
   it("does not call the upstream when the secret is missing", async () => {
     vi.stubEnv("STT_API_SECRET", "");
     const fetchMock = vi.fn();
