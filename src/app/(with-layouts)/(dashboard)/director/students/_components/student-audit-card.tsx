@@ -68,6 +68,9 @@ export default function StudentAuditCard({
             event.ownerFullName,
             event.source,
             event.sourceName,
+            event.eventType,
+            event.category,
+            event.reason,
             getStudentAuditActivityDescription(event),
           ].some((value) => value?.toLowerCase().includes(query));
 

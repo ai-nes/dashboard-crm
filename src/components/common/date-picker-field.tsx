@@ -29,6 +29,8 @@ interface DatePickerFieldProps {
   min?: string;
   max?: string;
   disabled?: boolean;
+  isInvalid?: boolean;
+  "aria-describedby"?: string;
   className?: string;
 }
 
@@ -39,6 +41,8 @@ export function DatePickerField({
   min,
   max,
   disabled = false,
+  isInvalid = false,
+  "aria-describedby": ariaDescribedBy,
   className,
 }: DatePickerFieldProps) {
   const dateValue = parseInputDate(value);
@@ -49,6 +53,8 @@ export function DatePickerField({
     <I18nProvider locale="vi-VN">
       <DatePicker<CalendarDate>
         aria-label={ariaLabel}
+        aria-invalid={isInvalid || undefined}
+        aria-describedby={ariaDescribedBy}
         className="w-full"
         disabled={disabled}
         maxValue={maxValue ?? undefined}
@@ -59,7 +65,12 @@ export function DatePickerField({
         <DatePickerGroup className="w-full">
           <DateInput
             aria-label={ariaLabel}
-            className={cn("h-9 w-full px-3 py-2 pr-10 text-sm", className)}
+            className={cn(
+              "h-9 w-full px-3 py-2 pr-10 text-sm",
+              isInvalid &&
+                "border-input-error-focus-border focus:ring-input-error-focus-border/20",
+              className,
+            )}
           >
             {(segment) => <DateSegment segment={segment} />}
           </DateInput>

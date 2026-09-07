@@ -8,42 +8,26 @@ import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-queries";
 import { useLeadSaleLeadsQuery } from "@/hooks/use-lead-sale-leads-queries";
-import type { LeadListParams } from "@/services/api/lead-sale";
+import type { LeadListItem, LeadListParams } from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
-import { defaultLeadOverlay, type LeadMockOverlay } from "./lead-mock-overlay";
-import type { LeadResultStatus, LeadStageStatus } from "./lead-status";
+import {
+  leadStatusLabel,
+  type LeadResultStatus,
+  type LeadStatusCode,
+} from "./lead-status";
 import type { LeadStatus } from "./types";
 
 const pageSize = 10;
+type LeadControlDraft = Partial<Pick<LeadListItem, "status" | "statusCode" | "result">>;
 
 export default function LeadsOverviewDashboard() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStatus | "all">("all");
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
-  const [overlayOverrides, setOverlayOverrides] = useState<
-    Record<string, Partial<LeadMockOverlay>>
-  >({});
-
-  const getOverlay = (id: string): LeadMockOverlay => ({
-    ...defaultLeadOverlay(id),
-    ...overlayOverrides[id],
-  });
-
-  const handleLeadStatusChange = (id: string, nextStatus: LeadStageStatus) => {
-    setOverlayOverrides((prev) => {
-      const current = { ...defaultLeadOverlay(id), ...prev[id] };
-      const nextResult =
-        nextStatus === "ASSIGNED" || nextStatus === "CLOSED" ? current.result : "";
-      return { ...prev, [id]: { ...prev[id], status: nextStatus, result: nextResult } };
-    });
-  };
-
-  const handleLeadResultChange = (id: string, result: LeadResultStatus) => {
-    setOverlayOverrides((prev) => ({ ...prev, [id]: { ...prev[id], result } }));
-  };
+  const [controlDrafts, setControlDrafts] = useState<Record<string, LeadControlDraft>>({});
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -66,6 +50,10 @@ export default function LeadsOverviewDashboard() {
   } = useLeadSaleLeadsQuery(listParams, { placeholderData: keepPreviousData });
 
   const leads = response?.data ?? [];
+  const displayedLeads = leads.map((lead) => ({
+    ...lead,
+    ...controlDrafts[lead.id],
+  }));
   const meta = response?.meta;
   const totalCount = meta?.total ?? 0;
   const totalPages = Math.max(
@@ -73,6 +61,24 @@ export default function LeadsOverviewDashboard() {
     meta?.totalPages ?? Math.ceil(totalCount / pageSize),
   );
   const currentPage = Math.min(page, totalPages);
+
+  const handleLeadStatusChange = (id: string, nextStatus: LeadStatusCode) => {
+    setControlDrafts((previous) => ({
+      ...previous,
+      [id]: {
+        ...previous[id],
+        status: leadStatusLabel[nextStatus],
+        statusCode: nextStatus,
+      },
+    }));
+  };
+
+  const handleLeadResultChange = (id: string, result: LeadResultStatus) => {
+    setControlDrafts((previous) => ({
+      ...previous,
+      [id]: { ...previous[id], result },
+    }));
+  };
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
@@ -169,8 +175,7 @@ export default function LeadsOverviewDashboard() {
               </div>
             ) : (
               <LeadList
-                leads={leads}
-                getOverlay={getOverlay}
+                leads={displayedLeads}
                 onStatusChange={handleLeadStatusChange}
                 onResultChange={handleLeadResultChange}
               />

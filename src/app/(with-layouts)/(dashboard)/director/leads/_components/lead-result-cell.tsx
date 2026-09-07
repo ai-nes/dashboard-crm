@@ -39,7 +39,7 @@ const resultTriggerClass: Record<LeadResultStatus, string> = {
 interface LeadResultCellProps {
   compact?: boolean;
   leadName: string;
-  status: LeadStageStatus;
+  status: LeadStageStatus | null;
   result: LeadResultStatus | "";
   onChange: (result: LeadResultStatus) => void;
 }

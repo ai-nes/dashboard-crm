@@ -27,7 +27,6 @@ import type {
 import JourneyTimeline from "./journey-timeline";
 import StudentActivitiesTab from "./student-activities-tab";
 import StudentAuditTab from "./student-audit-tab";
-import StudentChartsSection from "./student-charts-section";
 import StudentClassificationCockpit from "./student-classification-cockpit";
 import StudentDetailsTab from "./student-details-tab";
 import StudentDocumentsTab from "./student-documents-tab";
@@ -246,11 +245,6 @@ function getStudentTabs(
       content: <StudentAuditTab studentId={analysisTargetId} />,
     },
     {
-      id: "engagement",
-      label: "Mức độ quan tâm",
-      content: <StudentChartsSection data={data} />,
-    },
-    {
       id: "profile",
       label: "Thông tin học sinh",
       content: (
@@ -282,7 +276,6 @@ function getInitialTab(initialTab?: string): string {
     "decision",
     "activities",
     "profile",
-    "engagement",
     "progress",
     "audit",
     "records",

@@ -166,13 +166,8 @@ export default function StudentHeader({
             </div>
           </div>
 
-          <div className="mt-3 grid divide-y divide-card-border border-t border-card-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="mt-3 border-t border-card-border">
             <HeaderFact label="Phụ trách" value={student.counselor || "-"} />
-            <HeaderFact
-              label="Người quyết định"
-              value={data.insight.decisionMaker || "-"}
-            />
-            <HeaderFact label="Rào cản" value={data.insight.concern || "-"} />
           </div>
           {hasMetadata && (
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-card-border pt-3 text-xs">

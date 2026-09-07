@@ -83,6 +83,12 @@ function optionalString(value: unknown): string | null {
     : String(value);
 }
 
+function optionalRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
 function normalizeAuditLog(raw: unknown): StudentAuditLog {
   const source = asRecord(raw) || {};
   const sourceName = String(source.source_name ?? source.sourceName ?? "");
@@ -119,6 +125,10 @@ function normalizeAuditLog(raw: unknown): StudentAuditLog {
     occurredAt,
     source: String(source.source ?? ""),
     sourceName,
+    eventType: optionalString(source.event_type ?? source.eventType),
+    category: optionalString(source.category),
+    reason: optionalString(source.reason),
+    metadata: optionalRecord(source.metadata),
     restored:
       typeof source.restored === "boolean" ? source.restored : undefined,
   };

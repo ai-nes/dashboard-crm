@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import type {
   LeadResultStatus,
-  LeadStageStatus,
+  LeadStatusCode,
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
 import { Card } from "@/components/tailgrids/core/card";
 import {
@@ -51,16 +51,10 @@ export default function CampaignDetailDashboard({
     [fetchedLeads, leadOverrides],
   );
 
-  const handleStatusChange = (id: string, status: LeadStageStatus) => {
-    const currentResult = leads.find((lead) => lead.id === id)?.result ?? "";
+  const handleStatusChange = (id: string, status: LeadStatusCode) => {
     setLeadOverrides((current) => ({
       ...current,
-      [id]: {
-        ...current[id],
-        status,
-        result:
-          status === "ASSIGNED" || status === "CLOSED" ? currentResult : "",
-      },
+      [id]: { ...current[id], status },
     }));
   };
 

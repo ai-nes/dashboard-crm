@@ -2,6 +2,17 @@ export type StudentAuditAction = "created" | "updated" | "deleted";
 
 export type StudentAuditChangeType = "added" | "changed" | "removed";
 
+export type StudentAuditCategory =
+  | "record"
+  | "data"
+  | "status"
+  | "lifecycle"
+  | "assignment"
+  | "processing"
+  | "conversion"
+  | "outcome"
+  | string;
+
 export type StudentAuditSource = "Document" | "Version" | "Deleted Document";
 
 export interface StudentAuditLog {
@@ -19,6 +30,10 @@ export interface StudentAuditLog {
   occurredAt: string;
   source: StudentAuditSource | string;
   sourceName: string;
+  eventType?: string | null;
+  category?: StudentAuditCategory | null;
+  reason?: string | null;
+  metadata?: Record<string, unknown> | null;
   restored?: boolean;
 }
 

@@ -5,6 +5,14 @@ export interface LeadStatusOption {
   label: string;
 }
 
+export type LeadResolution =
+  | "MATCHED"
+  | "CREATED"
+  | "DUPLICATE"
+  | "INVALID"
+  | "SPAM"
+  | "FAILED";
+
 export interface LeadListItem {
   id: string;
   leadCode: string;
@@ -16,8 +24,11 @@ export interface LeadListItem {
   status: LeadStatus;
   statusCode?: string | null;
   processingStatus?: string | null;
+  result: LeadResolution | "";
   source: string;
   owner: string;
+  contactNoAnswer: number;
+  contactSuccess: number;
   createdAt?: string | null;
 }
 
@@ -55,6 +66,15 @@ export interface LeadLogEntry {
   author: string;
   date: string;
   content: string;
+  eventType?: string | null;
+  category?: string | null;
+  fieldname?: string | null;
+  fieldLabel?: string | null;
+  oldValue?: unknown | null;
+  newValue?: unknown | null;
+  reason?: string | null;
+  source?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface LeadListParams {
@@ -117,6 +137,14 @@ export class LeadApiError extends Error {
 
 const LIST_METHOD = "crm.api.director_leads.get_director_leads";
 const DETAIL_METHOD = "crm.api.director_leads.get_director_lead";
+const LEAD_RESOLUTION_CODES = new Set<LeadResolution>([
+  "MATCHED",
+  "CREATED",
+  "DUPLICATE",
+  "INVALID",
+  "SPAM",
+  "FAILED",
+]);
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -136,6 +164,13 @@ function count(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value)
     ? Math.max(0, Math.floor(value))
     : 0;
+}
+
+function normalizeResolution(value: unknown): LeadResolution | "" {
+  const candidate = text(value).toUpperCase();
+  return LEAD_RESOLUTION_CODES.has(candidate as LeadResolution)
+    ? (candidate as LeadResolution)
+    : "";
 }
 
 function unwrapMessage(value: unknown): unknown {
@@ -166,8 +201,11 @@ function normalizeListItem(value: unknown): LeadListItem {
     status: text(row.status),
     statusCode: nullableText(row.statusCode ?? row.status_code),
     ...(processingStatus ? { processingStatus } : {}),
+    result: normalizeResolution(row.result ?? row.resolution),
     source: text(row.source),
     owner: text(row.owner),
+    contactNoAnswer: count(row.contactNoAnswer ?? row.contact_no_answer),
+    contactSuccess: count(row.contactSuccess ?? row.contact_success),
     ...(createdAt ? { createdAt } : {}),
   };
 }
@@ -274,6 +312,15 @@ function normalizeLogEntry(value: unknown): LeadLogEntry {
     author: text(row.author),
     date: text(row.date),
     content: text(row.content),
+    eventType: nullableText(row.eventType ?? row.event_type),
+    category: nullableText(row.category),
+    fieldname: nullableText(row.fieldname ?? row.field_name),
+    fieldLabel: nullableText(row.fieldLabel ?? row.field_label),
+    oldValue: row.oldValue ?? row.old_value ?? null,
+    newValue: row.newValue ?? row.new_value ?? null,
+    reason: nullableText(row.reason),
+    source: nullableText(row.source),
+    metadata: asRecord(row.metadata),
   };
 }
 

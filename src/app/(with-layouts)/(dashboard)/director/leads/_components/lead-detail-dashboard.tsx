@@ -13,31 +13,36 @@ import LeadCallsTab from "./lead-calls-tab";
 import LeadDetailsTab from "./lead-details-tab";
 import LeadHeader from "./lead-header";
 import LeadLogTab from "./lead-log-tab";
-import { defaultLeadOverlay, type LeadMockOverlay } from "./lead-mock-overlay";
 import LeadNotesTab from "./lead-notes-tab";
 import LeadWorkflowSection from "./lead-workflow-section";
-import type { LeadResultStatus, LeadStageStatus } from "./lead-status";
+import {
+  normalizeLeadStageStatus,
+  type LeadResultStatus,
+  type LeadStageStatus,
+} from "./lead-status";
+import type { LeadDetail } from "./types";
 
 export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId);
   const callLogsQuery = useLeadCallLogsQuery(leadId);
-  const [overlayOverride, setOverlayOverride] = useState<
-    Partial<LeadMockOverlay>
+  const [workflowDraft, setWorkflowDraft] = useState<
+    Partial<Pick<LeadDetail, "processingStatus" | "result">>
   >({});
-
-  const overlay: LeadMockOverlay = {
-    ...defaultLeadOverlay(leadId),
-    ...overlayOverride,
-  };
 
   const handleStatusChange = (status: LeadStageStatus) => {
     const nextResult =
-      status === "ASSIGNED" || status === "CLOSED" ? overlay.result : "";
-    setOverlayOverride((prev) => ({ ...prev, status, result: nextResult }));
+      status === "ASSIGNED" || status === "CLOSED"
+        ? workflowDraft.result ?? data?.lead.result ?? ""
+        : "";
+    setWorkflowDraft((prev) => ({
+      ...prev,
+      processingStatus: status,
+      result: nextResult,
+    }));
   };
 
   const handleResultChange = (result: LeadResultStatus) => {
-    setOverlayOverride((prev) => ({ ...prev, result }));
+    setWorkflowDraft((prev) => ({ ...prev, result }));
   };
 
   if (isPending) {
@@ -78,6 +83,11 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     );
   }
 
+  const status = normalizeLeadStageStatus(
+    workflowDraft.processingStatus ?? data.lead.processingStatus,
+  );
+  const result = workflowDraft.result ?? data.lead.result;
+
   const tabs: DetailTabItem[] = [
     {
       id: "details",
@@ -111,10 +121,13 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       className="min-w-0 max-w-full overflow-x-clip pb-10"
     >
       <div className="px-2 pt-4 lg:px-6">
-        <LeadHeader lead={data.lead} createdAt={overlay.createdAt}>
+        <LeadHeader lead={data.lead} createdAt={data.lead.createdAt ?? undefined}>
           <LeadWorkflowSection
             leadName={data.lead.name}
-            overlay={overlay}
+            status={status}
+            result={result}
+            contactNoAnswer={data.lead.contactNoAnswer}
+            contactSuccess={data.lead.contactSuccess}
             onStatusChange={handleStatusChange}
             onResultChange={handleResultChange}
           />
