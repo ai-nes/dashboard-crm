@@ -3,14 +3,15 @@ import Link from "next/link";
 import { formatDate } from "@/utils/format-date";
 
 import LeadContactLogCell from "./lead-contact-log-cell";
-import type { LeadMockOverlay } from "./lead-mock-overlay";
 import LeadResultCell from "./lead-result-cell";
 import {
-  leadStageStatusLabel,
-  leadStageStatusOptions,
-  leadStageTriggerClass,
+  leadStatusLabel,
+  leadStatusOptions,
+  leadStatusTriggerClass,
+  normalizeLeadStatus,
+  normalizeLeadStageStatus,
   type LeadResultStatus,
-  type LeadStageStatus,
+  type LeadStatusCode,
 } from "./lead-status";
 import { leadTableGrid } from "./lead-table-grid";
 import type { LeadListItem } from "./types";
@@ -27,12 +28,11 @@ export const leadListGrid = leadTableGrid;
 
 interface LeadListProps {
   leads: LeadListItem[];
-  getOverlay: (id: string) => LeadMockOverlay;
-  onStatusChange: (id: string, status: LeadStageStatus) => void;
+  onStatusChange: (id: string, status: LeadStatusCode) => void;
   onResultChange: (id: string, result: LeadResultStatus) => void;
 }
 
-export default function LeadList({ leads, getOverlay, onStatusChange, onResultChange }: LeadListProps) {
+export default function LeadList({ leads, onStatusChange, onResultChange }: LeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
@@ -49,7 +49,8 @@ export default function LeadList({ leads, getOverlay, onStatusChange, onResultCh
   return (
     <ul className="divide-y divide-card-border" aria-label="Danh sách lead">
       {leads.map((lead) => {
-        const overlay = getOverlay(lead.id);
+        const status = normalizeLeadStatus(lead.statusCode ?? lead.status);
+        const processingStatus = normalizeLeadStageStatus(lead.processingStatus);
         return (
           <li key={lead.id}>
             <div
@@ -95,32 +96,36 @@ export default function LeadList({ leads, getOverlay, onStatusChange, onResultCh
 
               <div className="flex items-center justify-between gap-2 lg:justify-start">
                 <p className="text-xs text-text-tertiary lg:hidden">Trạng thái lead</p>
-                <Select
-                  value={overlay.status}
-                  onChange={(value) => onStatusChange(lead.id, String(value) as LeadStageStatus)}
-                  aria-label={`Đổi trạng thái lead ${lead.name}`}
-                  className="w-fit min-w-32"
-                >
-                  <SelectTrigger size="sm" className={`w-full ${leadStageTriggerClass[overlay.status]}`}>
-                    <SelectValue />
-                    <SelectIndicator />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {leadStageStatusOptions.map((status) => (
-                      <SelectItem key={status} id={status} textValue={leadStageStatusLabel[status]}>
-                        {leadStageStatusLabel[status]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {status ? (
+                  <Select
+                    value={status}
+                    onChange={(value) => onStatusChange(lead.id, String(value) as LeadStatusCode)}
+                    aria-label={`Đổi trạng thái lead ${lead.name}`}
+                    className="w-fit min-w-32"
+                  >
+                    <SelectTrigger size="sm" className={`w-full ${leadStatusTriggerClass[status]}`}>
+                      <SelectValue />
+                      <SelectIndicator />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leadStatusOptions.map((option) => (
+                        <SelectItem key={option} id={option} textValue={leadStatusLabel[option]}>
+                          {leadStatusLabel[option]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <span className="text-sm text-text-tertiary">Chưa cập nhật</span>
+                )}
               </div>
 
               <div className="flex items-center justify-between gap-2 lg:justify-start">
                 <p className="text-xs text-text-tertiary lg:hidden">Kết quả</p>
                 <LeadResultCell
                   leadName={lead.name}
-                  status={overlay.status}
-                  result={overlay.result}
+                  status={processingStatus}
+                  result={lead.result}
                   onChange={(result) => onResultChange(lead.id, result)}
                 />
               </div>
@@ -129,15 +134,15 @@ export default function LeadList({ leads, getOverlay, onStatusChange, onResultCh
                 <p className="text-xs text-text-tertiary lg:hidden">Số lần liên hệ</p>
                 <LeadContactLogCell
                   leadName={lead.name}
-                  noAnswer={overlay.contactNoAnswer}
-                  success={overlay.contactSuccess}
+                  noAnswer={lead.contactNoAnswer}
+                  success={lead.contactSuccess}
                 />
               </div>
 
               <div className="flex items-center justify-between gap-2 lg:block">
                 <p className="text-xs text-text-tertiary lg:hidden">Ngày tạo</p>
                 <p className="truncate text-sm text-text-secondary tabular-nums">
-                  {formatDate(overlay.createdAt)}
+                  {formatDate(lead.createdAt ?? "")}
                 </p>
               </div>
             </div>

@@ -329,6 +329,61 @@ describe("Lead Sale campaign API contract", () => {
       expect.objectContaining<Partial<CampaignApiError>>({
         status: 403,
         code: "FORBIDDEN",
+        message: "Không có quyền.",
+      }),
+    );
+  });
+
+  it("normalizes a raw Frappe permission error", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          exception: "frappe.exceptions.PermissionError",
+          _server_messages: JSON.stringify([
+            { message: "Người dùng không có quyền truy cập loại tài liệu." },
+          ]),
+          _error_message: "Không được phép đối với Chiến dịch",
+        }),
+        { status: 403 },
+      ),
+    );
+
+    await expect(
+      updateCampaign(
+        { name: "Campaign A", title: "Campaign A" },
+        { baseUrl: "http://frappe:8000" },
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<CampaignApiError>>({
+        status: 403,
+        code: "FORBIDDEN",
+        message: "Bạn không có quyền thực hiện thao tác này với chiến dịch.",
+      }),
+    );
+  });
+
+  it("normalizes Frappe validation messages without exposing raw exceptions", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          exception: "frappe.exceptions.ValidationError",
+          _server_messages: JSON.stringify([
+            { message: "<strong>Tên chiến dịch</strong> đã tồn tại." },
+          ]),
+        }),
+        { status: 417 },
+      ),
+    );
+
+    await expect(
+      updateCampaign(
+        { name: "Campaign A", title: "Campaign A" },
+        { baseUrl: "http://frappe:8000" },
+      ),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<CampaignApiError>>({
+        status: 417,
+        message: "Tên chiến dịch đã tồn tại.",
       }),
     );
   });

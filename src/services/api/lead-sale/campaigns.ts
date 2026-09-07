@@ -211,6 +211,15 @@ function errorDetails(
   const root = asRecord(value);
   const message = asRecord(root?.message);
   const error = asRecord(root?.error) ?? asRecord(message?.error);
+  const serverMessage = parseFrappeServerMessage(root?._server_messages);
+  const fallbackMessage =
+    status === 401
+      ? "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+      : status === 403
+        ? "Bạn không có quyền thực hiện thao tác này với chiến dịch."
+        : status === 417
+          ? "Thông tin chiến dịch chưa hợp lệ."
+          : `Không thể tải danh sách campaign (${status}).`;
   return {
     code:
       text(error?.code) ||
@@ -222,10 +231,30 @@ function errorDetails(
     message:
       text(error?.message) ||
       text(message?.message) ||
+      (status === 403 ? fallbackMessage : serverMessage) ||
+      text(root?._error_message) ||
       text(root?.message) ||
       text(root?.exception) ||
-      `Không thể tải danh sách campaign (${status}).`,
+      fallbackMessage,
   };
+}
+
+function parseFrappeServerMessage(value: unknown): string {
+  if (typeof value !== "string") return "";
+
+  try {
+    const messages = JSON.parse(value);
+    if (!Array.isArray(messages)) return "";
+    const message = messages.find(
+      (item): item is Record<string, unknown> =>
+        item && typeof item === "object" && typeof item.message === "string",
+    )?.message;
+    return typeof message === "string"
+      ? message.replace(/<[^>]*>/g, "").trim()
+      : "";
+  } catch {
+    return "";
+  }
 }
 
 async function callCampaignApi<T>(

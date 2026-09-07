@@ -9,7 +9,6 @@ import {
 
 import LeadContactLogCell from "./lead-contact-log-cell";
 import { LeadDetailField as Field } from "./lead-detail-field";
-import type { LeadMockOverlay } from "./lead-mock-overlay";
 import LeadResultCell from "./lead-result-cell";
 import {
   leadStageStatusLabel,
@@ -21,14 +20,20 @@ import {
 
 interface LeadWorkflowSectionProps {
   leadName: string;
-  overlay: LeadMockOverlay;
+  status: LeadStageStatus | null;
+  result: LeadResultStatus | "";
+  contactNoAnswer: number;
+  contactSuccess: number;
   onStatusChange: (status: LeadStageStatus) => void;
   onResultChange: (result: LeadResultStatus) => void;
 }
 
 export default function LeadWorkflowSection({
   leadName,
-  overlay,
+  status,
+  result,
+  contactNoAnswer,
+  contactSuccess,
   onStatusChange,
   onResultChange,
 }: LeadWorkflowSectionProps) {
@@ -44,33 +49,37 @@ export default function LeadWorkflowSection({
         <Field
           label="Trạng thái xử lý"
           value={
-            <Select
-              value={overlay.status}
-              onChange={(value) =>
-                onStatusChange(String(value) as LeadStageStatus)
-              }
-              aria-label={`Đổi trạng thái lead ${leadName}`}
-              className="w-fit min-w-32"
-            >
-              <SelectTrigger
-                size="sm"
-                className={`w-full ${leadStageTriggerClass[overlay.status]}`}
+            status ? (
+              <Select
+                value={status}
+                onChange={(value) =>
+                  onStatusChange(String(value) as LeadStageStatus)
+                }
+                aria-label={`Đổi trạng thái lead ${leadName}`}
+                className="w-fit min-w-32"
               >
-                <SelectValue />
-                <SelectIndicator />
-              </SelectTrigger>
-              <SelectContent>
-                {leadStageStatusOptions.map((status) => (
-                  <SelectItem
-                    key={status}
-                    id={status}
-                    textValue={leadStageStatusLabel[status]}
-                  >
-                    {leadStageStatusLabel[status]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  size="sm"
+                  className={`w-full ${leadStageTriggerClass[status]}`}
+                >
+                  <SelectValue />
+                  <SelectIndicator />
+                </SelectTrigger>
+                <SelectContent>
+                  {leadStageStatusOptions.map((option) => (
+                    <SelectItem
+                      key={option}
+                      id={option}
+                      textValue={leadStageStatusLabel[option]}
+                    >
+                      {leadStageStatusLabel[option]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span className="text-sm text-text-tertiary">Chưa cập nhật</span>
+            )
           }
         />
         <Field
@@ -78,8 +87,8 @@ export default function LeadWorkflowSection({
           value={
             <LeadResultCell
               leadName={leadName}
-              status={overlay.status}
-              result={overlay.result}
+              status={status}
+              result={result}
               onChange={onResultChange}
             />
           }
@@ -90,8 +99,8 @@ export default function LeadWorkflowSection({
             <LeadContactLogCell
               compact
               leadName={leadName}
-              noAnswer={overlay.contactNoAnswer}
-              success={overlay.contactSuccess}
+              noAnswer={contactNoAnswer}
+              success={contactSuccess}
             />
           }
         />

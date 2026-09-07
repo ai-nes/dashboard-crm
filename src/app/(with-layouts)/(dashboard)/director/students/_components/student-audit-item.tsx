@@ -10,6 +10,7 @@ import {
   formatStudentAuditRelativeTime,
   formatStudentAuditValue,
   getStudentAuditActor,
+  getStudentAuditCategoryLabel,
   getStudentAuditDoctypeLabel,
   getStudentAuditSourceLabel,
   getStudentAuditStatus,
@@ -125,6 +126,11 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
         <Badge color={tone} size="sm">
           {status}
         </Badge>
+        {getStudentAuditCategoryLabel(event.category) && (
+          <Badge color="sky" size="sm">
+            {getStudentAuditCategoryLabel(event.category)}
+          </Badge>
+        )}
         {event.source && (
           <Badge color="gray" size="sm">
             {getStudentAuditSourceLabel(event.source)}
@@ -136,6 +142,11 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
           </span>
         )}
       </div>
+      {event.reason && (
+        <p className="mt-2 text-xs leading-5 text-text-secondary">
+          Lý do: {event.reason}
+        </p>
+      )}
     </li>
   );
 }

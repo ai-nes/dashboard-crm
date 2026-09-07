@@ -19,4 +19,15 @@ export interface CampaignListItem {
 
 export type CampaignFormValues = Omit<CampaignListItem, "id" | "code">;
 
+export interface CampaignFormState {
+  name: string;
+  admissionYear: string;
+  startDate: string;
+  endDate: string;
+  status: CampaignStatus;
+  mode: CampaignMode;
+  channelType: ChannelTypeValue | "";
+  channelUrl: string;
+}
+
 export type CampaignStatusFilter = CampaignStatus | "all";

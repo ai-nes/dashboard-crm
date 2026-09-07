@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronDown, ChevronRight } from "@tailgrids/icons";
+import { ArrowRight, ChevronDown, ChevronRight } from "@tailgrids/icons";
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
+import { formatAuditMetadataKey } from "@/utils/format-audit-metadata";
 import { Button } from "@/components/tailgrids/core/button";
 import { formatDateTime } from "@/utils/format-date";
 
@@ -186,14 +187,87 @@ function LeadLogItem({ entry }: { entry: LeadLogEntry }) {
       </div>
 
       <div className="mt-3 w-fit max-w-2xl rounded-2xl rounded-bl-md bg-background-gray-secondary px-4 py-3">
-        <p className="text-sm leading-6 text-text-primary">{entry.content}</p>
+        {entry.fieldLabel || entry.fieldname ? (
+          <div className="space-y-2">
+            <p className="text-sm leading-6 text-text-primary">
+              {entry.content}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-lg border border-card-border/60 bg-card-background px-2.5 py-1 text-text-secondary line-through decoration-error-500/50">
+                {formatLeadLogValue(entry.oldValue)}
+              </span>
+              <ArrowRight size={13} className="shrink-0 text-text-tertiary" />
+              <span className="rounded-lg border border-success-500/30 bg-badge-success-background/40 px-2.5 py-1 font-semibold text-text-primary">
+                {formatLeadLogValue(entry.newValue)}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-text-primary">{entry.content}</p>
+        )}
+        {entry.reason && (
+          <p className="mt-2 text-xs leading-5 text-text-secondary">
+            Lý do: {entry.reason}
+          </p>
+        )}
+        {entry.metadata && Object.keys(entry.metadata).length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-text-tertiary">
+            {Object.entries(entry.metadata)
+              .filter(([, value]) => value !== null && value !== undefined && value !== "")
+              .map(([key, value]) => (
+                <span
+                  key={key}
+                  className="rounded-md border border-card-border/50 bg-card-background/70 px-2 py-1"
+                >
+                  {formatAuditMetadataKey(key)}: {formatLeadLogValue(value)}
+                </span>
+              ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
         <Badge color={isSystem ? "sky" : "success"} size="sm">
           {entry.title}
         </Badge>
+        {getLeadAuditCategoryLabel(entry.category) && (
+          <Badge color="gray" size="sm">
+            {getLeadAuditCategoryLabel(entry.category)}
+          </Badge>
+        )}
+        {entry.source && (
+          <span className="text-text-tertiary">Nguồn: {entry.source}</span>
+        )}
       </div>
     </li>
   );
+}
+
+function getLeadAuditCategoryLabel(category?: string | null): string | null {
+  switch (category) {
+    case "status":
+      return "Tình trạng";
+    case "lifecycle":
+      return "Vòng đời";
+    case "assignment":
+      return "Phân công";
+    case "processing":
+      return "Xử lý";
+    case "conversion":
+      return "Chuyển đổi";
+    case "outcome":
+      return "Kết quả";
+    default:
+      return null;
+  }
+}
+
+function formatLeadLogValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }

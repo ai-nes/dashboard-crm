@@ -27,11 +27,14 @@ export default function CampaignDetailStats({
   const inProgress =
     campaignStats?.inProgress ??
     leads.filter(
-      (lead) => lead.status === "PROCESSED" || lead.status === "ASSIGNED",
+      (lead) =>
+        lead.processingStatus === "PROCESSING" ||
+        lead.processingStatus === "PROCESSED" ||
+        lead.processingStatus === "ASSIGNED",
     ).length;
   const converted =
     campaignStats?.closed ??
-    leads.filter((lead) => lead.status === "CLOSED").length;
+    leads.filter((lead) => lead.processingStatus === "CLOSED").length;
   const conversionRate =
     campaignStats?.conversionRate ??
     (total > 0 ? Math.round((converted / total) * 100) : 0);

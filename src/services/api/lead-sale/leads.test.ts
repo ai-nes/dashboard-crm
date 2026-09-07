@@ -4,6 +4,7 @@ import {
   getLeadDetail,
   getLeadList,
   LeadApiError,
+  normalizeLeadDetail,
   normalizeLeadList,
 } from "./leads";
 
@@ -20,11 +21,14 @@ function listFixture() {
         name: "Nguyễn Minh An",
         phone: "0900000000",
         school: "THPT Châu Văn Liêm",
-        status: "Mới",
-        statusCode: "NEW",
+        status: "Đang xử lý",
+        statusCode: "Working",
         processingStatus: "ASSIGNED",
+        result: "MATCHED",
         source: "Website",
         owner: "Chưa phân công",
+        contactNoAnswer: 2,
+        contactSuccess: 3,
         createdAt: "2026-09-07T10:00:00+07:00",
       },
     ],
@@ -72,7 +76,12 @@ describe("Lead list/detail API contract", () => {
     expect(result.data[0]?.name).toBe("Nguyễn Minh An");
     expect(result.data[0]?.leadCode).toBe("LD-2026-00001");
     expect(result.data[0]?.studentId).toBe("LEAD-2026-00001");
+    expect(result.data[0]?.status).toBe("Đang xử lý");
+    expect(result.data[0]?.statusCode).toBe("Working");
     expect(result.data[0]?.processingStatus).toBe("ASSIGNED");
+    expect(result.data[0]?.result).toBe("MATCHED");
+    expect(result.data[0]?.contactNoAnswer).toBe(2);
+    expect(result.data[0]?.contactSuccess).toBe(3);
     expect(result.data[0]?.createdAt).toBe("2026-09-07T10:00:00+07:00");
     expect(result.meta.statusOptions).toEqual([{ value: "NEW", label: "Mới" }]);
     expect(result.meta.stats).toEqual({
@@ -130,7 +139,24 @@ describe("Lead list/detail API contract", () => {
         eventsParticipated: [],
         description: "Lead quan tâm tuyển sinh.",
       },
-      log: [],
+      log: [
+        {
+          id: "status:1",
+          type: "activity",
+          title: "Cập nhật tình trạng Lead",
+          author: "Administrator",
+          date: "2026-09-07T11:00:00+07:00",
+          content: 'Enrollment Status được cập nhật từ "Mới" sang "Có triển vọng".',
+          event_type: "status_changed",
+          category: "status",
+          fieldname: "enrollment_status",
+          field_label: "Enrollment Status",
+          old_value: "Mới",
+          new_value: "Có triển vọng",
+          metadata: { old_code: "NEW", new_code: "PROSPECT" },
+          source: "Status Change Log",
+        },
+      ],
       meta: {},
     };
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -147,6 +173,49 @@ describe("Lead list/detail API contract", () => {
     );
     expect(result?.lead.email).toBe("an@example.com");
     expect(result?.lead.segments).toEqual(["Quan tâm học bổng"]);
+    expect(result?.log[0]).toMatchObject({
+      eventType: "status_changed",
+      category: "status",
+      oldValue: "Mới",
+      newValue: "Có triển vọng",
+      metadata: { old_code: "NEW", new_code: "PROSPECT" },
+      source: "Status Change Log",
+    });
+  });
+
+  it("normalizes detailed Lead audit metadata additively", () => {
+    const result = normalizeLeadDetail({
+      lead: {
+        ...listFixture().data[0],
+        email: "an@example.com",
+        segments: [],
+        enrollmentYear: null,
+        conversionPotential: null,
+        branch: "",
+        tags: [],
+        fptAspiration: "",
+        eventsParticipated: [],
+        description: "",
+      },
+      log: [
+        {
+          id: "assignment:1",
+          type: "activity",
+          title: "Thay đổi phân công Lead",
+          author: "Sale",
+          date: "2026-09-07T11:00:00+07:00",
+          content: "Đã đổi người phụ trách.",
+          category: "assignment",
+          reason: "Phân công theo khu vực",
+        },
+      ],
+      meta: {},
+    });
+
+    expect(result.log[0]).toMatchObject({
+      category: "assignment",
+      reason: "Phân công theo khu vực",
+    });
   });
 
   it("normalizes a valid detail response without changing empty arrays", () => {

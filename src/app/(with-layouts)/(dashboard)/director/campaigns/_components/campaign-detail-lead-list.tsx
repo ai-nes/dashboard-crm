@@ -3,11 +3,11 @@ import Link from "next/link";
 import LeadContactLogCell from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-contact-log-cell";
 import LeadResultCell from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-result-cell";
 import {
-  leadStageStatusLabel,
-  leadStageStatusOptions,
-  leadStageTriggerClass,
+  leadStatusLabel,
+  leadStatusOptions,
+  leadStatusTriggerClass,
   type LeadResultStatus,
-  type LeadStageStatus,
+  type LeadStatusCode,
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
 import { leadTableGrid } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-table-grid";
 import {
@@ -26,7 +26,7 @@ export const campaignLeadListGrid = leadTableGrid;
 
 interface CampaignDetailLeadListProps {
   leads: CampaignLeadRow[];
-  onStatusChange: (id: string, status: LeadStageStatus) => void;
+  onStatusChange: (id: string, status: LeadStatusCode) => void;
   onResultChange: (id: string, result: LeadResultStatus) => void;
 }
 
@@ -83,31 +83,35 @@ export default function CampaignDetailLeadList({
 
             <div className="flex items-center justify-between gap-2 lg:justify-start">
               <p className="text-xs text-text-tertiary lg:hidden">Trạng thái lead</p>
-              <Select
-                value={lead.status}
-                onChange={(value) => onStatusChange(lead.id, String(value) as LeadStageStatus)}
-                aria-label={`Đổi trạng thái lead ${lead.name}`}
-                className="w-fit min-w-32"
-              >
-                <SelectTrigger size="sm" className={`w-full ${leadStageTriggerClass[lead.status]}`}>
-                  <SelectValue />
-                  <SelectIndicator />
-                </SelectTrigger>
-                <SelectContent>
-                  {leadStageStatusOptions.map((status) => (
-                    <SelectItem key={status} id={status} textValue={leadStageStatusLabel[status]}>
-                      {leadStageStatusLabel[status]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {lead.status ? (
+                <Select
+                  value={lead.status}
+                  onChange={(value) => onStatusChange(lead.id, String(value) as LeadStatusCode)}
+                  aria-label={`Đổi trạng thái lead ${lead.name}`}
+                  className="w-fit min-w-32"
+                >
+                  <SelectTrigger size="sm" className={`w-full ${leadStatusTriggerClass[lead.status]}`}>
+                    <SelectValue />
+                    <SelectIndicator />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {leadStatusOptions.map((status) => (
+                      <SelectItem key={status} id={status} textValue={leadStatusLabel[status]}>
+                        {leadStatusLabel[status]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="text-sm text-text-tertiary">Chưa cập nhật</span>
+              )}
             </div>
 
             <div className="flex items-center justify-between gap-2 lg:justify-start">
               <p className="text-xs text-text-tertiary lg:hidden">Kết quả</p>
               <LeadResultCell
                 leadName={lead.name}
-                status={lead.status}
+                status={lead.processingStatus}
                 result={lead.result}
                 onChange={(result) => onResultChange(lead.id, result)}
               />
