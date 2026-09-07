@@ -52,6 +52,20 @@ export interface BigTeam {
   revision?: string;
 }
 
+export interface TeamManagementPermissions {
+  canManage: boolean;
+  canManageAll: boolean;
+  canManageGroups: boolean;
+  canManageTeams: boolean;
+  canManageMembers: boolean;
+  canManageTeamLeads: boolean;
+  visibleGroupIds: string[];
+  visibleTeamIds: string[];
+  managedGroupIds: string[];
+  managedTeamIds: string[];
+  memberManagementTeamIds: string[];
+}
+
 export interface TeamOrgState {
   bigTeams: BigTeam[];
   smallTeams: SmallTeam[];
@@ -61,8 +75,5 @@ export interface TeamOrgState {
     provinces?: { id: string; label: string; code?: string | null }[];
     functions: { value: string; label: string }[];
   };
-  permissions?: {
-    canManage: boolean;
-    canManageAll: boolean;
-  };
+  permissions?: TeamManagementPermissions;
 }

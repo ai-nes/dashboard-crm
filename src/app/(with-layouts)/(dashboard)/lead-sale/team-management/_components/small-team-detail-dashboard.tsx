@@ -9,6 +9,7 @@ import AddMemberDialog from "./add-member-dialog";
 import SmallTeamDetailHeader from "./small-team-detail-header";
 import LeadPickerField from "./lead-picker-field";
 import SmallTeamStats from "./small-team-stats";
+import { canManageMembers, canManageTeam } from "./team-management-access";
 import { findMember, membersOfSmallTeam } from "./team-management-utils";
 import TeamMemberList from "./team-member-list";
 import { useTeamManagement } from "./use-team-management";
@@ -44,6 +45,15 @@ export default function SmallTeamDetailDashboard({
 
   if (!bigTeam || !smallTeam) return <NotFoundState />;
 
+  const canManageTeamDetails = canManageTeam(state.permissions, smallTeam.id);
+  const canManageTeamMembers = canManageMembers(
+    state.permissions,
+    smallTeam.id,
+  );
+  const canViewGroup = Boolean(
+    state.permissions?.canManageAll ||
+    state.permissions?.managedGroupIds.includes(bigTeam.id),
+  );
   const members = membersOfSmallTeam(state, smallTeam);
   const candidates = state.members.filter(
     (member) =>
@@ -143,6 +153,8 @@ export default function SmallTeamDetailDashboard({
         bigTeam={bigTeam}
         smallTeam={smallTeam}
         onCreate={() => setIsAdding(true)}
+        canManageMembers={canManageTeamMembers}
+        canViewGroup={canViewGroup}
       />
       <SmallTeamStats
         total={members.length}
@@ -154,19 +166,20 @@ export default function SmallTeamDetailDashboard({
         <TeamMemberList
           smallTeam={smallTeam}
           members={members}
+          canManageMembers={canManageTeamMembers}
           leadPicker={
             <div className="flex w-full flex-col items-start gap-2 sm:w-auto">
               <span className="text-xs text-text-tertiary">Trưởng nhóm</span>
               <LeadPickerField
                 candidates={members}
                 value={smallTeam.leadId}
-              onChange={(leadId) =>
+                onChange={(leadId) =>
                   void run(
                     () => saveCurrentTeam(leadId),
                     leadId ? "Đã cập nhật trưởng nhóm." : "Đã bỏ trưởng nhóm.",
                   )
-              }
-                isDisabled={!state.permissions?.canManage}
+                }
+                isDisabled={!canManageTeamDetails}
                 ariaLabel={`Trưởng nhóm ${smallTeam.name}`}
                 placeholder={
                   members.length === 0

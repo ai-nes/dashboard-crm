@@ -15,14 +15,17 @@ interface TeamCardActionsProps {
   name: string;
   kind: "đội" | "nhóm";
   onDelete: () => void;
+  isDisabled?: boolean;
 }
 
 export default function TeamCardActions({
   name,
   kind,
   onDelete,
+  isDisabled = false,
 }: TeamCardActionsProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  if (isDisabled) return null;
   return (
     <>
       <div className="flex shrink-0 items-center gap-1">

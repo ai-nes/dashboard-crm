@@ -16,7 +16,7 @@ interface BigTeamCardProps {
   smallTeamCount: number;
   memberCount: number;
   allMembers: TeamMember[];
-  canManageLead: boolean;
+  canManageGroup: boolean;
   onEdit: (name: string) => void;
   onDelete: () => void;
   onLeadChange: (leadId: string | null) => void;
@@ -27,7 +27,7 @@ export default function BigTeamCard({
   smallTeamCount,
   memberCount,
   allMembers,
-  canManageLead,
+  canManageGroup,
   onEdit,
   onDelete,
   onLeadChange,
@@ -37,7 +37,11 @@ export default function BigTeamCard({
       <div className="flex min-w-0 flex-1 flex-col gap-5 p-5">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <EditableTeamTitle name={bigTeam.name} onSave={onEdit} />
+            <EditableTeamTitle
+              name={bigTeam.name}
+              onSave={onEdit}
+              isDisabled={!canManageGroup}
+            />
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge
                 size="sm"
@@ -66,7 +70,7 @@ export default function BigTeamCard({
                   candidates={allMembers}
                   value={bigTeam.groupLeadId}
                   onChange={onLeadChange}
-                  isDisabled={!canManageLead}
+                  isDisabled={!canManageGroup}
                   ariaLabel={`Trưởng Group ${bigTeam.name}`}
                   placeholder="Chọn Trưởng Group"
                   className="w-full"
@@ -74,7 +78,12 @@ export default function BigTeamCard({
               </label>
             </div>
           </div>
-          <TeamCardActions name={bigTeam.name} kind="nhóm" onDelete={onDelete} />
+          <TeamCardActions
+            name={bigTeam.name}
+            kind="nhóm"
+            onDelete={onDelete}
+            isDisabled={!canManageGroup}
+          />
         </div>
 
         <Link

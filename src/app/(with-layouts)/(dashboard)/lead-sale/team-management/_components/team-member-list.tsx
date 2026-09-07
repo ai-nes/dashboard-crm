@@ -28,6 +28,7 @@ interface TeamMemberListProps {
   onRemove: (memberId: string) => void;
   onUpdate: UpdateMember;
   leadPicker: ReactNode;
+  canManageMembers: boolean;
 }
 
 const normalize = (value: string) =>
@@ -44,12 +45,18 @@ export default function TeamMemberList({
   onRemove,
   onUpdate,
   leadPicker,
+  canManageMembers,
 }: TeamMemberListProps) {
   "use no memo"; // TanStack Table exposes mutable state through its table instance.
   const table = useReactTable({
     data: members,
     defaultColumn: { minSize: 0 },
-    columns: createTeamMemberColumns(smallTeam, onUpdate, onRemove),
+    columns: createTeamMemberColumns(
+      smallTeam,
+      onUpdate,
+      onRemove,
+      canManageMembers,
+    ),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getRowId: (member) => member.id,
@@ -108,7 +115,10 @@ export default function TeamMemberList({
           ))}
           {rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="px-6 py-12 text-center">
+              <TableCell
+                colSpan={table.getAllLeafColumns().length}
+                className="px-6 py-12 text-center"
+              >
                 <p className="font-medium text-text-primary">
                   {members.length
                     ? "Không tìm thấy thành viên phù hợp"

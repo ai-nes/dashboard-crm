@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Card } from "@/components/tailgrids/core/card";
@@ -10,10 +11,12 @@ import BigTeamDetailHeader from "./big-team-detail-header";
 import CreateTeamDialog from "./create-team-dialog";
 import SmallTeamCard from "./small-team-card";
 import {
+  getTeamManagementEntryPath,
   membersOfBigTeam,
   membersOfSmallTeam,
   smallTeamsOfBigTeam,
 } from "./team-management-utils";
+import { canManageTeam } from "./team-management-access";
 import { useTeamManagement } from "./use-team-management";
 
 export default function BigTeamDetailDashboard({
@@ -22,16 +25,34 @@ export default function BigTeamDetailDashboard({
   bigTeamId: string;
 }) {
   const { state, isLoading, error, saveTeam } = useTeamManagement();
+  const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
+  const canViewGroupDetail = Boolean(
+    state?.permissions?.canManageAll ||
+    state?.permissions?.managedGroupIds.includes(bigTeamId),
+  );
+  const redirectPath =
+    state && !canViewGroupDetail ? getTeamManagementEntryPath(state) : null;
+
+  useEffect(() => {
+    if (redirectPath) router.replace(redirectPath);
+  }, [redirectPath, router]);
 
   if (isLoading && !state) return <LoadingState />;
   if (error && !state) return <ErrorState message={error} />;
   if (!state) return null;
+  if (redirectPath) {
+    return <LoadingState message="Đang mở Team của bạn..." />;
+  }
 
   const bigTeam = state.bigTeams.find((team) => team.id === bigTeamId) ?? null;
   if (!bigTeam) return <NotFoundState label="đội" />;
 
   const smallTeams = smallTeamsOfBigTeam(state, bigTeam);
+  const canManageTeams = Boolean(
+    state.permissions?.canManageAll ||
+    state.permissions?.managedGroupIds.includes(bigTeam.id),
+  );
   const run = async (action: () => Promise<void>, success: string) => {
     try {
       await action();
@@ -72,6 +93,8 @@ export default function BigTeamDetailDashboard({
       <BigTeamDetailHeader
         bigTeam={bigTeam}
         onCreate={() => setIsCreating(true)}
+        canManageTeams={canManageTeams}
+        canViewOverview={state.permissions?.canManageAll ?? false}
       />
       <BigTeamStats
         bigTeam={bigTeam}
@@ -115,7 +138,7 @@ export default function BigTeamDetailDashboard({
                   leadId ? "Đã cập nhật trưởng nhóm." : "Đã bỏ trưởng nhóm.",
                 )
               }
-              canManageLead={state.permissions?.canManage ?? false}
+              canManageTeam={canManageTeam(state.permissions, smallTeam.id)}
             />
           ))}
         </div>
@@ -150,11 +173,15 @@ export default function BigTeamDetailDashboard({
   );
 }
 
-function LoadingState() {
+function LoadingState({
+  message = "Đang tải dữ liệu đội ngũ...",
+}: {
+  message?: string;
+}) {
   return (
     <main id="main-content" className="min-w-0 p-6">
       <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-secondary">
-        Đang tải dữ liệu đội ngũ...
+        {message}
       </div>
     </main>
   );

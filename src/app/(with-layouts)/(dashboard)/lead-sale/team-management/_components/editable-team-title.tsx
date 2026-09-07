@@ -7,11 +7,13 @@ import { Input } from "@/components/tailgrids/core/input";
 interface EditableTeamTitleProps {
   name: string;
   onSave: (name: string) => void;
+  isDisabled?: boolean;
 }
 
 export default function EditableTeamTitle({
   name,
   onSave,
+  isDisabled = false,
 }: EditableTeamTitleProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
@@ -75,6 +77,10 @@ export default function EditableTeamTitle({
             </Button>
           </div>
         </form>
+      ) : isDisabled ? (
+        <h2 className="text-lg font-semibold text-text-primary">
+          <span className="text-balance break-words">{name}</span>
+        </h2>
       ) : (
         <h2>
           <Button

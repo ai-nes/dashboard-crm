@@ -26,7 +26,7 @@ interface SmallTeamCardProps {
   onEdit: (name: string) => void;
   onDelete: () => void;
   onLeadChange: (leadId: string | null) => void;
-  canManageLead?: boolean;
+  canManageTeam?: boolean;
 }
 
 export default function SmallTeamCard({
@@ -36,7 +36,7 @@ export default function SmallTeamCard({
   onEdit,
   onDelete,
   onLeadChange,
-  canManageLead = false,
+  canManageTeam = false,
 }: SmallTeamCardProps) {
   const visibleMembers = members.slice(0, MAX_AVATARS);
   const remaining = members.length - visibleMembers.length;
@@ -46,7 +46,11 @@ export default function SmallTeamCard({
       <div className="flex min-w-0 flex-1 flex-col gap-4 p-5">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <EditableTeamTitle name={smallTeam.name} onSave={onEdit} />
+            <EditableTeamTitle
+              name={smallTeam.name}
+              onSave={onEdit}
+              isDisabled={!canManageTeam}
+            />
             <Badge
               size="sm"
               color="gray"
@@ -72,6 +76,7 @@ export default function SmallTeamCard({
             name={smallTeam.name}
             kind="đội"
             onDelete={onDelete}
+            isDisabled={!canManageTeam}
           />
         </div>
 
@@ -103,7 +108,7 @@ export default function SmallTeamCard({
               candidates={members}
               value={smallTeam.leadId}
               onChange={onLeadChange}
-              isDisabled={!canManageLead}
+              isDisabled={!canManageTeam}
               ariaLabel={`Trưởng nhóm ${smallTeam.name}`}
               placeholder={
                 members.length === 0 ? "Chưa có thành viên" : "Chọn trưởng nhóm"

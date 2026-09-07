@@ -139,6 +139,14 @@ const SCHOOL_FIELD_ACTIVITY_ROLES = [
 ] as const satisfies readonly CrmRole[];
 
 const NON_SYSTEM_MANAGER_ROLES = CRM_ROLES;
+const TEAM_MANAGEMENT_ROLES = [
+  "Sale",
+  "CTV Sale",
+  "Lead Sale",
+  "Admissions Director",
+  "Administrator",
+  "System Manager",
+] as const satisfies readonly DashboardRole[];
 
 /**
  * Public workspace routes. A workspace is the stable entry point for a role;
@@ -209,7 +217,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   },
   {
     path: "/lead-sale/team-management",
-    roles: ROLE_ROUTE_ROLES["lead-sale"],
+    roles: TEAM_MANAGEMENT_ROLES,
   },
   { path: "/lead-sale/campaigns", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/director/ai/next-best-action", roles: OVERVIEW_ACTION_ROLES },
@@ -229,7 +237,10 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/director/alerts", roles: ALERT_ROLES },
   { path: "/director/data-health", roles: DATA_HEALTH_ROLES },
   { path: "/director/admin/nba-actions", roles: NBA_ACTIONS_READ_ROLES },
-  { path: "/director/admin/action-recommendations", roles: NBA_ACTIONS_READ_ROLES },
+  {
+    path: "/director/admin/action-recommendations",
+    roles: NBA_ACTIONS_READ_ROLES,
+  },
   {
     path: "/director/campaign-intelligence",
     roles: CAMPAIGN_INTELLIGENCE_ROLES,
@@ -356,7 +367,9 @@ export function canAccessDashboardPath(
   const rule = findRouteAccessRule(pathname);
   if (!rule) return false;
 
-  return rule.roles.some((role) => getEffectiveDashboardRoles(roles).includes(role));
+  return rule.roles.some((role) =>
+    getEffectiveDashboardRoles(roles).includes(role),
+  );
 }
 
 export function getDefaultRouteForRoles(
