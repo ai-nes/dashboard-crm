@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -18,6 +18,13 @@ import {
   type ActivityTimeFilter,
 } from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-activity-utils";
 import { formatDateTime } from "@/utils/format-date";
+import {
+  getSttJobStatus,
+  isSttCallUuid,
+  isSttTerminalStatus,
+  triggerSttTranscription,
+  type SttJobStatus,
+} from "@/services/api/stt";
 
 import type { LeadCallRecord } from "@/services/api/lead-sale/call-logs";
 
@@ -31,6 +38,7 @@ interface LeadCallsTabProps {
   isLoading?: boolean;
   isError?: boolean;
   onRetry?: () => void;
+  onCallUpdated?: () => void;
 }
 
 const outcomeConfig: Record<LeadCallOutcome, { label: string; color: "success" | "error" | "warning" | "primary" }> = {
@@ -57,6 +65,7 @@ export default function LeadCallsTab({
   isLoading = false,
   isError = false,
   onRetry,
+  onCallUpdated,
 }: LeadCallsTabProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<ActivityTimeFilter>("all");
@@ -164,7 +173,7 @@ export default function LeadCallsTab({
                   expanded={expandedCallIds.has(call.id)}
                   onExpandedChange={(expanded) => handleCallExpandedChange(call.id, expanded)}
                 >
-                  <LeadCallDetails call={call} />
+                  <LeadCallDetails call={call} onCallUpdated={onCallUpdated} />
                 </StudentActivityCard>
               ))}
             </StudentActivityGroup>
@@ -175,7 +184,15 @@ export default function LeadCallsTab({
   );
 }
 
-export function LeadCallDetails({ call, compact = false }: { call: LeadCallRecord; compact?: boolean }) {
+export function LeadCallDetails({
+  call,
+  compact = false,
+  onCallUpdated,
+}: {
+  call: LeadCallRecord;
+  compact?: boolean;
+  onCallUpdated?: () => void;
+}) {
   const outcome = outcomeConfig[call.outcome];
 
   if (compact) {
@@ -224,8 +241,112 @@ export function LeadCallDetails({ call, compact = false }: { call: LeadCallRecor
 
       <LeadCallTranscript transcript={call.transcript} />
 
+      {!call.transcript && isSttCallUuid(call.id) ? (
+        <LeadCallTranscriptionAction callUuid={call.id} onCompleted={onCallUpdated} />
+      ) : null}
+
       <LeadCallRecording recordingUrl={call.recordingUrl} durationSeconds={call.durationSeconds} />
     </div>
+  );
+}
+
+function LeadCallTranscriptionAction({
+  callUuid,
+  onCompleted,
+}: {
+  callUuid: string;
+  onCompleted?: () => void;
+}) {
+  const [job, setJob] = useState<SttJobStatus | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!job?.status || isSttTerminalStatus(job.status)) return;
+
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      try {
+        const next = await getSttJobStatus(callUuid);
+        if (disposed) return;
+        if (next) {
+          setJob(next);
+          setError(null);
+          if (isSttTerminalStatus(next.status)) {
+            onCompleted?.();
+            return;
+          }
+        }
+      } catch (pollError) {
+        if (!disposed) {
+          setError(pollError instanceof Error ? pollError.message : "Không lấy được trạng thái STT.");
+        }
+      }
+      if (!disposed) timer = setTimeout(poll, 3000);
+    };
+
+    void poll();
+    return () => {
+      disposed = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [callUuid, job?.status, onCompleted]);
+
+  const startTranscription = async () => {
+    setIsStarting(true);
+    setError(null);
+    try {
+      await triggerSttTranscription(callUuid);
+      setJob({ status: "PROCESSING" });
+    } catch (startError) {
+      setError(startError instanceof Error ? startError.message : "Không thể bắt đầu STT.");
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  const isProcessing = Boolean(job?.status && !isSttTerminalStatus(job.status));
+  const buttonLabel = isStarting
+    ? "Đang gửi…"
+    : isProcessing
+      ? "Đang xử lý…"
+      : job?.status === "FAILED"
+        ? "Thử lại transcript"
+        : "Tạo transcript";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-card-border px-3 py-2">
+      <Button
+        type="button"
+        appearance="outline"
+        size="sm"
+        onPress={startTranscription}
+        isDisabled={isStarting || isProcessing}
+      >
+        {buttonLabel}
+      </Button>
+      {job?.status ? (
+        <span className="text-xs text-text-tertiary" role="status">
+          STT: {formatSttStatus(job.status)}
+        </span>
+      ) : null}
+      {error ? <span className="text-xs text-error-600">{error}</span> : null}
+    </div>
+  );
+}
+
+function formatSttStatus(status: string): string {
+  return (
+    {
+      PROCESSING: "đang xếp hàng",
+      TRANSCRIBING: "đang nhận dạng",
+      TRANSCRIBED: "đã nhận dạng",
+      SENDING_TO_CRM: "đang lưu CRM",
+      COMPLETED: "hoàn tất",
+      COMPLETED_LOCAL_ONLY: "hoàn tất tại STT",
+      FAILED: "thất bại",
+    }[status] ?? status
   );
 }
 

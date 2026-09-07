@@ -93,6 +93,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
           isLoading={callLogsQuery.isPending}
           isError={callLogsQuery.isError}
           onRetry={() => void callLogsQuery.refetch()}
+          onCallUpdated={() => void callLogsQuery.refetch()}
         />
       ),
     },
