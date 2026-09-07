@@ -196,6 +196,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
     roles: ROLE_ROUTE_ROLES["lead-sale"],
   },
   { path: "/lead-sale/students", roles: ROLE_ROUTE_ROLES["lead-sale"] },
+  { path: "/lead-sale/leads", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/lead-sale/tasks", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/lead-sale/demographics", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   {
@@ -211,6 +212,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/director/ai", roles: AI_CENTER_ROLES },
   { path: "/director/demographics", roles: DEMOGRAPHICS_ROLES },
   { path: "/director/students", roles: CUSTOMER_DATA_ROLES },
+  { path: "/director/leads", roles: CUSTOMER_DATA_ROLES },
   { path: "/director/market-intelligence", roles: SCHOOL_INTELLIGENCE_ROLES },
   { path: "/director/schools", roles: SCHOOL_INTELLIGENCE_ROLES },
   { path: "/director/school", roles: SCHOOL_INTELLIGENCE_ROLES },

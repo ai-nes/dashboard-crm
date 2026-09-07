@@ -341,6 +341,11 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
       //   icon: <AlphabetIcon />,
       // }),
       navItem({
+        title: "Danh sách lead",
+        url: "/lead-sale/leads",
+        icon: <Target3 size={18} />,
+      }),
+      navItem({
         title: "Danh sách học sinh",
         url: "/lead-sale/students",
         icon: <UserGroupIcon />,
