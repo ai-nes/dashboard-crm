@@ -213,7 +213,6 @@ export default function StudentNextBestActions({
           <div className="flex shrink-0 items-center gap-2">
             {studentStage && (
               <span className="rounded-full border border-card-border bg-background-gray-secondary px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                Student stage: {studentStage}
               </span>
             )}
             <Button

@@ -1,28 +1,36 @@
 "use client";
 
-import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSection,
-  DropdownMenuTrigger,
-} from "@/components/tailgrids/core/dropdown";
+import { Badge } from "@/components/tailgrids/core/badge";
 import type {
   NbaDecisionOperation,
   NbaRecommendation,
 } from "@/services/api/nba";
 
-import { StudentTaskTypeBadge } from "./student-task-badges";
 import {
-  formatNbaDateTime,
-  getPermittedOperations,
-  NBA_OPERATION_DESCRIPTIONS,
-  NBA_OPERATION_LABELS,
+  formatNbaDateShort,
+  formatNbaTimeOfDay,
+  isDecisionPermitted,
   NBA_PRIORITY_COLORS,
   NBA_PRIORITY_LABELS,
 } from "./student-nba-ui";
+
+/** The 3 fixed decision slots the card always shows, left to right. */
+const CARD_OPERATIONS: NbaDecisionOperation[] = [
+  "REJECT",
+  "ACCEPT_WITH_CHANGES",
+  "ACCEPT",
+];
+
+/** Short call-to-action wording for this card only -- other surfaces (decision
+ *  dialogs, history) keep the fuller NBA_OPERATION_LABELS wording. */
+const CARD_OPERATION_LABELS: Record<NbaDecisionOperation, string> = {
+  ACCEPT: "Đồng ý",
+  ACCEPT_WITH_CHANGES: "Chỉnh sửa",
+  REJECT: "Từ chối",
+  DEFER: "Trì hoãn",
+  DISMISS: "Bỏ qua",
+};
 
 interface StudentNbaRecommendationCardProps {
   recommendation: NbaRecommendation;
@@ -36,55 +44,62 @@ export default function StudentNbaRecommendationCard({
   recommendation,
   onBeginDecision,
 }: StudentNbaRecommendationCardProps) {
-  const operations = getPermittedOperations(recommendation);
   const hasRevision = Boolean(recommendation.expectedRevision);
   const scheduledAt =
     recommendation.timing.scheduledAt ?? recommendation.generatedAt;
-  const scheduleLabel = formatNbaDateTime(scheduledAt);
+  const timeLabel = formatNbaTimeOfDay(scheduledAt);
+  const dateLabel = formatNbaDateShort(scheduledAt);
+  const expiresLabel = formatNbaDateShort(recommendation.timing.expiresAt);
   const reason =
     recommendation.reason ||
     recommendation.context[0] ||
     "Chưa có căn cứ cho đề xuất này.";
+  const operations = CARD_OPERATIONS.filter((operation) =>
+    isDecisionPermitted(recommendation, operation),
+  );
 
   return (
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-card-border bg-card-background">
       <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <StudentTaskTypeBadge actionCode={recommendation.action.code} />
-            <Badge
-              color="gray"
-              prefixIcon={
-                <span
-                  className="size-1.5 rounded-full bg-current"
-                  aria-hidden="true"
-                />
-              }
-              title={`Thời gian thực hiện: ${scheduleLabel}${recommendation.timing.timezone ? ` · ${recommendation.timing.timezone}` : ""}`}
-              className="whitespace-nowrap"
-            >
-              {scheduleLabel}
-            </Badge>
-          </div>
+        <div className="flex items-center justify-between gap-2">
           <Badge color={NBA_PRIORITY_COLORS[recommendation.priority]}>
-            {NBA_PRIORITY_LABELS[recommendation.priority]}
+            {NBA_PRIORITY_LABELS[recommendation.priority].toUpperCase()}
           </Badge>
+          <span className="shrink-0 text-xs font-medium text-text-tertiary">
+            #{recommendation.rank}
+          </span>
         </div>
 
         <h3 className="mt-3 break-words text-lg leading-7 font-semibold text-text-primary">
           {recommendation.action.title}
         </h3>
 
-        <div className="mt-3 border-t border-card-border pt-3">
-          <p className="text-xs font-semibold text-text-tertiary">Lý do</p>
-          <p className="mt-1.5 max-w-3xl text-sm leading-5 text-text-primary">
-            {reason}
-          </p>
-        </div>
+        <p className="mt-3 max-w-3xl text-sm leading-5 text-text-primary">
+          {reason}
+        </p>
+
+        {(timeLabel || dateLabel || expiresLabel) && (
+          <div className="mt-3 border-t border-card-border pt-3">
+            <p className="text-xs font-semibold text-text-tertiary">
+              Nên thực hiện
+            </p>
+            <p className="mt-1.5 text-sm leading-5 text-text-primary">
+              {[timeLabel, dateLabel].filter(Boolean).join(" · ") ||
+                "Chưa xác định"}
+            </p>
+            {expiresLabel && (
+              <p className="mt-0.5 text-sm leading-5 text-text-tertiary">
+                Hết hiệu lực: {expiresLabel}
+              </p>
+            )}
+          </div>
+        )}
 
         {recommendation.objective && (
           <div className="mt-3 border-t border-card-border pt-3">
-            <p className="text-xs font-semibold text-text-tertiary">Mục tiêu</p>
+            <p className="text-xs font-semibold text-text-tertiary">
+              Mục tiêu
+            </p>
             <p className="mt-1.5 max-w-3xl text-sm leading-5 text-text-primary">
               {recommendation.objective}
             </p>
@@ -103,14 +118,18 @@ export default function StudentNbaRecommendationCard({
         )}
       </div>
 
-      {hasRevision && (
-        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-card-border px-4 py-3 sm:px-5">
-          <DecisionActions
-            operations={operations}
-            onBeginDecision={(operation) =>
-              onBeginDecision(recommendation, operation)
-            }
-          />
+      {hasRevision && operations.length > 0 && (
+        <div
+          className="grid gap-2 border-t border-card-border px-4 py-3 sm:px-5"
+          style={{ gridTemplateColumns: `repeat(${operations.length}, 1fr)` }}
+        >
+          {operations.map((operation) => (
+            <NbaOperationButton
+              key={operation}
+              operation={operation}
+              onPress={() => onBeginDecision(recommendation, operation)}
+            />
+          ))}
         </div>
       )}
     </article>
@@ -125,84 +144,17 @@ function NbaOperationButton({
   onPress: () => void;
 }) {
   const isAccept = operation === "ACCEPT";
-  const isDestructive = operation === "REJECT" || operation === "DISMISS";
+  const isReject = operation === "REJECT";
 
   return (
     <Button
       size="sm"
-      variant={isAccept ? "success" : isDestructive ? "danger" : "primary"}
+      variant={isAccept ? "success" : isReject ? "danger" : "primary"}
       appearance={isAccept ? "fill" : "outline"}
       onPress={onPress}
-      className="whitespace-nowrap"
+      className="w-full whitespace-nowrap"
     >
-      <span>{NBA_OPERATION_LABELS[operation]}</span>
+      <span>{CARD_OPERATION_LABELS[operation]}</span>
     </Button>
-  );
-}
-
-function DecisionActions({
-  operations,
-  onBeginDecision,
-}: {
-  operations: NbaDecisionOperation[];
-  onBeginDecision: (operation: NbaDecisionOperation) => void;
-}) {
-  const primaryOperation = operations.includes("ACCEPT")
-    ? "ACCEPT"
-    : operations[0];
-  const overflowOperations = operations.filter(
-    (operation) => operation !== primaryOperation,
-  );
-
-  if (!primaryOperation) return null;
-
-  return (
-    <div className="flex flex-wrap justify-end gap-2">
-      <NbaOperationButton
-        operation={primaryOperation}
-        onPress={() => onBeginDecision(primaryOperation)}
-      />
-      {overflowOperations.length > 0 && (
-        <DecisionOverflowMenu
-          operations={overflowOperations}
-          onBeginDecision={onBeginDecision}
-        />
-      )}
-    </div>
-  );
-}
-
-function DecisionOverflowMenu({
-  operations,
-  onBeginDecision,
-}: {
-  operations: NbaDecisionOperation[];
-  onBeginDecision: (operation: NbaDecisionOperation) => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex h-8 items-center justify-center rounded-lg border border-button-primary-outline-stroke bg-button-primary-outline-background px-3 text-sm font-medium text-button-primary-outline-text outline-none transition hover:bg-button-primary-outline-hover-background focus-visible:ring-4 focus-visible:ring-button-outline-focus-ring">
-        Khác
-      </DropdownMenuTrigger>
-      <DropdownMenuContent placement="top end" className="w-64 p-1.5">
-        <DropdownMenuSection>
-          {operations.map((operation) => (
-            <DropdownMenuItem
-              key={operation}
-              id={operation}
-              onAction={() => onBeginDecision(operation)}
-              className="flex-col items-start gap-0.5 px-3 py-2"
-            >
-              <span className="font-medium text-text-primary">
-                {NBA_OPERATION_LABELS[operation]}
-              </span>
-              <span className="text-xs leading-4 text-text-secondary">
-                {NBA_OPERATION_DESCRIPTIONS[operation]}
-              </span>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuSection>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
