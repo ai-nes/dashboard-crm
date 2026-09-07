@@ -162,7 +162,8 @@ export default function CampaignFilter({
           >
             <SelectTrigger
               size="sm"
-              className="min-w-[5.5rem] gap-1.5 whitespace-nowrap border-0 bg-transparent px-2.5 font-semibold text-brand-600 shadow-none hover:bg-background-gray-secondary_alt hover:text-brand-600"
+              appearance="ghost"
+              className="min-w-0 gap-1.5 whitespace-nowrap bg-background-gray-secondary_alt px-2.5 font-semibold text-brand-600 shadow-none hover:bg-background-gray-secondary_alt hover:text-brand-600"
             >
               {value && !isRecentCampaignSelected && selectedCampaign ? (
                 <span className="max-w-[14rem] truncate">
