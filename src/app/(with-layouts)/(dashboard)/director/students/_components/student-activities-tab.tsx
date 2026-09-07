@@ -3,14 +3,11 @@
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import {
-  TabContent,
-  TabList,
-  TabRoot,
-  TabTrigger,
-} from "@/components/tailgrids/core/tabs";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { getCrmPermissions } from "@/components/common/auth/permissions";
+import DetailTabs, {
+  type DetailTabItem,
+} from "@/components/common/detail-tabs";
 import {
   useStudentChatwootInteractionsQuery,
   useStudentInteractionsQuery,
@@ -56,6 +53,8 @@ import type {
 } from "./types";
 
 interface StudentActivitiesTabProps extends Student360SectionProps {
+  defaultSelectedKey: string;
+  detailTabs: DetailTabItem[];
   studentId: string;
   initialChatwootInteractions?: StudentChatwootInteractionsResponse | null;
   initialStudentInteractions?: StudentInteractionsResponse | null;
@@ -93,6 +92,8 @@ function getFollowUpTaskTitle(content: string): string {
 
 export default function StudentActivitiesTab({
   data,
+  defaultSelectedKey,
+  detailTabs,
   studentId,
   initialChatwootInteractions,
   initialStudentInteractions,
@@ -101,7 +102,6 @@ export default function StudentActivitiesTab({
   const { user } = useAuth();
   const permissions = getCrmPermissions(user?.roles);
   const taskAssigneesQuery = useTaskAssigneesQuery();
-  const [activeTab, setActiveTab] = useState(initialTaskId ? "tasks" : "notes");
   const assignedTo = data.student.counselor || "Chưa phân công";
   const taskAssignees = useMemo(() => {
     const currentSessionUser = user
@@ -151,7 +151,8 @@ export default function StudentActivitiesTab({
     [user?.email, user?.user],
   );
 
-  // Dùng ID canonical từ URL (e.g. ENR-2026-00005), không dùng mã hiển thị/nội bộ từ payload student.
+  // Task/Action APIs use CRM Student; the backend resolves a legacy Lead route ID
+  // to its canonical Student during the migration window.
   const studentDocname = studentId.trim();
   const chatwootInteractionsQuery = useStudentChatwootInteractionsQuery(
     studentDocname,
@@ -169,7 +170,7 @@ export default function StudentActivitiesTab({
     referenceDocname: studentDocname,
   });
   const crmTasksQuery = useCrmTasksQuery({
-    referenceDoctype: "CRM Lead",
+    referenceDoctype: "CRM Student",
     referenceDocname: studentDocname,
   });
 
@@ -300,7 +301,7 @@ export default function StudentActivitiesTab({
 
         try {
           const createdTask = await createTaskMutation.mutateAsync({
-            referenceDoctype: "CRM Lead",
+            referenceDoctype: "CRM Student",
             referenceDocname: studentDocname,
             title: getFollowUpTaskTitle(note.content),
             description: note.content,
@@ -476,58 +477,71 @@ export default function StudentActivitiesTab({
   };
 
   return (
-    <TabRoot
-      defaultValue="notes"
-      value={activeTab}
-      onValueChange={setActiveTab}
-      variant="minimal"
-      className="rounded-none border-0"
-    >
-      <TabList>
-        <TabTrigger value="notes">Ghi chú</TabTrigger>
-        <TabTrigger value="tasks">Task</TabTrigger>
-        <TabTrigger value="zalo">Zalo</TabTrigger>
-        <TabTrigger value="calls">Cuộc gọi</TabTrigger>
-      </TabList>
-      <TabContent value="notes">
-        <StudentNotesTab
-          studentName={data.student.name}
-          notes={notes}
-          onCreateNote={handleCreateNote}
-          onUpdateNote={handleUpdateNote}
-          onDeleteNote={handleDeleteNote}
-          isCreating={
-            createNoteMutation.isPending || createTaskMutation.isPending
-          }
-          canCreateFollowUpTask={canCreateTask}
-          followUpTaskDisabledReason={taskCreationDisabledReason}
-        />
-      </TabContent>
-      <TabContent value="tasks">
-        <StudentTasksTab
-          studentName={data.student.name}
-          assignee={assignedTo}
-          studentStage={data.student.studyStage ?? undefined}
-          tasks={tasks}
-          onCreateTask={handleCreateTask}
-          onUpdateTask={handleUpdateTask}
-          onDeleteTask={
-            permissions.task.canDelete ? handleRequestDeleteTask : undefined
-          }
-          canCreateTask={canCreateTask}
-          createTaskDisabledReason={taskCreationDisabledReason}
-          assigneeId={studentTaskAssignee?.name}
-          isCreating={createTaskMutation.isPending}
-          isLoading={crmTasksQuery.isPending}
-          initialTaskId={initialTaskId}
-        />
-      </TabContent>
-      <TabContent value="zalo">
-        <StudentZaloTab messages={zaloMessages} />
-      </TabContent>
-      <TabContent value="calls">
-        <StudentCallsTab calls={calls} />
-      </TabContent>
+    <>
+      <DetailTabs
+        ariaLabel="Các phần trong hồ sơ học sinh"
+        defaultSelectedKey={defaultSelectedKey}
+        tabs={[
+          ...detailTabs.slice(0, 1),
+          ...detailTabs.filter(
+            (tab) => tab.id === "profile" || tab.id === "records",
+          ),
+          {
+            id: "tasks",
+            label: "Task",
+            content: (
+              <StudentTasksTab
+                studentName={data.student.name}
+                assignee={assignedTo}
+                studentStage={data.student.studyStage ?? undefined}
+                tasks={tasks}
+                onCreateTask={handleCreateTask}
+                onUpdateTask={handleUpdateTask}
+                onDeleteTask={
+                  permissions.task.canDelete
+                    ? handleRequestDeleteTask
+                    : undefined
+                }
+                canCreateTask={canCreateTask}
+                createTaskDisabledReason={taskCreationDisabledReason}
+                assigneeId={studentTaskAssignee?.name}
+                isCreating={createTaskMutation.isPending}
+                isLoading={crmTasksQuery.isPending}
+                initialTaskId={initialTaskId}
+              />
+            ),
+          },
+          {
+            id: "notes",
+            label: "Ghi chú",
+            content: (
+              <StudentNotesTab
+                studentName={data.student.name}
+                notes={notes}
+                onCreateNote={handleCreateNote}
+                onUpdateNote={handleUpdateNote}
+                onDeleteNote={handleDeleteNote}
+                isCreating={
+                  createNoteMutation.isPending || createTaskMutation.isPending
+                }
+                canCreateFollowUpTask={canCreateTask}
+                followUpTaskDisabledReason={taskCreationDisabledReason}
+              />
+            ),
+          },
+          {
+            id: "zalo",
+            label: "Zalo",
+            content: <StudentZaloTab messages={zaloMessages} />,
+          },
+          {
+            id: "calls",
+            label: "Cuộc gọi",
+            content: <StudentCallsTab calls={calls} />,
+          },
+          ...detailTabs.filter((tab) => tab.id === "audit"),
+        ]}
+      />
       {permissions.task.canDelete && (
         <StudentDeleteTaskDialog
           task={taskToDelete}
@@ -538,6 +552,6 @@ export default function StudentActivitiesTab({
           onConfirm={handleConfirmDeleteTask}
         />
       )}
-    </TabRoot>
+    </>
   );
 }

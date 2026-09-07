@@ -2,8 +2,14 @@ import {
   getStudentStudyStageForPayload,
   normalizeStudentStudyStage,
 } from "./student-study-stage";
+import type { StudentStatus } from "@/services/api/students/types";
 
 export type StudentUpdateFieldValue = string | null;
+
+export interface StudentStageTransitionRequest {
+  student: string;
+  target_stage: StudentStatus;
+}
 
 export type StudentUpdateFields = Partial<{
   student_name: StudentUpdateFieldValue;
@@ -723,6 +729,52 @@ async function updateRecord<TFields>(
 
 export function updateStudent(name: string, fields: StudentUpdateFields) {
   return updateRecord("update_student", name, normalizeStudentFields(fields));
+}
+
+export async function requestStudentStageTransition({
+  student,
+  target_stage,
+}: StudentStageTransitionRequest): Promise<void> {
+  const normalizedStudent = text(student);
+  if (!normalizedStudent) {
+    throw new StudentSchoolUpdateApiError(
+      400,
+      "INVALID_STUDENT",
+      "Thiếu học sinh cần cập nhật trạng thái.",
+    );
+  }
+
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    throw new StudentSchoolUpdateApiError(
+      503,
+      "STUDENT_STAGE_UPDATE_UNAVAILABLE",
+      "Chưa cấu hình Frappe CRM API nên không thể cập nhật trạng thái.",
+    );
+  }
+
+  const response = await fetch(
+    `${baseUrl}/api/method/crm.api.student_stage.request_transition`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: await getRequestHeaders(),
+      body: JSON.stringify({
+        student: normalizedStudent,
+        target_stage,
+      }),
+    },
+  );
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const details = getErrorDetails(payload, response.status, "update");
+    throw new StudentSchoolUpdateApiError(
+      response.status,
+      details.code,
+      details.message,
+    );
+  }
 }
 
 export function updateSchool(name: string, fields: SchoolUpdateFields) {

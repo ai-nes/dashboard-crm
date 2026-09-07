@@ -123,7 +123,7 @@ export function studentTaskToCreatePayload(
   assignedTo?: string,
 ): CreateTaskPayload {
   return {
-    referenceDoctype: "CRM Lead",
+    referenceDoctype: "CRM Student",
     referenceDocname,
     title: task.title,
     description: task.notes,

@@ -238,6 +238,8 @@ export interface Student360Data {
     code: string;
     school: string;
     grade: string;
+    /** Contact-stage enum used by the editable status control. */
+    studentStage?: StudentStatus | null;
     studyStage?: string | null;
     major: string;
     phone: string;

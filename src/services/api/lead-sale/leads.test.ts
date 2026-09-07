@@ -168,7 +168,7 @@ describe("Lead list/detail API contract", () => {
     });
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.director_leads.get_director_lead?lead_id=LEAD-2026-00001",
+      "http://frappe:8000/api/method/crm.api.lead.get_lead?name=LEAD-2026-00001",
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(result?.lead.email).toBe("an@example.com");
@@ -215,6 +215,67 @@ describe("Lead list/detail API contract", () => {
     expect(result.log[0]).toMatchObject({
       category: "assignment",
       reason: "Phân công theo khu vực",
+    });
+  });
+
+  it("normalizes a CRUD Lead document returned directly by Frappe", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            name: "LEAD-2026-00002",
+            lead_code: "LD-2026-00002",
+            processing_status: "ASSIGNED",
+            resolution: "MATCHED",
+            student_name: "Trần Thị Bình",
+            phone: "0911111111",
+            email: "binh@example.com",
+            other_email: "binh.alt@example.com",
+            high_school: "THPT Nguyễn Huệ",
+            province: "Hà Nội",
+            major: "Kỹ thuật phần mềm",
+            aspiration: "Nguyện vọng 1",
+            admission_year: "2026",
+            conversion_potential: "High",
+            branch: "Hà Nội",
+            segments: '["Quan tâm học bổng"]',
+            notes: "Đăng ký từ landing page.",
+            owner_staff: "staff-01",
+            creation: "2026-09-08 09:00:00",
+            modified: "2026-09-08 10:00:00",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await getLeadDetail("LEAD-2026-00002", {
+      baseUrl: "http://frappe:8000",
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead.get_lead?name=LEAD-2026-00002",
+      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    );
+    expect(result).toMatchObject({
+      lead: {
+        id: "LEAD-2026-00002",
+        leadCode: "LD-2026-00002",
+        initials: "TB",
+        name: "Trần Thị Bình",
+        statusCode: "ASSIGNED",
+        processingStatus: "ASSIGNED",
+        result: "MATCHED",
+        secondaryEmail: "binh.alt@example.com",
+        interestedMajor: "Kỹ thuật phần mềm",
+        enrollmentYear: 2026,
+        conversionPotential: "Cao",
+        segments: ["Quan tâm học bổng"],
+        description: "Đăng ký từ landing page.",
+        owner: "staff-01",
+      },
+      log: [],
+      meta: { asOf: "2026-09-08 10:00:00" },
     });
   });
 

@@ -39,7 +39,7 @@ describe("student worklist API contract", () => {
     });
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_worklist.list_actions_for_record?doctype=CRM+Lead&name=STU-001&page_size=50",
+      "http://frappe:8000/api/method/crm.api.student_worklist.list_actions_for_record?doctype=CRM+Student&name=STU-001&page_size=50",
       expect.objectContaining({ cache: "no-store" }),
     );
     expect(result.items).toEqual([

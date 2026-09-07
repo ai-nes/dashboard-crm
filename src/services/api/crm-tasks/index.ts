@@ -160,7 +160,7 @@ function normalizeCRMTask(raw: unknown): CRMTask {
     dueDate: optionalString(obj.due_date ?? obj.dueDate),
     referenceDoctype: (obj.reference_doctype ||
       obj.referenceDoctype ||
-      "CRM Lead") as CRMTask["referenceDoctype"],
+      "CRM Student") as CRMTask["referenceDoctype"],
     referenceDocname: String(
       obj.reference_docname || obj.referenceDocname || "",
     ),
