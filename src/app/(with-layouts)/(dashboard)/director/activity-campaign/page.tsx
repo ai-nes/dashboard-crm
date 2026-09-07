@@ -20,11 +20,11 @@ export default async function ActivityCampaignPage({ searchParams }: PageProps<"
   return (
     <main className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6" id="main-content">
       <Card className="flex flex-col gap-5 p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
-        <div className="min-w-0"><h1 className="text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">Hoạt động & chiến dịch</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">Theo dõi triển khai thực địa, hiệu quả chuyển đổi và các ưu tiên cần hành động trong cùng một không gian.</p></div>
+        <div className="min-w-0"><h1 className="text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">{activeTab === "campaign" ? "Chiến dịch & chuyển đổi" : "Hoạt động & chiến dịch"}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">{activeTab === "campaign" ? "Theo dõi Lead tuyển sinh và trạng thái xử lý theo campaign." : "Theo dõi triển khai thực địa, hiệu quả chuyển đổi và các ưu tiên cần hành động trong cùng một không gian."}</p></div>
         <Link href="/director/ai/next-best-action" className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-button-primary-background px-3 text-sm font-medium text-button-primary-text transition hover:bg-button-primary-hover-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500">Xem việc cần xử lý <ArrowRight size={16} aria-hidden="true" /></Link>
       </Card>
       <ActivityCampaignTabs activeTab={activeTab} />
-      {activeTab === "field" ? <SchoolFieldActivityPageClient /> : <MarketingTimeRangeProvider><CampaignIntelligenceDashboard /></MarketingTimeRangeProvider>}
+      {activeTab === "field" ? <SchoolFieldActivityPageClient /> : <MarketingTimeRangeProvider><CampaignIntelligenceDashboard showLeadOverview /></MarketingTimeRangeProvider>}
     </main>
   );
 }

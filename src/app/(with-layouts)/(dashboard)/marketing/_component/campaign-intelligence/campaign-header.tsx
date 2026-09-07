@@ -8,7 +8,13 @@ const PRIORITY_PROVINCES = [
   "Tây Ninh",
 ] as const;
 
-export function CampaignHeader({ generatedAt }: { generatedAt: string }) {
+export function CampaignHeader({
+  generatedAt,
+  compact = false,
+}: {
+  generatedAt: string;
+  compact?: boolean;
+}) {
   const updatedAt = new Date(generatedAt);
   const updatedAtLabel = Number.isNaN(updatedAt.valueOf())
     ? "Dữ liệu đối soát mới nhất"
@@ -17,6 +23,36 @@ export function CampaignHeader({ generatedAt }: { generatedAt: string }) {
         month: "2-digit",
         year: "numeric",
       }).format(updatedAt)}`;
+
+  const metadata = (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="rounded-lg border border-card-border bg-card-background px-3 py-2 text-xs font-medium text-text-secondary">
+        {updatedAtLabel}
+      </span>
+      <span
+        className="rounded-lg border border-card-border bg-card-background px-3 py-2 text-xs font-medium text-text-secondary"
+        title={PRIORITY_PROVINCES.join(", ")}
+      >
+        Phạm vi: 7 tỉnh trọng điểm
+      </span>
+      <span className="rounded-lg border border-card-border bg-card-background px-3 py-2 text-xs font-medium text-text-secondary">
+        Kênh: tổng hợp
+      </span>
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="text-xs font-medium text-text-tertiary">
+          Theo dõi Lead tuyển sinh
+        </span>
+        <span className="rounded-lg border border-card-border bg-card-background px-3 py-2 text-xs font-medium text-text-secondary">
+          {updatedAtLabel}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -29,20 +65,7 @@ export function CampaignHeader({ generatedAt }: { generatedAt: string }) {
           khoản thu đã đối soát.
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-lg border border-card-border bg-card-background px-3 py-2 text-xs font-medium text-text-secondary">
-          {updatedAtLabel}
-        </span>
-        <span
-          className="rounded-lg border border-card-border bg-card-background px-3 py-2 text-xs font-medium text-text-secondary"
-          title={PRIORITY_PROVINCES.join(", ")}
-        >
-          Phạm vi: 7 tỉnh trọng điểm
-        </span>
-        <span className="rounded-lg border border-card-border bg-card-background px-3 py-2 text-xs font-medium text-text-secondary">
-          Kênh: tổng hợp
-        </span>
-      </div>
+      {metadata}
     </header>
   );
 }

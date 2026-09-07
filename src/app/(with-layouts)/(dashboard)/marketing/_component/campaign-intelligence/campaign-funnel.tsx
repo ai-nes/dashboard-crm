@@ -1,4 +1,3 @@
-import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import type { CampaignIntelligenceResponse } from "@/services/api/campaign-intelligence";
 import { formatNumber } from "./formatters";
@@ -18,16 +17,8 @@ export function CampaignFunnel({
 }: Pick<CampaignIntelligenceResponse, "funnel">) {
   return (
     <Card className="flex h-full flex-col p-0">
-      <CardHeader className="flex flex-row items-center justify-between border-b border-card-border px-5 py-4">
-        <div>
-          <CardTitle>Hành trình chuyển đổi tuyển sinh</CardTitle>
-          <p className="mt-0.5 text-xs text-text-tertiary">
-            Tỷ lệ chuyển đổi giữa các bước tuyển sinh
-          </p>
-        </div>
-        <Badge color="primary" size="sm">
-          {funnel.length} giai đoạn
-        </Badge>
+      <CardHeader className="border-b border-card-border px-5 py-4">
+        <CardTitle>Phễu chuyển đổi</CardTitle>
       </CardHeader>
 
       <div className="flex flex-1 flex-col justify-between gap-3 p-5">
