@@ -26,6 +26,7 @@ import type {
 
 import JourneyTimeline from "./journey-timeline";
 import StudentActivitiesTab from "./student-activities-tab";
+import StudentAuditTab from "./student-audit-tab";
 import StudentChartsSection from "./student-charts-section";
 import StudentClassificationCockpit from "./student-classification-cockpit";
 import StudentDetailsTab from "./student-details-tab";
@@ -240,6 +241,11 @@ function getStudentTabs(
       ),
     },
     {
+      id: "audit",
+      label: "Nhật ký",
+      content: <StudentAuditTab studentId={analysisTargetId} />,
+    },
+    {
       id: "engagement",
       label: "Mức độ quan tâm",
       content: <StudentChartsSection data={data} />,
@@ -248,7 +254,7 @@ function getStudentTabs(
       id: "profile",
       label: "Thông tin học sinh",
       content: (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <StudentDetailsTab
             data={data}
             studentId={analysisTargetId}
@@ -259,13 +265,9 @@ function getStudentTabs(
             studentId={analysisTargetId}
             canEdit={canEditStudent}
           />
+          <StudentFamilyTab data={data} canEdit={canEditStudent} />
         </div>
       ),
-    },
-    {
-      id: "family",
-      label: "Gia đình",
-      content: <StudentFamilyTab data={data} canEdit={canEditStudent} />,
     },
     {
       id: "records",
@@ -282,9 +284,19 @@ function getInitialTab(initialTab?: string): string {
     "profile",
     "engagement",
     "progress",
-    "family",
+    "audit",
     "records",
   ]);
 
-  return initialTab && supportedTabs.has(initialTab) ? initialTab : "decision";
+  const legacyTabAliases: Record<string, string> = {
+    family: "profile",
+    log: "audit",
+  };
+  const normalizedTab = initialTab
+    ? legacyTabAliases[initialTab] || initialTab
+    : undefined;
+
+  return normalizedTab && supportedTabs.has(normalizedTab)
+    ? normalizedTab
+    : "decision";
 }

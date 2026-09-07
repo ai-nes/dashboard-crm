@@ -121,15 +121,23 @@ function normalizeCRMNote(raw: unknown): CRMNote {
   return {
     name: String(obj.name || ""),
     content: String(obj.content || ""),
-    referenceDoctype: (obj.reference_doctype || obj.referenceDoctype || "CRM Student") as CRMNote["referenceDoctype"],
-    referenceDocname: String(obj.reference_docname || obj.referenceDocname || ""),
+    referenceDoctype: (obj.reference_doctype ||
+      obj.referenceDoctype ||
+      "CRM Lead") as CRMNote["referenceDoctype"],
+    referenceDocname: String(
+      obj.reference_docname || obj.referenceDocname || "",
+    ),
     modified: obj.modified ? String(obj.modified) : undefined,
     creation: obj.creation ? String(obj.creation) : undefined,
     owner: obj.owner ? String(obj.owner) : undefined,
-    ownerFullName: (obj.owner_full_name || obj.ownerFullName)
-      ? String(obj.owner_full_name || obj.ownerFullName)
-      : undefined,
-    modifiedBy: (obj.modified_by || obj.modifiedBy) ? String(obj.modified_by || obj.modifiedBy) : undefined,
+    ownerFullName:
+      obj.owner_full_name || obj.ownerFullName
+        ? String(obj.owner_full_name || obj.ownerFullName)
+        : undefined,
+    modifiedBy:
+      obj.modified_by || obj.modifiedBy
+        ? String(obj.modified_by || obj.modifiedBy)
+        : undefined,
   };
 }
 
@@ -195,7 +203,7 @@ async function callFrappeRpc<T>(
 }
 
 /**
- * Lấy danh sách ghi chú của CRM Student hoặc CRM Contact
+ * Lấy danh sách ghi chú của CRM Student hoặc CRM Student
  */
 export async function listNotes(
   params: ListNotesParams,
@@ -222,7 +230,10 @@ export async function listNotes(
   return {
     total: typeof raw?.total === "number" ? raw.total : rawNotes.length,
     start: typeof raw?.start === "number" ? raw.start : (params.start ?? 0),
-    pageLength: typeof raw?.page_length === "number" ? raw.page_length : (params.pageLength ?? 20),
+    pageLength:
+      typeof raw?.page_length === "number"
+        ? raw.page_length
+        : (params.pageLength ?? 20),
     notes: rawNotes.map(normalizeCRMNote),
   };
 }
@@ -297,11 +308,6 @@ export async function deleteNote(
   name: string,
   options: RequestOptions = {},
 ): Promise<{ success: boolean }> {
-  await callFrappeRpc<unknown>(
-    METHODS.DELETE_NOTE,
-    { name },
-    options,
-    true,
-  );
+  await callFrappeRpc<unknown>(METHODS.DELETE_NOTE, { name }, options, true);
   return { success: true };
 }

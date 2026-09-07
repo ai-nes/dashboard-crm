@@ -1,12 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createLead,
   createSchool,
   createStudent,
   deleteSchool,
   getFieldOptions,
+  getLeadOptions,
   getSchool,
   getSchools,
+  importLeads,
   getStudent,
   StudentSchoolUpdateApiError,
   updateSchool,
@@ -25,7 +28,7 @@ describe("student and school update contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Student",
+            doctype: "CRM Lead",
             name: "ENR-2026-00001",
             fields: { student_name: "Nguyễn Văn An" },
           },
@@ -35,7 +38,7 @@ describe("student and school update contract", () => {
     );
 
     await expect(getStudent("ENR-2026-00001")).resolves.toMatchObject({
-      doctype: "CRM Student",
+      doctype: "CRM Lead",
       name: "ENR-2026-00001",
       fields: { student_name: "Nguyễn Văn An" },
     });
@@ -90,7 +93,7 @@ describe("student and school update contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Student",
+            doctype: "CRM Lead",
             fieldname: "ward",
             fieldtype: "Link",
             target_doctype: "CRM Ward",
@@ -103,7 +106,7 @@ describe("student and school update contract", () => {
 
     await expect(
       getFieldOptions({
-        doctype: "CRM Student",
+        doctype: "CRM Lead",
         fieldname: "ward",
         province: "PROVINCE-001",
         filters: { province: "PROVINCE-001" },
@@ -117,7 +120,7 @@ describe("student and school update contract", () => {
     expect(url).toContain(
       "http://frappe:8000/api/method/crm.api.student_school.get_field_options?",
     );
-    expect(url).toContain("doctype=CRM+Student");
+    expect(url).toContain("doctype=CRM+Lead");
     expect(url).toContain("fieldname=ward");
     expect(url).toContain("province=PROVINCE-001");
     expect(url).toContain(
@@ -131,7 +134,7 @@ describe("student and school update contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Student",
+            doctype: "CRM Lead",
             name: "ENR-2026-00001",
             updated_fields: { phone: "0900000000" },
           },
@@ -166,7 +169,7 @@ describe("student and school update contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Student",
+            doctype: "CRM Lead",
             name: "ENR-2026-00001",
             updated_fields: {
               current_grade: "10",
@@ -197,7 +200,7 @@ describe("student and school update contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Student",
+            doctype: "CRM Lead",
             name: "ENR-2026-00001",
             updated_fields: { current_grade: "12" },
           },
@@ -289,13 +292,127 @@ describe("student and school update contract", () => {
 });
 
 describe("student and school create/delete contract", () => {
+  it("creates a CSV-compatible Lead through the lead mapping RPC", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            doctype: "CRM Lead",
+            name: "ENR-2026-00004",
+            created_fields: {
+              student_name: "Nguyễn Văn An",
+              phone: "0900000000",
+              province: "PROVINCE-001",
+              source: "Promoter",
+              assigned_to: "STAFF-001",
+            },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      createLead({
+        student_name: "Nguyễn Văn An",
+        phone: "0900000000",
+        province: "PROVINCE-001",
+        source: "Promoter",
+        assigned_to: "sales@example.com",
+      }),
+    ).resolves.toMatchObject({ name: "ENR-2026-00004" });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_mapping.create_lead",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          fields: {
+            student_name: "Nguyễn Văn An",
+            phone: "0900000000",
+            province: "PROVINCE-001",
+            source: "Promoter",
+            assigned_to: "sales@example.com",
+          },
+        }),
+      }),
+    );
+  });
+
+  it("loads Lead mapping options", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            staff: [
+              {
+                value: "sales@example.com",
+                label: "Sales",
+                user: "sales@example.com",
+              },
+            ],
+            segments: [],
+            events: [],
+            advertising_channel: [{ value: "Facebook", label: "Facebook" }],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(getLeadOptions()).resolves.toMatchObject({
+      staff: [{ user: "sales@example.com" }],
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_mapping.get_lead_options?limit=100",
+      expect.objectContaining({ method: "GET", credentials: "include" }),
+    );
+  });
+
+  it("imports CSV content through the lead mapping RPC", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            filename: "leads.csv",
+            total: 2,
+            created: 1,
+            failed: 1,
+            students: [{ row: 2, name: "ENR-2026-00005" }],
+            errors: [
+              { row: 3, code: "INVALID_PHONE", message: "Invalid phone" },
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      importLeads("Họ và Tên,Di động\nNguyễn Văn An,0900000000", "leads.csv"),
+    ).resolves.toMatchObject({ total: 2, created: 1, failed: 1 });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_mapping.import_leads",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          csv_content: "Họ và Tên,Di động\nNguyễn Văn An,0900000000",
+          filename: "leads.csv",
+        }),
+      }),
+    );
+  });
+
   it("creates a student through the documented RPC", async () => {
     vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Student",
+            doctype: "CRM Lead",
             name: "ENR-2026-00002",
             created_fields: { student_name: "Nguyễn Văn An" },
           },
@@ -328,7 +445,7 @@ describe("student and school create/delete contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Student",
+            doctype: "CRM Lead",
             name: "ENR-2026-00003",
             created_fields: {
               student_name: "Nguyễn Văn An",

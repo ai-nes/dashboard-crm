@@ -38,8 +38,8 @@ export default function LeadDetailsTab({ lead }: { lead: LeadDetail }) {
             label="Tình trạng lead"
             value={
               lead.status && (
-                <Badge size="sm" color={leadStatusColor[lead.status]}>
-                  {lead.status}
+                <Badge size="sm" color={leadStatusColor(lead.status)}>
+                  {lead.status || "-"}
                 </Badge>
               )
             }
@@ -50,9 +50,13 @@ export default function LeadDetailsTab({ lead }: { lead: LeadDetail }) {
               lead.conversionPotential && (
                 <Badge
                   size="sm"
-                  color={conversionPotentialColor[lead.conversionPotential]}
+                  color={
+                    lead.conversionPotential
+                      ? conversionPotentialColor[lead.conversionPotential]
+                      : "gray"
+                  }
                 >
-                  {lead.conversionPotential}
+                  {lead.conversionPotential || "Chưa xác định"}
                 </Badge>
               )
             }
@@ -87,6 +91,11 @@ export default function LeadDetailsTab({ lead }: { lead: LeadDetail }) {
           />
           <LeadDetailTags label="Phân khúc" values={lead.segments} />
           <LeadDetailTags label="Thẻ gắn" values={lead.tags} />
+          <Field
+            label="Mô tả"
+            value={lead.description}
+            className="sm:col-span-2 xl:col-span-3"
+          />
         </dl>
       </LeadDetailSection>
     </div>

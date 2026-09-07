@@ -32,7 +32,7 @@ export const workflowSteps: WorkflowStep[] = [
   {
     id: "input",
     title: "Bước 1 · Lead vào hệ thống",
-    description: "Tạo CRM Student · pool theo Campus",
+    description: "Tạo CRM Lead · pool theo Campus",
     detail:
       "Tiếp nhận lead, chống trùng và tạo CRM Student thuộc pool mặc định theo Campus.",
     rules: [
@@ -55,7 +55,7 @@ export const workflowSteps: WorkflowStep[] = [
     title: "Bước 2 · Xác định pool chuẩn",
     description: "Campus · Team · Student Pool",
     detail:
-      "Resolve đúng một Student Pool active khớp Campus và ownership topology của CRM Student.",
+      "Resolve đúng một Student Pool active khớp Campus và ownership topology của CRM Lead.",
     rules: [
       "Pool phải active và thuộc đúng Campus.",
       "Student phải có owning_pool hoặc owning_team.",

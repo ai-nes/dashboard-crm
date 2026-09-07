@@ -1,4 +1,4 @@
-export type CRMNoteReferenceDoctype = "CRM Student" | "CRM Contact";
+export type CRMNoteReferenceDoctype = "CRM Lead" | "CRM Student";
 
 export interface CRMNote {
   name: string;

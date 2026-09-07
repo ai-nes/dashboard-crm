@@ -25,7 +25,7 @@ export function getStudentAuditSourceLabel(source?: string | null): string {
 }
 
 export function getStudentAuditDoctypeLabel(doctype?: string | null): string {
-  return doctype === "CRM Student" ? "Hồ sơ học sinh" : doctype || "Hồ sơ";
+  return doctype === "CRM Lead" ? "Hồ sơ học sinh" : doctype || "Hồ sơ";
 }
 
 export function getStudentAuditActionLabel(event: StudentAuditLog): string {

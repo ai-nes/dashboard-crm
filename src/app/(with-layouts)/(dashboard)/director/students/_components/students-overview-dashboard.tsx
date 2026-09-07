@@ -21,8 +21,10 @@ import {
   useDirectorStudentsQuery,
 } from "@/hooks/use-students-queries";
 import {
-  createStudent,
-  type StudentCreateFields,
+  createLead,
+  importLeads,
+  type LeadCreateFields,
+  type LeadImportResponse,
 } from "@/services/api/student-school-update";
 import type {
   StudentAssignmentStatus,
@@ -30,6 +32,7 @@ import type {
 } from "@/services/api/students/types";
 
 import StudentCreateDialog from "./student-create-dialog";
+import LeadImportDialog from "./lead-import-dialog";
 import StudentKpiStrip from "./student-kpi-strip";
 import StudentList, { studentListGrid } from "./student-list";
 import StudentListToolbar from "./student-list-toolbar";
@@ -47,6 +50,7 @@ export default function StudentsOverviewDashboard() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const ownerId = searchParams.get("owner")?.trim() || undefined;
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState<StudentJourneyStage | "all">("all");
@@ -84,12 +88,7 @@ export default function StudentsOverviewDashboard() {
   const studentsQuery = isSessionScoped
     ? sessionScopedStudentsQuery
     : allStudentsQuery;
-  const {
-    data: response,
-    isError,
-    error,
-    isPlaceholderData,
-  } = studentsQuery;
+  const { data: response, isError, error, isPlaceholderData } = studentsQuery;
 
   const students = response?.data ?? [];
   const summary = response?.summary;
@@ -103,7 +102,7 @@ export default function StudentsOverviewDashboard() {
   const currentPage = meta ? Math.min(page, totalPages) : page;
 
   const createMutation = useMutation({
-    mutationFn: (fields: StudentCreateFields) => createStudent(fields),
+    mutationFn: (fields: LeadCreateFields) => createLead(fields),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       setCreateDialogOpen(false);
@@ -119,6 +118,29 @@ export default function StudentsOverviewDashboard() {
     },
   });
 
+  const importMutation = useMutation({
+    mutationFn: ({
+      csvContent,
+      filename,
+    }: {
+      csvContent: string;
+      filename: string;
+    }) => importLeads(csvContent, filename),
+    onSuccess: async (result: LeadImportResponse) => {
+      await queryClient.invalidateQueries({ queryKey: ["director-students"] });
+      toast.success(
+        result.failed
+          ? `Đã nhập ${result.created}/${result.total} Lead; ${result.failed} dòng lỗi.`
+          : `Đã nhập thành công ${result.created} Lead.`,
+      );
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Chưa thể nhập dữ liệu Lead.",
+      );
+    },
+  });
+
   const handleQueryChange = (val: string) => {
     setQuery(val);
     setPage(1);
@@ -127,6 +149,11 @@ export default function StudentsOverviewDashboard() {
   const openCreateDialog = () => {
     createMutation.reset();
     setCreateDialogOpen(true);
+  };
+
+  const openImportDialog = () => {
+    importMutation.reset();
+    setImportDialogOpen(true);
   };
 
   const handleStageChange = (val: StudentJourneyStage | "all") => {
@@ -191,14 +218,22 @@ export default function StudentsOverviewDashboard() {
           </p>
         </div>
         {canCreateStudent && (
-          <Button
-            className="shrink-0 self-start lg:self-auto"
-            isDisabled={createMutation.isPending}
-            onPress={openCreateDialog}
-          >
-            <Plus size={16} aria-hidden="true" />
-            Thêm học sinh
-          </Button>
+          <div className="flex shrink-0 flex-wrap gap-2 self-start lg:self-auto">
+            <Button
+              isDisabled={createMutation.isPending || importMutation.isPending}
+              onPress={openImportDialog}
+              appearance="outline"
+            >
+              Nhập CSV
+            </Button>
+            <Button
+              isDisabled={createMutation.isPending || importMutation.isPending}
+              onPress={openCreateDialog}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Thêm học sinh
+            </Button>
+          </div>
         )}
       </header>
 
@@ -209,6 +244,16 @@ export default function StudentsOverviewDashboard() {
           createMutation.mutateAsync(fields).then(() => undefined)
         }
         onOpenChange={setCreateDialogOpen}
+      />
+
+      <LeadImportDialog
+        isOpen={importDialogOpen}
+        isSubmitting={importMutation.isPending}
+        result={importMutation.data}
+        onImport={(csvContent, filename) =>
+          importMutation.mutateAsync({ csvContent, filename })
+        }
+        onOpenChange={setImportDialogOpen}
       />
 
       <StudentKpiStrip summary={summary} />

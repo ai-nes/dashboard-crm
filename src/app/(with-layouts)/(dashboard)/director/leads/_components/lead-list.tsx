@@ -16,8 +16,12 @@ export default function LeadList({ leads }: LeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
-        <p className="font-medium text-text-primary">Không tìm thấy lead phù hợp</p>
-        <p className="mt-1 text-sm text-text-tertiary">Thử thay đổi từ khóa hoặc bộ lọc để xem thêm lead.</p>
+        <p className="font-medium text-text-primary">
+          Không tìm thấy lead phù hợp
+        </p>
+        <p className="mt-1 text-sm text-text-tertiary">
+          Thử thay đổi từ khóa hoặc bộ lọc để xem thêm lead.
+        </p>
       </div>
     );
   }
@@ -26,36 +30,57 @@ export default function LeadList({ leads }: LeadListProps) {
     <ul className="divide-y divide-card-border" aria-label="Danh sách lead">
       {leads.map((lead) => (
         <li key={lead.id}>
-          <div className={`grid gap-4 px-4 py-4 ${leadListGrid} lg:items-center lg:px-5`}>
+          <div
+            className={`grid gap-4 px-4 py-4 ${leadListGrid} lg:items-center lg:px-5`}
+          >
             <div className="flex min-w-0 items-center gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-sm font-semibold text-badge-primary-text">
                 {lead.initials || "L"}
               </span>
-              <p className="truncate font-semibold text-text-primary">{lead.name || "-"}</p>
+              <p className="truncate font-semibold text-text-primary">
+                {lead.name || "-"}
+              </p>
             </div>
 
             <div className="flex items-center justify-between gap-2 lg:block">
               <p className="text-xs text-text-tertiary lg:hidden">Di động</p>
-              <p className="truncate text-sm text-text-primary tabular-nums">{lead.phone || "-"}</p>
+              <p className="truncate text-sm text-text-primary tabular-nums">
+                {lead.phone || "-"}
+              </p>
             </div>
 
             <div className="flex items-center justify-between gap-2 lg:block">
-              <p className="text-xs text-text-tertiary lg:hidden">Trường THPT</p>
-              <p className="truncate text-sm text-text-primary" title={lead.school || undefined}>{lead.school || "-"}</p>
+              <p className="text-xs text-text-tertiary lg:hidden">
+                Trường THPT
+              </p>
+              <p
+                className="truncate text-sm text-text-primary"
+                title={lead.school || undefined}
+              >
+                {lead.school || "-"}
+              </p>
             </div>
 
             <div className="flex items-center justify-between gap-2 lg:justify-start">
-              <p className="text-xs text-text-tertiary lg:hidden">Tình trạng Lead</p>
-              <Badge color={leadStatusColor[lead.status]}>{lead.status}</Badge>
+              <p className="text-xs text-text-tertiary lg:hidden">
+                Tình trạng Lead
+              </p>
+              <Badge color={leadStatusColor(lead.status)}>
+                {lead.status || "-"}
+              </Badge>
             </div>
 
             <div className="flex items-center justify-between gap-2 lg:block">
               <p className="text-xs text-text-tertiary lg:hidden">Nguồn</p>
-              <p className="truncate text-sm text-text-primary">{lead.source || "-"}</p>
+              <p className="truncate text-sm text-text-primary">
+                {lead.source || "-"}
+              </p>
             </div>
 
             <div className="min-w-0">
-              <p className="mb-1 text-xs text-text-tertiary lg:hidden">Người phụ trách</p>
+              <p className="mb-1 text-xs text-text-tertiary lg:hidden">
+                Người phụ trách
+              </p>
               <p className="truncate text-sm text-text-primary">{lead.owner}</p>
             </div>
 

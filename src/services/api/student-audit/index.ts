@@ -106,7 +106,7 @@ function normalizeAuditLog(raw: unknown): StudentAuditLog {
       source.change_type === "removed"
         ? source.change_type
         : null,
-    doctype: String(source.doctype ?? "CRM Student"),
+    doctype: String(source.doctype ?? "CRM Lead"),
     docname: String(source.docname ?? ""),
     fieldname: optionalString(source.fieldname),
     fieldLabel: optionalString(source.field_label ?? source.fieldLabel),

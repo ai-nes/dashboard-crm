@@ -30,7 +30,7 @@ describe("NBA review API contract", () => {
             recommendations: [
               {
                 id: "eval-1-1",
-                target: { type: "CRM Student", id: "ENR-2026-00002" },
+                target: { type: "CRM Lead", id: "ENR-2026-00002" },
                 action: {
                   code: "ACTIVATE_WINBACK",
                   title: "Kích hoạt lại quan tâm",
@@ -91,7 +91,7 @@ describe("NBA review API contract", () => {
     expect(result.recommendations[0]?.aiPayload.score).toBe(0.8);
     expect(result.recommendations[0]).toEqual(
       expect.objectContaining({
-        target: { type: "CRM Student", id: "ENR-2026-00002" },
+        target: { type: "CRM Lead", id: "ENR-2026-00002" },
         action: { code: "ACTIVATE_WINBACK", title: "Kích hoạt lại quan tâm" },
         objective: "Khôi phục liên hệ với học viên.",
         context: ["Chưa có liên lạc trong 5 ngày."],
