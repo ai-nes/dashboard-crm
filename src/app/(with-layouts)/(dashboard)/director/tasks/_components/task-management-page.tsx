@@ -6,7 +6,6 @@ import { Plus } from "@tailgrids/icons";
 import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
-import { Card } from "@/components/tailgrids/core/card";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { getCrmPermissions } from "@/components/common/auth/permissions";
 import {
@@ -26,6 +25,7 @@ import TaskManagementKanban from "./task-management-kanban";
 import TaskManagementTable from "./task-management-table";
 import TaskManagementToolbar from "./task-management-toolbar";
 import StudentDeleteTaskDialog from "../../students/_components/student-delete-task-dialog";
+import { mergeTaskLists } from "./merge-task-lists";
 import { crmTaskToManagementItem } from "./task-management-mappers";
 import type { TaskLayout, TaskStatusFilter, TaskView } from "./types";
 import {
@@ -139,9 +139,12 @@ export default function TaskManagementPage({
   const [view, setView] = useState<TaskView>("all");
   const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>("all");
   const [layout, setLayout] = useState<TaskLayout>("kanban");
+  const [searchQuery, setSearchQuery] = useState("");
   const [lanePages, setLanePages] = useState(INITIAL_LANE_PAGES);
   const pendingTaskUpdates = useRef(new Set<string>());
-  const hasClientFilters = view !== "all" || statusFilter !== "all";
+  const hasClientFilters =
+    layout === "table" &&
+    (view !== "all" || statusFilter !== "all" || searchQuery.trim().length > 0);
   const studentsQuery = useAssignedStudentsQuery(
     {
       admissionYear: 2026,
@@ -225,13 +228,13 @@ export default function TaskManagementPage({
   };
   const apiTasks = useMemo(
     () =>
-      [
-        ...(todoBacklogQuery.data?.tasks ?? []),
-        ...(todoQuery.data?.tasks ?? []),
-        ...(inProgressQuery.data?.tasks ?? []),
-        ...(doneQuery.data?.tasks ?? []),
-        ...(canceledQuery.data?.tasks ?? []),
-      ].map((task) =>
+      mergeTaskLists([
+        todoBacklogQuery.data?.tasks ?? [],
+        todoQuery.data?.tasks ?? [],
+        inProgressQuery.data?.tasks ?? [],
+        doneQuery.data?.tasks ?? [],
+        canceledQuery.data?.tasks ?? [],
+      ]).map((task) =>
         crmTaskToManagementItem(
           task,
           studentsQuery.data?.data ?? [],
@@ -267,12 +270,30 @@ export default function TaskManagementPage({
         (view === "overdue" && isOverdue(task, now.getTime())) ||
         (view === "upcoming" && isUpcoming(task, now));
       const matchesStatus =
-        statusFilter === "all" || task.status === statusFilter;
-      return matchesView && matchesStatus;
+        layout !== "table" ||
+        statusFilter === "all" ||
+        task.status === statusFilter;
+      const normalizedQuery = searchQuery.trim().toLocaleLowerCase("vi-VN");
+      const matchesSearch =
+        layout !== "table" ||
+        normalizedQuery.length === 0 ||
+        [
+          task.id,
+          task.title,
+          task.studentName,
+          task.studentCode,
+          task.assignee,
+          task.taskType,
+        ].some((value) =>
+          value?.toLocaleLowerCase("vi-VN").includes(normalizedQuery),
+        );
+      return (
+        (layout !== "table" || matchesView) && matchesStatus && matchesSearch
+      );
     });
 
     return result.sort((a, b) => dueTimestamp(a) - dueTimestamp(b));
-  }, [statusFilter, tasks, view]);
+  }, [layout, searchQuery, statusFilter, tasks, view]);
 
   const filteredTaskCount = hasClientFilters
     ? filteredTasks.length
@@ -453,13 +474,14 @@ export default function TaskManagementPage({
   return (
     <main
       id="main-content"
-      className="min-w-0 space-y-4 px-3 py-4 pb-8 lg:px-6"
+      className={
+        layout === "kanban"
+          ? "flex h-full min-h-0 min-w-0 flex-col gap-4 overflow-hidden px-3 py-4 lg:px-6"
+          : "min-w-0 space-y-4 px-3 py-4 pb-8 lg:px-6"
+      }
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-tertiary">
-            Không gian công việc
-          </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-text-primary">
             Quản lý task
           </h1>
@@ -479,7 +501,13 @@ export default function TaskManagementPage({
         )}
       </div>
 
-      <Card className="overflow-hidden border-0 p-0 shadow-none">
+      <div
+        className={
+          layout === "kanban"
+            ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-0 p-0 shadow-none"
+            : "overflow-hidden"
+        }
+      >
         <TaskManagementToolbar
           view={view}
           onViewChange={(value) => {
@@ -495,6 +523,11 @@ export default function TaskManagementPage({
           onLayoutChange={setLayout}
           resultCount={hasClientFilters ? filteredTaskCount : totalTaskCount}
           totalCount={totalTaskCount}
+          searchQuery={searchQuery}
+          onSearchQueryChange={(value) => {
+            setSearchQuery(value);
+            resetLanePages();
+          }}
         />
 
         <div className="sr-only" aria-live="polite">
@@ -508,30 +541,28 @@ export default function TaskManagementPage({
           >
             {apiTaskError.message || "Không thể tải danh sách task."}
           </p>
+        ) : layout === "kanban" ? (
+          <TaskManagementKanban
+            tasks={visibleTasks}
+            onOpenTask={(task) => setSelectedTaskId(task.id)}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={canDeleteTask ? handleRequestDeleteTask : undefined}
+            onCreateTask={canCreateTask ? () => setSheetOpen(true) : undefined}
+            lanePagination={lanePagination}
+            isLoading={apiTasksPending && shouldUseCrmApi}
+          />
         ) : (
-          layout === "kanban" ? (
-            <TaskManagementKanban
-              tasks={visibleTasks}
-              onOpenTask={(task) => setSelectedTaskId(task.id)}
-              onUpdateTask={handleUpdateTask}
-              onDeleteTask={canDeleteTask ? handleRequestDeleteTask : undefined}
-              onCreateTask={canCreateTask ? () => setSheetOpen(true) : undefined}
-              lanePagination={lanePagination}
-              isLoading={apiTasksPending && shouldUseCrmApi}
-            />
-          ) : (
-            <TaskManagementTable
-              key={`${view}-${statusFilter}`}
-              tasks={visibleTasks}
-              onOpenTask={(task) => setSelectedTaskId(task.id)}
-              onUpdateTask={handleUpdateTask}
-              onDeleteTask={canDeleteTask ? handleRequestDeleteTask : undefined}
-              lanePagination={lanePagination}
-              isLoading={apiTasksPending && shouldUseCrmApi}
-            />
-          )
+          <TaskManagementTable
+            key={`${view}-${statusFilter}-${searchQuery}`}
+            tasks={visibleTasks}
+            onOpenTask={(task) => setSelectedTaskId(task.id)}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={canDeleteTask ? handleRequestDeleteTask : undefined}
+            lanePagination={lanePagination}
+            isLoading={apiTasksPending && shouldUseCrmApi}
+          />
         )}
-      </Card>
+      </div>
 
       <TaskDetailSheet
         isOpen={Boolean(selectedTask)}

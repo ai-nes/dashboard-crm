@@ -3,11 +3,11 @@ import type { StepId, WorkflowStep } from "./types";
 
 export const workflowPositions: Record<StepId, { x: number; y: number }> = {
   input: { x: 0, y: 0 },
-  validation: { x: 380, y: 0 },
-  classification: { x: 760, y: 0 },
-  matching: { x: 1140, y: 0 },
-  review: { x: 950, y: 280 },
-  assignment: { x: 1520, y: 280 },
+  validation: { x: 350, y: 0 },
+  classification: { x: 700, y: 0 },
+  matching: { x: 1050, y: 0 },
+  review: { x: 700, y: 340 },
+  assignment: { x: 1050, y: 340 },
 };
 
 export const workflowConnections: AssignmentWorkflowConnection[] = [

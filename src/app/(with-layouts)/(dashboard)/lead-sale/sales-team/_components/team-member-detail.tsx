@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import DetailDrawer from "../../student-assignment/_components/detail-drawer";
+import DetailDrawer from "../../_shared/student-assignment/detail-drawer";
 import {
   availabilityColors,
   availabilityLabels,

@@ -1,20 +1,22 @@
 "use client";
 
 import {
-  ArrowDownward,
+  ArrowRight,
   Bolt1,
   CheckCircle1,
   ClockThree,
   InfoCircle,
 } from "@tailgrids/icons";
+import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
+import { buttonStyles } from "@/components/tailgrids/core/button";
 import { Toggle } from "@/components/tailgrids/core/toggle";
-import { useAssignment } from "./assignment-context";
+import { cn } from "@/utils/cn";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
 
 export default function AssignmentHeader() {
-  const { setFilter, summary, health, meta, isLoading } = useAssignment();
+  const { summary, health, meta, isLoading } = useAssignment();
   const [automationOverride, setAutomationOverride] = useState<
     boolean | null
   >(null);
@@ -47,19 +49,15 @@ export default function AssignmentHeader() {
             Theo dõi phân công tự động và xử lý những trường hợp cần bạn hỗ trợ.
           </p>
         </div>
-        <Button
-          appearance="outline"
-          size="md"
-          className="shrink-0 border-card-border text-text-secondary"
-          onPress={() => {
-            setFilter("all");
-            document
-              .getElementById("assignment-history")
-              ?.scrollIntoView({ block: "start" });
-          }}
+        <Link
+          href="/lead-sale/assignment-history"
+          className={cn(
+            buttonStyles({ variant: "primary", appearance: "outline", size: "md" }),
+            "shrink-0 border-card-border text-text-secondary",
+          )}
         >
-          Xem lịch sử <ArrowDownward size={16} aria-hidden="true" />
-        </Button>
+          Xem lịch sử <ArrowRight size={16} aria-hidden="true" />
+        </Link>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-card-border bg-card-background">

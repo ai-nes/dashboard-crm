@@ -5,15 +5,15 @@ import { ArrowRight } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { cn } from "@/utils/cn";
-import { useAssignment } from "./assignment-context";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
 import {
   stepIcons,
   toneClasses,
   workflowPhaseStateColors,
   workflowPhaseStateLabels,
-} from "./mappings";
-import type { WorkflowPhaseState } from "./types";
-import type { WorkflowStep } from "./types";
+} from "../../_shared/student-assignment/mappings";
+import type { WorkflowPhaseState } from "../../_shared/student-assignment/types";
+import type { WorkflowStep } from "../../_shared/student-assignment/types";
 
 export type AssignmentFlowNode = Node<
   {
@@ -40,6 +40,26 @@ export default function WorkflowNode({ data }: NodeProps<AssignmentFlowNode>) {
   const Icon = stepIcons[data.step.id];
   return (
     <>
+      {data.step.id === "matching" && (
+        <Handle
+          id="out-review"
+          type="source"
+          position={Position.Bottom}
+          isConnectable={false}
+          className="invisible"
+          style={{ left: "25%" }}
+        />
+      )}
+      {data.step.id === "review" && (
+        <Handle
+          id="in-review"
+          type="target"
+          position={Position.Top}
+          isConnectable={false}
+          className="invisible"
+          style={{ left: "85%" }}
+        />
+      )}
       {Object.entries(sides).map(([id, position]) => (
         <Handle
           key={`in-${id}`}
@@ -83,7 +103,7 @@ export default function WorkflowNode({ data }: NodeProps<AssignmentFlowNode>) {
           </span>
           <span className="text-[13px] font-semibold">{data.step.title}</span>
         </div>
-        <p className="mt-3 text-xs font-normal text-text-tertiary">
+        <p className="mt-3 min-h-8 whitespace-normal text-xs font-normal text-text-tertiary">
           {data.step.description}
         </p>
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-card-border pt-2.5">

@@ -85,13 +85,7 @@ function handleRowClick(
   onOpenTask(task);
 }
 
-function TaskPerson({
-  name,
-  fallback,
-}: {
-  name?: string;
-  fallback?: string;
-}) {
+function TaskPerson({ name, fallback }: { name?: string; fallback?: string }) {
   return (
     <div className="flex min-w-0 items-center gap-2.5">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background-gray-secondary text-[10px] font-semibold text-text-secondary">
@@ -195,9 +189,13 @@ export default function TaskManagementTable({
   const [currentPage, setCurrentPage] = useState(1);
   const paginatedLanes = statuses
     .map((status) => lanePagination?.[status])
-    .filter((pagination): pagination is TaskLanePagination => Boolean(pagination));
+    .filter((pagination): pagination is TaskLanePagination =>
+      Boolean(pagination),
+    );
   const hasMoreTasks = paginatedLanes.some((pagination) => pagination.hasMore);
-  const isLoadingMore = paginatedLanes.some((pagination) => pagination.isLoading);
+  const isLoadingMore = paginatedLanes.some(
+    (pagination) => pagination.isLoading,
+  );
   const pageCount = Math.max(1, Math.ceil(tasks.length / TABLE_PAGE_SIZE));
   const activePage = Math.min(currentPage, pageCount);
   const visibleTasks = useMemo(() => {
@@ -207,7 +205,10 @@ export default function TaskManagementTable({
   const firstVisibleIndex =
     tasks.length === 0 ? 0 : (activePage - 1) * TABLE_PAGE_SIZE + 1;
   const lastVisibleIndex = Math.min(activePage * TABLE_PAGE_SIZE, tasks.length);
-  const pageNumbers = Array.from({ length: pageCount }, (_, index) => index + 1);
+  const pageNumbers = Array.from(
+    { length: pageCount },
+    (_, index) => index + 1,
+  );
 
   const loadMoreTasks = () => {
     paginatedLanes.forEach((pagination) => {
@@ -218,7 +219,7 @@ export default function TaskManagementTable({
   };
 
   return (
-    <div className="bg-background-50 px-4 pb-5 pt-1 lg:px-5">
+    <div className="bg-transparent px-0 pb-0 pt-1">
       <div className="overflow-hidden rounded-xl border border-card-border bg-card-background">
         <div>
           <TableRoot fullBleed className="w-full min-w-0 table-fixed border-0">
@@ -298,7 +299,9 @@ export default function TaskManagementTable({
               aria-label="Trang sau"
               disabled={activePage === pageCount}
               onClick={() =>
-                setCurrentPage((page) => Math.min(pageCount, Math.max(activePage, page) + 1))
+                setCurrentPage((page) =>
+                  Math.min(pageCount, Math.max(activePage, page) + 1),
+                )
               }
               className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-background-gray-secondary_alt disabled:cursor-not-allowed disabled:text-text-tertiary"
             >

@@ -12,7 +12,7 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { cn } from "@/utils/cn";
-import { useAssignment } from "./assignment-context";
+import { useAssignment } from "../../_shared/student-assignment/assignment-context";
 import {
   getWorkflowPhaseState,
   stepIcons,
@@ -20,12 +20,12 @@ import {
   toneClasses,
   workflowPhaseStateColors,
   workflowPhaseStateLabels,
-} from "./mappings";
+} from "../../_shared/student-assignment/mappings";
 
 const WorkflowCanvas = dynamic(() => import("./workflow-canvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[660px] items-center justify-center border-t border-card-border bg-background-gray-secondary text-sm text-text-tertiary">
+    <div className="flex h-[560px] items-center justify-center border-t border-card-border bg-background-gray-secondary text-sm text-text-tertiary">
       Đang tải sơ đồ phân công…
     </div>
   ),

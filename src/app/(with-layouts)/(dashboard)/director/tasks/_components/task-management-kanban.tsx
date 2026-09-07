@@ -114,10 +114,8 @@ function TaskManagementKanbanColumn({
       ref={ref}
       aria-labelledby={`task-column-${status}`}
       aria-busy={isLoading}
-      className={`flex h-[calc(100vh-18rem)] min-h-[520px] max-h-[760px] flex-col overflow-hidden rounded-xl bg-background-soft-50 transition-colors ${
-        isDropTarget
-          ? "bg-primary-50/50"
-          : ""
+      className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-background-soft-50 transition-colors ${
+        isDropTarget ? "bg-primary-50/50" : ""
       }`}
     >
       <header className="flex shrink-0 items-center justify-between gap-3 px-3.5 py-3.5">
@@ -154,8 +152,8 @@ function TaskManagementKanbanColumn({
         </div>
       </header>
 
-      <ScrollArea className="min-h-0 flex-1">
-        <ScrollAreaViewport className="p-3">
+      <ScrollArea className="min-h-0 min-w-0 flex-1 overflow-hidden">
+        <ScrollAreaViewport className="overscroll-y-contain p-3">
           <div
             className="flex flex-col gap-2.5"
             role="list"
@@ -223,10 +221,13 @@ export default function TaskManagementKanban({
   };
 
   return (
-    <div className="overflow-x-auto bg-background-50 px-4 pb-5 pt-1 lg:px-5" aria-busy={isLoading}>
+    <div
+      className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden bg-transparent px-0 pb-3 pt-1"
+      aria-busy={isLoading}
+    >
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div
-          className="grid min-w-[1080px] grid-cols-4 gap-3 xl:gap-4"
+          className="grid h-full min-h-0 min-w-[960px] grid-cols-4 gap-3 lg:min-w-0 xl:gap-4"
           aria-label="Bảng kanban quản lý task"
         >
           {columns.map((column) => (
