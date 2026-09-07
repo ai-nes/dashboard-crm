@@ -45,3 +45,17 @@ export const conversionPotentialColor: Record<
   Thấp: "error",
   "Chưa xác định": "gray",
 };
+
+const conversionPotentialScoreMap: Record<ConversionPotential, number | null> = {
+  Cao: 85,
+  "Trung bình": 55,
+  Thấp: 20,
+  "Chưa xác định": null,
+};
+
+export function conversionPotentialScore(
+  potential: ConversionPotential | null | undefined,
+): number | null {
+  if (!potential) return null;
+  return conversionPotentialScoreMap[potential];
+}
