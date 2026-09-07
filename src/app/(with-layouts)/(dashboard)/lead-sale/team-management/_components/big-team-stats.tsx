@@ -10,6 +10,7 @@ interface BigTeamStatsProps {
   smallTeamCount: number;
   memberCount: number;
   onLeadChange: (leadId: string | null) => void;
+  canManageLead?: boolean;
 }
 
 export default function BigTeamStats({
@@ -18,6 +19,7 @@ export default function BigTeamStats({
   smallTeamCount,
   memberCount,
   onLeadChange,
+  canManageLead = true,
 }: BigTeamStatsProps) {
   return (
     <section aria-label="Tổng quan đội" className="grid gap-3 sm:grid-cols-3">
@@ -28,6 +30,7 @@ export default function BigTeamStats({
           candidates={allMembers}
           value={bigTeam.leadId}
           onChange={onLeadChange}
+          isDisabled={!canManageLead}
           ariaLabel={`Trưởng đội ${bigTeam.name}`}
         />
       </OverviewFact>

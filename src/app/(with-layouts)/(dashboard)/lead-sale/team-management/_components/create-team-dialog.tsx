@@ -12,6 +12,7 @@ import {
 } from "@/components/tailgrids/core/dialog";
 import { Input } from "@/components/tailgrids/core/input";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
+import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
 
 interface CreateTeamDialogProps {
   initialName?: string;
@@ -20,8 +21,10 @@ interface CreateTeamDialogProps {
   fieldLabel: string;
   placeholder: string;
   submitLabel: string;
+  campusOptions?: { id: string; label: string }[];
+  initialCampusId?: string;
   onClose: () => void;
-  onSubmit: (name: string) => void;
+  onSubmit: (name: string, campusId?: string) => void;
 }
 
 export default function CreateTeamDialog({
@@ -31,10 +34,15 @@ export default function CreateTeamDialog({
   fieldLabel,
   placeholder,
   submitLabel,
+  campusOptions = [],
+  initialCampusId,
   onClose,
   onSubmit,
 }: CreateTeamDialogProps) {
   const [name, setName] = useState(initialName);
+  const [campusId, setCampusId] = useState<string | null>(
+    initialCampusId ?? null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -43,7 +51,11 @@ export default function CreateTeamDialog({
       setError("Vui lòng nhập tên.");
       return;
     }
-    onSubmit(name.trim());
+    if (campusOptions.length > 0 && !campusId) {
+      setError("Vui lòng chọn cơ sở.");
+      return;
+    }
+    onSubmit(name.trim(), campusId ?? undefined);
   };
 
   return (
@@ -72,6 +84,29 @@ export default function CreateTeamDialog({
                 autoFocus
               />
             </label>
+            {campusOptions.length > 0 && (
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-input-label-text">
+                  Cơ sở
+                </span>
+                <Combobox
+                  value={campusId}
+                  onChange={(key) => setCampusId(key ? String(key) : null)}
+                  aria-label="Chọn cơ sở"
+                  placeholder="Chọn cơ sở hoạt động..."
+                >
+                  {campusOptions.map((campus) => (
+                    <ComboboxItem
+                      key={campus.id}
+                      id={campus.id}
+                      textValue={campus.label}
+                    >
+                      {campus.label}
+                    </ComboboxItem>
+                  ))}
+                </Combobox>
+              </label>
+            )}
             {error && <p className="text-xs text-badge-error-text">{error}</p>}
           </DialogBody>
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import BigTeamDetailDashboard from "../_components/big-team-detail-dashboard";
+import { decodeTeamRouteParam } from "../_components/team-management-utils";
 
 export const metadata: Metadata = {
   title: "Chi tiết team lớn",
@@ -13,5 +14,11 @@ export default async function BigTeamDetailPage({
   params: Promise<{ bigTeamId: string }>;
 }) {
   const { bigTeamId } = await params;
-  return <BigTeamDetailDashboard key={bigTeamId} bigTeamId={bigTeamId} />;
+  const decodedBigTeamId = decodeTeamRouteParam(bigTeamId);
+  return (
+    <BigTeamDetailDashboard
+      key={decodedBigTeamId}
+      bigTeamId={decodedBigTeamId}
+    />
+  );
 }

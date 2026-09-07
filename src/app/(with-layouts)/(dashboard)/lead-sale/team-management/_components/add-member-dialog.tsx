@@ -53,14 +53,15 @@ export default function AddMemberDialog({
               Thêm thành viên
             </DialogTitle>
             <p className="mt-1 text-xs leading-5 text-text-tertiary">
-              Chọn một thành viên chưa thuộc team nào để thêm vào {teamName}.
+              Chọn nhân sự cùng cơ sở. Nếu đang ở nhóm khác, hệ thống sẽ chuyển
+              người đó sang {teamName}.
             </p>
           </div>
 
           <DialogBody className="space-y-3 px-5 py-4">
             {candidates.length === 0 ? (
               <p className="text-sm text-text-tertiary">
-                Không còn thành viên nào chưa được phân công.
+                Không còn nhân sự phù hợp để thêm vào nhóm này.
               </p>
             ) : (
               <label className="block space-y-1">

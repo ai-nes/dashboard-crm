@@ -19,6 +19,7 @@ interface BigTeamCardProps {
   onEdit: (name: string) => void;
   onDelete: () => void;
   onLeadChange: (leadId: string | null) => void;
+  canManageLead?: boolean;
 }
 
 export default function BigTeamCard({
@@ -29,6 +30,7 @@ export default function BigTeamCard({
   onEdit,
   onDelete,
   onLeadChange,
+  canManageLead = true,
 }: BigTeamCardProps) {
   return (
     <Card className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-card-border p-0 transition-shadow hover:shadow-md">
@@ -65,6 +67,7 @@ export default function BigTeamCard({
               candidates={allMembers}
               value={bigTeam.leadId}
               onChange={onLeadChange}
+              isDisabled={!canManageLead}
               ariaLabel={`Trưởng đội ${bigTeam.name}`}
               className="w-full"
             />
@@ -72,7 +75,7 @@ export default function BigTeamCard({
         </div>
 
         <Link
-          href={`/lead-sale/team-management/${bigTeam.id}`}
+          href={`/lead-sale/team-management/${encodeURIComponent(bigTeam.id)}`}
           className="mt-auto inline-flex items-center gap-1.5 rounded-lg text-sm font-semibold text-badge-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500"
         >
           Xem nhóm

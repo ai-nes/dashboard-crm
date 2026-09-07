@@ -47,6 +47,7 @@ export function createTeamMemberColumns(
       cell: ({ row }) => (
         <EditableMemberField
           type="email"
+          readOnly
           value={row.original.email}
           label={`Chỉnh sửa email ${row.original.name}`}
           onSave={(value) => onUpdate(row.original.id, "email", value)}
@@ -60,7 +61,11 @@ export function createTeamMemberColumns(
       filterFn: "equalsString",
       cell: ({ row }) => (
         <Badge size="sm" color={teamMemberRoleColor[row.original.role]}>
-          {row.original.role === "SALE" ? "Sale" : "CTV Sale"}
+          {row.original.role === "SALE"
+            ? "Sale"
+            : row.original.role === "CTV_SALE"
+              ? "CTV Sale"
+              : "Lead Sale"}
         </Badge>
       ),
     },

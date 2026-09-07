@@ -6,17 +6,12 @@ import { toast } from "sonner";
 import { Card } from "@/components/tailgrids/core/card";
 
 import AddMemberDialog from "./add-member-dialog";
-import { initialBigTeams, initialMembers, initialSmallTeams } from "./data";
 import SmallTeamDetailHeader from "./small-team-detail-header";
 import LeadPickerField from "./lead-picker-field";
 import SmallTeamStats from "./small-team-stats";
-import {
-  findMember,
-  membersOfSmallTeam,
-  unassignedMembers,
-} from "./team-management-utils";
+import { findMember, membersOfSmallTeam } from "./team-management-utils";
 import TeamMemberList from "./team-member-list";
-import type { TeamOrgState } from "./types";
+import { useTeamManagement } from "./use-team-management";
 
 export default function SmallTeamDetailDashboard({
   bigTeamId,
@@ -25,12 +20,21 @@ export default function SmallTeamDetailDashboard({
   bigTeamId: string;
   smallTeamId: string;
 }) {
-  const [state, setState] = useState<TeamOrgState>({
-    bigTeams: initialBigTeams,
-    smallTeams: initialSmallTeams,
-    members: initialMembers,
-  });
+  const {
+    state,
+    isLoading,
+    error,
+    saveTeam,
+    addMember,
+    moveMember,
+    removeMember,
+    updateMember,
+  } = useTeamManagement();
   const [isAdding, setIsAdding] = useState(false);
+
+  if (isLoading && !state) return <LoadingState />;
+  if (error && !state) return <ErrorState message={error} />;
+  if (!state) return null;
 
   const bigTeam = state.bigTeams.find((team) => team.id === bigTeamId) ?? null;
   const smallTeam =
@@ -38,69 +42,92 @@ export default function SmallTeamDetailDashboard({
       (team) => team.id === smallTeamId && team.bigTeamId === bigTeamId,
     ) ?? null;
 
-  if (!bigTeam || !smallTeam) {
-    return (
-      <main id="main-content" className="min-w-0 p-6">
-        <Card className="border-0 bg-badge-error-background p-5 text-error-600">
-          <p className="text-base font-semibold">Không tìm thấy nhóm này.</p>
-          <p className="mt-1 text-sm">
-            Team có thể đã bị xóa hoặc mã team không đúng.
-          </p>
-        </Card>
-      </main>
-    );
-  }
+  if (!bigTeam || !smallTeam) return <NotFoundState />;
 
   const members = membersOfSmallTeam(state, smallTeam);
-  const candidates = unassignedMembers(state);
+  const candidates = state.members.filter(
+    (member) =>
+      member.isActive !== false &&
+      member.campusId === smallTeam.campusId &&
+      !smallTeam.memberIds.includes(member.id),
+  );
   const saleCount = members.filter((member) => member.role === "SALE").length;
   const ctvSaleCount = members.filter(
     (member) => member.role === "CTV_SALE",
   ).length;
 
-  const handleLeadChange = (leadId: string | null) => {
-    setState((current) => ({
-      ...current,
-      smallTeams: current.smallTeams.map((team) =>
-        team.id === smallTeamId ? { ...team, leadId } : team,
-      ),
-    }));
-    toast.success(leadId ? "Đã cập nhật trưởng nhóm." : "Đã bỏ trưởng nhóm.");
+  const run = async (action: () => Promise<void>, success: string) => {
+    try {
+      await action();
+      toast.success(success);
+    } catch (reason) {
+      toast.error(
+        reason instanceof Error ? reason.message : "Không thể lưu thay đổi.",
+      );
+    }
+  };
+
+  const saveCurrentTeam = (leadId: string | null) => {
+    if (!smallTeam.campusId) {
+      return Promise.reject(new Error("Team chưa có cơ sở hoạt động."));
+    }
+    return saveTeam({
+      teamId: smallTeam.id,
+      teamName: smallTeam.name,
+      groupId: bigTeam.id,
+      teamType: smallTeam.teamType ?? "Sales",
+      campus: smallTeam.campusId,
+      teamLeadStaff: leadId,
+      isActive: smallTeam.isActive,
+      expectedRevision: smallTeam.revision,
+    });
   };
 
   const handleAddMember = (memberId: string) => {
-    setState((current) => ({
-      ...current,
-      smallTeams: current.smallTeams.map((team) =>
-        team.id === smallTeamId
-          ? { ...team, memberIds: [...team.memberIds, memberId] }
-          : team,
-      ),
-    }));
-    setIsAdding(false);
     const added = findMember(state.members, memberId);
-    toast.success(
-      added
-        ? `Đã thêm ${added.name} vào ${smallTeam.name}.`
-        : "Đã thêm thành viên.",
+    if (!added) return;
+    const sourceTeamId = added.teamIds?.find(
+      (teamId) => teamId !== smallTeam.id,
     );
+    const functionName =
+      added.role === "CTV_SALE"
+        ? "CTV Sale"
+        : added.role === "LEAD_SALE"
+          ? "Lead Sale"
+          : "Sale";
+    const action = sourceTeamId
+      ? () =>
+          moveMember({
+            staffId: memberId,
+            sourceTeamId,
+            targetTeamId: smallTeam.id,
+            function: functionName,
+          })
+      : () =>
+          addMember({
+            staffId: memberId,
+            teamId: smallTeam.id,
+            function: functionName,
+          });
+    void run(
+      action,
+      sourceTeamId
+        ? `Đã chuyển ${added.name} vào ${smallTeam.name}.`
+        : `Đã thêm ${added.name} vào ${smallTeam.name}.`,
+    ).finally(() => setIsAdding(false));
   };
 
   const handleRemoveMember = (memberId: string) => {
     const removed = findMember(state.members, memberId);
-    setState((current) => ({
-      ...current,
-      smallTeams: current.smallTeams.map((team) =>
-        team.id === smallTeamId
-          ? {
-              ...team,
-              memberIds: team.memberIds.filter((id) => id !== memberId),
-              leadId: team.leadId === memberId ? null : team.leadId,
-            }
-          : team,
-      ),
-    }));
-    toast.success(
+    const member = members.find((item) => item.id === memberId);
+    if (!member) return;
+    void run(
+      () =>
+        removeMember({
+          staffId: memberId,
+          teamId: smallTeam.id,
+          expectedRevision: member.revision,
+        }),
       removed
         ? `Đã gỡ ${removed.name} khỏi ${smallTeam.name}.`
         : "Đã gỡ thành viên.",
@@ -133,7 +160,12 @@ export default function SmallTeamDetailDashboard({
               <LeadPickerField
                 candidates={members}
                 value={smallTeam.leadId}
-                onChange={handleLeadChange}
+                onChange={(leadId) =>
+                  void run(
+                    () => saveCurrentTeam(leadId),
+                    leadId ? "Đã cập nhật trưởng nhóm." : "Đã bỏ trưởng nhóm.",
+                  )
+                }
                 ariaLabel={`Trưởng nhóm ${smallTeam.name}`}
                 placeholder={
                   members.length === 0
@@ -145,38 +177,18 @@ export default function SmallTeamDetailDashboard({
             </div>
           }
           onUpdate={(id, field, value) => {
-            if (
-              field === "email" &&
-              state.members.some(
-                (member) =>
-                  member.id !== id &&
-                  member.email.toLowerCase() === value.toLowerCase(),
-              )
-            )
-              return "Email này đã được sử dụng.";
-            setState((current) => ({
-              ...current,
-              members: current.members.map((member) => {
-                if (member.id !== id) return member;
-                const parts = value.split(/\s+/);
-                return {
-                  ...member,
-                  [field]: value,
-                  ...(field === "name"
-                    ? {
-                        initials: (parts.length > 1
-                          ? parts[0][0] + parts[parts.length - 1][0]
-                          : value.slice(0, 2)
-                        ).toUpperCase(),
-                      }
-                    : {}),
-                };
-              }),
-            }));
-            toast.success(
-              field === "name"
-                ? "Đã cập nhật tên thành viên."
-                : "Đã cập nhật email.",
+            if (field === "email")
+              return "Email được lấy từ tài khoản CRM và không sửa ở đây.";
+            const member = state.members.find((item) => item.id === id);
+            if (!member) return "Không tìm thấy nhân sự.";
+            void run(
+              () =>
+                updateMember({
+                  staffId: id,
+                  fullName: value,
+                  expectedRevision: member.revision,
+                }),
+              "Đã cập nhật tên thành viên.",
             );
             return null;
           }}
@@ -192,6 +204,39 @@ export default function SmallTeamDetailDashboard({
           onSubmit={handleAddMember}
         />
       )}
+    </main>
+  );
+}
+
+function LoadingState() {
+  return (
+    <main id="main-content" className="min-w-0 p-6">
+      <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-secondary">
+        Đang tải dữ liệu đội ngũ...
+      </div>
+    </main>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <main id="main-content" className="min-w-0 p-6">
+      <div className="rounded-2xl border border-badge-error-background bg-badge-error-background p-5 text-sm text-badge-error-text">
+        {message}
+      </div>
+    </main>
+  );
+}
+
+function NotFoundState() {
+  return (
+    <main id="main-content" className="min-w-0 p-6">
+      <Card className="border-0 bg-badge-error-background p-5 text-error-600">
+        <p className="text-base font-semibold">Không tìm thấy nhóm này.</p>
+        <p className="mt-1 text-sm">
+          Mã nhóm có thể không đúng hoặc đã ngừng hoạt động.
+        </p>
+      </Card>
     </main>
   );
 }

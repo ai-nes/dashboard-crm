@@ -13,6 +13,7 @@ interface LeadPickerFieldProps {
   ariaLabel: string;
   placeholder?: string;
   className?: string;
+  isDisabled?: boolean;
 }
 
 export default function LeadPickerField({
@@ -22,6 +23,7 @@ export default function LeadPickerField({
   ariaLabel,
   placeholder = "Chọn trưởng nhóm",
   className,
+  isDisabled = false,
 }: LeadPickerFieldProps) {
   return (
     <Combobox
@@ -32,6 +34,7 @@ export default function LeadPickerField({
       aria-label={ariaLabel}
       placeholder={placeholder}
       className={className}
+      isDisabled={isDisabled}
     >
       <ComboboxItem id={UNASSIGNED_KEY} textValue="Chưa phân công">
         <span className="text-text-tertiary">Chưa phân công</span>

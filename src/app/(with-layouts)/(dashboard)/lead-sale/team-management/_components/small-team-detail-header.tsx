@@ -20,7 +20,7 @@ export default function SmallTeamDetailHeader({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <Link
-            href={`/lead-sale/team-management/${bigTeam.id}`}
+            href={`/lead-sale/team-management/${encodeURIComponent(bigTeam.id)}`}
             className="inline-flex items-center gap-1 text-xs font-medium text-text-tertiary hover:text-text-primary"
           >
             <ChevronLeft size={14} aria-hidden="true" />

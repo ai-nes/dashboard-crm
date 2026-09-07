@@ -8,6 +8,7 @@ interface EditableMemberFieldProps {
   value: string;
   label: string;
   type?: "text" | "email";
+  readOnly?: boolean;
   onSave: (value: string) => string | null;
 }
 
@@ -15,6 +16,7 @@ export default function EditableMemberField({
   value,
   label,
   type = "text",
+  readOnly = false,
   onSave,
 }: EditableMemberFieldProps) {
   const [editing, setEditing] = useState(false);
@@ -92,6 +94,16 @@ export default function EditableMemberField({
         )}
       </div>
     );
+  if (readOnly) {
+    return (
+      <span
+        className="block truncate px-2 py-2 font-normal text-text-secondary"
+        title={value}
+      >
+        {value || "—"}
+      </span>
+    );
+  }
   return (
     <span ref={triggerRef} className="block min-w-0 flex-1">
       <Button

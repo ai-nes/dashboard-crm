@@ -9,41 +9,27 @@ import { Button } from "@/components/tailgrids/core/button";
 import OverviewFact from "./overview-fact";
 import BigTeamCard from "./big-team-card";
 import CreateTeamDialog from "./create-team-dialog";
-import { initialBigTeams, initialMembers, initialSmallTeams } from "./data";
 import { membersOfBigTeam, smallTeamsOfBigTeam } from "./team-management-utils";
-import type { BigTeam, TeamOrgState } from "./types";
+import { useTeamManagement } from "./use-team-management";
 
 export default function BigTeamOverviewDashboard() {
-  const [state, setState] = useState<TeamOrgState>({
-    bigTeams: initialBigTeams,
-    smallTeams: initialSmallTeams,
-    members: initialMembers,
-  });
+  const { state, isLoading, error, saveGroup } = useTeamManagement();
   const [isCreating, setIsCreating] = useState(false);
 
-  const handleLeadChange = (bigTeamId: string, leadId: string | null) => {
-    setState((current) => ({
-      ...current,
-      bigTeams: current.bigTeams.map((team) =>
-        team.id === bigTeamId ? { ...team, leadId } : team,
-      ),
-    }));
-    toast.success(leadId ? "Đã cập nhật trưởng đội." : "Đã bỏ trưởng đội.");
-  };
+  if (isLoading && !state) return <LoadingState />;
+  if (error && !state) return <ErrorState message={error} />;
+  if (!state) return null;
 
-  const handleCreate = (name: string) => {
-    const newTeam: BigTeam = {
-      id: `bt-${Date.now()}`,
-      name,
-      leadId: null,
-      smallTeamIds: [],
-    };
-    setState((current) => ({
-      ...current,
-      bigTeams: [newTeam, ...current.bigTeams],
-    }));
-    setIsCreating(false);
-    toast.success(`Đã tạo đội "${name}".`);
+  const canManage = state.permissions?.canManage ?? false;
+  const run = async (action: () => Promise<void>, success: string) => {
+    try {
+      await action();
+      toast.success(success);
+    } catch (reason) {
+      toast.error(
+        reason instanceof Error ? reason.message : "Không thể lưu thay đổi.",
+      );
+    }
   };
 
   return (
@@ -68,6 +54,7 @@ export default function BigTeamOverviewDashboard() {
           <Button
             className="shrink-0"
             onPress={() => setIsCreating(true)}
+            isDisabled={!canManage}
           >
             <Plus size={16} aria-hidden="true" />
             Tạo đội
@@ -95,31 +82,48 @@ export default function BigTeamOverviewDashboard() {
             <BigTeamCard
               key={bigTeam.id}
               bigTeam={bigTeam}
-              allMembers={state.members}
+              allMembers={state.members.filter(
+                (member) => member.isActive !== false,
+              )}
+              canManageLead={state.permissions?.canManageAll ?? false}
               smallTeamCount={smallTeamsOfBigTeam(state, bigTeam).length}
               memberCount={membersOfBigTeam(state, bigTeam).length}
-              onEdit={(name) => {
-                setState((current) => ({
-                  ...current,
-                  bigTeams: current.bigTeams.map((team) =>
-                    team.id === bigTeam.id ? { ...team, name } : team,
-                  ),
-                }));
-                toast.success("Đã cập nhật tên đội.");
-              }}
-              onDelete={() => {
-                setState((current) => ({
-                  ...current,
-                  bigTeams: current.bigTeams.filter(
-                    (team) => team.id !== bigTeam.id,
-                  ),
-                  smallTeams: current.smallTeams.filter(
-                    (team) => team.bigTeamId !== bigTeam.id,
-                  ),
-                }));
-                toast.success(`Đã xóa đội "${bigTeam.name}".`);
-              }}
-              onLeadChange={(leadId) => handleLeadChange(bigTeam.id, leadId)}
+              onEdit={(name) =>
+                void run(
+                  () =>
+                    saveGroup({
+                      groupId: bigTeam.id,
+                      groupName: name,
+                      expectedRevision: bigTeam.revision,
+                    }),
+                  "Đã cập nhật tên đội.",
+                )
+              }
+              onDelete={() =>
+                void run(
+                  () =>
+                    saveGroup({
+                      groupId: bigTeam.id,
+                      groupName: bigTeam.name,
+                      isActive: false,
+                      expectedRevision: bigTeam.revision,
+                    }),
+                  `Đã ngừng hoạt động đội "${bigTeam.name}".`,
+                )
+              }
+              onLeadChange={(leadId) =>
+                void run(
+                  () =>
+                    saveGroup({
+                      groupId: bigTeam.id,
+                      groupName: bigTeam.name,
+                      groupLeadStaff: leadId,
+                      clearGroupLead: leadId === null,
+                      expectedRevision: bigTeam.revision,
+                    }),
+                  leadId ? "Đã cập nhật trưởng đội." : "Đã bỏ trưởng đội.",
+                )
+              }
             />
           ))}
         </div>
@@ -130,12 +134,37 @@ export default function BigTeamOverviewDashboard() {
           title="Tạo đội"
           description="Đội quản lý một khu vực hoặc mảng nghiệp vụ, bên trong có thể chứa nhiều nhóm."
           fieldLabel="Tên đội"
-          placeholder="Ví dụ: Team Sale Miền Bắc"
+          placeholder="Ví dụ: Đội Tư vấn TP.HCM"
           submitLabel="Tạo đội"
           onClose={() => setIsCreating(false)}
-          onSubmit={handleCreate}
+          onSubmit={(name) =>
+            void run(
+              () => saveGroup({ groupName: name }),
+              `Đã tạo đội "${name}".`,
+            ).finally(() => setIsCreating(false))
+          }
         />
       )}
+    </main>
+  );
+}
+
+function LoadingState() {
+  return (
+    <main id="main-content" className="min-w-0 p-6">
+      <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-secondary">
+        Đang tải dữ liệu đội ngũ...
+      </div>
+    </main>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <main id="main-content" className="min-w-0 p-6">
+      <div className="rounded-2xl border border-badge-error-background bg-badge-error-background p-5 text-sm text-badge-error-text">
+        {message}
+      </div>
     </main>
   );
 }

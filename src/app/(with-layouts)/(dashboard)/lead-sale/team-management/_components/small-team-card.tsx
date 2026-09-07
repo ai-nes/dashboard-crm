@@ -53,6 +53,18 @@ export default function SmallTeamCard({
             >
               {members.length} thành viên
             </Badge>
+            {smallTeam.readiness && (
+              <Badge
+                size="sm"
+                color={smallTeam.readiness === "ready" ? "success" : "warning"}
+                className="mt-2 ml-1"
+                title={smallTeam.readinessReason}
+              >
+                {smallTeam.readiness === "ready"
+                  ? "Sẵn sàng nhận Lead"
+                  : "Chưa sẵn sàng"}
+              </Badge>
+            )}
           </div>
           <TeamCardActions
             name={smallTeam.name}
@@ -99,7 +111,7 @@ export default function SmallTeamCard({
         </div>
 
         <Link
-          href={`/lead-sale/team-management/${bigTeamId}/${smallTeam.id}`}
+          href={`/lead-sale/team-management/${encodeURIComponent(bigTeamId)}/${encodeURIComponent(smallTeam.id)}`}
           className="mt-auto inline-flex items-center gap-1.5 rounded-lg text-sm font-semibold text-badge-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500"
         >
           Xem thành viên

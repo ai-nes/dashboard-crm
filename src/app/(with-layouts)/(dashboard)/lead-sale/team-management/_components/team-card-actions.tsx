@@ -31,7 +31,7 @@ export default function TeamCardActions({
           appearance="ghost"
           size="sm"
           variant="danger"
-          aria-label={`Xóa ${name}`}
+          aria-label={`Ngừng hoạt động ${name}`}
           onPress={() => setIsDeleting(true)}
           className="size-8 text-text-tertiary hover:bg-badge-error-background hover:text-badge-error-text"
         >
@@ -42,18 +42,18 @@ export default function TeamCardActions({
         <Backdrop isOpen onOpenChange={(open) => !open && setIsDeleting(false)}>
           <Dialog
             role="alertdialog"
-            aria-label={`Xóa ${kind}`}
+            aria-label={`Ngừng hoạt động ${kind}`}
             className="max-w-100 p-0"
           >
             <DialogBody className="space-y-3 p-5">
               <DialogTitle>
-                Xóa {kind} “{name}”?
+                Ngừng hoạt động {kind} “{name}”?
               </DialogTitle>
               <p className="text-sm leading-6 text-text-secondary">
                 {kind === "đội"
-                  ? "Các nhóm trực thuộc cũng sẽ bị xóa. Thành viên được đưa về danh sách chưa phân nhóm."
-                  : "Thành viên được đưa về danh sách chưa phân nhóm."}{" "}
-                Tài khoản nhân sự vẫn được giữ lại.
+                  ? "Các nhóm trực thuộc vẫn được giữ lại. Thành viên và dữ liệu không bị xóa."
+                  : "Thành viên và dữ liệu không bị xóa."}{" "}
+                Người dùng vẫn giữ nguyên tài khoản.
               </p>
             </DialogBody>
             <DialogFooter className="px-5 pb-5">
@@ -71,7 +71,7 @@ export default function TeamCardActions({
                   onDelete();
                 }}
               >
-                Xóa {kind}
+                Ngừng hoạt động
               </Button>
             </DialogFooter>
           </Dialog>
