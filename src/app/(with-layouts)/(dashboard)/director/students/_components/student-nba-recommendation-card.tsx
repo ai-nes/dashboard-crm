@@ -1,9 +1,5 @@
 "use client";
 
-import { ChevronDown, ChevronRight } from "@tailgrids/icons";
-import type { ReactNode } from "react";
-import { useState } from "react";
-
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -18,6 +14,7 @@ import type {
   NbaRecommendation,
 } from "@/services/api/nba";
 
+import { StudentTaskTypeBadge } from "./student-task-badges";
 import {
   formatNbaDateTime,
   formatNbaDecisionStatus,
@@ -30,9 +27,6 @@ import {
 
 interface StudentNbaRecommendationCardProps {
   recommendation: NbaRecommendation;
-  defaultExpanded?: boolean;
-  expanded?: boolean;
-  onExpandedChange?: (expanded: boolean) => void;
   onBeginDecision: (
     recommendation: NbaRecommendation,
     operation: NbaDecisionOperation,
@@ -41,110 +35,56 @@ interface StudentNbaRecommendationCardProps {
 
 export default function StudentNbaRecommendationCard({
   recommendation,
-  defaultExpanded = false,
-  expanded: expandedProp,
-  onExpandedChange,
   onBeginDecision,
 }: StudentNbaRecommendationCardProps) {
-  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
-  const expanded = expandedProp ?? internalExpanded;
   const operations = getPermittedOperations(recommendation);
   const hasRevision = Boolean(recommendation.expectedRevision);
-  const objective =
-    recommendation.objective || "Chưa có mục tiêu cho đề xuất này.";
-  const hasPrimaryReason = Boolean(recommendation.reason);
+  const scheduledAt =
+    recommendation.timing.scheduledAt ?? recommendation.generatedAt;
+  const scheduleLabel = formatNbaDateTime(scheduledAt);
   const reason =
     recommendation.reason ||
     recommendation.context[0] ||
     "Chưa có căn cứ cho đề xuất này.";
-  const contextFacts = hasPrimaryReason
-    ? []
-    : recommendation.context.slice(1, 3);
-
-  const toggleExpanded = () => {
-    const nextExpanded = !expanded;
-    if (expandedProp === undefined) setInternalExpanded(nextExpanded);
-    onExpandedChange?.(nextExpanded);
-  };
 
   return (
     <article className="overflow-hidden rounded-xl border border-card-border bg-card-background">
-      <div className="px-4 pt-4 sm:px-5 sm:pt-5">
-        <div className="flex items-start justify-between gap-3">
-          <button
-            type="button"
-            onClick={toggleExpanded}
-            aria-expanded={expanded}
-            aria-label={`${expanded ? "Thu gọn" : "Mở rộng"} đề xuất ${recommendation.action.title}`}
-            className="flex min-w-0 items-center gap-2 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-          >
-            {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-            <span className="text-xs font-semibold text-text-tertiary">
-              Việc tiếp theo
-            </span>
-          </button>
+      <div className="px-4 py-4 sm:px-5 sm:py-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <StudentTaskTypeBadge actionCode={recommendation.action.code} />
+            <Badge
+              color="gray"
+              prefixIcon={
+                <span
+                  className="size-1.5 rounded-full bg-current"
+                  aria-hidden="true"
+                />
+              }
+              title={`Thời gian thực hiện: ${scheduleLabel}${recommendation.timing.timezone ? ` · ${recommendation.timing.timezone}` : ""}`}
+              className="whitespace-nowrap"
+            >
+              {scheduleLabel}
+            </Badge>
+          </div>
           <Badge color={NBA_PRIORITY_COLORS[recommendation.priority]}>
             {NBA_PRIORITY_LABELS[recommendation.priority]}
           </Badge>
         </div>
 
-        <div className="mt-4 flex min-w-0 items-start gap-3">
-          <div className="min-w-0">
-            <h3 className="break-words text-lg leading-7 font-semibold text-text-primary">
-              {recommendation.action.title}
-            </h3>
-          </div>
+        <h3 className="mt-3 break-words text-lg leading-7 font-semibold text-text-primary">
+          {recommendation.action.title}
+        </h3>
+
+        <div className="mt-3 border-t border-card-border pt-3">
+          <p className="text-xs font-semibold text-text-tertiary">Lý do</p>
+          <p className="mt-1.5 max-w-3xl text-sm leading-5 text-text-primary">
+            {reason}
+          </p>
         </div>
       </div>
 
-      {expanded && (
-        <div className="mt-4 divide-y divide-card-border border-t border-card-border px-4 sm:px-5">
-          <RecommendationSection label="Căn cứ">
-            <p className="text-sm leading-6 font-medium text-text-primary">
-              {reason}
-            </p>
-            {contextFacts.length > 0 && (
-              <ul className="mt-2 space-y-1.5 text-sm leading-5 text-text-secondary">
-                {contextFacts.map((fact) => (
-                  <li key={fact} className="flex gap-2">
-                    <span
-                      className="mt-2 size-1.5 shrink-0 rounded-full bg-primary-500"
-                      aria-hidden="true"
-                    />
-                    <span>{fact}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </RecommendationSection>
-
-          <RecommendationSection label="Mục tiêu">
-            <p className="text-sm leading-6 font-medium text-text-primary">
-              {objective}
-            </p>
-          </RecommendationSection>
-
-          <RecommendationSection label="Thời điểm">
-            <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-text-primary">
-              <TimingValue
-                label="Thực hiện từ"
-                value={formatNbaDateTime(
-                  recommendation.timing.scheduledAt ??
-                    recommendation.generatedAt,
-                )}
-              />
-              {recommendation.timing.expiresAt && (
-                <TimingValue
-                  label="Hạn xử lý"
-                  value={formatNbaDateTime(recommendation.timing.expiresAt)}
-                />
-              )}
-            </div>
-          </RecommendationSection>
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-4 py-4 sm:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-4 py-3 sm:px-5">
         <Badge
           color={
             recommendation.status.decision === "pending" ? "primary" : "gray"
@@ -162,30 +102,6 @@ export default function StudentNbaRecommendationCard({
         )}
       </div>
     </article>
-  );
-}
-
-function RecommendationSection({
-  children,
-  label,
-}: {
-  children: ReactNode;
-  label: string;
-}) {
-  return (
-    <section className="py-4 first:pt-4 last:pb-4">
-      <h4 className="text-sm font-semibold text-text-primary">{label}</h4>
-      <div className="mt-2">{children}</div>
-    </section>
-  );
-}
-
-function TimingValue({ label, value }: { label: string; value: string }) {
-  return (
-    <span>
-      <span className="text-xs font-medium text-text-secondary">{label}: </span>
-      <span>{value}</span>
-    </span>
   );
 }
 
