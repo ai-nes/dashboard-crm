@@ -7,10 +7,10 @@ export default function AssignmentHistoryHeader() {
         <span>LỊCH SỬ PHÂN CÔNG</span>
       </div>
       <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[28px]">
-        Lịch sử đợt phân công
+        Lịch sử phân công
       </h1>
       <p className="mt-2 text-sm leading-6 text-text-secondary">
-        Xem các đợt Lead, trạng thái xử lý và kết quả phân công.
+        Xem toàn bộ hồ sơ Lead, trạng thái xử lý và kết quả phân công.
       </p>
     </header>
   );

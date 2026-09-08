@@ -9,6 +9,8 @@ const METHODS = {
   retry: "crm.api.lead_assignment_batch.retry_lead_assignment_batch",
   detail: "crm.api.lead_assignment_batch.get_lead_assignment_batch",
   list: "crm.api.lead_assignment_batch.list_lead_assignment_batches",
+  historyItems:
+    "crm.api.lead_assignment_batch.list_lead_assignment_history_items",
 } as const;
 
 export type LeadAssignmentBatchStatus =
@@ -142,6 +144,13 @@ export type LeadAssignmentBatchListParams = {
   q?: string;
 };
 
+export type LeadAssignmentHistoryParams = {
+  page?: number;
+  limit?: number;
+  status?: LeadAssignmentBatchItemStatus | "all";
+  q?: string;
+};
+
 export type LeadAssignmentBatchCatalogParams = { province?: string };
 
 export type LeadAssignmentBatchDetailResponse = {
@@ -152,6 +161,17 @@ export type LeadAssignmentBatchDetailResponse = {
 
 export type LeadAssignmentBatchListResponse = {
   items: LeadAssignmentBatch[];
+  pagination: LeadAssignmentPagination;
+};
+
+export type LeadAssignmentHistoryItem = LeadAssignmentBatchItem & {
+  batchId: string;
+  batchCreatedAt: string | null;
+  batchStatus: LeadAssignmentBatchStatus;
+};
+
+export type LeadAssignmentHistoryResponse = {
+  items: LeadAssignmentHistoryItem[];
   pagination: LeadAssignmentPagination;
 };
 
@@ -322,7 +342,7 @@ function normalizeSummary(value: unknown): LeadAssignmentBatchSummary {
 function normalizeBatch(value: unknown): LeadAssignmentBatch {
   const source = asRecord(value) ?? {};
   const summary = normalizeSummary(
-    source.summary ?? source.counts ?? source.stats,
+    source.summary ?? source.counts ?? source.stats ?? source,
   );
   return {
     id: text(
@@ -547,6 +567,38 @@ function normalizeList(value: unknown): LeadAssignmentBatchListResponse {
       count(source.total, items.length),
       items.length,
     ),
+  };
+}
+
+function normalizeHistory(value: unknown): LeadAssignmentHistoryResponse {
+  const source = asRecord(unwrapMessage(value));
+  if (!source) throw new Error("Assignment history response is invalid");
+  const itemValues = source.items;
+  if (!Array.isArray(itemValues))
+    throw new Error("Assignment history items are missing");
+  const items = itemValues.map((value, index) => {
+    const item = asRecord(value) ?? {};
+    return {
+      ...normalizeItem(item, index),
+      batchId: text(item.batchId ?? item.batch_id),
+      batchCreatedAt: nullableText(item.batchCreatedAt ?? item.batch_created_at),
+      batchStatus: oneOf(
+        item.batchStatus ?? item.batch_status,
+        [
+          "draft",
+          "ready",
+          "running",
+          "completed",
+          "completed_with_errors",
+          "cancelled",
+        ] as const,
+        "completed_with_errors",
+      ),
+    };
+  });
+  return {
+    items,
+    pagination: normalizePagination(source.pagination, items.length, items.length),
   };
 }
 
@@ -931,6 +983,31 @@ export async function listLeadAssignmentBatches(
       502,
       "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
       "Phản hồi lịch sử batch không hợp lệ.",
+    );
+  }
+}
+
+export async function listLeadAssignmentHistoryItems(
+  params: LeadAssignmentHistoryParams = {},
+  options: LeadAssignmentBatchRequestOptions = {},
+): Promise<LeadAssignmentHistoryResponse> {
+  const query = new URLSearchParams({
+    page: String(params.page ?? 1),
+    limit: String(params.limit ?? 50),
+    status: params.status ?? "all",
+    q: params.q?.trim() ?? "",
+  });
+  const payload = await request(
+    `${resolveBaseUrl(options)}/api/method/${METHODS.historyItems}?${query.toString()}`,
+    { method: "GET", headers: await requestHeaders(options) },
+  );
+  try {
+    return normalizeHistory(payload);
+  } catch {
+    throw new LeadAssignmentBatchApiError(
+      502,
+      "INVALID_LEAD_ASSIGNMENT_HISTORY_RESPONSE",
+      "Phản hồi lịch sử phân công không hợp lệ.",
     );
   }
 }

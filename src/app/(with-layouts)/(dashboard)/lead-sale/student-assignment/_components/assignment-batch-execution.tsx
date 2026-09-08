@@ -19,13 +19,18 @@ import {
   formatDateTime,
   itemStatusColors,
   itemStatusLabels,
+  assignmentReasonLabel,
   summaryCards,
 } from "../../_shared/lead-assignment-batch/batch-assignment-mappings";
 import AssignmentBatchItemDrawer from "./assignment-batch-item-drawer";
 
 const retryableStatuses = ["deferred", "manual_review", "failed"] as const;
 
-export default function AssignmentBatchExecution() {
+export default function AssignmentBatchExecution({
+  readOnly = false,
+}: {
+  readOnly?: boolean;
+}) {
   const {
     activeBatch,
     items,
@@ -54,8 +59,8 @@ export default function AssignmentBatchExecution() {
           <div>
             <CardTitle className="text-base">Kết quả phân công</CardTitle>
             <p className="mt-1 text-sm text-text-secondary">
-              Một lần bấm sẽ kiểm tra điều kiện và phân công hồ sơ đủ điều kiện;
-              hồ sơ cần bổ sung sẽ được giữ lại để xử lý tiếp.
+              Hệ thống sẽ phân công hồ sơ đủ điều kiện và đóng hồ sơ không hợp
+              lệ, kèm lý do rõ ràng để người vận hành xử lý.
             </p>
           </div>
           <Badge color={batchStatusColors[activeBatch.status]}>
@@ -92,7 +97,7 @@ export default function AssignmentBatchExecution() {
               Bước này chưa tạo hồ sơ Student.
             </span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          {!readOnly && <div className="flex flex-wrap gap-2">
             {(activeBatch.status === "draft" ||
               activeBatch.status === "ready") && (
               <>
@@ -136,7 +141,7 @@ export default function AssignmentBatchExecution() {
                 Xử lý lại {retryableItems.length} hồ sơ
               </Button>
             )}
-          </div>
+          </div>}
         </div>
 
         <div className="border-t border-card-border">
@@ -214,7 +219,7 @@ export default function AssignmentBatchExecution() {
                       </Badge>
                     </td>
                     <td className="max-w-[280px] px-4 py-4 text-xs leading-5 text-text-secondary">
-                      {item.reason ?? item.errorCode ?? "—"}
+                      {assignmentReasonLabel(item)}
                     </td>
                     <td className="px-4 py-4">
                       <Button
