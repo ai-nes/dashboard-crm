@@ -33,6 +33,8 @@ describe("student audit API contract", () => {
                 source_name: "abc123",
                 event_type: "status_changed",
                 category: "status",
+                content: "Nội dung audit",
+                subject: "Chủ đề audit",
                 reason: "Phụ huynh xác nhận tiếp tục quan tâm",
                 metadata: { old_code: "NEW", new_code: "PROSPECT" },
               },
@@ -70,6 +72,8 @@ describe("student audit API contract", () => {
       newValue: "Nguyen Van An",
       eventType: "status_changed",
       category: "status",
+      content: "Nội dung audit",
+      subject: "Chủ đề audit",
       reason: "Phụ huynh xác nhận tiếp tục quan tâm",
       metadata: { old_code: "NEW", new_code: "PROSPECT" },
     });

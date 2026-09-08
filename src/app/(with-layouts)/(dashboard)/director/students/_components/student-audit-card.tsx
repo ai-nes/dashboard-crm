@@ -70,9 +70,12 @@ export default function StudentAuditCard({
             event.sourceName,
             event.eventType,
             event.category,
+            event.content,
+            event.subject,
             event.reason,
+            ...(event.metadata ? Object.values(event.metadata) : []),
             getStudentAuditActivityDescription(event),
-          ].some((value) => value?.toLowerCase().includes(query));
+          ].some((value) => String(value ?? "").toLowerCase().includes(query));
 
         return matchesTime && matchesAction && matchesSearch;
       })
