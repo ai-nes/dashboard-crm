@@ -14,6 +14,7 @@ import type {
   AnalysisStageKind,
   AnalysisVisibilityLabel,
 } from "./types";
+import type { Coverage, EvidenceRef, FindingRef } from "../intelligence-refs";
 
 export type * from "./types";
 
@@ -408,6 +409,12 @@ function parseTextList(value: unknown): string[] {
   });
 }
 
+function parseReferenceList<T extends { contract_version: "intelligence-reference-v1" }>(value: unknown): T[] {
+  const parsed = parseJson(value);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter((item): item is T => asRecord(item)?.contract_version === "intelligence-reference-v1");
+}
+
 function parseConfidence(value: unknown): AnalysisConfidence {
   const numeric = numberValue(value);
   if (numeric !== null) return numeric;
@@ -562,6 +569,9 @@ function parseReport(value: unknown): AnalysisReport | null {
     opportunities,
     recentChanges,
     missingEvidence,
+    intelligenceRefs: parseReferenceList<EvidenceRef>(report.intelligence_refs ?? report.intelligenceRefs),
+    findingRefs: parseReferenceList<FindingRef>(report.finding_refs ?? report.findingRefs),
+    coverage: parseReferenceList<Coverage>(report.coverage),
   };
   return normalized.summary ||
     normalized.risks.length > 0 ||

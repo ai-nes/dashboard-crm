@@ -8,6 +8,7 @@ import type { AnalysisReport, AnalysisReportItem } from "@/services/api/analysis
 import { cn } from "@/utils/cn";
 
 import { getHighestConfidenceReportItem } from "./analysis-run-meta";
+import IntelligenceTrustDisclosure from "./intelligence-trust-disclosure";
 
 interface AnalysisReportCockpitProps {
   report: AnalysisReport;
@@ -72,6 +73,7 @@ export default function AnalysisReportCockpit({
           emptyText="Chưa có tín hiệu nổi bật từ dữ liệu hiện có."
         />
       </div>
+      <IntelligenceTrustDisclosure findings={report.findingRefs ?? []} coverage={report.coverage ?? []} />
       <div className="flex flex-wrap items-center gap-2 border-t border-card-border px-5 py-4">
         <Button
           appearance="ghost"

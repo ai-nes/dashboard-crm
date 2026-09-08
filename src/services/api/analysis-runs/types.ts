@@ -1,3 +1,5 @@
+import type { Coverage, EvidenceRef, FindingRef } from "../intelligence-refs";
+
 export type AnalysisRunKind = "student" | "school";
 
 export type AnalysisRunStatus =
@@ -75,6 +77,9 @@ export interface AnalysisReport {
   /** New sync response: material changes since the previous context. */
   recentChanges?: AnalysisRecentChange[];
   missingEvidence?: string[];
+  intelligenceRefs?: EvidenceRef[];
+  findingRefs?: FindingRef[];
+  coverage?: Coverage[];
 }
 
 export interface AnalysisRunStage {

@@ -38,11 +38,13 @@ interface StudentNbaRecommendationCardProps {
     recommendation: NbaRecommendation,
     operation: NbaDecisionOperation,
   ) => void;
+  onPrepareConsultation?: (recommendation: NbaRecommendation) => void;
 }
 
 export default function StudentNbaRecommendationCard({
   recommendation,
   onBeginDecision,
+  onPrepareConsultation,
 }: StudentNbaRecommendationCardProps) {
   const hasRevision = Boolean(recommendation.expectedRevision);
   const scheduledAt =
@@ -130,6 +132,13 @@ export default function StudentNbaRecommendationCard({
               onPress={() => onBeginDecision(recommendation, operation)}
             />
           ))}
+        </div>
+      )}
+      {hasRevision && onPrepareConsultation && (
+        <div className="border-t border-card-border px-4 py-3 sm:px-5">
+          <Button size="sm" appearance="outline" onPress={() => onPrepareConsultation(recommendation)} className="w-full">
+            Chuẩn bị tư vấn
+          </Button>
         </div>
       )}
     </article>

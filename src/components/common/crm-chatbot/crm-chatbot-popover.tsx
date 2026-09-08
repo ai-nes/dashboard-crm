@@ -12,6 +12,7 @@ export default function CrmChatbotPopover() {
   const isFullScreenRoute = pathname === "/crm-chatbot";
   const [isOpen, setIsOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
+  const [contextHandle, setContextHandle] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -24,11 +25,18 @@ export default function CrmChatbotPopover() {
       }
 
       const data = event.data;
-      if (
-        !data ||
-        typeof data !== "object" ||
-        (data as { type?: unknown }).type !== "crm-chatbot:expand"
-      ) {
+      if (data && typeof data === "object" && (data as { type?: unknown }).type === "crm-chatbot:context-ack") {
+        window.dispatchEvent(new CustomEvent("crm-chatbot:context-handoff", { detail: { ok: (data as { ok?: unknown }).ok !== false } }));
+        return;
+      }
+      if (data && typeof data === "object" && (data as { type?: unknown }).type === "crm-chatbot:ready" && contextHandle) {
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "crm-chatbot:context-handle", handle: contextHandle },
+          CRM_CHATBOT_ORIGIN,
+        );
+        return;
+      }
+      if (!data || typeof data !== "object" || (data as { type?: unknown }).type !== "crm-chatbot:expand") {
         return;
       }
 
@@ -36,9 +44,22 @@ export default function CrmChatbotPopover() {
       router.push("/crm-chatbot");
     };
 
+    const handleContext = (event: Event) => {
+      const detail = (event as CustomEvent<{ handle?: unknown }>).detail;
+      if (typeof detail?.handle !== "string" || !detail.handle.trim()) return;
+      const handle = detail.handle.trim();
+      setContextHandle(handle);
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage({ type: "crm-chatbot:context-handle", handle }, CRM_CHATBOT_ORIGIN);
+      }
+    };
     window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [router]);
+    window.addEventListener("crm-chatbot:set-context-handle", handleContext);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      window.removeEventListener("crm-chatbot:set-context-handle", handleContext);
+    };
+  }, [contextHandle, router]);
 
   const openChatbot = () => {
     setHasOpened(true);
