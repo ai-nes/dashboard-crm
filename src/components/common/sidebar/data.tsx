@@ -336,6 +336,11 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         icon: <TaskIcon />,
       }),
       navItem({
+        title: "Quản lý segments",
+        url: "/lead-sale/next-best-action",
+        icon: <AlphabetIcon />,
+      }),
+      navItem({
         title: "Chatbot CRM",
         url: "/crm-chatbot",
         icon: <ChatIcon />,

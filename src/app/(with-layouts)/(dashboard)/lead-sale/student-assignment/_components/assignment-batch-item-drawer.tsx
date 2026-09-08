@@ -4,6 +4,7 @@ import { CheckCircle1, InfoTriangle } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { useBatchAssignment } from "../../_shared/lead-assignment-batch/batch-assignment-context";
 import {
+  assignmentReasonLabel,
   itemStatusColors,
   itemStatusLabels,
 } from "../../_shared/lead-assignment-batch/batch-assignment-mappings";
@@ -54,12 +55,9 @@ export default function AssignmentBatchItemDrawer() {
               Chưa có: {item.missingFields.join(", ")}.
             </p>
           )}
-          {item.reason && (
-            <p className="mt-2 text-sm leading-6">{item.reason}</p>
-          )}
-          {item.errorCode && (
-            <code className="mt-2 block text-xs">{item.errorCode}</code>
-          )}
+          <p className="mt-2 text-sm leading-6">
+            {assignmentReasonLabel(item)}
+          </p>
         </div>
       )}
 
