@@ -135,6 +135,10 @@ export function useStudentInteractionsQuery<
     queryKey: studentsKeys.studentInteractions(studentId),
     queryFn: () => getStudentInteractions(studentId),
     enabled: Boolean(studentId),
+    refetchInterval: (query) =>
+      query.state.data?.calls.some((call) => call.summaryStatus === "PENDING")
+        ? 3_000
+        : false,
     ...options,
   });
 }

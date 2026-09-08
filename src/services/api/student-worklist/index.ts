@@ -1,4 +1,8 @@
 import type {
+  CompleteActionParams,
+  CompleteActionResponse,
+  StartActionParams,
+  StartActionResponse,
   StudentWorklistActionsResponse,
   StudentWorklistItem,
 } from "./types";
@@ -6,8 +10,10 @@ import type {
 export type * from "./types";
 
 const METHOD = "crm.api.student_worklist.list_actions_for_record";
+const TRANSITION_METHOD = "crm.api.student_decision.transition_action";
+const COMPLETE_METHOD = "crm.api.action_workbench.complete_action_manually";
 
-type RequestOptions = { baseUrl?: string };
+type RequestOptions = { baseUrl?: string; headers?: Record<string, string> };
 
 export class StudentWorklistApiError extends Error {
   constructor(
@@ -82,8 +88,13 @@ function frappeCookieHeader(cookieHeader: string): string {
 
 async function requestHeaders(
   options: RequestOptions,
+  isWrite = false,
 ): Promise<Record<string, string>> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...(isWrite ? { "Content-Type": "application/json" } : {}),
+    ...(options.headers || {}),
+  };
 
   if (!options.baseUrl && typeof window === "undefined") {
     try {
@@ -95,7 +106,77 @@ async function requestHeaders(
     }
   }
 
+  if (typeof window !== "undefined" && isWrite) {
+    const cookieToken = document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith("csrf_token="))
+      ?.split("=")
+      .slice(1)
+      .join("=");
+
+    if (cookieToken) {
+      headers["X-Frappe-CSRF-Token"] = decodeURIComponent(cookieToken);
+    } else {
+      try {
+        const sessionRes = await fetch(
+          `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
+          { credentials: "include", headers: { Accept: "application/json" } },
+        );
+        const sessionPayload = (await sessionRes.json().catch(() => null)) as {
+          message?: { csrf_token?: unknown };
+        } | null;
+        const csrfToken = sessionPayload?.message?.csrf_token;
+        if (typeof csrfToken === "string" && csrfToken) {
+          headers["X-Frappe-CSRF-Token"] = csrfToken;
+        }
+      } catch {
+        // Fallback to cookie-only.
+      }
+    }
+  }
+
   return headers;
+}
+
+async function callWorklistApi<T>(
+  method: string,
+  options: RequestOptions,
+  body: Record<string, unknown>,
+): Promise<T> {
+  const baseUrl = resolveBaseUrl(options);
+  const headers = await requestHeaders(options, true);
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/api/method/${method}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      ...(typeof window !== "undefined"
+        ? { credentials: "include" as RequestCredentials }
+        : {}),
+      cache: "no-store",
+    });
+  } catch {
+    throw new StudentWorklistApiError(
+      503,
+      "STUDENT_WORKLIST_UNAVAILABLE",
+      "Không thể kết nối tới máy chủ Frappe CRM.",
+    );
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const details = getErrorDetails(payload);
+    throw new StudentWorklistApiError(
+      response.status,
+      details.code ?? "STUDENT_WORKLIST_UNAVAILABLE",
+      details.message ?? `Lỗi HTTP ${response.status}: ${response.statusText}`,
+    );
+  }
+
+  return unwrapMessage(payload) as T;
 }
 
 function unwrapMessage(value: unknown): Record<string, unknown> {
@@ -124,6 +205,15 @@ export function normalizeStudentWorklistActions(
     const objective = textValue(action?.objective);
     if (!objective) return [];
 
+    const outcomeCodes = Array.isArray(action?.outcome_codes)
+      ? action.outcome_codes.flatMap((entry) => {
+          const option = asRecord(entry);
+          const value = textValue(option?.value);
+          if (!value) return [];
+          return [{ value, label: textValue(option?.label) ?? value }];
+        })
+      : [];
+
     return [
       {
         name: textValue(action?.name) ?? `student-action-${index}`,
@@ -137,6 +227,15 @@ export function normalizeStudentWorklistActions(
         actionOwner: textValue(action?.action_owner),
         origin: textValue(action?.origin),
         revision: numberValue(action?.revision, 1),
+        packageRevision: numberValue(action?.package_revision, 0),
+        outcome: textValue(action?.outcome),
+        outcomeCodes,
+        linkedInteraction: textValue(action?.linked_interaction),
+        permittedTransitions: Array.isArray(action?.permitted_transitions)
+          ? action.permitted_transitions.filter(
+              (value): value is string => typeof value === "string",
+            )
+          : [],
         isToday: action?.is_today === true,
         isOverdue: action?.is_overdue === true,
       },
@@ -144,6 +243,13 @@ export function normalizeStudentWorklistActions(
   });
 
   return { items };
+}
+
+function generateIdempotencyKey(prefix: string): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export async function getStudentWorklistActions(
@@ -204,3 +310,52 @@ export async function getStudentWorklistActions(
     );
   }
 }
+
+export async function startAction(
+  params: StartActionParams,
+  options: RequestOptions = {},
+): Promise<StartActionResponse> {
+  const raw = await callWorklistApi<Record<string, unknown>>(
+    TRANSITION_METHOD,
+    options,
+    {
+      name: params.action,
+      expected_revision: params.expectedActionRevision,
+      status: "in_progress",
+      idempotency_key: params.idempotencyKey,
+    },
+  );
+
+  return {
+    name: textValue(raw.action) ?? params.action,
+    executionStatus: textValue(raw.status) ?? "in_progress",
+    revision: numberValue(raw.revision, params.expectedActionRevision + 1),
+  };
+}
+
+export async function completeActionManually(
+  params: CompleteActionParams,
+  options: RequestOptions = {},
+): Promise<CompleteActionResponse> {
+  const raw = await callWorklistApi<Record<string, unknown>>(
+    COMPLETE_METHOD,
+    options,
+    {
+      action: params.action,
+      idempotency_key: params.idempotencyKey,
+      expected_action_revision: params.expectedActionRevision,
+      expected_package_revision: params.expectedPackageRevision,
+      outcome_code: params.outcomeCode,
+      ...(params.outcomeEvidence ? { outcome_evidence: params.outcomeEvidence } : {}),
+      ...(params.outcomeNotes ? { outcome_notes: params.outcomeNotes } : {}),
+    },
+  );
+
+  return {
+    name: textValue(raw.action) ?? params.action,
+    executionStatus: textValue(raw.status) ?? "completed",
+    revision: numberValue(raw.revision, params.expectedActionRevision + 1),
+  };
+}
+
+export { generateIdempotencyKey };
