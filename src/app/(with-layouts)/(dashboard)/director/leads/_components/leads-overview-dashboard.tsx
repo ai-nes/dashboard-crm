@@ -1,12 +1,10 @@
 "use client";
 
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
-import { Bolt1, Play, Plus } from "@tailgrids/icons";
+import { Bolt1, Play } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { useAuth } from "@/components/common/auth/auth-provider";
-import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
@@ -18,14 +16,10 @@ import {
 import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-queries";
 import {
   leadSaleLeadsKeys,
-  useCreateLeadMutation,
   useLeadSaleLeadsQuery,
   useProcessNewLeadsMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
-import type {
-  LeadCreateFields,
-  LeadListParams,
-} from "@/services/api/lead-sale";
+import type { LeadListParams } from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
@@ -33,18 +27,12 @@ import {
   type LeadResultFilter,
   type LeadStageStatus,
 } from "./lead-status";
-import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 
 const pageSize = 10;
 
 export default function LeadsOverviewDashboard() {
-  const { user, isLoading: isAuthLoading } = useAuth();
-  const permissions = getCrmPermissions(user?.roles);
-  const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
   const queryClient = useQueryClient();
   const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
-  const createMutation = useCreateLeadMutation();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const processNewLeadsMutation = useProcessNewLeadsMutation();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStageStatus | "all">("all");
@@ -81,7 +69,6 @@ export default function LeadsOverviewDashboard() {
   // "Phân công Lead" has anything to hand out, so the header offers exactly the
   // step that is due. Both counts span the whole intake year, not the filter.
   const pendingNewCount = meta?.pendingNew ?? 0;
-  const readyToAssignCount = meta?.readyToAssign ?? 0;
   const hasPendingNew = pendingNewCount > 0;
   const totalCount = meta?.total ?? 0;
   const totalPages = Math.max(
@@ -116,13 +103,6 @@ export default function LeadsOverviewDashboard() {
     setResolution("all");
     setCampaign("");
     setPage(1);
-  };
-
-  const handleCreateLead = async (fields: LeadCreateFields) => {
-    await createMutation.mutateAsync(fields);
-    setCreateDialogOpen(false);
-    setPage(1);
-    toast.success("Đã tạo Lead.");
   };
 
   const runLeadProcessing = async () => {
@@ -217,17 +197,6 @@ export default function LeadsOverviewDashboard() {
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 max-sm:w-full">
-          {canCreateLead && (
-            <Button
-              className="shrink-0 max-sm:w-full"
-              onPress={() => setCreateDialogOpen(true)}
-              size="md"
-              aria-label="Tạo Lead nhanh"
-            >
-              <Plus size={18} aria-hidden="true" />
-              Tạo Lead nhanh
-            </Button>
-          )}
           {meta &&
             (hasPendingNew ? (
               <Button
@@ -258,11 +227,6 @@ export default function LeadsOverviewDashboard() {
                   : "Phân công Lead"}
               </Button>
             ))}
-          {meta && !hasPendingNew && (
-            <p className="text-xs text-text-tertiary max-sm:text-left">
-              {`${readyToAssignCount} Lead đã xử lý đang chờ phân công.`}
-            </p>
-          )}
         </div>
       </header>
 
@@ -347,14 +311,6 @@ export default function LeadsOverviewDashboard() {
         )}
       </Card>
 
-      {canCreateLead && (
-        <QuickCreateLeadDialog
-          isOpen={createDialogOpen}
-          isSubmitting={createMutation.isPending}
-          onOpenChange={setCreateDialogOpen}
-          onCreate={handleCreateLead}
-        />
-      )}
     </main>
   );
 }
