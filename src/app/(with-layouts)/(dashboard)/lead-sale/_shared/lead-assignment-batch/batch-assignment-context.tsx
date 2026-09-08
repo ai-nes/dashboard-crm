@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   useLeadAssignmentBatchDetailQuery,
   useLeadAssignmentBatchListQuery,
+  useLeadAssignmentWorkflowQuery,
   usePreviewLeadAssignmentBatchMutation,
   useRetryLeadAssignmentBatchMutation,
   useRunLeadAssignmentBatchMutation,
@@ -15,6 +16,7 @@ import type {
   LeadAssignmentBatchItem,
   LeadAssignmentBatchStatus,
   LeadAssignmentPagination,
+  LeadAssignmentWorkflowResponse,
 } from "@/services/api/lead-sale";
 import { createContext, useContext } from "react";
 
@@ -22,6 +24,7 @@ interface BatchAssignmentContextValue {
   batches: LeadAssignmentBatch[];
   selectedBatchId: string | null;
   activeBatch: LeadAssignmentBatch | null;
+  workflow: LeadAssignmentWorkflowResponse | null;
   items: LeadAssignmentBatchItem[];
   selectedItemId: string | null;
   selectBatch: (batchId: string) => void;
@@ -32,6 +35,7 @@ interface BatchAssignmentContextValue {
   retryBatch: (itemIds?: string[]) => Promise<void>;
   isLoading: boolean;
   isDetailLoading: boolean;
+  isWorkflowLoading: boolean;
   isPreviewing: boolean;
   isRunning: boolean;
   isRunningUnassigned: boolean;
@@ -74,6 +78,9 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
   const detailQuery = useLeadAssignmentBatchDetailQuery(
     effectiveSelectedBatchId,
   );
+  const workflowQuery = useLeadAssignmentWorkflowQuery(
+    effectiveSelectedBatchId,
+  );
   const previewMutation = usePreviewLeadAssignmentBatchMutation();
   const runMutation = useRunLeadAssignmentBatchMutation();
   const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
@@ -86,7 +93,8 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
     );
   }, [batches, detailQuery.data?.batch, effectiveSelectedBatchId]);
   const items = detailQuery.data?.items ?? [];
-  const error = listQuery.error ?? detailQuery.error ?? null;
+  const error =
+    listQuery.error ?? detailQuery.error ?? workflowQuery.error ?? null;
 
   const selectBatch = (batchId: string) => {
     setSelectedBatchId(batchId);
@@ -188,6 +196,7 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
         batches,
         selectedBatchId: effectiveSelectedBatchId,
         activeBatch,
+        workflow: workflowQuery.data ?? null,
         items,
         selectedItemId,
         selectBatch,
@@ -198,6 +207,7 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
         retryBatch,
         isLoading: listQuery.isLoading,
         isDetailLoading: detailQuery.isLoading,
+        isWorkflowLoading: workflowQuery.isLoading,
         isPreviewing: previewMutation.isPending,
         isRunning: runMutation.isPending,
         isRunningUnassigned: runUnassignedMutation.isPending,

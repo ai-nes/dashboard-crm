@@ -17,7 +17,6 @@ import { useBatchAssignment } from "../../_shared/lead-assignment-batch/batch-as
 import {
   batchStatusColors,
   batchStatusLabels,
-  formatCount,
 } from "../../_shared/lead-assignment-batch/batch-assignment-mappings";
 import {
   stepIcons,
@@ -41,27 +40,43 @@ const AssignmentBatchWorkflowCanvas = dynamic(
 );
 
 export default function AssignmentBatchWorkflow() {
-  const { activeBatch } = useBatchAssignment();
+  const { workflow, isWorkflowLoading } = useBatchAssignment();
   const [selectedStep, setSelectedStep] = useState<StepId | null>(null);
-  const steps = useMemo(
-    () => getBatchWorkflowSteps(activeBatch),
-    [activeBatch],
-  );
+  const steps = useMemo(() => getBatchWorkflowSteps(workflow), [workflow]);
+  const workflowBatch = workflow?.batch ?? null;
   const currentPhaseId = getBatchWorkflowCurrentPhaseId(steps);
   const currentPhase = steps.find((step) => step.id === currentPhaseId);
   const selectedWorkflowStep = steps.find((step) => step.id === selectedStep);
   const currentPhaseState = currentPhase
     ? getBatchWorkflowPhaseState(currentPhase, currentPhaseId)
     : null;
-  const isRunning = activeBatch?.status === "running";
+  const isRunning = workflowBatch?.status === "running";
 
-  const phaseBadgeLabel = !activeBatch
+  const phaseBadgeLabel = !workflow?.hasRun
     ? "Chưa có lần chạy"
     : isRunning
       ? "Đang phân công"
       : currentPhase && currentPhaseState
         ? `${workflowPhaseStateLabels[currentPhaseState]} · ${currentPhase.title}`
-        : batchStatusLabels[activeBatch.status];
+        : workflowBatch
+          ? batchStatusLabels[workflowBatch.status]
+          : "Chưa có dữ liệu";
+
+  if (isWorkflowLoading && !workflow) {
+    return (
+      <Card className="flex min-h-32 items-center justify-center p-6 text-sm text-text-tertiary">
+        Đang tải dữ liệu quy trình phân công…
+      </Card>
+    );
+  }
+
+  if (!workflow) {
+    return (
+      <Card className="flex min-h-32 items-center justify-center p-6 text-sm text-text-tertiary">
+        Chưa tải được dữ liệu quy trình phân công.
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -87,7 +102,7 @@ export default function AssignmentBatchWorkflow() {
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Badge
                 color={
-                  activeBatch && currentPhaseState
+                  workflow.hasRun && currentPhaseState
                     ? workflowPhaseStateColors[currentPhaseState]
                     : "gray"
                 }
@@ -98,52 +113,25 @@ export default function AssignmentBatchWorkflow() {
               </Badge>
               <Badge
                 color={
-                  activeBatch ? batchStatusColors[activeBatch.status] : "gray"
+                  workflowBatch
+                    ? batchStatusColors[workflowBatch.status]
+                    : "gray"
                 }
               >
-                {activeBatch
-                  ? batchStatusLabels[activeBatch.status]
+                {workflowBatch
+                  ? batchStatusLabels[workflowBatch.status]
                   : "Chưa có dữ liệu"}
               </Badge>
             </div>
           </div>
-
-          {activeBatch && (
-            <div
-              className={cn(
-                "flex flex-wrap items-center justify-between gap-2 border-t border-card-border px-5 py-2.5 text-xs",
-                isRunning
-                  ? "bg-badge-primary-background text-badge-primary-text"
-                  : activeBatch.status === "completed_with_errors"
-                    ? "bg-badge-warning-background text-badge-warning-text"
-                    : activeBatch.status === "completed"
-                      ? "bg-badge-success-background text-badge-success-text"
-                      : "bg-background-gray-secondary text-text-tertiary",
-              )}
-            >
-              <span>
-                {isRunning
-                  ? "Hệ thống đang xử lý phân công. Kết quả sẽ cập nhật sau khi hoàn tất."
-                  : "Sơ đồ hiển thị theo trạng thái xử lý và kết quả từng Lead."}
-              </span>
-              <span className="tabular-nums">
-                {formatCount(activeBatch.summary.assigned)} đã giao ·{" "}
-                {formatCount(
-                  activeBatch.summary.deferred +
-                    activeBatch.summary.manualReview +
-                    activeBatch.summary.failed,
-                )}{" "}
-                cần xử lý tiếp
-              </span>
-            </div>
-          )}
 
           <div className="hidden xl:block">
             <AssignmentBatchWorkflowCanvas
               steps={steps}
               currentPhaseId={currentPhaseId}
               selectedStep={selectedStep}
-              hasBatch={Boolean(activeBatch)}
+              hasBatch={workflow.hasRun}
+              connections={workflow.connections}
               onSelect={setSelectedStep}
             />
           </div>
@@ -279,7 +267,7 @@ export default function AssignmentBatchWorkflow() {
           </p>
           <div className="my-6 rounded-xl border border-card-border bg-background-gray-secondary p-4">
             <p className="text-xs text-text-tertiary">
-              {activeBatch ? "Trong lần chạy đang xem" : "Chưa có lần chạy"}
+              {workflow.hasRun ? "Trong lần chạy đang xem" : "Chưa có lần chạy"}
             </p>
             <p className="mt-2 text-lg font-semibold text-text-primary">
               {getBatchWorkflowStepMetric(selectedWorkflowStep)}

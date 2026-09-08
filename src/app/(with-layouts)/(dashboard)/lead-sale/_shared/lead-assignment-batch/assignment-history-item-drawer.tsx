@@ -99,14 +99,14 @@ export default function AssignmentHistoryItemDrawer({
           lead: item.leadId,
           reason: "Mở lại hồ sơ sau khi bổ sung thông tin phân công.",
         });
-        // Reopening replays intake validation. A record still missing CCCD,
-        // trường THPT or ngành quan tâm closes again instead of moving on.
+        // Reopening replays intake validation. A record still missing phone,
+        // province, trường THPT or ngành quan tâm closes again instead of moving on.
         if (reopened.status !== "PROCESSED") {
           await queryClient.invalidateQueries({
             queryKey: leadAssignmentBatchKeys.all,
           });
           toast.error(
-            "Hồ sơ vẫn chưa qua được bước kiểm tra dữ liệu: cần đủ CCCD, trường THPT và ngành quan tâm.",
+            "Hồ sơ vẫn chưa qua được bước kiểm tra dữ liệu: cần đủ số điện thoại, tỉnh, trường THPT và ngành quan tâm.",
           );
           return;
         }

@@ -10,6 +10,7 @@ import {
 import {
   getLeadAssignmentBatch,
   getLeadAssignmentCatalogs,
+  getLeadAssignmentWorkflow,
   createLeadAssignmentBatch,
   importLeadsToAssignmentBatch,
   listLeadAssignmentBatches,
@@ -29,6 +30,7 @@ import {
   type LeadAssignmentBatchMutationResponse,
   type LeadAssignmentAutoRunResponse,
   type LeadAssignmentCatalogs,
+  type LeadAssignmentWorkflowResponse,
   type LeadAssignmentBatchActionRequest,
   type RetryLeadAssignmentBatchRequest,
 } from "@/services/api/lead-sale";
@@ -43,6 +45,8 @@ export const leadAssignmentBatchKeys = {
     ["lead-sale", "lead-assignment-batch", "history", params] as const,
   detail: (batchId: string) =>
     ["lead-sale", "lead-assignment-batch", "detail", batchId] as const,
+  workflow: (batchId: string | null = null) =>
+    ["lead-sale", "lead-assignment-batch", "workflow", batchId] as const,
 };
 
 export function useLeadAssignmentCatalogsQuery(
@@ -101,6 +105,25 @@ export function useLeadAssignmentBatchDetailQuery(
     queryKey: leadAssignmentBatchKeys.detail(id),
     queryFn: () => getLeadAssignmentBatch(id),
     enabled: Boolean(batchId) && (options?.enabled ?? true),
+    ...options,
+  });
+}
+
+export function useLeadAssignmentWorkflowQuery(
+  batchId: string | null = null,
+  options?: Omit<
+    UseQueryOptions<
+      LeadAssignmentWorkflowResponse,
+      Error,
+      LeadAssignmentWorkflowResponse,
+      ReturnType<typeof leadAssignmentBatchKeys.workflow>
+    >,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<LeadAssignmentWorkflowResponse, Error> {
+  return useQuery({
+    queryKey: leadAssignmentBatchKeys.workflow(batchId),
+    queryFn: () => getLeadAssignmentWorkflow(batchId),
     ...options,
   });
 }

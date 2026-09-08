@@ -4,10 +4,10 @@ const METHODS = {
   create: "crm.api.lead_assignment_batch.create_lead_assignment_batch",
   preview: "crm.api.lead_assignment_batch.preview_lead_assignment_batch",
   run: "crm.api.lead_assignment_batch.run_lead_assignment_batch",
-  runUnassigned:
-    "crm.api.lead_assignment_batch.run_unassigned_lead_assignment",
+  runUnassigned: "crm.api.lead_assignment_batch.run_unassigned_lead_assignment",
   retry: "crm.api.lead_assignment_batch.retry_lead_assignment_batch",
   detail: "crm.api.lead_assignment_batch.get_lead_assignment_batch",
+  workflow: "crm.api.lead_assignment_batch.get_lead_assignment_workflow",
   list: "crm.api.lead_assignment_batch.list_lead_assignment_batches",
   historyItems:
     "crm.api.lead_assignment_batch.list_lead_assignment_history_items",
@@ -157,6 +157,59 @@ export type LeadAssignmentBatchDetailResponse = {
   batch: LeadAssignmentBatch;
   items: LeadAssignmentBatchItem[];
   pagination: LeadAssignmentPagination;
+};
+
+export type LeadAssignmentWorkflowStepId =
+  | "input"
+  | "validation"
+  | "classification"
+  | "matching"
+  | "review"
+  | "assignment";
+
+export type LeadAssignmentWorkflowStepStatus =
+  | "idle"
+  | "running"
+  | "success"
+  | "warning"
+  | "error";
+
+export type LeadAssignmentWorkflowTone =
+  | "neutral"
+  | "blue"
+  | "primary"
+  | "warning"
+  | "success";
+
+export type LeadAssignmentWorkflowMetrics = {
+  processedCount: number;
+  successCount: number;
+  warningCount: number;
+  errorCount: number;
+};
+
+export type LeadAssignmentWorkflowStep = {
+  id: LeadAssignmentWorkflowStepId;
+  title: string;
+  description: string;
+  detail: string;
+  rules: string[];
+  tone: LeadAssignmentWorkflowTone;
+  status: LeadAssignmentWorkflowStepStatus;
+  metrics: LeadAssignmentWorkflowMetrics;
+};
+
+export type LeadAssignmentWorkflowConnection = {
+  source: LeadAssignmentWorkflowStepId;
+  target: LeadAssignmentWorkflowStepId;
+  label: string | null;
+};
+
+export type LeadAssignmentWorkflowResponse = {
+  hasRun: boolean;
+  batch: LeadAssignmentBatch | null;
+  steps: LeadAssignmentWorkflowStep[];
+  connections: LeadAssignmentWorkflowConnection[];
 };
 
 export type LeadAssignmentBatchListResponse = {
@@ -336,6 +389,96 @@ function normalizeSummary(value: unknown): LeadAssignmentBatchSummary {
     manualReview,
     failed,
     skipped,
+  };
+}
+
+const workflowStepIds: readonly LeadAssignmentWorkflowStepId[] = [
+  "input",
+  "validation",
+  "classification",
+  "matching",
+  "review",
+  "assignment",
+];
+
+const workflowStepStatuses: readonly LeadAssignmentWorkflowStepStatus[] = [
+  "idle",
+  "running",
+  "success",
+  "warning",
+  "error",
+];
+
+const workflowTones: readonly LeadAssignmentWorkflowTone[] = [
+  "neutral",
+  "blue",
+  "primary",
+  "warning",
+  "success",
+];
+
+function normalizeWorkflowMetrics(
+  value: unknown,
+): LeadAssignmentWorkflowMetrics {
+  const source = asRecord(value) ?? {};
+  return {
+    processedCount: count(source.processedCount ?? source.processed_count),
+    successCount: count(source.successCount ?? source.success_count),
+    warningCount: count(source.warningCount ?? source.warning_count),
+    errorCount: count(source.errorCount ?? source.error_count),
+  };
+}
+
+function normalizeWorkflow(value: unknown): LeadAssignmentWorkflowResponse {
+  const source = asRecord(unwrapMessage(value));
+  if (!source) throw new Error("Assignment workflow response is invalid");
+  const stepValues = source.steps;
+  if (!Array.isArray(stepValues))
+    throw new Error("Assignment workflow steps are missing");
+  const steps = stepValues.flatMap((value): LeadAssignmentWorkflowStep[] => {
+    const row = asRecord(value) ?? {};
+    const id = row.id as LeadAssignmentWorkflowStepId;
+    if (!workflowStepIds.includes(id)) return [];
+    return [
+      {
+        id,
+        title: text(row.title),
+        description: text(row.description),
+        detail: text(row.detail),
+        rules: Array.isArray(row.rules)
+          ? row.rules.filter((rule): rule is string => typeof rule === "string")
+          : [],
+        tone: oneOf(row.tone, workflowTones, "neutral"),
+        status: oneOf(row.status, workflowStepStatuses, "idle"),
+        metrics: normalizeWorkflowMetrics(row.metrics),
+      },
+    ];
+  });
+  const connectionValues = source.connections;
+  const connections = Array.isArray(connectionValues)
+    ? connectionValues.flatMap((value): LeadAssignmentWorkflowConnection[] => {
+        const row = asRecord(value) ?? {};
+        const sourceId = row.source as LeadAssignmentWorkflowStepId;
+        const targetId = row.target as LeadAssignmentWorkflowStepId;
+        if (
+          !workflowStepIds.includes(sourceId) ||
+          !workflowStepIds.includes(targetId)
+        )
+          return [];
+        return [
+          {
+            source: sourceId,
+            target: targetId,
+            label: nullableText(row.label),
+          },
+        ];
+      })
+    : [];
+  return {
+    hasRun: Boolean(source.hasRun ?? source.has_run),
+    batch: source.batch ? normalizeBatch(source.batch) : null,
+    steps,
+    connections,
   };
 }
 
@@ -581,7 +724,9 @@ function normalizeHistory(value: unknown): LeadAssignmentHistoryResponse {
     return {
       ...normalizeItem(item, index),
       batchId: text(item.batchId ?? item.batch_id),
-      batchCreatedAt: nullableText(item.batchCreatedAt ?? item.batch_created_at),
+      batchCreatedAt: nullableText(
+        item.batchCreatedAt ?? item.batch_created_at,
+      ),
       batchStatus: oneOf(
         item.batchStatus ?? item.batch_status,
         [
@@ -598,7 +743,11 @@ function normalizeHistory(value: unknown): LeadAssignmentHistoryResponse {
   });
   return {
     items,
-    pagination: normalizePagination(source.pagination, items.length, items.length),
+    pagination: normalizePagination(
+      source.pagination,
+      items.length,
+      items.length,
+    ),
   };
 }
 
@@ -957,6 +1106,28 @@ export async function getLeadAssignmentBatch(
       502,
       "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
       "Phản hồi chi tiết batch không hợp lệ.",
+    );
+  }
+}
+
+export async function getLeadAssignmentWorkflow(
+  batchId?: string | null,
+  options: LeadAssignmentBatchRequestOptions = {},
+): Promise<LeadAssignmentWorkflowResponse> {
+  const query = new URLSearchParams();
+  if (batchId?.trim()) query.set("batch_name", batchId.trim());
+  const queryString = query.toString();
+  const payload = await request(
+    `${resolveBaseUrl(options)}/api/method/${METHODS.workflow}${queryString ? `?${queryString}` : ""}`,
+    { method: "GET", headers: await requestHeaders(options) },
+  );
+  try {
+    return normalizeWorkflow(payload);
+  } catch {
+    throw new LeadAssignmentBatchApiError(
+      502,
+      "INVALID_LEAD_ASSIGNMENT_WORKFLOW_RESPONSE",
+      "Phản hồi workflow phân công Lead không hợp lệ.",
     );
   }
 }

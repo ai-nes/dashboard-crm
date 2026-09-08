@@ -11,7 +11,7 @@ import {
 } from "@xyflow/react";
 import { ExpandArrow6 } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
-import type { AssignmentWorkflowConnection } from "@/services/api/lead-sale";
+import type { LeadAssignmentWorkflowConnection } from "@/services/api/lead-sale";
 import {
   getBatchWorkflowPhaseState,
   getBatchWorkflowStepMetric,
@@ -30,22 +30,9 @@ type AssignmentBatchWorkflowCanvasProps = {
   currentPhaseId: StepId | null;
   selectedStep: StepId | null;
   hasBatch: boolean;
+  connections: LeadAssignmentWorkflowConnection[];
   onSelect: (stepId: StepId) => void;
 };
-
-const workflowConnections: AssignmentWorkflowConnection[] = [
-  { source: "input", target: "validation", label: null },
-  { source: "validation", target: "classification", label: "Đủ dữ liệu" },
-  { source: "classification", target: "matching", label: "Đủ thông tin tuyến" },
-  {
-    source: "classification",
-    target: "review",
-    label: "Cần bổ sung / duplicate",
-  },
-  { source: "matching", target: "assignment", label: "Có quy tắc và sức chứa" },
-  { source: "matching", target: "review", label: "Tạm hoãn hoặc lỗi" },
-  { source: "review", target: "assignment", label: "Sau khi xử lý lại" },
-];
 
 const connectionHandles: Record<
   string,
@@ -78,7 +65,7 @@ const canvasStyle = {
   "--xy-attribution-background-color-default": "var(--card-background)",
 } as CSSProperties;
 
-function getConnectionLayout(connection: AssignmentWorkflowConnection) {
+function getConnectionLayout(connection: LeadAssignmentWorkflowConnection) {
   return {
     ...connection,
     ...(connectionHandles[`${connection.source}:${connection.target}`] ??
@@ -92,6 +79,7 @@ export default function AssignmentBatchWorkflowCanvas({
   currentPhaseId,
   selectedStep,
   hasBatch,
+  connections,
   onSelect,
 }: AssignmentBatchWorkflowCanvasProps) {
   const nodeTypes = useMemo(
@@ -125,7 +113,7 @@ export default function AssignmentBatchWorkflowCanvas({
 
   const edges: Edge[] = useMemo(
     () =>
-      workflowConnections.map((rawConnection) => {
+      connections.map((rawConnection) => {
         const connection = getConnectionLayout(rawConnection);
         const warning = connection.target === "review";
         const sourceStep = steps.find((step) => step.id === connection.source);
@@ -174,7 +162,7 @@ export default function AssignmentBatchWorkflowCanvas({
           labelBgBorderRadius: 4,
         };
       }),
-    [hasActivity, isRunning, steps],
+    [connections, hasActivity, isRunning, steps],
   );
 
   return (

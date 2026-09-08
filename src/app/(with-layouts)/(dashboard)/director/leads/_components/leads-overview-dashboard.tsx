@@ -139,7 +139,7 @@ export default function LeadsOverviewDashboard() {
 
       const outcome = [
         `${summary.processed} Lead sẵn sàng phân công`,
-        `${summary.closed} Lead đóng do thiếu CCCD, trường THPT hoặc ngành`,
+        `${summary.closed} Lead đóng do thiếu số điện thoại, tỉnh, trường THPT hoặc ngành`,
       ];
       if (summary.skipped) outcome.push(`${summary.skipped} Lead bỏ qua`);
       if (summary.failed) outcome.push(`${summary.failed} Lead lỗi`);
