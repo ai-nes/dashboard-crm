@@ -1,16 +1,26 @@
 "use client";
 
-import { useMemo, useRef, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import {
   Background,
   BackgroundVariant,
   MarkerType,
   ReactFlow,
+  useNodesState,
   type Edge,
+  type OnNodeDrag,
   type ReactFlowInstance,
 } from "@xyflow/react";
 import { ExpandArrow6 } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import type { LeadAssignmentWorkflowConnection } from "@/services/api/lead-sale";
 import {
   getBatchWorkflowPhaseState,
@@ -65,6 +75,11 @@ const canvasStyle = {
   "--xy-attribution-background-color-default": "var(--card-background)",
 } as CSSProperties;
 
+const workflowLayoutStorageKey = "lead-assignment-batch-workflow-layout";
+const workflowLayoutAutosaveDelayMs = 10_000;
+
+type WorkflowLayout = Partial<Record<StepId, { x: number; y: number }>>;
+
 function getConnectionLayout(connection: LeadAssignmentWorkflowConnection) {
   return {
     ...connection,
@@ -89,27 +104,158 @@ export default function AssignmentBatchWorkflowCanvas({
   const instance = useRef<ReactFlowInstance<AssignmentBatchFlowNode> | null>(
     null,
   );
+  const hasFittedView = useRef(false);
+  const autosaveTimeout = useRef<number | null>(null);
+  const draggedNodeRef = useRef(false);
+  const clearDraggedNodeTimeout = useRef<number | null>(null);
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const [storedLayout] = useState<WorkflowLayout>(() => {
+    try {
+      const stored = window.localStorage.getItem(workflowLayoutStorageKey);
+      return stored ? (JSON.parse(stored) as WorkflowLayout) : {};
+    } catch {
+      return {};
+    }
+  });
   const isRunning = steps.some((step) => step.status === "running");
   const hasActivity = hasBatch && steps.some((step) => step.status !== "idle");
 
-  const nodes: AssignmentBatchFlowNode[] = useMemo(
+  const saveLayout = useCallback((layout: WorkflowLayout) => {
+    try {
+      window.localStorage.setItem(workflowLayoutStorageKey, JSON.stringify(layout));
+    } catch {
+      // Layout persistence is best effort and must never interrupt dragging.
+    }
+  }, []);
+
+  const scheduleLayoutAutosave = useCallback(
+    (layout: WorkflowLayout) => {
+      if (autosaveTimeout.current !== null) {
+        window.clearTimeout(autosaveTimeout.current);
+      }
+      autosaveTimeout.current = window.setTimeout(
+        () => saveLayout(layout),
+        workflowLayoutAutosaveDelayMs,
+      );
+    },
+    [saveLayout],
+  );
+
+  const getLayoutFromNodes = useCallback(
+    (flowNodes: AssignmentBatchFlowNode[]): WorkflowLayout =>
+      Object.fromEntries(
+        flowNodes.map((node) => [
+          node.id as StepId,
+          { x: node.position.x, y: node.position.y },
+        ]),
+      ),
+    [],
+  );
+
+  const onNodeDrag = useCallback<OnNodeDrag<AssignmentBatchFlowNode>>(
+    (_, __, flowNodes) => {
+      draggedNodeRef.current = true;
+      scheduleLayoutAutosave(getLayoutFromNodes(flowNodes));
+    },
+    [getLayoutFromNodes, scheduleLayoutAutosave],
+  );
+
+  const onNodeDragStop = useCallback<OnNodeDrag<AssignmentBatchFlowNode>>(
+    (_, __, flowNodes) => {
+      draggedNodeRef.current = true;
+      if (autosaveTimeout.current !== null) {
+        window.clearTimeout(autosaveTimeout.current);
+        autosaveTimeout.current = null;
+      }
+      saveLayout(getLayoutFromNodes(flowNodes));
+      if (clearDraggedNodeTimeout.current !== null) {
+        window.clearTimeout(clearDraggedNodeTimeout.current);
+      }
+      clearDraggedNodeTimeout.current = window.setTimeout(() => {
+        draggedNodeRef.current = false;
+      }, 500);
+    },
+    [getLayoutFromNodes, saveLayout],
+  );
+
+  const selectNode = useCallback(
+    (stepId: StepId) => {
+      if (draggedNodeRef.current) return;
+      onSelect(stepId);
+    },
+    [onSelect],
+  );
+
+  useEffect(
+    () => () => {
+      if (autosaveTimeout.current !== null) {
+        window.clearTimeout(autosaveTimeout.current);
+      }
+      if (clearDraggedNodeTimeout.current !== null) {
+        window.clearTimeout(clearDraggedNodeTimeout.current);
+      }
+    },
+    [],
+  );
+
+  const initialNodes: AssignmentBatchFlowNode[] = useMemo(
     () =>
       steps.map((step) => ({
         id: step.id,
         type: "assignmentBatchStep",
-        position: step.position,
+        position: storedLayout[step.id] ?? step.position,
         data: {
           step,
-          metric: getBatchWorkflowStepMetric(step),
+          metric:
+            step.status === "running"
+              ? "Đang xử lý…"
+              : getBatchWorkflowStepMetric(step),
           highlighted: hasActivity && step.status !== "idle",
           active: selectedStep === step.id,
+          processing: step.status === "running",
           completed: hasActivity && step.status === "success",
           phaseState: getBatchWorkflowPhaseState(step, currentPhaseId),
-          onSelect,
+          onSelect: selectNode,
         },
       })),
-    [currentPhaseId, hasActivity, onSelect, selectedStep, steps],
+    [
+      currentPhaseId,
+      hasActivity,
+      selectNode,
+      selectedStep,
+      steps,
+      storedLayout,
+    ],
   );
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+
+  useEffect(() => {
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        const step = steps.find((candidate) => candidate.id === node.id);
+        if (!step) return node;
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            step,
+            metric:
+              step.status === "running"
+                ? "Đang xử lý…"
+                : getBatchWorkflowStepMetric(step),
+            highlighted: hasActivity && step.status !== "idle",
+            active: selectedStep === step.id,
+            processing: step.status === "running",
+            completed: hasActivity && step.status === "success",
+            phaseState: getBatchWorkflowPhaseState(step, currentPhaseId),
+            onSelect: selectNode,
+          },
+        };
+      }),
+    );
+  }, [currentPhaseId, hasActivity, selectNode, selectedStep, setNodes, steps]);
 
   const edges: Edge[] = useMemo(
     () =>
@@ -122,28 +268,33 @@ export default function AssignmentBatchWorkflowCanvas({
           hasActivity &&
           sourceStep?.status === "success" &&
           targetStep?.status === "success";
-        const color = highlighted
-          ? "var(--primary-500)"
-          : warning
-            ? "var(--badge-warning-text)"
-            : "var(--text-tertiary)";
+        const processing =
+          isRunning &&
+          sourceStep?.status === "success" &&
+          targetStep?.status === "running";
+        const color =
+          processing || highlighted
+            ? "var(--primary-500)"
+            : warning
+              ? "var(--badge-warning-text)"
+              : "var(--text-tertiary)";
         return {
           ...connection,
           id: `${connection.source}-${connection.target}`,
           type: "smoothstep",
           pathOptions: { borderRadius: 16, offset: 28 },
-          animated: isRunning,
+          animated: processing && !reducedMotion,
           selectable: false,
           focusable: false,
           markerEnd: {
-            type: MarkerType.ArrowClosed,
+            type: MarkerType.Arrow,
             color,
-            width: 16,
-            height: 16,
+            width: 14,
+            height: 14,
           },
           style: {
             stroke: color,
-            strokeWidth: 1.3,
+            strokeWidth: processing ? 2 : 1.3,
             opacity: 0.9,
             strokeDasharray: warning ? "4 4" : undefined,
           },
@@ -162,7 +313,7 @@ export default function AssignmentBatchWorkflowCanvas({
           labelBgBorderRadius: 4,
         };
       }),
-    [connections, hasActivity, isRunning, steps],
+    [connections, hasActivity, isRunning, reducedMotion, steps],
   );
 
   return (
@@ -175,13 +326,20 @@ export default function AssignmentBatchWorkflowCanvas({
         nodeTypes={nodeTypes}
         onInit={(flow) => {
           instance.current = flow;
+          if (!hasFittedView.current) {
+            hasFittedView.current = true;
+            requestAnimationFrame(() =>
+              flow.fitView({ padding: 0.1, maxZoom: 1 }),
+            );
+          }
         }}
-        onNodeClick={(_, node) => onSelect(node.data.step.id)}
-        fitView
-        fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
+        onNodeClick={(_, node) => selectNode(node.data.step.id)}
+        onNodesChange={onNodesChange}
+        onNodeDrag={onNodeDrag}
+        onNodeDragStop={onNodeDragStop}
         minZoom={0.4}
         maxZoom={1.2}
-        nodesDraggable={false}
+        nodesDraggable
         nodesConnectable={false}
         nodesFocusable={false}
         edgesFocusable={false}
@@ -190,7 +348,8 @@ export default function AssignmentBatchWorkflowCanvas({
         zoomOnScroll={false}
         zoomOnDoubleClick={false}
         preventScrolling={false}
-        panOnDrag={false}
+        panOnDrag
+        nodeClickDistance={5}
         zoomOnPinch={false}
         style={canvasStyle}
       >

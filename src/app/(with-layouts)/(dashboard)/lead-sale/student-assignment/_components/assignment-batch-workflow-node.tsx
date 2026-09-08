@@ -23,6 +23,7 @@ export type AssignmentBatchFlowNode = Node<
     metric: string;
     highlighted: boolean;
     active: boolean;
+    processing: boolean;
     completed: boolean;
     phaseState: BatchWorkflowPhaseState;
     onSelect: (stepId: StepId) => void;
@@ -77,11 +78,14 @@ export default function AssignmentBatchWorkflowNode({
       <Button
         appearance="ghost"
         aria-label={`${data.step.title}. Trạng thái: ${workflowPhaseStateLabels[data.phaseState]}. ${data.metric}. Xem chi tiết bước`}
+        aria-busy={data.processing}
         onPress={() => data.onSelect(data.step.id)}
         className={cn(
-          "block h-auto min-h-[184px] w-[234px] rounded-xl border border-card-border bg-card-background p-4 text-left text-text-primary shadow-xs transition-none hover:bg-card-background hover:text-text-primary",
+          "block h-auto min-h-[184px] w-[234px] cursor-grab rounded-xl border border-card-border bg-card-background p-4 text-left text-text-primary shadow-xs transition-none active:cursor-grabbing hover:bg-card-background hover:text-text-primary",
           data.highlighted && "border-primary-400 ring-2 ring-primary-100",
           data.active && "border-primary-500 shadow-md ring-2 ring-primary-100",
+          data.processing &&
+            "border-primary-500 shadow-md ring-2 ring-primary-100",
           data.completed && !data.active && "border-badge-success-text/40",
         )}
       >
@@ -90,15 +94,17 @@ export default function AssignmentBatchWorkflowNode({
             color={workflowPhaseStateColors[data.phaseState]}
             className="text-[10px]"
           >
-            {workflowPhaseStateLabels[data.phaseState]}
+            {data.processing
+              ? "Đang xử lý"
+              : workflowPhaseStateLabels[data.phaseState]}
           </Badge>
         </div>
         <div className="flex items-center gap-2.5">
           <span
             className={cn(
               "flex size-8 shrink-0 items-center justify-center rounded-lg",
-              data.active
-                ? "animate-pulse bg-badge-primary-background text-badge-primary-text"
+              data.active || data.processing
+                ? "motion-safe:animate-pulse bg-badge-primary-background text-badge-primary-text"
                 : toneClasses[data.step.tone],
             )}
           >

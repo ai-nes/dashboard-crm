@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useLeadAssignmentBatchDetailQuery,
   useLeadAssignmentBatchListQuery,
@@ -10,7 +11,12 @@ import {
   useRetryLeadAssignmentBatchMutation,
   useRunLeadAssignmentBatchMutation,
   useRunUnassignedLeadAssignmentMutation,
+  leadAssignmentBatchKeys,
 } from "@/hooks/use-lead-assignment-batch-queries";
+import {
+  leadSaleLeadsKeys,
+  useProcessNewLeadsMutation,
+} from "@/hooks/use-lead-sale-leads-queries";
 import type {
   LeadAssignmentBatch,
   LeadAssignmentBatchItem,
@@ -19,6 +25,15 @@ import type {
   LeadAssignmentWorkflowResponse,
 } from "@/services/api/lead-sale";
 import { createContext, useContext } from "react";
+import {
+  batchWorkflowMinimumProcessingDurationMs,
+  batchWorkflowLeadProcessingStepDurationMs,
+  batchWorkflowLeadProcessingStepIds,
+  batchWorkflowProcessingStepDurationMs,
+  batchWorkflowProcessingStepIds,
+  getBatchWorkflowProcessingStartIndex,
+  getBatchWorkflowSteps,
+} from "./batch-assignment-workflow-data";
 
 interface BatchAssignmentContextValue {
   batches: LeadAssignmentBatch[];
@@ -39,6 +54,10 @@ interface BatchAssignmentContextValue {
   isPreviewing: boolean;
   isRunning: boolean;
   isRunningUnassigned: boolean;
+  isProcessingNewLeads: boolean;
+  isWorkflowProcessing: boolean;
+  processingStepIndex: number | null;
+  processNewLeads: () => Promise<void>;
   isRetrying: boolean;
   error: Error | null;
   listPagination: LeadAssignmentPagination | null;
@@ -84,7 +103,90 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
   const previewMutation = usePreviewLeadAssignmentBatchMutation();
   const runMutation = useRunLeadAssignmentBatchMutation();
   const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
+  const processNewLeadsMutation = useProcessNewLeadsMutation();
   const retryMutation = useRetryLeadAssignmentBatchMutation();
+  const isMutationRunning =
+    runMutation.isPending ||
+    runUnassignedMutation.isPending ||
+    processNewLeadsMutation.isPending;
+  const queryClient = useQueryClient();
+  const [processingStepIndex, setProcessingStepIndex] = useState<number | null>(
+    null,
+  );
+  const processingStartedAtRef = useRef<number | null>(null);
+  const processingIntervalRef = useRef<number | null>(null);
+  const processingFinishTimeoutRef = useRef<number | null>(null);
+  const workflowDataRef = useRef(workflowQuery.data);
+  const isLeadProcessingRef = useRef(processNewLeadsMutation.isPending);
+
+  useEffect(() => {
+    workflowDataRef.current = workflowQuery.data;
+  }, [workflowQuery.data]);
+
+  useEffect(() => {
+    isLeadProcessingRef.current = processNewLeadsMutation.isPending;
+  }, [processNewLeadsMutation.isPending]);
+
+  useEffect(() => {
+    if (isMutationRunning) {
+      if (processingFinishTimeoutRef.current !== null) {
+        window.clearTimeout(processingFinishTimeoutRef.current);
+        processingFinishTimeoutRef.current = null;
+      }
+      if (processingStartedAtRef.current !== null) return;
+
+      processingStartedAtRef.current = Date.now();
+      const processingStepIds = isLeadProcessingRef.current
+        ? batchWorkflowLeadProcessingStepIds
+        : batchWorkflowProcessingStepIds;
+      const startIndex = isLeadProcessingRef.current
+        ? 0
+        : getBatchWorkflowProcessingStartIndex(
+            getBatchWorkflowSteps(workflowDataRef.current ?? null),
+          );
+      const stepDuration = isLeadProcessingRef.current
+        ? batchWorkflowLeadProcessingStepDurationMs
+        : batchWorkflowProcessingStepDurationMs;
+      setProcessingStepIndex(startIndex);
+      processingIntervalRef.current = window.setInterval(() => {
+        setProcessingStepIndex((current) =>
+          current === null
+            ? startIndex
+            : Math.min(current + 1, processingStepIds.length - 1),
+        );
+      }, stepDuration);
+      return;
+    }
+
+    const startedAt = processingStartedAtRef.current;
+    if (startedAt === null) return;
+
+    const remaining = Math.max(
+      batchWorkflowMinimumProcessingDurationMs - (Date.now() - startedAt),
+      0,
+    );
+    processingFinishTimeoutRef.current = window.setTimeout(() => {
+      if (processingIntervalRef.current !== null) {
+        window.clearInterval(processingIntervalRef.current);
+        processingIntervalRef.current = null;
+      }
+      processingStartedAtRef.current = null;
+      processingFinishTimeoutRef.current = null;
+      setProcessingStepIndex(null);
+    }, remaining);
+  }, [isMutationRunning]);
+
+  useEffect(
+    () => () => {
+      if (processingIntervalRef.current !== null) {
+        window.clearInterval(processingIntervalRef.current);
+      }
+      if (processingFinishTimeoutRef.current !== null) {
+        window.clearTimeout(processingFinishTimeoutRef.current);
+      }
+    },
+    [],
+  );
   const activeBatch = useMemo(() => {
     return (
       detailQuery.data?.batch ??
@@ -172,6 +274,28 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const processNewLeads = async () => {
+    try {
+      const { summary } = await processNewLeadsMutation.mutateAsync({
+        admissionYear: new Date().getFullYear(),
+      });
+      await queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all });
+      await queryClient.invalidateQueries({
+        queryKey: leadAssignmentBatchKeys.all,
+      });
+      toast.success(`Đã xử lý ${summary.scanned} Lead`, {
+        description: `${summary.processed} Lead sẵn sàng phân công; ${summary.closed} Lead đã đóng do thiếu dữ liệu.`,
+      });
+    } catch (mutationError) {
+      toast.error("Không thể xử lý Lead", {
+        description:
+          mutationError instanceof Error
+            ? mutationError.message
+            : "Vui lòng thử lại.",
+      });
+    }
+  };
+
   const retryBatch = async (itemIds?: string[]) => {
     if (!activeBatch) return;
     try {
@@ -211,6 +335,10 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
         isPreviewing: previewMutation.isPending,
         isRunning: runMutation.isPending,
         isRunningUnassigned: runUnassignedMutation.isPending,
+        isProcessingNewLeads: processNewLeadsMutation.isPending,
+        isWorkflowProcessing: isMutationRunning || processingStepIndex !== null,
+        processingStepIndex,
+        processNewLeads,
         isRetrying: retryMutation.isPending,
         error,
         listPagination: listQuery.data?.pagination ?? null,
