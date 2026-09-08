@@ -827,7 +827,7 @@ export async function runUnassignedLeadAssignment(
     throw new LeadAssignmentBatchApiError(
       502,
       "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
-      "Phản hồi phân công tự động không hợp lệ.",
+      "Phản hồi phân công Lead không hợp lệ.",
     );
   }
 
@@ -854,7 +854,7 @@ export async function runUnassignedLeadAssignment(
     throw new LeadAssignmentBatchApiError(
       502,
       "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
-      "Phản hồi phân công tự động không hợp lệ.",
+      "Phản hồi phân công Lead không hợp lệ.",
     );
   }
 }

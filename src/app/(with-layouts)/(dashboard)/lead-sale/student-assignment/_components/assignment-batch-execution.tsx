@@ -113,7 +113,7 @@ export default function AssignmentBatchExecution() {
                   isDisabled={isRunning || isPreviewing}
                 >
                   <Play size={15} aria-hidden="true" />
-                  {isRunning ? "Đang phân công…" : "Phân công tự động"}
+                  {isRunning ? "Đang phân công…" : "Phân công Lead"}
                 </Button>
               </>
             )}

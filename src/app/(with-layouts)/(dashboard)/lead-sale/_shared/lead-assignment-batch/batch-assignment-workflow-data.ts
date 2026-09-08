@@ -19,7 +19,7 @@ const stepDefinitions: Record<
     title: "Bước 1 · Tiếp nhận Lead",
     description: "Lead đã được hệ thống nhận diện để phân công",
     detail:
-      "Hệ thống kiểm tra các Lead chưa có người phụ trách.",
+      "Hệ thống lấy các Lead đã qua bước Xử lý Lead mà chưa có người phụ trách.",
     rules: [
       "Mỗi lần chạy có kết quả riêng để theo dõi.",
       "Thông tin gốc được giữ lại để đối chiếu.",
@@ -31,7 +31,7 @@ const stepDefinitions: Record<
     title: "Bước 2 · Kiểm tra điều kiện",
     description: "CCCD · Trường THPT · Ngành · Nguồn Lead",
     detail:
-      "Hệ thống kiểm tra các trường bắt buộc trước khi cho phép phân công.",
+      "Điều kiện dữ liệu được kiểm tra ở bước Xử lý Lead; đợt phân công chỉ nhận Lead đã đạt.",
     rules: [
       "Hồ sơ thiếu trường bắt buộc được giữ lại để người dùng xử lý.",
       "Hệ thống không tự bổ sung hoặc suy đoán thông tin.",
@@ -66,7 +66,7 @@ const stepDefinitions: Record<
     title: "Ngoại lệ cần xử lý",
     description: "Cần kiểm tra · Tạm hoãn · Lỗi xử lý",
     detail:
-      "Các hồ sơ chưa thể phân công tự động được đưa vào danh sách cần kiểm tra hoặc xử lý lại.",
+      "Các hồ sơ chưa thể phân công được đưa vào danh sách cần kiểm tra hoặc xử lý lại.",
     rules: [
       "Hồ sơ cần kiểm tra phải được bổ sung hoặc xác nhận lại.",
       "Hồ sơ tạm hoãn có thể được xử lý lại khi điều kiện thay đổi.",

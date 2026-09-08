@@ -30,11 +30,11 @@ export default function AssignmentBatchHeader() {
             <span>PHÂN CÔNG LEAD</span>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[28px]">
-            Phân công tự động
+            Phân công Lead
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Hệ thống sẽ quét các Lead chưa có người phụ trách và phân công theo
-            cấu hình hiện tại.
+            Hệ thống sẽ quét các Lead đã xử lý mà chưa có người phụ trách và
+            phân công theo cấu hình hiện tại.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
