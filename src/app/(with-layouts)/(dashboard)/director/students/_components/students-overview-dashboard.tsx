@@ -27,7 +27,6 @@ import type {
   StudentStatus,
 } from "@/services/api/students/types";
 
-import StudentKpiStrip from "./student-kpi-strip";
 import StudentList, { studentListGrid } from "./student-list";
 import StudentListToolbar from "./student-list-toolbar";
 import { canTransitionStudentStatus } from "./student-status";
@@ -97,7 +96,6 @@ export default function StudentsOverviewDashboard() {
     studentStatus === "all"
       ? students
       : students.filter((student) => student.studentStage === studentStatus);
-  const summary = response?.summary;
   const meta = response?.meta;
 
   const totalCount =
@@ -237,8 +235,6 @@ export default function StudentsOverviewDashboard() {
           Chỉ hiển thị học sinh đã chuyển đổi thành công từ Lead.
         </p>
       </header>
-
-      <StudentKpiStrip summary={summary} />
 
       <StudentListToolbar
         query={query}

@@ -79,7 +79,7 @@ export default function AssignmentBatchWorkflowNode({
         aria-label={`${data.step.title}. Trạng thái: ${workflowPhaseStateLabels[data.phaseState]}. ${data.metric}. Xem chi tiết bước`}
         onPress={() => data.onSelect(data.step.id)}
         className={cn(
-          "block h-auto w-[234px] rounded-xl border border-card-border bg-card-background p-4 text-left text-text-primary shadow-xs transition-none hover:bg-card-background hover:text-text-primary",
+          "block h-auto min-h-[184px] w-[234px] rounded-xl border border-card-border bg-card-background p-4 text-left text-text-primary shadow-xs transition-none hover:bg-card-background hover:text-text-primary",
           data.highlighted && "border-primary-400 ring-2 ring-primary-100",
           data.active && "border-primary-500 shadow-md ring-2 ring-primary-100",
           data.completed && !data.active && "border-badge-success-text/40",

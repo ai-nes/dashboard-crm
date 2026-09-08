@@ -29,11 +29,13 @@ export default function LeadHeader({
   lead,
   children,
   createdAt,
+  backHref = "/lead-sale/leads",
   onDeleteRequest,
 }: {
   lead: LeadDetail;
   children?: ReactNode;
   createdAt?: string;
+  backHref?: string;
   onDeleteRequest?: () => void;
 }) {
   const subtitle = [
@@ -46,7 +48,7 @@ export default function LeadHeader({
   return (
     <header className="min-w-0 shrink-0">
       <Link
-        href="/lead-sale/leads"
+        href={backHref}
         className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-text-secondary transition hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-button-primary-focus-ring"
       >
         <ArrowLeft size={16} />

@@ -75,6 +75,29 @@ describe("dashboard RBAC", () => {
     expect(canAccessDashboardPath("/profile", [])).toBe(true);
   });
 
+  it("limits Team Management to Sales organization roles", () => {
+    expect(
+      canAccessDashboardPath("/lead-sale/team-management", ["Lead Sale"]),
+    ).toBe(true);
+    expect(canAccessDashboardPath("/lead-sale/team-management", ["Sale"])).toBe(
+      true,
+    );
+    expect(
+      canAccessDashboardPath("/lead-sale/team-management", ["CTV Sale"]),
+    ).toBe(true);
+    expect(
+      canAccessDashboardPath("/lead-sale/team-management", [
+        "Admissions Director",
+      ]),
+    ).toBe(false);
+    expect(
+      canAccessDashboardPath("/lead-sale/team-management", ["Administrator"]),
+    ).toBe(false);
+    expect(
+      canAccessDashboardPath("/lead-sale/team-management", ["System Manager"]),
+    ).toBe(true);
+  });
+
   it("returns a role-specific fallback when a route is blocked", () => {
     expect(getDefaultRouteForRoles(["Promoter"])).toBe(
       "/director/school-field-activity",
@@ -213,5 +236,57 @@ describe("dashboard RBAC", () => {
       ).toContain(school360Url);
       expect(canAccessDashboardPath(school360Url, [role])).toBe(true);
     }
+  });
+
+  it("exposes the lead list only in each sales role's workspace", () => {
+    expect(canAccessDashboardPath("/sale/leads", ["Sale"])).toBe(true);
+    expect(canAccessDashboardPath("/ctv-sale/leads", ["CTV Sale"])).toBe(
+      true,
+    );
+    expect(canAccessDashboardPath("/sale/leads", ["CTV Sale"])).toBe(false);
+    expect(canAccessDashboardPath("/ctv-sale/leads", ["Sale"])).toBe(false);
+
+    expect(
+      getNavigationUrls(
+        filterNavigationByRoles(getNavigationDataForRoles(["Sale"]), [
+          "Sale",
+        ]),
+      ),
+    ).toContain("/sale/leads");
+    expect(
+      getNavigationUrls(
+        filterNavigationByRoles(getNavigationDataForRoles(["CTV Sale"]), [
+          "CTV Sale",
+        ]),
+      ),
+    ).toContain("/ctv-sale/leads");
+  });
+
+  it("exposes the campaign list only in each sales role's workspace", () => {
+    expect(canAccessDashboardPath("/sale/campaigns", ["Sale"])).toBe(true);
+    expect(canAccessDashboardPath("/ctv-sale/campaigns", ["CTV Sale"])).toBe(
+      true,
+    );
+    expect(canAccessDashboardPath("/sale/campaigns", ["CTV Sale"])).toBe(
+      false,
+    );
+    expect(canAccessDashboardPath("/ctv-sale/campaigns", ["Sale"])).toBe(
+      false,
+    );
+
+    expect(
+      getNavigationUrls(
+        filterNavigationByRoles(getNavigationDataForRoles(["Sale"]), [
+          "Sale",
+        ]),
+      ),
+    ).toContain("/sale/campaigns");
+    expect(
+      getNavigationUrls(
+        filterNavigationByRoles(getNavigationDataForRoles(["CTV Sale"]), [
+          "CTV Sale",
+        ]),
+      ),
+    ).toContain("/ctv-sale/campaigns");
   });
 });

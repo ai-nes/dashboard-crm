@@ -143,6 +143,11 @@ export type StudentCallOutcome =
   | "no-answer"
   | "callback";
 
+export type StudentCallSummaryStatus =
+  | "COMPLETED"
+  | "PENDING"
+  | "NOT_AVAILABLE";
+
 export interface StudentCallRecord {
   id: string;
   time: string;
@@ -157,6 +162,7 @@ export interface StudentCallRecord {
   topic?: string;
   summary?: string;
   summaryAvailable?: boolean;
+  summaryStatus?: StudentCallSummaryStatus;
   transcript?: string | null;
   recordingUrl?: string;
 }

@@ -22,5 +22,9 @@ export function useLeadCallLogsQuery(
     enabled: Boolean(leadId.trim()) && options.enabled !== false,
     retry: false,
     staleTime: 30_000,
+    refetchInterval: (query) =>
+      query.state.data?.calls.some((call) => call.summaryStatus === "PENDING")
+        ? 3_000
+        : false,
   });
 }

@@ -242,17 +242,36 @@ export function LeadCallDetails({
         </div>
       ) : null}
 
+      {!call.summary && call.summaryStatus === "PENDING" && call.transcript ? (
+        <AutomaticCallAnalysisStatus />
+      ) : null}
+
       <LeadCallTranscript transcript={call.transcript} />
 
-      {!call.transcript && isSttCallUuid(call.id) ? (
-        <LeadCallTranscriptionAction callUuid={call.id} onCompleted={onCallUpdated} />
-      ) : null}
+      {!call.transcript && isSttCallUuid(call.id)
+        ? call.summaryStatus === "PENDING" ? (
+            <AutomaticCallAnalysisStatus />
+          ) : (
+            <LeadCallTranscriptionAction callUuid={call.id} onCompleted={onCallUpdated} />
+          )
+        : null}
 
       {call.transcript && !hasSummary && isSttCallUuid(call.id) ? (
         <LeadCallSummaryAction callUuid={call.id} onCompleted={onCallUpdated} />
       ) : null}
 
       <LeadCallRecording recordingUrl={call.recordingUrl} durationSeconds={call.durationSeconds} />
+    </div>
+  );
+}
+
+function AutomaticCallAnalysisStatus() {
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-card-border px-3 py-2">
+      <span className="text-sm font-medium text-text-primary">Tóm tắt cuộc gọi</span>
+      <span className="text-xs text-text-tertiary" role="status">
+        Đang chờ phân tích tự động…
+      </span>
     </div>
   );
 }
@@ -353,6 +372,34 @@ function LeadCallSummaryAction({
   const [job, setJob] = useState<SttJobStatus | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let disposed = false;
+
+    const refreshFromCurrentStatus = async () => {
+      try {
+        const next = await getSttJobStatus(callUuid);
+        if (disposed || !next?.summary_status) return;
+
+        setJob(next);
+        setError(null);
+        if (next.summary_status === "COMPLETED") onCompleted?.();
+      } catch (statusError) {
+        if (!disposed) {
+          setError(
+            statusError instanceof Error
+              ? statusError.message
+              : "Không lấy được trạng thái tóm tắt.",
+          );
+        }
+      }
+    };
+
+    void refreshFromCurrentStatus();
+    return () => {
+      disposed = true;
+    };
+  }, [callUuid, onCompleted]);
 
   useEffect(() => {
     if (!job?.summary_status || isSttSummaryTerminalStatus(job.summary_status)) return;

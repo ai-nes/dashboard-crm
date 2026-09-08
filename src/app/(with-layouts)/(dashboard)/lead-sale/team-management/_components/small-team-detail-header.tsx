@@ -1,22 +1,20 @@
-import { ChevronLeft, Plus } from "@tailgrids/icons";
+import { ChevronLeft } from "@tailgrids/icons";
 import Link from "next/link";
-import { Button } from "@/components/tailgrids/core/button";
+import type { ReactNode } from "react";
 
 import type { BigTeam, SmallTeam } from "./types";
 
 interface SmallTeamDetailHeaderProps {
   bigTeam: BigTeam;
   smallTeam: SmallTeam;
-  onCreate: () => void;
-  canManageMembers?: boolean;
+  addMemberControl: ReactNode;
   canViewGroup?: boolean;
 }
 
 export default function SmallTeamDetailHeader({
   bigTeam,
   smallTeam,
-  onCreate,
-  canManageMembers = false,
+  addMemberControl,
   canViewGroup = false,
 }: SmallTeamDetailHeaderProps) {
   return (
@@ -40,15 +38,7 @@ export default function SmallTeamDetailHeader({
             {bigTeam.provinceName ?? "Chưa chọn tỉnh"}
           </p>
         </div>
-        <Button
-          size="sm"
-          onPress={onCreate}
-          isDisabled={!canManageMembers}
-          className="shrink-0"
-        >
-          <Plus size={16} aria-hidden="true" />
-          Thêm thành viên
-        </Button>
+        {addMemberControl}
       </div>
     </header>
   );

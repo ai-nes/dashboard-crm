@@ -1,10 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
+  type PaginationState,
   useReactTable,
 } from "@tanstack/react-table";
 import {
@@ -19,6 +21,7 @@ import {
   createTeamMemberColumns,
   type UpdateMember,
 } from "./team-member-columns";
+import { Pagination } from "@/components/tailgrids/core/pagination";
 import TeamMemberToolbar from "./team-member-toolbar";
 import type { SmallTeam, TeamMember } from "./types";
 
@@ -39,6 +42,8 @@ const normalize = (value: string) =>
     .replace(/Đ/g, "D")
     .toLowerCase();
 
+const TEAM_MEMBER_PAGE_SIZE = 5;
+
 export default function TeamMemberList({
   smallTeam,
   members,
@@ -48,8 +53,14 @@ export default function TeamMemberList({
   canManageMembers,
 }: TeamMemberListProps) {
   "use no memo"; // TanStack Table exposes mutable state through its table instance.
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: TEAM_MEMBER_PAGE_SIZE,
+  });
   const table = useReactTable({
     data: members,
+    state: { pagination },
+    onPaginationChange: setPagination,
     defaultColumn: { minSize: 0 },
     columns: createTeamMemberColumns(
       smallTeam,
@@ -59,6 +70,7 @@ export default function TeamMemberList({
     ),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     getRowId: (member) => member.id,
     getColumnCanGlobalFilter: (column) =>
       column.id === "name" || column.id === "email",
@@ -68,6 +80,20 @@ export default function TeamMemberList({
       ),
   });
   const rows = table.getRowModel().rows;
+  const filteredMemberCount = table.getFilteredRowModel().rows.length;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredMemberCount / TEAM_MEMBER_PAGE_SIZE),
+  );
+  const currentPage = Math.min(pagination.pageIndex + 1, totalPages);
+  const firstVisibleMember =
+    filteredMemberCount === 0
+      ? 0
+      : (currentPage - 1) * TEAM_MEMBER_PAGE_SIZE + 1;
+  const lastVisibleMember = Math.min(
+    currentPage * TEAM_MEMBER_PAGE_SIZE,
+    filteredMemberCount,
+  );
   return (
     <TeamMemberToolbar table={table} leadPicker={leadPicker}>
       <p className="px-6 py-3 text-xs text-text-tertiary sm:hidden">
@@ -134,9 +160,25 @@ export default function TeamMemberList({
           )}
         </TableBody>
       </TableRoot>
-      <p role="status" className="px-6 py-4 text-xs text-text-secondary">
-        Hiển thị {rows.length} / {members.length} thành viên
-      </p>
+      <div className="flex flex-col gap-3 border-t border-card-border px-6 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <p
+          role="status"
+          className="shrink-0 whitespace-nowrap text-xs text-text-secondary"
+        >
+          Hiển thị {firstVisibleMember}–{lastVisibleMember} trong tổng số{" "}
+          {filteredMemberCount} thành viên
+        </p>
+        {totalPages > 1 && (
+          <div className="flex shrink-0 items-center justify-end max-sm:w-full">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(page) => table.setPageIndex(page - 1)}
+              variant="compact"
+            />
+          </div>
+        )}
+      </div>
     </TeamMemberToolbar>
   );
 }

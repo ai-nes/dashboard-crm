@@ -1,4 +1,5 @@
 import type {
+  LeadAssignmentBatchItem,
   LeadAssignmentBatchItemStatus,
   LeadAssignmentBatchStatus,
   LeadAssignmentBatchSummary,
@@ -78,4 +79,81 @@ export function formatDateTime(value: string | null | undefined): string {
 
 export function formatCount(value: number): string {
   return new Intl.NumberFormat("vi-VN").format(value);
+}
+
+const reasonLabels: Record<string, string> = {
+  // Dữ liệu Lead còn thiếu
+  MISSING_PROVINCE:
+    "Chưa có tỉnh của Lead nên hệ thống chưa xác định được Team.",
+  MISSING_CAMPUS: "Chưa có trường/campus của Lead để kiểm tra dữ liệu.",
+  NOT_PROCESSED: "Lead chưa được kiểm tra dữ liệu đầu vào.",
+
+  // Chưa tìm được Team hoặc người phụ trách
+  TEAM_NOT_FOUND_FOR_PROVINCE: "Chưa có Team đang phụ trách tỉnh của Lead.",
+  INVALID_CURRENT_OWNERSHIP:
+    "Thông tin phân công hiện tại chưa đầy đủ Team, hàng chờ hoặc campus.",
+  PROVINCE_MISMATCH: "Tỉnh của Lead không khớp với Team đang phụ trách.",
+  TEAM_PROVINCE_MISMATCH: "Team được chọn không phụ trách tỉnh của Lead.",
+  TEAM_SCOPE_MISMATCH: "Lead nằm ngoài phạm vi tỉnh của Team.",
+  NO_ELIGIBLE_RECIPIENT:
+    "Team đã xác định nhưng chưa có Sale/CTV đủ điều kiện nhận Lead.",
+  TEAM_NOT_READY: "Team chưa sẵn sàng nhận Lead.",
+  ROUTING_FAILED: "Hệ thống chưa hoàn tất được bước tìm người phụ trách.",
+
+  // Trạng thái hồ sơ
+  INVALID: "Hồ sơ không hợp lệ nên đã đóng, không tiếp tục phân công.",
+  SPAM: "Hồ sơ bị đánh dấu là rác nên đã đóng.",
+  DUPLICATE: "Hồ sơ trùng với một Lead khác nên đã đóng.",
+  FAILED: "Hồ sơ chưa qua được bước kiểm tra dữ liệu.",
+  CLOSED: "Hồ sơ đang đóng nên chưa thể phân công.",
+  PENDING: "Hồ sơ chưa có kết luận kiểm tra dữ liệu.",
+  INVALID_PROCESSING_STATUS: "Trạng thái hồ sơ chưa phù hợp để phân công.",
+
+  // Kết quả trong đợt phân công
+  ready: "Đã đủ điều kiện, sẵn sàng phân công.",
+  ASSIGNED: "Đã phân công.",
+  DEFERRED: "Đã đưa vào hàng chờ, sẽ phân công sau.",
+  ALREADY_ASSIGNED: "Lead đã có người phụ trách từ trước.",
+  ALREADY_CONVERTED: "Lead đã chuyển thành hồ sơ sinh viên.",
+  MATCHED: "Đã liên kết với hồ sơ có sẵn.",
+  CREATED: "Đã tạo hồ sơ mới từ Lead.",
+};
+
+const unknownReasonLabel =
+  "Hệ thống chưa xác định được lý do; cần kiểm tra lại cấu hình Team.";
+
+/** True for a bare internal token such as MISSING_PROVINCE or PROVINCE:HCM. */
+function isInternalCode(value: string): boolean {
+  return /^[\w:.-]+$/.test(value);
+}
+
+/**
+ * Render a stored reason as text a non-technical operator can read.
+ *
+ * The backend writes a reason as raw code as often as prose, and chains the
+ * steps of one decision with an arrow. Each step is translated when a label
+ * exists and dropped when it is an untranslated code, so no internal
+ * identifier reaches the screen.
+ */
+function humanizeReason(reason: string): string {
+  return reason
+    .split("→")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => reasonLabels[part] ?? (isInternalCode(part) ? "" : part))
+    .filter(Boolean)
+    .join(" → ");
+}
+
+export function assignmentReasonLabel(item: LeadAssignmentBatchItem): string {
+  if (item.errorCode && reasonLabels[item.errorCode]) {
+    return reasonLabels[item.errorCode];
+  }
+
+  const reason = item.reason ? humanizeReason(item.reason) : "";
+  if (reason) return reason;
+
+  if (!item.province) return reasonLabels.MISSING_PROVINCE;
+  if (!item.branch) return reasonLabels.MISSING_CAMPUS;
+  return unknownReasonLabel;
 }

@@ -20,6 +20,7 @@ export default function WithLayout({ children }: { children: ReactNode }) {
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const pathname = usePathname();
   const isChatbotPage = pathname === "/crm-chatbot";
+  const isSegmentDetailPage = /^\/(sale|lead-sale)\/next-best-action\/[^/]+\/?$/.test(pathname);
   const isTaskManagementPage = /^\/(director|lead-sale|sale|ctv-sale)\/tasks\/?$/.test(pathname);
 
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
@@ -89,7 +90,7 @@ export default function WithLayout({ children }: { children: ReactNode }) {
                   "mx-auto w-full",
                   isChatbotPage
                     ? "h-full max-w-none"
-                    : isTaskManagementPage
+                    : isTaskManagementPage || isSegmentDetailPage
                       ? "h-full max-w-384"
                       : "max-w-384 pb-5",
                 )}

@@ -6,6 +6,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import { sortByAvailableScore } from "@/services/api/market-intelligence";
 import type { DirectorMarketOverview } from "@/services/api/market-intelligence";
 import AllSchoolsInspector from "./all-schools-inspector";
+import { PRIORITY_PROVINCE_CODES } from "./data";
 import MarketMap from "./market-map";
 import ProvinceInspector from "./province-inspector";
 import type {
@@ -30,7 +31,10 @@ export default function MarketIntelligenceDashboard({
 }: Props) {
   const router = useRouter();
   const provinces = useMemo(
-    () => (overview?.provinces ?? []) as ProvinceMetrics[],
+    () =>
+      (overview?.provinces ?? []).filter((province) =>
+        PRIORITY_PROVINCE_CODES.has(province.code),
+      ) as ProvinceMetrics[],
     [overview],
   );
   const [documents, setDocuments] = useState<ProvinceGeometryDocument[]>([]);
@@ -63,11 +67,13 @@ export default function MarketIntelligenceDashboard({
   const geoData = useMemo<ProvinceFeatureCollection>(
     () => ({
       type: "FeatureCollection",
-      features: documents.map((document) => ({
-        type: "Feature",
-        properties: { code: document.Code, name: document.Name },
-        geometry: document.GIS.Geometry,
-      })),
+      features: documents
+        .filter((document) => PRIORITY_PROVINCE_CODES.has(document.Code))
+        .map((document) => ({
+          type: "Feature",
+          properties: { code: document.Code, name: document.Name },
+          geometry: document.GIS.Geometry,
+        })),
     }),
     [documents],
   );
@@ -196,7 +202,7 @@ export default function MarketIntelligenceDashboard({
           schoolFilters={schoolFilters}
           selectedCode={selectedCode}
           selectedSchoolId={visibleSelectedSchoolId}
-          totalProvinces={overview?.totalProvinces ?? documents.length}
+          totalProvinces={provinces.length}
         />
         {region === "all" && !selectedCode ? (
           <AllSchoolsInspector

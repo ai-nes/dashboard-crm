@@ -14,7 +14,7 @@ import { Card } from "@/components/tailgrids/core/card";
 
 import EditableTeamTitle from "./editable-team-title";
 import TeamCardActions from "./team-card-actions";
-import LeadPickerField from "./lead-picker-field";
+import EditableLeadPickerField from "./editable-lead-picker-field";
 import type { SmallTeam, TeamMember } from "./types";
 
 const MAX_AVATARS = 4;
@@ -51,26 +51,28 @@ export default function SmallTeamCard({
               onSave={onEdit}
               isDisabled={!canManageTeam}
             />
-            <Badge
-              size="sm"
-              color="gray"
-              prefixIcon={<UserMultiple1 size={12} aria-hidden="true" />}
-              className="mt-2"
-            >
-              {members.length} thành viên
-            </Badge>
-            {smallTeam.readiness && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <Badge
                 size="sm"
-                color={smallTeam.readiness === "ready" ? "success" : "warning"}
-                className="mt-2 ml-1"
-                title={smallTeam.readinessReason}
+                color="gray"
+                prefixIcon={<UserMultiple1 size={12} aria-hidden="true" />}
               >
-                {smallTeam.readiness === "ready"
-                  ? "Sẵn sàng nhận Lead"
-                  : "Chưa sẵn sàng"}
+                {members.length} thành viên
               </Badge>
-            )}
+              {smallTeam.readiness && (
+                <Badge
+                  size="sm"
+                  color={
+                    smallTeam.readiness === "ready" ? "success" : "warning"
+                  }
+                  title={smallTeam.readinessReason}
+                >
+                  {smallTeam.readiness === "ready"
+                    ? "Sẵn sàng nhận Lead"
+                    : "Chưa sẵn sàng"}
+                </Badge>
+              )}
+            </div>
           </div>
           <TeamCardActions
             name={smallTeam.name}
@@ -99,23 +101,17 @@ export default function SmallTeamCard({
           )}
         </div>
 
-        <div className="rounded-xl bg-background-gray-secondary/60 p-3.5">
-          <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-text-secondary">
-              Trưởng nhóm
-            </span>
-            <LeadPickerField
-              candidates={members}
-              value={smallTeam.leadId}
-              onChange={onLeadChange}
-              isDisabled={!canManageTeam}
-              ariaLabel={`Trưởng nhóm ${smallTeam.name}`}
-              placeholder={
-                members.length === 0 ? "Chưa có thành viên" : "Chọn trưởng nhóm"
-              }
-              className="w-full"
-            />
-          </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-text-secondary">
+            Trưởng nhóm
+          </span>
+          <EditableLeadPickerField
+            candidates={members}
+            value={smallTeam.leadId}
+            onChange={onLeadChange}
+            isDisabled={!canManageTeam}
+            ariaLabel={`Trưởng nhóm ${smallTeam.name}`}
+          />
         </div>
 
         <Link

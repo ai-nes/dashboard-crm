@@ -38,6 +38,7 @@ interface ContactForm {
   email: string;
   other_email: string;
   province: string;
+  ward: string;
   high_school: string;
 }
 
@@ -91,6 +92,15 @@ export default function LeadDetailsTab({
     { doctype: "CRM Lead", fieldname: "province" },
     editingSection === "contact",
   );
+  const wardOptionsQuery = useStudentSchoolFieldOptions(
+    {
+      doctype: "CRM Lead",
+      fieldname: "ward",
+      limit: 100,
+      province: contactForm.province || undefined,
+    },
+    editingSection === "contact" && Boolean(contactForm.province),
+  );
   const sourceOptionsQuery = useStudentSchoolFieldOptions(
     { doctype: "CRM Lead", fieldname: "source" },
     editingSection === "source",
@@ -115,6 +125,10 @@ export default function LeadDetailsTab({
   const provinceOptions = toEditableOptions(
     provinceOptionsQuery.data?.options,
     contactForm.province,
+  );
+  const wardOptions = toEditableOptions(
+    wardOptionsQuery.data?.options,
+    contactForm.ward,
   );
   const sourceOptions = toEditableOptions(
     sourceOptionsQuery.data?.options,
@@ -197,6 +211,9 @@ export default function LeadDetailsTab({
     }
     if (contactForm.province !== initial.province) {
       fields.province = nullable(contactForm.province);
+    }
+    if (contactForm.ward !== initial.ward) {
+      fields.ward = nullable(contactForm.ward);
     }
     if (contactForm.high_school !== initial.high_school) {
       fields.high_school = nullable(contactForm.high_school);
@@ -310,16 +327,33 @@ export default function LeadDetailsTab({
             isDisabled={
               provinceOptionsQuery.isLoading || provinceOptions.length === 0
             }
+            dropdownClassName="!max-h-64"
+            optionsPageSize={10}
+            searchable
+            searchPlaceholder="Tìm tỉnh / thành phố..."
             label="Tỉnh / Thành phố"
             onChange={(value) =>
               setContactForm((form) => ({
                 ...form,
                 province: value,
+                ward: "",
                 high_school: "",
               }))
             }
             options={provinceOptions}
             value={contactEditing ? contactForm.province : lead.province}
+          />
+          <EditableDetailField
+            isEditing={contactEditing}
+            isDisabled={
+              wardOptionsQuery.isLoading || wardOptions.length === 0
+            }
+            label="Xã / phường"
+            onChange={(value) =>
+              setContactForm((form) => ({ ...form, ward: value }))
+            }
+            options={wardOptions}
+            value={contactEditing ? contactForm.ward : lead.ward}
           />
           <div className="min-w-0 sm:col-span-2">
             <dt className="text-xs leading-5 text-text-tertiary">
@@ -330,6 +364,7 @@ export default function LeadDetailsTab({
                 ariaLabel="Chọn trường THPT của Lead"
                 isDisabled={!contactForm.province}
                 province={contactForm.province}
+                ward={contactForm.ward}
                 requiresWard={false}
                 value={contactForm.high_school}
                 onChange={(value) =>
@@ -540,6 +575,7 @@ function getContactForm(lead: LeadDetail): ContactForm {
     email: lead.email || "",
     other_email: lead.secondaryEmail || "",
     province: lead.province || "",
+    ward: lead.ward || "",
     high_school: lead.school || "",
   };
 }

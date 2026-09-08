@@ -5,6 +5,20 @@ import type {
   RegionKey,
 } from "./types";
 
+export const PRIORITY_PROVINCES = [
+  { code: "56", label: "Khánh Hoà" },
+  { code: "66", label: "Đắk Lắk" },
+  { code: "68", label: "Lâm Đồng" },
+  { code: "79", label: "TP. Hồ Chí Minh" },
+  { code: "75", label: "Đồng Nai" },
+  { code: "82", label: "Đồng Tháp" },
+  { code: "80", label: "Tây Ninh" },
+] as const;
+
+export const PRIORITY_PROVINCE_CODES: ReadonlySet<string> = new Set(
+  PRIORITY_PROVINCES.map(({ code }) => code),
+);
+
 export const REGION_CONFIGS: Record<RegionKey, RegionConfig> = {
   all: {
     key: "all",

@@ -14,6 +14,9 @@ import { Input } from "@/components/tailgrids/core/input";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
 import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
 
+import LeadPickerField from "./lead-picker-field";
+import type { TeamMember } from "./types";
+
 interface CreateTeamDialogProps {
   initialName?: string;
   title: string;
@@ -25,8 +28,17 @@ interface CreateTeamDialogProps {
   initialCampusId?: string;
   provinceOptions?: { id: string; label: string }[];
   initialProvinceId?: string;
+  groupLeadOptions?: TeamMember[];
+  teamLeadOptions?: TeamMember[];
+  initialTeamLeadId?: string;
   onClose: () => void;
-  onSubmit: (name: string, campusId?: string, provinceId?: string) => void;
+  onSubmit: (
+    name: string,
+    campusId?: string,
+    provinceId?: string,
+    teamLeadId?: string,
+    groupLeadId?: string,
+  ) => void;
 }
 
 export default function CreateTeamDialog({
@@ -40,6 +52,9 @@ export default function CreateTeamDialog({
   initialCampusId,
   provinceOptions = [],
   initialProvinceId,
+  groupLeadOptions,
+  teamLeadOptions,
+  initialTeamLeadId,
   onClose,
   onSubmit,
 }: CreateTeamDialogProps) {
@@ -49,6 +64,10 @@ export default function CreateTeamDialog({
   );
   const [provinceId, setProvinceId] = useState<string | null>(
     initialProvinceId ?? null,
+  );
+  const [groupLeadId, setGroupLeadId] = useState<string | null>(null);
+  const [teamLeadId, setTeamLeadId] = useState<string | null>(
+    initialTeamLeadId ?? null,
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +85,13 @@ export default function CreateTeamDialog({
       setError("Vui lòng chọn tỉnh quản lý.");
       return;
     }
-    onSubmit(name.trim(), campusId ?? undefined, provinceId ?? undefined);
+    onSubmit(
+      name.trim(),
+      campusId ?? undefined,
+      provinceId ?? undefined,
+      teamLeadId ?? undefined,
+      groupLeadId ?? undefined,
+    );
   };
 
   return (
@@ -139,6 +164,44 @@ export default function CreateTeamDialog({
                     </ComboboxItem>
                   ))}
                 </Combobox>
+              </label>
+            )}
+            {groupLeadOptions && (
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-input-label-text">
+                  Trưởng Group
+                </span>
+                <LeadPickerField
+                  candidates={groupLeadOptions}
+                  value={groupLeadId}
+                  onChange={setGroupLeadId}
+                  ariaLabel="Chọn trưởng Group"
+                  placeholder={
+                    groupLeadOptions.length > 0
+                      ? "Chọn trưởng Group..."
+                      : "Chưa có nhân sự để chọn"
+                  }
+                  isDisabled={groupLeadOptions.length === 0}
+                />
+              </label>
+            )}
+            {teamLeadOptions && (
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-input-label-text">
+                  Trưởng nhóm
+                </span>
+                <LeadPickerField
+                  candidates={teamLeadOptions}
+                  value={teamLeadId}
+                  onChange={setTeamLeadId}
+                  ariaLabel="Chọn trưởng nhóm"
+                  placeholder={
+                    teamLeadOptions.length > 0
+                      ? "Chọn trưởng nhóm..."
+                      : "Chưa có thành viên để chọn"
+                  }
+                  isDisabled={teamLeadOptions.length === 0}
+                />
               </label>
             )}
             {error && <p className="text-xs text-badge-error-text">{error}</p>}

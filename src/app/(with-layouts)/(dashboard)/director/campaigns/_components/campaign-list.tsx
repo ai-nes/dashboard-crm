@@ -13,6 +13,7 @@ import { formatDate } from "@/utils/format-date";
 
 import CampaignChannelCell from "./campaign-channel-cell";
 import { campaignColumns } from "./campaign-columns";
+import { getCampaignDetailPath } from "./campaign-routes";
 import type { ChannelTypeOption, ChannelTypeValue } from "./channel-types";
 import { campaignModeColor, campaignModeLabel, campaignStatusColor, campaignStatusLabel } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
@@ -26,9 +27,10 @@ interface CampaignListPagination {
 
 interface CampaignListProps {
   campaigns: CampaignListItem[];
+  detailListPath: string;
   channelTypes: readonly ChannelTypeOption[];
-  onStatusChange: (id: string, status: CampaignStatus) => void;
-  onModeChange: (id: string, mode: CampaignMode) => void;
+  onStatusChange: (id: string, status: CampaignStatus) => void | Promise<void>;
+  onModeChange: (id: string, mode: CampaignMode) => void | Promise<void>;
   onChannelSave: (id: string, channelType: ChannelTypeValue | "", channelUrl: string) => void | Promise<void>;
   onEdit: (campaign: CampaignListItem) => void;
   onDelete: (campaign: CampaignListItem) => void;
@@ -39,6 +41,7 @@ interface CampaignListProps {
 
 export default function CampaignList({
   campaigns,
+  detailListPath,
   channelTypes,
   onStatusChange,
   onModeChange,
@@ -51,7 +54,15 @@ export default function CampaignList({
 }: CampaignListProps) {
   const table = useReactTable({
     data: campaigns,
-    columns: campaignColumns({ channelTypes, onStatusChange, onModeChange, onChannelSave, onEdit, onDelete }),
+    columns: campaignColumns({
+      detailListPath,
+      channelTypes,
+      onStatusChange,
+      onModeChange,
+      onChannelSave,
+      onEdit,
+      onDelete,
+    }),
     getCoreRowModel: getCoreRowModel(),
     getRowId: (campaign) => campaign.id,
   });
@@ -108,7 +119,7 @@ export default function CampaignList({
                 <Badge color={campaignStatusColor[campaign.status]}>{campaignStatusLabel[campaign.status]}</Badge>
               </div>
               <Link
-                href={`/lead-sale/campaigns/${campaign.code}`}
+                href={getCampaignDetailPath(detailListPath, campaign.code)}
                 className="mt-1.5 block text-sm font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
               >
                 {campaign.name}

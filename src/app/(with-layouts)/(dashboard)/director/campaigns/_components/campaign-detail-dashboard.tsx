@@ -1,12 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-
-import type {
-  LeadResultStatus,
-  LeadStageStatus,
-} from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
 import { Card } from "@/components/tailgrids/core/card";
+import { useAuth } from "@/components/common/auth/auth-provider";
 import {
   useLeadSaleCampaignChannelTypesQuery,
   useLeadSaleCampaignQuery,
@@ -18,17 +14,23 @@ import CampaignDetailLeadList, {
   campaignLeadListGrid,
 } from "./campaign-detail-lead-list";
 import {
+  countCampaignLeadsByStatus,
+  filterCampaignLeads,
   toCampaignLeadRow,
-  type CampaignLeadRow,
+  type CampaignLeadStatusFilter,
 } from "./campaign-detail-leads";
+import CampaignDetailLeadToolbar from "./campaign-detail-lead-toolbar";
 import CampaignDetailStats from "./campaign-detail-stats";
 import { toCampaignListItem } from "./campaign-mappers";
+import { getCampaignListPath } from "./campaign-routes";
 
 export default function CampaignDetailDashboard({
   campaignCode,
 }: {
   campaignCode: string;
 }) {
+  const { user } = useAuth();
+  const campaignListPath = getCampaignListPath(user?.roles);
   const campaignQuery = useLeadSaleCampaignQuery(campaignCode);
   const { data: channelTypeData } = useLeadSaleCampaignChannelTypesQuery();
   const campaign = useMemo(
@@ -43,27 +45,16 @@ export default function CampaignDetailDashboard({
     () => (leadsQuery.data?.data ?? []).map(toCampaignLeadRow),
     [leadsQuery.data],
   );
-  const [leadOverrides, setLeadOverrides] = useState<
-    Record<string, Partial<CampaignLeadRow>>
-  >({});
-  const leads = useMemo(
-    () => fetchedLeads.map((lead) => ({ ...lead, ...leadOverrides[lead.id] })),
-    [fetchedLeads, leadOverrides],
+  const [leadQuery, setLeadQuery] = useState("");
+  const [leadStatus, setLeadStatus] = useState<CampaignLeadStatusFilter>("all");
+  const filteredLeads = useMemo(
+    () => filterCampaignLeads(fetchedLeads, leadQuery, leadStatus),
+    [fetchedLeads, leadQuery, leadStatus],
   );
-
-  const handleStatusChange = (id: string, status: LeadStageStatus) => {
-    setLeadOverrides((current) => ({
-      ...current,
-      [id]: { ...current[id], status, processingStatus: status },
-    }));
-  };
-
-  const handleResultChange = (id: string, result: LeadResultStatus) => {
-    setLeadOverrides((current) => ({
-      ...current,
-      [id]: { ...current[id], result },
-    }));
-  };
+  const leadStatusCounts = useMemo(
+    () => countCampaignLeadsByStatus(fetchedLeads),
+    [fetchedLeads],
+  );
 
   if (campaignQuery.isPending) {
     return (
@@ -107,21 +98,25 @@ export default function CampaignDetailDashboard({
       className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6"
     >
       <CampaignDetailHeader
+        backHref={campaignListPath}
         campaign={campaign}
         channelTypes={channelTypeData?.channelTypes ?? []}
       />
 
-      <CampaignDetailStats leads={leads} stats={leadsQuery.data?.meta.stats} />
+      <CampaignDetailStats
+        leads={fetchedLeads}
+        stats={leadsQuery.data?.meta.stats}
+      />
+
+      <CampaignDetailLeadToolbar
+        query={leadQuery}
+        status={leadStatus}
+        counts={leadStatusCounts}
+        onQueryChange={setLeadQuery}
+        onStatusChange={setLeadStatus}
+      />
 
       <Card className="overflow-hidden p-0">
-        <div className="border-b border-card-border px-4 py-3.5 sm:px-5">
-          <h2 className="text-sm font-semibold text-text-primary">
-            Danh sách lead theo chiến dịch
-          </h2>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Danh sách lead được tải từ CRM.
-          </p>
-        </div>
         {leadsQuery.isPending ? (
           <div className="px-5 py-14 text-center text-sm text-text-tertiary">
             Đang tải danh sách lead...
@@ -147,9 +142,8 @@ export default function CampaignDetailDashboard({
                 <span>Ngày tạo</span>
               </div>
               <CampaignDetailLeadList
-                leads={leads}
-                onStatusChange={handleStatusChange}
-                onResultChange={handleResultChange}
+                leads={filteredLeads}
+                isFiltered={Boolean(leadQuery.trim()) || leadStatus !== "all"}
               />
             </div>
           </div>
