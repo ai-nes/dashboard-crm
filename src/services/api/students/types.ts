@@ -18,6 +18,22 @@ export type StudentStatus = StudentStage;
 
 export type StudentAssignmentStatus = "assigned" | "unassigned";
 
+export type LeadProcessingStatus =
+  | "NEW"
+  | "PROCESSING"
+  | "PROCESSED"
+  | "ASSIGNED"
+  | "CLOSED";
+
+export type LeadResolution =
+  | "PENDING"
+  | "MATCHED"
+  | "CREATED"
+  | "DUPLICATE"
+  | "INVALID"
+  | "SPAM"
+  | "FAILED";
+
 export type StudentLifecycleStatus =
   | "Lead"
   | "MQL"
@@ -193,7 +209,11 @@ export interface StudentListItem {
   major: string;
   stage: StudentJourneyStage;
   /** Contact-stage enum used by the editable status control. */
-  studentStage?: StudentStage | null;
+  studentStage?: StudentStatus | null;
+  processingStatus?: LeadProcessingStatus | null;
+  resolution?: LeadResolution | null;
+  sourceLead?: string | null;
+  recordType?: "student";
   assignmentStatus?: StudentAssignmentStatus;
   lifecycleStatus?: StudentLifecycleStatus | null;
   score: number;

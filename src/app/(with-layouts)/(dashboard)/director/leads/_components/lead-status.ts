@@ -57,7 +57,7 @@ export type LeadResultFilter = LeadResolutionFilter;
 
 export const leadResultLabel: Record<LeadResultStatus, string> = {
   MATCHED: "Đã liên kết",
-  CREATED: "Đã tạo mới",
+  CREATED: "Sẽ tạo khi chuyển đổi",
   DUPLICATE: "Trùng lặp",
   INVALID: "Không hợp lệ",
   SPAM: "Spam",
