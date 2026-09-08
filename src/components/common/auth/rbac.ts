@@ -143,8 +143,6 @@ const TEAM_MANAGEMENT_ROLES = [
   "Sale",
   "CTV Sale",
   "Lead Sale",
-  "Admissions Director",
-  "Administrator",
   "System Manager",
 ] as const satisfies readonly DashboardRole[];
 

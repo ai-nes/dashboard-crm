@@ -57,12 +57,13 @@ export default function LeadWorkflowSection({
                 onChange={(value) =>
                   onStatusChange(String(value) as LeadStageStatus)
                 }
-                aria-label={`Đổi trạng thái lead ${leadName}`}
+                aria-label={`Trạng thái lead ${leadName}`}
                 className="w-fit min-w-32"
-                isDisabled={isUpdating}
+                isDisabled
               >
                 <SelectTrigger
                   size="sm"
+                  isDisabled
                   className={`w-full ${leadStageTriggerClass[status]}`}
                 >
                   <SelectValue />

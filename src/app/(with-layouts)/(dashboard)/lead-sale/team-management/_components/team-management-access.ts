@@ -3,11 +3,7 @@ import type { TeamManagementWorkspace } from "@/services/api/lead-sale/team-mana
 
 import type { TeamManagementPermissions } from "./types";
 
-const GLOBAL_ROLES = new Set([
-  "Administrator",
-  "System Manager",
-  "Admissions Director",
-]);
+const FULL_ACCESS_ROLES = new Set(["Lead Sale", "System Manager"]);
 
 function currentStaffIds(
   user: CurrentUser | null,
@@ -36,31 +32,41 @@ export function getTeamManagementPermissions(
   user: CurrentUser | null,
   workspace: TeamManagementWorkspace,
 ): TeamManagementPermissions {
+  const isCtvSale = Boolean(
+    user?.roles.includes("CTV Sale") || user?.crm_profile === "ctv_sale",
+  );
   const isGlobal = Boolean(
-    user?.roles.some((role) => GLOBAL_ROLES.has(role)) ||
-    user?.crm_profile === "admissions_director" ||
-    user?.crm_profile === "ceo",
+    !isCtvSale &&
+    (user?.roles.some((role) => FULL_ACCESS_ROLES.has(role)) ||
+      user?.crm_profile === "lead_sales" ||
+      user?.crm_profile === "system_manager"),
   );
   const staffIds = currentStaffIds(user, workspace);
   const sessionMemberships = user?.crm_team_memberships ?? [];
 
   const groupLeadGroupIds = new Set(
-    workspace.groups
-      .filter((group) => staffIds.has(group.groupLeadId ?? ""))
-      .map((group) => group.id),
+    isCtvSale
+      ? []
+      : workspace.groups
+          .filter((group) => staffIds.has(group.groupLeadId ?? ""))
+          .map((group) => group.id),
   );
 
   const teamLeadTeamIds = new Set(
-    sessionMemberships
-      .filter(
-        (membership) =>
-          membership.is_team_lead || membership.team_role === "team_lead",
-      )
-      .map((membership) => membership.team_id),
+    isCtvSale
+      ? []
+      : sessionMemberships
+          .filter(
+            (membership) =>
+              membership.is_team_lead || membership.team_role === "team_lead",
+          )
+          .map((membership) => membership.team_id),
   );
-  workspace.teams.forEach((team) => {
-    if (staffIds.has(team.leadId ?? "")) teamLeadTeamIds.add(team.id);
-  });
+  if (!isCtvSale) {
+    workspace.teams.forEach((team) => {
+      if (staffIds.has(team.leadId ?? "")) teamLeadTeamIds.add(team.id);
+    });
+  }
 
   const memberTeamIds = new Set(
     sessionMemberships.map((membership) => membership.team_id),

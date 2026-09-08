@@ -1,14 +1,16 @@
 import type {
-  LeadProcessStatus,
   LeadResolution,
   LeadResolutionFilter,
 } from "@/services/api/lead-sale";
 
-export type LeadStageStatus = LeadProcessStatus;
+export type LeadStageStatus =
+  | "NEW"
+  | "PROCESSED"
+  | "ASSIGNED"
+  | "CLOSED";
 
 export const leadStageStatusLabel: Record<LeadStageStatus, string> = {
   NEW: "Mới",
-  PROCESSING: "Đang xử lý",
   PROCESSED: "Đã xử lý",
   ASSIGNED: "Đã phân công",
   CLOSED: "Đã đóng",
@@ -19,7 +21,6 @@ export const leadStageStatusColor: Record<
   "gray" | "sky" | "warning" | "success"
 > = {
   NEW: "gray",
-  PROCESSING: "sky",
   PROCESSED: "sky",
   ASSIGNED: "warning",
   CLOSED: "success",
@@ -27,7 +28,6 @@ export const leadStageStatusColor: Record<
 
 export const leadStageStatusOptions: LeadStageStatus[] = [
   "NEW",
-  "PROCESSING",
   "PROCESSED",
   "ASSIGNED",
   "CLOSED",
@@ -35,7 +35,6 @@ export const leadStageStatusOptions: LeadStageStatus[] = [
 
 export const leadStageTriggerClass: Record<LeadStageStatus, string> = {
   NEW: "border-transparent bg-badge-gray-background text-badge-gray-text",
-  PROCESSING: "border-transparent bg-badge-sky-background text-badge-sky-text",
   PROCESSED: "border-transparent bg-badge-sky-background text-badge-sky-text",
   ASSIGNED:
     "border-transparent bg-badge-warning-background text-badge-warning-text",

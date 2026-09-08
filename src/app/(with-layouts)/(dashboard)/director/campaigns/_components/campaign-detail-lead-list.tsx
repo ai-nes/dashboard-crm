@@ -87,10 +87,15 @@ export default function CampaignDetailLeadList({
                 <Select
                   value={lead.status}
                   onChange={(value) => onStatusChange(lead.id, String(value) as LeadStageStatus)}
-                  aria-label={`Đổi trạng thái lead ${lead.name}`}
+                  aria-label={`Trạng thái lead ${lead.name}`}
+                  isDisabled
                   className="w-fit min-w-32"
                 >
-                  <SelectTrigger size="sm" className={`w-full ${leadStageTriggerClass[lead.status]}`}>
+                  <SelectTrigger
+                    size="sm"
+                    isDisabled
+                    className={`w-full ${leadStageTriggerClass[lead.status]}`}
+                  >
                     <SelectValue />
                     <SelectIndicator />
                   </SelectTrigger>

@@ -1,10 +1,12 @@
 "use client";
 
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
-import { Bolt1 } from "@tailgrids/icons";
+import { Bolt1, Plus } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
@@ -16,29 +18,37 @@ import {
 import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-queries";
 import {
   leadSaleLeadsKeys,
+  useCreateLeadMutation,
   useLeadSaleLeadsQuery,
-  useUpdateLeadProcessingStatusMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
-import type { LeadListItem, LeadListParams } from "@/services/api/lead-sale";
+import type {
+  LeadCreateFields,
+  LeadListItem,
+  LeadListParams,
+} from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
 import {
   type LeadResultFilter,
-  leadStageStatusLabel,
-  normalizeLeadStageStatus,
   type LeadResultStatus,
   type LeadStageStatus,
 } from "./lead-status";
+import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 
 const pageSize = 10;
 type LeadControlDraft = Partial<
-  Pick<LeadListItem, "status" | "statusCode" | "result">
+  Pick<LeadListItem, "result">
 >;
 
 export default function LeadsOverviewDashboard() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const permissions = getCrmPermissions(user?.roles);
+  const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
   const queryClient = useQueryClient();
   const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
+  const createMutation = useCreateLeadMutation();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStageStatus | "all">("all");
   const [resolution, setResolution] = useState<LeadResultFilter | "all">(
@@ -49,7 +59,6 @@ export default function LeadsOverviewDashboard() {
   const [controlDrafts, setControlDrafts] = useState<
     Record<string, LeadControlDraft>
   >({});
-  const statusMutation = useUpdateLeadProcessingStatusMutation();
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -85,57 +94,6 @@ export default function LeadsOverviewDashboard() {
   );
   const currentPage = Math.min(page, totalPages);
 
-  const handleLeadStatusChange = (id: string, nextStatus: LeadStageStatus) => {
-    const currentLead = leads.find((lead) => lead.id === id);
-    const previousStatus = currentLead
-      ? currentLead.statusCode ?? currentLead.processingStatus ?? currentLead.status
-      : null;
-    const normalizedPreviousStatus = normalizeLeadStageStatus(previousStatus);
-
-    setControlDrafts((previous) => ({
-      ...previous,
-      [id]: {
-        ...previous[id],
-        status: leadStageStatusLabel[nextStatus],
-        statusCode: nextStatus,
-      },
-    }));
-
-    statusMutation.mutate(
-      { lead: id, status: nextStatus },
-      {
-        onSuccess: (response) => {
-          toast.success(`Đã cập nhật trạng thái Lead: ${response.status}.`);
-        },
-        onError: (statusError) => {
-          setControlDrafts((previous) => {
-            const draft = previous[id];
-            if (!draft) return previous;
-            if (normalizedPreviousStatus) {
-              return {
-                ...previous,
-                [id]: {
-                  ...draft,
-                  status: leadStageStatusLabel[normalizedPreviousStatus],
-                  statusCode: normalizedPreviousStatus,
-                },
-              };
-            }
-            const restoredDraft = { ...draft };
-            delete restoredDraft.status;
-            delete restoredDraft.statusCode;
-            return { ...previous, [id]: restoredDraft };
-          });
-          toast.error(
-            statusError instanceof Error
-              ? statusError.message
-              : "Chưa thể cập nhật trạng thái Lead.",
-          );
-        },
-      },
-    );
-  };
-
   const handleLeadResultChange = (id: string, result: LeadResultStatus) => {
     setControlDrafts((previous) => ({
       ...previous,
@@ -169,6 +127,13 @@ export default function LeadsOverviewDashboard() {
     setResolution("all");
     setCampaign("");
     setPage(1);
+  };
+
+  const handleCreateLead = async (fields: LeadCreateFields) => {
+    await createMutation.mutateAsync(fields);
+    setCreateDialogOpen(false);
+    setPage(1);
+    toast.success("Đã tạo Lead.");
   };
 
   const runAutomaticAssignment = async () => {
@@ -232,6 +197,17 @@ export default function LeadsOverviewDashboard() {
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 max-sm:w-full">
+          {canCreateLead && (
+            <Button
+              className="shrink-0 max-sm:w-full"
+              onPress={() => setCreateDialogOpen(true)}
+              size="md"
+              aria-label="Tạo Lead nhanh"
+            >
+              <Plus size={18} aria-hidden="true" />
+              Tạo Lead nhanh
+            </Button>
+          )}
           <Button
             size="md"
             variant="primary"
@@ -290,8 +266,6 @@ export default function LeadsOverviewDashboard() {
             ) : (
               <LeadList
                 leads={displayedLeads}
-                isStatusUpdating={statusMutation.isPending}
-                onStatusChange={handleLeadStatusChange}
                 onResultChange={handleLeadResultChange}
               />
             )}
@@ -334,6 +308,14 @@ export default function LeadsOverviewDashboard() {
         )}
       </Card>
 
+      {canCreateLead && (
+        <QuickCreateLeadDialog
+          isOpen={createDialogOpen}
+          isSubmitting={createMutation.isPending}
+          onOpenChange={setCreateDialogOpen}
+          onCreate={handleCreateLead}
+        />
+      )}
     </main>
   );
 }

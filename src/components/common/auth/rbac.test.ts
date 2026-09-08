@@ -75,6 +75,29 @@ describe("dashboard RBAC", () => {
     expect(canAccessDashboardPath("/profile", [])).toBe(true);
   });
 
+  it("limits Team Management to Sales organization roles", () => {
+    expect(
+      canAccessDashboardPath("/lead-sale/team-management", ["Lead Sale"]),
+    ).toBe(true);
+    expect(canAccessDashboardPath("/lead-sale/team-management", ["Sale"])).toBe(
+      true,
+    );
+    expect(
+      canAccessDashboardPath("/lead-sale/team-management", ["CTV Sale"]),
+    ).toBe(true);
+    expect(
+      canAccessDashboardPath("/lead-sale/team-management", [
+        "Admissions Director",
+      ]),
+    ).toBe(false);
+    expect(
+      canAccessDashboardPath("/lead-sale/team-management", ["Administrator"]),
+    ).toBe(false);
+    expect(
+      canAccessDashboardPath("/lead-sale/team-management", ["System Manager"]),
+    ).toBe(true);
+  });
+
   it("returns a role-specific fallback when a route is blocked", () => {
     expect(getDefaultRouteForRoles(["Promoter"])).toBe(
       "/director/school-field-activity",

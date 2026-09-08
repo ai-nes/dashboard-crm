@@ -10,7 +10,6 @@ import {
   leadStageTriggerClass,
   normalizeLeadStageStatus,
   type LeadResultStatus,
-  type LeadStageStatus,
 } from "./lead-status";
 import { leadTableGrid } from "./lead-table-grid";
 import type { LeadListItem } from "./types";
@@ -31,15 +30,11 @@ export function getLeadDetailHref(leadId: string) {
 
 interface LeadListProps {
   leads: LeadListItem[];
-  isStatusUpdating?: boolean;
-  onStatusChange: (id: string, status: LeadStageStatus) => void;
   onResultChange: (id: string, result: LeadResultStatus) => void;
 }
 
 export default function LeadList({
   leads,
-  isStatusUpdating = false,
-  onStatusChange,
   onResultChange,
 }: LeadListProps) {
   if (leads.length === 0) {
@@ -109,12 +104,15 @@ export default function LeadList({
                 {status ? (
                   <Select
                     value={status}
-                    onChange={(value) => onStatusChange(lead.id, String(value) as LeadStageStatus)}
-                    aria-label={`Đổi trạng thái lead ${lead.name}`}
-                    isDisabled={isStatusUpdating}
+                    aria-label={`Trạng thái lead ${lead.name}`}
+                    isDisabled
                     className="w-fit min-w-32"
                   >
-                    <SelectTrigger size="sm" className={`w-full ${leadStageTriggerClass[status]}`}>
+                    <SelectTrigger
+                      size="sm"
+                      isDisabled
+                      className={`w-full ${leadStageTriggerClass[status]}`}
+                    >
                       <SelectValue />
                       <SelectIndicator />
                     </SelectTrigger>
