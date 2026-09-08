@@ -104,6 +104,10 @@ export interface LeadListParams {
 export interface LeadListMeta {
   total: number;
   totalAll: number;
+  /** Leads still waiting for the "Xử lý Lead" step, across the whole year. */
+  pendingNew: number;
+  /** Processed leads with no owner yet, i.e. what "Phân công Lead" would pick up. */
+  readyToAssign: number;
   page: number;
   pageSize: number;
   totalPages: number;
@@ -154,6 +158,24 @@ export interface LeadProcessResponse {
   lead: string;
   targetStudent: string | null;
   validation: Record<string, boolean>;
+}
+
+export interface LeadProcessScanRequest {
+  admissionYear?: number | string | null;
+  limit?: number;
+}
+
+export interface LeadProcessScanSummary {
+  scanned: number;
+  processed: number;
+  closed: number;
+  skipped: number;
+  failed: number;
+}
+
+export interface LeadProcessScanResponse {
+  summary: LeadProcessScanSummary;
+  admissionYear: string | null;
 }
 
 export interface LeadApiRequestOptions {
@@ -208,6 +230,7 @@ const CREATE_METHOD = "crm.api.lead.create_lead";
 const UPDATE_METHOD = "crm.api.lead.update_lead";
 const DELETE_METHOD = "crm.api.lead.delete_lead";
 const PROCESS_METHOD = "crm.api.lead_processing.process_lead";
+const PROCESS_SCAN_METHOD = "crm.api.lead_processing.process_new_leads";
 const STATUS_UPDATE_METHOD = "crm.api.lead_processing.update_processing_status";
 const LEAD_PROCESS_STATUSES = new Set<LeadProcessStatus>([
   "NEW",
@@ -439,6 +462,8 @@ function normalizeMeta(value: unknown): LeadListMeta {
   return {
     total: count(meta.total),
     totalAll: count(meta.totalAll ?? meta.total_all),
+    pendingNew: count(meta.pendingNew ?? meta.pending_new),
+    readyToAssign: count(meta.readyToAssign ?? meta.ready_to_assign),
     page: count(meta.page) || 1,
     pageSize: count(meta.pageSize ?? meta.page_size) || 20,
     totalPages: count(meta.totalPages ?? meta.total_pages) || 1,
@@ -904,6 +929,61 @@ export async function processLead(
       502,
       "INVALID_LEAD_PROCESS_RESPONSE",
       "Phản hồi xử lý Lead không hợp lệ.",
+    );
+  }
+}
+
+function normalizeProcessScanResponse(
+  value: unknown,
+): LeadProcessScanResponse {
+  const payload = asRecord(unwrapMessage(value));
+  const summary = asRecord(payload?.summary);
+  if (!payload || !summary) {
+    throw new Error("Invalid Lead processing scan response");
+  }
+
+  return {
+    summary: {
+      scanned: count(summary.scanned),
+      processed: count(summary.processed),
+      closed: count(summary.closed),
+      skipped: count(summary.skipped),
+      failed: count(summary.failed),
+    },
+    admissionYear: nullableText(payload.admissionYear ?? payload.admission_year),
+  };
+}
+
+export async function processNewLeads(
+  request: LeadProcessScanRequest = {},
+  options: LeadApiRequestOptions = {},
+): Promise<LeadProcessScanResponse> {
+  const admissionYear = String(request.admissionYear ?? "").trim();
+  if (admissionYear && !/^\d{4}$/.test(admissionYear)) {
+    throw new LeadApiError(
+      400,
+      "INVALID_ADMISSION_YEAR",
+      "Kỳ tuyển sinh phải là năm gồm bốn chữ số.",
+    );
+  }
+
+  const body: Record<string, unknown> = {};
+  if (admissionYear) body.admission_year = admissionYear;
+  if (typeof request.limit === "number") body.limit = request.limit;
+
+  const payload = await mutationRequest(
+    PROCESS_SCAN_METHOD,
+    "POST",
+    body,
+    options,
+  );
+  try {
+    return normalizeProcessScanResponse(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_PROCESS_SCAN_RESPONSE",
+      "Phản hồi xử lý Lead hàng loạt không hợp lệ.",
     );
   }
 }

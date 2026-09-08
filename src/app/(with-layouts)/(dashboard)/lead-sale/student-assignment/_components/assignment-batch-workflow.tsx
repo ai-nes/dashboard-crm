@@ -78,7 +78,7 @@ export default function AssignmentBatchWorkflow() {
                 tabIndex={-1}
                 className="text-base font-semibold text-text-primary outline-none"
               >
-                Quy trình phân công tự động
+                Quy trình phân công Lead
               </h2>
               <p className="mt-1 text-xs leading-5 text-text-tertiary">
                 Chọn một bước để xem điều kiện và kết quả xử lý.

@@ -9,6 +9,7 @@ import {
   normalizeLeadDetail,
   normalizeLeadList,
   processLead,
+  processNewLeads,
   updateLeadProcessingStatus,
   updateLead,
 } from "./leads";
@@ -431,6 +432,58 @@ describe("Lead list/detail API contract", () => {
       expect.objectContaining<Partial<LeadApiError>>({
         status: 400,
         code: "INVALID_LEAD_RESOLUTION",
+      }),
+    );
+  });
+
+  it("scans the intake year through the bulk processing command", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            summary: {
+              scanned: 5,
+              processed: 3,
+              closed: 1,
+              skipped: 1,
+              failed: 0,
+            },
+            admissionYear: "2026",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await processNewLeads(
+      { admissionYear: 2026 },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_processing.process_new_leads",
+      expect.objectContaining({
+        method: "POST",
+        cache: "no-store",
+        body: JSON.stringify({ admission_year: "2026" }),
+      }),
+    );
+    expect(result.summary).toEqual({
+      scanned: 5,
+      processed: 3,
+      closed: 1,
+      skipped: 1,
+      failed: 0,
+    });
+  });
+
+  it("rejects a malformed intake year before calling the bulk command", async () => {
+    await expect(
+      processNewLeads({ admissionYear: "20x6" }, { baseUrl: "http://frappe:8000" }),
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<LeadApiError>>({
+        status: 400,
+        code: "INVALID_ADMISSION_YEAR",
       }),
     );
   });

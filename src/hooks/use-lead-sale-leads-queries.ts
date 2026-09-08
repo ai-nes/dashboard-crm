@@ -14,6 +14,7 @@ import {
   getLeadDetail,
   getLeadList,
   processLead,
+  processNewLeads,
   updateLeadProcessingStatus,
   updateLead,
   type LeadCreateFields,
@@ -23,6 +24,8 @@ import {
   type LeadListResponse,
   type LeadProcessRequest,
   type LeadProcessResponse,
+  type LeadProcessScanRequest,
+  type LeadProcessScanResponse,
   type LeadStatusUpdateRequest,
 } from "@/services/api/lead-sale";
 
@@ -103,6 +106,16 @@ export function useProcessLeadMutation() {
         }),
         queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
       ]),
+  });
+}
+
+export function useProcessNewLeadsMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadProcessScanResponse, Error, LeadProcessScanRequest>({
+    mutationFn: (request) => processNewLeads(request),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
   });
 }
 
