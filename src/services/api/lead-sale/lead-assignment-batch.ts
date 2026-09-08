@@ -149,6 +149,7 @@ export type LeadAssignmentHistoryParams = {
   limit?: number;
   status?: LeadAssignmentBatchItemStatus | "all";
   q?: string;
+  leadIds?: string[];
 };
 
 export type LeadAssignmentBatchCatalogParams = { province?: string };
@@ -207,6 +208,9 @@ export type LeadAssignmentWorkflowConnection = {
 
 export type LeadAssignmentWorkflowResponse = {
   hasRun: boolean;
+  hasData: boolean;
+  summary: LeadAssignmentBatchSummary;
+  pendingCount: number;
   batch: LeadAssignmentBatch | null;
   steps: LeadAssignmentWorkflowStep[];
   connections: LeadAssignmentWorkflowConnection[];
@@ -476,6 +480,11 @@ function normalizeWorkflow(value: unknown): LeadAssignmentWorkflowResponse {
     : [];
   return {
     hasRun: Boolean(source.hasRun ?? source.has_run),
+    hasData: Boolean(
+      source.hasData ?? source.has_data ?? source.hasRun ?? source.has_run,
+    ),
+    summary: normalizeSummary(source.summary ?? source.counts ?? source.stats),
+    pendingCount: count(source.pendingCount ?? source.pending_count),
     batch: source.batch ? normalizeBatch(source.batch) : null,
     steps,
     connections,
@@ -1168,6 +1177,7 @@ export async function listLeadAssignmentHistoryItems(
     status: params.status ?? "all",
     q: params.q?.trim() ?? "",
   });
+  if (params.leadIds?.length) query.set("lead_ids", params.leadIds.join(","));
   const payload = await request(
     `${resolveBaseUrl(options)}/api/method/${METHODS.historyItems}?${query.toString()}`,
     { method: "GET", headers: await requestHeaders(options) },

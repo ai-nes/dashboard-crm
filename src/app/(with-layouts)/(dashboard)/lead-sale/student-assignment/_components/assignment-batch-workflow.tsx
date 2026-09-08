@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowDownward, ArrowRight, Check, InfoCircle } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -8,15 +9,19 @@ import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { cn } from "@/utils/cn";
 import {
+  batchWorkflowProcessingStepIds,
   getBatchWorkflowCurrentPhaseId,
   getBatchWorkflowPhaseState,
   getBatchWorkflowStepMetric,
   getBatchWorkflowSteps,
 } from "../../_shared/lead-assignment-batch/batch-assignment-workflow-data";
 import { useBatchAssignment } from "../../_shared/lead-assignment-batch/batch-assignment-context";
+import { useLeadAssignmentHistoryQuery } from "@/hooks/use-lead-assignment-batch-queries";
 import {
+  assignmentReasonLabel,
   batchStatusColors,
   batchStatusLabels,
+  workflowResultLabel,
 } from "../../_shared/lead-assignment-batch/batch-assignment-mappings";
 import {
   stepIcons,
@@ -40,27 +45,86 @@ const AssignmentBatchWorkflowCanvas = dynamic(
 );
 
 export default function AssignmentBatchWorkflow() {
-  const { workflow, isWorkflowLoading } = useBatchAssignment();
+  const router = useRouter();
+  const {
+    workflow,
+    isWorkflowLoading,
+    isWorkflowProcessing,
+    processingStepIndex,
+  } = useBatchAssignment();
   const [selectedStep, setSelectedStep] = useState<StepId | null>(null);
   const steps = useMemo(() => getBatchWorkflowSteps(workflow), [workflow]);
+  const displayedSteps = useMemo(() => {
+    if (!isWorkflowProcessing || processingStepIndex === null) return steps;
+
+    const currentIndex = Math.min(
+      processingStepIndex,
+      batchWorkflowProcessingStepIds.length - 1,
+    );
+    return steps.map((step) => {
+      if (step.id === "review") return { ...step, status: "idle" as const };
+
+      const stepIndex = batchWorkflowProcessingStepIds.indexOf(step.id);
+      if (stepIndex === -1) return step;
+
+      return {
+        ...step,
+        status:
+          stepIndex < currentIndex
+            ? ("success" as const)
+            : stepIndex === currentIndex
+              ? ("running" as const)
+              : ("idle" as const),
+      };
+    });
+  }, [isWorkflowProcessing, processingStepIndex, steps]);
   const workflowBatch = workflow?.batch ?? null;
-  const currentPhaseId = getBatchWorkflowCurrentPhaseId(steps);
-  const currentPhase = steps.find((step) => step.id === currentPhaseId);
-  const selectedWorkflowStep = steps.find((step) => step.id === selectedStep);
+  const hasWorkflowData = workflow?.hasData ?? workflow?.hasRun ?? false;
+  const liveResultLabel = workflowResultLabel(
+    workflow?.summary,
+    hasWorkflowData,
+  );
+  const currentPhaseId = getBatchWorkflowCurrentPhaseId(displayedSteps);
+  const currentPhase = displayedSteps.find(
+    (step) => step.id === currentPhaseId,
+  );
+  const selectedWorkflowStep = displayedSteps.find(
+    (step) => step.id === selectedStep,
+  );
+  const reviewHistoryQuery = useLeadAssignmentHistoryQuery(
+    { status: "manual_review", limit: 100 },
+    { enabled: selectedStep === "review" },
+  );
+  const reviewItems = reviewHistoryQuery.data?.items ?? [];
   const currentPhaseState = currentPhase
     ? getBatchWorkflowPhaseState(currentPhase, currentPhaseId)
     : null;
-  const isRunning = workflowBatch?.status === "running";
+  const isRunning = isWorkflowProcessing || workflowBatch?.status === "running";
 
-  const phaseBadgeLabel = !workflow?.hasRun
-    ? "Chưa có lần chạy"
-    : isRunning
-      ? "Đang phân công"
-      : currentPhase && currentPhaseState
-        ? `${workflowPhaseStateLabels[currentPhaseState]} · ${currentPhase.title}`
-        : workflowBatch
-          ? batchStatusLabels[workflowBatch.status]
-          : "Chưa có dữ liệu";
+  function openReviewQueue() {
+    if (!reviewItems.length) return;
+    const query = new URLSearchParams({ status: "manual_review", open: "1" });
+    query.set(
+      "leadIds",
+      reviewItems.map((item) => item.leadId).join(","),
+    );
+    setSelectedStep(null);
+    router.push(`/lead-sale/assignment-history?${query.toString()}`);
+  }
+
+  const phaseBadgeLabel = isWorkflowProcessing
+    ? currentPhase
+      ? `Đang xử lý · ${currentPhase.title}`
+      : "Đang xử lý"
+    : !hasWorkflowData
+      ? "Chưa có lần chạy"
+      : isRunning
+        ? "Đang phân công"
+        : currentPhase && currentPhaseState
+          ? `${workflowPhaseStateLabels[currentPhaseState]} · ${currentPhase.title}`
+          : workflowBatch
+            ? batchStatusLabels[workflowBatch.status]
+            : "Chưa có dữ liệu";
 
   if (isWorkflowLoading && !workflow) {
     return (
@@ -102,7 +166,7 @@ export default function AssignmentBatchWorkflow() {
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Badge
                 color={
-                  workflow.hasRun && currentPhaseState
+                  (hasWorkflowData || isWorkflowProcessing) && currentPhaseState
                     ? workflowPhaseStateColors[currentPhaseState]
                     : "gray"
                 }
@@ -113,30 +177,38 @@ export default function AssignmentBatchWorkflow() {
               </Badge>
               <Badge
                 color={
-                  workflowBatch
-                    ? batchStatusColors[workflowBatch.status]
-                    : "gray"
+                  isWorkflowProcessing
+                    ? batchStatusColors.running
+                  : workflowBatch
+                      ? batchStatusColors[workflowBatch.status]
+                      : liveResultLabel === "Cần xử lý"
+                        ? "warning"
+                        : liveResultLabel === "Đã phân công"
+                          ? "success"
+                          : "gray"
                 }
               >
-                {workflowBatch
-                  ? batchStatusLabels[workflowBatch.status]
-                  : "Chưa có dữ liệu"}
+                {isWorkflowProcessing
+                  ? batchStatusLabels.running
+                  : workflowBatch
+                    ? batchStatusLabels[workflowBatch.status]
+                    : liveResultLabel}
               </Badge>
             </div>
           </div>
 
           <div className="hidden xl:block">
             <AssignmentBatchWorkflowCanvas
-              steps={steps}
+              steps={displayedSteps}
               currentPhaseId={currentPhaseId}
               selectedStep={selectedStep}
-              hasBatch={workflow.hasRun}
+              hasBatch={hasWorkflowData || isWorkflowProcessing}
               connections={workflow.connections}
               onSelect={setSelectedStep}
             />
           </div>
           <ol className="space-y-2 border-t border-card-border p-4 xl:hidden">
-            {steps
+            {displayedSteps
               .filter((step) => step.id !== "review")
               .map((step, index, visibleSteps) => {
                 const Icon = stepIcons[step.id];
@@ -168,14 +240,18 @@ export default function AssignmentBatchWorkflow() {
                           {step.title}
                         </span>
                         <span className="mt-0.5 block text-xs font-normal text-text-tertiary">
-                          {getBatchWorkflowStepMetric(step)}
+                          {step.status === "running"
+                            ? "Đang xử lý…"
+                            : getBatchWorkflowStepMetric(step)}
                         </span>
                       </span>
                       <Badge
                         color={workflowPhaseStateColors[phaseState]}
                         className="shrink-0 text-[10px]"
                       >
-                        {workflowPhaseStateLabels[phaseState]}
+                        {step.status === "running"
+                          ? "Đang xử lý"
+                          : workflowPhaseStateLabels[phaseState]}
                       </Badge>
                       <ArrowRight size={14} aria-hidden="true" />
                     </Button>
@@ -207,7 +283,7 @@ export default function AssignmentBatchWorkflow() {
                     color={
                       workflowPhaseStateColors[
                         getBatchWorkflowPhaseState(
-                          steps.find((step) => step.id === "review")!,
+                          displayedSteps.find((step) => step.id === "review")!,
                           currentPhaseId,
                         )
                       ]
@@ -217,7 +293,7 @@ export default function AssignmentBatchWorkflow() {
                     {
                       workflowPhaseStateLabels[
                         getBatchWorkflowPhaseState(
-                          steps.find((step) => step.id === "review")!,
+                          displayedSteps.find((step) => step.id === "review")!,
                           currentPhaseId,
                         )
                       ]
@@ -267,12 +343,77 @@ export default function AssignmentBatchWorkflow() {
           </p>
           <div className="my-6 rounded-xl border border-card-border bg-background-gray-secondary p-4">
             <p className="text-xs text-text-tertiary">
-              {workflow.hasRun ? "Trong lần chạy đang xem" : "Chưa có lần chạy"}
+              {isWorkflowProcessing
+                ? "Đang xử lý lần phân công"
+                : workflow.hasRun
+                  ? "Trong lần chạy đang xem"
+                  : hasWorkflowData
+                    ? `Tổng quan hiện tại · ${workflow.summary.assigned} đã phân công · ${workflow.summary.manualReview + workflow.summary.deferred + workflow.summary.failed} cần xử lý`
+                    : "Chưa có lần chạy"}
             </p>
             <p className="mt-2 text-lg font-semibold text-text-primary">
               {getBatchWorkflowStepMetric(selectedWorkflowStep)}
             </p>
           </div>
+          {selectedWorkflowStep.id === "review" && (
+            <section
+              className="mb-6"
+              aria-labelledby="review-queue-heading"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3
+                  id="review-queue-heading"
+                  className="text-sm font-semibold text-text-primary"
+                >
+                  Hồ sơ cần xử lý
+                </h3>
+                <span className="text-xs text-text-tertiary">
+                  {reviewHistoryQuery.isLoading
+                    ? "Đang tải…"
+                    : `${reviewItems.length} hồ sơ`}
+                </span>
+              </div>
+              {reviewHistoryQuery.error ? (
+                <p className="mt-3 rounded-lg bg-badge-error-background p-3 text-xs leading-5 text-badge-error-text">
+                  Không thể tải danh sách hồ sơ cần xử lý.
+                </p>
+              ) : reviewHistoryQuery.isLoading ? (
+                <p className="mt-3 text-sm text-text-tertiary">
+                  Đang lấy danh sách từ hệ thống phân công…
+                </p>
+              ) : reviewItems.length ? (
+                <div className="mt-3 space-y-2">
+                  {reviewItems.map((item) => (
+                    <div
+                      key={`${item.batchId}:${item.id}`}
+                      className="rounded-lg border border-card-border bg-card-background px-3 py-2.5"
+                    >
+                      <p className="text-sm font-medium text-text-primary">
+                        {item.studentName}
+                      </p>
+                      <p className="mt-0.5 text-xs text-text-tertiary">
+                        {item.leadId} · {item.phone || "Chưa có số điện thoại"}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-text-secondary">
+                        {assignmentReasonLabel(item)}
+                      </p>
+                    </div>
+                  ))}
+                  <Button
+                    className="mt-2 w-full"
+                    isDisabled={reviewHistoryQuery.isFetching}
+                    onPress={openReviewQueue}
+                  >
+                    Xử lý {reviewItems.length} hồ sơ
+                  </Button>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-text-tertiary">
+                  Không còn hồ sơ cần xử lý.
+                </p>
+              )}
+            </section>
+          )}
           <h3 className="text-sm font-semibold text-text-primary">
             Cách xử lý
           </h3>

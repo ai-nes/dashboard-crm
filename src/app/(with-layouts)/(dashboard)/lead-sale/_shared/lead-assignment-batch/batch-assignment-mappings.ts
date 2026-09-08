@@ -81,6 +81,19 @@ export function formatCount(value: number): string {
   return new Intl.NumberFormat("vi-VN").format(value);
 }
 
+export function workflowResultLabel(
+  summary: LeadAssignmentBatchSummary | null | undefined,
+  hasData: boolean,
+): string {
+  if (!hasData || !summary?.total) return "Chưa có dữ liệu";
+  if (summary.pending) return "Chờ phân công";
+  if (summary.manualReview + summary.deferred + summary.failed) {
+    return "Cần xử lý";
+  }
+  if (summary.assigned) return "Đã phân công";
+  return "Đã xử lý";
+}
+
 const reasonLabels: Record<string, string> = {
   // Dữ liệu Lead còn thiếu
   MISSING_PROVINCE:

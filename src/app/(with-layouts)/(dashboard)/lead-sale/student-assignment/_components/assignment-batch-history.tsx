@@ -1,7 +1,8 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, Close, Search1 } from "@tailgrids/icons";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Label } from "react-aria-components";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -101,15 +102,32 @@ function HistoryRow({
 }
 
 export default function AssignmentBatchHistory() {
-  const [status, setStatus] = useState<HistoryStatus>("all");
+  const searchParams = useSearchParams();
+  const requestedStatus = searchParams.get("status");
+  const initialStatus: HistoryStatus = statusTabs.some(
+    (tab) => tab.id === requestedStatus,
+  )
+    ? (requestedStatus as HistoryStatus)
+    : "all";
+  const leadIds = useMemo(
+    () =>
+      (searchParams.get("leadIds") ?? "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    [searchParams],
+  );
+  const [status, setStatus] = useState<HistoryStatus>(initialStatus);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [inspectedId, setInspectedId] = useState<string | null>(null);
+  const autoOpenHandled = useRef(false);
   const { data, error, isLoading, isFetching } = useLeadAssignmentHistoryQuery({
     status,
     q: query,
     page,
     limit: 50,
+    leadIds: leadIds.length ? leadIds : undefined,
   });
 
   function changeStatus(nextStatus: HistoryStatus) {
@@ -122,8 +140,20 @@ export default function AssignmentBatchHistory() {
     setPage(1);
   }
 
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
   const pagination = data?.pagination;
+  useEffect(() => {
+    if (
+      autoOpenHandled.current ||
+      searchParams.get("open") !== "1" ||
+      !items.length
+    ) {
+      return;
+    }
+    autoOpenHandled.current = true;
+    setInspectedId(`${items[0].batchId}:${items[0].id}`);
+  }, [items, searchParams]);
+
   const inspectedItem =
     items.find((item) => `${item.batchId}:${item.id}` === inspectedId) ?? null;
 

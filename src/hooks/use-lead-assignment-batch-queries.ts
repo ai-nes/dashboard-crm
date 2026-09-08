@@ -124,6 +124,7 @@ export function useLeadAssignmentWorkflowQuery(
   return useQuery({
     queryKey: leadAssignmentBatchKeys.workflow(batchId),
     queryFn: () => getLeadAssignmentWorkflow(batchId),
+    placeholderData: (previousData) => previousData,
     ...options,
   });
 }

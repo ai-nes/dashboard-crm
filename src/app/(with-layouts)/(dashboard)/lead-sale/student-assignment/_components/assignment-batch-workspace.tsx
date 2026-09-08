@@ -4,7 +4,6 @@ import {
   BatchAssignmentProvider,
   useBatchAssignment,
 } from "../../_shared/lead-assignment-batch/batch-assignment-context";
-import AssignmentBatchExecution from "./assignment-batch-execution";
 import AssignmentBatchHeader from "./assignment-batch-header";
 import AssignmentBatchWorkflow from "./assignment-batch-workflow";
 
@@ -17,7 +16,7 @@ export default function AssignmentBatchWorkspace() {
 }
 
 function AssignmentBatchWorkspaceContent() {
-  const { activeBatch, error } = useBatchAssignment();
+  const { error } = useBatchAssignment();
 
   return (
     <main className="mx-auto min-w-0 max-w-[1600px] space-y-6 px-2 py-5 pb-10 lg:px-6">
@@ -31,11 +30,6 @@ function AssignmentBatchWorkspaceContent() {
       )}
       <AssignmentBatchHeader />
       <AssignmentBatchWorkflow />
-      {activeBatch && (
-        <section aria-live="polite">
-          <AssignmentBatchExecution />
-        </section>
-      )}
     </main>
   );
 }

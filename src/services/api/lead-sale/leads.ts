@@ -8,6 +8,7 @@ export interface LeadStatusOption {
 }
 
 export type LeadResolution =
+  | "PENDING"
   | "MATCHED"
   | "CREATED"
   | "DUPLICATE"
@@ -15,7 +16,7 @@ export type LeadResolution =
   | "SPAM"
   | "FAILED";
 
-export type LeadResolutionFilter = "PENDING" | LeadResolution;
+export type LeadResolutionFilter = LeadResolution;
 
 export type LeadProcessStatus =
   | "NEW"
@@ -259,6 +260,7 @@ const LEAD_PROCESS_RESOLUTIONS = new Set<LeadProcessResolution>([
   "FAILED",
 ]);
 const LEAD_RESOLUTION_CODES = new Set<LeadResolution>([
+  "PENDING",
   "MATCHED",
   "CREATED",
   "DUPLICATE",

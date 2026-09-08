@@ -260,7 +260,9 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      selectBatch(result.batch.id);
+      // Keep the workspace on the live all-Lead workflow. Selecting the newly
+      // created audit batch here would replace the global view with that batch
+      // snapshot and make the counters look incomplete after a successful run.
       toast.success("Đã phân công Lead", {
         description: `${result.batch.summary.assigned} Lead đã được giao cho Sale/CTV.`,
       });

@@ -6,6 +6,11 @@ The endpoint returns the existing `{ data, meta }` envelope and keeps the
 current authentication, search, processing status, resolution, campaign, sorting, and pagination
 parameters.
 
+Rows are grouped by the processing workflow in this order: `NEW`, `PROCESSING`,
+`PROCESSED`, `ASSIGNED`, then `CLOSED`. Within each status, the requested `order`
+is applied to `modified`, followed by `name` as a stable tie-breaker. Grouping is
+performed by the backend before pagination so statuses do not become mixed between pages.
+
 Each `data` row includes the fields used by the Lead list:
 
 | Field | Meaning |

@@ -14,7 +14,9 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
   leadAssignmentBatchKeys,
+  useCreateLeadAssignmentBatchMutation,
   useRetryLeadAssignmentBatchMutation,
+  useRunLeadAssignmentBatchMutation,
 } from "@/hooks/use-lead-assignment-batch-queries";
 import {
   useReopenLeadMutation,
@@ -59,11 +61,16 @@ export default function AssignmentHistoryItemDrawer({
   const queryClient = useQueryClient();
   const [province, setProvince] = useState(item.province ?? "");
   const [branch, setBranch] = useState(item.branch ?? "");
+  const [phone, setPhone] = useState(item.phone ?? "");
+  const [highSchool, setHighSchool] = useState(item.highSchool ?? "");
+  const [major, setMajor] = useState(item.major ?? "");
   const [step, setStep] = useState<string | null>(null);
 
   const updateMutation = useUpdateLeadMutation();
   const reopenMutation = useReopenLeadMutation();
   const retryMutation = useRetryLeadAssignmentBatchMutation();
+  const createBatchMutation = useCreateLeadAssignmentBatchMutation();
+  const runBatchMutation = useRunLeadAssignmentBatchMutation();
 
   const provinceOptionsQuery = useStudentSchoolFieldOptions({
     doctype: "CRM Lead",
@@ -73,10 +80,24 @@ export default function AssignmentHistoryItemDrawer({
     doctype: "CRM Lead",
     fieldname: "branch",
   });
+  const highSchoolOptionsQuery = useStudentSchoolFieldOptions({
+    doctype: "CRM Lead",
+    fieldname: "high_school",
+    province: province || undefined,
+  });
+  const majorOptionsQuery = useStudentSchoolFieldOptions({
+    doctype: "CRM Lead",
+    fieldname: "major",
+  });
 
   const isClosed = item.processingStatus === "CLOSED";
+  const isLiveReview = !item.batchId;
   const isDirty =
-    province !== (item.province ?? "") || branch !== (item.branch ?? "");
+    phone !== (item.phone ?? "") ||
+    province !== (item.province ?? "") ||
+    highSchool !== (item.highSchool ?? "") ||
+    major !== (item.major ?? "") ||
+    branch !== (item.branch ?? "");
   const isBusy = step !== null;
 
   async function handleResolve() {
@@ -84,8 +105,17 @@ export default function AssignmentHistoryItemDrawer({
       if (isDirty) {
         setStep("Đang lưu thông tin hồ sơ…");
         const fields: LeadUpdateFields = {};
+        if (phone !== (item.phone ?? "")) {
+          fields.phone = phone || null;
+        }
         if (province !== (item.province ?? "")) {
           fields.province = province || null;
+        }
+        if (highSchool !== (item.highSchool ?? "")) {
+          fields.high_school = highSchool || null;
+        }
+        if (major !== (item.major ?? "")) {
+          fields.major = major || null;
         }
         if (branch !== (item.branch ?? "")) {
           fields.branch = branch || null;
@@ -113,10 +143,20 @@ export default function AssignmentHistoryItemDrawer({
       }
 
       setStep("Đang phân công lại…");
-      await retryMutation.mutateAsync({
-        batchId: item.batchId,
-        itemIds: [item.id],
-      });
+      if (isLiveReview) {
+        const created = await createBatchMutation.mutateAsync({
+          batchName: `Phân công lại ${item.leadId} ${Date.now()}`,
+          leadIds: [item.leadId],
+          description: "Xử lý lại hồ sơ từ danh sách cần kiểm tra.",
+        });
+        setStep("Đang ghi nhận người phụ trách…");
+        await runBatchMutation.mutateAsync({ batchId: created.batch.id });
+      } else {
+        await retryMutation.mutateAsync({
+          batchId: item.batchId,
+          itemIds: [item.id],
+        });
+      }
       toast.success(`Đã xử lý lại hồ sơ ${item.studentName}.`);
       onClose();
     } catch (error) {
@@ -171,10 +211,18 @@ export default function AssignmentHistoryItemDrawer({
           Bổ sung thông tin định tuyến
         </h2>
         <p className="mt-1 text-xs leading-5 text-text-tertiary">
-          Hệ thống tìm Team theo tỉnh của Lead. Sửa tỉnh hoặc campus rồi bấm xử
-          lý lại.
+          Bổ sung đủ số điện thoại, tỉnh, trường THPT và ngành quan tâm. Sau đó
+          hệ thống sẽ tìm Team theo tỉnh và phân công lại.
         </p>
         <dl className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+          <EditableDetailField
+            isEditing
+            isDisabled={isBusy}
+            label="Số điện thoại"
+            onChange={setPhone}
+            type="tel"
+            value={phone}
+          />
           <EditableDetailField
             isEditing
             isDisabled={isBusy}
@@ -184,6 +232,26 @@ export default function AssignmentHistoryItemDrawer({
             searchable
             searchPlaceholder="Tìm tỉnh/thành phố…"
             value={province}
+          />
+          <EditableDetailField
+            isEditing
+            isDisabled={isBusy}
+            label="Trường THPT"
+            onChange={setHighSchool}
+            options={toOptions(highSchoolOptionsQuery.data?.options, highSchool)}
+            searchable
+            searchPlaceholder="Tìm trường THPT…"
+            value={highSchool}
+          />
+          <EditableDetailField
+            isEditing
+            isDisabled={isBusy}
+            label="Ngành quan tâm"
+            onChange={setMajor}
+            options={toOptions(majorOptionsQuery.data?.options, major)}
+            searchable
+            searchPlaceholder="Tìm ngành…"
+            value={major}
           />
           <EditableDetailField
             isEditing
