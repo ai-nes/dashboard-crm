@@ -6,6 +6,11 @@ import { useState } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
 import { Input } from "@/components/tailgrids/core/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/tailgrids/core/tooltip";
 
 import { SegmentFilterBuilder } from "./segment-filter-builder";
 import {
@@ -79,23 +84,32 @@ export default function SegmentBuilderPage({ backHref }: { backHref: string }) {
               className="h-auto w-[min(70vw,32rem)] rounded-none border-0 bg-transparent px-2 py-1 text-center text-base leading-8 font-semibold text-text-primary shadow-none outline-none ring-0 focus:border-0 focus:ring-0 sm:text-xl"
             />
           ) : (
-            <Button
-              variant="ghost"
-              appearance="ghost"
-              size="md"
-              aria-label="Đổi tên segment"
-              className="group/title max-w-full min-w-0 gap-2 px-2 text-text-primary hover:bg-background-gray-primary hover:text-text-primary"
-              onPress={startEditingName}
-            >
-              <span className="truncate text-center text-base font-semibold text-text-primary sm:text-xl">
-                {segmentName}
-              </span>
-              <Pencil1
-                size={17}
-                aria-hidden="true"
-                className="shrink-0 text-text-tertiary opacity-60 transition-opacity sm:opacity-0 sm:group-hover/title:opacity-100 sm:group-focus-visible/title:opacity-100"
-              />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex max-w-full min-w-0">
+                  <Button
+                    variant="ghost"
+                    appearance="ghost"
+                    size="md"
+                    aria-label="Đổi tên segment"
+                    className="max-w-full min-w-0 gap-2 px-2 text-text-primary hover:bg-background-gray-primary hover:text-text-primary"
+                    onPress={startEditingName}
+                  >
+                    <span className="truncate text-center text-base font-semibold text-text-primary sm:text-xl">
+                      {segmentName}
+                    </span>
+                    <Pencil1
+                      size={17}
+                      aria-hidden="true"
+                      className="shrink-0 text-text-tertiary"
+                    />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Đổi tên segment</p>
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
 

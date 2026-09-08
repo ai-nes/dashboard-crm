@@ -155,6 +155,7 @@ export function getMockSegmentStudents(
 ): SegmentStudent[] {
   return Array.from({ length: size }, (_, index) => ({
     id: `${segmentId}-${String(index + 1).padStart(4, "0")}`,
+    code: `STU-2026-${String(index + 1).padStart(5, "0")}`,
     name: `${FAMILY_NAMES[Math.floor(index / GIVEN_NAMES.length) % FAMILY_NAMES.length]} ${GIVEN_NAMES[index % GIVEN_NAMES.length]}`,
     phone: `090100${String(index + 1).padStart(4, "0")}`,
     stage: STAGES[index % STAGES.length],
@@ -180,6 +181,7 @@ function mockPhoneForStudent(student: StudentListItem): string {
 export function toSegmentStudent(student: StudentListItem): SegmentStudent {
   return {
     id: student.id,
+    code: student.code,
     name: student.name,
     phone: mockPhoneForStudent(student),
     stage: (studentJourneyStage(student) as JourneyStage) ?? JourneyStage.NEW,

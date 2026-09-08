@@ -113,9 +113,9 @@ export function SegmentDetailPage({
         >
           {[
             { id: "overview", label: "Tổng quan" },
-            { id: "performance", label: "Hiệu quả" },
-            { id: "activity", label: "Hoạt động" },
-            { id: "settings", label: "Cài đặt" },
+            { id: "next-action", label: "Hành động tiếp theo" },
+            { id: "tasks", label: "Task" },
+            { id: "activity-log", label: "Ghi chú nhật ký" },
           ].map((tab) => (
             <Tab
               key={tab.id}

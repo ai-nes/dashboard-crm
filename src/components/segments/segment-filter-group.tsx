@@ -1,8 +1,13 @@
 "use client";
 
-import { Copy1, Trash1 } from "@tailgrids/icons";
+import { Layers2, Trash1 } from "@tailgrids/icons";
 
 import { Button } from "@/components/tailgrids/core/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/tailgrids/core/tooltip";
 
 import type {
   SegmentCondition,
@@ -50,29 +55,47 @@ export function SegmentFilterGroup({
           onChange={onNameChange}
         />
         <div className="flex items-center gap-1">
-          <Button
-            variant="primary"
-            appearance="ghost"
-            iconOnly
-            size="sm"
-            aria-label="Nhân bản nhóm"
-            className="text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
-            onPress={onDuplicate}
-          >
-            <Copy1 size={17} aria-hidden="true" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  variant="primary"
+                  appearance="ghost"
+                  iconOnly
+                  size="sm"
+                  aria-label="Nhân bản nhóm"
+                  className="text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
+                  onPress={onDuplicate}
+                >
+                  <Layers2 size={17} aria-hidden="true" />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Nhân bản nhóm</p>
+            </TooltipContent>
+          </Tooltip>
           {canDelete && (
-            <Button
-              variant="danger"
-              appearance="ghost"
-              iconOnly
-              size="sm"
-              aria-label="Xóa nhóm"
-              className="text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
-              onPress={onDelete}
-            >
-              <Trash1 size={17} aria-hidden="true" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="danger"
+                    appearance="ghost"
+                    iconOnly
+                    size="sm"
+                    aria-label="Xóa nhóm"
+                    className="hover:bg-badge-error-background"
+                    onPress={onDelete}
+                  >
+                    <Trash1 size={17} aria-hidden="true" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Xóa nhóm</p>
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </header>

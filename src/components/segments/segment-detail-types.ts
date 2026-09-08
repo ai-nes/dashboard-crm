@@ -2,6 +2,7 @@ import type { JourneyStage, SegmentFilterGroup } from "./segment-filter-config";
 
 export interface SegmentStudent {
   id: string;
+  code: string;
   name: string;
   phone: string;
   stage: JourneyStage;

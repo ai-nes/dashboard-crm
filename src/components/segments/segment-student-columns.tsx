@@ -19,6 +19,15 @@ function potentialScoreTone(score: number): "success" | "warning" | "error" {
 
 export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
   {
+    accessorKey: "code",
+    header: "Mã học sinh",
+    cell: ({ row }) => (
+      <span className="tabular-nums text-text-secondary">
+        {row.original.code}
+      </span>
+    ),
+  },
+  {
     accessorKey: "name",
     header: "Học sinh",
     cell: ({ row }) => (
