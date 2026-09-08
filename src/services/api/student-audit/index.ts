@@ -129,6 +129,8 @@ function normalizeAuditLog(raw: unknown): StudentAuditLog {
     sourceName,
     eventType: optionalString(source.event_type ?? source.eventType),
     category: optionalString(source.category),
+    content: optionalString(source.content),
+    subject: optionalString(source.subject),
     reason: optionalString(source.reason),
     metadata: optionalRecord(source.metadata),
     restored:

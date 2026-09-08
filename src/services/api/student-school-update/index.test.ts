@@ -4,6 +4,7 @@ import {
   createLead,
   createSchool,
   createStudent,
+  createStudentWithLead,
   deleteSchool,
   getFieldOptions,
   getLeadOptions,
@@ -352,6 +353,7 @@ describe("student and school create/delete contract", () => {
       createLead({
         student_name: "Nguyễn Văn An",
         phone: "0900000000",
+        id_number: "012345678901",
         province: "PROVINCE-001",
         source: "Promoter",
         assigned_to: "sales@example.com",
@@ -366,6 +368,7 @@ describe("student and school create/delete contract", () => {
           fields: {
             student_name: "Nguyễn Văn An",
             phone: "0900000000",
+            id_number: "012345678901",
             province: "PROVINCE-001",
             source: "Promoter",
             assigned_to: "sales@example.com",
@@ -472,6 +475,63 @@ describe("student and school create/delete contract", () => {
         }),
       }),
     );
+  });
+
+  it("creates a CRM Student and linked Lead through the combined RPC", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            doctype: "CRM Student",
+            name: "STU-2026-00002",
+            created_fields: {
+              student_name: "Nguyễn Văn An",
+              phone: "0901234567",
+              province: "PROVINCE-001",
+              source: "SOURCE-001",
+              assigned_to: "CRM-STAFF-001",
+            },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      createStudentWithLead({
+        student_name: " Nguyễn Văn An ",
+        phone: " 0901234567 ",
+        id_number: "012345678901",
+        province: "PROVINCE-001",
+        ward: "WARD-001",
+        high_school: "HIGH-SCHOOL-001",
+        admission_year: "2026",
+        source: "SOURCE-001",
+        assigned_to: "CRM-STAFF-001",
+      }),
+    ).resolves.toMatchObject({ name: "STU-2026-00002" });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.student_school.create_student_with_lead",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+    const requestInit = fetchSpy.mock.calls[0]?.[1];
+    expect(JSON.parse(String(requestInit?.body))).toEqual({
+      fields: {
+        student_name: "Nguyễn Văn An",
+        phone: "0901234567",
+        id_number: "012345678901",
+        province: "PROVINCE-001",
+        ward: "WARD-001",
+        high_school: "HIGH-SCHOOL-001",
+        admission_year: "2026",
+        source: "SOURCE-001",
+        assigned_to: "CRM-STAFF-001",
+      },
+    });
   });
 
   it("sends the selected semester for a grade 12 student", async () => {

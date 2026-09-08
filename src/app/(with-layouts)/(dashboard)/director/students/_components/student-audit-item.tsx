@@ -8,6 +8,7 @@ import { formatDateTime } from "@/utils/format-date";
 
 import {
   formatStudentAuditRelativeTime,
+  formatStudentAuditContent,
   formatStudentAuditValue,
   getStudentAuditActor,
   getStudentAuditCategoryLabel,
@@ -15,6 +16,8 @@ import {
   getStudentAuditSourceLabel,
   getStudentAuditStatus,
   getStudentAuditTone,
+  isStudentAuditFieldChange,
+  StudentAuditMetadata,
 } from "./student-audit-event";
 
 interface StudentAuditItemProps {
@@ -26,7 +29,9 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
   const role = getStudentAuditActorRole(event);
   const tone = getStudentAuditTone(event);
   const status = getStudentAuditStatus(event);
-  const isFieldChange = event.action === "updated";
+  const isFieldChange = isStudentAuditFieldChange(event);
+  const fileUrl =
+    typeof event.metadata?.file_url === "string" ? event.metadata.file_url : null;
 
   const dotColorClass =
     tone === "success"
@@ -106,9 +111,34 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
             </div>
           </div>
         ) : (
-          <p className="text-sm leading-6 text-text-primary">
-            Đã cập nhật thông tin hồ sơ học sinh.
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold leading-6 text-text-primary">
+              {event.eventType
+                ? getAuditRecordTitle(event.eventType)
+                : "Đã cập nhật thông tin hồ sơ học sinh."}
+            </p>
+            {event.subject && (
+              <p className="text-xs font-medium text-text-primary">
+                {event.subject}
+              </p>
+            )}
+            {event.content && (
+              <p className="whitespace-pre-wrap break-words text-xs leading-5 text-text-secondary">
+                {formatStudentAuditContent(event.content)}
+              </p>
+            )}
+            {fileUrl && (
+              <a
+                href={fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex text-xs font-medium text-primary-600 underline-offset-2 hover:underline"
+              >
+                Mở tệp đính kèm
+              </a>
+            )}
+            <StudentAuditMetadata event={event} />
+          </div>
         )}
       </div>
 
@@ -135,6 +165,37 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
       )}
     </li>
   );
+}
+
+function getAuditRecordTitle(eventType?: string | null): string {
+  switch (eventType) {
+    case "comment_added":
+      return "Đã thêm bình luận.";
+    case "communication_recorded":
+      return "Đã ghi nhận Email / Communication.";
+    case "attachment_added":
+      return "Đã đính kèm tệp.";
+    case "call_logged":
+      return "Đã ghi nhận cuộc gọi.";
+    case "note_added":
+      return "Đã thêm FCRM Note.";
+    case "note_updated":
+      return "Đã cập nhật FCRM Note.";
+    case "task_recorded":
+      return "Đã ghi nhận task.";
+    case "interaction_recorded":
+      return "Đã ghi nhận tương tác CRM.";
+    case "sla_event_recorded":
+      return "Đã ghi nhận sự kiện SLA.";
+    case "decision_recorded":
+      return "Đã ghi nhận quyết định.";
+    case "consent_recorded":
+      return "Đã ghi nhận consent / privacy.";
+    case "conversion_completed":
+      return "Đã hoàn tất chuyển đổi.";
+    default:
+      return "Đã cập nhật thông tin hồ sơ học sinh.";
+  }
 }
 
 function getStudentAuditActorRole(event: StudentAuditLog): string {

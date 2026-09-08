@@ -11,9 +11,32 @@ export type StudentAuditCategory =
   | "processing"
   | "conversion"
   | "outcome"
+  | "comment"
+  | "communication"
+  | "attachment"
+  | "call"
+  | "note"
+  | "task"
+  | "interaction"
+  | "engagement"
+  | "sla"
+  | "decision"
+  | "consent"
   | string;
 
-export type StudentAuditSource = "Document" | "Version" | "Deleted Document";
+export type StudentAuditSource =
+  | "Document"
+  | "Version"
+  | "Deleted Document"
+  | "Comment"
+  | "Communication"
+  | "File"
+  | "Call Log"
+  | "FCRM Note"
+  | "Task"
+  | "CRM Action Item"
+  | "CRM Interaction"
+  | string;
 
 export interface StudentAuditLog {
   eventId: string;
@@ -32,6 +55,8 @@ export interface StudentAuditLog {
   sourceName: string;
   eventType?: string | null;
   category?: StudentAuditCategory | null;
+  content?: string | null;
+  subject?: string | null;
   reason?: string | null;
   metadata?: Record<string, unknown> | null;
   restored?: boolean;
