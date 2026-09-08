@@ -66,10 +66,7 @@ export default function Student360Dashboard({
   initialTaskId,
 }: Student360DashboardProps) {
   const targetId =
-    studentId ||
-    propData?.student.code ||
-    propData?.student.name ||
-    "nguyen-minh-an";
+    studentId?.trim() || propData?.student.code?.trim() || propData?.student.name?.trim() || "";
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, isLoading: isAuthLoading } = useAuth();

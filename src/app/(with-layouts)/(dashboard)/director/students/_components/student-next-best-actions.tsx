@@ -21,6 +21,7 @@ import {
 import type { Student360Data } from "@/services/api/students/types";
 import StudentNbaRecommendationCard from "./student-nba-recommendation-card";
 import StudentNbaDecisionDialog from "./student-nba-decision-dialog";
+import StudentConsultationWorkspace from "./student-consultation-workspace";
 import {
   NBA_OPERATION_LABELS,
   type DecisionFields,
@@ -54,6 +55,7 @@ export default function StudentNextBestActions({
     recommendation: NbaRecommendation;
     operation: NbaDecisionOperation;
   } | null>(null);
+  const [consultation, setConsultation] = useState<NbaRecommendation | null>(null);
   const [postRecommendations, setPostRecommendations] = useState<
     NbaRecommendation[] | null
   >(null);
@@ -311,6 +313,7 @@ export default function StudentNextBestActions({
                 key={action.id}
                 recommendation={action}
                 onBeginDecision={beginDecision}
+                onPrepareConsultation={setConsultation}
               />
             ))}
           </div>
@@ -327,6 +330,12 @@ export default function StudentNextBestActions({
           onSubmit={(fields) =>
             submitDecision(decision.recommendation, decision.operation, fields)
           }
+        />
+      )}
+      {consultation && (
+        <StudentConsultationWorkspace
+          recommendationId={consultation.id}
+          onClose={() => setConsultation(null)}
         />
       )}
 
