@@ -2,7 +2,6 @@
 
 import { ArrowLeft, ArrowRight, Close, Search1 } from "@tailgrids/icons";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Label } from "react-aria-components";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -17,12 +16,10 @@ import {
 } from "@/components/tailgrids/core/table";
 import { Input } from "@/components/tailgrids/core/input";
 import { TextField } from "@/components/tailgrids/core/text-field";
-import {
-  useLeadAssignmentHistoryQuery,
-  useRetryLeadAssignmentBatchMutation,
-} from "@/hooks/use-lead-assignment-batch-queries";
+import { useLeadAssignmentHistoryQuery } from "@/hooks/use-lead-assignment-batch-queries";
 import type { LeadAssignmentHistoryItem } from "@/services/api/lead-sale";
 import { cn } from "@/utils/cn";
+import AssignmentHistoryItemDrawer from "../../_shared/lead-assignment-batch/assignment-history-item-drawer";
 import {
   assignmentReasonLabel,
   formatCount,
@@ -43,31 +40,17 @@ const statusTabs = [
 
 type HistoryStatus = (typeof statusTabs)[number]["id"];
 
-function canRetry(item: LeadAssignmentHistoryItem): boolean {
-  return (
-    ["deferred", "manual_review", "failed"].includes(item.status) &&
-    item.processingStatus !== "CLOSED"
-  );
+function needsAttention(item: LeadAssignmentHistoryItem): boolean {
+  return ["deferred", "manual_review", "failed"].includes(item.status);
 }
 
-function HistoryRow({ item }: { item: LeadAssignmentHistoryItem }) {
-  const retryMutation = useRetryLeadAssignmentBatchMutation();
-  const retryable = canRetry(item);
-
-  async function handleRetry() {
-    try {
-      await retryMutation.mutateAsync({
-        batchId: item.batchId,
-        itemIds: [item.id],
-      });
-      toast.success(`Đã xử lý lại hồ sơ ${item.studentName}.`);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể xử lý lại hồ sơ.",
-      );
-    }
-  }
-
+function HistoryRow({
+  item,
+  onInspect,
+}: {
+  item: LeadAssignmentHistoryItem;
+  onInspect: (item: LeadAssignmentHistoryItem) => void;
+}) {
   return (
     <TableRow>
       <TableCell className="min-w-56">
@@ -98,19 +81,17 @@ function HistoryRow({ item }: { item: LeadAssignmentHistoryItem }) {
         {item.status === "assigned"
           ? "Đã phân công thành công."
           : assignmentReasonLabel(item)}
+        {item.processingStatus === "CLOSED" && (
+          <span className="mt-0.5 block text-xs text-text-tertiary">
+            Hồ sơ đang đóng — mở lại trong phần xử lý.
+          </span>
+        )}
       </TableCell>
       <TableCell className="min-w-32 text-right">
-        {retryable ? (
-          <Button
-            appearance="outline"
-            size="sm"
-            isDisabled={retryMutation.isPending}
-            onPress={handleRetry}
-          >
-            {retryMutation.isPending ? "Đang xử lý…" : "Xử lý lại"}
+        {needsAttention(item) ? (
+          <Button appearance="outline" size="sm" onPress={() => onInspect(item)}>
+            Xử lý
           </Button>
-        ) : item.processingStatus === "CLOSED" ? (
-          <span className="text-xs text-text-tertiary">Đã đóng hồ sơ</span>
         ) : (
           <span className="text-xs text-text-tertiary">—</span>
         )}
@@ -123,6 +104,7 @@ export default function AssignmentBatchHistory() {
   const [status, setStatus] = useState<HistoryStatus>("all");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [inspectedId, setInspectedId] = useState<string | null>(null);
   const { data, error, isLoading, isFetching } = useLeadAssignmentHistoryQuery({
     status,
     q: query,
@@ -142,6 +124,8 @@ export default function AssignmentBatchHistory() {
 
   const items = data?.items ?? [];
   const pagination = data?.pagination;
+  const inspectedItem =
+    items.find((item) => `${item.batchId}:${item.id}` === inspectedId) ?? null;
 
   return (
     <section aria-label="Lịch sử phân công" className="space-y-4">
@@ -227,7 +211,11 @@ export default function AssignmentBatchHistory() {
               </TableRow>
             ) : items.length ? (
               items.map((item) => (
-                <HistoryRow key={`${item.batchId}:${item.id}`} item={item} />
+                <HistoryRow
+                  key={`${item.batchId}:${item.id}`}
+                  item={item}
+                  onInspect={(row) => setInspectedId(`${row.batchId}:${row.id}`)}
+                />
               ))
             ) : (
               <TableRow>
@@ -283,6 +271,13 @@ export default function AssignmentBatchHistory() {
           </div>
         )}
       </Card>
+
+      {inspectedItem && (
+        <AssignmentHistoryItemDrawer
+          item={inspectedItem}
+          onClose={() => setInspectedId(null)}
+        />
+      )}
     </section>
   );
 }

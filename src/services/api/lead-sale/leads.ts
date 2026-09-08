@@ -155,6 +155,11 @@ export interface LeadStatusUpdateRequest {
   reason?: string;
 }
 
+export interface LeadReopenRequest {
+  lead: string;
+  reason?: string;
+}
+
 export interface LeadProcessResponse {
   status: LeadProcessStatus;
   resolution: LeadProcessResolution;
@@ -236,6 +241,7 @@ const DELETE_METHOD = "crm.api.lead.delete_lead";
 const PROCESS_METHOD = "crm.api.lead_processing.process_lead";
 const PROCESS_SCAN_METHOD = "crm.api.lead_processing.process_new_leads";
 const STATUS_UPDATE_METHOD = "crm.api.lead_processing.update_processing_status";
+const REOPEN_METHOD = "crm.api.lead_processing.reopen_lead";
 const LEAD_PROCESS_STATUSES = new Set<LeadProcessStatus>([
   "NEW",
   "PROCESSING",
@@ -1040,6 +1046,34 @@ export async function updateLeadProcessingStatus(
       502,
       "INVALID_LEAD_STATUS_UPDATE_RESPONSE",
       "Phản hồi cập nhật trạng thái Lead không hợp lệ.",
+    );
+  }
+}
+
+export async function reopenLead(
+  request: LeadReopenRequest,
+  options: LeadApiRequestOptions = {},
+): Promise<LeadProcessResponse> {
+  const lead = request.lead.trim();
+  if (!lead) {
+    throw new LeadApiError(
+      400,
+      "INVALID_LEAD_NAME",
+      "Thiếu mã Lead cần mở lại.",
+    );
+  }
+
+  const body: Record<string, unknown> = { lead };
+  if (request.reason?.trim()) body.reason = request.reason.trim();
+
+  const payload = await mutationRequest(REOPEN_METHOD, "POST", body, options);
+  try {
+    return normalizeProcessResponse(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_REOPEN_RESPONSE",
+      "Phản hồi mở lại Lead không hợp lệ.",
     );
   }
 }

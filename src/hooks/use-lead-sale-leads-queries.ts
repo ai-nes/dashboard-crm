@@ -15,6 +15,7 @@ import {
   getLeadList,
   processLead,
   processNewLeads,
+  reopenLead,
   updateLeadProcessingStatus,
   updateLead,
   type LeadCreateFields,
@@ -26,6 +27,7 @@ import {
   type LeadProcessResponse,
   type LeadProcessScanRequest,
   type LeadProcessScanResponse,
+  type LeadReopenRequest,
   type LeadStatusUpdateRequest,
 } from "@/services/api/lead-sale";
 
@@ -155,5 +157,20 @@ export function useDeleteLeadMutation() {
     mutationFn: (leadId) => deleteLead(leadId),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+  });
+}
+
+export function useReopenLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadProcessResponse, Error, LeadReopenRequest>({
+    mutationFn: (request) => reopenLead(request),
+    onSuccess: (_data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(variables.lead),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
   });
 }
