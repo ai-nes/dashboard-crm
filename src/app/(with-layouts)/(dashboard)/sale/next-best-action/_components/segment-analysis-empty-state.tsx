@@ -2,16 +2,9 @@ import { ChevronDown, InfoCircle } from "@tailgrids/icons";
 
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
+import { SEGMENT_STATUS_FILTER_OPTIONS } from "@/components/segments/segment-list-types";
 
 import StudentCardEmptyState from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-card-empty-state";
-
-const segmentUsage = [
-  "Cá nhân hóa",
-  "Giao tiếp",
-  "Tự động hóa",
-  "Phân tích",
-  "Phân khúc",
-] as const;
 
 export default function SegmentAnalysisEmptyState() {
   return (
@@ -25,8 +18,8 @@ export default function SegmentAnalysisEmptyState() {
         </h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {segmentUsage.map((category) => (
-            <SegmentUsageCard key={category} category={category} />
+          {SEGMENT_STATUS_FILTER_OPTIONS.map((status) => (
+            <SegmentUsageCard key={status.id} label={status.label} />
           ))}
         </div>
       </section>
@@ -80,7 +73,7 @@ export default function SegmentAnalysisEmptyState() {
                   Thay đổi 7 ngày
                 </th>
                 <th className="border border-card-border px-4 py-3 font-semibold">
-                  Loại
+                  Trạng thái
                 </th>
                 <th className="border border-card-border px-4 py-3 font-semibold">
                   Đối tượng
@@ -109,11 +102,11 @@ export default function SegmentAnalysisEmptyState() {
   );
 }
 
-function SegmentUsageCard({ category }: { category: string }) {
+function SegmentUsageCard({ label }: { label: string }) {
   return (
     <Card className="flex min-h-52 flex-col p-5 sm:p-6">
       <h3 className="flex items-center gap-1.5 text-base font-semibold text-text-primary">
-        {category}
+        {label}
         <InfoCircle
           size={15}
           className="text-text-tertiary"
@@ -123,7 +116,7 @@ function SegmentUsageCard({ category }: { category: string }) {
       <p className="mt-3 text-4xl leading-none font-semibold tracking-[-1px] text-text-primary">
         0
       </p>
-      <p className="mt-3 text-sm text-text-secondary">Segment đang dùng</p>
+      <p className="mt-3 text-sm text-text-secondary">segment</p>
       <Button
         variant="primary"
         appearance="outline"

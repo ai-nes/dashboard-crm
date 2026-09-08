@@ -10,6 +10,7 @@ export default async function Page({
   const { segmentId } = await params;
   return (
     <SegmentDetailPage
+      key={segmentId}
       segmentId={segmentId}
       backHref="/lead-sale/next-best-action"
     />

@@ -10,15 +10,16 @@ import { Popover } from "@/components/tailgrids/core/popover";
 import { cn } from "@/utils/cn";
 
 import {
-  SEGMENT_FILTER_CATEGORIES,
-  SEGMENT_FILTER_CATEGORY_LABEL,
+  CASCADING_PROPERTIES,
+  CASCADING_PROPERTY_CONFIG,
   SEGMENT_PROPERTIES,
   SEGMENT_PROPERTY_CONFIG,
+  isCascadingProperty,
   type StudentSegmentProperty,
 } from "./segment-filter-config";
 
 interface SegmentFilterPropertyPickerProps {
-  onSelect: (property: StudentSegmentProperty) => void;
+  onSelect: (property: StudentSegmentProperty, category?: string) => void;
   triggerLabel?: string;
   className?: string;
 }
@@ -32,28 +33,56 @@ export function SegmentFilterPropertyPicker({
   const [search, setSearch] = useState("");
 
   const normalizedSearch = search.trim().toLocaleLowerCase("vi-VN");
-  const propertiesByCategory = useMemo(
+
+  const filteredProperties = useMemo(
     () =>
-      SEGMENT_FILTER_CATEGORIES.map((category) => ({
-        category,
-        properties: SEGMENT_PROPERTIES.filter((property) => {
-          const config = SEGMENT_PROPERTY_CONFIG[property];
-          return (
-            config.category === category &&
-            config.label.toLocaleLowerCase("vi-VN").includes(normalizedSearch)
-          );
-        }),
-      })).filter(({ properties }) => properties.length > 0),
+      SEGMENT_PROPERTIES.filter(
+        (property) => !isCascadingProperty(property),
+      ).filter((property) =>
+        SEGMENT_PROPERTY_CONFIG[property].label
+          .toLocaleLowerCase("vi-VN")
+          .includes(normalizedSearch),
+      ),
     [normalizedSearch],
   );
+
+  const cascadingSections = useMemo(
+    () =>
+      CASCADING_PROPERTIES.map((property) => {
+        const config = CASCADING_PROPERTY_CONFIG[property]!;
+        const propertyLabel = SEGMENT_PROPERTY_CONFIG[property].label;
+        const propertyMatchesSearch = propertyLabel
+          .toLocaleLowerCase("vi-VN")
+          .includes(normalizedSearch);
+
+        return {
+          property,
+          label: propertyLabel,
+          categories: propertyMatchesSearch
+            ? config.categoryOptions
+            : config.categoryOptions.filter((option) =>
+                option.label
+                  .toLocaleLowerCase("vi-VN")
+                  .includes(normalizedSearch),
+              ),
+        };
+      }).filter((section) => section.categories.length > 0),
+    [normalizedSearch],
+  );
+
+  const hasResults =
+    filteredProperties.length > 0 || cascadingSections.length > 0;
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     setIsOpen(nextIsOpen);
     if (!nextIsOpen) setSearch("");
   };
 
-  const handleSelect = (property: StudentSegmentProperty) => {
-    onSelect(property);
+  const handleSelect = (
+    property: StudentSegmentProperty,
+    category?: string,
+  ) => {
+    onSelect(property, category);
     setIsOpen(false);
     setSearch("");
   };
@@ -72,7 +101,7 @@ export function SegmentFilterPropertyPicker({
 
       <Popover
         placement="bottom"
-        className="w-[min(32rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-card-border bg-card-surface-area p-0 shadow-lg"
+        className="w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-card-border bg-card-surface-area p-0 shadow-lg"
       >
         <div className="border-b border-card-border p-3">
           <div className="relative">
@@ -92,35 +121,50 @@ export function SegmentFilterPropertyPicker({
           </div>
         </div>
 
-        <div className="max-h-[min(28rem,calc(100dvh-7rem))] overflow-y-auto px-1.5 py-2">
-          {propertiesByCategory.length > 0 ? (
-            propertiesByCategory.map(({ category, properties }) => (
-              <section
-                key={category}
-                aria-labelledby={`segment-category-${category}`}
-              >
-                <h3
-                  id={`segment-category-${category}`}
-                  className="px-2.5 py-1.5 text-sm font-semibold text-text-primary"
+        <div className="max-h-[min(24rem,calc(100dvh-7rem))] overflow-y-auto px-1.5 py-2">
+          {hasResults ? (
+            <div className="space-y-0.5">
+              {filteredProperties.map((property) => (
+                <Button
+                  key={property}
+                  variant="primary"
+                  appearance="ghost"
+                  size="md"
+                  className="h-auto w-full justify-start rounded-md px-2.5 py-1.5 text-left font-semibold text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
+                  onPress={() => handleSelect(property)}
                 >
-                  {SEGMENT_FILTER_CATEGORY_LABEL[category]}
-                </h3>
-                <div className="space-y-0.5">
-                  {properties.map((property) => (
+                  <span>{SEGMENT_PROPERTY_CONFIG[property].label}</span>
+                </Button>
+              ))}
+
+              {cascadingSections.map((section) => (
+                <section
+                  key={section.property}
+                  aria-labelledby={`segment-cascading-${section.property}`}
+                >
+                  <h3
+                    id={`segment-cascading-${section.property}`}
+                    className="px-2.5 pt-2 pb-1 text-sm font-semibold text-text-primary"
+                  >
+                    {section.label}
+                  </h3>
+                  {section.categories.map((option) => (
                     <Button
-                      key={property}
+                      key={option.value}
                       variant="primary"
                       appearance="ghost"
                       size="md"
-                      className="h-auto w-full justify-start rounded-md px-2.5 py-1.5 text-left font-normal text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
-                      onPress={() => handleSelect(property)}
+                      className="h-auto w-full justify-start rounded-md py-1.5 pr-2.5 pl-5 text-left font-normal text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
+                      onPress={() =>
+                        handleSelect(section.property, option.value)
+                      }
                     >
-                      <span>{SEGMENT_PROPERTY_CONFIG[property].label}</span>
+                      <span>{option.label}</span>
                     </Button>
                   ))}
-                </div>
-              </section>
-            ))
+                </section>
+              ))}
+            </div>
           ) : (
             <p className="px-3 py-8 text-center text-sm text-text-tertiary">
               Không tìm thấy thuộc tính phù hợp.

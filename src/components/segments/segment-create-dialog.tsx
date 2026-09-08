@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/tailgrids/core/button";
+import { Badge } from "@/components/tailgrids/core/badge";
 import {
   Dialog,
   DialogBody,
@@ -9,14 +10,28 @@ import {
   DialogTitle,
 } from "@/components/tailgrids/core/dialog";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
+import {
+  Select,
+  SelectContent,
+  SelectIndicator,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/tailgrids/core/select";
 import { TextArea } from "@/components/tailgrids/core/text-area";
 import { cn } from "@/utils/cn";
 import { useState } from "react";
 
-export type SegmentRefreshMode = "AUTOMATIC" | "MANUAL";
+import {
+  SEGMENT_STATUS_BADGE_COLORS,
+  SEGMENT_STATUS_LABELS,
+  SEGMENT_STATUS_OPTIONS,
+  SEGMENT_STATUS_SELECT_STYLES,
+  type SegmentStatus,
+} from "./segment-list-types";
 
 export interface SegmentCreateDetails {
-  refreshMode: SegmentRefreshMode;
+  status: SegmentStatus;
   description: string;
 }
 
@@ -35,13 +50,13 @@ export function SegmentCreateDialog({
   studentSize,
   onCreate,
 }: SegmentCreateDialogProps) {
-  const [refreshMode, setRefreshMode] =
-    useState<SegmentRefreshMode>("AUTOMATIC");
+  const [status, setStatus] = useState<SegmentStatus>("draft");
   const [description, setDescription] = useState("");
+  const selectedStatus = SEGMENT_STATUS_LABELS[status];
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     if (!nextIsOpen) {
-      setRefreshMode("AUTOMATIC");
+      setStatus("draft");
       setDescription("");
     }
     onOpenChange(nextIsOpen);
@@ -60,59 +75,54 @@ export function SegmentCreateDialog({
         </DialogHeader>
 
         <DialogBody className="space-y-5 px-5 py-5">
-          <div className="rounded-xl border border-badge-sky-icon-color/30 bg-badge-sky-background/60 px-4 py-3">
-            <p className="text-sm text-text-secondary">
-              Số học sinh trong segment
-            </p>
-            <div className="mt-1 flex items-baseline gap-2">
-              <strong className="text-3xl leading-9 text-text-primary">
-                {studentSize.toLocaleString("vi-VN")}
-              </strong>
-              <span className="text-sm text-text-secondary">học sinh</span>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-badge-sky-icon-color/30 bg-badge-sky-background/60 px-4 py-3">
+              <p className="text-sm text-text-secondary">
+                Số học sinh trong segment
+              </p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <strong className="text-3xl leading-9 text-text-primary">
+                  {studentSize.toLocaleString("vi-VN")}
+                </strong>
+                <span className="text-sm text-text-secondary">học sinh</span>
+              </div>
+            </div>
+
+            <div className="px-4 py-3">
+              <p className="text-sm text-text-secondary">Trạng thái segment</p>
+              <Select
+                aria-label="Trạng thái segment"
+                className="mt-2 gap-0"
+                value={status}
+                onChange={(value) => setStatus(value as SegmentStatus)}
+              >
+                <SelectTrigger
+                  className={cn(
+                    "h-10 w-full px-3 py-2 text-base font-medium",
+                    SEGMENT_STATUS_SELECT_STYLES[status],
+                  )}
+                >
+                  <SelectValue className="max-w-none text-inherit">
+                    {selectedStatus}
+                  </SelectValue>
+                  <SelectIndicator />
+                </SelectTrigger>
+                <SelectContent>
+                  {SEGMENT_STATUS_OPTIONS.map((option) => (
+                    <SelectItem
+                      key={option.value}
+                      id={option.value}
+                      textValue={option.label}
+                    >
+                      <Badge color={SEGMENT_STATUS_BADGE_COLORS[option.value]}>
+                        {option.label}
+                      </Badge>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-input-label-text-color">
-              Cách cập nhật segment
-            </legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Button
-                type="button"
-                variant="primary"
-                appearance="outline"
-                aria-pressed={refreshMode === "AUTOMATIC"}
-                className={cn(
-                  "h-auto min-h-20 flex-col items-start gap-1 px-4 py-3 text-left",
-                  refreshMode === "AUTOMATIC" &&
-                    "border-button-primary-background bg-badge-primary-background text-text-primary hover:bg-badge-primary-background",
-                )}
-                onPress={() => setRefreshMode("AUTOMATIC")}
-              >
-                <span className="font-semibold">Tự động</span>
-                <span className="text-xs font-normal opacity-80">
-                  Tự cập nhật khi học sinh thay đổi dữ liệu.
-                </span>
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                appearance="outline"
-                aria-pressed={refreshMode === "MANUAL"}
-                className={cn(
-                  "h-auto min-h-20 flex-col items-start gap-1 px-4 py-3 text-left",
-                  refreshMode === "MANUAL" &&
-                    "border-button-primary-background bg-badge-primary-background text-text-primary hover:bg-badge-primary-background",
-                )}
-                onPress={() => setRefreshMode("MANUAL")}
-              >
-                <span className="font-semibold">Thủ công</span>
-                <span className="text-xs font-normal opacity-80">
-                  Chỉ cập nhật khi bạn thực hiện thủ công.
-                </span>
-              </Button>
-            </div>
-          </fieldset>
 
           <label className="block space-y-2">
             <span className="text-sm font-medium text-input-label-text-color">
@@ -140,7 +150,7 @@ export function SegmentCreateDialog({
             variant="primary"
             appearance="fill"
             onPress={() =>
-              onCreate({ refreshMode, description: description.trim() })
+              onCreate({ status, description: description.trim() })
             }
           >
             Tạo segment

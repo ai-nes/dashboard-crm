@@ -3,9 +3,14 @@
 import { Input } from "@/components/tailgrids/core/input";
 
 import {
+  CASCADING_PROPERTY_CONFIG,
+  getCascadingSubtypeOptions,
+  getOptionsForProperty,
+  isCascadingProperty,
   isPresenceOperator,
   SEGMENT_PROPERTY_CONFIG,
   SegmentOperator,
+  STUDENT_SEGMENT_PROPERTY_LABEL,
   type SegmentConditionValue,
   type SegmentOperator as SegmentOperatorType,
   type StudentSegmentProperty,
@@ -17,6 +22,7 @@ interface SegmentFilterConditionValueProps {
   property: StudentSegmentProperty;
   operator: SegmentOperatorType;
   value: SegmentConditionValue;
+  category?: string | null;
   onChange: (value: SegmentConditionValue) => void;
 }
 
@@ -25,17 +31,35 @@ export function SegmentFilterConditionValue({
   property,
   operator,
   value,
+  category,
   onChange,
 }: SegmentFilterConditionValueProps) {
   const valueType = SEGMENT_PROPERTY_CONFIG[property].valueType;
 
   if (isPresenceOperator(operator) || valueType === "PRESENCE") return null;
 
+  if (isCascadingProperty(property)) {
+    const categoryLabel = category
+      ? CASCADING_PROPERTY_CONFIG[property]!.categoryLabel[category]
+      : STUDENT_SEGMENT_PROPERTY_LABEL[property];
+
+    return (
+      <SegmentFilterValuePicker
+        ownerId={ownerId}
+        label={categoryLabel}
+        options={getCascadingSubtypeOptions(property, category)}
+        value={value}
+        onChange={(nextValue) => onChange(nextValue)}
+      />
+    );
+  }
+
   if (valueType === "MULTI_SELECT") {
     return (
       <SegmentFilterValuePicker
         ownerId={ownerId}
-        property={property}
+        label={STUDENT_SEGMENT_PROPERTY_LABEL[property]}
+        options={getOptionsForProperty(property)}
         value={value}
         onChange={(nextValue) => onChange(nextValue)}
       />

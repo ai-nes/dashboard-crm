@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Search1 } from "@tailgrids/icons";
 import {
   flexRender,
@@ -36,8 +36,10 @@ const normalize = (value: string) =>
 
 export function SegmentStudentTable({
   students,
+  headerAction,
 }: {
   students: SegmentStudent[];
+  headerAction?: ReactNode;
 }) {
   const [search, setSearch] = useState("");
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -62,9 +64,12 @@ export function SegmentStudentTable({
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <h2 className="text-base font-semibold text-text-primary">
-          Danh sách học sinh
-        </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-base font-semibold text-text-primary">
+            Danh sách học sinh
+          </h2>
+          {headerAction}
+        </div>
         <InputGroup className="h-9 w-full sm:max-w-xs">
           <InputGroupAddon
             align="inline-start"

@@ -20,7 +20,10 @@ interface SegmentFilterGroupProps {
   canDelete: boolean;
   onNameChange: (name: string) => void;
   onLogicChange: (logic: "AND" | "OR") => void;
-  onAddCondition: (property: StudentSegmentProperty) => void;
+  onAddCondition: (
+    property: StudentSegmentProperty,
+    category?: string,
+  ) => void;
   onUpdateCondition: (condition: SegmentCondition) => void;
   onRemoveCondition: (conditionId: string) => void;
   onDuplicate: () => void;

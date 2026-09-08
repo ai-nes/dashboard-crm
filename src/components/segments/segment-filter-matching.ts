@@ -4,12 +4,18 @@ import type { StudentListItem } from "@/services/api/students/types";
 import {
   getOptionsForProperty,
   isPresenceOperator,
+  LeadNeedSubtype,
   SEGMENT_PROPERTY_CONFIG,
+  SegmentLevel,
   SegmentOperator,
+  StudentSegmentProperty,
+  TagSubtype,
   type SegmentCondition,
   type SegmentFilterGroup,
-  type StudentSegmentProperty,
 } from "./segment-filter-config";
+
+const NEED_SUBTYPES = Object.values(LeadNeedSubtype);
+const TAG_SUBTYPES = Object.values(TagSubtype);
 
 function normalize(value: string) {
   return value
@@ -19,7 +25,7 @@ function normalize(value: string) {
     .trim();
 }
 
-function studentJourneyStage(student: StudentListItem) {
+export function studentJourneyStage(student: StudentListItem) {
   if (student.studentStage) return student.studentStage.toUpperCase();
 
   return {
@@ -31,23 +37,57 @@ function studentJourneyStage(student: StudentListItem) {
   }[student.stage];
 }
 
+function studentPotential(student: StudentListItem) {
+  return (
+    {
+      Cao: SegmentLevel.HIGH,
+      "Trung bình": SegmentLevel.MEDIUM,
+      Thấp: SegmentLevel.LOW,
+    }[student.priority] ?? null
+  );
+}
+
+function studentIntent(student: StudentListItem) {
+  if (student.score >= 80) return SegmentLevel.HIGH;
+  if (student.score >= 50) return SegmentLevel.MEDIUM;
+  return SegmentLevel.LOW;
+}
+
+// Deterministic mock: distributes students across need subtypes since the
+// lead-need signal isn't part of StudentListItem yet.
+function studentNeedSubtype(student: StudentListItem) {
+  const hash = Array.from(student.id).reduce(
+    (sum, char) => sum + char.charCodeAt(0),
+    0,
+  );
+  return NEED_SUBTYPES[hash % NEED_SUBTYPES.length];
+}
+
+// Deterministic mock: distributes students across tag subtypes since the
+// lead-tag signal isn't part of StudentListItem yet.
+function studentTagSubtype(student: StudentListItem) {
+  const hash = Array.from(student.id).reduce(
+    (sum, char) => sum + char.charCodeAt(0) * 7,
+    0,
+  );
+  return TAG_SUBTYPES[hash % TAG_SUBTYPES.length];
+}
+
 function getStudentPropertyValue(
   student: StudentListItem,
   property: StudentSegmentProperty,
 ) {
   switch (property) {
-    case "HIGH_SCHOOL":
-      return student.school;
-    case "PROVINCE_AREA":
-      return student.province;
-    case "PROGRAM_INTEREST":
-      return student.major;
-    case "SOURCE":
-      return student.source;
-    case "LEAD_SCORE":
-      return student.score;
-    case "JOURNEY_STAGE":
+    case StudentSegmentProperty.JOURNEY_STAGE:
       return studentJourneyStage(student);
+    case StudentSegmentProperty.POTENTIAL:
+      return studentPotential(student);
+    case StudentSegmentProperty.INTENT:
+      return studentIntent(student);
+    case StudentSegmentProperty.NEED:
+      return studentNeedSubtype(student);
+    case StudentSegmentProperty.TAG:
+      return studentTagSubtype(student);
     default:
       return null;
   }
@@ -58,6 +98,8 @@ function matchesOption(
   property: StudentSegmentProperty,
   selectedValue: string,
 ) {
+  if (studentValue === selectedValue) return true;
+
   const option = getOptionsForProperty(property).find(
     (item) => item.value === selectedValue,
   );
@@ -143,18 +185,25 @@ function matchesGroup(student: StudentListItem, group: SegmentFilterGroup) {
   return group.logic === "OR" ? results.some(Boolean) : results.every(Boolean);
 }
 
-export function estimateSegmentSize(
+export function getMatchingStudents(
   groups: SegmentFilterGroup[],
   groupLogic: "AND" | "OR",
-) {
+): StudentListItem[] {
   if (
     groups.length === 0 ||
     groups.some((group) => group.conditions.length === 0)
   )
-    return 0;
+    return [];
 
   return studentListData.filter((student) => {
     const results = groups.map((group) => matchesGroup(student, group));
     return groupLogic === "OR" ? results.some(Boolean) : results.every(Boolean);
-  }).length;
+  });
+}
+
+export function estimateSegmentSize(
+  groups: SegmentFilterGroup[],
+  groupLogic: "AND" | "OR",
+) {
+  return getMatchingStudents(groups, groupLogic).length;
 }

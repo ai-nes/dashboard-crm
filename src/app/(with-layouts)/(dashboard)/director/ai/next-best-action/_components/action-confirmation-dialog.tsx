@@ -1,7 +1,15 @@
 "use client";
 
-import { Dialog, DialogBody, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/tailgrids/core/dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/tailgrids/core/dialog";
 import { Button } from "@/components/tailgrids/core/button";
+import { Backdrop } from "@/components/tailgrids/core/overlay";
 
 import type { RecommendedAction } from "./types";
 
@@ -27,25 +35,40 @@ const dialogCopy = {
   },
 } as const;
 
-export default function ActionConfirmationDialog({ action, type, onClose, onConfirm }: ActionConfirmationDialogProps) {
+export default function ActionConfirmationDialog({
+  action,
+  type,
+  onClose,
+  onConfirm,
+}: ActionConfirmationDialogProps) {
   if (!action || !type) return null;
 
   const copy = dialogCopy[type];
 
   return (
-    <Dialog isOpen onOpenChange={(isOpen) => !isOpen && onClose()} className="max-w-120">
-      <DialogHeader>
-        <DialogTitle>{copy.title}</DialogTitle>
-        <DialogDescription className="text-text-tertiary">{copy.description}</DialogDescription>
-      </DialogHeader>
-      <DialogBody className="space-y-2">
-        <p className="font-medium text-text-primary">{action.recommendation}</p>
-        <p>{action.studentName} · {action.school}</p>
-      </DialogBody>
-      <DialogFooter>
-        <Button appearance="outline" onPress={onClose}>Để sau</Button>
-        <Button onPress={onConfirm}>{copy.confirmLabel}</Button>
-      </DialogFooter>
-    </Dialog>
+    <Backdrop isOpen onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <Dialog aria-label={copy.title} className="max-w-120">
+        <DialogHeader>
+          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogDescription className="text-text-tertiary">
+            {copy.description}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody className="space-y-2">
+          <p className="font-medium text-text-primary">
+            {action.recommendation}
+          </p>
+          <p>
+            {action.studentName} · {action.school}
+          </p>
+        </DialogBody>
+        <DialogFooter>
+          <Button appearance="outline" onPress={onClose}>
+            Để sau
+          </Button>
+          <Button onPress={onConfirm}>{copy.confirmLabel}</Button>
+        </DialogFooter>
+      </Dialog>
+    </Backdrop>
   );
 }

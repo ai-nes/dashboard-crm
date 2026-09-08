@@ -10,6 +10,7 @@ import {
   InputGroupInput,
 } from "@/components/tailgrids/core/input-group";
 import type { SegmentListItem } from "./segment-list-types";
+import { SEGMENT_STATUS_FILTER_OPTIONS } from "./segment-list-types";
 
 interface SegmentListToolbarProps {
   table: Table<SegmentListItem>;
@@ -20,27 +21,23 @@ export function SegmentListToolbar({
   table,
   children,
 }: SegmentListToolbarProps) {
-  const type = String(table.getColumn("type")?.getFilterValue() ?? "ALL");
+  const status = String(table.getColumn("status")?.getFilterValue() ?? "ALL");
   const segments = table.options.data;
-  const tabs = [
-    { id: "ALL", label: "Tất cả", count: segments.length },
-    {
-      id: "AUTOMATIC",
-      label: "Tự động",
-      count: segments.filter((item) => item.type === "AUTOMATIC").length,
-    },
-    {
-      id: "MANUAL",
-      label: "Thủ công",
-      count: segments.filter((item) => item.type === "MANUAL").length,
-    },
-  ];
+  const tabs = SEGMENT_STATUS_FILTER_OPTIONS.map((option) => ({
+    ...option,
+    count:
+      option.id === "ALL"
+        ? segments.length
+        : segments.filter((item) => item.status === option.id).length,
+  }));
 
   return (
     <Tabs
-      selectedKey={type}
+      selectedKey={status}
       onSelectionChange={(key) =>
-        table.getColumn("type")?.setFilterValue(key === "ALL" ? undefined : key)
+        table
+          .getColumn("status")
+          ?.setFilterValue(key === "ALL" ? undefined : key)
       }
     >
       <div className="space-y-3 border-b border-card-border px-5 py-4">
@@ -55,7 +52,7 @@ export function SegmentListToolbar({
             <InputGroupInput
               type="search"
               aria-label="Tìm segment"
-              placeholder="Tìm theo tên segment hoặc người tạo…"
+              placeholder="Tìm mã, tên segment hoặc người tạo…"
               value={String(table.getState().globalFilter ?? "")}
               onChange={(event) => table.setGlobalFilter(event.target.value)}
               className="pl-2 text-sm"
@@ -66,7 +63,7 @@ export function SegmentListToolbar({
           </span>
         </div>
         <TabList
-          aria-label="Lọc loại segment"
+          aria-label="Lọc trạng thái segment"
           className="flex flex-wrap gap-1.5"
         >
           {tabs.map((tab) => (
@@ -84,7 +81,7 @@ export function SegmentListToolbar({
         </TabList>
       </div>
       <TabPanel
-        id={type}
+        id={status}
         className="outline-none focus-visible:outline-2 focus-visible:outline-primary-500"
       >
         {children}

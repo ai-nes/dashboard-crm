@@ -5,7 +5,6 @@ import {
   Button as AriaButton,
   Dialog as AriaDialog,
   Modal as AriaModal,
-  ModalOverlay,
   Heading,
   type DialogProps as AriaDialogProps,
   type HeadingProps,
@@ -14,54 +13,41 @@ import { Button, ButtonProps } from "./button";
 import { Description, DescriptionProps } from "./description";
 
 export interface DialogProps extends AriaDialogProps {
-  isOpen?: boolean;
-  defaultOpen?: boolean;
-  onOpenChange?: (isOpen: boolean) => void;
   showCloseButton?: boolean;
 }
 
 export function Dialog({
-  isOpen,
-  defaultOpen,
-  onOpenChange,
   className,
   showCloseButton = true,
   children,
   ...props
 }: DialogProps) {
   return (
-    <ModalOverlay
-      isOpen={isOpen}
-      defaultOpen={defaultOpen}
-      onOpenChange={onOpenChange}
-      className="fixed inset-0 z-50 bg-text-primary/20 backdrop-blur-sm"
-    >
-      <AriaModal>
-        <AriaDialog
-          className={cn(
-            "fixed top-1/2 left-1/2 w-full max-w-140 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border-primary bg-background-white-primary p-6 shadow-lg outline-none max-sm:max-w-[calc(100%-2rem)]",
-            className,
-          )}
-          {...props}
-        >
-          {({ close }) => (
-            <>
-              {typeof children === "function" ? children({ close }) : children}
-              {showCloseButton && (
-                <AriaButton
-                  onPress={close}
-                  aria-label="Close"
-                  className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-md text-text-100 opacity-70 transition-opacity outline-none hover:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-500 disabled:pointer-events-none [&>svg]:size-5"
-                >
-                  <Close />
-                  <span className="sr-only">Close</span>
-                </AriaButton>
-              )}
-            </>
-          )}
-        </AriaDialog>
-      </AriaModal>
-    </ModalOverlay>
+    <AriaModal>
+      <AriaDialog
+        className={cn(
+          "fixed top-1/2 left-1/2 w-full max-w-140 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border-primary bg-background-white-primary p-6 shadow-lg outline-none max-sm:max-w-[calc(100%-2rem)]",
+          className,
+        )}
+        {...props}
+      >
+        {({ close }) => (
+          <>
+            {typeof children === "function" ? children({ close }) : children}
+            {showCloseButton && (
+              <AriaButton
+                onPress={close}
+                aria-label="Close"
+                className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-md text-text-100 opacity-70 transition-opacity outline-none hover:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-500 disabled:pointer-events-none [&>svg]:size-5"
+              >
+                <Close />
+                <span className="sr-only">Close</span>
+              </AriaButton>
+            )}
+          </>
+        )}
+      </AriaDialog>
+    </AriaModal>
   );
 }
 
@@ -85,7 +71,10 @@ export function DialogTitle({ className, ...props }: DialogTitleProps) {
   return (
     <Heading
       slot="title"
-      className={cn("text-lg leading-none font-semibold text-title-50", className)}
+      className={cn(
+        "text-lg leading-none font-semibold text-title-50",
+        className,
+      )}
       {...props}
     />
   );
@@ -113,11 +102,18 @@ export interface DialogFooterProps extends ComponentProps<"div"> {
   showCloseButton?: boolean;
 }
 
-export function DialogFooter({ className, children, ...props }: DialogFooterProps) {
+export function DialogFooter({
+  className,
+  children,
+  ...props
+}: DialogFooterProps) {
   return (
     <div
       data-slot="dialog-footer"
-      className={cn("flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end", className)}
+      className={cn(
+        "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end",
+        className,
+      )}
       {...props}
     >
       {children}

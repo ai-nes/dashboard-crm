@@ -20,8 +20,10 @@ import {
 import { getSegmentListColumns } from "./segment-list-columns";
 import { useSegmentData } from "./segment-data-provider";
 import { SegmentListToolbar } from "./segment-list-toolbar";
-import { SegmentEditDialog } from "./segment-edit-dialog";
-import type { SegmentListItem } from "./segment-list-types";
+import {
+  SEGMENT_STATUS_LABELS,
+  type SegmentStatus,
+} from "./segment-list-types";
 
 const normalizeSearch = (value: string) =>
   value
@@ -33,31 +35,23 @@ const normalizeSearch = (value: string) =>
 
 export function SegmentList({ detailBaseHref }: { detailBaseHref: string }) {
   const { segments, setSegments } = useSegmentData();
-  const [editingSegment, setEditingSegment] = useState<SegmentListItem | null>(
-    null,
-  );
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const columns = useMemo(
     () =>
       getSegmentListColumns({
         detailBaseHref,
-        onEdit: setEditingSegment,
-        onDelete: (segment) => {
+        onStatusChange: (segment, status: SegmentStatus) => {
           setSegments((current) =>
-            current.filter((item) => item.id !== segment.id),
+            current.map((item) =>
+              item.id === segment.id
+                ? { ...item, status, updatedAt: new Date().toISOString() }
+                : item,
+            ),
           );
-          toast.success("Đã xóa segment", {
-            action: {
-              label: "Hoàn tác",
-              onClick: () =>
-                setSegments((current) =>
-                  current.some((item) => item.id === segment.id)
-                    ? current
-                    : [...current, segment],
-                ),
-            },
-          });
+          toast.success(
+            `Đã chuyển trạng thái segment sang ${SEGMENT_STATUS_LABELS[status]}`,
+          );
         },
       }),
     [detailBaseHref, setSegments],
@@ -130,27 +124,13 @@ export function SegmentList({ detailBaseHref }: { detailBaseHref: string }) {
                 >
                   {segments.length === 0
                     ? "Chưa có segment nào. Tạo segment để bắt đầu."
-                    : "Không tìm thấy segment phù hợp. Thử từ khóa hoặc loại khác."}
+                    : "Không tìm thấy segment phù hợp. Thử từ khóa hoặc trạng thái khác."}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </TableRoot>
       </SegmentListToolbar>
-      {editingSegment && (
-        <SegmentEditDialog
-          key={editingSegment.id}
-          segment={editingSegment}
-          onClose={() => setEditingSegment(null)}
-          onSave={(updated) => {
-            setSegments((current) =>
-              current.map((item) => (item.id === updated.id ? updated : item)),
-            );
-            setEditingSegment(null);
-            toast.success("Đã cập nhật segment");
-          }}
-        />
-      )}
     </section>
   );
 }

@@ -10,29 +10,28 @@ import { Popover } from "@/components/tailgrids/core/popover";
 import { cn } from "@/utils/cn";
 
 import {
-  getOptionsForProperty,
-  STUDENT_SEGMENT_PROPERTY_LABEL,
   type SegmentConditionValue,
-  type StudentSegmentProperty,
+  type SegmentOption,
 } from "./segment-filter-config";
 
 interface SegmentFilterValuePickerProps {
   ownerId: string;
-  property: StudentSegmentProperty;
+  label: string;
+  options: SegmentOption[];
   value: SegmentConditionValue;
   onChange: (value: string[]) => void;
 }
 
 export function SegmentFilterValuePicker({
   ownerId,
-  property,
+  label,
+  options,
   value,
   onChange,
 }: SegmentFilterValuePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const selectedValues = Array.isArray(value) ? value : [];
-  const options = getOptionsForProperty(property);
   const normalizedSearch = search.trim().toLocaleLowerCase("vi-VN");
   const filteredOptions = useMemo(
     () =>
@@ -60,7 +59,7 @@ export function SegmentFilterValuePicker({
 
   const triggerLabel =
     selectedLabels.length === 0
-      ? `Chọn ${STUDENT_SEGMENT_PROPERTY_LABEL[property].toLocaleLowerCase("vi-VN")}`
+      ? `Chọn ${label.toLocaleLowerCase("vi-VN")}`
       : selectedLabels.length <= 2
         ? selectedLabels.join(", ")
         : `${selectedLabels.slice(0, 2).join(", ")} +${selectedLabels.length - 2}`;
@@ -72,7 +71,7 @@ export function SegmentFilterValuePicker({
         appearance="outline"
         size="md"
         className="min-w-0 flex-1 justify-between overflow-hidden bg-card-surface-area text-left font-normal"
-        aria-label={`Chọn ${STUDENT_SEGMENT_PROPERTY_LABEL[property]}`}
+        aria-label={`Chọn ${label}`}
       >
         <span
           className={cn(
