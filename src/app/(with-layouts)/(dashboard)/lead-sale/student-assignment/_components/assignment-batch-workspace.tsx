@@ -1,14 +1,11 @@
 "use client";
 
-import { FileText } from "@tailgrids/icons";
-import { Card } from "@/components/tailgrids/core/card";
 import {
   BatchAssignmentProvider,
   useBatchAssignment,
 } from "../../_shared/lead-assignment-batch/batch-assignment-context";
 import AssignmentBatchExecution from "./assignment-batch-execution";
 import AssignmentBatchHeader from "./assignment-batch-header";
-import AssignmentBatchHistory from "./assignment-batch-history";
 import AssignmentBatchWorkflow from "./assignment-batch-workflow";
 
 export default function AssignmentBatchWorkspace() {
@@ -34,29 +31,11 @@ function AssignmentBatchWorkspaceContent() {
       )}
       <AssignmentBatchHeader />
       <AssignmentBatchWorkflow />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      {activeBatch && (
         <section aria-live="polite">
-          {activeBatch ? (
-            <AssignmentBatchExecution />
-          ) : (
-            <Card className="flex min-h-72 flex-col items-center justify-center text-center">
-              <span className="flex size-12 items-center justify-center rounded-xl bg-badge-sky-background text-badge-sky-text">
-                <FileText size={22} aria-hidden="true" />
-              </span>
-              <h2 className="mt-4 text-base font-semibold text-text-primary">
-                Chưa có lần chạy phân công
-              </h2>
-              <p className="mt-2 max-w-md text-sm leading-6 text-text-secondary">
-                Bấm “Phân công Lead” ở phía trên để hệ thống quét các Lead chưa
-                có người phụ trách.
-              </p>
-            </Card>
-          )}
+          <AssignmentBatchExecution />
         </section>
-        <aside>
-          <AssignmentBatchHistory compact />
-        </aside>
-      </div>
+      )}
     </main>
   );
 }

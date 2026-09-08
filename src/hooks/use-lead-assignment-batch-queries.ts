@@ -13,6 +13,7 @@ import {
   createLeadAssignmentBatch,
   importLeadsToAssignmentBatch,
   listLeadAssignmentBatches,
+  listLeadAssignmentHistoryItems,
   previewLeadAssignmentBatch,
   retryLeadAssignmentBatch,
   runLeadAssignmentBatch,
@@ -23,6 +24,8 @@ import {
   type LeadAssignmentBatchDetailResponse,
   type LeadAssignmentBatchListParams,
   type LeadAssignmentBatchListResponse,
+  type LeadAssignmentHistoryParams,
+  type LeadAssignmentHistoryResponse,
   type LeadAssignmentBatchMutationResponse,
   type LeadAssignmentAutoRunResponse,
   type LeadAssignmentCatalogs,
@@ -36,6 +39,8 @@ export const leadAssignmentBatchKeys = {
     ["lead-sale", "lead-assignment-batch", "catalogs", params] as const,
   list: (params: LeadAssignmentBatchListParams = {}) =>
     ["lead-sale", "lead-assignment-batch", "list", params] as const,
+  history: (params: LeadAssignmentHistoryParams = {}) =>
+    ["lead-sale", "lead-assignment-batch", "history", params] as const,
   detail: (batchId: string) =>
     ["lead-sale", "lead-assignment-batch", "detail", batchId] as const,
 };
@@ -96,6 +101,25 @@ export function useLeadAssignmentBatchDetailQuery(
     queryKey: leadAssignmentBatchKeys.detail(id),
     queryFn: () => getLeadAssignmentBatch(id),
     enabled: Boolean(batchId) && (options?.enabled ?? true),
+    ...options,
+  });
+}
+
+export function useLeadAssignmentHistoryQuery(
+  params: LeadAssignmentHistoryParams = {},
+  options?: Omit<
+    UseQueryOptions<
+      LeadAssignmentHistoryResponse,
+      Error,
+      LeadAssignmentHistoryResponse,
+      ReturnType<typeof leadAssignmentBatchKeys.history>
+    >,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<LeadAssignmentHistoryResponse, Error> {
+  return useQuery({
+    queryKey: leadAssignmentBatchKeys.history(params),
+    queryFn: () => listLeadAssignmentHistoryItems(params),
     ...options,
   });
 }
