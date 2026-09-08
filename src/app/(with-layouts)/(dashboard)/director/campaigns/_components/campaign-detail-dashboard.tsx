@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/components/tailgrids/core/card";
+import { useAuth } from "@/components/common/auth/auth-provider";
 import {
   useLeadSaleCampaignChannelTypesQuery,
   useLeadSaleCampaignQuery,
@@ -21,12 +22,15 @@ import {
 import CampaignDetailLeadToolbar from "./campaign-detail-lead-toolbar";
 import CampaignDetailStats from "./campaign-detail-stats";
 import { toCampaignListItem } from "./campaign-mappers";
+import { getCampaignListPath } from "./campaign-routes";
 
 export default function CampaignDetailDashboard({
   campaignCode,
 }: {
   campaignCode: string;
 }) {
+  const { user } = useAuth();
+  const campaignListPath = getCampaignListPath(user?.roles);
   const campaignQuery = useLeadSaleCampaignQuery(campaignCode);
   const { data: channelTypeData } = useLeadSaleCampaignChannelTypesQuery();
   const campaign = useMemo(
@@ -94,6 +98,7 @@ export default function CampaignDetailDashboard({
       className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6"
     >
       <CampaignDetailHeader
+        backHref={campaignListPath}
         campaign={campaign}
         channelTypes={channelTypeData?.channelTypes ?? []}
       />

@@ -33,6 +33,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user?.roles);
+  const leadListHref = getLeadListHref(user?.roles);
   const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId);
   const [activeTab, setActiveTab] = useState("details");
   const callLogsQuery = useLeadCallLogsQuery(leadId, {
@@ -58,7 +59,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       onSuccess: () => {
         setDeleteDialogOpen(false);
         toast.success("Đã xóa Lead.");
-        router.replace("/lead-sale/leads");
+        router.replace(leadListHref);
         router.refresh();
       },
       onError: (deleteError) => {
@@ -178,6 +179,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     >
       <div className="px-2 pt-4 lg:px-6">
         <LeadHeader
+          backHref={leadListHref}
           lead={data.lead}
           createdAt={data.lead.createdAt ?? undefined}
           onDeleteRequest={
@@ -211,4 +213,10 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       />
     </main>
   );
+}
+
+function getLeadListHref(roles: readonly string[] | null | undefined): string {
+  if (roles?.includes("CTV Sale")) return "/ctv-sale/leads";
+  if (roles?.includes("Sale")) return "/sale/leads";
+  return "/lead-sale/leads";
 }

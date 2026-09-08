@@ -237,4 +237,56 @@ describe("dashboard RBAC", () => {
       expect(canAccessDashboardPath(school360Url, [role])).toBe(true);
     }
   });
+
+  it("exposes the lead list only in each sales role's workspace", () => {
+    expect(canAccessDashboardPath("/sale/leads", ["Sale"])).toBe(true);
+    expect(canAccessDashboardPath("/ctv-sale/leads", ["CTV Sale"])).toBe(
+      true,
+    );
+    expect(canAccessDashboardPath("/sale/leads", ["CTV Sale"])).toBe(false);
+    expect(canAccessDashboardPath("/ctv-sale/leads", ["Sale"])).toBe(false);
+
+    expect(
+      getNavigationUrls(
+        filterNavigationByRoles(getNavigationDataForRoles(["Sale"]), [
+          "Sale",
+        ]),
+      ),
+    ).toContain("/sale/leads");
+    expect(
+      getNavigationUrls(
+        filterNavigationByRoles(getNavigationDataForRoles(["CTV Sale"]), [
+          "CTV Sale",
+        ]),
+      ),
+    ).toContain("/ctv-sale/leads");
+  });
+
+  it("exposes the campaign list only in each sales role's workspace", () => {
+    expect(canAccessDashboardPath("/sale/campaigns", ["Sale"])).toBe(true);
+    expect(canAccessDashboardPath("/ctv-sale/campaigns", ["CTV Sale"])).toBe(
+      true,
+    );
+    expect(canAccessDashboardPath("/sale/campaigns", ["CTV Sale"])).toBe(
+      false,
+    );
+    expect(canAccessDashboardPath("/ctv-sale/campaigns", ["Sale"])).toBe(
+      false,
+    );
+
+    expect(
+      getNavigationUrls(
+        filterNavigationByRoles(getNavigationDataForRoles(["Sale"]), [
+          "Sale",
+        ]),
+      ),
+    ).toContain("/sale/campaigns");
+    expect(
+      getNavigationUrls(
+        filterNavigationByRoles(getNavigationDataForRoles(["CTV Sale"]), [
+          "CTV Sale",
+        ]),
+      ),
+    ).toContain("/ctv-sale/campaigns");
+  });
 });

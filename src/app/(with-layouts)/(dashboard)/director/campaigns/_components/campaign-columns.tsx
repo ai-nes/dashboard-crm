@@ -14,6 +14,7 @@ import {
 import { formatDate } from "@/utils/format-date";
 
 import CampaignChannelCell from "./campaign-channel-cell";
+import { getCampaignDetailPath } from "./campaign-routes";
 import type { ChannelTypeOption, ChannelTypeValue } from "./channel-types";
 import { campaignModeLabel, campaignModeOptions, campaignStatusLabel, campaignStatusOptions } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
@@ -31,6 +32,7 @@ const modeTriggerClass: Record<CampaignMode, string> = {
 };
 
 interface CampaignColumnHandlers {
+  detailListPath: string;
   channelTypes: readonly ChannelTypeOption[];
   onStatusChange: (id: string, status: CampaignStatus) => void | Promise<void>;
   onModeChange: (id: string, mode: CampaignMode) => void | Promise<void>;
@@ -40,6 +42,7 @@ interface CampaignColumnHandlers {
 }
 
 export function campaignColumns({
+  detailListPath,
   channelTypes,
   onStatusChange,
   onModeChange,
@@ -60,7 +63,7 @@ export function campaignColumns({
       header: "Tên chiến dịch",
       cell: ({ row }) => (
         <Link
-          href={`/lead-sale/campaigns/${row.original.code}`}
+          href={getCampaignDetailPath(detailListPath, row.original.code)}
           className="font-medium text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
         >
           {row.original.name}

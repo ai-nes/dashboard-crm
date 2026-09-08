@@ -77,5 +77,6 @@ describe("CRM sales permissions", () => {
       canAssign: false,
     });
     expect(permissions.task.canCreate).toBe(false);
+    expect(permissions.lead.canAssign).toBe(false);
   });
 });
