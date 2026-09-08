@@ -1,4 +1,7 @@
-import type { StudentCallRecord } from "@/services/api/students/types";
+import type {
+  StudentCallRecord,
+  StudentCallSummaryStatus,
+} from "@/services/api/students/types";
 
 export type LeadCallRecord = StudentCallRecord;
 
@@ -10,6 +13,7 @@ export interface LeadCallLogsResponse {
 
 const DIRECTIONS = new Set(["inbound", "outbound", "missed"]);
 const OUTCOMES = new Set(["connected", "missed", "no-answer", "callback"]);
+const SUMMARY_STATUSES = new Set(["COMPLETED", "PENDING", "NOT_AVAILABLE"]);
 
 export interface LeadCallLogsRequestOptions {
   baseUrl?: string;
@@ -98,6 +102,9 @@ function normalizeCall(value: unknown): LeadCallRecord | null {
     ...(typeof row.topic === "string" ? { topic: row.topic } : {}),
     ...(typeof row.summary === "string" ? { summary: row.summary } : {}),
     ...(typeof row.summaryAvailable === "boolean" ? { summaryAvailable: row.summaryAvailable } : {}),
+    ...(typeof row.summaryStatus === "string" && SUMMARY_STATUSES.has(row.summaryStatus)
+      ? { summaryStatus: row.summaryStatus as StudentCallSummaryStatus }
+      : {}),
     ...(typeof row.transcript === "string" && row.transcript.trim()
       ? { transcript: row.transcript }
       : {}),

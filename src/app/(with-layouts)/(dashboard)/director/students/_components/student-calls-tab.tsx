@@ -182,6 +182,7 @@ export function StudentCallDetails({
   compact?: boolean;
 }) {
   const outcome = outcomeConfig[call.outcome];
+  const hasSummary = call.summaryAvailable ?? Boolean(call.summary);
 
   if (compact) {
     return (
@@ -232,7 +233,7 @@ export function StudentCallDetails({
         <span>Thời lượng: {formatDuration(call.durationSeconds)}</span>
       </div>
 
-      {call.summary ? (
+      {call.summary && hasSummary ? (
         <div className="rounded-lg bg-background-gray-secondary/60 px-4 py-3">
           <p className="text-xs font-medium text-text-tertiary">
             Tóm tắt cuộc gọi
@@ -240,6 +241,17 @@ export function StudentCallDetails({
           <p className="mt-1 text-sm leading-6 text-text-primary">
             {call.summary}
           </p>
+        </div>
+      ) : null}
+
+      {!call.summary && call.summaryStatus === "PENDING" ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-card-border px-3 py-2">
+          <span className="text-sm font-medium text-text-primary">
+            Tóm tắt cuộc gọi
+          </span>
+          <span className="text-xs text-text-tertiary" role="status">
+            Đang chờ phân tích tự động…
+          </span>
         </div>
       ) : null}
 
