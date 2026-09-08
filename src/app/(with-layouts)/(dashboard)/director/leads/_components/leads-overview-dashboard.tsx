@@ -1,10 +1,12 @@
 "use client";
 
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
-import { Bolt1 } from "@tailgrids/icons";
+import { Bolt1, Play, Plus } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
@@ -16,29 +18,35 @@ import {
 import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-queries";
 import {
   leadSaleLeadsKeys,
+  useCreateLeadMutation,
   useLeadSaleLeadsQuery,
-  useUpdateLeadProcessingStatusMutation,
+  useProcessNewLeadsMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
-import type { LeadListItem, LeadListParams } from "@/services/api/lead-sale";
+import type {
+  LeadCreateFields,
+  LeadListParams,
+} from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
 import {
   type LeadResultFilter,
-  leadStageStatusLabel,
-  normalizeLeadStageStatus,
-  type LeadResultStatus,
   type LeadStageStatus,
 } from "./lead-status";
+import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 
 const pageSize = 10;
-type LeadControlDraft = Partial<
-  Pick<LeadListItem, "status" | "statusCode" | "result">
->;
 
 export default function LeadsOverviewDashboard() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const permissions = getCrmPermissions(user?.roles);
+  const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
+  const canManageLeadIntake = permissions.lead.canAssign && !isAuthLoading;
   const queryClient = useQueryClient();
   const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
+  const createMutation = useCreateLeadMutation();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const processNewLeadsMutation = useProcessNewLeadsMutation();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStageStatus | "all">("all");
   const [resolution, setResolution] = useState<LeadResultFilter | "all">(
@@ -46,10 +54,6 @@ export default function LeadsOverviewDashboard() {
   );
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
-  const [controlDrafts, setControlDrafts] = useState<
-    Record<string, LeadControlDraft>
-  >({});
-  const statusMutation = useUpdateLeadProcessingStatusMutation();
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -73,75 +77,19 @@ export default function LeadsOverviewDashboard() {
   } = useLeadSaleLeadsQuery(listParams, { placeholderData: keepPreviousData });
 
   const leads = response?.data ?? [];
-  const displayedLeads = leads.map((lead) => ({
-    ...lead,
-    ...controlDrafts[lead.id],
-  }));
   const meta = response?.meta;
+  // Intake is a two-step flow: every NEW Lead must pass "Xử lý Lead" before
+  // "Phân công Lead" has anything to hand out, so the header offers exactly the
+  // step that is due. Both counts span the whole intake year, not the filter.
+  const pendingNewCount = meta?.pendingNew ?? 0;
+  const readyToAssignCount = meta?.readyToAssign ?? 0;
+  const hasPendingNew = pendingNewCount > 0;
   const totalCount = meta?.total ?? 0;
   const totalPages = Math.max(
     1,
     meta?.totalPages ?? Math.ceil(totalCount / pageSize),
   );
   const currentPage = Math.min(page, totalPages);
-
-  const handleLeadStatusChange = (id: string, nextStatus: LeadStageStatus) => {
-    const currentLead = leads.find((lead) => lead.id === id);
-    const previousStatus = currentLead
-      ? currentLead.statusCode ?? currentLead.processingStatus ?? currentLead.status
-      : null;
-    const normalizedPreviousStatus = normalizeLeadStageStatus(previousStatus);
-
-    setControlDrafts((previous) => ({
-      ...previous,
-      [id]: {
-        ...previous[id],
-        status: leadStageStatusLabel[nextStatus],
-        statusCode: nextStatus,
-      },
-    }));
-
-    statusMutation.mutate(
-      { lead: id, status: nextStatus },
-      {
-        onSuccess: (response) => {
-          toast.success(`Đã cập nhật trạng thái Lead: ${response.status}.`);
-        },
-        onError: (statusError) => {
-          setControlDrafts((previous) => {
-            const draft = previous[id];
-            if (!draft) return previous;
-            if (normalizedPreviousStatus) {
-              return {
-                ...previous,
-                [id]: {
-                  ...draft,
-                  status: leadStageStatusLabel[normalizedPreviousStatus],
-                  statusCode: normalizedPreviousStatus,
-                },
-              };
-            }
-            const restoredDraft = { ...draft };
-            delete restoredDraft.status;
-            delete restoredDraft.statusCode;
-            return { ...previous, [id]: restoredDraft };
-          });
-          toast.error(
-            statusError instanceof Error
-              ? statusError.message
-              : "Chưa thể cập nhật trạng thái Lead.",
-          );
-        },
-      },
-    );
-  };
-
-  const handleLeadResultChange = (id: string, result: LeadResultStatus) => {
-    setControlDrafts((previous) => ({
-      ...previous,
-      [id]: { ...previous[id], result },
-    }));
-  };
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
@@ -171,7 +119,45 @@ export default function LeadsOverviewDashboard() {
     setPage(1);
   };
 
-  const runAutomaticAssignment = async () => {
+  const handleCreateLead = async (fields: LeadCreateFields) => {
+    await createMutation.mutateAsync(fields);
+    setCreateDialogOpen(false);
+    setPage(1);
+    toast.success("Đã tạo Lead.");
+  };
+
+  const runLeadProcessing = async () => {
+    try {
+      const { summary } = await processNewLeadsMutation.mutateAsync({
+        admissionYear: listParams.admissionYear,
+      });
+
+      if (!summary.scanned) {
+        toast.info("Không có Lead mới cần xử lý");
+        return;
+      }
+
+      const outcome = [
+        `${summary.processed} Lead sẵn sàng phân công`,
+        `${summary.closed} Lead đóng do thiếu CCCD, trường THPT hoặc ngành`,
+      ];
+      if (summary.skipped) outcome.push(`${summary.skipped} Lead bỏ qua`);
+      if (summary.failed) outcome.push(`${summary.failed} Lead lỗi`);
+
+      toast.success(`Đã xử lý ${summary.scanned} Lead`, {
+        description: `${outcome.join("; ")}.`,
+      });
+    } catch (mutationError) {
+      toast.error("Không thể xử lý Lead", {
+        description:
+          mutationError instanceof Error
+            ? mutationError.message
+            : "Vui lòng thử lại.",
+      });
+    }
+  };
+
+  const runLeadAssignment = async () => {
     try {
       const result = await runUnassignedMutation.mutateAsync({});
       await queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all });
@@ -182,16 +168,16 @@ export default function LeadsOverviewDashboard() {
       if (!result.batch) {
         toast.info("Không có Lead chưa phân công", {
           description:
-            result.message ?? "Tất cả Lead hiện tại đã được xử lý.",
+            result.message ?? "Tất cả Lead đã xử lý đều đã có người phụ trách.",
         });
         return;
       }
 
-      toast.success("Đã phân công tự động", {
+      toast.success("Đã phân công Lead", {
         description: `${result.batch.summary.assigned} Lead đã được giao cho Sale/CTV; ${result.batch.summary.manualReview} Lead cần rà soát.`,
       });
     } catch (mutationError) {
-      toast.error("Không thể phân công tự động", {
+      toast.error("Không thể phân công Lead", {
         description:
           mutationError instanceof Error
             ? mutationError.message
@@ -231,21 +217,59 @@ export default function LeadsOverviewDashboard() {
             Toàn cảnh Lead tiếp nhận trước khi được phân công cho đội ngũ Sale.
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 max-sm:w-full">
-          <Button
-            size="md"
-            variant="primary"
-            appearance="fill"
-            onPress={runAutomaticAssignment}
-            isDisabled={runUnassignedMutation.isPending}
-            aria-label="Phân công tự động các Lead chưa có người phụ trách"
-          >
-            <Bolt1 size={18} aria-hidden="true" />
-            {runUnassignedMutation.isPending
-              ? "Đang phân công…"
-              : "Phân công tự động"}
-          </Button>
-        </div>
+        {(canCreateLead || canManageLeadIntake) && (
+          <div className="flex shrink-0 flex-col items-end gap-2 max-sm:w-full">
+            <div className="flex flex-wrap items-center justify-end gap-3 max-sm:w-full">
+              {canCreateLead && (
+                <Button
+                  className="shrink-0 max-sm:w-full"
+                  onPress={() => setCreateDialogOpen(true)}
+                  size="md"
+                  aria-label="Tạo Lead nhanh"
+                >
+                  <Plus size={18} aria-hidden="true" />
+                  Tạo Lead nhanh
+                </Button>
+              )}
+              {canManageLeadIntake &&
+                meta &&
+                (hasPendingNew ? (
+                  <Button
+                    size="md"
+                    variant="primary"
+                    appearance="fill"
+                    onPress={runLeadProcessing}
+                    isDisabled={processNewLeadsMutation.isPending}
+                    aria-label="Xử lý các Lead mới trước khi phân công"
+                  >
+                    <Play size={18} aria-hidden="true" />
+                    {processNewLeadsMutation.isPending
+                      ? "Đang xử lý…"
+                      : `Xử lý Lead (${pendingNewCount})`}
+                  </Button>
+                ) : (
+                  <Button
+                    size="md"
+                    variant="primary"
+                    appearance="fill"
+                    onPress={runLeadAssignment}
+                    isDisabled={runUnassignedMutation.isPending}
+                    aria-label="Phân công các Lead đã xử lý cho đội ngũ Sale"
+                  >
+                    <Bolt1 size={18} aria-hidden="true" />
+                    {runUnassignedMutation.isPending
+                      ? "Đang phân công…"
+                      : "Phân công Lead"}
+                  </Button>
+                ))}
+            </div>
+            {canManageLeadIntake && meta && !hasPendingNew && (
+              <p className="text-right text-xs text-text-tertiary max-sm:w-full max-sm:text-left">
+                {`${readyToAssignCount} Lead đã xử lý đang chờ phân công.`}
+              </p>
+            )}
+          </div>
+        )}
       </header>
 
       <LeadListToolbar
@@ -288,12 +312,7 @@ export default function LeadsOverviewDashboard() {
                 Đang tải danh sách Lead…
               </div>
             ) : (
-              <LeadList
-                leads={displayedLeads}
-                isStatusUpdating={statusMutation.isPending}
-                onStatusChange={handleLeadStatusChange}
-                onResultChange={handleLeadResultChange}
-              />
+              <LeadList leads={leads} />
             )}
           </div>
         </div>
@@ -333,6 +352,15 @@ export default function LeadsOverviewDashboard() {
           </div>
         )}
       </Card>
+
+      {canCreateLead && (
+        <QuickCreateLeadDialog
+          isOpen={createDialogOpen}
+          isSubmitting={createMutation.isPending}
+          onOpenChange={setCreateDialogOpen}
+          onCreate={handleCreateLead}
+        />
+      )}
 
     </main>
   );

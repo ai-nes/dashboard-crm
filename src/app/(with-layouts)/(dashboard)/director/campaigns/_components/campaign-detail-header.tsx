@@ -12,14 +12,16 @@ import type { CampaignListItem } from "./types";
 export default function CampaignDetailHeader({
   campaign,
   channelTypes,
+  backHref = "/lead-sale/campaigns",
 }: {
   campaign: CampaignListItem;
   channelTypes: readonly ChannelTypeOption[];
+  backHref?: string;
 }) {
   return (
     <header className="rounded-xl border border-card-border bg-card-background p-5 lg:p-6">
       <Link
-        href="/lead-sale/campaigns"
+        href={backHref}
         className="inline-flex items-center gap-1 text-xs font-medium text-text-tertiary hover:text-text-primary"
       >
         <ChevronLeft size={14} aria-hidden="true" />

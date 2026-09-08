@@ -214,6 +214,16 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
     label: "HỒ SƠ HỌC SINH",
     items: [
       navItem({
+        title: "Danh sách Leads",
+        url: "/ctv-sale/leads",
+        icon: <Target3 size={18} />,
+      }),
+      navItem({
+        title: "Chiến dịch tuyển sinh",
+        url: "/ctv-sale/campaigns",
+        icon: <Megaphone1 size={18} />,
+      }),
+      navItem({
         title: "Hồ sơ học sinh 360°",
         url: "/ctv-sale/students",
         icon: <UserGroupIcon />,
@@ -271,6 +281,16 @@ export const SALE_NAV_DATA: NavigationSection[] = [
       //   url: "/sale/demographics",
       //   icon: <AlphabetIcon />,
       // }),
+      navItem({
+        title: "Danh sách Leads",
+        url: "/sale/leads",
+        icon: <Target3 size={18} />,
+      }),
+      navItem({
+        title: "Chiến dịch tuyển sinh",
+        url: "/sale/campaigns",
+        icon: <Megaphone1 size={18} />,
+      }),
       navItem({
         title: "Hồ sơ học sinh 360°",
         url: "/sale/students",
@@ -356,7 +376,7 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
     label: "VẬN HÀNH TUYỂN SINH",
     items: [
       navItem({
-        title: "Phân công tự động",
+        title: "Phân công Lead",
         url: "/lead-sale/student-assignment",
         icon: <UserPencil size={18} />,
       }),

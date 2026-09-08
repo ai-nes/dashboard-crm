@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
+import { useAuth } from "@/components/common/auth/auth-provider";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -13,12 +14,14 @@ import {
   useLeadSaleCampaignsQuery,
   useUpdateLeadSaleCampaignMutation,
 } from "@/hooks/use-lead-sale-campaign-queries";
+import type { UpdateCampaignPayload } from "@/services/api/lead-sale";
 import CampaignFormDialog from "./campaign-form-dialog";
 import CampaignList from "./campaign-list";
 import CampaignStats from "./campaign-stats";
 import CampaignToolbar from "./campaign-toolbar";
 import { isChannelTypeValidForMode, type ChannelTypeValue } from "./channel-types";
 import { toCampaignListItem } from "./campaign-mappers";
+import { getCampaignListPath } from "./campaign-routes";
 import type {
   CampaignFormValues,
   CampaignListItem,
@@ -32,6 +35,8 @@ type FormDialogState = { mode: "create" } | { mode: "edit"; campaign: CampaignLi
 const pageSize = 5;
 
 export default function CampaignsOverviewDashboard() {
+  const { user } = useAuth();
+  const campaignListPath = getCampaignListPath(user?.roles);
   const { data, error } = useLeadSaleCampaignsQuery();
   const {
     data: channelTypeData,
@@ -102,25 +107,69 @@ export default function CampaignsOverviewDashboard() {
     [campaigns],
   );
 
+  const persistCampaignChange = (
+    id: string,
+    changes: Partial<CampaignListItem>,
+    payload: UpdateCampaignPayload,
+    successMessage: string,
+    errorMessage: string,
+  ) => {
+    if (updateCampaignMutation.isPending) return;
+
+    const previousChanges = campaignChanges[id];
+    setCampaignChanges((current) => ({
+      ...current,
+      [id]: { ...current[id], ...changes },
+    }));
+
+    void updateCampaignMutation
+      .mutateAsync(payload)
+      .then(() => {
+        toast.success(successMessage);
+      })
+      .catch((updateError) => {
+        setCampaignChanges((current) => {
+          const next = { ...current };
+          if (previousChanges) next[id] = previousChanges;
+          else delete next[id];
+          return next;
+        });
+        toast.error(updateError instanceof Error ? updateError.message : errorMessage);
+      });
+  };
+
   const handleStatusChange = (id: string, nextStatus: CampaignStatus) => {
-    setCampaignChanges((current) => ({ ...current, [id]: { ...current[id], status: nextStatus } }));
-    toast.success("Đã cập nhật trạng thái chiến dịch.");
+    const campaign = campaigns.find((item) => item.id === id);
+    if (!campaign) return;
+
+    persistCampaignChange(
+      id,
+      { status: nextStatus },
+      { name: campaign.id, status: nextStatus },
+      "Đã cập nhật trạng thái chiến dịch.",
+      "Không thể cập nhật trạng thái chiến dịch.",
+    );
   };
 
   const handleModeChange = (id: string, nextMode: CampaignMode) => {
     const campaign = campaigns.find((item) => item.id === id);
-    const channelType = campaign?.channelType ?? "";
-    setCampaignChanges((current) => ({
-      ...current,
-      [id]: {
-        ...current[id],
-        mode: nextMode,
-        channelType: isChannelTypeValidForMode(channelType, nextMode, channelTypes)
-          ? channelType
-          : "",
+    if (!campaign) return;
+
+    const channelType = campaign.channelType;
+    const nextChannelType = isChannelTypeValidForMode(channelType, nextMode, channelTypes)
+      ? channelType
+      : "";
+    persistCampaignChange(
+      id,
+      { mode: nextMode, channelType: nextChannelType },
+      {
+        name: campaign.id,
+        channelBoundary: nextMode === "ONLINE" ? "Digital" : "Field",
+        channelType: nextChannelType,
       },
-    }));
-    toast.success("Đã cập nhật hình thức chiến dịch.");
+      "Đã cập nhật hình thức chiến dịch.",
+      "Không thể cập nhật hình thức chiến dịch.",
+    );
   };
 
   const handleChannelSave = async (
@@ -212,6 +261,7 @@ export default function CampaignsOverviewDashboard() {
 
       <CampaignList
         campaigns={pageCampaigns}
+        detailListPath={campaignListPath}
         channelTypes={channelTypes}
         onStatusChange={handleStatusChange}
         onModeChange={handleModeChange}

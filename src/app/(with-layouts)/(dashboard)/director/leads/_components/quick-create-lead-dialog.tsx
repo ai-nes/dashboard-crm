@@ -33,6 +33,7 @@ interface QuickCreateLeadForm {
   phone: string;
   email: string;
   province: string;
+  ward: string;
   high_school: string;
   major: string;
   source: string;
@@ -50,6 +51,7 @@ const initialForm: QuickCreateLeadForm = {
   phone: "",
   email: "",
   province: "",
+  ward: "",
   high_school: "",
   major: "",
   source: "",
@@ -73,6 +75,15 @@ export default function QuickCreateLeadDialog({
     { doctype: "CRM Lead", fieldname: "province" },
     isOpen,
   );
+  const wardOptionsQuery = useStudentSchoolFieldOptions(
+    {
+      doctype: "CRM Lead",
+      fieldname: "ward",
+      limit: 100,
+      province: form.province || undefined,
+    },
+    isOpen && Boolean(form.province),
+  );
   const sourceOptionsQuery = useStudentSchoolFieldOptions(
     { doctype: "CRM Lead", fieldname: "source", limit: 100 },
     isOpen,
@@ -87,6 +98,7 @@ export default function QuickCreateLeadDialog({
   );
 
   const provinceOptions = toSelectOptions(provinceOptionsQuery.data?.options);
+  const wardOptions = toSelectOptions(wardOptionsQuery.data?.options);
   const sourceOptions = toSelectOptions(sourceOptionsQuery.data?.options);
   const majorOptions = toSelectOptions(majorOptionsQuery.data?.options);
   const branchOptions = toSelectOptions(branchOptionsQuery.data?.options);
@@ -117,10 +129,11 @@ export default function QuickCreateLeadDialog({
   };
 
   const handleProvinceChange = (province: string) => {
-    setForm((current) => ({ ...current, province, high_school: "" }));
+    setForm((current) => ({ ...current, province, ward: "", high_school: "" }));
     setFieldErrors((current) => {
       const next = { ...current };
       delete next.province;
+      delete next.ward;
       delete next.high_school;
       return next;
     });
@@ -236,11 +249,24 @@ export default function QuickCreateLeadDialog({
                 />
               </CreateDialogField>
 
+              <CreateDialogField label="Xã / phường">
+                <CreateDialogSelect
+                  label="Xã / phường"
+                  options={wardOptions}
+                  value={form.ward}
+                  isDisabled={
+                    !form.province || wardOptionsQuery.isPending
+                  }
+                  onChange={(value) => setField("ward", value)}
+                />
+              </CreateDialogField>
+
               <CreateDialogField label="Trường THPT">
                 <SchoolCombobox
                   ariaLabel="Chọn trường THPT"
                   isDisabled={!form.province}
                   province={form.province}
+                  ward={form.ward}
                   requiresWard={false}
                   value={form.high_school}
                   onChange={(value) => setField("high_school", value)}
@@ -300,7 +326,9 @@ export default function QuickCreateLeadDialog({
               </CreateDialogField>
             </div>
 
-            {(sourceOptionsQuery.isError || provinceOptionsQuery.isError) && (
+            {(sourceOptionsQuery.isError ||
+              provinceOptionsQuery.isError ||
+              wardOptionsQuery.isError) && (
               <p className="text-xs text-error-600" role="alert">
                 Chưa thể tải một số danh mục Lead. Vui lòng thử lại sau.
               </p>
@@ -339,6 +367,7 @@ function toLeadCreateFields(form: QuickCreateLeadForm): LeadCreateFields {
     source: form.source.trim(),
     ...compactFields({
       email: form.email,
+      ward: form.ward,
       high_school: form.high_school,
       major: form.major,
       advertising_channel: form.advertising_channel,

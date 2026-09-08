@@ -152,8 +152,11 @@ export default function BigTeamDetailDashboard({
           placeholder="Ví dụ: Team Tư vấn Khu Đông"
           submitLabel="Tạo Team"
           campusOptions={state.options?.campuses}
+          teamLeadOptions={state.members.filter(
+            (member) => member.isActive !== false,
+          )}
           onClose={() => setIsCreating(false)}
-          onSubmit={(name, campusId) => {
+          onSubmit={(name, campusId, _provinceId, teamLeadId) => {
             if (!campusId) return;
             void run(
               () =>
@@ -162,6 +165,7 @@ export default function BigTeamDetailDashboard({
                   groupId: bigTeam.id,
                   teamType: "Sales",
                   campus: campusId,
+                  teamLeadStaff: teamLeadId,
                   isActive: true,
                 }),
               `Đã tạo Team "${name}".`,

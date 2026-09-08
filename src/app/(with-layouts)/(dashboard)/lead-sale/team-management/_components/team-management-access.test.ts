@@ -211,12 +211,9 @@ function stateWithPermissions(
 }
 
 describe("team management organization permissions", () => {
-  it("gives CEO session profiles full organization access", () => {
+  it("gives Lead Sale full organization access", () => {
     const permissions = getTeamManagementPermissions(
-      {
-        ...user("ceo@example.com", ["Sale"]),
-        crm_profile: "ceo",
-      },
+      user("lead-sale@example.com", ["Lead Sale"]),
       workspace,
     );
 
@@ -226,6 +223,25 @@ describe("team management organization permissions", () => {
     expect(getTeamManagementEntryPath(stateWithPermissions(permissions))).toBe(
       null,
     );
+  });
+
+  it("does not grant Team Management access to Director or CEO profiles", () => {
+    for (const profile of ["admissions_director", "ceo"] as const) {
+      const permissions = getTeamManagementPermissions(
+        {
+          ...user(`${profile}@example.com`, ["Administrator"]),
+          crm_profile: profile,
+        },
+        workspace,
+      );
+
+      expect(permissions.canManage).toBe(false);
+      expect(permissions.canManageAll).toBe(false);
+      expect(permissions.visibleTeamIds).toEqual([]);
+      expect(
+        getTeamManagementEntryPath(stateWithPermissions(permissions)),
+      ).toBe(null);
+    }
   });
 
   it("lets a Group Lead manage Teams in the led Group only", () => {
@@ -313,5 +329,18 @@ describe("team management organization permissions", () => {
     expect(getTeamManagementEntryPath(stateWithPermissions(permissions))).toBe(
       "/lead-sale/team-management/group-1/team-1",
     );
+  });
+
+  it("keeps CTV Sale read-only even when the workspace contains lead metadata", () => {
+    const permissions = getTeamManagementPermissions(
+      user("group-lead@example.com", ["CTV Sale"]),
+      workspace,
+    );
+
+    expect(permissions.visibleTeamIds).toEqual([]);
+    expect(permissions.managedGroupIds).toEqual([]);
+    expect(permissions.canManage).toBe(false);
+    expect(canManageTeam(permissions, "team-1")).toBe(false);
+    expect(canManageMembers(permissions, "team-1")).toBe(false);
   });
 });
