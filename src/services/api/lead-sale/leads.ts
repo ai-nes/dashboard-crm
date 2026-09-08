@@ -1,3 +1,5 @@
+import { getCsrfToken } from "../auth";
+
 export type LeadStatus = string;
 
 export interface LeadStatusOption {
@@ -57,6 +59,7 @@ export interface LeadDetail extends LeadListItem {
   email: string;
   secondaryEmail: string;
   province: string;
+  ward: string;
   interestedMajor: string;
   adChannel: string;
   segments: string[];
@@ -190,6 +193,7 @@ export type LeadUpdateFields = Partial<{
   email: LeadUpdateFieldValue;
   other_email: LeadUpdateFieldValue;
   province: LeadUpdateFieldValue;
+  ward: LeadUpdateFieldValue;
   high_school: LeadUpdateFieldValue;
   major: LeadUpdateFieldValue;
   aspiration: LeadUpdateFieldValue;
@@ -532,6 +536,7 @@ function normalizeDetail(value: unknown): LeadDetail {
       row.other_email,
     ]),
     province: firstText([row.province]),
+    ward: firstText([row.ward]),
     interestedMajor: firstText([
       row.interestedMajor,
       row.interested_major,
@@ -651,7 +656,7 @@ async function requestHeaders(
       // Contract tests and non-request contexts do not have Next headers.
     }
   }
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && includeJsonContentType) {
     const csrfToken = document.cookie
       .split(";")
       .map((part) => part.trim())
@@ -659,8 +664,18 @@ async function requestHeaders(
       ?.split("=")
       .slice(1)
       .join("=");
-    if (csrfToken)
+    if (csrfToken) {
       headers["X-Frappe-CSRF-Token"] = decodeURIComponent(csrfToken);
+    } else {
+      try {
+        const sessionCsrfToken = await getCsrfToken(resolveBaseUrl(options));
+        if (sessionCsrfToken) {
+          headers["X-Frappe-CSRF-Token"] = sessionCsrfToken;
+        }
+      } catch {
+        // The write request returns the authoritative CSRF error if needed.
+      }
+    }
   }
   return headers;
 }

@@ -1,19 +1,11 @@
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
+import { Badge } from "@/components/tailgrids/core/badge";
 
 import LeadContactLogCell from "./lead-contact-log-cell";
 import { LeadDetailField as Field } from "./lead-detail-field";
 import LeadResultCell from "./lead-result-cell";
 import {
+  leadStageStatusColor,
   leadStageStatusLabel,
-  leadStageStatusOptions,
-  leadStageTriggerClass,
   type LeadResultStatus,
   type LeadStageStatus,
 } from "./lead-status";
@@ -24,9 +16,6 @@ interface LeadWorkflowSectionProps {
   result: LeadResultStatus | "";
   contactNoAnswer: number;
   contactSuccess: number;
-  isUpdating?: boolean;
-  onStatusChange: (status: LeadStageStatus) => void;
-  onResultChange: (result: LeadResultStatus) => void;
 }
 
 export default function LeadWorkflowSection({
@@ -35,9 +24,6 @@ export default function LeadWorkflowSection({
   result,
   contactNoAnswer,
   contactSuccess,
-  isUpdating = false,
-  onStatusChange,
-  onResultChange,
 }: LeadWorkflowSectionProps) {
   return (
     <section
@@ -52,35 +38,13 @@ export default function LeadWorkflowSection({
           label="Trạng thái xử lý"
           value={
             status ? (
-              <Select
-                value={status}
-                onChange={(value) =>
-                  onStatusChange(String(value) as LeadStageStatus)
-                }
-                aria-label={`Trạng thái lead ${leadName}`}
-                className="w-fit min-w-32"
-                isDisabled
+              <Badge
+                color={leadStageStatusColor[status]}
+                size="md"
+                className="whitespace-nowrap"
               >
-                <SelectTrigger
-                  size="sm"
-                  isDisabled
-                  className={`w-full ${leadStageTriggerClass[status]}`}
-                >
-                  <SelectValue />
-                  <SelectIndicator />
-                </SelectTrigger>
-                <SelectContent>
-                  {leadStageStatusOptions.map((option) => (
-                    <SelectItem
-                      key={option}
-                      id={option}
-                      textValue={leadStageStatusLabel[option]}
-                    >
-                      {leadStageStatusLabel[option]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {leadStageStatusLabel[status]}
+              </Badge>
             ) : (
               <span className="text-sm text-text-tertiary">Chưa cập nhật</span>
             )
@@ -89,13 +53,7 @@ export default function LeadWorkflowSection({
         <Field
           label="Kết quả"
           value={
-            <LeadResultCell
-              leadName={leadName}
-              status={status}
-              result={result}
-              isUpdating={isUpdating}
-              onChange={onResultChange}
-            />
+            <LeadResultCell compact result={result} />
           }
         />
         <Field

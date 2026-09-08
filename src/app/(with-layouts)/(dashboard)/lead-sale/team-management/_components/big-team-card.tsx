@@ -8,7 +8,8 @@ import { Card } from "@/components/tailgrids/core/card";
 
 import EditableTeamTitle from "./editable-team-title";
 import TeamCardActions from "./team-card-actions";
-import LeadPickerField from "./lead-picker-field";
+import EditableLeadPickerField from "./editable-lead-picker-field";
+import ProvincePickerField from "./province-picker-field";
 import type { BigTeam, TeamMember } from "./types";
 
 interface BigTeamCardProps {
@@ -16,10 +17,12 @@ interface BigTeamCardProps {
   smallTeamCount: number;
   memberCount: number;
   allMembers: TeamMember[];
+  provinces: Array<{ id: string; label: string }>;
   canManageGroup: boolean;
   onEdit: (name: string) => void;
   onDelete: () => void;
   onLeadChange: (leadId: string | null) => void;
+  onProvinceChange: (provinceId: string | null) => void;
 }
 
 export default function BigTeamCard({
@@ -27,10 +30,12 @@ export default function BigTeamCard({
   smallTeamCount,
   memberCount,
   allMembers,
+  provinces,
   canManageGroup,
   onEdit,
   onDelete,
   onLeadChange,
+  onProvinceChange,
 }: BigTeamCardProps) {
   return (
     <Card className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-card-border p-0 transition-shadow hover:shadow-md">
@@ -58,24 +63,29 @@ export default function BigTeamCard({
                 {memberCount} thành viên
               </Badge>
             </div>
-            <p className="mt-2 text-xs text-text-secondary">
-              Tỉnh: {bigTeam.provinceName ?? "Chưa chọn tỉnh"}
-            </p>
-            <div className="mt-4 rounded-xl bg-background-gray-secondary/60 p-3.5">
-              <label className="block space-y-1.5">
-                <span className="text-xs font-medium text-text-secondary">
-                  Trưởng Group
-                </span>
-                <LeadPickerField
-                  candidates={allMembers}
-                  value={bigTeam.groupLeadId}
-                  onChange={onLeadChange}
-                  isDisabled={!canManageGroup}
-                  ariaLabel={`Trưởng Group ${bigTeam.name}`}
-                  placeholder="Chọn Trưởng Group"
-                  className="w-full"
-                />
-              </label>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-text-secondary">
+                Tỉnh quản lý
+              </span>
+              <ProvincePickerField
+                options={provinces}
+                value={bigTeam.provinceId}
+                onChange={onProvinceChange}
+                ariaLabel={`Tỉnh quản lý ${bigTeam.name}`}
+                isDisabled={!canManageGroup}
+              />
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-text-secondary">
+                Trưởng Group
+              </span>
+              <EditableLeadPickerField
+                candidates={allMembers}
+                value={bigTeam.groupLeadId}
+                onChange={onLeadChange}
+                isDisabled={!canManageGroup}
+                ariaLabel={`Trưởng Group ${bigTeam.name}`}
+              />
             </div>
           </div>
           <TeamCardActions

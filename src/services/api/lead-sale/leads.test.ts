@@ -14,7 +14,10 @@ import {
   updateLead,
 } from "./leads";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 function listFixture() {
   return {
@@ -141,6 +144,7 @@ describe("Lead list/detail API contract", () => {
         email: "an@example.com",
         secondaryEmail: "",
         province: "Cần Thơ",
+        ward: "Phường An Cư",
         interestedMajor: "Trí tuệ nhân tạo",
         adChannel: "Facebook Ads",
         segments: ["Quan tâm học bổng"],
@@ -188,6 +192,7 @@ describe("Lead list/detail API contract", () => {
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(result?.lead.email).toBe("an@example.com");
+    expect(result?.lead.ward).toBe("Phường An Cư");
     expect(result?.lead.segments).toEqual(["Quan tâm học bổng"]);
     expect(result?.log[0]).toMatchObject({
       eventType: "status_changed",
@@ -249,6 +254,7 @@ describe("Lead list/detail API contract", () => {
             other_email: "binh.alt@example.com",
             high_school: "THPT Nguyễn Huệ",
             province: "Hà Nội",
+            ward: "Phường Hoàn Kiếm",
             major: "Kỹ thuật phần mềm",
             aspiration: "Nguyện vọng 1",
             admission_year: "2026",
@@ -283,6 +289,7 @@ describe("Lead list/detail API contract", () => {
         processingStatus: "ASSIGNED",
         result: "MATCHED",
         secondaryEmail: "binh.alt@example.com",
+        ward: "Phường Hoàn Kiếm",
         interestedMajor: "Kỹ thuật phần mềm",
         enrollmentYear: 2026,
         conversionPotential: "Cao",
@@ -316,6 +323,7 @@ describe("Lead list/detail API contract", () => {
         student_name: " Lê Văn Cường ",
         phone: "0922222222",
         province: "Cần Thơ",
+        ward: "WARD-CT-1",
         source: "Website",
         email: "cuong@example.com",
       },
@@ -332,6 +340,7 @@ describe("Lead list/detail API contract", () => {
             student_name: " Lê Văn Cường ",
             phone: "0922222222",
             province: "Cần Thơ",
+            ward: "WARD-CT-1",
             source: "Website",
             email: "cuong@example.com",
           },
@@ -375,6 +384,60 @@ describe("Lead list/detail API contract", () => {
     );
     expect(result.lead.name).toBe("Lê Văn Cường");
     expect(result.lead.phone).toBe("0922222222");
+  });
+
+  it("gets the browser CSRF token from the session when the Frappe cookie is cross-origin", async () => {
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("document", { cookie: "" });
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            message: {
+              user: "sales@example.com",
+              csrf_token: "csrf-from-session",
+            },
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            message: {
+              name: "LEAD-2026-00003",
+              student_name: "Lê Văn Cường",
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+
+    await updateLead(
+      "LEAD-2026-00003",
+      { student_name: "Lê Văn Cường" },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      1,
+      "http://frappe:8000/api/method/crm.api.session.me",
+      {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      },
+    );
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      2,
+      "http://frappe:8000/api/method/crm.api.lead.update_lead",
+      expect.objectContaining({
+        credentials: "include",
+        headers: expect.objectContaining({
+          "X-Frappe-CSRF-Token": "csrf-from-session",
+        }),
+      }),
+    );
   });
 
   it("processes a Lead through the processing command", async () => {

@@ -24,7 +24,6 @@ import {
 } from "@/hooks/use-lead-sale-leads-queries";
 import type {
   LeadCreateFields,
-  LeadListItem,
   LeadListParams,
 } from "@/services/api/lead-sale";
 
@@ -32,15 +31,11 @@ import LeadList, { leadListGrid } from "./lead-list";
 import LeadListToolbar from "./lead-list-toolbar";
 import {
   type LeadResultFilter,
-  type LeadResultStatus,
   type LeadStageStatus,
 } from "./lead-status";
 import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 
 const pageSize = 10;
-type LeadControlDraft = Partial<
-  Pick<LeadListItem, "result">
->;
 
 export default function LeadsOverviewDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -58,9 +53,6 @@ export default function LeadsOverviewDashboard() {
   );
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
-  const [controlDrafts, setControlDrafts] = useState<
-    Record<string, LeadControlDraft>
-  >({});
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -84,10 +76,6 @@ export default function LeadsOverviewDashboard() {
   } = useLeadSaleLeadsQuery(listParams, { placeholderData: keepPreviousData });
 
   const leads = response?.data ?? [];
-  const displayedLeads = leads.map((lead) => ({
-    ...lead,
-    ...controlDrafts[lead.id],
-  }));
   const meta = response?.meta;
   // Intake is a two-step flow: every NEW Lead must pass "Xử lý Lead" before
   // "Phân công Lead" has anything to hand out, so the header offers exactly the
@@ -101,13 +89,6 @@ export default function LeadsOverviewDashboard() {
     meta?.totalPages ?? Math.ceil(totalCount / pageSize),
   );
   const currentPage = Math.min(page, totalPages);
-
-  const handleLeadResultChange = (id: string, result: LeadResultStatus) => {
-    setControlDrafts((previous) => ({
-      ...previous,
-      [id]: { ...previous[id], result },
-    }));
-  };
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
@@ -325,10 +306,7 @@ export default function LeadsOverviewDashboard() {
                 Đang tải danh sách Lead…
               </div>
             ) : (
-              <LeadList
-                leads={displayedLeads}
-                onResultChange={handleLeadResultChange}
-              />
+              <LeadList leads={leads} />
             )}
           </div>
         </div>

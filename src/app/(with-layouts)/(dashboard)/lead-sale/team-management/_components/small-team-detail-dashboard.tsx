@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { toast } from "sonner";
 
 import { Card } from "@/components/tailgrids/core/card";
 
-import AddMemberDialog from "./add-member-dialog";
+import AddMemberDropdown from "./add-member-dropdown";
 import SmallTeamDetailHeader from "./small-team-detail-header";
 import LeadPickerField from "./lead-picker-field";
 import SmallTeamStats from "./small-team-stats";
@@ -31,8 +30,6 @@ export default function SmallTeamDetailDashboard({
     removeMember,
     updateMember,
   } = useTeamManagement();
-  const [isAdding, setIsAdding] = useState(false);
-
   if (isLoading && !state) return <LoadingState />;
   if (error && !state) return <ErrorState message={error} />;
   if (!state) return null;
@@ -124,7 +121,7 @@ export default function SmallTeamDetailDashboard({
       sourceTeamId
         ? `Đã chuyển ${added.name} vào ${smallTeam.name}.`
         : `Đã thêm ${added.name} vào ${smallTeam.name}.`,
-    ).finally(() => setIsAdding(false));
+    );
   };
 
   const handleRemoveMember = (memberId: string) => {
@@ -152,8 +149,14 @@ export default function SmallTeamDetailDashboard({
       <SmallTeamDetailHeader
         bigTeam={bigTeam}
         smallTeam={smallTeam}
-        onCreate={() => setIsAdding(true)}
-        canManageMembers={canManageTeamMembers}
+        addMemberControl={
+          <AddMemberDropdown
+            teamName={smallTeam.name}
+            candidates={candidates}
+            onSubmit={handleAddMember}
+            isDisabled={!canManageTeamMembers}
+          />
+        }
         canViewGroup={canViewGroup}
       />
       <SmallTeamStats
@@ -209,15 +212,6 @@ export default function SmallTeamDetailDashboard({
           onRemove={handleRemoveMember}
         />
       </section>
-
-      {isAdding && (
-        <AddMemberDialog
-          teamName={smallTeam.name}
-          candidates={candidates}
-          onClose={() => setIsAdding(false)}
-          onSubmit={handleAddMember}
-        />
-      )}
     </main>
   );
 }

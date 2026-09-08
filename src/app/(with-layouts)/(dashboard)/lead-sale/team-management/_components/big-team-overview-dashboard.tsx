@@ -36,6 +36,9 @@ export default function BigTeamOverviewDashboard() {
   }
 
   const canManageGroups = state.permissions?.canManageGroups ?? false;
+  const activeLeadCandidates = state.members.filter(
+    (member) => member.isActive !== false,
+  );
   const run = async (action: () => Promise<void>, success: string) => {
     try {
       await action();
@@ -108,6 +111,7 @@ export default function BigTeamOverviewDashboard() {
               allMembers={state.members.filter(
                 (member) => member.isActive !== false,
               )}
+              provinces={state.options?.provinces ?? []}
               canManageGroup={canManageGroups}
               onEdit={(name) =>
                 void run(
@@ -145,6 +149,20 @@ export default function BigTeamOverviewDashboard() {
                   leadId ? "Đã cập nhật Trưởng Group." : "Đã bỏ Trưởng Group.",
                 )
               }
+              onProvinceChange={(provinceId) =>
+                void run(
+                  () =>
+                    saveGroup({
+                      groupId: bigTeam.id,
+                      groupName: bigTeam.name,
+                      provinceId,
+                      expectedRevision: bigTeam.revision,
+                    }),
+                  provinceId
+                    ? "Đã cập nhật tỉnh quản lý."
+                    : "Đã bỏ tỉnh quản lý.",
+                )
+              }
             />
           ))}
         </div>
@@ -158,10 +176,16 @@ export default function BigTeamOverviewDashboard() {
           placeholder="Ví dụ: Group Tuyển sinh TP.HCM"
           submitLabel="Tạo Group"
           provinceOptions={state.options?.provinces}
+          groupLeadOptions={activeLeadCandidates}
           onClose={() => setIsCreating(false)}
-          onSubmit={(name, _campusId, provinceId) =>
+          onSubmit={(name, _campusId, provinceId, _teamLeadId, groupLeadId) =>
             void run(
-              () => saveGroup({ groupName: name, provinceId }),
+              () =>
+                saveGroup({
+                  groupName: name,
+                  provinceId,
+                  groupLeadStaff: groupLeadId,
+                }),
               `Đã tạo Group "${name}".`,
             ).finally(() => setIsCreating(false))
           }

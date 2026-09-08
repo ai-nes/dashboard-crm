@@ -1,26 +1,17 @@
 import Link from "next/link";
 
+import { Badge } from "@/components/tailgrids/core/badge";
 import { formatDate } from "@/utils/format-date";
 
 import LeadContactLogCell from "./lead-contact-log-cell";
 import LeadResultCell from "./lead-result-cell";
 import {
+  leadStageStatusColor,
   leadStageStatusLabel,
-  leadStageStatusOptions,
-  leadStageTriggerClass,
   normalizeLeadStageStatus,
-  type LeadResultStatus,
 } from "./lead-status";
 import { leadTableGrid } from "./lead-table-grid";
 import type { LeadListItem } from "./types";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
 
 export const leadListGrid = leadTableGrid;
 
@@ -30,13 +21,9 @@ export function getLeadDetailHref(leadId: string) {
 
 interface LeadListProps {
   leads: LeadListItem[];
-  onResultChange: (id: string, result: LeadResultStatus) => void;
 }
 
-export default function LeadList({
-  leads,
-  onResultChange,
-}: LeadListProps) {
+export default function LeadList({ leads }: LeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
@@ -102,28 +89,13 @@ export default function LeadList({
               <div className="flex items-center justify-between gap-2 lg:justify-start">
                 <p className="text-xs text-text-tertiary lg:hidden">Trạng thái lead</p>
                 {status ? (
-                  <Select
-                    value={status}
-                    aria-label={`Trạng thái lead ${lead.name}`}
-                    isDisabled
-                    className="w-fit min-w-32"
+                  <Badge
+                    color={leadStageStatusColor[status]}
+                    size="md"
+                    className="whitespace-nowrap"
                   >
-                    <SelectTrigger
-                      size="sm"
-                      isDisabled
-                      className={`w-full ${leadStageTriggerClass[status]}`}
-                    >
-                      <SelectValue />
-                      <SelectIndicator />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {leadStageStatusOptions.map((option) => (
-                        <SelectItem key={option} id={option} textValue={leadStageStatusLabel[option]}>
-                          {leadStageStatusLabel[option]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {leadStageStatusLabel[status]}
+                  </Badge>
                 ) : (
                   <span className="text-sm text-text-tertiary">Chưa cập nhật</span>
                 )}
@@ -131,12 +103,7 @@ export default function LeadList({
 
               <div className="flex items-center justify-between gap-2 lg:justify-start">
                 <p className="text-xs text-text-tertiary lg:hidden">Kết quả</p>
-                <LeadResultCell
-                  leadName={lead.name}
-                  status={status}
-                  result={lead.result}
-                  onChange={(result) => onResultChange(lead.id, result)}
-                />
+                <LeadResultCell result={lead.result} />
               </div>
 
               <div className="flex items-center justify-between gap-2 lg:block">

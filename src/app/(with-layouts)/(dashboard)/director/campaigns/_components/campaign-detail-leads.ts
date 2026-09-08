@@ -1,4 +1,5 @@
 import {
+  leadStageStatusOptions,
   normalizeLeadStageStatus,
   type LeadResultStatus,
   type LeadStageStatus,
@@ -19,6 +20,46 @@ export interface CampaignLeadRow {
   contactNoAnswer: number;
   contactSuccess: number;
   createdAt: string;
+}
+
+export type CampaignLeadStatusFilter = LeadStageStatus | "all";
+
+export function filterCampaignLeads(
+  leads: readonly CampaignLeadRow[],
+  query: string,
+  status: CampaignLeadStatusFilter,
+): CampaignLeadRow[] {
+  const normalizedQuery = query.trim().toLocaleLowerCase("vi-VN");
+
+  return leads.filter((lead) => {
+    const matchesQuery =
+      !normalizedQuery ||
+      [lead.id, lead.name, lead.phone, lead.school, lead.source, lead.owner].some(
+        (value) => value.toLocaleLowerCase("vi-VN").includes(normalizedQuery),
+      );
+    const matchesStatus = status === "all" || lead.status === status;
+    return matchesQuery && matchesStatus;
+  });
+}
+
+export function countCampaignLeadsByStatus(
+  leads: readonly CampaignLeadRow[],
+): Record<CampaignLeadStatusFilter, number> {
+  const counts: Record<CampaignLeadStatusFilter, number> = {
+    all: leads.length,
+    NEW: 0,
+    PROCESSED: 0,
+    ASSIGNED: 0,
+    CLOSED: 0,
+  };
+
+  for (const lead of leads) {
+    if (lead.status && leadStageStatusOptions.includes(lead.status)) {
+      counts[lead.status] += 1;
+    }
+  }
+
+  return counts;
 }
 
 export function toCampaignLeadRow(lead: LeadListItem): CampaignLeadRow {

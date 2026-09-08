@@ -27,8 +27,8 @@ interface CampaignListPagination {
 interface CampaignListProps {
   campaigns: CampaignListItem[];
   channelTypes: readonly ChannelTypeOption[];
-  onStatusChange: (id: string, status: CampaignStatus) => void;
-  onModeChange: (id: string, mode: CampaignMode) => void;
+  onStatusChange: (id: string, status: CampaignStatus) => void | Promise<void>;
+  onModeChange: (id: string, mode: CampaignMode) => void | Promise<void>;
   onChannelSave: (id: string, channelType: ChannelTypeValue | "", channelUrl: string) => void | Promise<void>;
   onEdit: (campaign: CampaignListItem) => void;
   onDelete: (campaign: CampaignListItem) => void;

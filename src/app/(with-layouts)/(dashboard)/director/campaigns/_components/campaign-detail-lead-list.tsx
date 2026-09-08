@@ -2,22 +2,12 @@ import Link from "next/link";
 
 import LeadContactLogCell from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-contact-log-cell";
 import LeadResultCell from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-result-cell";
+import { Badge } from "@/components/tailgrids/core/badge";
 import {
+  leadStageStatusColor,
   leadStageStatusLabel,
-  leadStageStatusOptions,
-  leadStageTriggerClass,
-  type LeadResultStatus,
-  type LeadStageStatus,
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
 import { leadTableGrid } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-table-grid";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
 import { formatDate } from "@/utils/format-date";
 
 import type { CampaignLeadRow } from "./campaign-detail-leads";
@@ -26,20 +16,26 @@ export const campaignLeadListGrid = leadTableGrid;
 
 interface CampaignDetailLeadListProps {
   leads: CampaignLeadRow[];
-  onStatusChange: (id: string, status: LeadStageStatus) => void;
-  onResultChange: (id: string, result: LeadResultStatus) => void;
+  isFiltered?: boolean;
 }
 
 export default function CampaignDetailLeadList({
   leads,
-  onStatusChange,
-  onResultChange,
+  isFiltered = false,
 }: CampaignDetailLeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
-        <p className="font-medium text-text-primary">Chưa có lead nào cho chiến dịch này</p>
-        <p className="mt-1 text-sm text-text-tertiary">Lead phát sinh từ chiến dịch sẽ hiển thị tại đây.</p>
+        <p className="font-medium text-text-primary">
+          {isFiltered
+            ? "Không tìm thấy lead phù hợp"
+            : "Chưa có lead nào cho chiến dịch này"}
+        </p>
+        <p className="mt-1 text-sm text-text-tertiary">
+          {isFiltered
+            ? "Thử thay đổi từ khóa hoặc trạng thái để xem thêm lead."
+            : "Lead phát sinh từ chiến dịch sẽ hiển thị tại đây."}
+        </p>
       </div>
     );
   }
@@ -84,29 +80,13 @@ export default function CampaignDetailLeadList({
             <div className="flex items-center justify-between gap-2 lg:justify-start">
               <p className="text-xs text-text-tertiary lg:hidden">Trạng thái lead</p>
               {lead.status ? (
-                <Select
-                  value={lead.status}
-                  onChange={(value) => onStatusChange(lead.id, String(value) as LeadStageStatus)}
-                  aria-label={`Trạng thái lead ${lead.name}`}
-                  isDisabled
-                  className="w-fit min-w-32"
+                <Badge
+                  color={leadStageStatusColor[lead.status]}
+                  size="md"
+                  className="whitespace-nowrap"
                 >
-                  <SelectTrigger
-                    size="sm"
-                    isDisabled
-                    className={`w-full ${leadStageTriggerClass[lead.status]}`}
-                  >
-                    <SelectValue />
-                    <SelectIndicator />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {leadStageStatusOptions.map((status) => (
-                      <SelectItem key={status} id={status} textValue={leadStageStatusLabel[status]}>
-                        {leadStageStatusLabel[status]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {leadStageStatusLabel[lead.status]}
+                </Badge>
               ) : (
                 <span className="text-sm text-text-tertiary">Chưa cập nhật</span>
               )}
@@ -114,12 +94,7 @@ export default function CampaignDetailLeadList({
 
             <div className="flex items-center justify-between gap-2 lg:justify-start">
               <p className="text-xs text-text-tertiary lg:hidden">Kết quả</p>
-              <LeadResultCell
-                leadName={lead.name}
-                status={lead.processingStatus}
-                result={lead.result}
-                onChange={(result) => onResultChange(lead.id, result)}
-              />
+              <LeadResultCell result={lead.result} />
             </div>
 
             <div className="flex items-center justify-between gap-2 lg:block">

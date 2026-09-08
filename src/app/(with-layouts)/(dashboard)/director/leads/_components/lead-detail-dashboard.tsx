@@ -19,8 +19,6 @@ import { useLeadCallLogsQuery } from "@/hooks/use-lead-call-logs-query";
 import {
   useDeleteLeadMutation,
   useLeadSaleLeadQuery,
-  useProcessLeadMutation,
-  useUpdateLeadProcessingStatusMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 
 import LeadCallsTab from "./lead-calls-tab";
@@ -29,12 +27,7 @@ import LeadHeader from "./lead-header";
 import LeadLogTab from "./lead-log-tab";
 import LeadNotesTab from "./lead-notes-tab";
 import LeadWorkflowSection from "./lead-workflow-section";
-import {
-  canEditLeadResult,
-  normalizeLeadStageStatus,
-  type LeadResultStatus,
-  type LeadStageStatus,
-} from "./lead-status";
+import { normalizeLeadStageStatus } from "./lead-status";
 
 export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const router = useRouter();
@@ -46,8 +39,6 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     enabled: activeTab === "calls",
   });
   const deleteMutation = useDeleteLeadMutation();
-  const processMutation = useProcessLeadMutation();
-  const statusMutation = useUpdateLeadProcessingStatusMutation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const leadOwnership = { owner: data?.lead.owner };
@@ -62,70 +53,6 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const canDeleteLead =
     !isAuthLoading &&
     canPerformStudentAction(permissions.lead, "delete", leadOwnership, user);
-  const isWorkflowUpdating =
-    processMutation.isPending || statusMutation.isPending;
-
-  const processWorkflow = (
-    resolution: LeadResultStatus | undefined,
-    successMessage: string,
-  ) => {
-    processMutation.mutate(
-      { lead: leadId, ...(resolution ? { resolution } : {}) },
-      {
-        onSuccess: (response) => {
-          toast.success(
-            `${successMessage} Trạng thái hiện tại: ${response.status}.`,
-          );
-        },
-        onError: (processError) => {
-          toast.error(
-            processError instanceof Error
-              ? processError.message
-              : "Chưa thể xử lý Lead.",
-          );
-        },
-      },
-    );
-  };
-
-  const handleStatusChange = (nextStatus: LeadStageStatus) => {
-    if (
-      !canUpdateLead ||
-      isWorkflowUpdating ||
-      nextStatus === status
-    ) {
-      return;
-    }
-
-    statusMutation.mutate(
-      { lead: leadId, status: nextStatus },
-      {
-        onSuccess: (response) => {
-          toast.success(`Đã cập nhật trạng thái Lead: ${response.status}.`);
-        },
-        onError: (statusError) => {
-          toast.error(
-            statusError instanceof Error
-              ? statusError.message
-              : "Chưa thể cập nhật trạng thái Lead.",
-          );
-        },
-      },
-    );
-  };
-
-  const handleResultChange = (result: LeadResultStatus) => {
-    if (
-      !canUpdateLead ||
-      isWorkflowUpdating ||
-      !canEditLeadResult(status)
-    ) {
-      return;
-    }
-
-    processWorkflow(result, "Đã xử lý Lead với kết quả đã chọn.");
-  };
-
   const handleDelete = () => {
     deleteMutation.mutate(leadId, {
       onSuccess: () => {
@@ -263,9 +190,6 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
             result={result}
             contactNoAnswer={data.lead.contactNoAnswer}
             contactSuccess={data.lead.contactSuccess}
-            isUpdating={isWorkflowUpdating}
-            onStatusChange={handleStatusChange}
-            onResultChange={handleResultChange}
           />
         </LeadHeader>
       </div>

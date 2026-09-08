@@ -18,11 +18,11 @@ export const leadStageStatusLabel: Record<LeadStageStatus, string> = {
 
 export const leadStageStatusColor: Record<
   LeadStageStatus,
-  "gray" | "sky" | "warning" | "success"
+  "primary" | "sky" | "violet" | "success"
 > = {
-  NEW: "gray",
+  NEW: "primary",
   PROCESSED: "sky",
-  ASSIGNED: "warning",
+  ASSIGNED: "violet",
   CLOSED: "success",
 };
 
@@ -32,15 +32,6 @@ export const leadStageStatusOptions: LeadStageStatus[] = [
   "ASSIGNED",
   "CLOSED",
 ];
-
-export const leadStageTriggerClass: Record<LeadStageStatus, string> = {
-  NEW: "border-transparent bg-badge-gray-background text-badge-gray-text",
-  PROCESSED: "border-transparent bg-badge-sky-background text-badge-sky-text",
-  ASSIGNED:
-    "border-transparent bg-badge-warning-background text-badge-warning-text",
-  CLOSED:
-    "border-transparent bg-badge-success-background text-badge-success-text",
-};
 
 export function normalizeLeadStageStatus(
   value: unknown,
@@ -95,10 +86,3 @@ export const leadResultFilterOptions: LeadResultFilter[] = [
   "PENDING",
   ...leadResultOptions,
 ];
-
-export function canEditLeadResult(status: LeadStageStatus | null): boolean {
-  return status === "NEW";
-}
-
-export const LEAD_RESULT_LOCKED_MESSAGE =
-  "Chỉ chọn kết quả khi Lead đang ở trạng thái Mới để bắt đầu xử lý.";
