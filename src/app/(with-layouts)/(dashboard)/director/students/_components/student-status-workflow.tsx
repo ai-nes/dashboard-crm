@@ -89,8 +89,12 @@ export default function StudentStatusWorkflow({
             aria-current="step"
             color={studentStatusBadgeColor[value]}
             size="md"
-            className="mt-1 border border-current font-semibold shadow-xs"
+            className="mt-1 whitespace-nowrap border border-current px-2.5 py-1 text-sm font-semibold shadow-xs"
           >
+            <span
+              aria-hidden="true"
+              className="size-2 rounded-full bg-current ring-2 ring-current/20"
+            />
             {studentStatusLabel[value]}
           </Badge>
         </div>
