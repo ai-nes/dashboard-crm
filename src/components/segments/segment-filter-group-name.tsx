@@ -5,11 +5,6 @@ import { useState } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
 import { Input } from "@/components/tailgrids/core/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/tailgrids/core/tooltip";
 
 interface SegmentFilterGroupNameProps {
   name: string;
@@ -57,31 +52,20 @@ export function SegmentFilterGroupName({
   }
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex min-w-0 max-w-full">
-          <Button
-            variant="primary"
-            appearance="ghost"
-            size="sm"
-            aria-label={`Đổi tên ${name}`}
-            className="h-auto max-w-full justify-start gap-2 px-1 py-1 text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
-            onPress={startEditing}
-          >
-            <span className="truncate text-left text-base font-semibold">
-              {name}
-            </span>
-            <Pencil1
-              size={15}
-              aria-hidden="true"
-              className="shrink-0 text-text-tertiary"
-            />
-          </Button>
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>Đổi tên nhóm</p>
-      </TooltipContent>
-    </Tooltip>
+    <Button
+      variant="primary"
+      appearance="ghost"
+      size="sm"
+      aria-label={`Đổi tên ${name}`}
+      className="h-auto max-w-full justify-start gap-2 px-1 py-1 text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
+      onPress={startEditing}
+    >
+      <span className="truncate text-left text-base font-semibold">{name}</span>
+      <Pencil1
+        size={15}
+        aria-hidden="true"
+        className="shrink-0 text-text-tertiary"
+      />
+    </Button>
   );
 }

@@ -1,5 +1,8 @@
-/** CRM Student is canonical; CRM Lead is retained only for legacy adapters. */
-export type CRMTaskReferenceDoctype = "CRM Student" | "CRM Lead";
+/** CRM Action Item is canonical for Student and Segment; Lead is legacy-only. */
+export type CRMTaskReferenceDoctype =
+  | "CRM Student"
+  | "CRM Lead"
+  | "CRM Segment";
 export type CRMTaskPriority = "Low" | "Medium" | "High";
 export type CRMTaskStatus =
   | "Backlog"

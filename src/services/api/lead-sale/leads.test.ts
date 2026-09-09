@@ -166,15 +166,14 @@ describe("Lead list/detail API contract", () => {
           author: "Administrator",
           date: "2026-09-07T11:00:00+07:00",
           content:
-            'Enrollment Status được cập nhật từ "Mới" sang "Có triển vọng".',
-          event_type: "status_changed",
-          category: "status",
-          fieldname: "enrollment_status",
-          field_label: "Enrollment Status",
-          old_value: "Mới",
-          new_value: "Có triển vọng",
-          metadata: { old_code: "NEW", new_code: "PROSPECT" },
-          source: "Status Change Log",
+            'Processing Status được cập nhật từ "NEW" sang "PROCESSING".',
+          event_type: "processing_status_changed",
+          category: "processing",
+          fieldname: "processing_status",
+          field_label: "Processing Status",
+          old_value: "NEW",
+          new_value: "PROCESSING",
+          source: "Version",
         },
       ],
       meta: {},
@@ -197,12 +196,11 @@ describe("Lead list/detail API contract", () => {
     expect(result?.lead.ward).toBe("Phường An Cư");
     expect(result?.lead.segments).toEqual(["Quan tâm học bổng"]);
     expect(result?.log[0]).toMatchObject({
-      eventType: "status_changed",
-      category: "status",
-      oldValue: "Mới",
-      newValue: "Có triển vọng",
-      metadata: { old_code: "NEW", new_code: "PROSPECT" },
-      source: "Status Change Log",
+      eventType: "processing_status_changed",
+      category: "processing",
+      oldValue: "NEW",
+      newValue: "PROCESSING",
+      source: "Version",
     });
   });
 

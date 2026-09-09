@@ -2,25 +2,33 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
+import { Trash1 } from "@tailgrids/icons";
+
+import { Button } from "@/components/tailgrids/core/button";
+
 import { type SegmentListItem, type SegmentStatus } from "./segment-list-types";
 import { SegmentStatusSelect } from "./segment-status-select";
 
 interface SegmentColumnOptions {
   detailBaseHref: string;
   onStatusChange: (segment: SegmentListItem, status: SegmentStatus) => void;
+  onDelete: (segment: SegmentListItem) => void;
+  isDeleteDisabled?: boolean;
 }
 
 export function getSegmentListColumns({
   detailBaseHref,
   onStatusChange,
+  onDelete,
+  isDeleteDisabled = false,
 }: SegmentColumnOptions): ColumnDef<SegmentListItem>[] {
   return [
     {
-      accessorKey: "code",
+      accessorKey: "segmentCode",
       header: "Mã segment",
       cell: ({ row }) => (
         <span className="whitespace-nowrap font-medium tabular-nums text-text-primary">
-          {row.original.code}
+          {row.original.segmentCode}
         </span>
       ),
     },
@@ -84,6 +92,25 @@ export function getSegmentListColumns({
             timeZone: "Asia/Ho_Chi_Minh",
           }).format(new Date(row.original.updatedAt))}
         </time>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Hành động",
+      enableGlobalFilter: false,
+      cell: ({ row }) => (
+        <Button
+          iconOnly
+          size="sm"
+          variant="ghost"
+          appearance="ghost"
+          aria-label={`Xóa segment ${row.original.name}`}
+          isDisabled={isDeleteDisabled}
+          className="text-text-tertiary hover:text-error-500"
+          onPress={() => onDelete(row.original)}
+        >
+          <Trash1 size={16} aria-hidden="true" />
+        </Button>
       ),
     },
   ];

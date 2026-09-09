@@ -37,9 +37,13 @@ const normalize = (value: string) =>
 export function SegmentStudentTable({
   students,
   headerAction,
+  isLoading = false,
+  error,
 }: {
   students: SegmentStudent[];
   headerAction?: ReactNode;
+  isLoading?: boolean;
+  error?: string;
 }) {
   const [search, setSearch] = useState("");
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -90,7 +94,15 @@ export function SegmentStudentTable({
           />
         </InputGroup>
       </div>
-      {total > 0 ? (
+      {isLoading ? (
+        <div className="rounded-xl border border-card-border px-5 py-16 text-center text-sm text-text-secondary">
+          Đang tải học sinh khớp segment…
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border border-badge-error-icon-color bg-badge-error-background px-5 py-16 text-center text-sm text-badge-error-text">
+          {error}
+        </div>
+      ) : total > 0 ? (
         <TableRoot aria-label="Học sinh trong segment">
           <TableHeader className="bg-background-gray-secondary">
             {table.getHeaderGroups().map((group) => (

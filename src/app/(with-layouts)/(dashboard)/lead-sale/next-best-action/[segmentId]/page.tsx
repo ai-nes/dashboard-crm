@@ -13,6 +13,7 @@ export default async function Page({
       key={segmentId}
       segmentId={segmentId}
       backHref="/lead-sale/next-best-action"
+      editHref="/lead-sale/segments/edit"
     />
   );
 }

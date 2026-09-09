@@ -49,6 +49,9 @@ export function SegmentDetailHeader({
           <h1 className="mt-3 text-balance text-[26px] leading-9 font-semibold tracking-[-0.5px] text-text-primary sm:text-[30px]">
             {segment.name}
           </h1>
+          <p className="mt-1 font-mono text-xs font-medium tracking-wide text-text-tertiary">
+            {segment.segmentCode}
+          </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge color={SEGMENT_STATUS_BADGE_COLORS[segment.status]}>
               {SEGMENT_STATUS_LABELS[segment.status]}

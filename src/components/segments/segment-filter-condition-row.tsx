@@ -14,60 +14,37 @@ import {
 } from "@/components/tailgrids/core/select";
 
 import {
+  conditionValueLabel,
+  getClassificationGroups,
   getInitialConditionValue,
   getOperatorLabel,
   isConditionComplete,
-  isCascadingProperty,
-  conditionValueLabel,
-  CASCADING_PROPERTIES,
-  CASCADING_PROPERTY_CONFIG,
-  SEGMENT_PROPERTIES,
+  isClassificationProperty,
   SEGMENT_PROPERTY_CONFIG,
   STUDENT_SEGMENT_PROPERTY_LABEL,
-  StudentSegmentProperty,
-  type SegmentCondition,
   SegmentOperator,
+  type SegmentCondition,
+  type SegmentFilterOptions,
+  type SegmentOperator as SegmentOperatorType,
+  type StudentSegmentProperty,
 } from "./segment-filter-config";
 import { SegmentFilterConditionValue } from "./segment-filter-condition-value";
+import { SegmentFilterPropertyPicker } from "./segment-filter-property-picker";
 
 interface SegmentFilterConditionRowProps {
   condition: SegmentCondition;
+  options?: SegmentFilterOptions;
   onChange: (condition: SegmentCondition) => void;
   onRemove: () => void;
 }
 
-// Cascading properties (NEED, TAG) show their category options nested in the
-// property select, so their key encodes both: "<property>:<category>".
-function toPropertyKey(condition: SegmentCondition): string {
-  return isCascadingProperty(condition.property) && condition.category
-    ? `${condition.property}:${condition.category}`
-    : condition.property;
-}
-
-function fromPropertyKey(
-  key: string,
-): { property: StudentSegmentProperty; category: string | null } {
-  const separatorIndex = key.indexOf(":");
-  if (separatorIndex === -1)
-    return { property: key as StudentSegmentProperty, category: null };
-  return {
-    property: key.slice(0, separatorIndex) as StudentSegmentProperty,
-    category: key.slice(separatorIndex + 1),
-  };
-}
-
 export function SegmentFilterConditionRow({
   condition,
+  options,
   onChange,
   onRemove,
 }: SegmentFilterConditionRowProps) {
   const propertyConfig = SEGMENT_PROPERTY_CONFIG[condition.property];
-  const displayLabel =
-    isCascadingProperty(condition.property) && condition.category
-      ? CASCADING_PROPERTY_CONFIG[condition.property]!.categoryLabel[
-          condition.category
-        ]
-      : propertyConfig.label;
   const [editing, setEditing] = useState(true);
   const rowRef = useRef<HTMLDivElement>(null);
   const complete = isConditionComplete(condition);
@@ -76,14 +53,18 @@ export function SegmentFilterConditionRow({
     if (!editing || !complete) return;
     const finish = (event: Event) => {
       const target = event.target;
-      if (
-        !(target instanceof Element) ||
-        rowRef.current?.contains(target) ||
-        target
-          .closest("[data-condition-owner]")
-          ?.getAttribute("data-condition-owner") === condition.id
-      )
+      if (!(target instanceof Element)) {
         return;
+      }
+
+      const owner = target.closest<HTMLElement>("[data-condition-owner]");
+      if (
+        rowRef.current?.contains(target) ||
+        owner?.dataset.conditionOwner === condition.id
+      ) {
+        return;
+      }
+
       setEditing(false);
     };
     document.addEventListener("pointerdown", finish, true);
@@ -92,26 +73,24 @@ export function SegmentFilterConditionRow({
       document.removeEventListener("pointerdown", finish, true);
       document.removeEventListener("focusin", finish);
     };
-  }, [editing, complete, condition.id]);
+  }, [condition.id, editing, complete]);
 
-  const handlePropertyChange = (nextKey: string) => {
-    const { property: nextProperty, category } = fromPropertyKey(nextKey);
+  const handlePropertyChange = (nextProperty: StudentSegmentProperty) => {
     const nextOperator = SEGMENT_PROPERTY_CONFIG[nextProperty].operators[0];
-
     onChange({
       ...condition,
       property: nextProperty,
       operator: nextOperator,
-      value: getInitialConditionValue(nextProperty, nextOperator),
-      category,
+      value: getInitialConditionValue(),
+      classificationGroupName: undefined,
     });
   };
 
-  const handleOperatorChange = (nextOperator: SegmentOperator) => {
+  const handleOperatorChange = (nextOperator: SegmentOperatorType) => {
     onChange({
       ...condition,
       operator: nextOperator,
-      value: getInitialConditionValue(condition.property, nextOperator),
+      value: getInitialConditionValue(),
     });
   };
 
@@ -127,61 +106,44 @@ export function SegmentFilterConditionRow({
           onPress={() => setEditing(true)}
         >
           <span>
-            <strong>{displayLabel}</strong>{" "}
+            <strong>
+              {STUDENT_SEGMENT_PROPERTY_LABEL[condition.property]}
+            </strong>{" "}
             <span className="font-normal">
               {getOperatorLabel(
                 condition.property,
                 condition.operator,
               ).toLocaleLowerCase("vi-VN")}
             </span>{" "}
-            <strong>{conditionValueLabel(condition)}</strong>
+            <strong>{conditionValueLabel(condition, options)}</strong>
           </span>
         </Button>
       ) : (
         <>
-          <Select
-            aria-label="Thuộc tính"
-            value={toPropertyKey(condition)}
-            onChange={(nextKey) => handlePropertyChange(nextKey as string)}
-            className="min-w-40 flex-1"
-          >
-            <SelectTrigger
-              size="lg"
-              className="h-11 w-full bg-card-surface-area text-left"
-            >
-              <SelectValue />
-              <SelectIndicator />
-            </SelectTrigger>
-            <SelectContent
-              data-condition-owner={condition.id}
-              className="max-h-80"
-            >
-              {SEGMENT_PROPERTIES.filter(
-                (property) => !isCascadingProperty(property),
-              ).map((property) => (
-                <SelectItem
-                  key={property}
-                  id={property}
-                  textValue={STUDENT_SEGMENT_PROPERTY_LABEL[property]}
-                >
-                  {STUDENT_SEGMENT_PROPERTY_LABEL[property]}
-                </SelectItem>
-              ))}
-              {CASCADING_PROPERTIES.flatMap((property) =>
-                CASCADING_PROPERTY_CONFIG[property]!.categoryOptions.map(
-                  (option) => (
-                    <SelectItem
-                      key={`${property}:${option.value}`}
-                      id={`${property}:${option.value}`}
-                      textValue={option.label}
-                    >
-                      {option.label}
-                    </SelectItem>
-                  ),
-                ),
-              )}
-            </SelectContent>
-          </Select>
+          <SegmentFilterPropertyPicker
+            options={options}
+            ownerId={condition.id}
+            triggerLabel={getConditionPropertyLabel(condition, options)}
+            showPlus={false}
+            selectedProperty={condition.property}
+            selectedValues={
+              Array.isArray(condition.value) ? condition.value : []
+            }
+            selectedGroupName={condition.classificationGroupName}
+            onSelect={(nextProperty, values, groupName) =>
+              values
+                ? onChange({
+                    ...condition,
+                    property: nextProperty,
+                    operator:
+                      SEGMENT_PROPERTY_CONFIG[nextProperty].operators[0],
+                    value: values,
+                    classificationGroupName: groupName,
+                  })
+                : handlePropertyChange(nextProperty)
+            }
+            className="h-11 min-w-40 flex-1"
+          />
 
           <Select
             aria-label="Toán tử"
@@ -198,10 +160,7 @@ export function SegmentFilterConditionRow({
               <SelectValue />
               <SelectIndicator />
             </SelectTrigger>
-            <SelectContent
-              data-condition-owner={condition.id}
-              className="max-h-80"
-            >
+            <SelectContent data-condition-owner={condition.id}>
               {propertyConfig.operators.map((operator) => {
                 const label = getOperatorLabel(condition.property, operator);
                 return (
@@ -218,7 +177,8 @@ export function SegmentFilterConditionRow({
             property={condition.property}
             operator={condition.operator}
             value={condition.value}
-            category={condition.category}
+            classificationGroupName={condition.classificationGroupName}
+            options={options}
             onChange={(value) => onChange({ ...condition, value })}
           />
         </>
@@ -236,5 +196,38 @@ export function SegmentFilterConditionRow({
         <Close size={18} aria-hidden="true" />
       </Button>
     </div>
+  );
+}
+
+function getConditionPropertyLabel(
+  condition: SegmentCondition,
+  options?: SegmentFilterOptions,
+): string {
+  if (!isClassificationProperty(condition.property)) {
+    return STUDENT_SEGMENT_PROPERTY_LABEL[condition.property];
+  }
+
+  if (condition.classificationGroupName) {
+    const selectedGroup = getClassificationGroups(
+      condition.property,
+      options,
+    ).find((group) => group.groupName === condition.classificationGroupName);
+    if (selectedGroup) return selectedGroup.label;
+  }
+
+  const selectedValues = Array.isArray(condition.value)
+    ? new Set(condition.value)
+    : new Set<string>();
+  const selectedGroup = getClassificationGroups(
+    condition.property,
+    options,
+  ).find(
+    (group) =>
+      group.options.length > 0 &&
+      group.options.every((option) => selectedValues.has(option.value)),
+  );
+
+  return (
+    selectedGroup?.label ?? STUDENT_SEGMENT_PROPERTY_LABEL[condition.property]
   );
 }

@@ -423,7 +423,6 @@ function normalizeListItem(value: unknown): LeadListItem {
       row.processingStatus,
       row.processing_status,
       row.leadStatus,
-      row.lead_status,
     ]),
     statusCode:
       firstText([
@@ -528,15 +527,15 @@ function normalizeDetail(value: unknown): LeadDetail {
       firstText([
         row.lifecycleStatus,
         row.lifecycle_status,
-        row.enrollmentStatus,
-        row.enrollment_status,
+        row.studentStage,
+        row.student_stage,
       ]) || null,
     lifecycleStatusCode:
       firstText([
         row.lifecycleStatusCode,
         row.lifecycle_status_code,
-        row.enrollmentStatus,
-        row.enrollment_status,
+        row.studentStage,
+        row.student_stage,
       ]) || null,
     email: firstText([row.email]),
     secondaryEmail: firstText([

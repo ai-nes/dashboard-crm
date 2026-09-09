@@ -50,7 +50,21 @@ export function SegmentStatusSelect({
         <SelectIndicator className="text-inherit" />
       </SelectTrigger>
       <SelectContent className="min-w-40">
-        {SEGMENT_STATUS_OPTIONS.map((option) => (
+        {SEGMENT_STATUS_OPTIONS.filter((option) =>
+          value === "draft"
+            ? option.value === "draft" ||
+              option.value === "active" ||
+              option.value === "archive"
+            : value === "active"
+              ? option.value === "active" ||
+                option.value === "inactive" ||
+                option.value === "archive"
+              : value === "inactive"
+                ? option.value === "inactive" ||
+                  option.value === "active" ||
+                  option.value === "archive"
+                : option.value === "archive",
+        ).map((option) => (
           <SelectItem
             key={option.value}
             id={option.value}

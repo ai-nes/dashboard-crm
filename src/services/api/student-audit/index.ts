@@ -1,5 +1,7 @@
 import type {
   LeadAuditLogsParams,
+  SegmentAuditLogsParams,
+  SegmentAuditLogsResponse,
   StudentAuditLog,
   StudentAuditLogsParams,
   StudentAuditLogsResponse,
@@ -9,6 +11,7 @@ export type * from "./types";
 
 const METHOD = "crm.api.audit.get_student_audit_logs";
 const LEAD_METHOD = "crm.api.audit.get_lead_audit_logs";
+const SEGMENT_METHOD = "crm.api.audit.get_segment_audit_logs";
 
 export type RequestOptions = {
   baseUrl?: string;
@@ -175,8 +178,11 @@ function resolveError(
   return { code, message };
 }
 
-function isAuditLogsResponse(value: unknown): value is {
-  student: string;
+function isAuditLogsResponse(
+  value: unknown,
+  entityKey: "student" | "segment",
+): value is {
+  [key: string]: unknown;
   logs: unknown[];
   total: number;
   start: number;
@@ -186,7 +192,7 @@ function isAuditLogsResponse(value: unknown): value is {
   const source = asRecord(value);
   return Boolean(
     source &&
-    typeof source.student === "string" &&
+    typeof source[entityKey] === "string" &&
     Array.isArray(source.logs) &&
     typeof source.total === "number" &&
     typeof source.start === "number" &&
@@ -196,13 +202,15 @@ function isAuditLogsResponse(value: unknown): value is {
 }
 
 async function getAuditLogs(
-  params: StudentAuditLogsParams,
+  params: { id: string; start?: number; pageLength?: number },
   options: RequestOptions = {},
   method = METHOD,
+  queryParam: "student" | "lead_id" | "segment" = "student",
+  responseKey: "student" | "segment" = "student",
   entityLabel = "học sinh",
 ): Promise<StudentAuditLogsResponse> {
-  const student = params.student.trim();
-  if (!student) {
+  const entityId = params.id.trim();
+  if (!entityId) {
     throw new StudentAuditApiError(
       417,
       "INVALID_STUDENT",
@@ -211,7 +219,7 @@ async function getAuditLogs(
   }
 
   const url = new URL(`${resolveBaseUrl(options)}/api/method/${method}`);
-  url.searchParams.set(method === LEAD_METHOD ? "lead_id" : "student", student);
+  url.searchParams.set(queryParam, entityId);
   url.searchParams.set("start", String(params.start ?? 0));
   url.searchParams.set("page_length", String(params.pageLength ?? 100));
 
@@ -240,7 +248,7 @@ async function getAuditLogs(
   }
 
   const data = unwrapMessage(payload);
-  if (!isAuditLogsResponse(data)) {
+  if (!isAuditLogsResponse(data, responseKey)) {
     throw new StudentAuditApiError(
       502,
       "INVALID_AUDIT_RESPONSE",
@@ -249,7 +257,7 @@ async function getAuditLogs(
   }
 
   return {
-    student: data.student,
+    student: String(data[responseKey]),
     logs: data.logs.map(normalizeAuditLog),
     total: data.total,
     start: data.start,
@@ -262,7 +270,10 @@ export async function getStudentAuditLogs(
   params: StudentAuditLogsParams,
   options: RequestOptions = {},
 ): Promise<StudentAuditLogsResponse> {
-  return getAuditLogs(params, options);
+  return getAuditLogs(
+    { id: params.student, start: params.start, pageLength: params.pageLength },
+    options,
+  );
 }
 
 export async function getLeadAuditLogs(
@@ -270,9 +281,34 @@ export async function getLeadAuditLogs(
   options: RequestOptions = {},
 ): Promise<StudentAuditLogsResponse> {
   return getAuditLogs(
-    { student: params.lead, start: params.start, pageLength: params.pageLength },
+    { id: params.lead, start: params.start, pageLength: params.pageLength },
     options,
     LEAD_METHOD,
+    "lead_id",
+    "student",
     "Lead",
   );
+}
+
+export async function getSegmentAuditLogs(
+  params: SegmentAuditLogsParams,
+  options: RequestOptions = {},
+): Promise<SegmentAuditLogsResponse> {
+  const result = await getAuditLogs(
+    { id: params.segment, start: params.start, pageLength: params.pageLength },
+    options,
+    SEGMENT_METHOD,
+    "segment",
+    "segment",
+    "segment",
+  );
+
+  return {
+    segment: result.student,
+    logs: result.logs,
+    total: result.total,
+    start: result.start,
+    pageLength: result.pageLength,
+    readOnly: result.readOnly,
+  };
 }

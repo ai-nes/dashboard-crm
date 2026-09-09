@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   getLeadAuditLogs,
+  getSegmentAuditLogs,
   getStudentAuditLogs,
   StudentAuditApiError,
 } from "./index";
@@ -144,6 +145,36 @@ describe("student audit API contract", () => {
 
     expect(fetchSpy).toHaveBeenCalledWith(
       "http://frappe:8000/api/method/crm.api.audit.get_lead_audit_logs?lead_id=LEAD-1&start=0&page_length=100",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("calls the Segment-specific read-only audit endpoint", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            segment: "SEGMENT-1",
+            logs: [],
+            total: 0,
+            start: 0,
+            page_length: 50,
+            read_only: true,
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      getSegmentAuditLogs(
+        { segment: "SEGMENT-1", pageLength: 50 },
+        { baseUrl: "http://frappe:8000" },
+      ),
+    ).resolves.toMatchObject({ segment: "SEGMENT-1", readOnly: true });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.audit.get_segment_audit_logs?segment=SEGMENT-1&start=0&page_length=50",
       expect.objectContaining({ method: "GET" }),
     );
   });

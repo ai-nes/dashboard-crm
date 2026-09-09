@@ -1,21 +1,14 @@
 import type { ColumnDef } from "@tanstack/react-table";
+
 import { Badge } from "@/components/tailgrids/core/badge";
-import { JOURNEY_STAGE_LABEL, JourneyStage } from "./segment-filter-config";
+
 import type { SegmentStudent } from "./segment-detail-types";
-
-const STAGE_COLORS = {
-  [JourneyStage.NEW]: "sky",
-  [JourneyStage.ATTEMPTING]: "warning",
-  [JourneyStage.CONNECTED]: "violet",
-  [JourneyStage.QUALIFIED]: "success",
-  [JourneyStage.DISQUALIFIED]: "gray",
-} as const;
-
-function potentialScoreTone(score: number): "success" | "warning" | "error" {
-  if (score >= 75) return "success";
-  if (score >= 50) return "warning";
-  return "error";
-}
+import {
+  getSegmentLevelBadgeColor,
+  getSegmentLevelLabel,
+  getStudentStageBadgeColor,
+  getStudentStageLabel,
+} from "./segment-filter-config";
 
 export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
   {
@@ -40,7 +33,7 @@ export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
     accessorKey: "phone",
     header: "Số điện thoại",
     cell: ({ row }) => (
-      <span className="tabular-nums">{row.original.phone}</span>
+      <span className="tabular-nums">{row.original.phone || "—"}</span>
     ),
   },
   {
@@ -49,10 +42,10 @@ export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
     enableGlobalFilter: false,
     cell: ({ row }) => (
       <Badge
-        color={STAGE_COLORS[row.original.stage]}
+        color={getStudentStageBadgeColor(row.original.stage)}
         className="whitespace-nowrap"
       >
-        {JOURNEY_STAGE_LABEL[row.original.stage]}
+        {getStudentStageLabel(row.original.stage)}
       </Badge>
     ),
   },
@@ -60,16 +53,26 @@ export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
     accessorKey: "major",
     header: "Ngành quan tâm",
     cell: ({ row }) => (
-      <span className="inline-block min-w-40">{row.original.major}</span>
+      <span className="inline-block min-w-40">{row.original.major || "—"}</span>
     ),
   },
   {
-    accessorKey: "potentialScore",
-    header: "Điểm tiềm năng",
+    accessorKey: "potential",
+    header: "Tiềm năng",
     enableGlobalFilter: false,
     cell: ({ row }) => (
-      <Badge color={potentialScoreTone(row.original.potentialScore)}>
-        {row.original.potentialScore}
+      <Badge color={getSegmentLevelBadgeColor(row.original.potential)}>
+        {getSegmentLevelLabel(row.original.potential)}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: "intent",
+    header: "Ý định",
+    enableGlobalFilter: false,
+    cell: ({ row }) => (
+      <Badge color={getSegmentLevelBadgeColor(row.original.intent)}>
+        {getSegmentLevelLabel(row.original.intent)}
       </Badge>
     ),
   },
@@ -77,14 +80,7 @@ export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
     accessorKey: "owner",
     header: "Người phụ trách",
     cell: ({ row }) => (
-      <span className="whitespace-nowrap">{row.original.owner}</span>
-    ),
-  },
-  {
-    accessorKey: "nextAction",
-    header: "Hành động tiếp theo",
-    cell: ({ row }) => (
-      <span className="inline-block min-w-40">{row.original.nextAction}</span>
+      <span className="whitespace-nowrap">{row.original.owner || "—"}</span>
     ),
   },
 ];

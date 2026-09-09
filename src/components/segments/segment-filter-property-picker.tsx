@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search1 } from "@tailgrids/icons";
+import { Check, ChevronDown, Plus, Search1 } from "@tailgrids/icons";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
@@ -10,34 +10,50 @@ import { Popover } from "@/components/tailgrids/core/popover";
 import { cn } from "@/utils/cn";
 
 import {
-  CASCADING_PROPERTIES,
-  CASCADING_PROPERTY_CONFIG,
+  CLASSIFICATION_PROPERTIES,
+  getClassificationGroups,
+  isClassificationProperty,
   SEGMENT_PROPERTIES,
   SEGMENT_PROPERTY_CONFIG,
-  isCascadingProperty,
+  type SegmentFilterOptions,
   type StudentSegmentProperty,
 } from "./segment-filter-config";
 
 interface SegmentFilterPropertyPickerProps {
-  onSelect: (property: StudentSegmentProperty, category?: string) => void;
+  options?: SegmentFilterOptions;
+  onSelect: (
+    property: StudentSegmentProperty,
+    values?: string[],
+    groupName?: string,
+  ) => void;
   triggerLabel?: string;
   className?: string;
+  showPlus?: boolean;
+  selectedProperty?: StudentSegmentProperty;
+  selectedValues?: string[];
+  selectedGroupName?: string;
+  ownerId?: string;
 }
 
 export function SegmentFilterPropertyPicker({
+  options,
   onSelect,
   triggerLabel = "Thêm bộ lọc",
   className,
+  showPlus = true,
+  selectedProperty,
+  selectedValues = [],
+  selectedGroupName,
+  ownerId,
 }: SegmentFilterPropertyPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
-
   const normalizedSearch = search.trim().toLocaleLowerCase("vi-VN");
 
   const filteredProperties = useMemo(
     () =>
       SEGMENT_PROPERTIES.filter(
-        (property) => !isCascadingProperty(property),
+        (property) => !isClassificationProperty(property),
       ).filter((property) =>
         SEGMENT_PROPERTY_CONFIG[property].label
           .toLocaleLowerCase("vi-VN")
@@ -46,32 +62,35 @@ export function SegmentFilterPropertyPicker({
     [normalizedSearch],
   );
 
-  const cascadingSections = useMemo(
+  const classificationSections = useMemo(
     () =>
-      CASCADING_PROPERTIES.map((property) => {
-        const config = CASCADING_PROPERTY_CONFIG[property]!;
+      CLASSIFICATION_PROPERTIES.map((property) => {
         const propertyLabel = SEGMENT_PROPERTY_CONFIG[property].label;
         const propertyMatchesSearch = propertyLabel
           .toLocaleLowerCase("vi-VN")
           .includes(normalizedSearch);
+        const groups = getClassificationGroups(property, options).filter(
+          (group) =>
+            propertyMatchesSearch ||
+            group.label.toLocaleLowerCase("vi-VN").includes(normalizedSearch) ||
+            group.options.some((option) =>
+              option.label
+                .toLocaleLowerCase("vi-VN")
+                .includes(normalizedSearch),
+            ),
+        );
 
         return {
           property,
           label: propertyLabel,
-          categories: propertyMatchesSearch
-            ? config.categoryOptions
-            : config.categoryOptions.filter((option) =>
-                option.label
-                  .toLocaleLowerCase("vi-VN")
-                  .includes(normalizedSearch),
-              ),
+          groups,
         };
-      }).filter((section) => section.categories.length > 0),
-    [normalizedSearch],
+      }).filter((section) => section.groups.length > 0),
+    [normalizedSearch, options],
   );
 
   const hasResults =
-    filteredProperties.length > 0 || cascadingSections.length > 0;
+    filteredProperties.length > 0 || classificationSections.length > 0;
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     setIsOpen(nextIsOpen);
@@ -80,9 +99,10 @@ export function SegmentFilterPropertyPicker({
 
   const handleSelect = (
     property: StudentSegmentProperty,
-    category?: string,
+    values?: string[],
+    groupName?: string,
   ) => {
-    onSelect(property, category);
+    onSelect(property, values, groupName);
     setIsOpen(false);
     setSearch("");
   };
@@ -93,14 +113,20 @@ export function SegmentFilterPropertyPicker({
         variant="primary"
         appearance="outline"
         size="md"
-        className={cn("bg-card-surface-area", className)}
+        className={cn(
+          "bg-card-surface-area",
+          !showPlus && "justify-between text-left font-normal",
+          className,
+        )}
       >
-        <Plus size={17} aria-hidden="true" />
+        {showPlus ? <Plus size={17} aria-hidden="true" /> : null}
         {triggerLabel}
+        {!showPlus ? <ChevronDown size={16} aria-hidden="true" /> : null}
       </Button>
 
       <Popover
         placement="bottom"
+        {...(ownerId ? { "data-condition-owner": ownerId } : {})}
         className="w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-card-border bg-card-surface-area p-0 shadow-lg"
       >
         <div className="border-b border-card-border p-3">
@@ -130,36 +156,57 @@ export function SegmentFilterPropertyPicker({
                   variant="primary"
                   appearance="ghost"
                   size="md"
-                  className="h-auto w-full justify-start rounded-md px-2.5 py-1.5 text-left font-semibold text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
+                  aria-pressed={selectedProperty === property}
+                  className="h-auto w-full justify-between rounded-md px-2.5 py-1.5 text-left font-semibold text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
                   onPress={() => handleSelect(property)}
                 >
-                  <span>{SEGMENT_PROPERTY_CONFIG[property].label}</span>
+                  {SEGMENT_PROPERTY_CONFIG[property].label}
+                  {selectedProperty === property &&
+                  selectedProperty !== undefined ? (
+                    <Check size={16} aria-hidden="true" />
+                  ) : null}
                 </Button>
               ))}
 
-              {cascadingSections.map((section) => (
+              {classificationSections.map((section) => (
                 <section
                   key={section.property}
-                  aria-labelledby={`segment-cascading-${section.property}`}
+                  aria-labelledby={`segment-classification-${section.property}`}
                 >
                   <h3
-                    id={`segment-cascading-${section.property}`}
+                    id={`segment-classification-${section.property}`}
                     className="px-2.5 pt-2 pb-1 text-sm font-semibold text-text-primary"
                   >
                     {section.label}
                   </h3>
-                  {section.categories.map((option) => (
+                  {section.groups.map((group) => (
                     <Button
-                      key={option.value}
+                      key={group.groupName}
                       variant="primary"
                       appearance="ghost"
                       size="md"
-                      className="h-auto w-full justify-start rounded-md py-1.5 pr-2.5 pl-5 text-left font-normal text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
+                      aria-pressed={
+                        selectedProperty === section.property &&
+                        (selectedGroupName === group.groupName ||
+                          (!selectedGroupName &&
+                            group.options.every((option) =>
+                              selectedValues.includes(option.value),
+                            )))
+                      }
+                      className="h-auto w-full justify-between rounded-md py-1.5 pr-2.5 pl-5 text-left font-normal text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
                       onPress={() =>
-                        handleSelect(section.property, option.value)
+                        handleSelect(section.property, [], group.groupName)
                       }
                     >
-                      <span>{option.label}</span>
+                      {group.label}
+                      {selectedProperty === section.property &&
+                      (selectedGroupName === group.groupName ||
+                        (!selectedGroupName &&
+                          group.options.every((option) =>
+                            selectedValues.includes(option.value),
+                          ))) ? (
+                        <Check size={16} aria-hidden="true" />
+                      ) : null}
                     </Button>
                   ))}
                 </section>

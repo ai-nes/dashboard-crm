@@ -28,12 +28,14 @@ interface StudentAuditCardProps {
   events: StudentAuditLog[];
   isLoading?: boolean;
   error?: Error | null;
+  recordLabel?: string;
 }
 
 export default function StudentAuditCard({
   events,
   isLoading = false,
   error,
+  recordLabel = "hồ sơ học sinh",
 }: StudentAuditCardProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<ActivityTimeFilter>("all");
@@ -74,8 +76,12 @@ export default function StudentAuditCard({
             event.subject,
             event.reason,
             ...(event.metadata ? Object.values(event.metadata) : []),
-            getStudentAuditActivityDescription(event),
-          ].some((value) => String(value ?? "").toLowerCase().includes(query));
+            getStudentAuditActivityDescription(event, recordLabel),
+          ].some((value) =>
+            String(value ?? "")
+              .toLowerCase()
+              .includes(query),
+          );
 
         return matchesTime && matchesAction && matchesSearch;
       })
@@ -84,7 +90,7 @@ export default function StudentAuditCard({
           parseStudentActivityDate(second.occurredAt).getTime() -
           parseStudentActivityDate(first.occurredAt).getTime(),
       );
-  }, [actionFilter, events, search, timeFilter]);
+  }, [actionFilter, events, recordLabel, search, timeFilter]);
 
   const groupedEvents = useMemo(
     () =>
@@ -214,14 +220,21 @@ export default function StudentAuditCard({
                 {expanded ? (
                   <ol className="relative mt-5 ml-3 space-y-7 border-l border-card-border pl-6">
                     {group.items.map((event) => (
-                      <StudentAuditItem key={event.eventId} event={event} />
+                      <StudentAuditItem
+                        key={event.eventId}
+                        event={event}
+                        recordLabel={recordLabel}
+                      />
                     ))}
                   </ol>
                 ) : (
                   <div className="mt-3 pl-9">
                     <p className="line-clamp-2 text-sm leading-6 text-text-secondary">
                       {getStudentAuditActor(latestEvent)}{" "}
-                      {getStudentAuditActivityDescription(latestEvent)}
+                      {getStudentAuditActivityDescription(
+                        latestEvent,
+                        recordLabel,
+                      )}
                     </p>
                   </div>
                 )}

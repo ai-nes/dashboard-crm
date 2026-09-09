@@ -58,6 +58,7 @@ export function getStudentAuditSourceLabel(source?: string | null): string {
 }
 
 export function getStudentAuditDoctypeLabel(doctype?: string | null): string {
+  if (doctype === "CRM Segment") return "Segment";
   return doctype === "CRM Lead" || doctype === "CRM Student"
     ? "Hồ sơ học sinh"
     : doctype || "Hồ sơ";
@@ -153,6 +154,7 @@ export function getStudentAuditCategoryLabel(
 
 export function getStudentAuditActivityDescription(
   event: StudentAuditLog,
+  recordLabel = "hồ sơ học sinh",
 ): string {
   switch (event.eventType) {
     case "comment_added":
@@ -181,11 +183,11 @@ export function getStudentAuditActivityDescription(
       return "đã hoàn tất chuyển đổi";
   }
 
-  if (event.action === "created") return "đã tạo hồ sơ học sinh";
+  if (event.action === "created") return `đã tạo ${recordLabel}`;
   if (event.action === "deleted") {
     return event.restored
-      ? "đã xóa rồi khôi phục hồ sơ học sinh"
-      : "đã xóa hồ sơ học sinh";
+      ? `đã xóa rồi khôi phục ${recordLabel}`
+      : `đã xóa ${recordLabel}`;
   }
 
   const field = event.fieldLabel;
@@ -195,7 +197,7 @@ export function getStudentAuditActivityDescription(
   if (event.changeType === "removed") {
     return `đã xóa ${field || "dữ liệu hồ sơ"}`;
   }
-  return `đã cập nhật ${field || "hồ sơ học sinh"}`;
+  return `đã cập nhật ${field || recordLabel}`;
 }
 
 export function getStudentAuditStatus(event: StudentAuditLog): string {
@@ -266,7 +268,9 @@ export function getStudentAuditTone(event: StudentAuditLog): StudentAuditTone {
 }
 
 export function isStudentAuditFieldChange(event: StudentAuditLog): boolean {
-  return event.action === "updated" && Boolean(event.fieldname || event.fieldLabel);
+  return (
+    event.action === "updated" && Boolean(event.fieldname || event.fieldLabel)
+  );
 }
 
 export function formatStudentAuditContent(value?: string | null): string {
@@ -413,7 +417,9 @@ export function StudentAuditEventDetails({
         </div>
       )}
 
-      {!isFieldChange && <StudentAuditRecordContent event={event} compact={compact} />}
+      {!isFieldChange && (
+        <StudentAuditRecordContent event={event} compact={compact} />
+      )}
       {event.reason && !isFieldChange && (
         <p className="text-xs text-text-secondary">Lý do: {event.reason}</p>
       )}
@@ -450,14 +456,18 @@ export function StudentAuditRecordContent({
 }) {
   const content = formatStudentAuditContent(event.content);
   const fileUrl =
-    typeof event.metadata?.file_url === "string" ? event.metadata.file_url : null;
+    typeof event.metadata?.file_url === "string"
+      ? event.metadata.file_url
+      : null;
 
   if (!content && !event.subject && !fileUrl) return null;
 
   return (
     <div className={compact ? "space-y-1" : "space-y-2"}>
       {event.subject && (
-        <p className="text-xs font-semibold text-text-primary">{event.subject}</p>
+        <p className="text-xs font-semibold text-text-primary">
+          {event.subject}
+        </p>
       )}
       {content && (
         <p className="whitespace-pre-wrap break-words text-xs leading-5 text-text-secondary">

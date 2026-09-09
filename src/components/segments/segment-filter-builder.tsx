@@ -1,7 +1,6 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { SegmentLogicSelect } from "./segment-logic-select";
 
 import {
   getInitialConditionValue,
@@ -9,6 +8,7 @@ import {
   SegmentOperator,
   type SegmentCondition,
   type SegmentFilterGroup,
+  type SegmentFilterOptions,
   type StudentSegmentProperty,
 } from "./segment-filter-config";
 import { SegmentFilterGroup as SegmentFilterGroupView } from "./segment-filter-group";
@@ -23,37 +23,41 @@ function createFilterId(prefix: string) {
 
 function createCondition(
   property: StudentSegmentProperty,
-  category?: string,
+  values: string[] = [],
+  classificationGroupName?: string,
 ): SegmentCondition {
   const operator =
-    SEGMENT_PROPERTY_CONFIG[property].operators[0] ?? SegmentOperator.IS_KNOWN;
+    SEGMENT_PROPERTY_CONFIG[property].operators[0] ?? SegmentOperator.IS_ANY_OF;
 
   return {
     id: createFilterId("condition"),
     property,
     operator,
-    value: getInitialConditionValue(property, operator),
-    category: category ?? null,
+    value: values.length > 0 ? values : getInitialConditionValue(),
+    classificationGroupName,
   };
 }
 
 export function SegmentFilterBuilder({
   groups,
   setGroups,
-  groupLogic,
-  setGroupLogic,
+  options,
 }: {
   groups: SegmentFilterGroup[];
   setGroups: Dispatch<SetStateAction<SegmentFilterGroup[]>>;
-  groupLogic: "AND" | "OR";
-  setGroupLogic: Dispatch<SetStateAction<"AND" | "OR">>;
+  options?: SegmentFilterOptions;
 }) {
   const addCondition = (
     groupId: string | undefined,
     property: StudentSegmentProperty,
-    category?: string,
+    values?: string[],
+    classificationGroupName?: string,
   ) => {
-    const condition = createCondition(property, category);
+    const condition = createCondition(
+      property,
+      values,
+      classificationGroupName,
+    );
 
     setGroups((currentGroups) => {
       if (!groupId) {
@@ -122,7 +126,7 @@ export function SegmentFilterBuilder({
       const duplicate: SegmentFilterGroup = {
         id: createFilterId("group"),
         name: `${sourceGroup.name} (bản sao)`,
-        logic: sourceGroup.logic,
+        logic: "AND",
         conditions: sourceGroup.conditions.map((condition) => ({
           ...condition,
           id: createFilterId("condition"),
@@ -146,8 +150,16 @@ export function SegmentFilterBuilder({
     );
   };
 
-  const addGroup = (property: StudentSegmentProperty, category?: string) => {
-    const condition = createCondition(property, category);
+  const addGroup = (
+    property: StudentSegmentProperty,
+    values?: string[],
+    classificationGroupName?: string,
+  ) => {
+    const condition = createCondition(
+      property,
+      values,
+      classificationGroupName,
+    );
     setGroups((currentGroups) => [
       ...currentGroups,
       {
@@ -167,9 +179,10 @@ export function SegmentFilterBuilder({
             Segment này chưa có bộ lọc
           </p>
           <SegmentFilterPropertyPicker
+            options={options}
             triggerLabel="Thêm bộ lọc"
-            onSelect={(property, category) =>
-              addCondition(undefined, property, category)
+            onSelect={(property, values, groupName) =>
+              addCondition(undefined, property, values, groupName)
             }
             className="mt-5"
           />
@@ -184,18 +197,15 @@ export function SegmentFilterBuilder({
         <div key={group.id}>
           {index > 0 && (
             <div className="relative flex items-center gap-3 py-5 pl-8 before:absolute before:inset-y-0 before:left-20 before:border-l before:border-card-border">
-              <div className="relative">
-                <SegmentLogicSelect
-                  value={groupLogic}
-                  onChange={setGroupLogic}
-                  label="Liên kết các nhóm"
-                />
-              </div>
+              <span className="relative rounded-lg bg-background-gray-secondary px-3 py-2 text-sm font-semibold text-text-secondary">
+                hoặc
+              </span>
             </div>
           )}
           <SegmentFilterGroupView
             group={group}
             index={index}
+            options={options}
             canDelete={groups.length > 1}
             onNameChange={(name) =>
               setGroups((current) =>
@@ -204,15 +214,8 @@ export function SegmentFilterBuilder({
                 ),
               )
             }
-            onLogicChange={(logic) =>
-              setGroups((current) =>
-                current.map((item) =>
-                  item.id === group.id ? { ...item, logic } : item,
-                ),
-              )
-            }
-            onAddCondition={(property, category) =>
-              addCondition(group.id, property, category)
+            onAddCondition={(property, values, groupName) =>
+              addCondition(group.id, property, values, groupName)
             }
             onUpdateCondition={(condition) =>
               updateCondition(group.id, condition)
@@ -227,12 +230,11 @@ export function SegmentFilterBuilder({
       ))}
 
       <div className="relative flex items-center gap-3 pt-6 pl-8 before:absolute before:top-0 before:left-20 before:h-6 before:border-l before:border-card-border">
-        <SegmentLogicSelect
-          value={groupLogic}
-          onChange={setGroupLogic}
-          label="Liên kết nhóm tiếp theo"
-        />
+        <span className="rounded-lg bg-background-gray-secondary px-3 py-2 text-sm font-semibold text-text-secondary">
+          hoặc
+        </span>
         <SegmentFilterPropertyPicker
+          options={options}
           triggerLabel="Thêm nhóm bộ lọc"
           onSelect={addGroup}
         />
