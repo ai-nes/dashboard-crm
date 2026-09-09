@@ -5,16 +5,14 @@ import { useMemo } from "react";
 
 import { useSegmentByCodeQuery } from "@/hooks/use-segment-queries";
 
-import SegmentBuilderPage, { defaultCategory } from "./segment-builder-page";
+import SegmentBuilderPage, {
+  defaultCategory,
+  type SegmentCategory,
+} from "./segment-builder-page";
 import { fromBackendSegmentFilters } from "./segment-filter-config";
-import {
-  SEGMENT_STATUS_LABELS,
-  toSegmentListItem,
-  type SegmentStatus,
-} from "./segment-list-types";
-import type { SegmentCreateDetails } from "./segment-create-dialog";
+import { toSegmentListItem } from "./segment-list-types";
 
-const EDITABLE_CATEGORIES: SegmentCreateDetails["category"][] = [
+const EDITABLE_CATEGORIES: SegmentCategory[] = [
   "admission_stage",
   "potential",
   "intent",
@@ -24,16 +22,10 @@ const EDITABLE_CATEGORIES: SegmentCreateDetails["category"][] = [
 function getSegmentCategory(
   category: string | undefined,
   groups: ReturnType<typeof fromBackendSegmentFilters>["groups"],
-): SegmentCreateDetails["category"] {
-  return EDITABLE_CATEGORIES.includes(
-    category as SegmentCreateDetails["category"],
-  )
-    ? (category as SegmentCreateDetails["category"])
+): SegmentCategory {
+  return EDITABLE_CATEGORIES.includes(category as SegmentCategory)
+    ? (category as SegmentCategory)
     : defaultCategory(groups);
-}
-
-function getEditableStatus(status: SegmentStatus): "draft" | "active" {
-  return status === "active" ? "active" : "draft";
 }
 
 export default function SegmentEditPage({
@@ -97,9 +89,6 @@ export default function SegmentEditPage({
       mode="edit"
       segmentId={segment.id}
       expectedRevision={segment.revision}
-      initialStatus={getEditableStatus(segment.status)}
-      currentStatus={segment.status}
-      statusLabel={SEGMENT_STATUS_LABELS[segment.status]}
     />
   );
 }

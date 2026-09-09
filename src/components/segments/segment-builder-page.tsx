@@ -16,15 +16,10 @@ import {
   useCreateSegmentMutation,
   useSegmentFilterOptionsQuery,
   useSegmentPreviewQuery,
-  useTransitionSegmentMutation,
   useUpdateSegmentMutation,
 } from "@/hooks/use-segment-queries";
 import { cn } from "@/utils/cn";
 
-import {
-  SegmentCreateDialog,
-  type SegmentCreateDetails,
-} from "./segment-create-dialog";
 import { SegmentFilterBuilder } from "./segment-filter-builder";
 import {
   isConditionComplete,
@@ -36,6 +31,12 @@ import {
 } from "./segment-filter-config";
 import { SegmentFilterPreview } from "./segment-filter-preview";
 import { toSegmentStudent } from "./segment-detail-types";
+
+export type SegmentCategory =
+  | "admission_stage"
+  | "potential"
+  | "intent"
+  | "need";
 
 export function defaultCategory(groups: SegmentFilterGroup[]) {
   const property = groups[0]?.conditions[0]?.property;
@@ -59,8 +60,6 @@ export default function SegmentBuilderPage({
   segmentId,
   expectedRevision,
   initialStatus = "draft",
-  statusLabel,
-  currentStatus,
 }: {
   backHref: string;
   managementHref?: string;
@@ -72,9 +71,6 @@ export default function SegmentBuilderPage({
   mode?: "create" | "edit";
   segmentId?: string;
   expectedRevision?: number;
-  initialStatus?: SegmentCreateDetails["status"];
-  statusLabel?: string;
-  currentStatus?: import("./segment-list-types").SegmentStatus;
 }) {
   const router = useRouter();
   const isEditMode = mode === "edit";
@@ -83,11 +79,9 @@ export default function SegmentBuilderPage({
   const [isEditingName, setIsEditingName] = useState(false);
   const [groups, setGroups] = useState<SegmentFilterGroup[]>(initialGroups);
   const [logic, setLogic] = useState<SegmentFilterLogic>(initialLogic);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const filterOptionsQuery = useSegmentFilterOptionsQuery();
   const createMutation = useCreateSegmentMutation();
-  const transitionMutation = useTransitionSegmentMutation();
   const updateMutation = useUpdateSegmentMutation();
   const filterOptions = useMemo(
     () => buildSegmentFilterOptions(filterOptionsQuery.data),
@@ -131,9 +125,13 @@ export default function SegmentBuilderPage({
     setIsEditingName(false);
   };
 
-  const handleSave = async (details: SegmentCreateDetails) => {
+  const handleSave = async () => {
     if (!backendFilters) return;
     setIsSubmitting(true);
+    const purpose = initialPurpose.trim();
+    const category =
+      initialCategory ??
+      (isEditMode ? defaultCategory(initialGroups) : "potential");
     try {
       if (isEditMode) {
         if (!segmentId || expectedRevision === undefined) {
@@ -145,35 +143,25 @@ export default function SegmentBuilderPage({
           expectedRevision,
           data: {
             title: segmentName.trim(),
-            purpose: details.purpose,
-            category: details.category,
+            purpose,
+            category,
             filters: backendFilters,
           },
         });
-        setIsCreateDialogOpen(false);
         toast.success("Đã cập nhật segment");
         router.push(backHref);
         return;
       }
 
-      const created = await createMutation.mutateAsync({
+      await createMutation.mutateAsync({
         title: segmentName.trim(),
-        purpose: details.purpose,
+        purpose,
         segment_type: "dynamic",
-        category: details.category || defaultCategory(groups),
+        category,
         is_public: 0,
         filters: backendFilters,
       });
 
-      if (details.status === "active") {
-        await transitionMutation.mutateAsync({
-          name: created.name,
-          status: "active",
-          expectedRevision: created.revision,
-        });
-      }
-
-      setIsCreateDialogOpen(false);
       toast.success("Đã tạo segment từ dữ liệu Frappe CRM");
       router.push(backHref);
     } catch (error) {
@@ -188,6 +176,8 @@ export default function SegmentBuilderPage({
       setIsSubmitting(false);
     }
   };
+
+  const canSave = !isSubmitting && Boolean(segmentName.trim());
 
   return (
     <main
@@ -256,10 +246,16 @@ export default function SegmentBuilderPage({
           variant="primary"
           appearance="fill"
           size="lg"
-          isDisabled={!previewReady || previewQuery.isLoading || isSubmitting}
-          onPress={() => setIsCreateDialogOpen(true)}
+          isDisabled={!previewReady || previewQuery.isLoading || !canSave}
+          onPress={() => void handleSave()}
         >
-          {isEditMode ? "Lưu thay đổi" : "Tiếp theo"}
+          {isSubmitting
+            ? isEditMode
+              ? "Đang lưu…"
+              : "Đang tạo…"
+            : isEditMode
+              ? "Lưu thay đổi"
+              : "Tạo segment"}
         </Button>
       </header>
 
@@ -308,24 +304,6 @@ export default function SegmentBuilderPage({
           )}
         </aside>
       </div>
-
-      <SegmentCreateDialog
-        isOpen={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        segmentName={segmentName}
-        studentSize={studentSize}
-        isSubmitting={isSubmitting}
-        mode={mode}
-        initialStatus={initialStatus}
-        initialPurpose={initialPurpose}
-        initialCategory={
-          initialCategory ??
-          (isEditMode ? defaultCategory(initialGroups) : "potential")
-        }
-        statusLabel={statusLabel}
-        currentStatus={currentStatus}
-        onCreate={handleSave}
-      />
     </main>
   );
 }
