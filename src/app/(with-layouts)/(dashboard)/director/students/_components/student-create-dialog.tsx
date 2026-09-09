@@ -11,15 +11,19 @@ import {
 } from "@/components/common/create-dialog-field";
 import { Button } from "@/components/tailgrids/core/button";
 import {
-  Dialog,
   DialogBody,
   DialogClose,
   DialogFooter,
   DialogTitle,
 } from "@/components/tailgrids/core/dialog";
+import { Backdrop } from "@/components/tailgrids/core/overlay";
 import { useLeadMappingOptions } from "@/hooks/use-lead-mapping-options";
 import { useStudentSchoolFieldOptions } from "@/hooks/use-student-school-field-options";
 import type { StudentCreateWithLeadFields } from "@/services/api/student-school-update";
+import {
+  Dialog as AriaDialog,
+  Modal as AriaModal,
+} from "react-aria-components";
 
 interface StudentCreateDialogProps {
   isOpen: boolean;
@@ -199,215 +203,219 @@ export default function StudentCreateDialog({
   };
 
   return (
-    <Dialog
-      aria-label="Tạo hồ sơ học sinh"
-      isOpen={isOpen}
-      onOpenChange={handleOpenChange}
-      className="max-h-[calc(100vh-2rem)] max-w-140 overflow-hidden p-0"
-    >
-      <form onSubmit={handleSubmit}>
-        <div className="border-b border-card-border px-5 py-4">
-          <DialogTitle className="text-base font-semibold text-text-primary">
-            Thêm học sinh
-          </DialogTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">
-            Nhập thông tin chính để tạo hồ sơ; các thông tin còn thiếu có thể bổ
-            sung sau.
-          </p>
-        </div>
+    <Backdrop isOpen={isOpen} onOpenChange={handleOpenChange}>
+      <AriaModal className="fixed top-1/2 left-1/2 z-50 w-full max-w-140 -translate-x-1/2 -translate-y-1/2 transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] data-entering:scale-95 data-entering:opacity-0 data-exiting:scale-95 data-exiting:opacity-0 motion-reduce:transition-none motion-reduce:data-entering:scale-100 motion-reduce:data-entering:opacity-100 motion-reduce:data-exiting:scale-100 motion-reduce:data-exiting:opacity-100 max-sm:max-w-[calc(100%-2rem)]">
+        <AriaDialog
+          aria-label="Tạo hồ sơ học sinh"
+          className="max-h-[calc(100vh-2rem)] overflow-hidden rounded-xl border border-border-primary bg-background-white-primary p-0 shadow-lg outline-none"
+        >
+          <form onSubmit={handleSubmit}>
+            <div className="border-b border-card-border px-5 py-4">
+              <DialogTitle className="text-base font-semibold text-text-primary">
+                Thêm học sinh
+              </DialogTitle>
+              <p className="mt-1 text-xs leading-5 text-text-tertiary">
+                Nhập thông tin chính để tạo hồ sơ; các thông tin còn thiếu có
+                thể bổ sung sau.
+              </p>
+            </div>
 
-        <DialogBody className="max-h-[calc(100vh-10rem)] space-y-4 overflow-y-auto px-5 py-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <CreateDialogField label="Họ và tên" required>
-              <CreateDialogInput
-                autoFocus
-                label="Họ và tên"
-                placeholder="Nguyễn Văn An"
-                value={form.student_name}
-                onChange={(event) =>
-                  setField("student_name", event.target.value)
-                }
-                aria-invalid={Boolean(fieldErrors.student_name)}
-              />
-              <FormFieldError message={fieldErrors.student_name} />
-            </CreateDialogField>
+            <DialogBody className="max-h-[calc(100vh-10rem)] space-y-4 overflow-y-auto px-5 py-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <CreateDialogField label="Họ và tên" required>
+                  <CreateDialogInput
+                    autoFocus
+                    label="Họ và tên"
+                    placeholder="Nguyễn Văn An"
+                    value={form.student_name}
+                    onChange={(event) =>
+                      setField("student_name", event.target.value)
+                    }
+                    aria-invalid={Boolean(fieldErrors.student_name)}
+                  />
+                  <FormFieldError message={fieldErrors.student_name} />
+                </CreateDialogField>
 
-            <CreateDialogField label="Di động" required>
-              <CreateDialogInput
-                label="Di động"
-                placeholder="0900000000"
-                type="tel"
-                value={form.phone}
-                onChange={(event) => setField("phone", event.target.value)}
-                aria-invalid={Boolean(fieldErrors.phone)}
-              />
-              <FormFieldError message={fieldErrors.phone} />
-            </CreateDialogField>
+                <CreateDialogField label="Di động" required>
+                  <CreateDialogInput
+                    label="Di động"
+                    placeholder="0900000000"
+                    type="tel"
+                    value={form.phone}
+                    onChange={(event) => setField("phone", event.target.value)}
+                    aria-invalid={Boolean(fieldErrors.phone)}
+                  />
+                  <FormFieldError message={fieldErrors.phone} />
+                </CreateDialogField>
 
-            <CreateDialogField label="CCCD">
-              <CreateDialogInput
-                label="CCCD"
-                inputMode="numeric"
-                placeholder="012345678901"
-                value={form.id_number}
-                onChange={(event) => setField("id_number", event.target.value)}
-                aria-invalid={Boolean(fieldErrors.id_number)}
-              />
-              <FormFieldError message={fieldErrors.id_number} />
-            </CreateDialogField>
+                <CreateDialogField label="CCCD">
+                  <CreateDialogInput
+                    label="CCCD"
+                    inputMode="numeric"
+                    placeholder="012345678901"
+                    value={form.id_number}
+                    onChange={(event) =>
+                      setField("id_number", event.target.value)
+                    }
+                    aria-invalid={Boolean(fieldErrors.id_number)}
+                  />
+                  <FormFieldError message={fieldErrors.id_number} />
+                </CreateDialogField>
 
-            <CreateDialogField label="Email">
-              <CreateDialogInput
-                label="Email"
-                placeholder="an@example.com"
-                type="email"
-                value={form.email}
-                onChange={(event) => setField("email", event.target.value)}
-                aria-invalid={Boolean(fieldErrors.email)}
-              />
-              <FormFieldError message={fieldErrors.email} />
-            </CreateDialogField>
+                <CreateDialogField label="Email">
+                  <CreateDialogInput
+                    label="Email"
+                    placeholder="an@example.com"
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => setField("email", event.target.value)}
+                    aria-invalid={Boolean(fieldErrors.email)}
+                  />
+                  <FormFieldError message={fieldErrors.email} />
+                </CreateDialogField>
 
-            <CreateDialogField label="Nguồn" required>
-              <CreateDialogSelect
-                label="Nguồn"
-                options={sourceOptions}
-                value={form.source}
-                isDisabled={sourceOptionsQuery.isPending}
-                onChange={(value) => setField("source", value)}
-              />
-              <FormFieldError message={fieldErrors.source} />
-            </CreateDialogField>
+                <CreateDialogField label="Nguồn" required>
+                  <CreateDialogSelect
+                    label="Nguồn"
+                    options={sourceOptions}
+                    value={form.source}
+                    isDisabled={sourceOptionsQuery.isPending}
+                    onChange={(value) => setField("source", value)}
+                  />
+                  <FormFieldError message={fieldErrors.source} />
+                </CreateDialogField>
 
-            <CreateDialogField label="Người phụ trách" required>
-              <CreateDialogSelect
-                label="Người phụ trách"
-                options={assignedToOptions}
-                value={form.assigned_to}
-                isDisabled={leadMappingOptionsQuery.isPending}
-                onChange={(value) => setField("assigned_to", value)}
-              />
-              <FormFieldError message={fieldErrors.assigned_to} />
-            </CreateDialogField>
+                <CreateDialogField label="Người phụ trách" required>
+                  <CreateDialogSelect
+                    label="Người phụ trách"
+                    options={assignedToOptions}
+                    value={form.assigned_to}
+                    isDisabled={leadMappingOptionsQuery.isPending}
+                    onChange={(value) => setField("assigned_to", value)}
+                  />
+                  <FormFieldError message={fieldErrors.assigned_to} />
+                </CreateDialogField>
 
-            <CreateDialogField label="Tỉnh / thành phố" required>
-              <CreateDialogSelect
-                label="Tỉnh / thành phố"
-                options={provinceOptions}
-                value={form.province}
-                isDisabled={provinceOptionsQuery.isPending}
-                onChange={handleProvinceChange}
-              />
-              <FormFieldError message={fieldErrors.province} />
-            </CreateDialogField>
+                <CreateDialogField label="Tỉnh / thành phố" required>
+                  <CreateDialogSelect
+                    label="Tỉnh / thành phố"
+                    options={provinceOptions}
+                    value={form.province}
+                    isDisabled={provinceOptionsQuery.isPending}
+                    onChange={handleProvinceChange}
+                  />
+                  <FormFieldError message={fieldErrors.province} />
+                </CreateDialogField>
 
-            <CreateDialogField label="Xã / phường">
-              <CreateDialogSelect
-                label="Xã / phường"
-                options={wardOptions}
-                value={form.ward}
-                isDisabled={!form.province || wardOptionsQuery.isPending}
-                onChange={(value) => setField("ward", value)}
-              />
-            </CreateDialogField>
+                <CreateDialogField label="Xã / phường">
+                  <CreateDialogSelect
+                    label="Xã / phường"
+                    options={wardOptions}
+                    value={form.ward}
+                    isDisabled={!form.province || wardOptionsQuery.isPending}
+                    onChange={(value) => setField("ward", value)}
+                  />
+                </CreateDialogField>
 
-            <CreateDialogField label="Trường THPT">
-              <SchoolCombobox
-                ariaLabel="Chọn trường THPT"
-                isDisabled={!form.province}
-                province={form.province}
-                ward={form.ward}
-                requiresWard={false}
-                value={form.high_school}
-                onChange={(value) => setField("high_school", value)}
-              />
-            </CreateDialogField>
+                <CreateDialogField label="Trường THPT">
+                  <SchoolCombobox
+                    ariaLabel="Chọn trường THPT"
+                    isDisabled={!form.province}
+                    province={form.province}
+                    ward={form.ward}
+                    requiresWard={false}
+                    value={form.high_school}
+                    onChange={(value) => setField("high_school", value)}
+                  />
+                </CreateDialogField>
 
-            <CreateDialogField label="Ngành quan tâm">
-              <CreateDialogSelect
-                label="Ngành quan tâm"
-                options={majorOptions}
-                value={form.major}
-                isDisabled={majorOptionsQuery.isPending}
-                onChange={(value) => setField("major", value)}
-              />
-            </CreateDialogField>
+                <CreateDialogField label="Ngành quan tâm">
+                  <CreateDialogSelect
+                    label="Ngành quan tâm"
+                    options={majorOptions}
+                    value={form.major}
+                    isDisabled={majorOptionsQuery.isPending}
+                    onChange={(value) => setField("major", value)}
+                  />
+                </CreateDialogField>
 
-            <CreateDialogField label="Chi nhánh">
-              <CreateDialogSelect
-                label="Chi nhánh"
-                options={branchOptions}
-                value={form.branch}
-                isDisabled={branchOptionsQuery.isPending}
-                onChange={(value) => setField("branch", value)}
-              />
-            </CreateDialogField>
+                <CreateDialogField label="Chi nhánh">
+                  <CreateDialogSelect
+                    label="Chi nhánh"
+                    options={branchOptions}
+                    value={form.branch}
+                    isDisabled={branchOptionsQuery.isPending}
+                    onChange={(value) => setField("branch", value)}
+                  />
+                </CreateDialogField>
 
-            <CreateDialogField label="Kênh quảng cáo">
-              <CreateDialogInput
-                label="Kênh quảng cáo"
-                placeholder="Facebook Ads, Google…"
-                value={form.advertising_channel}
-                onChange={(event) =>
-                  setField("advertising_channel", event.target.value)
-                }
-              />
-            </CreateDialogField>
+                <CreateDialogField label="Kênh quảng cáo">
+                  <CreateDialogInput
+                    label="Kênh quảng cáo"
+                    placeholder="Facebook Ads, Google…"
+                    value={form.advertising_channel}
+                    onChange={(event) =>
+                      setField("advertising_channel", event.target.value)
+                    }
+                  />
+                </CreateDialogField>
 
-            <CreateDialogField label="Năm tuyển sinh">
-              <CreateDialogInput
-                label="Năm tuyển sinh"
-                type="number"
-                value={form.admission_year}
-                onChange={(event) =>
-                  setField("admission_year", event.target.value)
-                }
-              />
-            </CreateDialogField>
+                <CreateDialogField label="Năm tuyển sinh">
+                  <CreateDialogInput
+                    label="Năm tuyển sinh"
+                    type="number"
+                    value={form.admission_year}
+                    onChange={(event) =>
+                      setField("admission_year", event.target.value)
+                    }
+                  />
+                </CreateDialogField>
 
-            <CreateDialogField className="sm:col-span-2" label="Ghi chú">
-              <CreateDialogTextArea
-                label="Ghi chú"
-                placeholder="Thông tin bổ sung về học sinh…"
-                rows={3}
-                value={form.description}
-                onChange={(event) =>
-                  setField("description", event.target.value)
-                }
-              />
-            </CreateDialogField>
-          </div>
+                <CreateDialogField className="sm:col-span-2" label="Ghi chú">
+                  <CreateDialogTextArea
+                    label="Ghi chú"
+                    placeholder="Thông tin bổ sung về học sinh…"
+                    rows={3}
+                    value={form.description}
+                    onChange={(event) =>
+                      setField("description", event.target.value)
+                    }
+                  />
+                </CreateDialogField>
+              </div>
 
-          {(sourceOptionsQuery.isError ||
-            provinceOptionsQuery.isError ||
-            wardOptionsQuery.isError ||
-            leadMappingOptionsQuery.isError) && (
-            <p className="text-xs text-error-600" role="alert">
-              Chưa thể tải một số danh mục. Vui lòng thử lại sau.
-            </p>
-          )}
-          {submitError && (
-            <p className="text-xs text-error-600" role="alert">
-              {submitError}
-            </p>
-          )}
-        </DialogBody>
+              {(sourceOptionsQuery.isError ||
+                provinceOptionsQuery.isError ||
+                wardOptionsQuery.isError ||
+                leadMappingOptionsQuery.isError) && (
+                <p className="text-xs text-error-600" role="alert">
+                  Chưa thể tải một số danh mục. Vui lòng thử lại sau.
+                </p>
+              )}
+              {submitError && (
+                <p className="text-xs text-error-600" role="alert">
+                  {submitError}
+                </p>
+              )}
+            </DialogBody>
 
-        <DialogFooter className="border-t border-card-border px-5 py-3">
-          <DialogClose
-            appearance="outline"
-            size="sm"
-            type="button"
-            isDisabled={isSubmitting}
-          >
-            Hủy
-          </DialogClose>
-          <Button type="submit" size="sm" isDisabled={isSubmitting}>
-            {isSubmitting ? "Đang tạo…" : "Tạo học sinh"}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Dialog>
+            <DialogFooter className="border-t border-card-border px-5 py-3">
+              <DialogClose
+                appearance="outline"
+                size="sm"
+                type="button"
+                isDisabled={isSubmitting}
+              >
+                Hủy
+              </DialogClose>
+              <Button type="submit" size="sm" isDisabled={isSubmitting}>
+                {isSubmitting ? "Đang tạo…" : "Tạo học sinh"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </AriaDialog>
+      </AriaModal>
+    </Backdrop>
   );
 }
 
