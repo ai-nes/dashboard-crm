@@ -21,7 +21,10 @@ function createFilterId(prefix: string) {
   return `${prefix}-${filterId}`;
 }
 
-function createCondition(property: StudentSegmentProperty): SegmentCondition {
+function createCondition(
+  property: StudentSegmentProperty,
+  category?: string,
+): SegmentCondition {
   const operator =
     SEGMENT_PROPERTY_CONFIG[property].operators[0] ?? SegmentOperator.IS_KNOWN;
 
@@ -30,6 +33,7 @@ function createCondition(property: StudentSegmentProperty): SegmentCondition {
     property,
     operator,
     value: getInitialConditionValue(property, operator),
+    category: category ?? null,
   };
 }
 
@@ -47,8 +51,9 @@ export function SegmentFilterBuilder({
   const addCondition = (
     groupId: string | undefined,
     property: StudentSegmentProperty,
+    category?: string,
   ) => {
-    const condition = createCondition(property);
+    const condition = createCondition(property, category);
 
     setGroups((currentGroups) => {
       if (!groupId) {
@@ -141,8 +146,8 @@ export function SegmentFilterBuilder({
     );
   };
 
-  const addGroup = (property: StudentSegmentProperty) => {
-    const condition = createCondition(property);
+  const addGroup = (property: StudentSegmentProperty, category?: string) => {
+    const condition = createCondition(property, category);
     setGroups((currentGroups) => [
       ...currentGroups,
       {
@@ -163,7 +168,9 @@ export function SegmentFilterBuilder({
           </p>
           <SegmentFilterPropertyPicker
             triggerLabel="Thêm bộ lọc"
-            onSelect={(property) => addCondition(undefined, property)}
+            onSelect={(property, category) =>
+              addCondition(undefined, property, category)
+            }
             className="mt-5"
           />
         </div>
@@ -204,7 +211,9 @@ export function SegmentFilterBuilder({
                 ),
               )
             }
-            onAddCondition={(property) => addCondition(group.id, property)}
+            onAddCondition={(property, category) =>
+              addCondition(group.id, property, category)
+            }
             onUpdateCondition={(condition) =>
               updateCondition(group.id, condition)
             }

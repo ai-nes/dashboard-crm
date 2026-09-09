@@ -2,26 +2,28 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
-import { Pencil1, Trash1 } from "@tailgrids/icons";
-import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
-import {
-  SEGMENT_TYPE_LABELS,
-  type SegmentListItem,
-} from "./segment-list-types";
+import { type SegmentListItem, type SegmentStatus } from "./segment-list-types";
+import { SegmentStatusSelect } from "./segment-status-select";
 
 interface SegmentColumnOptions {
   detailBaseHref: string;
-  onEdit: (segment: SegmentListItem) => void;
-  onDelete: (segment: SegmentListItem) => void;
+  onStatusChange: (segment: SegmentListItem, status: SegmentStatus) => void;
 }
 
 export function getSegmentListColumns({
   detailBaseHref,
-  onEdit,
-  onDelete,
+  onStatusChange,
 }: SegmentColumnOptions): ColumnDef<SegmentListItem>[] {
   return [
+    {
+      accessorKey: "code",
+      header: "Mã segment",
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap font-medium tabular-nums text-text-primary">
+          {row.original.code}
+        </span>
+      ),
+    },
     {
       accessorKey: "name",
       header: "Tên segment",
@@ -45,17 +47,23 @@ export function getSegmentListColumns({
       ),
     },
     {
-      accessorKey: "type",
-      header: "Loại",
+      accessorKey: "creator",
+      header: "Người tạo",
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap">{row.original.creator}</span>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Trạng thái",
       enableGlobalFilter: false,
       filterFn: "equals",
       cell: ({ row }) => (
-        <Badge
-          color={row.original.type === "AUTOMATIC" ? "sky" : "violet"}
-          className="whitespace-nowrap"
-        >
-          {SEGMENT_TYPE_LABELS[row.original.type]}
-        </Badge>
+        <SegmentStatusSelect
+          value={row.original.status}
+          ariaLabel={`Cập nhật trạng thái ${row.original.name}`}
+          onChange={(status) => onStatusChange(row.original, status)}
+        />
       ),
     },
     {
@@ -76,50 +84,6 @@ export function getSegmentListColumns({
             timeZone: "Asia/Ho_Chi_Minh",
           }).format(new Date(row.original.updatedAt))}
         </time>
-      ),
-    },
-    {
-      accessorKey: "creator",
-      header: "Người tạo",
-      cell: ({ row }) => (
-        <span className="whitespace-nowrap">{row.original.creator}</span>
-      ),
-    },
-    {
-      accessorKey: "usedIn",
-      header: "Được sử dụng",
-      enableGlobalFilter: false,
-      cell: ({ row }) => (
-        <span className="whitespace-nowrap tabular-nums">
-          {row.original.usedIn} nơi
-        </span>
-      ),
-    },
-    {
-      id: "actions",
-      header: "Thao tác",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <Button
-            appearance="ghost"
-            size="sm"
-            aria-label={`Sửa ${row.original.name}`}
-            onPress={() => onEdit(row.original)}
-          >
-            <Pencil1 size={16} aria-hidden="true" />
-            Sửa
-          </Button>
-          <Button
-            variant="danger"
-            appearance="ghost"
-            size="sm"
-            aria-label={`Xóa ${row.original.name}`}
-            onPress={() => onDelete(row.original)}
-          >
-            <Trash1 size={16} aria-hidden="true" />
-            Xóa
-          </Button>
-        </div>
       ),
     },
   ];

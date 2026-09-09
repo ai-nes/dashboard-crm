@@ -19,14 +19,14 @@ export default function AssignmentBatchItemDrawer() {
   return (
     <DetailDrawer
       title={item.studentName}
-      subtitle={`CHI TIẾT HỒ SƠ LEAD · ${item.leadId}`}
+      subtitle="CHI TIẾT HỒ SƠ LEAD"
       onClose={() => inspectItem(null)}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Badge color={itemStatusColors[item.status]}>
           {itemStatusLabels[item.status]}
         </Badge>
-        <span className="text-xs text-text-tertiary">Mã hồ sơ: {item.id}</span>
+        <span className="text-xs text-text-tertiary">Lead đang được xử lý</span>
       </div>
 
       <dl className="mt-5 grid grid-cols-[126px_1fr] gap-x-3 gap-y-3 text-sm">
@@ -37,7 +37,9 @@ export default function AssignmentBatchItemDrawer() {
         <dt className="text-text-tertiary">Tỉnh/Thành phố</dt>
         <dd className="text-text-primary">{item.province ?? "—"}</dd>
         <dt className="text-text-tertiary">Trường THPT</dt>
-        <dd className="text-text-primary">{item.highSchool ?? "—"}</dd>
+        <dd className="text-text-primary">
+          {item.highSchoolLabel ?? item.highSchool ?? "—"}
+        </dd>
         <dt className="text-text-tertiary">Ngành quan tâm</dt>
         <dd className="text-text-primary">{item.major ?? "—"}</dd>
         <dt className="text-text-tertiary">Nguồn Lead</dt>
@@ -84,7 +86,7 @@ export default function AssignmentBatchItemDrawer() {
               : "—"}
           </dd>
           <dt className="text-text-tertiary">Lý do chọn</dt>
-          <dd className="text-text-primary">{item.reason ?? "—"}</dd>
+          <dd className="text-text-primary">{assignmentReasonLabel(item)}</dd>
         </dl>
       </section>
 

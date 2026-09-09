@@ -8,6 +8,7 @@ export interface LeadStatusOption {
 }
 
 export type LeadResolution =
+  | "PENDING"
   | "MATCHED"
   | "CREATED"
   | "DUPLICATE"
@@ -15,7 +16,7 @@ export type LeadResolution =
   | "SPAM"
   | "FAILED";
 
-export type LeadResolutionFilter = "PENDING" | LeadResolution;
+export type LeadResolutionFilter = LeadResolution;
 
 export type LeadProcessStatus =
   | "NEW"
@@ -29,7 +30,8 @@ export type LeadProcessResolution = "PENDING" | LeadResolution;
 export interface LeadListItem {
   id: string;
   leadCode: string;
-  studentId: string;
+  studentCode: string | null;
+  studentId: string | null;
   initials: string;
   name: string;
   phone: string;
@@ -259,6 +261,7 @@ const LEAD_PROCESS_RESOLUTIONS = new Set<LeadProcessResolution>([
   "FAILED",
 ]);
 const LEAD_RESOLUTION_CODES = new Set<LeadResolution>([
+  "PENDING",
   "MATCHED",
   "CREATED",
   "DUPLICATE",
@@ -407,10 +410,10 @@ function normalizeListItem(value: unknown): LeadListItem {
   return {
     id,
     leadCode: firstText([row.leadCode, row.lead_code]),
+    studentCode: firstText([row.studentCode, row.student_code]) || null,
     studentId: firstText(
-      [row.studentId, row.student_id, row.student, row.matched_student],
-      id,
-    ),
+      [row.studentId, row.student_id, row.convertedStudent, row.converted_student, row.matchedStudent, row.matched_student, row.student],
+    ) || null,
     initials: firstText([row.initials], initials(name)),
     name,
     phone: firstText([row.phone]),

@@ -11,7 +11,22 @@ const STAGE_COLORS = {
   [JourneyStage.DISQUALIFIED]: "gray",
 } as const;
 
+function potentialScoreTone(score: number): "success" | "warning" | "error" {
+  if (score >= 75) return "success";
+  if (score >= 50) return "warning";
+  return "error";
+}
+
 export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
+  {
+    accessorKey: "code",
+    header: "Mã học sinh",
+    cell: ({ row }) => (
+      <span className="tabular-nums text-text-secondary">
+        {row.original.code}
+      </span>
+    ),
+  },
   {
     accessorKey: "name",
     header: "Học sinh",
@@ -19,13 +34,6 @@ export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
       <span className="whitespace-nowrap font-semibold text-text-primary">
         {row.original.name}
       </span>
-    ),
-  },
-  {
-    accessorKey: "school",
-    header: "Trường THPT",
-    cell: ({ row }) => (
-      <span className="inline-block min-w-40">{row.original.school}</span>
     ),
   },
   {
@@ -46,6 +54,37 @@ export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
       >
         {JOURNEY_STAGE_LABEL[row.original.stage]}
       </Badge>
+    ),
+  },
+  {
+    accessorKey: "major",
+    header: "Ngành quan tâm",
+    cell: ({ row }) => (
+      <span className="inline-block min-w-40">{row.original.major}</span>
+    ),
+  },
+  {
+    accessorKey: "potentialScore",
+    header: "Điểm tiềm năng",
+    enableGlobalFilter: false,
+    cell: ({ row }) => (
+      <Badge color={potentialScoreTone(row.original.potentialScore)}>
+        {row.original.potentialScore}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: "owner",
+    header: "Người phụ trách",
+    cell: ({ row }) => (
+      <span className="whitespace-nowrap">{row.original.owner}</span>
+    ),
+  },
+  {
+    accessorKey: "nextAction",
+    header: "Hành động tiếp theo",
+    cell: ({ row }) => (
+      <span className="inline-block min-w-40">{row.original.nextAction}</span>
     ),
   },
 ];

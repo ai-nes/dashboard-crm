@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Tab, TabList, TabPanel, Tabs } from "react-aria-components";
+import { UserMultiple1 } from "@tailgrids/icons";
 import { toast } from "sonner";
+import { Button } from "@/components/tailgrids/core/button";
 import { useSegmentData } from "./segment-data-provider";
 import { SegmentDetailHeader } from "./segment-detail-header";
 import { SegmentDetailFilters } from "./segment-detail-filters";
@@ -13,7 +15,10 @@ import { SegmentEditDialog } from "./segment-edit-dialog";
 import {
   getMockSegmentStudents,
   MOCK_SEGMENT_OVERVIEWS,
+  toSegmentStudent,
 } from "./segment-detail-mock-data";
+import { getMatchingStudents } from "./segment-filter-matching";
+import type { SegmentStudent } from "./segment-detail-types";
 
 export function SegmentDetailPage({
   segmentId,
@@ -26,11 +31,32 @@ export function SegmentDetailPage({
   const { segments, setSegments } = useSegmentData();
   const segment = segments.find((item) => item.id === segmentId);
   const [isEditing, setIsEditing] = useState(false);
-  const students = useMemo(
-    () => getMockSegmentStudents(segmentId, segment?.size ?? 0),
-    [segmentId, segment?.size],
+  const [students, setStudents] = useState<SegmentStudent[]>(() =>
+    getMockSegmentStudents(segmentId, segment?.size ?? 0),
   );
   const overview = MOCK_SEGMENT_OVERVIEWS[segmentId];
+
+  const hasFilterConditions = Boolean(
+    overview?.groups.some((group) => group.conditions.length > 0),
+  );
+
+  const handleAddMatchingStudents = () => {
+    if (!overview) return;
+    const matches = getMatchingStudents(overview.groups, overview.groupLogic);
+
+    if (matches.length === 0) {
+      toast.info("Không có học sinh nào khớp với bộ lọc.");
+      return;
+    }
+
+    setStudents(matches.map(toSegmentStudent));
+    setSegments((current) =>
+      current.map((item) =>
+        item.id === segmentId ? { ...item, size: matches.length } : item,
+      ),
+    );
+    toast.success(`Đã thêm ${matches.length} học sinh khớp bộ lọc vào segment`);
+  };
 
   if (!segment || !overview)
     return (
@@ -87,9 +113,9 @@ export function SegmentDetailPage({
         >
           {[
             { id: "overview", label: "Tổng quan" },
-            { id: "performance", label: "Hiệu quả" },
-            { id: "activity", label: "Hoạt động" },
-            { id: "settings", label: "Cài đặt" },
+            { id: "next-action", label: "Hành động tiếp theo" },
+            { id: "tasks", label: "Task" },
+            { id: "activity-log", label: "Ghi chú nhật ký" },
           ].map((tab) => (
             <Tab
               key={tab.id}
@@ -101,16 +127,31 @@ export function SegmentDetailPage({
             </Tab>
           ))}
         </TabList>
-        <TabPanel id="overview" className="min-h-0 pt-5 outline-none lg:flex-1">
-          <div className="grid items-stretch gap-5 lg:h-full lg:min-h-0 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1fr)]">
-            <SegmentDetailFilters overview={overview} />
-            <section
-              aria-label="Tổng quan học sinh trong segment"
-              className="scrollbar-thin flex h-[85dvh] min-h-0 min-w-0 flex-col overflow-y-auto overscroll-contain rounded-2xl border border-card-border bg-card-background p-4 shadow-xs sm:p-5 lg:h-full"
-            >
-              <SegmentStudentTable key={segmentId} students={students} />
-            </section>
-          </div>
+        <TabPanel
+          id="overview"
+          className="scrollbar-thin flex min-h-0 min-w-0 flex-col gap-6 pt-5 outline-none lg:flex-1 lg:overflow-y-auto lg:overscroll-contain"
+        >
+          <SegmentDetailFilters overview={overview} />
+          <section
+            aria-label="Tổng quan học sinh trong segment"
+            className="min-w-0 shrink-0"
+          >
+            <SegmentStudentTable
+              key={segmentId}
+              students={students}
+              headerAction={
+                <Button
+                  size="sm"
+                  appearance="outline"
+                  isDisabled={!hasFilterConditions}
+                  onPress={handleAddMatchingStudents}
+                >
+                  <UserMultiple1 size={16} aria-hidden="true" />
+                  Thêm học sinh khớp bộ lọc
+                </Button>
+              }
+            />
+          </section>
         </TabPanel>
       </Tabs>
       {isEditing && (

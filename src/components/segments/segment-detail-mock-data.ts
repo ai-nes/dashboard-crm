@@ -1,5 +1,10 @@
+import type { StudentListItem } from "@/services/api/students/types";
+
 import {
   JourneyStage,
+  LeadNeedCategory,
+  LeadNeedSubtype,
+  SegmentLevel,
   SegmentOperator,
   StudentSegmentProperty,
 } from "./segment-filter-config";
@@ -7,6 +12,7 @@ import type {
   SegmentOverviewData,
   SegmentStudent,
 } from "./segment-detail-types";
+import { studentJourneyStage } from "./segment-filter-matching";
 
 export const MOCK_SEGMENT_OVERVIEWS: Record<string, SegmentOverviewData> = {
   "hoc-sinh-quan-tam-cntt": {
@@ -14,28 +20,29 @@ export const MOCK_SEGMENT_OVERVIEWS: Record<string, SegmentOverviewData> = {
     groupLogic: "OR",
     groups: [
       {
-        id: "program-software",
+        id: "intent-high",
         name: "Nhóm 1",
         logic: "AND",
         conditions: [
           {
-            id: "software",
-            property: StudentSegmentProperty.PROGRAM_INTEREST,
+            id: "intent",
+            property: StudentSegmentProperty.INTENT,
             operator: SegmentOperator.IS_ANY_OF,
-            value: ["SOFTWARE_ENGINEERING"],
+            value: [SegmentLevel.HIGH],
           },
         ],
       },
       {
-        id: "program-computer",
+        id: "need-information",
         name: "Nhóm 2",
         logic: "AND",
         conditions: [
           {
-            id: "computer",
-            property: StudentSegmentProperty.PROGRAM_INTEREST,
+            id: "need",
+            property: StudentSegmentProperty.NEED,
             operator: SegmentOperator.IS_ANY_OF,
-            value: ["COMPUTER_SCIENCE"],
+            category: LeadNeedCategory.NEED_INFORMATION,
+            value: [LeadNeedSubtype.PROGRAM_INFORMATION],
           },
         ],
       },
@@ -51,16 +58,16 @@ export const MOCK_SEGMENT_OVERVIEWS: Record<string, SegmentOverviewData> = {
         logic: "AND",
         conditions: [
           {
-            id: "province",
-            property: StudentSegmentProperty.PROVINCE_AREA,
+            id: "potential",
+            property: StudentSegmentProperty.POTENTIAL,
             operator: SegmentOperator.IS_ANY_OF,
-            value: ["HO_CHI_MINH"],
+            value: [SegmentLevel.HIGH],
           },
           {
-            id: "score",
-            property: StudentSegmentProperty.LEAD_SCORE,
-            operator: SegmentOperator.GREATER_THAN_OR_EQUAL,
-            value: "80",
+            id: "stage",
+            property: StudentSegmentProperty.JOURNEY_STAGE,
+            operator: SegmentOperator.IS_ANY_OF,
+            value: [JourneyStage.QUALIFIED],
           },
         ],
       },
@@ -71,15 +78,16 @@ export const MOCK_SEGMENT_OVERVIEWS: Record<string, SegmentOverviewData> = {
     groupLogic: "OR",
     groups: [
       {
-        id: "open-day",
+        id: "need-engagement",
         name: "Nhóm 1",
         logic: "AND",
         conditions: [
           {
-            id: "source",
-            property: StudentSegmentProperty.SOURCE,
+            id: "need",
+            property: StudentSegmentProperty.NEED,
             operator: SegmentOperator.IS_ANY_OF,
-            value: ["OPEN_DAY"],
+            category: LeadNeedCategory.NEED_ENGAGEMENT,
+            value: [LeadNeedSubtype.EVENT_ENGAGEMENT],
           },
         ],
       },
@@ -115,17 +123,29 @@ const GIVEN_NAMES = [
   "Thảo Nhi",
   "Hải Đăng",
 ];
-const SCHOOLS = [
-  "THPT chuyên Lê Hồng Phong",
-  "THPT Nguyễn Thượng Hiền",
-  "THPT chuyên Trần Đại Nghĩa",
-  "THPT Gia Định",
-];
 const STAGES = [
   JourneyStage.NEW,
   JourneyStage.ATTEMPTING,
   JourneyStage.CONNECTED,
   JourneyStage.QUALIFIED,
+];
+const MAJORS = [
+  "Kỹ thuật phần mềm",
+  "Khoa học máy tính",
+  "Quản trị kinh doanh",
+  "Marketing số",
+];
+const OWNERS = [
+  "Nguyễn Thị Hạnh",
+  "Trần Văn Khoa",
+  "Lê Minh Thư",
+  "Phạm Đức Anh",
+];
+const NEXT_ACTIONS = [
+  "Gọi tư vấn",
+  "Gửi thông tin học phí",
+  "Mời tham dự Open Day",
+  "Theo dõi hồ sơ",
 ];
 
 // Deterministic UI fixtures: the table total matches the existing segment size.
@@ -135,9 +155,39 @@ export function getMockSegmentStudents(
 ): SegmentStudent[] {
   return Array.from({ length: size }, (_, index) => ({
     id: `${segmentId}-${String(index + 1).padStart(4, "0")}`,
+    code: `STU-2026-${String(index + 1).padStart(5, "0")}`,
     name: `${FAMILY_NAMES[Math.floor(index / GIVEN_NAMES.length) % FAMILY_NAMES.length]} ${GIVEN_NAMES[index % GIVEN_NAMES.length]}`,
-    school: SCHOOLS[index % SCHOOLS.length],
     phone: `090100${String(index + 1).padStart(4, "0")}`,
     stage: STAGES[index % STAGES.length],
+    major: MAJORS[index % MAJORS.length],
+    potentialScore: 40 + ((index * 7) % 61),
+    owner: OWNERS[index % OWNERS.length],
+    nextAction: NEXT_ACTIONS[index % NEXT_ACTIONS.length],
   }));
+}
+
+// StudentListItem has no phone field yet; derive a stable mock number from
+// the student's own id so the same student always shows the same phone.
+function mockPhoneForStudent(student: StudentListItem): string {
+  const hash = Array.from(student.id).reduce(
+    (sum, char) => sum + char.charCodeAt(0),
+    0,
+  );
+  return `09${String(10000000 + (hash % 90000000))}`;
+}
+
+// Maps a real matched student (from the filter engine) into the shape the
+// segment detail table renders.
+export function toSegmentStudent(student: StudentListItem): SegmentStudent {
+  return {
+    id: student.id,
+    code: student.code,
+    name: student.name,
+    phone: mockPhoneForStudent(student),
+    stage: (studentJourneyStage(student) as JourneyStage) ?? JourneyStage.NEW,
+    major: student.major,
+    potentialScore: student.score,
+    owner: student.owner,
+    nextAction: student.nextAction,
+  };
 }

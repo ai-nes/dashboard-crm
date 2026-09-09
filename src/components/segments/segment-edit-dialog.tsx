@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/tailgrids/core/button";
+import { Badge } from "@/components/tailgrids/core/badge";
 import {
   Dialog,
   DialogBody,
@@ -11,6 +12,7 @@ import {
 } from "@/components/tailgrids/core/dialog";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
 import { Input } from "@/components/tailgrids/core/input";
+import { cn } from "@/utils/cn";
 import { TextArea } from "@/components/tailgrids/core/text-area";
 import {
   Select,
@@ -20,9 +22,12 @@ import {
   SelectValue,
 } from "@/components/tailgrids/core/select";
 import {
-  SEGMENT_TYPE_LABELS,
+  SEGMENT_STATUS_BADGE_COLORS,
+  SEGMENT_STATUS_LABELS,
+  SEGMENT_STATUS_OPTIONS,
+  SEGMENT_STATUS_SELECT_STYLES,
   type SegmentListItem,
-  type SegmentType,
+  type SegmentStatus,
 } from "./segment-list-types";
 
 interface SegmentEditDialogProps {
@@ -37,7 +42,7 @@ export function SegmentEditDialog({
   onSave,
 }: SegmentEditDialogProps) {
   const [name, setName] = useState(segment.name);
-  const [type, setType] = useState<SegmentType>(segment.type);
+  const [status, setStatus] = useState<SegmentStatus>(segment.status);
   const [description, setDescription] = useState(segment.description);
   return (
     <Backdrop
@@ -55,7 +60,7 @@ export function SegmentEditDialog({
               onSave({
                 ...segment,
                 name: name.trim(),
-                type,
+                status,
                 description: description.trim(),
                 updatedAt: new Date().toISOString(),
               });
@@ -78,19 +83,32 @@ export function SegmentEditDialog({
               />
             </label>
             <Select
-              aria-label="Cách cập nhật segment"
-              label="Cách cập nhật segment"
-              value={type}
-              onChange={(value) => setType(value as SegmentType)}
+              aria-label="Trạng thái segment"
+              label="Trạng thái segment"
+              value={status}
+              onChange={(value) => setStatus(value as SegmentStatus)}
               className="w-full"
             >
-              <SelectTrigger className="w-full">
-                <SelectValue />
+              <SelectTrigger
+                className={cn(
+                  "w-full text-base font-medium",
+                  SEGMENT_STATUS_SELECT_STYLES[status],
+                )}
+              >
+                <SelectValue className="max-w-none text-inherit">
+                  {SEGMENT_STATUS_LABELS[status]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(SEGMENT_TYPE_LABELS).map(([id, label]) => (
-                  <SelectItem key={id} id={id}>
-                    {label}
+                {SEGMENT_STATUS_OPTIONS.map((option) => (
+                  <SelectItem
+                    key={option.value}
+                    id={option.value}
+                    textValue={option.label}
+                  >
+                    <Badge color={SEGMENT_STATUS_BADGE_COLORS[option.value]}>
+                      {option.label}
+                    </Badge>
                   </SelectItem>
                 ))}
               </SelectContent>

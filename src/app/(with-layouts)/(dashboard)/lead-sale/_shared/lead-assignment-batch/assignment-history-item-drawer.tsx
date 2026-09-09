@@ -14,9 +14,12 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
   leadAssignmentBatchKeys,
+  useCreateLeadAssignmentBatchMutation,
   useRetryLeadAssignmentBatchMutation,
+  useRunLeadAssignmentBatchMutation,
 } from "@/hooks/use-lead-assignment-batch-queries";
 import {
+  leadSaleLeadsKeys,
   useReopenLeadMutation,
   useUpdateLeadMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
@@ -38,11 +41,12 @@ const emptyOption: EditableDetailOption = { id: "", label: "Chưa cập nhật" 
 function toOptions(
   options: Array<{ value: string; label: string }> | undefined,
   currentValue: string,
+  currentLabel = currentValue,
 ): EditableDetailOption[] {
   const mapped =
     options?.map(({ value, label }) => ({ id: value, label })) ?? [];
   if (currentValue && !mapped.some((option) => option.id === currentValue)) {
-    mapped.unshift({ id: currentValue, label: currentValue });
+    mapped.unshift({ id: currentValue, label: currentLabel });
   }
   return [emptyOption, ...mapped];
 }
@@ -59,11 +63,16 @@ export default function AssignmentHistoryItemDrawer({
   const queryClient = useQueryClient();
   const [province, setProvince] = useState(item.province ?? "");
   const [branch, setBranch] = useState(item.branch ?? "");
+  const [phone, setPhone] = useState(item.phone ?? "");
+  const [highSchool, setHighSchool] = useState(item.highSchool ?? "");
+  const [major, setMajor] = useState(item.major ?? "");
   const [step, setStep] = useState<string | null>(null);
 
   const updateMutation = useUpdateLeadMutation();
   const reopenMutation = useReopenLeadMutation();
   const retryMutation = useRetryLeadAssignmentBatchMutation();
+  const createBatchMutation = useCreateLeadAssignmentBatchMutation();
+  const runBatchMutation = useRunLeadAssignmentBatchMutation();
 
   const provinceOptionsQuery = useStudentSchoolFieldOptions({
     doctype: "CRM Lead",
@@ -73,10 +82,24 @@ export default function AssignmentHistoryItemDrawer({
     doctype: "CRM Lead",
     fieldname: "branch",
   });
+  const highSchoolOptionsQuery = useStudentSchoolFieldOptions({
+    doctype: "CRM Lead",
+    fieldname: "high_school",
+    province: province || undefined,
+  });
+  const majorOptionsQuery = useStudentSchoolFieldOptions({
+    doctype: "CRM Lead",
+    fieldname: "major",
+  });
 
   const isClosed = item.processingStatus === "CLOSED";
+  const isLiveReview = !item.batchId;
   const isDirty =
-    province !== (item.province ?? "") || branch !== (item.branch ?? "");
+    phone !== (item.phone ?? "") ||
+    province !== (item.province ?? "") ||
+    highSchool !== (item.highSchool ?? "") ||
+    major !== (item.major ?? "") ||
+    branch !== (item.branch ?? "");
   const isBusy = step !== null;
 
   async function handleResolve() {
@@ -84,8 +107,17 @@ export default function AssignmentHistoryItemDrawer({
       if (isDirty) {
         setStep("Đang lưu thông tin hồ sơ…");
         const fields: LeadUpdateFields = {};
+        if (phone !== (item.phone ?? "")) {
+          fields.phone = phone || null;
+        }
         if (province !== (item.province ?? "")) {
           fields.province = province || null;
+        }
+        if (highSchool !== (item.highSchool ?? "")) {
+          fields.high_school = highSchool || null;
+        }
+        if (major !== (item.major ?? "")) {
+          fields.major = major || null;
         }
         if (branch !== (item.branch ?? "")) {
           fields.branch = branch || null;
@@ -99,24 +131,38 @@ export default function AssignmentHistoryItemDrawer({
           lead: item.leadId,
           reason: "Mở lại hồ sơ sau khi bổ sung thông tin phân công.",
         });
-        // Reopening replays intake validation. A record still missing CCCD,
-        // trường THPT or ngành quan tâm closes again instead of moving on.
+        // Reopening replays intake validation. A record still missing phone,
+        // province, trường THPT or ngành quan tâm closes again instead of moving on.
         if (reopened.status !== "PROCESSED") {
           await queryClient.invalidateQueries({
             queryKey: leadAssignmentBatchKeys.all,
           });
           toast.error(
-            "Hồ sơ vẫn chưa qua được bước kiểm tra dữ liệu: cần đủ CCCD, trường THPT và ngành quan tâm.",
+            "Hồ sơ vẫn chưa qua được bước kiểm tra dữ liệu: cần đủ số điện thoại, tỉnh, trường THPT và ngành quan tâm.",
           );
           return;
         }
       }
 
       setStep("Đang phân công lại…");
-      await retryMutation.mutateAsync({
-        batchId: item.batchId,
-        itemIds: [item.id],
-      });
+      if (isLiveReview) {
+        const created = await createBatchMutation.mutateAsync({
+          batchName: `Phân công lại ${item.leadId} ${Date.now()}`,
+          leadIds: [item.leadId],
+          description: "Xử lý lại hồ sơ từ danh sách cần kiểm tra.",
+        });
+        setStep("Đang ghi nhận người phụ trách…");
+        await runBatchMutation.mutateAsync({ batchId: created.batch.id });
+      } else {
+        await retryMutation.mutateAsync({
+          batchId: item.batchId,
+          itemIds: [item.id],
+        });
+      }
+      // The assignment run changes the Lead from CLOSED/PROCESSED to ASSIGNED.
+      // Refresh the Lead list cache so the status is updated immediately,
+      // without requiring a full page reload.
+      await queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all });
       toast.success(`Đã xử lý lại hồ sơ ${item.studentName}.`);
       onClose();
     } catch (error) {
@@ -131,7 +177,7 @@ export default function AssignmentHistoryItemDrawer({
   return (
     <DetailDrawer
       title={item.studentName}
-      subtitle={`XỬ LÝ HỒ SƠ LEAD · ${item.leadId}`}
+      subtitle="XỬ LÝ HỒ SƠ LEAD"
       onClose={onClose}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -171,10 +217,18 @@ export default function AssignmentHistoryItemDrawer({
           Bổ sung thông tin định tuyến
         </h2>
         <p className="mt-1 text-xs leading-5 text-text-tertiary">
-          Hệ thống tìm Team theo tỉnh của Lead. Sửa tỉnh hoặc campus rồi bấm xử
-          lý lại.
+          Bổ sung đủ số điện thoại, tỉnh, trường THPT và ngành quan tâm. Sau đó
+          hệ thống sẽ tìm Team theo tỉnh và phân công lại.
         </p>
         <dl className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+          <EditableDetailField
+            isEditing
+            isDisabled={isBusy}
+            label="Số điện thoại"
+            onChange={setPhone}
+            type="tel"
+            value={phone}
+          />
           <EditableDetailField
             isEditing
             isDisabled={isBusy}
@@ -188,6 +242,30 @@ export default function AssignmentHistoryItemDrawer({
           <EditableDetailField
             isEditing
             isDisabled={isBusy}
+            label="Trường THPT"
+            onChange={setHighSchool}
+            options={toOptions(
+              highSchoolOptionsQuery.data?.options,
+              highSchool,
+              item.highSchoolLabel ?? highSchool,
+            )}
+            searchable
+            searchPlaceholder="Tìm trường THPT…"
+            value={highSchool}
+          />
+          <EditableDetailField
+            isEditing
+            isDisabled={isBusy}
+            label="Ngành quan tâm"
+            onChange={setMajor}
+            options={toOptions(majorOptionsQuery.data?.options, major)}
+            searchable
+            searchPlaceholder="Tìm ngành…"
+            value={major}
+          />
+          <EditableDetailField
+            isEditing
+            isDisabled={isBusy}
             label="Campus"
             onChange={setBranch}
             options={toOptions(branchOptionsQuery.data?.options, branch)}
@@ -195,31 +273,6 @@ export default function AssignmentHistoryItemDrawer({
             searchPlaceholder="Tìm campus…"
             value={branch}
           />
-        </dl>
-      </section>
-
-      <section className="mt-6" aria-labelledby="lead-context-heading">
-        <h2
-          id="lead-context-heading"
-          className="text-sm font-semibold text-text-primary"
-        >
-          Thông tin hồ sơ
-        </h2>
-        <dl className="mt-3 grid grid-cols-[126px_1fr] gap-x-3 gap-y-3 text-sm">
-          <dt className="text-text-tertiary">Số điện thoại</dt>
-          <dd className="text-text-primary">{item.phone ?? "—"}</dd>
-          <dt className="text-text-tertiary">CCCD</dt>
-          <dd className="text-text-primary">{item.idNumber ?? "—"}</dd>
-          <dt className="text-text-tertiary">Trường THPT</dt>
-          <dd className="text-text-primary">{item.highSchool ?? "—"}</dd>
-          <dt className="text-text-tertiary">Ngành quan tâm</dt>
-          <dd className="text-text-primary">{item.major ?? "—"}</dd>
-          <dt className="text-text-tertiary">Team</dt>
-          <dd className="text-text-primary">
-            {item.team ?? "Chưa tìm được Team"}
-          </dd>
-          <dt className="text-text-tertiary">Người phụ trách</dt>
-          <dd className="text-text-primary">{item.ownerStaff ?? "Chưa có"}</dd>
         </dl>
       </section>
 

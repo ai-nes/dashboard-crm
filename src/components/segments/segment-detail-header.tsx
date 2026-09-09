@@ -5,7 +5,8 @@ import { ArrowLeft, Pencil1, Trash1 } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
-  SEGMENT_TYPE_LABELS,
+  SEGMENT_STATUS_BADGE_COLORS,
+  SEGMENT_STATUS_LABELS,
   type SegmentListItem,
 } from "./segment-list-types";
 
@@ -49,8 +50,8 @@ export function SegmentDetailHeader({
             {segment.name}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge color={segment.type === "AUTOMATIC" ? "sky" : "violet"}>
-              {SEGMENT_TYPE_LABELS[segment.type]}
+            <Badge color={SEGMENT_STATUS_BADGE_COLORS[segment.status]}>
+              {SEGMENT_STATUS_LABELS[segment.status]}
             </Badge>
             <span className="text-xs text-text-tertiary">
               {segment.size.toLocaleString("vi-VN")} học sinh

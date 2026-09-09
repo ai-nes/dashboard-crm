@@ -167,6 +167,7 @@ export default function WorkflowCanvas() {
       <ReactFlow<AssignmentFlowNode>
         id="assignment-workflow-canvas"
         aria-label="Sơ đồ phân công học sinh tự động"
+        proOptions={{ hideAttribution: true }}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}

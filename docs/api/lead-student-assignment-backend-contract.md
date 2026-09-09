@@ -89,18 +89,20 @@ ownership_revision
 
 ### 3.1. Điều kiện để Lead được xử lý
 
-Ba field bắt buộc là:
+Bốn field bắt buộc để Lead được xử lý là:
 
 ```text
-CCCD          → CRM Lead.id_number
+Số điện thoại → CRM Lead.phone
+Tỉnh/Thành phố → CRM Lead.province
 Trường THPT   → CRM Lead.high_school
 Ngành quan tâm → CRM Lead.major
 ```
 
-Phone, email và tỉnh/thành là dữ liệu liên hệ/routing. Chúng không thay thế ba điều
-kiện trên.
+CCCD (`CRM Lead.id_number`) là dữ liệu bổ sung; nếu có thì được dùng để nhận diện
+trùng hoặc tìm Student đã tồn tại, nhưng không còn là điều kiện bắt buộc để xử lý.
+Email vẫn là dữ liệu liên hệ và không phải gate.
 
-Nếu thiếu hoặc CCCD không hợp lệ, BE trả kết quả `CLOSED / INVALID` và không phân công.
+Nếu thiếu một trong bốn field trên, BE trả kết quả `CLOSED / INVALID` và không phân công.
 
 ### 3.2. Field bắt buộc khi import vào batch
 
@@ -110,7 +112,7 @@ API import batch yêu cầu các cột sau:
 | --- | --- | --- |
 | `student_name` | Họ và tên | Có |
 | `phone` | Số điện thoại | Có |
-| `id_number` | CCCD | Có |
+| `id_number` | CCCD | Không, nếu có sẽ dùng để nhận diện trùng |
 | `province` | Tỉnh/Thành phố | Có |
 | `high_school` | Trường THPT | Có |
 | `major` | Ngành quan tâm | Có |
@@ -153,7 +155,7 @@ FE phải cho chọn `branch`; nếu không xác định được cơ sở, BE t
 ```text
 NEW / PENDING
   │
-  ├─ thiếu CCCD / THPT / ngành
+  ├─ thiếu số điện thoại / tỉnh / THPT / ngành
   │    └─ CLOSED / INVALID
   │
   └─ đủ dữ liệu
@@ -237,8 +239,22 @@ Tất cả API trả dữ liệu trong `response.message` theo chuẩn Frappe.
 | `crm.api.lead_assignment_batch.run_lead_assignment_batch` | POST | Tự kiểm tra, phân công và chuyển Lead hợp lệ thành Student trong một lần bấm. |
 | `crm.api.lead_assignment_batch.retry_lead_assignment_batch` | POST | Chạy lại hồ sơ tạm hoãn, cần kiểm tra hoặc gặp lỗi. |
 | `crm.api.lead_assignment_batch.get_lead_assignment_batch` | GET | Lấy chi tiết một đợt và các hồ sơ trong đợt. |
+| `crm.api.lead_assignment_batch.get_lead_assignment_workflow` | GET | Lấy snapshot workflow, trạng thái và metrics từ đợt được chọn hoặc đợt gần nhất trong DB. |
 | `crm.api.lead_assignment_batch.list_lead_assignment_batches` | GET | Lấy lịch sử các đợt phân công. |
+| `crm.api.lead_assignment_batch.list_lead_assignment_history_items` | GET | Lấy danh sách hồ sơ theo trạng thái, gồm cả Lead `CLOSED` cần kiểm tra; hỗ trợ lọc `lead_ids`. |
 | `crm.api.lead_assignment_batch.get_lead_assignment_batch_options` | GET | Lấy option pool nội bộ nếu cần kiểm tra quyền; không cần hiển thị cho người dùng thường. |
+
+`get_lead_assignment_workflow` nhận tùy chọn `batch_name`. Nếu bỏ trống, backend tổng
+hợp trạng thái Lead hiện tại với item của các đợt trong phạm vi quyền và khử trùng theo
+Lead; nhờ đó các Lead đã được phân công nhưng đã rời scope vẫn được tính. Response có
+`summary`, `steps`, `connections` và metrics được tính ở backend; frontend chỉ chịu
+trách nhiệm layout và hiển thị. Khi đang xem một `batch_name`, workflow là snapshot của
+đợt đó; khi không chọn đợt, UI phải ghi rõ đây là tổng quan hiện tại.
+
+`list_lead_assignment_history_items` cũng tổng hợp các Lead đang `CLOSED` từ DB với
+`status = manual_review` để tab Cần kiểm tra hiển thị đủ hồ sơ thực tế, kể cả khi
+Lead không còn item trong batch audit. Truyền `lead_ids` dạng chuỗi phân tách bằng dấu
+phẩy hoặc mảng để giới hạn đúng hàng đợi hồ sơ cần xử lý.
 
 ### 5.4. Import batch
 
@@ -251,7 +267,6 @@ Payload tối thiểu:
     {
       "student_name": "Nguyễn Văn A",
       "phone": "0900000000",
-      "id_number": "012345678901",
       "province": "Ho Chi Minh City",
       "high_school": "THPT Nguyễn Huệ",
       "major": "Công nghệ thông tin",
@@ -264,7 +279,7 @@ Payload tối thiểu:
 ```
 
 Hoặc truyền `csv_content`. Header CSV được chấp nhận bằng tiếng Việt hoặc field API;
-CCCD có thể dùng `CCCD`, `Số căn cước` hoặc `id_number`.
+CCCD là tùy chọn nếu được gửi và có thể dùng `CCCD`, `Số căn cước` hoặc `id_number`.
 
 Import chỉ tạo Lead `NEW / PENDING` và item `pending`. Không gọi routing trong bước
 import.
@@ -399,7 +414,7 @@ Các endpoint conversion cũ cũng phải đi qua cùng điều kiện: Lead m�
 
 | Error code | Cách hiển thị đề xuất |
 | --- | --- |
-| `IDENTIFIER_GATE_FAILED` | Lead thiếu CCCD, trường THPT hoặc ngành quan tâm. |
+| `IDENTIFIER_GATE_FAILED` | Lead thiếu số điện thoại, tỉnh/thành phố, trường THPT hoặc ngành quan tâm. |
 | `INVALID_ID_NUMBER` | CCCD phải gồm 9 hoặc 12 chữ số. |
 | `INVALID_LOOKUP` / `INVALID_PROVINCE` / `INVALID_HIGH_SCHOOL` | Chọn lại dữ liệu từ danh sách Frappe. |
 | `MISSING_CAMPUS` | Bổ sung cơ sở cho Lead hoặc cấu hình cơ sở mặc định. |

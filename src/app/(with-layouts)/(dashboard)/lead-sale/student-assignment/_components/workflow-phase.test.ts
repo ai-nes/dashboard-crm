@@ -4,6 +4,7 @@ import {
   getCurrentWorkflowPhaseId,
   getWorkflowPhaseState,
 } from "../../_shared/student-assignment/mappings";
+import { getBatchWorkflowProcessingStartIndex } from "../../_shared/lead-assignment-batch/batch-assignment-workflow-data";
 
 function stepsWithStatuses(
   statuses: Array<"idle" | "running" | "success" | "warning" | "error">,
@@ -60,5 +61,18 @@ describe("student assignment workflow phase flags", () => {
     ]);
 
     expect(getCurrentWorkflowPhaseId(steps)).toBeNull();
+  });
+
+  it("resumes processing at the first incomplete step", () => {
+    const steps = stepsWithStatuses([
+      "success",
+      "success",
+      "success",
+      "idle",
+      "idle",
+      "idle",
+    ]);
+
+    expect(getBatchWorkflowProcessingStartIndex(steps)).toBe(3);
   });
 });

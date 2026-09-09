@@ -10,6 +10,7 @@ import {
   CreateDialogTextArea,
 } from "@/components/common/create-dialog-field";
 import { Button } from "@/components/tailgrids/core/button";
+import { Backdrop } from "@/components/tailgrids/core/overlay";
 import {
   Dialog,
   DialogBody,
@@ -17,7 +18,6 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/tailgrids/core/dialog";
-import { Backdrop } from "@/components/tailgrids/core/overlay";
 import { useStudentSchoolFieldOptions } from "@/hooks/use-student-school-field-options";
 import type { LeadCreateFields } from "@/services/api/lead-sale";
 
@@ -172,7 +172,11 @@ export default function QuickCreateLeadDialog({
   };
 
   return (
-    <Backdrop isOpen={isOpen} onOpenChange={handleOpenChange}>
+    <Backdrop
+      isOpen={isOpen}
+      onOpenChange={handleOpenChange}
+      isDismissable={!isSubmitting}
+    >
       <Dialog
         aria-label="Tạo Lead nhanh"
         className="max-h-[calc(100vh-2rem)] max-w-140 overflow-hidden p-0"
@@ -254,9 +258,7 @@ export default function QuickCreateLeadDialog({
                   label="Xã / phường"
                   options={wardOptions}
                   value={form.ward}
-                  isDisabled={
-                    !form.province || wardOptionsQuery.isPending
-                  }
+                  isDisabled={!form.province || wardOptionsQuery.isPending}
                   onChange={(value) => setField("ward", value)}
                 />
               </CreateDialogField>

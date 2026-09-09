@@ -4,10 +4,10 @@ const METHODS = {
   create: "crm.api.lead_assignment_batch.create_lead_assignment_batch",
   preview: "crm.api.lead_assignment_batch.preview_lead_assignment_batch",
   run: "crm.api.lead_assignment_batch.run_lead_assignment_batch",
-  runUnassigned:
-    "crm.api.lead_assignment_batch.run_unassigned_lead_assignment",
+  runUnassigned: "crm.api.lead_assignment_batch.run_unassigned_lead_assignment",
   retry: "crm.api.lead_assignment_batch.retry_lead_assignment_batch",
   detail: "crm.api.lead_assignment_batch.get_lead_assignment_batch",
+  workflow: "crm.api.lead_assignment_batch.get_lead_assignment_workflow",
   list: "crm.api.lead_assignment_batch.list_lead_assignment_batches",
   historyItems:
     "crm.api.lead_assignment_batch.list_lead_assignment_history_items",
@@ -99,6 +99,7 @@ export type LeadAssignmentBatch = {
 export type LeadAssignmentRoutingContext = {
   routingTier: string | number | null;
   zone: string | null;
+  queue: string | null;
   team: string | null;
   ownerStaff: string | null;
   activeLoad: number | null;
@@ -111,12 +112,14 @@ export type LeadAssignmentRoutingContext = {
 export type LeadAssignmentBatchItem = LeadAssignmentRoutingContext & {
   id: string;
   leadId: string;
+  leadCode: string | null;
   studentName: string;
   phone: string | null;
   idNumber: string | null;
   email: string | null;
   province: string | null;
   highSchool: string | null;
+  highSchoolLabel: string | null;
   major: string | null;
   source: string | null;
   branch: string | null;
@@ -149,6 +152,7 @@ export type LeadAssignmentHistoryParams = {
   limit?: number;
   status?: LeadAssignmentBatchItemStatus | "all";
   q?: string;
+  leadIds?: string[];
 };
 
 export type LeadAssignmentBatchCatalogParams = { province?: string };
@@ -157,6 +161,62 @@ export type LeadAssignmentBatchDetailResponse = {
   batch: LeadAssignmentBatch;
   items: LeadAssignmentBatchItem[];
   pagination: LeadAssignmentPagination;
+};
+
+export type LeadAssignmentWorkflowStepId =
+  | "input"
+  | "validation"
+  | "classification"
+  | "matching"
+  | "review"
+  | "assignment";
+
+export type LeadAssignmentWorkflowStepStatus =
+  | "idle"
+  | "running"
+  | "success"
+  | "warning"
+  | "error";
+
+export type LeadAssignmentWorkflowTone =
+  | "neutral"
+  | "blue"
+  | "primary"
+  | "warning"
+  | "success";
+
+export type LeadAssignmentWorkflowMetrics = {
+  processedCount: number;
+  successCount: number;
+  warningCount: number;
+  errorCount: number;
+};
+
+export type LeadAssignmentWorkflowStep = {
+  id: LeadAssignmentWorkflowStepId;
+  title: string;
+  description: string;
+  detail: string;
+  rules: string[];
+  tone: LeadAssignmentWorkflowTone;
+  status: LeadAssignmentWorkflowStepStatus;
+  metrics: LeadAssignmentWorkflowMetrics;
+};
+
+export type LeadAssignmentWorkflowConnection = {
+  source: LeadAssignmentWorkflowStepId;
+  target: LeadAssignmentWorkflowStepId;
+  label: string | null;
+};
+
+export type LeadAssignmentWorkflowResponse = {
+  hasRun: boolean;
+  hasData: boolean;
+  summary: LeadAssignmentBatchSummary;
+  pendingCount: number;
+  batch: LeadAssignmentBatch | null;
+  steps: LeadAssignmentWorkflowStep[];
+  connections: LeadAssignmentWorkflowConnection[];
 };
 
 export type LeadAssignmentBatchListResponse = {
@@ -339,6 +399,101 @@ function normalizeSummary(value: unknown): LeadAssignmentBatchSummary {
   };
 }
 
+const workflowStepIds: readonly LeadAssignmentWorkflowStepId[] = [
+  "input",
+  "validation",
+  "classification",
+  "matching",
+  "review",
+  "assignment",
+];
+
+const workflowStepStatuses: readonly LeadAssignmentWorkflowStepStatus[] = [
+  "idle",
+  "running",
+  "success",
+  "warning",
+  "error",
+];
+
+const workflowTones: readonly LeadAssignmentWorkflowTone[] = [
+  "neutral",
+  "blue",
+  "primary",
+  "warning",
+  "success",
+];
+
+function normalizeWorkflowMetrics(
+  value: unknown,
+): LeadAssignmentWorkflowMetrics {
+  const source = asRecord(value) ?? {};
+  return {
+    processedCount: count(source.processedCount ?? source.processed_count),
+    successCount: count(source.successCount ?? source.success_count),
+    warningCount: count(source.warningCount ?? source.warning_count),
+    errorCount: count(source.errorCount ?? source.error_count),
+  };
+}
+
+function normalizeWorkflow(value: unknown): LeadAssignmentWorkflowResponse {
+  const source = asRecord(unwrapMessage(value));
+  if (!source) throw new Error("Assignment workflow response is invalid");
+  const stepValues = source.steps;
+  if (!Array.isArray(stepValues))
+    throw new Error("Assignment workflow steps are missing");
+  const steps = stepValues.flatMap((value): LeadAssignmentWorkflowStep[] => {
+    const row = asRecord(value) ?? {};
+    const id = row.id as LeadAssignmentWorkflowStepId;
+    if (!workflowStepIds.includes(id)) return [];
+    return [
+      {
+        id,
+        title: text(row.title),
+        description: text(row.description),
+        detail: text(row.detail),
+        rules: Array.isArray(row.rules)
+          ? row.rules.filter((rule): rule is string => typeof rule === "string")
+          : [],
+        tone: oneOf(row.tone, workflowTones, "neutral"),
+        status: oneOf(row.status, workflowStepStatuses, "idle"),
+        metrics: normalizeWorkflowMetrics(row.metrics),
+      },
+    ];
+  });
+  const connectionValues = source.connections;
+  const connections = Array.isArray(connectionValues)
+    ? connectionValues.flatMap((value): LeadAssignmentWorkflowConnection[] => {
+        const row = asRecord(value) ?? {};
+        const sourceId = row.source as LeadAssignmentWorkflowStepId;
+        const targetId = row.target as LeadAssignmentWorkflowStepId;
+        if (
+          !workflowStepIds.includes(sourceId) ||
+          !workflowStepIds.includes(targetId)
+        )
+          return [];
+        return [
+          {
+            source: sourceId,
+            target: targetId,
+            label: nullableText(row.label),
+          },
+        ];
+      })
+    : [];
+  return {
+    hasRun: Boolean(source.hasRun ?? source.has_run),
+    hasData: Boolean(
+      source.hasData ?? source.has_data ?? source.hasRun ?? source.has_run,
+    ),
+    summary: normalizeSummary(source.summary ?? source.counts ?? source.stats),
+    pendingCount: count(source.pendingCount ?? source.pending_count),
+    batch: source.batch ? normalizeBatch(source.batch) : null,
+    steps,
+    connections,
+  };
+}
+
 function normalizeBatch(value: unknown): LeadAssignmentBatch {
   const source = asRecord(value) ?? {};
   const summary = normalizeSummary(
@@ -421,6 +576,7 @@ function normalizeItem(value: unknown, index: number): LeadAssignmentBatchItem {
   return {
     id,
     leadId: text(source.leadId ?? source.lead_id ?? source.lead, id),
+    leadCode: nullableText(source.leadCode ?? source.lead_code),
     studentName: text(
       source.studentName ?? source.student_name ?? source.name,
       "Chưa có tên Lead",
@@ -432,6 +588,7 @@ function normalizeItem(value: unknown, index: number): LeadAssignmentBatchItem {
     highSchool: nullableText(
       source.highSchool ?? source.high_school ?? source.school,
     ),
+    highSchoolLabel: nullableText(source.highSchoolLabel ?? source.high_school_label),
     major: nullableText(source.major ?? source.interest),
     source: nullableText(source.source),
     branch: nullableText(source.branch),
@@ -468,6 +625,7 @@ function normalizeItem(value: unknown, index: number): LeadAssignmentBatchItem {
       source.routingTier ?? source.routing_tier,
     ),
     zone: nullableText(source.zone),
+    queue: nullableText(source.queue),
     team: team ? text(team.name ?? team.id) : nullableText(source.team),
     ownerStaff: nullableText(source.ownerStaff ?? source.owner_staff),
     activeLoad: nullableNumber(source.activeLoad ?? source.active_load),
@@ -581,7 +739,9 @@ function normalizeHistory(value: unknown): LeadAssignmentHistoryResponse {
     return {
       ...normalizeItem(item, index),
       batchId: text(item.batchId ?? item.batch_id),
-      batchCreatedAt: nullableText(item.batchCreatedAt ?? item.batch_created_at),
+      batchCreatedAt: nullableText(
+        item.batchCreatedAt ?? item.batch_created_at,
+      ),
       batchStatus: oneOf(
         item.batchStatus ?? item.batch_status,
         [
@@ -598,7 +758,11 @@ function normalizeHistory(value: unknown): LeadAssignmentHistoryResponse {
   });
   return {
     items,
-    pagination: normalizePagination(source.pagination, items.length, items.length),
+    pagination: normalizePagination(
+      source.pagination,
+      items.length,
+      items.length,
+    ),
   };
 }
 
@@ -961,6 +1125,28 @@ export async function getLeadAssignmentBatch(
   }
 }
 
+export async function getLeadAssignmentWorkflow(
+  batchId?: string | null,
+  options: LeadAssignmentBatchRequestOptions = {},
+): Promise<LeadAssignmentWorkflowResponse> {
+  const query = new URLSearchParams();
+  if (batchId?.trim()) query.set("batch_name", batchId.trim());
+  const queryString = query.toString();
+  const payload = await request(
+    `${resolveBaseUrl(options)}/api/method/${METHODS.workflow}${queryString ? `?${queryString}` : ""}`,
+    { method: "GET", headers: await requestHeaders(options) },
+  );
+  try {
+    return normalizeWorkflow(payload);
+  } catch {
+    throw new LeadAssignmentBatchApiError(
+      502,
+      "INVALID_LEAD_ASSIGNMENT_WORKFLOW_RESPONSE",
+      "Phản hồi workflow phân công Lead không hợp lệ.",
+    );
+  }
+}
+
 export async function listLeadAssignmentBatches(
   params: LeadAssignmentBatchListParams = {},
   options: LeadAssignmentBatchRequestOptions = {},
@@ -997,6 +1183,7 @@ export async function listLeadAssignmentHistoryItems(
     status: params.status ?? "all",
     q: params.q?.trim() ?? "",
   });
+  if (params.leadIds?.length) query.set("lead_ids", params.leadIds.join(","));
   const payload = await request(
     `${resolveBaseUrl(options)}/api/method/${METHODS.historyItems}?${query.toString()}`,
     { method: "GET", headers: await requestHeaders(options) },

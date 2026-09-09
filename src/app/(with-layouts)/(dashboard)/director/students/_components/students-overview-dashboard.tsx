@@ -5,13 +5,15 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { Plus } from "@tailgrids/icons";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
@@ -19,7 +21,9 @@ import {
   useDirectorStudentsQuery,
 } from "@/hooks/use-students-queries";
 import {
+  createStudentWithLead,
   requestStudentStageTransition,
+  type StudentCreateWithLeadFields,
   type StudentStageTransitionRequest,
 } from "@/services/api/student-school-update";
 import type {
@@ -27,6 +31,7 @@ import type {
   StudentStatus,
 } from "@/services/api/students/types";
 
+import StudentCreateDialog from "./student-create-dialog";
 import StudentList, { studentListGrid } from "./student-list";
 import StudentListToolbar from "./student-list-toolbar";
 import { canTransitionStudentStatus } from "./student-status";
@@ -42,9 +47,12 @@ export default function StudentsOverviewDashboard() {
   const readScope = permissions.student.readScope ?? permissions.student.scope;
   const isSessionScoped = readScope === "assigned" || readScope === "team";
   const isLeadSale = user?.roles?.includes("Lead Sale") ?? false;
+  const canCreateStudent = permissions.student.canCreate;
   const pageTitle = isLeadSale ? "Danh sách học sinh" : "Hồ sơ học sinh 360°";
   const searchParams = useSearchParams();
+  const router = useRouter();
   const queryClient = useQueryClient();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const ownerId = searchParams.get("owner")?.trim() || undefined;
   const [query, setQuery] = useState("");
   const [studentStatus, setStudentStatus] = useState<StudentStatus | "all">(
@@ -133,6 +141,25 @@ export default function StudentsOverviewDashboard() {
     },
   });
 
+  const createMutation = useMutation({
+    mutationFn: (fields: StudentCreateWithLeadFields) =>
+      createStudentWithLead(fields),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: ["director-students"] });
+      await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
+      setCreateDialogOpen(false);
+      toast.success("Đã tạo hồ sơ học sinh.");
+      if (response.name) {
+        router.push(`/director/students/${encodeURIComponent(response.name)}`);
+      }
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Chưa thể tạo hồ sơ học sinh.",
+      );
+    },
+  });
+
   const handleQueryChange = (val: string) => {
     setQuery(val);
     setPage(1);
@@ -162,9 +189,7 @@ export default function StudentsOverviewDashboard() {
     const currentStudent = students.find((student) => student.id === id);
     const currentStatus = currentStudent?.studentStage;
     if (!currentStudent?.studentId) {
-      toast.error(
-        "Hồ sơ này chưa được liên kết với bản ghi CRM Student.",
-      );
+      toast.error("Hồ sơ này chưa được liên kết với bản ghi CRM Student.");
       return;
     }
     if (!currentStatus) {
@@ -185,6 +210,11 @@ export default function StudentsOverviewDashboard() {
       student: currentStudent.studentId,
       target_stage: nextStatus,
     });
+  };
+
+  const openCreateDialog = () => {
+    createMutation.reset();
+    setCreateDialogOpen(true);
   };
 
   const resetFilters = () => {
@@ -231,10 +261,30 @@ export default function StudentsOverviewDashboard() {
             Từ toàn cảnh tệp học sinh đến hành động tiếp theo cho từng hồ sơ.
           </p>
         </div>
-        <p className="shrink-0 text-sm text-text-tertiary">
-          Chỉ hiển thị học sinh đã chuyển đổi thành công từ Lead.
-        </p>
+        <div className="flex shrink-0 flex-col items-start gap-3 lg:items-end">
+          {canCreateStudent && (
+            <Button
+              isDisabled={createMutation.isPending}
+              onPress={openCreateDialog}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Thêm học sinh
+            </Button>
+          )}
+          <p className="text-sm text-text-tertiary">
+            Chỉ hiển thị học sinh đã chuyển đổi thành công từ Lead.
+          </p>
+        </div>
       </header>
+
+      <StudentCreateDialog
+        isOpen={createDialogOpen}
+        isSubmitting={createMutation.isPending}
+        onCreate={(fields) =>
+          createMutation.mutateAsync(fields).then(() => undefined)
+        }
+        onOpenChange={setCreateDialogOpen}
+      />
 
       <StudentListToolbar
         query={query}

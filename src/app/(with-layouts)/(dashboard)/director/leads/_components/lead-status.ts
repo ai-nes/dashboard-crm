@@ -46,6 +46,7 @@ export type LeadResultStatus = LeadResolution;
 export type LeadResultFilter = LeadResolutionFilter;
 
 export const leadResultLabel: Record<LeadResultStatus, string> = {
+  PENDING: "Chưa có kết quả",
   MATCHED: "Đã liên kết",
   CREATED: "Sẽ tạo khi chuyển đổi",
   DUPLICATE: "Trùng lặp",
@@ -55,7 +56,6 @@ export const leadResultLabel: Record<LeadResultStatus, string> = {
 };
 
 export const leadResultFilterLabel: Record<LeadResultFilter, string> = {
-  PENDING: "Chưa có kết quả",
   ...leadResultLabel,
 };
 
@@ -63,8 +63,9 @@ export const leadResultFilterLabel: Record<LeadResultFilter, string> = {
 // red family — orange → rose → error tracks rising severity.
 export const leadResultColor: Record<
   LeadResultStatus,
-  "success" | "sky" | "orange" | "rose" | "error"
+  "gray" | "success" | "sky" | "orange" | "rose" | "error"
 > = {
+  PENDING: "gray",
   MATCHED: "success",
   CREATED: "sky",
   DUPLICATE: "orange",

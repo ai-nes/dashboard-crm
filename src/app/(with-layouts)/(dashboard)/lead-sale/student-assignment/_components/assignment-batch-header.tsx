@@ -2,23 +2,38 @@
 
 import { ArrowRight, Play } from "@tailgrids/icons";
 import Link from "next/link";
-import { Badge } from "@/components/tailgrids/core/badge";
 import { Button, buttonStyles } from "@/components/tailgrids/core/button";
 import { cn } from "@/utils/cn";
+import { useLeadSaleLeadsQuery } from "@/hooks/use-lead-sale-leads-queries";
 import { useBatchAssignment } from "../../_shared/lead-assignment-batch/batch-assignment-context";
-import {
-  batchStatusColors,
-  batchStatusLabels,
-  formatDateTime,
-} from "../../_shared/lead-assignment-batch/batch-assignment-mappings";
+
+const currentAdmissionYear = new Date().getFullYear();
 
 export default function AssignmentBatchHeader() {
   const {
-    activeBatch,
-    isLoading,
+    workflow,
+    isWorkflowLoading,
+    isWorkflowProcessing,
+    isProcessingNewLeads,
+    processNewLeads,
     runUnassignedLeads,
-    isRunningUnassigned,
   } = useBatchAssignment();
+  const leadIntakeQuery = useLeadSaleLeadsQuery({
+    admissionYear: currentAdmissionYear,
+    page: 1,
+    pageSize: 1,
+  });
+  const hasPendingLeads = (workflow?.pendingCount ?? 0) > 0;
+  const pendingNewCount = leadIntakeQuery.data?.meta.pendingNew ?? 0;
+  const hasPendingNewLeads = pendingNewCount > 0;
+  const isIntakeLoading = leadIntakeQuery.isPending;
+
+  const isActionDisabled =
+    isWorkflowLoading ||
+    isWorkflowProcessing ||
+    isIntakeLoading ||
+    isProcessingNewLeads ||
+    (!hasPendingNewLeads && !hasPendingLeads);
 
   return (
     <header className="space-y-5">
@@ -40,11 +55,21 @@ export default function AssignmentBatchHeader() {
         <div className="flex flex-wrap gap-2">
           <Button
             size="md"
-            onPress={() => void runUnassignedLeads()}
-            isDisabled={isRunningUnassigned}
+            onPress={() =>
+              void (hasPendingNewLeads
+                ? processNewLeads()
+                : runUnassignedLeads())
+            }
+            isDisabled={isActionDisabled}
           >
             <Play size={15} aria-hidden="true" />
-            {isRunningUnassigned ? "Đang phân công…" : "Phân công Lead"}
+            {isProcessingNewLeads
+              ? "Đang xử lý…"
+              : isWorkflowProcessing
+                ? "Đang phân công…"
+                : hasPendingNewLeads
+                  ? `Xử lý Lead (${pendingNewCount})`
+                  : "Phân công Lead"}
           </Button>
           <Link
             href="/lead-sale/assignment-history"
@@ -60,34 +85,6 @@ export default function AssignmentBatchHeader() {
             Lịch sử chạy <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-card-border bg-card-background px-5 py-4">
-        <div className="min-w-0">
-          <p className="text-xs font-medium text-text-tertiary">
-            LẦN CHẠY GẦN NHẤT
-          </p>
-          <p className="mt-1 truncate text-sm font-semibold text-text-primary">
-            {isLoading
-              ? "Đang tải kết quả…"
-              : (activeBatch?.batchName ?? "Chưa có lần chạy")}
-          </p>
-          {activeBatch && (
-            <p className="mt-1 text-xs text-text-tertiary">
-              Tạo lúc {formatDateTime(activeBatch.createdAt)} ·{" "}
-              {activeBatch.itemCount} hồ sơ Lead
-            </p>
-          )}
-        </div>
-        {activeBatch ? (
-          <Badge color={batchStatusColors[activeBatch.status]}>
-            {batchStatusLabels[activeBatch.status]}
-          </Badge>
-        ) : (
-          <span className="text-sm text-text-tertiary">
-            Chưa chọn lần chạy. Bấm “Phân công Lead” để quét hệ thống
-          </span>
-        )}
       </div>
     </header>
   );

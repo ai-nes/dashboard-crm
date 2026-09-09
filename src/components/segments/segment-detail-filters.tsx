@@ -1,10 +1,21 @@
 import { Fragment } from "react";
 import {
+  CASCADING_PROPERTY_CONFIG,
   conditionValueLabel,
-  SEGMENT_OPERATOR_LABEL,
+  getOperatorLabel,
+  isCascadingProperty,
   STUDENT_SEGMENT_PROPERTY_LABEL,
+  type SegmentCondition,
 } from "./segment-filter-config";
 import type { SegmentOverviewData } from "./segment-detail-types";
+
+function conditionPropertyLabel(condition: SegmentCondition): string {
+  return isCascadingProperty(condition.property) && condition.category
+    ? CASCADING_PROPERTY_CONFIG[condition.property]!.categoryLabel[
+        condition.category
+      ]
+    : STUDENT_SEGMENT_PROPERTY_LABEL[condition.property];
+}
 
 export function SegmentDetailFilters({
   overview,
@@ -12,17 +23,17 @@ export function SegmentDetailFilters({
   overview: SegmentOverviewData;
 }) {
   return (
-    <aside
+    <section
       aria-labelledby="segment-filters-heading"
-      className="flex max-h-[60dvh] min-h-0 flex-col overflow-hidden rounded-2xl border border-card-border bg-card-background p-5 shadow-xs lg:max-h-none"
+      className="flex min-w-0 shrink-0 flex-col gap-3"
     >
       <h2
         id="segment-filters-heading"
-        className="mb-5 shrink-0 text-base font-semibold text-text-primary"
+        className="text-base font-semibold text-text-primary"
       >
         Bộ lọc
       </h2>
-      <div className="scrollbar-thin min-h-0 overflow-y-auto overscroll-contain">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3">
         {overview.groups.length === 0 && (
           <p className="text-sm text-text-tertiary">Segment chưa có bộ lọc.</p>
         )}
@@ -30,44 +41,47 @@ export function SegmentDetailFilters({
           <Fragment key={group.id}>
             {index > 0 && (
               <div
-                className="ml-6 flex w-fit flex-col items-center"
+                className="flex shrink-0 items-center gap-2 sm:pt-6"
                 aria-label="Điều kiện nối nhóm"
               >
-                <span className="h-4 w-px bg-card-border" />
-                <span className="rounded-lg border border-card-border bg-card-background px-3 py-1.5 text-xs font-semibold text-text-secondary">
+                <span aria-hidden="true" className="h-px w-4 bg-card-border" />
+                <span className="text-xs font-semibold text-text-tertiary">
                   {overview.groupLogic === "AND" ? "VÀ" : "HOẶC"}
                 </span>
-                <span className="h-4 w-px bg-card-border" />
+                <span aria-hidden="true" className="h-px w-4 bg-card-border" />
               </div>
             )}
-            <section className="rounded-xl border border-card-border p-3.5">
-              <h3 className="mb-3 text-sm font-semibold text-text-primary">
+            <section className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:max-w-full">
+              <h3 className="text-xs font-medium text-text-tertiary">
                 {group.name}
               </h3>
-              {group.conditions.map((condition, conditionIndex) => (
-                <Fragment key={condition.id}>
-                  {conditionIndex > 0 && (
-                    <p className="my-2 px-2 text-[11px] font-semibold text-text-tertiary">
-                      {group.logic === "AND" ? "VÀ" : "HOẶC"}
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {group.conditions.map((condition, conditionIndex) => (
+                  <Fragment key={condition.id}>
+                    {conditionIndex > 0 && (
+                      <span className="shrink-0 px-1 text-[11px] font-semibold text-text-tertiary">
+                        {group.logic === "AND" ? "VÀ" : "HOẶC"}
+                      </span>
+                    )}
+                    <p className="min-w-0 rounded-lg bg-background-gray-secondary px-3 py-2 text-sm leading-6 break-words text-text-secondary">
+                      <strong className="font-semibold text-text-primary">
+                        {conditionPropertyLabel(condition)}
+                      </strong>{" "}
+                      {getOperatorLabel(
+                        condition.property,
+                        condition.operator,
+                      ).toLocaleLowerCase("vi-VN")}{" "}
+                      <strong className="font-semibold text-text-primary">
+                        {conditionValueLabel(condition)}
+                      </strong>
                     </p>
-                  )}
-                  <p className="rounded-lg bg-background-gray-secondary px-3 py-2.5 text-sm leading-6 text-text-secondary">
-                    <strong className="font-semibold text-text-primary">
-                      {STUDENT_SEGMENT_PROPERTY_LABEL[condition.property]}
-                    </strong>{" "}
-                    {SEGMENT_OPERATOR_LABEL[
-                      condition.operator
-                    ].toLocaleLowerCase("vi-VN")}{" "}
-                    <strong className="font-semibold text-text-primary">
-                      {conditionValueLabel(condition)}
-                    </strong>
-                  </p>
-                </Fragment>
-              ))}
+                  </Fragment>
+                ))}
+              </div>
             </section>
           </Fragment>
         ))}
       </div>
-    </aside>
+    </section>
   );
 }

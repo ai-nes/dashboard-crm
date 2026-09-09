@@ -1,7 +1,8 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, Close, Search1 } from "@tailgrids/icons";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Label } from "react-aria-components";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -23,18 +24,18 @@ import AssignmentHistoryItemDrawer from "../../_shared/lead-assignment-batch/ass
 import {
   assignmentReasonLabel,
   formatCount,
-  formatDateTime,
+  formatDate,
   itemStatusColors,
   itemStatusLabels,
 } from "../../_shared/lead-assignment-batch/batch-assignment-mappings";
 
 const statusTabs = [
   { id: "all", label: "Tất cả" },
-  { id: "pending", label: "Chờ phân công" },
-  { id: "assigned", label: "Đã phân công" },
   { id: "manual_review", label: "Cần kiểm tra" },
   { id: "failed", label: "Lỗi xử lý" },
   { id: "deferred", label: "Tạm hoãn" },
+  { id: "pending", label: "Chờ phân công" },
+  { id: "assigned", label: "Đã phân công" },
   { id: "skipped", label: "Đã bỏ qua" },
 ] as const;
 
@@ -56,13 +57,12 @@ function HistoryRow({
       <TableCell className="min-w-56">
         <div className="font-semibold text-text-primary">{item.studentName}</div>
         <div className="mt-0.5 text-xs text-text-tertiary">
-          {item.leadId} · {item.phone || "Chưa có số điện thoại"}
-        </div>
-        <div className="mt-0.5 text-xs text-text-tertiary">
-          Phân công lúc {formatDateTime(item.batchCreatedAt)}
+          <span className="font-medium text-text-secondary">{item.leadCode ?? "Chưa có mã Lead"}</span>
         </div>
       </TableCell>
-      <TableCell className="min-w-32">{item.province || "Chưa có tỉnh"}</TableCell>
+      <TableCell className="min-w-36 whitespace-nowrap text-sm text-text-secondary">
+        {item.phone || "Chưa có số điện thoại"}
+      </TableCell>
       <TableCell className="min-w-44">
         <div>{item.team || "Chưa tìm được Team"}</div>
         <div className="mt-0.5 text-xs text-text-tertiary">
@@ -87,6 +87,9 @@ function HistoryRow({
           </span>
         )}
       </TableCell>
+      <TableCell className="min-w-36 whitespace-nowrap text-sm text-text-secondary">
+        {item.batchCreatedAt ? formatDate(item.batchCreatedAt) : "—"}
+      </TableCell>
       <TableCell className="min-w-32 text-right">
         {needsAttention(item) ? (
           <Button appearance="outline" size="sm" onPress={() => onInspect(item)}>
@@ -101,15 +104,32 @@ function HistoryRow({
 }
 
 export default function AssignmentBatchHistory() {
-  const [status, setStatus] = useState<HistoryStatus>("all");
+  const searchParams = useSearchParams();
+  const requestedStatus = searchParams.get("status");
+  const initialStatus: HistoryStatus = statusTabs.some(
+    (tab) => tab.id === requestedStatus,
+  )
+    ? (requestedStatus as HistoryStatus)
+    : "all";
+  const leadIds = useMemo(
+    () =>
+      (searchParams.get("leadIds") ?? "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    [searchParams],
+  );
+  const [status, setStatus] = useState<HistoryStatus>(initialStatus);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [inspectedId, setInspectedId] = useState<string | null>(null);
+  const autoOpenHandled = useRef(false);
   const { data, error, isLoading, isFetching } = useLeadAssignmentHistoryQuery({
     status,
     q: query,
     page,
     limit: 50,
+    leadIds: leadIds.length ? leadIds : undefined,
   });
 
   function changeStatus(nextStatus: HistoryStatus) {
@@ -122,8 +142,20 @@ export default function AssignmentBatchHistory() {
     setPage(1);
   }
 
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
   const pagination = data?.pagination;
+  useEffect(() => {
+    if (
+      autoOpenHandled.current ||
+      searchParams.get("open") !== "1" ||
+      !items.length
+    ) {
+      return;
+    }
+    autoOpenHandled.current = true;
+    setInspectedId(`${items[0].batchId}:${items[0].id}`);
+  }, [items, searchParams]);
+
   const inspectedItem =
     items.find((item) => `${item.batchId}:${item.id}` === inspectedId) ?? null;
 
@@ -194,18 +226,19 @@ export default function AssignmentBatchHistory() {
         <TableRoot className="text-sm">
           <TableHeader>
             <TableRow>
-              <TableHead>Hồ sơ Lead</TableHead>
-              <TableHead>Tỉnh</TableHead>
+              <TableHead>Lead / Mã Lead</TableHead>
+              <TableHead>Số điện thoại</TableHead>
               <TableHead>Team / Người phụ trách</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead>Lý do / kết quả</TableHead>
+              <TableHead>Ngày phân công</TableHead>
               <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-text-tertiary">
+                <TableCell colSpan={7} className="py-12 text-center text-text-tertiary">
                   Đang tải lịch sử phân công…
                 </TableCell>
               </TableRow>
@@ -219,7 +252,7 @@ export default function AssignmentBatchHistory() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center">
+                <TableCell colSpan={7} className="py-12 text-center">
                   <Search1
                     size={24}
                     className="mx-auto text-text-tertiary"

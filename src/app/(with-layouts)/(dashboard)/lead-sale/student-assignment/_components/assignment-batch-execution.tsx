@@ -200,8 +200,8 @@ export default function AssignmentBatchExecution({
                           {item.studentName}
                         </span>
                         <span className="mt-1 block text-xs text-text-tertiary">
-                          {item.leadId} ·{" "}
-                          {item.highSchool ?? "Chưa có trường THPT"}
+                          {item.phone || "Chưa có số điện thoại"} ·{" "}
+                          {item.highSchoolLabel ?? item.highSchool ?? "Chưa có trường THPT"}
                         </span>
                       </button>
                     </td>

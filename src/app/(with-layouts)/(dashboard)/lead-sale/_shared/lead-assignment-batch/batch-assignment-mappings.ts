@@ -77,8 +77,33 @@ export function formatDateTime(value: string | null | undefined): string {
     : date.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
 }
 
+export function formatDate(value: string | null | undefined): string {
+  if (!value || value === "—") return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+}
+
 export function formatCount(value: number): string {
   return new Intl.NumberFormat("vi-VN").format(value);
+}
+
+export function workflowResultLabel(
+  summary: LeadAssignmentBatchSummary | null | undefined,
+  hasData: boolean,
+): string {
+  if (!hasData || !summary?.total) return "Chưa có dữ liệu";
+  if (summary.pending) return "Chờ phân công";
+  if (summary.manualReview + summary.deferred + summary.failed) {
+    return "Cần xử lý";
+  }
+  if (summary.assigned) return "Đã phân công";
+  return "Đã xử lý";
 }
 
 const reasonLabels: Record<string, string> = {
@@ -90,6 +115,11 @@ const reasonLabels: Record<string, string> = {
 
   // Chưa tìm được Team hoặc người phụ trách
   TEAM_NOT_FOUND_FOR_PROVINCE: "Chưa có Team đang phụ trách tỉnh của Lead.",
+  TEAM_NOT_FOUND: "Không tìm thấy Team nhận hồ sơ hoặc Team đã ngừng hoạt động.",
+  MULTIPLE_INPUT_QUEUES:
+    "Team đang có nhiều hàng chờ hoạt động, cần quản trị viên kiểm tra cấu hình.",
+  MISSING_INPUT_QUEUE: "Team chưa có hàng chờ hoạt động để nhận hồ sơ.",
+  INPUT_QUEUE_TEAM_MISMATCH: "Hàng chờ hiện tại không thuộc Team được chọn.",
   INVALID_CURRENT_OWNERSHIP:
     "Thông tin phân công hiện tại chưa đầy đủ Team, hàng chờ hoặc campus.",
   PROVINCE_MISMATCH: "Tỉnh của Lead không khớp với Team đang phụ trách.",
@@ -98,7 +128,21 @@ const reasonLabels: Record<string, string> = {
   NO_ELIGIBLE_RECIPIENT:
     "Team đã xác định nhưng chưa có Sale/CTV đủ điều kiện nhận Lead.",
   TEAM_NOT_READY: "Team chưa sẵn sàng nhận Lead.",
+  NO_ACTIVE_POLICY: "Chưa có chính sách phân công đang hoạt động.",
+  OVERLAPPING_POLICY: "Có nhiều chính sách phân công bị chồng lấn.",
+  INVALID_TOPOLOGY: "Sơ đồ phân công chưa hợp lệ, cần kiểm tra lại cấu hình.",
+  ROUTING_DISABLED: "Tính năng phân công tự động đang tạm tắt.",
+  CAPACITY_BLOCKED: "Nhân sự phù hợp đã hết sức chứa nhận hồ sơ.",
+  AMBIGUOUS_POOL: "Có nhiều hàng chờ phù hợp, chưa thể chọn chính xác.",
+  CTV_BATCH_UNAVAILABLE_OR_LEAD_COMPLEX:
+    "Hồ sơ chưa phù hợp để phân công theo nhóm CTV.",
+  STALE_ZONE_MAPPING: "Cấu hình khu vực đã thay đổi, cần chạy phân công lại.",
+  STALE_OWNERSHIP_REVISION:
+    "Thông tin người phụ trách đã thay đổi, cần tải lại và thử lại.",
+  LEASE_ACTIVE: "Hồ sơ đang được một tiến trình khác xử lý.",
+  LEASE_LOST: "Phiên xử lý đã hết hạn, cần thực hiện lại.",
   ROUTING_FAILED: "Hệ thống chưa hoàn tất được bước tìm người phụ trách.",
+  PREVIEW_FAILED: "Không thể kiểm tra trước hồ sơ, cần mở chi tiết để xử lý.",
 
   // Trạng thái hồ sơ
   INVALID: "Hồ sơ không hợp lệ nên đã đóng, không tiếp tục phân công.",
@@ -108,6 +152,14 @@ const reasonLabels: Record<string, string> = {
   CLOSED: "Hồ sơ đang đóng nên chưa thể phân công.",
   PENDING: "Hồ sơ chưa có kết luận kiểm tra dữ liệu.",
   INVALID_PROCESSING_STATUS: "Trạng thái hồ sơ chưa phù hợp để phân công.",
+  IDENTIFIER_GATE_FAILED:
+    "Hồ sơ chưa vượt qua bước kiểm tra thông tin bắt buộc.",
+  PROCESSING_FAILED: "Không thể hoàn tất bước kiểm tra hồ sơ.",
+  OWNER_REQUIRED: "Chưa có người phụ trách để hoàn tất phân công.",
+  OUT_OF_SCOPE: "Hồ sơ nằm ngoài phạm vi dữ liệu được phép xử lý.",
+  NOT_POOL_OWNED: "Hồ sơ không thuộc hàng chờ đang được xử lý.",
+  STUDENT_NOT_FOUND: "Không tìm thấy hồ sơ học sinh tương ứng.",
+  NOT_FOUND: "Không tìm thấy hồ sơ cần xử lý.",
 
   // Kết quả trong đợt phân công
   ready: "Đã đủ điều kiện, sẵn sàng phân công.",
@@ -120,7 +172,7 @@ const reasonLabels: Record<string, string> = {
 };
 
 const unknownReasonLabel =
-  "Hệ thống chưa xác định được lý do; cần kiểm tra lại cấu hình Team.";
+  "Hồ sơ chưa thể xử lý. Vui lòng kiểm tra dữ liệu và cấu hình phân công.";
 
 /** True for a bare internal token such as MISSING_PROVINCE or PROVINCE:HCM. */
 function isInternalCode(value: string): boolean {
@@ -145,13 +197,55 @@ function humanizeReason(reason: string): string {
     .join(" → ");
 }
 
-export function assignmentReasonLabel(item: LeadAssignmentBatchItem): string {
+type AssignmentReasonContext = Pick<
+  LeadAssignmentBatchItem,
+  "reason" | "errorCode" | "province" | "team" | "queue" | "branch"
+>;
+
+function contextualReasonLabel(
+  item: AssignmentReasonContext,
+  code: string,
+): string | null {
+  if (code === "INVALID_CURRENT_OWNERSHIP") {
+    const missing = [
+      !item.team && "Team phụ trách",
+      !item.queue && "hàng chờ nhận hồ sơ",
+      !item.branch && "cơ sở/campus",
+    ].filter(Boolean);
+    return missing.length
+      ? `Chưa thể phân công vì chưa có ${missing.join(", ")}. Vui lòng bổ sung cấu hình còn thiếu.`
+      : "Thông tin Team, hàng chờ hoặc cơ sở không khớp với cấu hình phân công hiện tại.";
+  }
+  if (code === "TEAM_NOT_FOUND_FOR_PROVINCE") {
+    return item.province
+      ? `Chưa có Team nào được cấu hình phụ trách tỉnh ${item.province}. Vui lòng gán tỉnh này cho một Team đang hoạt động.`
+      : reasonLabels.MISSING_PROVINCE;
+  }
+  if (code === "NO_ELIGIBLE_RECIPIENT") {
+    return item.team
+      ? `Team ${item.team} đã được tìm thấy nhưng chưa có Sale/CTV đang hoạt động và còn chỗ nhận hồ sơ.`
+      : reasonLabels.NO_ELIGIBLE_RECIPIENT;
+  }
+  return null;
+}
+
+export function assignmentReasonLabel(
+  item: AssignmentReasonContext,
+): string {
+  const code = item.errorCode || (item.reason && isInternalCode(item.reason) ? item.reason : "");
+  const contextualReason = contextualReasonLabel(item, code);
+  if (contextualReason) return contextualReason;
+
   if (item.errorCode && reasonLabels[item.errorCode]) {
     return reasonLabels[item.errorCode];
   }
 
   const reason = item.reason ? humanizeReason(item.reason) : "";
   if (reason) return reason;
+
+  // Never infer a data problem from an unknown backend code. Keep the
+  // internal identifier out of the UI and give the operator a safe next step.
+  if (item.errorCode || item.reason) return unknownReasonLabel;
 
   if (!item.province) return reasonLabels.MISSING_PROVINCE;
   if (!item.branch) return reasonLabels.MISSING_CAMPUS;

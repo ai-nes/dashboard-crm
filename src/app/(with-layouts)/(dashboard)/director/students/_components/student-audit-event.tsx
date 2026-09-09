@@ -20,16 +20,77 @@ export function getStudentAuditSourceLabel(source?: string | null): string {
       return "Lịch sử cập nhật";
     case "deleted document":
       return "Hồ sơ đã xóa";
+    case "comment":
+      return "Bình luận";
+    case "communication":
+      return "Email / Communication";
+    case "file":
+      return "Tệp đính kèm";
+    case "call log":
+      return "Nhật ký cuộc gọi";
+    case "fcrm note":
+      return "FCRM Note";
+    case "task":
+      return "Task";
+    case "crm action item":
+      return "Action Item";
+    case "crm interaction":
+      return "Tương tác CRM";
+    case "lifecycle event":
+      return "Sự kiện vòng đời";
+    case "ownership event":
+      return "Sự kiện phân công";
+    case "outcome event":
+      return "Sự kiện kết quả";
+    case "marketing engagement":
+      return "Tương tác marketing";
+    case "sla event":
+      return "Sự kiện SLA";
+    case "decision event":
+      return "Sự kiện quyết định";
+    case "consent event":
+      return "Sự kiện consent";
+    case "conversion event":
+      return "Sự kiện chuyển đổi";
     default:
       return source || "Hồ sơ tuyển sinh";
   }
 }
 
 export function getStudentAuditDoctypeLabel(doctype?: string | null): string {
-  return doctype === "CRM Lead" ? "Hồ sơ học sinh" : doctype || "Hồ sơ";
+  return doctype === "CRM Lead" || doctype === "CRM Student"
+    ? "Hồ sơ học sinh"
+    : doctype || "Hồ sơ";
 }
 
 export function getStudentAuditActionLabel(event: StudentAuditLog): string {
+  switch (event.eventType) {
+    case "comment_added":
+      return "Thêm bình luận";
+    case "communication_recorded":
+      return "Ghi nhận Email / Communication";
+    case "attachment_added":
+      return "Đính kèm tệp";
+    case "call_logged":
+      return "Ghi nhận cuộc gọi";
+    case "note_added":
+      return "Thêm FCRM Note";
+    case "note_updated":
+      return "Cập nhật FCRM Note";
+    case "task_recorded":
+      return "Ghi nhận task";
+    case "interaction_recorded":
+      return "Ghi nhận tương tác CRM";
+    case "sla_event_recorded":
+      return "Ghi nhận sự kiện SLA";
+    case "decision_recorded":
+      return "Ghi nhận quyết định";
+    case "consent_recorded":
+      return "Ghi nhận consent / privacy";
+    case "conversion_completed":
+      return "Hoàn tất chuyển đổi";
+  }
+
   if (event.action === "created") return "Tạo hồ sơ học sinh";
   if (event.action === "deleted") return "Xóa hồ sơ học sinh";
   if (event.eventType === "status_initialized") {
@@ -63,6 +124,28 @@ export function getStudentAuditCategoryLabel(
       return "Chuyển đổi";
     case "outcome":
       return "Kết quả";
+    case "comment":
+      return "Bình luận";
+    case "communication":
+      return "Email / Communication";
+    case "attachment":
+      return "Tệp đính kèm";
+    case "call":
+      return "Cuộc gọi";
+    case "note":
+      return "FCRM Note";
+    case "task":
+      return "Task";
+    case "interaction":
+      return "Tương tác";
+    case "engagement":
+      return "Marketing";
+    case "sla":
+      return "SLA";
+    case "decision":
+      return "Quyết định";
+    case "consent":
+      return "Consent / privacy";
     default:
       return null;
   }
@@ -71,6 +154,33 @@ export function getStudentAuditCategoryLabel(
 export function getStudentAuditActivityDescription(
   event: StudentAuditLog,
 ): string {
+  switch (event.eventType) {
+    case "comment_added":
+      return "đã thêm bình luận";
+    case "communication_recorded":
+      return "đã ghi nhận Email / Communication";
+    case "attachment_added":
+      return "đã đính kèm tệp";
+    case "call_logged":
+      return "đã ghi nhận cuộc gọi";
+    case "note_added":
+      return "đã thêm FCRM Note";
+    case "note_updated":
+      return "đã cập nhật FCRM Note";
+    case "task_recorded":
+      return "đã ghi nhận task";
+    case "interaction_recorded":
+      return "đã ghi nhận tương tác CRM";
+    case "sla_event_recorded":
+      return "đã ghi nhận sự kiện SLA";
+    case "decision_recorded":
+      return "đã ghi nhận quyết định";
+    case "consent_recorded":
+      return "đã ghi nhận consent / privacy";
+    case "conversion_completed":
+      return "đã hoàn tất chuyển đổi";
+  }
+
   if (event.action === "created") return "đã tạo hồ sơ học sinh";
   if (event.action === "deleted") {
     return event.restored
@@ -89,6 +199,33 @@ export function getStudentAuditActivityDescription(
 }
 
 export function getStudentAuditStatus(event: StudentAuditLog): string {
+  switch (event.eventType) {
+    case "comment_added":
+      return "Đã thêm bình luận";
+    case "communication_recorded":
+      return "Đã ghi nhận email";
+    case "attachment_added":
+      return "Đã đính kèm";
+    case "call_logged":
+      return "Đã ghi nhận cuộc gọi";
+    case "note_added":
+      return "Đã thêm note";
+    case "note_updated":
+      return "Đã cập nhật note";
+    case "task_recorded":
+      return "Đã ghi nhận task";
+    case "interaction_recorded":
+      return "Đã ghi nhận tương tác";
+    case "sla_event_recorded":
+      return "Đã ghi nhận SLA";
+    case "decision_recorded":
+      return "Đã ghi nhận quyết định";
+    case "consent_recorded":
+      return "Đã ghi nhận consent";
+    case "conversion_completed":
+      return "Đã hoàn tất chuyển đổi";
+  }
+
   if (event.action === "created") return "Đã tạo";
   if (event.action === "deleted") {
     return event.restored ? "Đã khôi phục" : "Đã xóa";
@@ -116,11 +253,27 @@ export function getStudentAuditTone(event: StudentAuditLog): StudentAuditTone {
   }
   if (event.action === "deleted") return "error";
   if (event.category === "outcome") return "success";
-  if (event.category === "assignment" || event.category === "processing") {
+  if (
+    event.category === "assignment" ||
+    event.category === "processing" ||
+    event.category === "task" ||
+    event.category === "decision"
+  ) {
     return "warning";
   }
   if (event.changeType === "removed") return "warning";
   return "primary";
+}
+
+export function isStudentAuditFieldChange(event: StudentAuditLog): boolean {
+  return event.action === "updated" && Boolean(event.fieldname || event.fieldLabel);
+}
+
+export function formatStudentAuditContent(value?: string | null): string {
+  return (value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function formatStudentAuditValue(value: unknown): string {
@@ -205,7 +358,7 @@ export function StudentAuditEventDetails({
   compact = false,
   showSummary = true,
 }: StudentAuditEventDetailsProps) {
-  const isFieldChange = event.action === "updated";
+  const isFieldChange = isStudentAuditFieldChange(event);
 
   return (
     <div className={compact ? "space-y-2" : "space-y-3"}>
@@ -257,29 +410,14 @@ export function StudentAuditEventDetails({
           {event.reason && (
             <p className="text-xs text-text-secondary">Lý do: {event.reason}</p>
           )}
-          {event.metadata && Object.keys(event.metadata).length > 0 && (
-            <div className="flex flex-wrap gap-1.5 text-[11px] text-text-tertiary">
-              {Object.entries(event.metadata)
-                .filter(
-                  ([key, value]) =>
-                    !isStudentAuditIdentifierKey(key) &&
-                    value !== null &&
-                    value !== undefined &&
-                    value !== "",
-                )
-                .map(([key, value]) => (
-                  <span
-                    key={key}
-                    className="rounded-md border border-card-border/50 bg-background-gray-secondary/40 px-2 py-1"
-                  >
-                    {formatAuditMetadataKey(key)}:{" "}
-                    {formatStudentAuditValue(value)}
-                  </span>
-                ))}
-            </div>
-          )}
         </div>
       )}
+
+      {!isFieldChange && <StudentAuditRecordContent event={event} compact={compact} />}
+      {event.reason && !isFieldChange && (
+        <p className="text-xs text-text-secondary">Lý do: {event.reason}</p>
+      )}
+      <StudentAuditMetadata event={event} />
 
       {!compact && (
         <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs text-text-tertiary">
@@ -299,6 +437,69 @@ export function StudentAuditEventDetails({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+export function StudentAuditRecordContent({
+  event,
+  compact = false,
+}: {
+  event: StudentAuditLog;
+  compact?: boolean;
+}) {
+  const content = formatStudentAuditContent(event.content);
+  const fileUrl =
+    typeof event.metadata?.file_url === "string" ? event.metadata.file_url : null;
+
+  if (!content && !event.subject && !fileUrl) return null;
+
+  return (
+    <div className={compact ? "space-y-1" : "space-y-2"}>
+      {event.subject && (
+        <p className="text-xs font-semibold text-text-primary">{event.subject}</p>
+      )}
+      {content && (
+        <p className="whitespace-pre-wrap break-words text-xs leading-5 text-text-secondary">
+          {content}
+        </p>
+      )}
+      {fileUrl && (
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex text-xs font-medium text-primary-600 underline-offset-2 hover:underline"
+        >
+          Mở tệp đính kèm
+        </a>
+      )}
+    </div>
+  );
+}
+
+export function StudentAuditMetadata({ event }: { event: StudentAuditLog }) {
+  if (!event.metadata || Object.keys(event.metadata).length === 0) return null;
+
+  const entries = Object.entries(event.metadata).filter(
+    ([key, value]) =>
+      !isStudentAuditIdentifierKey(key) &&
+      value !== null &&
+      value !== undefined &&
+      value !== "",
+  );
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1.5 text-[11px] text-text-tertiary">
+      {entries.map(([key, value]) => (
+        <span
+          key={key}
+          className="rounded-md border border-card-border/50 bg-background-gray-secondary/40 px-2 py-1"
+        >
+          {formatAuditMetadataKey(key)}: {formatStudentAuditValue(value)}
+        </span>
+      ))}
     </div>
   );
 }

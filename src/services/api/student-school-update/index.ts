@@ -46,6 +46,7 @@ export type StudentCreateFields = StudentUpdateFields & {
 export type LeadCreateFields = {
   student_name: string;
   phone: string;
+  id_number?: string | null;
   province: string;
   source: string;
   email?: string | null;
@@ -60,7 +61,6 @@ export type LeadCreateFields = {
   segments?: string | null;
   admission_year?: string | null;
   conversion_potential?: string | null;
-  enrollment_status?: string | null;
   assigned_to?: string | null;
   branch?: string | null;
   tags?: string | null;
@@ -71,6 +71,13 @@ export type LeadCreateFields = {
   alt_name?: string | null;
   alt_phone?: string | null;
   alt_address?: string | null;
+};
+
+export type StudentCreateWithLeadFields = Omit<
+  LeadCreateFields,
+  "assigned_to"
+> & {
+  assigned_to: string;
 };
 
 export type SchoolUpdateFieldValue = string | number | null;
@@ -178,7 +185,7 @@ export interface UpdateRecordResponse<TFields> {
 }
 
 export interface CreateRecordResponse<TFields> {
-  doctype: "CRM Lead" | "CRM High School";
+  doctype: "CRM Student" | "CRM Lead" | "CRM High School";
   name: string;
   created_fields: TFields;
 }
@@ -782,7 +789,11 @@ export function updateSchool(name: string, fields: SchoolUpdateFields) {
 }
 
 async function createRecord<TFields>(
-  method: "create_student" | "create_school" | "create_lead",
+  method:
+    | "create_student"
+    | "create_student_with_lead"
+    | "create_school"
+    | "create_lead",
   fields: TFields,
   apiModule: "student_school" | "lead_mapping" = "student_school",
 ): Promise<CreateRecordResponse<TFields>> {
@@ -846,6 +857,53 @@ async function createRecord<TFields>(
 
 export function createStudent(fields: StudentCreateFields) {
   return createRecord("create_student", normalizeStudentFields(fields));
+}
+
+export function createStudentWithLead(fields: StudentCreateWithLeadFields) {
+  const normalizedFields: StudentCreateWithLeadFields = {
+    student_name: fields.student_name.trim(),
+    phone: fields.phone.trim(),
+    province: fields.province.trim(),
+    source: fields.source.trim(),
+    assigned_to: fields.assigned_to.trim(),
+    ...compactStudentCreateFields({
+      id_number: fields.id_number,
+      ward: fields.ward,
+      high_school: fields.high_school,
+      admission_year: fields.admission_year,
+      email: fields.email,
+      other_email: fields.other_email,
+      gender: fields.gender,
+      major: fields.major,
+      current_grade: fields.current_grade,
+      study_stage: fields.study_stage,
+      advertising_channel: fields.advertising_channel,
+      segments: fields.segments,
+      conversion_potential: fields.conversion_potential,
+      branch: fields.branch,
+      tags: fields.tags,
+      aspiration: fields.aspiration,
+      event_participated: fields.event_participated,
+      description: fields.description,
+      alt_name: fields.alt_name,
+      alt_phone: fields.alt_phone,
+      alt_address: fields.alt_address,
+    }),
+  };
+
+  return createRecord("create_student_with_lead", normalizedFields);
+}
+
+function compactStudentCreateFields(
+  fields: Partial<Record<keyof StudentCreateWithLeadFields, string | null>>,
+) {
+  return Object.fromEntries(
+    Object.entries(fields).flatMap(([key, value]) => {
+      if (typeof value !== "string") return [];
+      const trimmed = value.trim();
+      return trimmed ? [[key, trimmed]] : [];
+    }),
+  ) as Partial<StudentCreateWithLeadFields>;
 }
 
 export function createLead(fields: LeadCreateFields) {

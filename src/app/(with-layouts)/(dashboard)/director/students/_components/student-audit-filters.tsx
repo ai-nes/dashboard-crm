@@ -25,7 +25,7 @@ interface StudentAuditFiltersProps {
 
 const actionFilterOptions: ActivityFilterOption[] = [
   { id: "all", label: "Tất cả thao tác" },
-  { id: "created", label: "Tạo hồ sơ" },
+  { id: "created", label: "Tạo / ghi nhận" },
   { id: "updated", label: "Cập nhật" },
   { id: "deleted", label: "Xóa / Khôi phục" },
 ];
