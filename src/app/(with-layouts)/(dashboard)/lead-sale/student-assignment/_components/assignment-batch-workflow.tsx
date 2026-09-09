@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownward, ArrowRight, Check, InfoCircle } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -16,7 +16,7 @@ import {
   getBatchWorkflowSteps,
 } from "../../_shared/lead-assignment-batch/batch-assignment-workflow-data";
 import { useBatchAssignment } from "../../_shared/lead-assignment-batch/batch-assignment-context";
-import { useLeadAssignmentHistoryQuery } from "@/hooks/use-lead-assignment-batch-queries";
+import { useInfiniteLeadAssignmentHistoryQuery } from "@/hooks/use-lead-assignment-batch-queries";
 import {
   assignmentReasonLabel,
   batchStatusColors,
@@ -91,23 +91,56 @@ export default function AssignmentBatchWorkflow() {
   const selectedWorkflowStep = displayedSteps.find(
     (step) => step.id === selectedStep,
   );
-  const reviewHistoryQuery = useLeadAssignmentHistoryQuery(
-    { status: "manual_review", limit: 100 },
-    { enabled: selectedStep === "review" },
+  const reviewHistoryQuery = useInfiniteLeadAssignmentHistoryQuery({
+    status: "manual_review",
+    limit: 20,
+  }, selectedStep === "review");
+  const reviewItems = useMemo(
+    () =>
+      reviewHistoryQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [reviewHistoryQuery.data?.pages],
   );
-  const reviewItems = reviewHistoryQuery.data?.items ?? [];
+  const reviewTotal = reviewHistoryQuery.data?.pages[0]?.pagination.total ?? 0;
+  const reviewOverallTotal = workflow?.summary.total || reviewTotal;
+  const reviewSentinelRef = useRef<HTMLDivElement | null>(null);
+  const reviewListRef = useRef<HTMLDivElement | null>(null);
+  const {
+    fetchNextPage: fetchNextReviewPage,
+    hasNextPage: hasNextReviewPage,
+    isFetchingNextPage: isFetchingNextReviewPage,
+  } = reviewHistoryQuery;
+
+  useEffect(() => {
+    const sentinel = reviewSentinelRef.current;
+    if (!sentinel || selectedStep !== "review") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (
+          entry.isIntersecting &&
+          hasNextReviewPage &&
+          !isFetchingNextReviewPage
+        ) {
+          void fetchNextReviewPage();
+        }
+      },
+      { root: reviewListRef.current, rootMargin: "160px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    fetchNextReviewPage,
+    hasNextReviewPage,
+    isFetchingNextReviewPage,
+    selectedStep,
+  ]);
   const currentPhaseState = currentPhase
     ? getBatchWorkflowPhaseState(currentPhase, currentPhaseId)
     : null;
   const isRunning = isWorkflowProcessing || workflowBatch?.status === "running";
 
   function openReviewQueue() {
-    if (!reviewItems.length) return;
+    if (!reviewTotal) return;
     const query = new URLSearchParams({ status: "manual_review", open: "1" });
-    query.set(
-      "leadIds",
-      reviewItems.map((item) => item.leadId).join(","),
-    );
     setSelectedStep(null);
     router.push(`/lead-sale/assignment-history?${query.toString()}`);
   }
@@ -338,41 +371,32 @@ export default function AssignmentBatchWorkflow() {
           subtitle="CHI TIẾT QUY TRÌNH PHÂN CÔNG"
           onClose={() => setSelectedStep(null)}
         >
-          <p className="text-sm leading-6 text-text-secondary">
-            {selectedWorkflowStep.detail}
-          </p>
-          <div className="my-6 rounded-xl border border-card-border bg-background-gray-secondary p-4">
-            <p className="text-xs text-text-tertiary">
-              {isWorkflowProcessing
-                ? "Đang xử lý lần phân công"
-                : workflow.hasRun
-                  ? "Trong lần chạy đang xem"
-                  : hasWorkflowData
-                    ? `Tổng quan hiện tại · ${workflow.summary.assigned} đã phân công · ${workflow.summary.manualReview + workflow.summary.deferred + workflow.summary.failed} cần xử lý`
-                    : "Chưa có lần chạy"}
-            </p>
-            <p className="mt-2 text-lg font-semibold text-text-primary">
-              {getBatchWorkflowStepMetric(selectedWorkflowStep)}
-            </p>
-          </div>
+          {selectedWorkflowStep.id !== "review" && (
+            <>
+              <p className="text-sm leading-6 text-text-secondary">
+                {selectedWorkflowStep.detail}
+              </p>
+              <div className="my-6 rounded-xl border border-card-border bg-background-gray-secondary p-4">
+                <p className="text-xs text-text-tertiary">
+                  {isWorkflowProcessing
+                    ? "Đang xử lý lần phân công"
+                    : workflow.hasRun
+                      ? "Trong lần chạy đang xem"
+                      : hasWorkflowData
+                        ? `Tổng quan hiện tại · ${workflow.summary.assigned} đã phân công · ${workflow.summary.manualReview + workflow.summary.deferred + workflow.summary.failed} cần xử lý`
+                        : "Chưa có lần chạy"}
+                </p>
+                <p className="mt-2 text-lg font-semibold text-text-primary">
+                  {getBatchWorkflowStepMetric(selectedWorkflowStep)}
+                </p>
+              </div>
+            </>
+          )}
           {selectedWorkflowStep.id === "review" && (
             <section
               className="mb-6"
-              aria-labelledby="review-queue-heading"
+              aria-label="Danh sách cần xử lý"
             >
-              <div className="flex items-center justify-between gap-3">
-                <h3
-                  id="review-queue-heading"
-                  className="text-sm font-semibold text-text-primary"
-                >
-                  Hồ sơ cần xử lý
-                </h3>
-                <span className="text-xs text-text-tertiary">
-                  {reviewHistoryQuery.isLoading
-                    ? "Đang tải…"
-                    : `${reviewItems.length} hồ sơ`}
-                </span>
-              </div>
               {reviewHistoryQuery.error ? (
                 <p className="mt-3 rounded-lg bg-badge-error-background p-3 text-xs leading-5 text-badge-error-text">
                   Không thể tải danh sách hồ sơ cần xử lý.
@@ -382,31 +406,54 @@ export default function AssignmentBatchWorkflow() {
                   Đang lấy danh sách từ hệ thống phân công…
                 </p>
               ) : reviewItems.length ? (
-                <div className="mt-3 space-y-2">
-                  {reviewItems.map((item) => (
-                    <div
-                      key={`${item.batchId}:${item.id}`}
-                      className="rounded-lg border border-card-border bg-card-background px-3 py-2.5"
-                    >
-                      <p className="text-sm font-medium text-text-primary">
-                        {item.studentName}
-                      </p>
-                      <p className="mt-0.5 text-xs text-text-tertiary">
-                        {item.leadId} · {item.phone || "Chưa có số điện thoại"}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-text-secondary">
-                        {assignmentReasonLabel(item)}
+                <>
+                  <div
+                    className="mt-3 overflow-hidden rounded-xl border border-card-border bg-background-gray-secondary"
+                  >
+                    <div className="border-b border-card-border px-4 py-3">
+                      <p className="text-sm font-semibold text-text-primary">
+                        Số hồ sơ cần xử lý là {reviewTotal}/{reviewOverallTotal}
                       </p>
                     </div>
-                  ))}
+                    <div
+                      ref={reviewListRef}
+                      className="max-h-[420px] space-y-2 overflow-y-auto p-2"
+                      aria-label="Danh sách cần xử lý"
+                    >
+                      {reviewItems.map((item) => (
+                        <div
+                          key={`${item.batchId}:${item.id}`}
+                          className="rounded-lg border border-card-border bg-card-background px-3 py-2.5"
+                        >
+                          <p className="text-sm font-medium text-text-primary">
+                            {item.studentName}
+                          </p>
+                      <p className="mt-0.5 text-xs text-text-tertiary">
+                        {item.phone || "Chưa có số điện thoại"}
+                      </p>
+                      {assignmentReasonLabel(item) && (
+                        <p className="mt-1 text-xs leading-5 text-text-secondary">
+                          {assignmentReasonLabel(item)}
+                        </p>
+                      )}
+                    </div>
+                      ))}
+                      <div ref={reviewSentinelRef} className="h-1" aria-hidden="true" />
+                      {reviewHistoryQuery.isFetchingNextPage && (
+                        <p className="py-2 text-center text-xs text-text-tertiary">
+                          Đang tải thêm…
+                        </p>
+                      )}
+                    </div>
+                  </div>
                   <Button
-                    className="mt-2 w-full"
+                    className="mt-3 w-full"
                     isDisabled={reviewHistoryQuery.isFetching}
                     onPress={openReviewQueue}
                   >
-                    Xử lý {reviewItems.length} hồ sơ
+                    Xử lý
                   </Button>
-                </div>
+                </>
               ) : (
                 <p className="mt-3 text-sm text-text-tertiary">
                   Không còn hồ sơ cần xử lý.

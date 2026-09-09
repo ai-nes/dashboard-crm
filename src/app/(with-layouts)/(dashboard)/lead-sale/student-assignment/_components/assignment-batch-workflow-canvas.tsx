@@ -321,6 +321,7 @@ export default function AssignmentBatchWorkflowCanvas({
       <ReactFlow<AssignmentBatchFlowNode>
         id="lead-assignment-batch-workflow-canvas"
         aria-label="Sơ đồ phân công Lead theo đợt"
+        proOptions={{ hideAttribution: true }}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}

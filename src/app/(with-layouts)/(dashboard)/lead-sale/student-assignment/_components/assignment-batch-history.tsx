@@ -24,18 +24,18 @@ import AssignmentHistoryItemDrawer from "../../_shared/lead-assignment-batch/ass
 import {
   assignmentReasonLabel,
   formatCount,
-  formatDateTime,
+  formatDate,
   itemStatusColors,
   itemStatusLabels,
 } from "../../_shared/lead-assignment-batch/batch-assignment-mappings";
 
 const statusTabs = [
   { id: "all", label: "Tất cả" },
-  { id: "pending", label: "Chờ phân công" },
-  { id: "assigned", label: "Đã phân công" },
   { id: "manual_review", label: "Cần kiểm tra" },
   { id: "failed", label: "Lỗi xử lý" },
   { id: "deferred", label: "Tạm hoãn" },
+  { id: "pending", label: "Chờ phân công" },
+  { id: "assigned", label: "Đã phân công" },
   { id: "skipped", label: "Đã bỏ qua" },
 ] as const;
 
@@ -57,13 +57,12 @@ function HistoryRow({
       <TableCell className="min-w-56">
         <div className="font-semibold text-text-primary">{item.studentName}</div>
         <div className="mt-0.5 text-xs text-text-tertiary">
-          {item.leadId} · {item.phone || "Chưa có số điện thoại"}
-        </div>
-        <div className="mt-0.5 text-xs text-text-tertiary">
-          Phân công lúc {formatDateTime(item.batchCreatedAt)}
+          <span className="font-medium text-text-secondary">{item.leadCode ?? "Chưa có mã Lead"}</span>
         </div>
       </TableCell>
-      <TableCell className="min-w-32">{item.province || "Chưa có tỉnh"}</TableCell>
+      <TableCell className="min-w-36 whitespace-nowrap text-sm text-text-secondary">
+        {item.phone || "Chưa có số điện thoại"}
+      </TableCell>
       <TableCell className="min-w-44">
         <div>{item.team || "Chưa tìm được Team"}</div>
         <div className="mt-0.5 text-xs text-text-tertiary">
@@ -87,6 +86,9 @@ function HistoryRow({
             Hồ sơ đang đóng — mở lại trong phần xử lý.
           </span>
         )}
+      </TableCell>
+      <TableCell className="min-w-36 whitespace-nowrap text-sm text-text-secondary">
+        {item.batchCreatedAt ? formatDate(item.batchCreatedAt) : "—"}
       </TableCell>
       <TableCell className="min-w-32 text-right">
         {needsAttention(item) ? (
@@ -224,18 +226,19 @@ export default function AssignmentBatchHistory() {
         <TableRoot className="text-sm">
           <TableHeader>
             <TableRow>
-              <TableHead>Hồ sơ Lead</TableHead>
-              <TableHead>Tỉnh</TableHead>
+              <TableHead>Lead / Mã Lead</TableHead>
+              <TableHead>Số điện thoại</TableHead>
               <TableHead>Team / Người phụ trách</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead>Lý do / kết quả</TableHead>
+              <TableHead>Ngày phân công</TableHead>
               <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-text-tertiary">
+                <TableCell colSpan={7} className="py-12 text-center text-text-tertiary">
                   Đang tải lịch sử phân công…
                 </TableCell>
               </TableRow>
@@ -249,7 +252,7 @@ export default function AssignmentBatchHistory() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center">
+                <TableCell colSpan={7} className="py-12 text-center">
                   <Search1
                     size={24}
                     className="mx-auto text-text-tertiary"

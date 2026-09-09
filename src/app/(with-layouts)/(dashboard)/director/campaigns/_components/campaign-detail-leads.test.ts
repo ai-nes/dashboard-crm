@@ -14,7 +14,8 @@ describe("toCampaignLeadRow", () => {
     const lead: LeadListItem = {
       id: "LEAD-1",
       leadCode: "LD-1",
-      studentId: "LEAD-1",
+      studentCode: null,
+      studentId: "STU-1",
       initials: "MA",
       name: "Nguyễn Minh An",
       phone: "0900000000",

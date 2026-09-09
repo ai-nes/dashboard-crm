@@ -19,6 +19,7 @@ import {
   useRunLeadAssignmentBatchMutation,
 } from "@/hooks/use-lead-assignment-batch-queries";
 import {
+  leadSaleLeadsKeys,
   useReopenLeadMutation,
   useUpdateLeadMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
@@ -40,11 +41,12 @@ const emptyOption: EditableDetailOption = { id: "", label: "Chưa cập nhật" 
 function toOptions(
   options: Array<{ value: string; label: string }> | undefined,
   currentValue: string,
+  currentLabel = currentValue,
 ): EditableDetailOption[] {
   const mapped =
     options?.map(({ value, label }) => ({ id: value, label })) ?? [];
   if (currentValue && !mapped.some((option) => option.id === currentValue)) {
-    mapped.unshift({ id: currentValue, label: currentValue });
+    mapped.unshift({ id: currentValue, label: currentLabel });
   }
   return [emptyOption, ...mapped];
 }
@@ -157,6 +159,10 @@ export default function AssignmentHistoryItemDrawer({
           itemIds: [item.id],
         });
       }
+      // The assignment run changes the Lead from CLOSED/PROCESSED to ASSIGNED.
+      // Refresh the Lead list cache so the status is updated immediately,
+      // without requiring a full page reload.
+      await queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all });
       toast.success(`Đã xử lý lại hồ sơ ${item.studentName}.`);
       onClose();
     } catch (error) {
@@ -171,7 +177,7 @@ export default function AssignmentHistoryItemDrawer({
   return (
     <DetailDrawer
       title={item.studentName}
-      subtitle={`XỬ LÝ HỒ SƠ LEAD · ${item.leadId}`}
+      subtitle="XỬ LÝ HỒ SƠ LEAD"
       onClose={onClose}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -238,7 +244,11 @@ export default function AssignmentHistoryItemDrawer({
             isDisabled={isBusy}
             label="Trường THPT"
             onChange={setHighSchool}
-            options={toOptions(highSchoolOptionsQuery.data?.options, highSchool)}
+            options={toOptions(
+              highSchoolOptionsQuery.data?.options,
+              highSchool,
+              item.highSchoolLabel ?? highSchool,
+            )}
             searchable
             searchPlaceholder="Tìm trường THPT…"
             value={highSchool}
@@ -263,31 +273,6 @@ export default function AssignmentHistoryItemDrawer({
             searchPlaceholder="Tìm campus…"
             value={branch}
           />
-        </dl>
-      </section>
-
-      <section className="mt-6" aria-labelledby="lead-context-heading">
-        <h2
-          id="lead-context-heading"
-          className="text-sm font-semibold text-text-primary"
-        >
-          Thông tin hồ sơ
-        </h2>
-        <dl className="mt-3 grid grid-cols-[126px_1fr] gap-x-3 gap-y-3 text-sm">
-          <dt className="text-text-tertiary">Số điện thoại</dt>
-          <dd className="text-text-primary">{item.phone ?? "—"}</dd>
-          <dt className="text-text-tertiary">CCCD</dt>
-          <dd className="text-text-primary">{item.idNumber ?? "—"}</dd>
-          <dt className="text-text-tertiary">Trường THPT</dt>
-          <dd className="text-text-primary">{item.highSchool ?? "—"}</dd>
-          <dt className="text-text-tertiary">Ngành quan tâm</dt>
-          <dd className="text-text-primary">{item.major ?? "—"}</dd>
-          <dt className="text-text-tertiary">Team</dt>
-          <dd className="text-text-primary">
-            {item.team ?? "Chưa tìm được Team"}
-          </dd>
-          <dt className="text-text-tertiary">Người phụ trách</dt>
-          <dd className="text-text-primary">{item.ownerStaff ?? "Chưa có"}</dd>
         </dl>
       </section>
 

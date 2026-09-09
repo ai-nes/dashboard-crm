@@ -2,6 +2,7 @@
 
 import {
   useMutation,
+  useInfiniteQuery,
   useQuery,
   useQueryClient,
   type UseQueryOptions,
@@ -145,6 +146,23 @@ export function useLeadAssignmentHistoryQuery(
     queryKey: leadAssignmentBatchKeys.history(params),
     queryFn: () => listLeadAssignmentHistoryItems(params),
     ...options,
+  });
+}
+
+export function useInfiniteLeadAssignmentHistoryQuery(
+  params: Omit<LeadAssignmentHistoryParams, "page"> = {},
+  enabled = true,
+) {
+  return useInfiniteQuery({
+    queryKey: leadAssignmentBatchKeys.history(params),
+    queryFn: ({ pageParam }) =>
+      listLeadAssignmentHistoryItems({ ...params, page: pageParam }),
+    initialPageParam: 1,
+    enabled,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.hasNextPage
+        ? lastPage.pagination.page + 1
+        : undefined,
   });
 }
 

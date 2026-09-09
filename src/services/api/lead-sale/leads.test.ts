@@ -25,7 +25,8 @@ function listFixture() {
       {
         id: "LEAD-2026-00001",
         leadCode: "LD-2026-00001",
-        studentId: "LEAD-2026-00001",
+        studentCode: null,
+        studentId: null,
         initials: "MA",
         name: "Nguyễn Minh An",
         phone: "0900000000",
@@ -87,7 +88,8 @@ describe("Lead list/detail API contract", () => {
     );
     expect(result.data[0]?.name).toBe("Nguyễn Minh An");
     expect(result.data[0]?.leadCode).toBe("LD-2026-00001");
-    expect(result.data[0]?.studentId).toBe("LEAD-2026-00001");
+    expect(result.data[0]?.studentCode).toBeNull();
+    expect(result.data[0]?.studentId).toBeNull();
     expect(result.data[0]?.status).toBe("Đang xử lý");
     expect(result.data[0]?.statusCode).toBe("PROCESSED");
     expect(result.data[0]?.processingStatus).toBe("PROCESSED");

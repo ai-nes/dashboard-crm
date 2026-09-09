@@ -7,6 +7,7 @@ import { useAssignment } from "./assignment-context";
 import AssignmentForm from "./assignment-form";
 import DetailDrawer from "./detail-drawer";
 import { statusColors, statusLabels } from "./mappings";
+import { assignmentReasonLabel } from "../lead-assignment-batch/batch-assignment-mappings";
 
 const issueDescriptions = {
   no_match:
@@ -153,7 +154,18 @@ export default function AssignmentDetail() {
             </h3>
             <ul className="mt-3 space-y-2.5">
               {(item.method === "manual"
-                ? [item.reason || "Do trưởng nhóm lựa chọn."]
+                ? [
+                    item.reason
+                      ? assignmentReasonLabel({
+                          reason: item.reason,
+                          errorCode: null,
+                          province: item.region,
+                          team: null,
+                          queue: null,
+                          branch: null,
+                        })
+                      : "Do trưởng nhóm lựa chọn.",
+                  ]
                 : [
                     ...(detail?.explainability.reasons ?? [
                       `Phụ trách khu vực ${item.region || "chưa xác định"}.`,

@@ -99,6 +99,7 @@ export type LeadAssignmentBatch = {
 export type LeadAssignmentRoutingContext = {
   routingTier: string | number | null;
   zone: string | null;
+  queue: string | null;
   team: string | null;
   ownerStaff: string | null;
   activeLoad: number | null;
@@ -111,12 +112,14 @@ export type LeadAssignmentRoutingContext = {
 export type LeadAssignmentBatchItem = LeadAssignmentRoutingContext & {
   id: string;
   leadId: string;
+  leadCode: string | null;
   studentName: string;
   phone: string | null;
   idNumber: string | null;
   email: string | null;
   province: string | null;
   highSchool: string | null;
+  highSchoolLabel: string | null;
   major: string | null;
   source: string | null;
   branch: string | null;
@@ -573,6 +576,7 @@ function normalizeItem(value: unknown, index: number): LeadAssignmentBatchItem {
   return {
     id,
     leadId: text(source.leadId ?? source.lead_id ?? source.lead, id),
+    leadCode: nullableText(source.leadCode ?? source.lead_code),
     studentName: text(
       source.studentName ?? source.student_name ?? source.name,
       "Chưa có tên Lead",
@@ -584,6 +588,7 @@ function normalizeItem(value: unknown, index: number): LeadAssignmentBatchItem {
     highSchool: nullableText(
       source.highSchool ?? source.high_school ?? source.school,
     ),
+    highSchoolLabel: nullableText(source.highSchoolLabel ?? source.high_school_label),
     major: nullableText(source.major ?? source.interest),
     source: nullableText(source.source),
     branch: nullableText(source.branch),
@@ -620,6 +625,7 @@ function normalizeItem(value: unknown, index: number): LeadAssignmentBatchItem {
       source.routingTier ?? source.routing_tier,
     ),
     zone: nullableText(source.zone),
+    queue: nullableText(source.queue),
     team: team ? text(team.name ?? team.id) : nullableText(source.team),
     ownerStaff: nullableText(source.ownerStaff ?? source.owner_staff),
     activeLoad: nullableNumber(source.activeLoad ?? source.active_load),
