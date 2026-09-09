@@ -35,14 +35,13 @@ import type {
   StudentNoteItem,
 } from "@/services/api/students/types";
 
-import StudentCallsTab from "./student-calls-tab";
 import StudentNotesTab from "./student-notes-tab";
 import StudentTasksTab from "./student-tasks-tab";
 import {
   getTaskAssignmentMessage,
   resolveStudentTaskAssignee,
 } from "./student-task-assignee-policy";
-import StudentZaloTab from "./student-zalo-tab";
+import StudentInteractionsTabs from "./student-interactions-tabs";
 import type {
   Student360SectionProps,
   StudentNoteCreationOptions,
@@ -361,9 +360,9 @@ export default function StudentActivitiesTab({
         defaultSelectedKey={defaultSelectedKey}
         tabs={[
           ...detailTabs.slice(0, 1),
-          ...detailTabs.filter(
-            (tab) => tab.id === "profile" || tab.id === "records",
-          ),
+          ...detailTabs.filter((tab) => tab.id === "student-profile"),
+          ...detailTabs.filter((tab) => tab.id === "academic-admission"),
+          ...detailTabs.filter((tab) => tab.id === "admission"),
           {
             id: "tasks",
             label: "Task",
@@ -398,14 +397,14 @@ export default function StudentActivitiesTab({
             ),
           },
           {
-            id: "zalo",
-            label: "Zalo",
-            content: <StudentZaloTab messages={zaloMessages} />,
-          },
-          {
-            id: "calls",
-            label: "Cuộc gọi",
-            content: <StudentCallsTab calls={calls} />,
+            id: "interactions",
+            label: "Tương tác",
+            content: (
+              <StudentInteractionsTabs
+                calls={calls}
+                messages={zaloMessages}
+              />
+            ),
           },
           ...detailTabs.filter((tab) => tab.id === "audit"),
         ]}

@@ -28,8 +28,8 @@ import type {
 import StudentCopyBadge from "./student-copy-badge";
 import StudentGaugeChart from "./student-gauge-chart";
 import StudentOwnerCell from "./student-owner-cell";
-import StudentStatusSelect from "./student-status-select";
 import { studentStatusLabel } from "./student-status";
+import StudentStatusWorkflow from "./student-status-workflow";
 import type { Student360SectionProps } from "./types";
 
 interface StudentHeaderProps extends Student360SectionProps {
@@ -37,7 +37,7 @@ interface StudentHeaderProps extends Student360SectionProps {
   isStatusUpdating?: boolean;
   onDeleteRequest?: () => void;
   onOwnerChange?: (owner: string) => void;
-  onStatusChange?: (status: StudentStatus) => void;
+  onStatusChange?: (status: StudentStatus) => boolean | Promise<boolean>;
   owner?: string | null;
   ownerEditable?: boolean;
   ownerRevision?: number;
@@ -187,18 +187,22 @@ export default function StudentHeader({
 
           <div className="mt-3 grid divide-y divide-card-border border-t border-card-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <div className="min-w-0 px-3 py-2">
-              <p className="text-[11px] text-text-tertiary">Trạng thái</p>
               {onStatusChange && studentStatus ? (
-                <StudentStatusSelect
+                <StudentStatusWorkflow
                   studentName={student.name || "học sinh"}
                   value={studentStatus}
                   isDisabled={isStatusUpdating}
-                  onChange={onStatusChange}
+                  onTransition={onStatusChange}
                 />
               ) : studentStatus ? (
-                <p className="mt-0.5 text-sm font-semibold text-text-primary">
-                  {studentStatus ? studentStatusLabel[studentStatus] : "Chưa xác định"}
-                </p>
+                <div>
+                  <p className="text-[11px] text-text-tertiary">Trạng thái</p>
+                  <p className="mt-0.5 text-sm font-semibold text-text-primary">
+                    {studentStatus
+                      ? studentStatusLabel[studentStatus]
+                      : "Chưa xác định"}
+                  </p>
+                </div>
               ) : (
                 <p className="mt-0.5 text-sm text-text-tertiary">
                   Chưa có CRM Student
