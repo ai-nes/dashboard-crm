@@ -24,6 +24,7 @@ import {
   type ActivityTimeFilter,
 } from "./student-activity-utils";
 import StudentCallRecordingPlayer from "./student-call-recording-player";
+import StudentCanonicalCallAnalysis from "./student-canonical-call-analysis";
 
 interface StudentCallsTabProps {
   calls: StudentCallRecord[];
@@ -254,6 +255,8 @@ export function StudentCallDetails({
           </span>
         </div>
       ) : null}
+
+      <StudentCanonicalCallAnalysis interactionId={call.interactionId} />
 
       <StudentCallRecordingPlayer call={call} />
     </div>

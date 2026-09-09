@@ -16,6 +16,8 @@ describe("lead call logs API", () => {
             calls: [
               {
                 id: "CALL-1",
+                interactionId: "INT-CALL-1",
+                evidenceId: "EVIDENCE-1",
                 time: "07/09/2026 · 09:00",
                 direction: "outbound",
                 outcome: "connected",
@@ -42,7 +44,12 @@ describe("lead call logs API", () => {
       leadId: "LEAD-1",
       total: 1,
       calls: [
-        { id: "CALL-1", transcript: "TƯ VẤN VIÊN: Em quan tâm học phí." },
+        {
+          id: "CALL-1",
+          interactionId: "INT-CALL-1",
+          evidenceId: "EVIDENCE-1",
+          transcript: "TƯ VẤN VIÊN: Em quan tâm học phí.",
+        },
       ],
     });
     expect(fetchSpy).toHaveBeenCalledWith(

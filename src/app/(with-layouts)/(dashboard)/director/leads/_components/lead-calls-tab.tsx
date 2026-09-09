@@ -31,6 +31,7 @@ import {
 import type { LeadCallRecord } from "@/services/api/lead-sale/call-logs";
 
 import LeadCallRecording from "./lead-call-recording";
+import StudentCanonicalCallAnalysis from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-canonical-call-analysis";
 
 type LeadCallDirection = LeadCallRecord["direction"];
 type LeadCallOutcome = LeadCallRecord["outcome"];
@@ -259,6 +260,8 @@ export function LeadCallDetails({
       {call.transcript && !hasSummary && isSttCallUuid(call.id) ? (
         <LeadCallSummaryAction callUuid={call.id} onCompleted={onCallUpdated} />
       ) : null}
+
+      <StudentCanonicalCallAnalysis interactionId={call.interactionId} />
 
       <LeadCallRecording recordingUrl={call.recordingUrl} durationSeconds={call.durationSeconds} />
     </div>
