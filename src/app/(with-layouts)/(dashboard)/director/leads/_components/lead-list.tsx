@@ -109,6 +109,7 @@ export default function LeadList({ leads }: LeadListProps) {
               <div className="flex items-center justify-between gap-2 lg:block">
                 <p className="text-xs text-text-tertiary lg:hidden">Số lần liên hệ</p>
                 <LeadContactLogCell
+                  leadId={lead.id}
                   leadName={lead.name}
                   noAnswer={lead.contactNoAnswer}
                   success={lead.contactSuccess}

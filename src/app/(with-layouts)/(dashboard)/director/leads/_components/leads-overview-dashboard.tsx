@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
-import { Bolt1, Play, Plus } from "@tailgrids/icons";
+import { Bolt1, Play, Plus, UploadCloud } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -19,20 +19,21 @@ import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-querie
 import {
   leadSaleLeadsKeys,
   useCreateLeadMutation,
+  useImportLeadFileMutation,
   useLeadSaleLeadsQuery,
   useProcessNewLeadsMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 import type {
   LeadCreateFields,
+  LeadImportMapping,
+  LeadImportResponse,
   LeadListParams,
 } from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
+import LeadImportDialog from "./lead-import-dialog";
 import LeadListToolbar from "./lead-list-toolbar";
-import {
-  type LeadResultFilter,
-  type LeadStageStatus,
-} from "./lead-status";
+import { type LeadResultFilter, type LeadStageStatus } from "./lead-status";
 import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 
 const pageSize = 10;
@@ -45,13 +46,13 @@ export default function LeadsOverviewDashboard() {
   const queryClient = useQueryClient();
   const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
   const createMutation = useCreateLeadMutation();
+  const importMutation = useImportLeadFileMutation();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const processNewLeadsMutation = useProcessNewLeadsMutation();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStageStatus | "all">("all");
-  const [resolution, setResolution] = useState<LeadResultFilter | "all">(
-    "all",
-  );
+  const [resolution, setResolution] = useState<LeadResultFilter | "all">("all");
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
 
@@ -124,6 +125,30 @@ export default function LeadsOverviewDashboard() {
     setCreateDialogOpen(false);
     setPage(1);
     toast.success("Đã tạo Lead.");
+  };
+
+  const handleImportLeads = async (
+    file: File,
+    campaignCode: string,
+    mapping: LeadImportMapping[],
+  ): Promise<LeadImportResponse> => {
+    const result = await importMutation.mutateAsync({
+      file,
+      campaignCode,
+      mapping,
+    });
+    setPage(1);
+    const total = result.total;
+    const failed = result.failed;
+    if (failed > 0) {
+      toast.warning(`Đã tạo ${result.created}/${total} Lead.`, {
+        description: `${failed} dòng chưa được nhập; vui lòng kiểm tra lại file.`,
+      });
+    } else {
+      toast.success(`Đã tạo ${result.created}/${total} Lead.`);
+      setImportDialogOpen(false);
+    }
+    return result;
   };
 
   const runLeadProcessing = async () => {
@@ -220,6 +245,18 @@ export default function LeadsOverviewDashboard() {
         {(canCreateLead || canManageLeadIntake) && (
           <div className="flex shrink-0 flex-col items-end gap-2 max-sm:w-full">
             <div className="flex flex-wrap items-center justify-end gap-3 max-sm:w-full">
+              {canCreateLead && (
+                <Button
+                  appearance="outline"
+                  className="shrink-0 max-sm:w-full"
+                  onPress={() => setImportDialogOpen(true)}
+                  size="md"
+                  aria-label="Import Lead từ file"
+                >
+                  <UploadCloud size={18} aria-hidden="true" />
+                  Import Excel
+                </Button>
+              )}
               {canCreateLead && (
                 <Button
                   className="shrink-0 max-sm:w-full"
@@ -361,7 +398,14 @@ export default function LeadsOverviewDashboard() {
           onCreate={handleCreateLead}
         />
       )}
-
+      {canCreateLead && (
+        <LeadImportDialog
+          isOpen={importDialogOpen}
+          isSubmitting={importMutation.isPending}
+          onOpenChange={setImportDialogOpen}
+          onImport={handleImportLeads}
+        />
+      )}
     </main>
   );
 }

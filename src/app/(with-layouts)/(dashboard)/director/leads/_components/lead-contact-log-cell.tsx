@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { DialogTrigger } from "react-aria-components";
 
 import { Button } from "@/components/tailgrids/core/button";
@@ -9,29 +11,51 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/tailgrids/core/tooltip";
+import { useLeadCallLogsQuery } from "@/hooks/use-lead-call-logs-query";
+import type { LeadCallRecord } from "@/services/api/lead-sale/call-logs";
+import { formatDateTime } from "@/utils/format-date";
 
 import LeadCallRecording from "./lead-call-recording";
 
 interface LeadContactLogCellProps {
   compact?: boolean;
+  leadId: string;
   leadName: string;
   noAnswer: number;
   success: number;
 }
 
+const callDirectionLabel: Record<LeadCallRecord["direction"], string> = {
+  inbound: "Cuộc gọi đến",
+  outbound: "Cuộc gọi đi",
+  missed: "Cuộc gọi nhỡ",
+};
+
+function formatCallDuration(value?: number): string {
+  if (!value || value <= 0) return "Không kết nối";
+  const minutes = Math.floor(value / 60);
+  const seconds = value % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 export default function LeadContactLogCell({
+  leadId,
   leadName,
   noAnswer,
   success,
   compact = false,
 }: LeadContactLogCellProps) {
   const total = noAnswer + success;
+  const [isOpen, setIsOpen] = useState(false);
+  // Chỉ gọi API cuộc gọi khi người dùng thực sự mở popover.
+  const callLogsQuery = useLeadCallLogsQuery(leadId, { enabled: isOpen });
+  const calls = callLogsQuery.data?.calls ?? [];
 
   return (
     <Tooltip placement="top">
       <TooltipTrigger asChild>
         <span className="inline-block">
-          <DialogTrigger>
+          <DialogTrigger isOpen={isOpen} onOpenChange={setIsOpen}>
             <Button
               type="button"
               appearance="ghost"
@@ -57,7 +81,7 @@ export default function LeadContactLogCell({
                 {compact ? `${total} lần liên hệ` : total}
               </span>
             </Button>
-            <Popover className="w-80 p-4">
+            <Popover className="w-[22rem] p-4">
               <p className="text-sm font-semibold text-text-primary">
                 Lịch sử liên hệ
               </p>
@@ -79,12 +103,55 @@ export default function LeadContactLogCell({
                   </span>
                 </div>
               </div>
-              <div className="mt-3 space-y-1">
-                <span className="text-xs font-medium text-text-tertiary">
-                  Ghi âm cuộc gọi
-                </span>
-                <LeadCallRecording />
-              </div>
+
+              {isOpen &&
+                (callLogsQuery.isPending ? (
+                  <p
+                    className="mt-4 border-t border-card-border pt-3 text-xs text-text-tertiary"
+                    role="status"
+                  >
+                    Đang tải ghi âm cuộc gọi…
+                  </p>
+                ) : callLogsQuery.isError ? (
+                  <div className="mt-4 flex items-center justify-between gap-2 border-t border-card-border pt-3">
+                    <p className="text-xs text-error-600">
+                      Không thể tải ghi âm cuộc gọi.
+                    </p>
+                    <Button
+                      type="button"
+                      appearance="outline"
+                      size="xs"
+                      onPress={() => void callLogsQuery.refetch()}
+                    >
+                      Thử lại
+                    </Button>
+                  </div>
+                ) : calls.length === 0 ? null : (
+                  <div className="mt-4 space-y-3 border-t border-card-border pt-3">
+                    <span className="text-xs font-medium text-text-tertiary">
+                      Ghi âm cuộc gọi ({calls.length})
+                    </span>
+                    <div className="max-h-[360px] space-y-3 overflow-y-auto">
+                      {calls.map((call) => (
+                        <div key={call.id} className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2 text-xs text-text-tertiary">
+                            <span>
+                              {callDirectionLabel[call.direction]} ·{" "}
+                              {formatDateTime(call.time)}
+                            </span>
+                            <span className="shrink-0 tabular-nums">
+                              {formatCallDuration(call.durationSeconds)}
+                            </span>
+                          </div>
+                          <LeadCallRecording
+                            recordingUrl={call.recordingUrl}
+                            durationSeconds={call.durationSeconds}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
             </Popover>
           </DialogTrigger>
         </span>

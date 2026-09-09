@@ -11,6 +11,7 @@ import {
 } from "./lead-status";
 
 interface LeadWorkflowSectionProps {
+  leadId: string;
   leadName: string;
   status: LeadStageStatus | null;
   result: LeadResultStatus | "";
@@ -19,6 +20,7 @@ interface LeadWorkflowSectionProps {
 }
 
 export default function LeadWorkflowSection({
+  leadId,
   leadName,
   status,
   result,
@@ -61,6 +63,7 @@ export default function LeadWorkflowSection({
           value={
             <LeadContactLogCell
               compact
+              leadId={leadId}
               leadName={leadName}
               noAnswer={contactNoAnswer}
               success={contactSuccess}

@@ -25,6 +25,7 @@ interface MultiStepDialogProps {
   ariaLabel?: string;
   steps: string[];
   currentStep: number;
+  size?: "default" | "wide";
   isBusy?: boolean;
   onSubmit: FormEventHandler<HTMLFormElement>;
   footer: ReactNode;
@@ -39,6 +40,7 @@ export function MultiStepDialog({
   ariaLabel,
   steps,
   currentStep,
+  size = "default",
   isBusy = false,
   onSubmit,
   footer,
@@ -54,7 +56,11 @@ export function MultiStepDialog({
       isDismissable={!isBusy}
       onOpenChange={handleOpenChange}
     >
-      <AriaModal className="fixed top-1/2 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 max-sm:max-w-[calc(100%-2rem)]">
+      <AriaModal
+        className={`fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 max-sm:max-w-[calc(100%-2rem)] ${
+          size === "wide" ? "max-w-[min(95vw,1500px)]" : "max-w-2xl"
+        }`}
+      >
         <AriaDialog
           aria-label={ariaLabel ?? title}
           className="relative flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-xl border border-border-primary bg-background-white-primary shadow-lg outline-none"

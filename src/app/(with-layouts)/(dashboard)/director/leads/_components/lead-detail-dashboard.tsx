@@ -187,6 +187,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
           }
         >
           <LeadWorkflowSection
+            leadId={leadId}
             leadName={data.lead.name}
             status={status}
             result={result}

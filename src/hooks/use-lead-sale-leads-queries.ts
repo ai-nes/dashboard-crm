@@ -13,8 +13,12 @@ import {
   deleteLead,
   getLeadDetail,
   getLeadList,
+  importLeadFile,
+  importLeadRows,
   processLead,
   processNewLeads,
+  type LeadImportResponse,
+  type LeadImportMapping,
   reopenLead,
   updateLeadProcessingStatus,
   updateLead,
@@ -124,11 +128,7 @@ export function useProcessNewLeadsMutation() {
 export function useUpdateLeadProcessingStatusMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    LeadProcessResponse,
-    Error,
-    LeadStatusUpdateRequest
-  >({
+  return useMutation<LeadProcessResponse, Error, LeadStatusUpdateRequest>({
     mutationFn: (request) => updateLeadProcessingStatus(request),
     onSuccess: (_data, variables) =>
       Promise.all([
@@ -145,6 +145,44 @@ export function useCreateLeadMutation() {
 
   return useMutation<LeadDetailResponse, Error, LeadCreateFields>({
     mutationFn: (fields) => createLead(fields),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+  });
+}
+
+export function useImportLeadRowsMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    LeadImportResponse,
+    Error,
+    {
+      rows: Record<string, unknown>[];
+      filename: string;
+      campaignCode: string;
+    }
+  >({
+    mutationFn: ({ rows, filename, campaignCode }) =>
+      importLeadRows(rows, filename, campaignCode),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+  });
+}
+
+export function useImportLeadFileMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    LeadImportResponse,
+    Error,
+    {
+      file: File;
+      campaignCode: string;
+      mapping: LeadImportMapping[];
+    }
+  >({
+    mutationFn: ({ file, campaignCode, mapping }) =>
+      importLeadFile(file, campaignCode, mapping),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
   });
