@@ -4,6 +4,7 @@ import { Calendar, User2 } from "@tailgrids/icons";
 import type { ReactNode } from "react";
 
 import { DatePickerField } from "@/components/common/date-picker-field";
+import { TimePickerField } from "@/components/common/time-picker-field";
 import { TaskActionSelect } from "@/components/common/task-action-select";
 import {
   Select,
@@ -281,11 +282,10 @@ export default function TaskDialogSidebar({
             <span className="font-medium text-text-secondary">Giờ xử lý *</span>
             <div className="min-w-0">
               {onDueTimeChange ? (
-                <input
-                  type="time"
+                <TimePickerField
+                  ariaLabel="Giờ xử lý"
                   value={dueTime}
-                  onChange={(e) => onDueTimeChange(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-card-border bg-card-background px-3 text-sm font-medium text-text-primary shadow-xs focus:border-primary-500 focus:outline-none"
+                  onChange={onDueTimeChange}
                 />
               ) : (
                 <span className="flex h-9 w-full items-center rounded-lg border border-card-border bg-card-background px-3 text-sm font-medium text-text-primary shadow-xs">
