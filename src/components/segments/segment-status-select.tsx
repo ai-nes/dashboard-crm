@@ -23,23 +23,16 @@ interface SegmentStatusSelectProps {
   value: SegmentStatus;
   ariaLabel: string;
   onChange: (status: SegmentStatus) => void;
-  isDisabled?: boolean;
-  labels?: Partial<Record<SegmentStatus, string>>;
 }
 
 export function SegmentStatusSelect({
   value,
   ariaLabel,
   onChange,
-  isDisabled = false,
-  labels,
 }: SegmentStatusSelectProps) {
-  const getLabel = (status: SegmentStatus) => labels?.[status] ?? SEGMENT_STATUS_LABELS[status];
-
   return (
     <Select
       aria-label={ariaLabel}
-      isDisabled={isDisabled}
       className="w-fit gap-0"
       value={value}
       onChange={(nextValue) => onChange(nextValue as SegmentStatus)}
@@ -52,7 +45,7 @@ export function SegmentStatusSelect({
         )}
       >
         <SelectValue className="max-w-none text-inherit">
-          {getLabel(value)}
+          {SEGMENT_STATUS_LABELS[value]}
         </SelectValue>
         <SelectIndicator className="text-inherit" />
       </SelectTrigger>
@@ -78,7 +71,7 @@ export function SegmentStatusSelect({
             textValue={option.label}
           >
             <Badge color={SEGMENT_STATUS_BADGE_COLORS[option.value]}>
-              {getLabel(option.value)}
+              {option.label}
             </Badge>
           </SelectItem>
         ))}

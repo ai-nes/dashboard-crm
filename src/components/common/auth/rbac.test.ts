@@ -204,7 +204,6 @@ describe("dashboard RBAC", () => {
       "/director/alerts",
       "/director/admin/nba-actions",
       "/director/admin/segments",
-      "/director/admin/activity-logs",
     ]);
     expect(
       canAccessDashboardPath("/director/students", ["System Manager"]),

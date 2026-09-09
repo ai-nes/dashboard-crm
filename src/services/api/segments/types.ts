@@ -1,5 +1,4 @@
 export type SegmentStatus = "draft" | "active" | "inactive" | "archive";
-export type ClassificationGroupStatus = SegmentStatus;
 export type SegmentType = "dynamic" | "static";
 export type SegmentFilterLogic = "AND" | "OR";
 export type SegmentCategory =
@@ -106,70 +105,10 @@ export interface SegmentTermRecord {
   name: string;
   code?: string | null;
   label?: string | null;
-  group?: string | null;
   group_name?: string | null;
-  group_label?: string | null;
   description?: string | null;
   status?: string | null;
   revision?: number;
-}
-
-export interface ClassificationTermPayload {
-  code: string;
-  label: string;
-  group: string;
-  description?: string;
-}
-
-export interface UpdateClassificationTermPayload {
-  name: string;
-  expectedRevision: number;
-  data: Partial<Omit<ClassificationTermPayload, "code">>;
-}
-
-export interface TransitionClassificationTermPayload {
-  name: string;
-  status: ClassificationGroupStatus;
-  expectedRevision: number;
-}
-
-export interface DeleteClassificationTermPayload {
-  name: string;
-  expectedRevision: number;
-}
-
-export interface ClassificationGroupRecord {
-  name: string;
-  code: string;
-  label: string;
-  description?: string | null;
-  status: ClassificationGroupStatus;
-  sort_order: number;
-  revision: number;
-}
-
-export interface ClassificationGroupPayload {
-  code: string;
-  label: string;
-  description?: string;
-  sort_order?: number;
-}
-
-export interface UpdateClassificationGroupPayload {
-  name: string;
-  expectedRevision: number;
-  data: Partial<Omit<ClassificationGroupPayload, "code">>;
-}
-
-export interface TransitionClassificationGroupPayload {
-  name: string;
-  status: ClassificationGroupStatus;
-  expectedRevision: number;
-}
-
-export interface DeleteClassificationGroupPayload {
-  name: string;
-  expectedRevision: number;
 }
 
 export interface SegmentFilterOptionsResponse {
