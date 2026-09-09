@@ -1,6 +1,10 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { FileText } from "@tailgrids/icons";
+
+import { Card } from "@/components/tailgrids/core/card";
+
+import StudentCardHeader from "./student-card-header";
 
 interface AdmissionInformationField {
   label: string;
@@ -27,9 +31,11 @@ const admissionInformationFields: AdmissionInformationField[] = [
 export default function StudentAdmissionInformationMockup() {
   return (
     <Card className="p-5">
-      <CardHeader className="mb-6">
-        <CardTitle>Thông tin tuyển sinh</CardTitle>
-      </CardHeader>
+      <StudentCardHeader
+        description="Phương thức, nguyện vọng và tiến độ đăng ký tuyển sinh."
+        icon={<FileText size={18} aria-hidden="true" />}
+        title="Thông tin tuyển sinh"
+      />
 
       <dl className="grid gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
         {admissionInformationFields.map((field) => (

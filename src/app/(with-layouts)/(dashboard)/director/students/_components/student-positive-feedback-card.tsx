@@ -108,6 +108,8 @@ export default function StudentPositiveFeedbackCard({
   return (
     <Card className="h-full min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
+        description="Những điểm mạnh đang hỗ trợ khả năng chuyển đổi."
+        icon={<CheckCircle1 size={18} aria-hidden="true" />}
         title="Tín hiệu thuận lợi"
         rightAction={<AnalysisSourceCountBadge count={sourceCount} />}
         isRefreshing={isRefreshing}

@@ -1,6 +1,10 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { BarChart2 } from "@tailgrids/icons";
+
+import { Card } from "@/components/tailgrids/core/card";
+
+import StudentCardHeader from "./student-card-header";
 
 interface HighSchoolScoreField {
   label: string;
@@ -22,9 +26,11 @@ const highSchoolScoreFields: HighSchoolScoreField[] = [
 export default function StudentHighSchoolScoreMockup() {
   return (
     <Card className="h-full p-5">
-      <CardHeader className="mb-6">
-        <CardTitle>Điểm THPT</CardTitle>
-      </CardHeader>
+      <StudentCardHeader
+        description="Các điểm số và tiêu chí dùng để xét tuyển."
+        icon={<BarChart2 size={18} aria-hidden="true" />}
+        title="Điểm THPT"
+      />
 
       <dl className="grid gap-x-8 gap-y-5 md:grid-cols-2">
         {highSchoolScoreFields.map((field) => (

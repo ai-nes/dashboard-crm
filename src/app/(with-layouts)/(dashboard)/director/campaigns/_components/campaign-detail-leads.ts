@@ -8,6 +8,7 @@ import type { LeadListItem } from "@/services/api/lead-sale";
 
 export interface CampaignLeadRow {
   id: string;
+  leadCode?: string | null;
   name: string;
   initials: string;
   phone: string;
@@ -34,8 +35,16 @@ export function filterCampaignLeads(
   return leads.filter((lead) => {
     const matchesQuery =
       !normalizedQuery ||
-      [lead.id, lead.name, lead.phone, lead.school, lead.source, lead.owner].some(
-        (value) => value.toLocaleLowerCase("vi-VN").includes(normalizedQuery),
+      [
+        lead.id,
+        lead.leadCode ?? "",
+        lead.name,
+        lead.phone,
+        lead.school,
+        lead.source,
+        lead.owner,
+      ].some((value) =>
+        value.toLocaleLowerCase("vi-VN").includes(normalizedQuery),
       );
     const matchesStatus = status === "all" || lead.status === status;
     return matchesQuery && matchesStatus;
@@ -69,6 +78,7 @@ export function toCampaignLeadRow(lead: LeadListItem): CampaignLeadRow {
   const processingStatus = status;
   return {
     id: lead.id,
+    leadCode: lead.leadCode,
     name: lead.name || lead.id,
     initials: lead.initials || lead.name.charAt(0).toUpperCase(),
     phone: lead.phone,

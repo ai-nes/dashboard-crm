@@ -6,7 +6,6 @@ import {
   Envelope1,
   MapMarker5,
   Phone,
-  Sparkle,
   Trash1,
 } from "@tailgrids/icons";
 import Link from "next/link";
@@ -22,7 +21,6 @@ import { formatDateTime } from "@/utils/format-date";
 import type {
   StudentPriority,
   StudentStatus,
-  StudentVerificationStatus,
 } from "@/services/api/students/types";
 
 import StudentCopyBadge from "./student-copy-badge";
@@ -91,7 +89,7 @@ export default function StudentHeader({
                 <AvatarBadge size="md" status="online" />
               </Avatar>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-3">
                   <h1 className="min-w-0 text-balance text-xl font-semibold tracking-[-0.4px] text-text-primary lg:text-2xl lg:leading-8">
                     {student.name || "-"}
                   </h1>
@@ -99,25 +97,6 @@ export default function StudentHeader({
                     <Badge color={getPriorityColor(student.priority)}>
                       Ưu tiên {student.priority.toLowerCase()}
                     </Badge>
-                  )}
-                  {student.verificationStatus && (
-                    <Badge
-                      color={getVerificationColor(student.verificationStatus)}
-                    >
-                      {student.verificationStatus}
-                    </Badge>
-                  )}
-                  <Badge color="primary">
-                    {data.segmentation?.learningStage || "Đang tư vấn"}
-                  </Badge>
-                  {student.code && (
-                    <StudentCopyBadge
-                      icon={Copy1}
-                      label="mã học sinh"
-                      value={student.code}
-                    >
-                      Sao chép ID
-                    </StudentCopyBadge>
                   )}
                   {onDeleteRequest && (
                     <Button
@@ -132,17 +111,30 @@ export default function StudentHeader({
                     </Button>
                   )}
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-text-tertiary">
-                  <span>{subtitle}</span>
-                  {student.major && (
-                    <Badge
-                      color="violet"
-                      prefixIcon={<Sparkle size={12} aria-hidden="true" />}
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-tertiary">
+                  {student.code && (
+                    <StudentCopyBadge
+                      className="h-auto rounded-none bg-transparent px-0 text-sm text-text-tertiary hover:bg-transparent hover:text-text-primary"
+                      icon={Copy1}
+                      label="mã học sinh"
+                      showLeadingIcon={false}
+                      value={student.code}
                     >
-                      Quan tâm ngành: {student.major}
-                    </Badge>
+                      Mã học sinh: {student.code}
+                    </StudentCopyBadge>
                   )}
+                  {student.code && subtitle && (
+                    <span aria-hidden="true">·</span>
+                  )}
+                  <span>{subtitle}</span>
                 </div>
+                {student.major && (
+                  <div className="mt-2 min-w-0 text-sm text-text-secondary">
+                    <span className="min-w-0 truncate">
+                      Quan tâm ngành: {student.major}
+                    </span>
+                  </div>
+                )}
                 <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs text-text-secondary">
                   {student.phone && (
                     <StudentCopyBadge
@@ -199,7 +191,9 @@ export default function StudentHeader({
                 />
               ) : studentStatus ? (
                 <div>
-                  <p className="text-[11px] text-text-tertiary">Trạng thái</p>
+                  <p className="text-[11px] text-text-tertiary">
+                    Trạng thái hiện tại
+                  </p>
                   <p className="mt-0.5 text-sm font-semibold text-text-primary">
                     {studentStatus
                       ? studentStatusLabel[studentStatus]
@@ -256,10 +250,4 @@ function getPriorityColor(priority: StudentPriority) {
   if (priority === "Cao") return "success" as const;
   if (priority === "Thấp") return "gray" as const;
   return "warning" as const;
-}
-
-function getVerificationColor(status: StudentVerificationStatus) {
-  if (status === "Đã xác thực") return "success" as const;
-  if (status === "Cần xác minh") return "warning" as const;
-  return "gray" as const;
 }

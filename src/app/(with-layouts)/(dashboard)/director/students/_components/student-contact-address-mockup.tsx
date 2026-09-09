@@ -1,6 +1,10 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { MapMarker5 } from "@tailgrids/icons";
+
+import { Card } from "@/components/tailgrids/core/card";
+
+import StudentCardHeader from "./student-card-header";
 
 interface ContactAddressField {
   label: string;
@@ -19,9 +23,11 @@ const contactAddressFields: ContactAddressField[] = [
 export default function StudentContactAddressMockup() {
   return (
     <Card className="p-5">
-      <CardHeader className="mb-6">
-        <CardTitle>Thông tin địa chỉ liên hệ</CardTitle>
-      </CardHeader>
+      <StudentCardHeader
+        description="Địa chỉ liên hệ hiện tại được lưu trên hồ sơ học sinh."
+        icon={<MapMarker5 size={18} aria-hidden="true" />}
+        title="Thông tin địa chỉ liên hệ"
+      />
 
       <dl className="grid gap-x-8 gap-y-5 md:grid-cols-3">
         {contactAddressFields.map((field) => (

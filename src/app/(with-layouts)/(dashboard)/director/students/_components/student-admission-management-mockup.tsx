@@ -1,7 +1,10 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { FileText } from "@tailgrids/icons";
 
+import { Card } from "@/components/tailgrids/core/card";
+
+import StudentCardHeader from "./student-card-header";
 import StudentEnrollmentInformationMockup from "./student-enrollment-information-mockup";
 
 interface AdmissionManagementField {
@@ -66,9 +69,11 @@ export default function StudentAdmissionManagementMockup() {
   return (
     <div className="space-y-6">
       <Card className="p-5">
-        <CardHeader className="mb-6">
-          <CardTitle>Thông tin quản lí nhập học</CardTitle>
-        </CardHeader>
+        <StudentCardHeader
+          description="Trạng thái hồ sơ, tài chính và điều kiện nhập học."
+          icon={<FileText size={18} aria-hidden="true" />}
+          title="Thông tin quản lí nhập học"
+        />
 
         <dl className="grid gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
           {admissionManagementFields.map((field) => (

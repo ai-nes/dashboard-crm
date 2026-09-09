@@ -1,6 +1,10 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { Book4 } from "@tailgrids/icons";
+
+import { Card } from "@/components/tailgrids/core/card";
+
+import StudentCardHeader from "./student-card-header";
 
 interface HighSchoolField {
   label: string;
@@ -27,9 +31,11 @@ const highSchoolFields: HighSchoolField[] = [
 export default function StudentHighSchoolMockup() {
   return (
     <Card className="h-full p-5">
-      <CardHeader className="mb-6">
-        <CardTitle>Thông tin trường THPT</CardTitle>
-      </CardHeader>
+      <StudentCardHeader
+        description="Thông tin trường, khu vực và kết quả tốt nghiệp THPT."
+        icon={<Book4 size={18} aria-hidden="true" />}
+        title="Thông tin trường THPT"
+      />
 
       <dl className="grid gap-x-10 gap-y-5 md:grid-cols-2">
         {highSchoolFields.map((field) => (

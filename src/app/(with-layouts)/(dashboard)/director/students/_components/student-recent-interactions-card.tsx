@@ -1,5 +1,6 @@
 "use client";
 
+import { ClockThree } from "@tailgrids/icons";
 import { Card } from "@/components/tailgrids/core/card";
 import { AnalysisRecentChangesList } from "@/components/analysis-runs/analysis-report-signal-lists";
 import { useInteractionFeedQuery } from "@/hooks/use-interaction-intelligence-queries";
@@ -28,6 +29,8 @@ export default function StudentRecentInteractionsCard({
   return (
     <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
+        description="Tóm tắt các điểm chạm inbound và outbound gần nhất."
+        icon={<ClockThree size={18} aria-hidden="true" />}
         title="Nhật ký tương tác gần đây"
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}

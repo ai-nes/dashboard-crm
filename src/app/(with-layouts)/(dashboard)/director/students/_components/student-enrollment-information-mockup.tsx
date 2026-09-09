@@ -1,6 +1,10 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { CheckCircle1 } from "@tailgrids/icons";
+
+import { Card } from "@/components/tailgrids/core/card";
+
+import StudentCardHeader from "./student-card-header";
 
 interface EnrollmentInformationField {
   label: string;
@@ -16,9 +20,11 @@ const enrollmentInformationFields: EnrollmentInformationField[] = [
 export default function StudentEnrollmentInformationMockup() {
   return (
     <Card className="p-5">
-      <CardHeader className="mb-6">
-        <CardTitle>Thông tin nhập học</CardTitle>
-      </CardHeader>
+      <StudentCardHeader
+        description="Thông tin hỗ trợ và quyền truy cập sau khi nhập học."
+        icon={<CheckCircle1 size={18} aria-hidden="true" />}
+        title="Thông tin nhập học"
+      />
 
       <dl className="grid gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
         {enrollmentInformationFields.map((field) => (

@@ -6,7 +6,6 @@ import {
   Envelope1,
   MapMarker5,
   Phone,
-  Sparkle,
   Trash1,
 } from "@tailgrids/icons";
 import Link from "next/link";
@@ -17,12 +16,10 @@ import {
   AvatarBadge,
   AvatarFallback,
 } from "@/components/tailgrids/core/avatar";
-import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { formatDate, formatDateTime } from "@/utils/format-date";
 
 import StudentCopyBadge from "../../students/_components/student-copy-badge";
-import { leadStatusColor } from "./mappings";
 import type { LeadDetail } from "./types";
 
 export default function LeadHeader({
@@ -57,55 +54,49 @@ export default function LeadHeader({
 
       <div className="min-w-0 overflow-hidden rounded-2xl border border-card-border bg-card-background">
         <div className="min-w-0 p-3 lg:p-4">
-          <div className="min-w-0">
+          <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             <div className="flex min-w-0 items-start gap-3">
               <Avatar size="md">
                 <AvatarFallback>{lead.initials || "L"}</AvatarFallback>
                 <AvatarBadge size="md" status="online" />
               </Avatar>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-3">
                   <h1 className="min-w-0 text-balance text-xl font-semibold tracking-[-0.4px] text-text-primary lg:text-2xl lg:leading-8">
                     {lead.name || "-"}
                   </h1>
-                  <Badge
-                    color={leadStatusColor(lead.lifecycleStatus ?? lead.status)}
-                  >
-                    {(lead.lifecycleStatus ?? lead.status) || "-"}
-                  </Badge>
-                  {lead.source && <Badge color="primary">{lead.source}</Badge>}
+                </div>
+
+                <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-tertiary">
                   <StudentCopyBadge
+                    className="h-auto rounded-none bg-transparent px-0 text-sm text-text-tertiary hover:bg-transparent hover:text-text-primary"
                     icon={Copy1}
                     label="mã lead"
-                    value={lead.id}
+                    showLeadingIcon={false}
+                    value={lead.leadCode || lead.id}
                   >
-                    Sao chép ID
+                    Mã Lead: {lead.leadCode || lead.id}
                   </StudentCopyBadge>
-                  {onDeleteRequest && (
-                    <Button
-                      aria-label="Xóa Lead"
-                      appearance="ghost"
-                      onPress={onDeleteRequest}
-                      size="sm"
-                      variant="danger"
-                    >
-                      <Trash1 size={15} aria-hidden="true" />
-                      Xóa Lead
-                    </Button>
-                  )}
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-text-tertiary">
+                  {subtitle && <span aria-hidden="true">·</span>}
                   {subtitle && <span>{subtitle}</span>}
-                  {lead.interestedMajor && (
-                    <Badge
-                      color="violet"
-                      prefixIcon={<Sparkle size={12} aria-hidden="true" />}
-                    >
-                      Quan tâm ngành: {lead.interestedMajor}
-                    </Badge>
-                  )}
                 </div>
-                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs text-text-secondary">
+
+                {(lead.source || lead.interestedMajor) && (
+                  <div className="mt-2 flex min-w-0 flex-wrap gap-x-5 gap-y-1 text-sm text-text-secondary">
+                    {lead.source && (
+                      <span className="min-w-0 truncate">
+                        Nguồn: {lead.source}
+                      </span>
+                    )}
+                    {lead.interestedMajor && (
+                      <span className="min-w-0 truncate">
+                        Quan tâm ngành: {lead.interestedMajor}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="mt-2 flex min-w-0 flex-wrap gap-x-5 gap-y-2 text-xs text-text-secondary">
                   {lead.phone && (
                     <StudentCopyBadge
                       icon={Phone}
@@ -124,18 +115,32 @@ export default function LeadHeader({
                       {lead.email}
                     </StudentCopyBadge>
                   )}
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex min-w-0 items-center gap-1.5">
                     <MapMarker5
                       size={14}
-                      className="text-icon-tertiary"
+                      className="shrink-0 text-icon-tertiary"
                       aria-hidden="true"
                     />
-                    {lead.school || "-"}
+                    <span className="truncate">{lead.school || "-"}</span>
                   </span>
                 </div>
               </div>
             </div>
 
+            <div className="flex flex-wrap items-center gap-2 lg:pt-1">
+              {onDeleteRequest && (
+                <Button
+                  aria-label="Xóa Lead"
+                  appearance="ghost"
+                  onPress={onDeleteRequest}
+                  size="sm"
+                  variant="danger"
+                >
+                  <Trash1 size={15} aria-hidden="true" />
+                  Xóa Lead
+                </Button>
+              )}
+            </div>
           </div>
 
           {children}

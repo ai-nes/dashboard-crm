@@ -5,7 +5,6 @@ import DetailTabs from "@/components/common/detail-tabs";
 
 import StudentAdmissionDocumentsMockup from "./student-admission-documents-mockup";
 import StudentAdmissionManagementMockup from "./student-admission-management-mockup";
-import StudentDocumentsTab from "./student-documents-tab";
 import StudentPaymentInvoicesMockup from "./student-payment-invoices-mockup";
 import type { Student360SectionProps } from "./types";
 
@@ -19,14 +18,9 @@ function getAdmissionTabs(
       content: <StudentAdmissionManagementMockup />,
     },
     {
-      id: "student-documents",
-      label: "Hồ sơ & tài liệu",
-      content: <StudentDocumentsTab data={data} />,
-    },
-    {
       id: "admission-documents",
       label: "Thủ tục và Hồ sơ Nhập học",
-      content: <StudentAdmissionDocumentsMockup />,
+      content: <StudentAdmissionDocumentsMockup data={data} />,
     },
     {
       id: "payment-invoices",

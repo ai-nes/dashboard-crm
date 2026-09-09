@@ -1,21 +1,15 @@
-import { MapMarker5 } from "@tailgrids/icons";
 import Link from "next/link";
 import { useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import type {
-  StudentListItem,
-  StudentStatus,
-} from "@/services/api/students/types";
+import type { StudentListItem } from "@/services/api/students/types";
 
 import StudentOwnerCell from "./student-owner-cell";
-import StudentStatusSelect from "./student-status-select";
+import { studentStatusBadgeColor, studentStatusLabel } from "./student-status";
 
 interface StudentListProps {
-  isStatusUpdating?: boolean;
   students: StudentListItem[];
   ownerEditable?: boolean;
-  onStatusChange: (id: string, status: StudentStatus) => void;
 }
 
 function getScoreTone(score: number): "success" | "warning" | "error" {
@@ -24,14 +18,11 @@ function getScoreTone(score: number): "success" | "warning" | "error" {
   return "error";
 }
 
-export const studentListGrid =
-  "lg:grid-cols-[minmax(250px,1.35fr)_minmax(170px,0.9fr)_minmax(12rem,1.1fr)_130px_minmax(200px,1.2fr)_110px]";
+export const studentListGrid = "lg:grid-cols-7";
 
 export default function StudentList({
-  isStatusUpdating,
   students,
   ownerEditable = false,
-  onStatusChange,
 }: StudentListProps) {
   const [ownerOverrides, setOwnerOverrides] = useState<Record<string, string>>(
     {},
@@ -61,34 +52,36 @@ export default function StudentList({
             <div
               className={`grid gap-4 px-4 py-4 ${studentListGrid} lg:items-center lg:px-5`}
             >
-              {/* Cột 1: Họ tên · THPT · Quê quán */}
-              <div className="flex min-w-0 items-start gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-sm font-semibold text-badge-primary-text">
-                  {student.initials || "HS"}
-                </span>
-                <div className="min-w-0">
-                  <Link
-                    href={`/director/students/${encodeURIComponent(student.code || student.id)}`}
-                    aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
-                    className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
-                  >
-                    {student.name || "-"}
-                  </Link>
-                  <p className="mt-1 truncate text-xs text-text-tertiary">
-                    {student.school || "-"}
-                  </p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-text-secondary">
-                    <MapMarker5
-                      size={13}
-                      className="shrink-0 text-icon-tertiary"
-                      aria-hidden="true"
-                    />
-                    {student.province || "-"}
-                  </p>
-                </div>
+              {/* Cột 1: Mã học sinh */}
+              <div className="flex min-w-0 items-center justify-between gap-2 lg:block">
+                <p className="text-xs text-text-tertiary lg:hidden">
+                  Mã học sinh
+                </p>
+                <p className="truncate text-sm font-medium text-text-primary">
+                  {student.code || "-"}
+                </p>
               </div>
 
-              {/* Cột 2: Ngành quan tâm */}
+              {/* Cột 2: Họ và tên */}
+              <div className="min-w-0">
+                <Link
+                  href={`/director/students/${encodeURIComponent(student.code || student.id)}`}
+                  aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
+                  className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+                >
+                  {student.name || "-"}
+                </Link>
+              </div>
+
+              {/* Cột 3: Tỉnh/TP */}
+              <div className="flex min-w-0 items-center justify-between gap-2 lg:block">
+                <p className="text-xs text-text-tertiary lg:hidden">Tỉnh/TP</p>
+                <p className="truncate text-sm text-text-secondary">
+                  {student.province || "-"}
+                </p>
+              </div>
+
+              {/* Cột 4: Ngành quan tâm */}
               <div className="flex min-w-0 items-center justify-between gap-2 lg:block">
                 <p className="text-xs text-text-tertiary lg:hidden">
                   Ngành quan tâm
@@ -101,21 +94,15 @@ export default function StudentList({
                 </p>
               </div>
 
-              {/* Cột 3: Trạng thái */}
-              <div className="flex items-center justify-between gap-2 lg:justify-start">
+              {/* Cột 5: Trạng thái */}
+              <div className="flex min-w-0 items-center justify-between gap-2 lg:justify-start">
                 <p className="text-xs text-text-tertiary lg:hidden">
                   Trạng thái
                 </p>
                 {status ? (
-                  <StudentStatusSelect
-                    studentName={student.name}
-                    value={status}
-                    className="min-w-48"
-                    isDisabled={isStatusUpdating}
-                    onChange={(nextStatus) =>
-                      onStatusChange(student.id, nextStatus)
-                    }
-                  />
+                  <Badge color={studentStatusBadgeColor[status]} size="sm">
+                    {studentStatusLabel[status]}
+                  </Badge>
                 ) : (
                   <span className="text-sm text-text-tertiary">
                     Chưa có CRM Student
@@ -123,15 +110,15 @@ export default function StudentList({
                 )}
               </div>
 
-              {/* Cột 4: Điểm tiềm năng */}
-              <div className="flex items-center justify-between gap-2 lg:justify-center">
+              {/* Cột 6: Điểm tiềm năng */}
+              <div className="flex min-w-0 items-center justify-between gap-2 lg:justify-start">
                 <p className="text-xs text-text-tertiary lg:hidden">
                   Điểm tiềm năng
                 </p>
                 <Badge color={scoreTone}>{student.score}</Badge>
               </div>
 
-              {/* Cột 5: Người phụ trách */}
+              {/* Cột 7: Người phụ trách */}
               <div className="min-w-0">
                 <p className="mb-1 text-xs text-text-tertiary lg:hidden">
                   Người phụ trách
@@ -148,18 +135,6 @@ export default function StudentList({
                     }))
                   }
                 />
-              </div>
-
-              {/* Cột 6: Thao tác */}
-              <div className="flex items-center justify-between gap-2 lg:justify-center">
-                <p className="text-xs text-text-tertiary lg:hidden">Thao tác</p>
-                <Link
-                  href={`/director/students/${encodeURIComponent(student.code || student.id)}`}
-                  aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
-                  className="text-xs font-medium text-warning-500 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
-                >
-                  Chi tiết
-                </Link>
               </div>
             </div>
           </li>

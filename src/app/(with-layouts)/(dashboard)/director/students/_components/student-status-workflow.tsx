@@ -24,9 +24,9 @@ import {
 } from "./student-status";
 
 const primaryTransitionLabels: Partial<Record<StudentStatus, string>> = {
-  New: "Bắt đầu liên hệ",
-  Attempting: "Đánh dấu đã kết nối",
-  Connected: "Xác nhận đủ điều kiện",
+  New: "Đang liên hệ",
+  Attempting: "Đã kết nối",
+  Connected: "Đủ điều kiện",
 };
 
 const transitionConfirmationMessages: Record<StudentStatus, string> = {
@@ -80,17 +80,22 @@ export default function StudentStatusWorkflow({
       <div
         className={
           primaryTransition
-            ? "grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-3"
+            ? "grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-3"
             : "flex min-w-0 flex-col items-start gap-1"
         }
       >
         <div className="min-w-0">
-          <p className="text-[11px] text-text-tertiary">Trạng thái</p>
+          <p className="text-[11px] text-text-tertiary">Trạng thái hiện tại</p>
           <Badge
+            aria-current="step"
             color={studentStatusBadgeColor[value]}
             size="md"
-            className="mt-1"
+            className="mt-1 border border-current px-2.5 py-1 text-sm font-semibold shadow-xs"
           >
+            <span
+              aria-hidden="true"
+              className="size-2 rounded-full bg-current ring-2 ring-current/20"
+            />
             {studentStatusLabel[value]}
           </Badge>
         </div>
@@ -99,21 +104,21 @@ export default function StudentStatusWorkflow({
           <ArrowRight
             size={18}
             aria-hidden="true"
-            className="mb-2 shrink-0 text-text-tertiary"
+            className="mt-6 shrink-0 text-text-tertiary"
           />
         )}
 
         {primaryTransition && (
           <div className="min-w-0">
-            <p className="text-[11px] text-text-tertiary">Tiếp theo</p>
+            <p className="text-[11px] text-text-tertiary">Chuyển sang</p>
             <div className="mt-1 flex min-w-0 items-center gap-1.5">
               <Button
                 size="sm"
                 variant="primary"
-                appearance="ghost"
+                appearance="outline"
                 className={cn(
-                  "w-full min-w-0 whitespace-nowrap",
-                  getStageActionToneClassName(getPrimaryTransition(value)),
+                  "min-w-0 cursor-pointer whitespace-nowrap border-card-border bg-background-soft-50 text-text-secondary shadow-xs hover:border-text-secondary hover:bg-background-soft-100 hover:text-text-primary",
+                  stageActionDisabledClassName,
                 )}
                 isDisabled={isDisabled}
                 onPress={() =>
@@ -153,11 +158,7 @@ export default function StudentStatusWorkflow({
           title="Xác nhận chuyển trạng thái"
           description={
             <>
-              Chuyển {studentName || "học sinh này"} từ{" "}
-              <span className="font-medium text-text-secondary">
-                {studentStatusLabel[value]}
-              </span>{" "}
-              sang{" "}
+              Xác nhận chuyển {studentName || "học sinh này"} sang trạng thái{" "}
               <span className="font-medium text-text-secondary">
                 {studentStatusLabel[pendingTransition]}
               </span>
@@ -187,11 +188,7 @@ export default function StudentStatusWorkflow({
           title="Xác nhận chuyển trạng thái"
           description={
             <>
-              Chuyển {studentName || "học sinh này"} từ{" "}
-              <span className="font-medium text-text-secondary">
-                {studentStatusLabel[value]}
-              </span>{" "}
-              sang{" "}
+              Xác nhận chuyển {studentName || "học sinh này"} sang trạng thái{" "}
               <span className="font-medium text-text-secondary">
                 {studentStatusLabel.Disqualified}
               </span>
@@ -231,7 +228,7 @@ function SecondaryTransitionMenu({
           className="px-2.5 py-1.5 text-sm text-error-500 hover:bg-badge-error-background focus:bg-badge-error-background"
           onAction={onDisqualify}
         >
-          Đánh dấu không đủ điều kiện
+          Không đủ điều kiện
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

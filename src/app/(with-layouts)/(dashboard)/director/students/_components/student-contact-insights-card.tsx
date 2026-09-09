@@ -32,6 +32,8 @@ export default function StudentContactInsightsCard({
   return (
     <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
+        description="Các tín hiệu chính giúp chọn hướng tư vấn tiếp theo."
+        icon={<Sparkle size={18} aria-hidden="true" />}
         title="Tín hiệu tư vấn tuyển sinh"
         rightAction={
           <AnalysisSourceCountBadge

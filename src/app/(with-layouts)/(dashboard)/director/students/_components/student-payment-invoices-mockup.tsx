@@ -1,6 +1,8 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { SackDollar } from "@tailgrids/icons";
+
+import { Card } from "@/components/tailgrids/core/card";
 import {
   TableBody,
   TableCell,
@@ -9,6 +11,8 @@ import {
   TableRoot,
   TableRow,
 } from "@/components/tailgrids/core/table";
+
+import StudentCardHeader from "./student-card-header";
 
 interface PaymentInvoice {
   paymentId: string;
@@ -47,9 +51,11 @@ const paymentInvoices: PaymentInvoice[] = [
 export default function StudentPaymentInvoicesMockup() {
   return (
     <Card>
-      <CardHeader className="mb-6">
-        <CardTitle>Hóa đơn thanh toán</CardTitle>
-      </CardHeader>
+      <StudentCardHeader
+        description="Theo dõi học phí, giao dịch và tình trạng thanh toán."
+        icon={<SackDollar size={18} aria-hidden="true" />}
+        title="Hóa đơn thanh toán"
+      />
 
       <TableRoot className="w-full min-w-200 rounded-none border-none">
         <TableHeader>

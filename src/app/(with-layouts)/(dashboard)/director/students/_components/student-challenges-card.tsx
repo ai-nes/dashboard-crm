@@ -98,6 +98,8 @@ export default function StudentChallengesCard({
   return (
     <Card className="h-full min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
+        description="Các yếu tố có thể làm chậm quyết định nhập học."
+        icon={<InfoTriangle size={18} aria-hidden="true" />}
         title="Rào cản tuyển sinh"
         rightAction={
           <AnalysisSourceCountBadge count={getAnalysisSourceCount(risks)} />

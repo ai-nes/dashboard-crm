@@ -126,26 +126,24 @@ export default function CampaignDetailDashboard({
             {leadsQuery.error.message}
           </div>
         ) : (
-          <div className="lg:overflow-x-auto">
-            <div className="lg:min-w-[1350px]">
-              <div
-                className={`hidden ${campaignLeadListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
-                aria-hidden="true"
-              >
-                <span>Họ và Tên</span>
-                <span>Di động</span>
-                <span>Nguồn</span>
-                <span>Người phụ trách</span>
-                <span>Trạng thái lead</span>
-                <span>Kết quả</span>
-                <span>Số lần liên hệ</span>
-                <span>Ngày tạo</span>
-              </div>
-              <CampaignDetailLeadList
-                leads={filteredLeads}
-                isFiltered={Boolean(leadQuery.trim()) || leadStatus !== "all"}
-              />
+          <div>
+            <div
+              className={`hidden ${campaignLeadListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
+              aria-hidden="true"
+            >
+              <span className="min-w-0 truncate">Mã Lead</span>
+              <span className="min-w-0 truncate">Họ và Tên</span>
+              <span className="min-w-0 truncate">Di động</span>
+              <span className="min-w-0 truncate">Nguồn</span>
+              <span className="min-w-0 truncate">Trạng thái lead</span>
+              <span className="min-w-0 truncate">Kết quả</span>
+              <span className="min-w-0 truncate">Người phụ trách</span>
+              <span className="min-w-0 truncate">Ngày tạo</span>
             </div>
+            <CampaignDetailLeadList
+              leads={filteredLeads}
+              isFiltered={Boolean(leadQuery.trim()) || leadStatus !== "all"}
+            />
           </div>
         )}
       </Card>

@@ -1,9 +1,12 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { UserCircle1 } from "@tailgrids/icons";
+
+import { Card } from "@/components/tailgrids/core/card";
 
 import StudentContactAddressMockup from "./student-contact-address-mockup";
 import StudentContactInformationMockup from "./student-contact-information-mockup";
+import StudentCardHeader from "./student-card-header";
 
 interface PersonalContactField {
   label: string;
@@ -53,9 +56,11 @@ export default function StudentPersonalContactMockup() {
   return (
     <div className="space-y-6">
       <Card className="p-5">
-        <CardHeader className="mb-6">
-          <CardTitle>Thông tin cá nhân</CardTitle>
-        </CardHeader>
+        <StudentCardHeader
+          description="Thông tin định danh và hồ sơ liên hệ chính của học sinh."
+          icon={<UserCircle1 size={18} aria-hidden="true" />}
+          title="Thông tin cá nhân"
+        />
 
         <dl className="grid gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
           {personalContactFields.map((field) => (
