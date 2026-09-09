@@ -10,7 +10,7 @@ export const batchStatusLabels: Record<LeadAssignmentBatchStatus, string> = {
   ready: "Đã kiểm tra, chờ phân công",
   running: "Đang phân công",
   completed: "Hoàn tất",
-  completed_with_errors: "Hoàn tất, còn hồ sơ cần xử lý",
+  completed_with_errors: "Hoàn tất, còn hồ sơ cần lưu ý",
   cancelled: "Đã hủy",
 };
 
@@ -63,8 +63,12 @@ export const summaryCards = (summary: LeadAssignmentBatchSummary) =>
     },
     {
       key: "attention",
-      label: "Cần xử lý",
-      value: summary.deferred + summary.manualReview + summary.failed,
+      label: "Cần lưu ý",
+      value:
+        summary.skipped +
+        summary.deferred +
+        summary.manualReview +
+        summary.failed,
       tone: "warning",
     },
   ] as const;
@@ -99,8 +103,8 @@ export function workflowResultLabel(
 ): string {
   if (!hasData || !summary?.total) return "Chưa có dữ liệu";
   if (summary.pending) return "Chờ phân công";
-  if (summary.manualReview + summary.deferred + summary.failed) {
-    return "Cần xử lý";
+  if (summary.skipped + summary.manualReview + summary.deferred + summary.failed) {
+    return "Cần lưu ý";
   }
   if (summary.assigned) return "Đã phân công";
   return "Đã xử lý";
