@@ -27,6 +27,12 @@ export default function AdminPage() {
           href: "/director/admin/segments",
         },
         {
+          label: "Nhật ký hoạt động",
+          description:
+            "Xem lịch sử hành động của toàn bộ user trong hệ thống, theo module.",
+          href: "/director/admin/activity-logs",
+        },
+        {
           label: "Sức khỏe dữ liệu",
           description:
             "Kiểm tra nguồn dữ liệu, trạng thái đồng bộ và bản ghi cần xử lý.",

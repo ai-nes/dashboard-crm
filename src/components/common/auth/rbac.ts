@@ -128,6 +128,11 @@ const SEGMENTS_ADMIN_ROLES = [
   "System Manager",
 ] as const satisfies readonly DashboardRole[];
 
+const ACTIVITY_LOG_ADMIN_ROLES = [
+  "System Manager",
+  "Administrator",
+] as const satisfies readonly DashboardRole[];
+
 const CAMPAIGN_INTELLIGENCE_ROLES = [
   "Marketing",
   "Lead Marketing",
@@ -156,7 +161,7 @@ const TEAM_MANAGEMENT_ROLES = [
  */
 export const ROLE_ROUTE_ROLES = {
   director: ["Admissions Director", "Administrator"],
-  admin: ["System Manager"],
+  admin: ["System Manager", "Administrator"],
   marketing: ["Marketing", "Lead Marketing"],
   sale: ["Sale"],
   "ctv-sale": ["CTV Sale"],
@@ -249,6 +254,10 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
     roles: NBA_ACTIONS_READ_ROLES,
   },
   { path: "/director/admin/segments", roles: SEGMENTS_ADMIN_ROLES },
+  {
+    path: "/director/admin/activity-logs",
+    roles: ACTIVITY_LOG_ADMIN_ROLES,
+  },
   {
     path: "/director/campaign-intelligence",
     roles: CAMPAIGN_INTELLIGENCE_ROLES,

@@ -165,6 +165,11 @@ export const NAV_DATA: NavigationSection[] = [
         url: "/director/admin/segments",
         icon: <AlphabetIcon />,
       }),
+      navItem({
+        title: "Nhật ký hoạt động",
+        url: "/director/admin/activity-logs",
+        icon: <ClockThree size={18} />,
+      }),
     ],
   },
 ];

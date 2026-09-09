@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createSegment,
+  deleteClassificationTerm,
   getSegmentAnalysis,
   getSegmentByCode,
   getSegmentFilterOptions,
@@ -222,5 +223,26 @@ describe("Segment API service", () => {
     expect(result.needs).toEqual([]);
     expect(result.tags).toEqual([]);
     expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("surfaces a readable Frappe validation reason for delete failures", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          exception: "frappe.exceptions.ValidationError: INVALID_INPUT: Need đang được học sinh sử dụng; hãy lưu trữ thay vì xoá.",
+        }),
+        { status: 417 },
+      ),
+    );
+
+    await expect(
+      deleteClassificationTerm("need", {
+        name: "NEED_TEST",
+        expectedRevision: 1,
+      }, { baseUrl }),
+    ).rejects.toMatchObject({
+      status: 417,
+      message: "Need đang được học sinh sử dụng; hãy lưu trữ thay vì xoá.",
+    });
   });
 });
