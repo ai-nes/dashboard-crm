@@ -1,5 +1,6 @@
 export type SegmentStatus = "draft" | "active" | "inactive" | "archive";
 export type SegmentType = "dynamic" | "static";
+export type SegmentFilterLogic = "AND" | "OR";
 export type SegmentCategory =
   | ""
   | "admission_stage"
@@ -14,13 +15,13 @@ export interface SegmentFilterConditionPayload {
 }
 
 export interface SegmentFilterGroupPayload {
-  logic: "AND";
+  logic: SegmentFilterLogic;
   name?: string;
   conditions: SegmentFilterConditionPayload[];
 }
 
 export interface SegmentFilterPayload {
-  logic: "OR";
+  logic: SegmentFilterLogic;
   groups: SegmentFilterGroupPayload[];
 }
 
@@ -42,6 +43,35 @@ export interface SegmentRecord {
   creation?: string | null;
   modified?: string | null;
   member_count?: number;
+}
+
+export type SegmentAnalysisSegment = SegmentRecord & {
+  member_count: number;
+  member_change_7d: number | null;
+};
+
+export interface SegmentAnalysisSummary {
+  total: number;
+  active: number;
+  inactive: number;
+  archive: number;
+  draft: number;
+}
+
+export interface SegmentOverlapCell {
+  row_segment_code: string;
+  column_segment_code: string;
+  count: number;
+}
+
+export interface SegmentAnalysisResponse {
+  summary: SegmentAnalysisSummary;
+  segments: SegmentAnalysisSegment[];
+  selected_segments: SegmentAnalysisSegment[];
+  overlap: {
+    cells: SegmentOverlapCell[];
+  };
+  attention: SegmentAnalysisSegment[];
 }
 
 export interface SegmentStudentRecord {

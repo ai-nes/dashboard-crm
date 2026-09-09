@@ -62,6 +62,23 @@ describe("dashboard RBAC", () => {
     ).toBe(false);
   });
 
+  it("uses the canonical Lead Sale segments route", () => {
+    const leadSaleNavigation = filterNavigationByRoles(
+      getNavigationDataForRoles(["Lead Sale"]),
+      ["Lead Sale"],
+    );
+
+    expect(getNavigationUrls(leadSaleNavigation)).toContain(
+      "/lead-sale/segments",
+    );
+    expect(
+      findRouteAccessRule("/lead-sale/segments/SEG-001")?.path,
+    ).toBe("/lead-sale/segments");
+    expect(
+      canAccessDashboardPath("/lead-sale/segments/SEG-001", ["Lead Sale"]),
+    ).toBe(true);
+  });
+
   it("protects school detail aliases with the school intelligence permission", () => {
     expect(
       canAccessDashboardPath("/director/schools/HIGH-001", ["Promoter"]),

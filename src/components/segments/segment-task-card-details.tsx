@@ -20,10 +20,10 @@ export default function SegmentTaskCardDetails({
   deadlineStatus,
 }: SegmentTaskCardDetailsProps) {
   return (
-    <div className="space-y-5 border-t border-border-primary px-4 py-5 sm:px-5">
+    <div className="space-y-4 border-t border-border-primary px-4 py-4 sm:px-5">
       {task.description ? (
         <section
-          className="border-b border-border-primary pb-5"
+          className="border-b border-border-primary pb-4"
           aria-label="Mô tả task"
         >
           <h3 className="mb-2 text-sm font-semibold text-text-primary">
@@ -37,7 +37,7 @@ export default function SegmentTaskCardDetails({
 
       <section
         aria-label="Thông tin task"
-        className="grid gap-5 rounded-xl border border-border-primary bg-card-surface-area p-4 sm:grid-cols-2"
+        className="grid gap-4 rounded-xl border border-border-primary bg-card-surface-area p-3 sm:grid-cols-2"
       >
         <div className="flex items-start gap-2">
           <span
@@ -74,7 +74,7 @@ export default function SegmentTaskCardDetails({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <span
             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700"
             aria-hidden="true"
@@ -92,7 +92,7 @@ export default function SegmentTaskCardDetails({
         </div>
       </section>
 
-      <dl className="grid gap-4 border-t border-border-primary pt-5 text-sm sm:grid-cols-2">
+      <dl className="grid gap-4 border-t border-border-primary pt-4 text-sm sm:grid-cols-2">
         <MetadataItem label="Ngày bắt đầu">
           {formatSegmentTaskDate(task.startDate)}
         </MetadataItem>

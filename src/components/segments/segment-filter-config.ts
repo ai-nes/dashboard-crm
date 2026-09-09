@@ -1,8 +1,31 @@
 import type {
+  SegmentFilterLogic,
   SegmentFilterOptionsResponse,
   SegmentFilterPayload,
   SegmentTermRecord,
 } from "@/services/api/segments/types";
+import { getKnownStudentTagLabel } from "@/services/api/student-classification/tag-labels";
+import {
+  LEAD_NEED_CATEGORY_LABEL,
+  LEAD_NEED_SUBTYPE_LABEL,
+  TAG_CATEGORY_LABEL,
+  TAG_SUBTYPE_LABEL,
+} from "@/services/api/student-classification/classification-types";
+
+export {
+  LEAD_NEED_CATEGORY_LABEL,
+  LEAD_NEED_SUBTYPE_LABEL,
+  NEED_CATEGORY_SUBTYPES,
+  LeadNeedCategory,
+  LeadNeedSubtype,
+  TAG_CATEGORY_LABEL,
+  TAG_CATEGORY_SUBTYPES,
+  TAG_SUBTYPE_LABEL,
+  TagCategory,
+  TagSubtype,
+} from "@/services/api/student-classification/classification-types";
+
+export type { SegmentFilterLogic } from "@/services/api/segments/types";
 
 export enum StudentSegmentProperty {
   JOURNEY_STAGE = "JOURNEY_STAGE",
@@ -177,27 +200,18 @@ export const CLASSIFICATION_PROPERTIES = [
 ] as const;
 
 const CLASSIFICATION_GROUP_LABEL: Record<string, string> = {
-  NEED_CONTACT: "Cần liên hệ",
-  NEED_INFORMATION: "Cần thông tin",
-  NEED_ENGAGEMENT: "Cần tương tác",
-  NEED_APPLICATION: "Cần hỗ trợ hồ sơ",
-  NEED_CONVERSION: "Cần hỗ trợ chuyển đổi",
-  NEED_PARENT: "Cần hỗ trợ phụ huynh",
-  NEED_RECOVERY: "Cần phục hồi",
-  ATTENTION: "Cần chú ý",
-  RELATIONSHIP: "Quan hệ",
-  CONTEXT: "Bối cảnh",
-  OPERATIONAL: "Vận hành",
+  ...LEAD_NEED_CATEGORY_LABEL,
+  ...TAG_CATEGORY_LABEL,
 };
 
 const CLASSIFICATION_TERM_LABEL: Record<string, string> = {
   "first contact": "Liên hệ lần đầu",
   "follow up": "Theo dõi tiếp",
   callback: "Gọi lại",
-  "program information": "Thông tin chương trình",
+  "program information": "Thông tin ngành học",
   "admission information": "Thông tin tuyển sinh",
   "application deadline": "Hạn nộp hồ sơ",
-  "application guidance": "Hướng dẫn nộp hồ sơ",
+  "application guidance": "Hướng dẫn hồ sơ",
   "application incomplete": "Hồ sơ chưa hoàn tất",
   "document support": "Hỗ trợ giấy tờ",
   "tuition information": "Thông tin học phí",
@@ -206,27 +220,20 @@ const CLASSIFICATION_TERM_LABEL: Record<string, string> = {
   "career information": "Thông tin nghề nghiệp",
   counseling: "Tư vấn",
   "event engagement": "Tham gia sự kiện",
-  "campus experience": "Trải nghiệm cơ sở",
+  "campus experience": "Trải nghiệm trường",
   "decision support": "Hỗ trợ ra quyết định",
   "enrollment support": "Hỗ trợ nhập học",
   "financial support": "Hỗ trợ tài chính",
-  "parent involved": "Phụ huynh đồng hành",
-  "parent decision maker": "Phụ huynh quyết định",
-  "other decision maker": "Người khác quyết định",
-  "re engagement": "Tương tác lại",
-  "no response": "Chưa phản hồi",
+  "re engagement": "Tái kết nối",
+  "no response": "Không phản hồi",
   "not ready": "Chưa sẵn sàng",
   "admission requirements": "Điều kiện tuyển sinh",
-  "high priority": "Ưu tiên cao",
   "high prior": "Ưu tiên cao",
-  "special attention": "Cần chú ý đặc biệt",
-  vip: "VIP",
-  "special case": "Trường hợp đặc biệt",
-  "hard to reach": "Khó liên hệ",
-  "special requirement": "Yêu cầu đặc biệt",
-  "manual review": "Cần xem xét thủ công",
-  "special handling": "Xử lý đặc biệt",
-  escalated: "Đã chuyển cấp xử lý",
+};
+
+const CONTROLLED_CLASSIFICATION_TERM_LABEL: Record<string, string> = {
+  ...LEAD_NEED_SUBTYPE_LABEL,
+  ...TAG_SUBTYPE_LABEL,
 };
 
 function normalizeClassificationTerm(value: string): string {
@@ -243,7 +250,13 @@ export function getClassificationTermLabel(term: SegmentTermRecord): string {
   );
 
   for (const candidate of candidates) {
+    const normalizedCandidate = candidate
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
     const translated =
+      getKnownStudentTagLabel(candidate) ??
+      CONTROLLED_CLASSIFICATION_TERM_LABEL[normalizedCandidate] ??
       CLASSIFICATION_TERM_LABEL[normalizeClassificationTerm(candidate)];
     if (translated) return translated;
   }
@@ -344,7 +357,7 @@ export interface SegmentCondition {
 export interface SegmentFilterGroup {
   id: string;
   name: string;
-  logic: "AND";
+  logic: SegmentFilterLogic;
   conditions: SegmentCondition[];
 }
 
@@ -531,6 +544,13 @@ export function getInitialConditionValue(): SegmentConditionValue {
   return [];
 }
 
+function parseSegmentLogic(
+  value: unknown,
+  fallback: SegmentFilterLogic,
+): SegmentFilterLogic {
+  return value === "AND" || value === "OR" ? value : fallback;
+}
+
 const UI_TO_BACKEND_FIELD: Record<
   StudentSegmentProperty,
   SegmentFilterPayload["groups"][number]["conditions"][number]["field"]
@@ -569,6 +589,7 @@ const BACKEND_OPERATOR_TO_UI: Record<string, SegmentOperator> = {
 
 export function toBackendSegmentFilters(
   groups: SegmentFilterGroup[],
+  logic: SegmentFilterLogic = "OR",
 ): SegmentFilterPayload | null {
   if (
     groups.length === 0 ||
@@ -582,9 +603,9 @@ export function toBackendSegmentFilters(
   }
 
   return {
-    logic: "OR",
+    logic,
     groups: groups.map((group) => ({
-      logic: "AND",
+      logic: group.logic,
       name: group.name.trim() || undefined,
       conditions: group.conditions.map((condition) => ({
         field: UI_TO_BACKEND_FIELD[condition.property],
@@ -600,7 +621,7 @@ export function toBackendSegmentFilters(
 }
 
 export function fromBackendSegmentFilters(rawFilters: unknown): {
-  logic: "OR";
+  logic: SegmentFilterLogic;
   groups: SegmentFilterGroup[];
 } {
   let filters = rawFilters;
@@ -618,10 +639,15 @@ export function fromBackendSegmentFilters(rawFilters: unknown): {
 
   const rawGroups = (filters as { groups?: unknown }).groups;
   if (!Array.isArray(rawGroups)) return { logic: "OR", groups: [] };
+  const logic = parseSegmentLogic((filters as { logic?: unknown }).logic, "OR");
 
   const groups = rawGroups.flatMap((rawGroup, groupIndex) => {
     if (!rawGroup || typeof rawGroup !== "object") return [];
-    const rawGroupData = rawGroup as { name?: unknown; conditions?: unknown };
+    const rawGroupData = rawGroup as {
+      logic?: unknown;
+      name?: unknown;
+      conditions?: unknown;
+    };
     const rawConditions = rawGroupData.conditions;
     if (!Array.isArray(rawConditions)) return [];
 
@@ -667,12 +693,12 @@ export function fromBackendSegmentFilters(rawFilters: unknown): {
               typeof rawGroupData.name === "string" && rawGroupData.name.trim()
                 ? rawGroupData.name.trim()
                 : `Nhóm ${groupIndex + 1}`,
-            logic: "AND" as const,
+            logic: parseSegmentLogic(rawGroupData.logic, "AND"),
             conditions,
           },
         ]
       : [];
   });
 
-  return { logic: "OR", groups };
+  return { logic, groups };
 }

@@ -1,4 +1,4 @@
-import { SegmentDetailPage } from "@/components/segments/segment-detail-page";
+import { redirect } from "next/navigation";
 
 export const metadata = { title: "Chi tiết segment" };
 
@@ -8,12 +8,5 @@ export default async function Page({
   params: Promise<{ segmentId: string }>;
 }) {
   const { segmentId } = await params;
-  return (
-    <SegmentDetailPage
-      key={segmentId}
-      segmentId={segmentId}
-      backHref="/lead-sale/next-best-action"
-      editHref="/lead-sale/segments/edit"
-    />
-  );
+  redirect(`/lead-sale/segments/${encodeURIComponent(segmentId)}`);
 }

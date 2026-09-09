@@ -18,7 +18,7 @@ export default function TaskCardActions({
   onComplete,
 }: TaskCardActionsProps) {
   return (
-    <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-border-primary px-4 py-4 sm:px-5">
+    <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-border-primary px-4 py-3 sm:px-5">
       {isRescheduling ? (
         <>
           <Button

@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createSegment,
+  getSegmentAnalysis,
+  getSegmentByCode,
   getSegmentFilterOptions,
   previewSegment,
 } from "./index";
@@ -127,6 +129,65 @@ describe("Segment API service", () => {
     expect(JSON.parse(requestUrl.searchParams.get("filters") ?? "{}")).toEqual(
       filters,
     );
+  });
+
+  it("loads a segment directly by its immutable segment code", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            name: "a1b2c3d4",
+            segment_code: "SEG-260909-7K4P2Q",
+            title: "Tiềm năng cao",
+            revision: 0,
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await getSegmentByCode("SEG-260909-7K4P2Q", { baseUrl });
+
+    expect(result.name).toBe("a1b2c3d4");
+    const requestUrl = new URL(
+      String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]),
+    );
+    expect(requestUrl.pathname).toBe(
+      "/api/method/crm.api.student_segment.get_segment_by_code",
+    );
+    expect(requestUrl.searchParams.get("segment_code")).toBe(
+      "SEG-260909-7K4P2Q",
+    );
+  });
+
+  it("loads permission-scoped segment analysis with selected codes", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            summary: { total: 2, active: 1, inactive: 0, archive: 0, draft: 1 },
+            segments: [],
+            selected_segments: [],
+            overlap: { cells: [] },
+            attention: [],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await getSegmentAnalysis(["SEG-260909-7K4P2Q"], { baseUrl });
+
+    expect(result.summary.total).toBe(2);
+    const requestUrl = new URL(
+      String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]),
+    );
+    expect(requestUrl.pathname).toBe(
+      "/api/method/crm.api.student_segment.get_segment_analysis",
+    );
+    expect(
+      JSON.parse(requestUrl.searchParams.get("selected_segment_codes") ?? "[]"),
+    ).toEqual(["SEG-260909-7K4P2Q"]);
   });
 
   it("loads fields and live Need/Tag dictionaries", async () => {

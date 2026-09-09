@@ -337,7 +337,7 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
       }),
       navItem({
         title: "Quản lý segments",
-        url: "/lead-sale/next-best-action",
+        url: "/lead-sale/segments",
         icon: <AlphabetIcon />,
       }),
       navItem({

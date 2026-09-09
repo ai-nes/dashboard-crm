@@ -8,11 +8,11 @@ import {
   Trash1,
 } from "@tailgrids/icons";
 
-import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import type { CRMTask } from "@/services/api/crm-tasks";
 import { cn } from "@/utils/cn";
 
+import { StudentTaskTypeBadge } from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-task-badges";
 import type { SegmentTaskDeadlineStatus } from "./segment-task-utils";
 
 interface SegmentTaskCardHeaderProps {
@@ -39,7 +39,7 @@ export default function SegmentTaskCardHeader({
   onDelete,
 }: SegmentTaskCardHeaderProps) {
   return (
-    <div className="flex items-center justify-between gap-3 bg-background-gray-primary px-4 py-3.5 sm:px-5">
+    <div className="flex items-center justify-between gap-2.5 bg-background-gray-primary px-4 py-3 sm:px-5">
       <button
         type="button"
         onClick={onToggle}
@@ -53,13 +53,7 @@ export default function SegmentTaskCardHeader({
         <span className="text-text-tertiary" aria-hidden="true">
           ·
         </span>
-        <Badge
-          color="gray"
-          size="sm"
-          className="whitespace-nowrap font-semibold"
-        >
-          Segment
-        </Badge>
+        <StudentTaskTypeBadge actionCode={task.actionCode} size="sm" />
         <span className="hidden truncate font-normal text-text-secondary sm:inline">
           · {task.assignedTo || "Chưa phân công"}
         </span>

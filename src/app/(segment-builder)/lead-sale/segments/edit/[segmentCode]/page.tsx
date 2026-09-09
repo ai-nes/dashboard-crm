@@ -19,7 +19,7 @@ export default async function LeadSaleSegmentEditPage({
   return (
     <SegmentEditPage
       segmentCode={segmentCode}
-      backHref="/lead-sale/next-best-action"
+      backHref="/lead-sale/segments"
     />
   );
 }

@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default function LeadSaleSegmentCreatePage() {
   return (
     <SegmentBuilderPage
-      backHref="/lead-sale/next-best-action"
+      backHref="/lead-sale/segments"
       initialSegmentName={createDefaultSegmentName()}
     />
   );

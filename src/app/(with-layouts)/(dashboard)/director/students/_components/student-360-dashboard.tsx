@@ -308,7 +308,6 @@ export default function Student360Dashboard({
       )}
       <div className="px-2 pt-4 lg:px-6">
         <StudentHeader
-          contactCount={initialStudentInteractions?.total_interactions}
           data={data}
           isStatusUpdating={stageTransitionMutation.isPending}
           status={studentStatus}
@@ -323,6 +322,8 @@ export default function Student360Dashboard({
           ownerEditable={canAssignStudent}
           ownerRevision={ownerRevision}
           studentId={targetId}
+          tagStudentId={canonicalStudentId}
+          tagsEditable={canUpdateStudent && Boolean(canonicalStudentId)}
         />
       </div>
 

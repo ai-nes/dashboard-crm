@@ -2,6 +2,7 @@
 
 import { Plus } from "@tailgrids/icons";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { SegmentList } from "@/components/segments/segment-list";
 
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -22,6 +23,7 @@ export default function SegmentManagementPage({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [activeTab, setActiveTab] = useState("manage");
 
   return (
     <main
@@ -50,9 +52,6 @@ export default function SegmentManagementPage({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Badge color="gray" className="w-fit shrink-0">
-              Đang chuẩn bị
-            </Badge>
             <Button
               size="md"
               className="shrink-0"
@@ -67,6 +66,8 @@ export default function SegmentManagementPage({
 
       <TabRoot
         defaultValue="manage"
+        value={activeTab}
+        onValueChange={setActiveTab}
         variant="minimal"
         className="overflow-hidden rounded-none border-0 bg-transparent"
       >
@@ -79,7 +80,10 @@ export default function SegmentManagementPage({
           <SegmentList detailBaseHref={pathname} />
         </TabContent>
         <TabContent value="analyze" className="px-0 pt-5">
-          <SegmentAnalysisEmptyState />
+          <SegmentAnalysisEmptyState
+            enabled={activeTab === "analyze"}
+            onViewSegments={() => setActiveTab("manage")}
+          />
         </TabContent>
       </TabRoot>
     </main>

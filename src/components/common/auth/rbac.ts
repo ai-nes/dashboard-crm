@@ -201,6 +201,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/ctv-sale/tasks", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/next-best-action", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/lead-sale", roles: ROLE_ROUTE_ROLES["lead-sale"] },
+  { path: "/lead-sale/segments", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   {
     path: "/lead-sale/next-best-action",
     roles: ROLE_ROUTE_ROLES["lead-sale"],

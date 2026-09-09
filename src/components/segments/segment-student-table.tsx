@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Search1 } from "@tailgrids/icons";
 import {
   flexRender,
@@ -36,12 +36,10 @@ const normalize = (value: string) =>
 
 export function SegmentStudentTable({
   students,
-  headerAction,
   isLoading = false,
   error,
 }: {
   students: SegmentStudent[];
-  headerAction?: ReactNode;
   isLoading?: boolean;
   error?: string;
 }) {
@@ -72,7 +70,6 @@ export function SegmentStudentTable({
           <h2 className="text-base font-semibold text-text-primary">
             Danh sách học sinh
           </h2>
-          {headerAction}
         </div>
         <InputGroup className="h-9 w-full sm:max-w-xs">
           <InputGroupAddon

@@ -7,11 +7,13 @@ import {
   SEGMENT_PROPERTY_CONFIG,
   SegmentOperator,
   type SegmentCondition,
+  type SegmentFilterLogic,
   type SegmentFilterGroup,
   type SegmentFilterOptions,
   type StudentSegmentProperty,
 } from "./segment-filter-config";
 import { SegmentFilterGroup as SegmentFilterGroupView } from "./segment-filter-group";
+import { SegmentFilterLogicSelect } from "./segment-filter-logic-select";
 import { SegmentFilterPropertyPicker } from "./segment-filter-property-picker";
 
 let filterId = 0;
@@ -41,10 +43,14 @@ function createCondition(
 export function SegmentFilterBuilder({
   groups,
   setGroups,
+  logic,
+  setLogic,
   options,
 }: {
   groups: SegmentFilterGroup[];
   setGroups: Dispatch<SetStateAction<SegmentFilterGroup[]>>;
+  logic: SegmentFilterLogic;
+  setLogic: Dispatch<SetStateAction<SegmentFilterLogic>>;
   options?: SegmentFilterOptions;
 }) {
   const addCondition = (
@@ -126,7 +132,7 @@ export function SegmentFilterBuilder({
       const duplicate: SegmentFilterGroup = {
         id: createFilterId("group"),
         name: `${sourceGroup.name} (bản sao)`,
-        logic: "AND",
+        logic: sourceGroup.logic,
         conditions: sourceGroup.conditions.map((condition) => ({
           ...condition,
           id: createFilterId("condition"),
@@ -197,9 +203,11 @@ export function SegmentFilterBuilder({
         <div key={group.id}>
           {index > 0 && (
             <div className="relative flex items-center gap-3 py-5 pl-8 before:absolute before:inset-y-0 before:left-20 before:border-l before:border-card-border">
-              <span className="relative rounded-lg bg-background-gray-secondary px-3 py-2 text-sm font-semibold text-text-secondary">
-                hoặc
-              </span>
+              <SegmentFilterLogicSelect
+                value={logic}
+                onChange={setLogic}
+                ariaLabel="Toán tử giữa các nhóm bộ lọc"
+              />
             </div>
           )}
           <SegmentFilterGroupView
@@ -211,6 +219,13 @@ export function SegmentFilterBuilder({
               setGroups((current) =>
                 current.map((item) =>
                   item.id === group.id ? { ...item, name } : item,
+                ),
+              )
+            }
+            onLogicChange={(nextLogic) =>
+              setGroups((current) =>
+                current.map((item) =>
+                  item.id === group.id ? { ...item, logic: nextLogic } : item,
                 ),
               )
             }
@@ -230,9 +245,11 @@ export function SegmentFilterBuilder({
       ))}
 
       <div className="relative flex items-center gap-3 pt-6 pl-8 before:absolute before:top-0 before:left-20 before:h-6 before:border-l before:border-card-border">
-        <span className="rounded-lg bg-background-gray-secondary px-3 py-2 text-sm font-semibold text-text-secondary">
-          hoặc
-        </span>
+        <SegmentFilterLogicSelect
+          value={logic}
+          onChange={setLogic}
+          ariaLabel="Toán tử khi thêm nhóm bộ lọc"
+        />
         <SegmentFilterPropertyPicker
           options={options}
           triggerLabel="Thêm nhóm bộ lọc"

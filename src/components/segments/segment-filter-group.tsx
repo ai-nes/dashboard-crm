@@ -12,12 +12,14 @@ import {
 import type {
   SegmentCondition,
   SegmentFilterGroup as SegmentFilterGroupData,
+  SegmentFilterLogic,
   SegmentFilterOptions,
   StudentSegmentProperty,
 } from "./segment-filter-config";
 import { SegmentFilterConditionRow } from "./segment-filter-condition-row";
 import { SegmentFilterPropertyPicker } from "./segment-filter-property-picker";
 import { SegmentFilterGroupName } from "./segment-filter-group-name";
+import { SegmentFilterLogicSelect } from "./segment-filter-logic-select";
 
 interface SegmentFilterGroupProps {
   group: SegmentFilterGroupData;
@@ -25,6 +27,7 @@ interface SegmentFilterGroupProps {
   options?: SegmentFilterOptions;
   canDelete: boolean;
   onNameChange: (name: string) => void;
+  onLogicChange: (logic: SegmentFilterLogic) => void;
   onAddCondition: (
     property: StudentSegmentProperty,
     values?: string[],
@@ -42,6 +45,7 @@ export function SegmentFilterGroup({
   options,
   canDelete,
   onNameChange,
+  onLogicChange,
   onAddCondition,
   onUpdateCondition,
   onRemoveCondition,
@@ -113,9 +117,13 @@ export function SegmentFilterGroup({
           group.conditions.map((condition, conditionIndex) => (
             <div key={condition.id} className="space-y-2">
               {conditionIndex > 0 && (
-                <p className="px-2 text-sm font-medium text-text-secondary">
-                  và
-                </p>
+                <div className="flex items-center gap-3">
+                  <SegmentFilterLogicSelect
+                    value={group.logic}
+                    onChange={onLogicChange}
+                    ariaLabel="Toán tử giữa các điều kiện trong nhóm"
+                  />
+                </div>
               )}
               <SegmentFilterConditionRow
                 condition={condition}
@@ -130,9 +138,11 @@ export function SegmentFilterGroup({
 
       {group.conditions.length > 0 && (
         <div className="mt-2 flex items-center gap-3 rounded-lg bg-background-gray-secondary p-3">
-          <span className="shrink-0 text-sm font-semibold text-text-secondary">
-            và
-          </span>
+          <SegmentFilterLogicSelect
+            value={group.logic}
+            onChange={onLogicChange}
+            ariaLabel="Toán tử khi thêm điều kiện vào nhóm"
+          />
           <SegmentFilterPropertyPicker
             options={options}
             onSelect={onAddCondition}

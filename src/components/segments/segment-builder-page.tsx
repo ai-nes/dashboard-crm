@@ -31,6 +31,7 @@ import {
   buildSegmentFilterOptions,
   StudentSegmentProperty,
   toBackendSegmentFilters,
+  type SegmentFilterLogic,
   type SegmentFilterGroup,
 } from "./segment-filter-config";
 import { SegmentFilterPreview } from "./segment-filter-preview";
@@ -51,6 +52,7 @@ export default function SegmentBuilderPage({
   managementHref,
   initialSegmentName,
   initialGroups = [],
+  initialLogic = "OR",
   initialPurpose = "",
   initialCategory,
   mode = "create",
@@ -64,6 +66,7 @@ export default function SegmentBuilderPage({
   managementHref?: string;
   initialSegmentName: string;
   initialGroups?: SegmentFilterGroup[];
+  initialLogic?: SegmentFilterLogic;
   initialPurpose?: string;
   initialCategory?: SegmentCreateDetails["category"];
   mode?: "create" | "edit";
@@ -79,6 +82,7 @@ export default function SegmentBuilderPage({
   const [draftName, setDraftName] = useState(initialSegmentName);
   const [isEditingName, setIsEditingName] = useState(false);
   const [groups, setGroups] = useState<SegmentFilterGroup[]>(initialGroups);
+  const [logic, setLogic] = useState<SegmentFilterLogic>(initialLogic);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const filterOptionsQuery = useSegmentFilterOptionsQuery();
@@ -97,8 +101,8 @@ export default function SegmentBuilderPage({
         group.conditions.every(isConditionComplete),
     );
   const backendFilters = useMemo(
-    () => toBackendSegmentFilters(groups),
-    [groups],
+    () => toBackendSegmentFilters(groups, logic),
+    [groups, logic],
   );
   const previewQuery = useSegmentPreviewQuery(
     { filters: backendFilters ?? undefined, pageLength: 25 },
@@ -270,6 +274,8 @@ export default function SegmentBuilderPage({
           <SegmentFilterBuilder
             groups={groups}
             setGroups={setGroups}
+            logic={logic}
+            setLogic={setLogic}
             options={filterOptions}
           />
         </section>

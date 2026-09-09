@@ -5,6 +5,8 @@ import {
   createSegment,
   deleteSegment,
   getSegment,
+  getSegmentByCode,
+  getSegmentAnalysis,
   getSegmentFilterOptions,
   listSegments,
   previewSegment,
@@ -25,6 +27,8 @@ export const segmentKeys = {
   detail: (name: string) => ["segments", "detail", name] as const,
   detailByCode: (segmentCode: string) =>
     ["segments", "detail-by-code", segmentCode] as const,
+  analysis: (selectedSegmentCodes: string[]) =>
+    ["segments", "analysis", selectedSegmentCodes] as const,
   preview: (params: SegmentPreviewParams) =>
     ["segments", "preview", params] as const,
   filterOptions: ["segments", "filter-options"] as const,
@@ -49,19 +53,20 @@ export function useSegmentDetailQuery(name: string) {
 export function useSegmentByCodeQuery(segmentCode: string) {
   return useQuery({
     queryKey: segmentKeys.detailByCode(segmentCode),
-    queryFn: async () => {
-      const segments = await listSegments({ pageLength: 1000 });
-      const segment = segments.find(
-        (candidate) => candidate.segment_code === segmentCode,
-      );
-
-      if (!segment) {
-        throw new Error("Không tìm thấy segment với mã đã chọn.");
-      }
-
-      return getSegment(segment.name);
-    },
+    queryFn: () => getSegmentByCode(segmentCode),
     enabled: Boolean(segmentCode),
+  });
+}
+
+export function useSegmentAnalysisQuery(
+  selectedSegmentCodes: string[] = [],
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: segmentKeys.analysis(selectedSegmentCodes),
+    queryFn: () => getSegmentAnalysis(selectedSegmentCodes),
+    enabled,
+    staleTime: 30_000,
   });
 }
 

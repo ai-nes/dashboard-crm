@@ -28,12 +28,12 @@ import type {
 import StudentCopyBadge from "./student-copy-badge";
 import StudentGaugeChart from "./student-gauge-chart";
 import StudentOwnerCell from "./student-owner-cell";
+import StudentTagsCell from "./student-tags-cell";
 import { studentStatusLabel } from "./student-status";
 import StudentStatusWorkflow from "./student-status-workflow";
 import type { Student360SectionProps } from "./types";
 
 interface StudentHeaderProps extends Student360SectionProps {
-  contactCount?: number;
   isStatusUpdating?: boolean;
   onDeleteRequest?: () => void;
   onOwnerChange?: (owner: string) => void;
@@ -42,11 +42,12 @@ interface StudentHeaderProps extends Student360SectionProps {
   ownerEditable?: boolean;
   ownerRevision?: number;
   studentId: string;
+  tagStudentId?: string | null;
+  tagsEditable?: boolean;
   status?: StudentStatus | null;
 }
 
 export default function StudentHeader({
-  contactCount,
   data,
   isStatusUpdating,
   onDeleteRequest,
@@ -56,6 +57,8 @@ export default function StudentHeader({
   ownerEditable = false,
   ownerRevision,
   studentId,
+  tagStudentId,
+  tagsEditable = false,
   status,
 }: StudentHeaderProps) {
   const { student } = data;
@@ -219,9 +222,9 @@ export default function StudentHeader({
                 onChange={onOwnerChange ?? (() => undefined)}
               />
             </div>
-            <HeaderFact
-              label="Số lần liên hệ"
-              value={`${contactCount ?? 0} lần liên hệ`}
+            <StudentTagsCell
+              studentId={tagStudentId ?? ""}
+              editable={tagsEditable}
             />
           </div>
           {hasMetadata && (
@@ -237,21 +240,6 @@ export default function StudentHeader({
         </div>
       </div>
     </header>
-  );
-}
-
-function HeaderFact({ label, value }: { label: string; value: string }) {
-  const displayValue = value || "-";
-  return (
-    <div className="min-w-0 px-3 py-2">
-      <p className="text-[11px] text-text-tertiary">{label}</p>
-      <p
-        className="mt-0.5 truncate text-sm font-semibold text-text-primary"
-        title={displayValue}
-      >
-        {displayValue}
-      </p>
-    </div>
   );
 }
 

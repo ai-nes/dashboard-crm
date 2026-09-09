@@ -48,7 +48,7 @@ export type LeadCreateFields = {
   phone: string;
   id_number?: string | null;
   province: string;
-  source: string;
+  campaign: string;
   email?: string | null;
   other_email?: string | null;
   gender?: string | null;
@@ -864,7 +864,7 @@ export function createStudentWithLead(fields: StudentCreateWithLeadFields) {
     student_name: fields.student_name.trim(),
     phone: fields.phone.trim(),
     province: fields.province.trim(),
-    source: fields.source.trim(),
+    campaign: fields.campaign.trim(),
     assigned_to: fields.assigned_to.trim(),
     ...compactStudentCreateFields({
       id_number: fields.id_number,

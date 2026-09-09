@@ -37,6 +37,33 @@ describe("segment filter group names", () => {
     );
   });
 
+  it("persists and restores outer and inner filter logic", () => {
+    const filters = toBackendSegmentFilters(
+      [
+        {
+          id: "group-1",
+          name: "Nhóm 1",
+          logic: "OR",
+          conditions: [
+            {
+              id: "condition-1",
+              property: StudentSegmentProperty.POTENTIAL,
+              operator: SegmentOperator.EQUAL,
+              value: ["HIGH"],
+            },
+          ],
+        },
+      ],
+      "AND",
+    );
+
+    expect(filters).toMatchObject({ logic: "AND", groups: [{ logic: "OR" }] });
+    expect(fromBackendSegmentFilters(filters)).toMatchObject({
+      logic: "AND",
+      groups: [{ logic: "OR" }],
+    });
+  });
+
   it("keeps a default name for legacy unnamed groups", () => {
     const filters = fromBackendSegmentFilters({
       logic: "OR",
@@ -94,36 +121,36 @@ describe("segment classification options", () => {
     ["FIRST_CONTACT", "Liên hệ lần đầu"],
     ["FOLLOW_UP", "Theo dõi tiếp"],
     ["CALLBACK", "Gọi lại"],
-    ["PROGRAM_INFORMATION", "Thông tin chương trình"],
+    ["PROGRAM_INFORMATION", "Thông tin ngành học"],
     ["ADMISSION_INFORMATION", "Thông tin tuyển sinh"],
     ["TUITION_INFORMATION", "Thông tin học phí"],
     ["SCHOLARSHIP_INFORMATION", "Thông tin học bổng"],
     ["CAREER_INFORMATION", "Thông tin nghề nghiệp"],
     ["COUNSELING", "Tư vấn"],
     ["EVENT_ENGAGEMENT", "Tham gia sự kiện"],
-    ["CAMPUS_EXPERIENCE", "Trải nghiệm cơ sở"],
-    ["APPLICATION_GUIDANCE", "Hướng dẫn nộp hồ sơ"],
+    ["CAMPUS_EXPERIENCE", "Trải nghiệm trường"],
+    ["APPLICATION_GUIDANCE", "Hướng dẫn hồ sơ"],
     ["APPLICATION_INCOMPLETE", "Hồ sơ chưa hoàn tất"],
     ["DOCUMENT_SUPPORT", "Hỗ trợ giấy tờ"],
     ["APPLICATION_DEADLINE", "Hạn nộp hồ sơ"],
     ["DECISION_SUPPORT", "Hỗ trợ ra quyết định"],
     ["ENROLLMENT_SUPPORT", "Hỗ trợ nhập học"],
     ["FINANCIAL_SUPPORT", "Hỗ trợ tài chính"],
-    ["PARENT_INVOLVED", "Phụ huynh đồng hành"],
+    ["PARENT_INVOLVED", "Phụ huynh tham gia"],
     ["PARENT_DECISION_MAKER", "Phụ huynh quyết định"],
     ["OTHER_DECISION_MAKER", "Người khác quyết định"],
-    ["RE_ENGAGEMENT", "Tương tác lại"],
-    ["NO_RESPONSE", "Chưa phản hồi"],
+    ["RE_ENGAGEMENT", "Tái kết nối"],
+    ["NO_RESPONSE", "Không phản hồi"],
     ["NOT_READY", "Chưa sẵn sàng"],
-    ["VIP", "VIP"],
+    ["VIP", "Ưu tiên đặc biệt"],
     ["HIGH_PRIORITY", "Ưu tiên cao"],
-    ["SPECIAL_ATTENTION", "Cần chú ý đặc biệt"],
+    ["SPECIAL_ATTENTION", "Cần quan tâm đặc biệt"],
     ["SPECIAL_CASE", "Trường hợp đặc biệt"],
     ["HARD_TO_REACH", "Khó liên hệ"],
     ["SPECIAL_REQUIREMENT", "Yêu cầu đặc biệt"],
-    ["MANUAL_REVIEW", "Cần xem xét thủ công"],
+    ["MANUAL_REVIEW", "Cần rà soát thủ công"],
     ["SPECIAL_HANDLING", "Xử lý đặc biệt"],
-    ["ESCALATED", "Đã chuyển cấp xử lý"],
+    ["ESCALATED", "Đã leo thang"],
   ])("translates %s to %s", (value, label) => {
     expect(
       getClassificationTermLabel({

@@ -217,7 +217,7 @@ export type LeadCreateFields = LeadUpdateFields & {
   student_name: string;
   phone: string;
   province: string;
-  source: string;
+  campaign: string;
 };
 
 export interface LeadDeleteResponse {

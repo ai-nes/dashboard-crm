@@ -21,8 +21,8 @@ field `need` hoặc `tag`.
 
 ## Filter payload
 
-Builder chỉ cho phép logic mà backend Frappe validate: các group nối bằng `OR`, các
-condition trong mỗi group nối bằng `AND`.
+Builder cho phép chọn `AND` hoặc `OR` ở cả hai tầng: logic ngoài nối các group, còn
+logic trong từng group nối các condition.
 Mỗi group có thể đặt tên riêng; tên được gửi cùng `groups[].name` và được lưu trong
 Frappe để hiển thị lại khi mở segment.
 
@@ -56,6 +56,7 @@ Frontend gọi `/api/method/<method>` qua `src/services/api/segments`:
 - `crm.api.student_segment.get_fields`
 - `crm.api.student_segment.list_segments`
 - `crm.api.student_segment.get_segment`
+- `crm.api.student_segment.get_segment_by_code`
 - `crm.api.student_segment.preview_segment`
 - `crm.api.student_segment.create_segment`
 - `crm.api.student_segment.update_segment`

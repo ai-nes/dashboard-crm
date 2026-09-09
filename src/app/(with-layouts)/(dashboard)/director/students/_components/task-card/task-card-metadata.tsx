@@ -37,7 +37,7 @@ export default function TaskCardMetadata({
   return (
     <section
       aria-label="Thông tin task"
-      className="grid gap-5 rounded-xl border border-border-primary bg-card-surface-area p-4 sm:grid-cols-2"
+      className="grid gap-4 rounded-xl border border-border-primary bg-card-surface-area p-3 sm:grid-cols-2"
     >
       <MetadataBlock>
         {isRescheduling ? (
@@ -64,7 +64,7 @@ export default function TaskCardMetadata({
             </div>
           </div>
         ) : (
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-1.5">
             <span
               className={cn(
                 "mt-1.5 size-2 shrink-0 rounded-full",
@@ -124,7 +124,7 @@ export default function TaskCardMetadata({
       </MetadataBlock>
 
       <MetadataBlock>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <span
             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700"
             aria-hidden="true"

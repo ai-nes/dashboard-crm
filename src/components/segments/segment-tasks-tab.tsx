@@ -10,7 +10,11 @@ import StudentActivityToolbar, {
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { getCrmPermissions } from "@/components/common/auth/permissions";
-import type { CRMTask } from "@/services/api/crm-tasks";
+import type {
+  CRMTask,
+  CRMTaskPriority,
+  CRMTaskStatus,
+} from "@/services/api/crm-tasks";
 import {
   useCreateCrmTaskMutation,
   useCrmTasksQuery,
@@ -18,11 +22,14 @@ import {
   useUpdateCrmTaskMutation,
 } from "@/hooks/use-crm-tasks-queries";
 import { useTaskAssigneesQuery } from "@/hooks/use-task-assignees-query";
+import type { TaskCreateFormValues } from "@/app/(with-layouts)/(dashboard)/director/tasks/_components/task-create-form";
 
 import SegmentTaskDialog, {
   type SegmentTaskFormValues,
 } from "./segment-task-dialog";
 import SegmentTaskCard from "./segment-task-card";
+import SegmentTaskCreateDialog from "./segment-task-create-dialog";
+import { taskCreateFormValuesToSegmentPayload } from "./segment-task-form-mappers";
 import { groupSegmentTasks } from "./segment-task-utils";
 
 function taskMatchesSearch(task: CRMTask, query: string): boolean {
@@ -32,7 +39,13 @@ function taskMatchesSearch(task: CRMTask, query: string): boolean {
   );
 }
 
-export default function SegmentTasksTab({ segmentId }: { segmentId: string }) {
+export default function SegmentTasksTab({
+  segmentId,
+  segmentName,
+}: {
+  segmentId: string;
+  segmentName?: string;
+}) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user?.roles);
   const canReadTask = permissions.task.canRead;
@@ -199,52 +212,83 @@ export default function SegmentTasksTab({ segmentId }: { segmentId: string }) {
     />
   );
 
-  const handleSubmitTask = async (values: SegmentTaskFormValues) => {
-    const optional = (value: string) => value.trim() || undefined;
-
+  const handleUpdateTask = async (values: SegmentTaskFormValues) => {
     try {
-      if (taskToEdit) {
-        if (!canUpdateTask) throw new Error("Bạn không có quyền sửa task.");
+      if (!taskToEdit) throw new Error("Không tìm thấy task cần cập nhật.");
+      if (!canUpdateTask) throw new Error("Bạn không có quyền sửa task.");
 
-        await updateTaskMutation.mutateAsync({
-          name: taskToEdit.name,
-          title: values.title,
-          description: values.description.trim(),
-          priority: values.priority,
-          startDate: values.startDate,
-          assignedTo: values.assignedTo,
-          status: values.status,
-          dueDate: values.dueDate,
-        });
-        await taskQuery.refetch();
-        toast.success("Đã cập nhật task.");
-      } else {
-        if (!canCreateTask) throw new Error("Bạn không có quyền tạo task.");
-
-        await createTaskMutation.mutateAsync({
-          referenceDoctype: "CRM Segment",
-          referenceDocname: segmentId,
-          title: values.title,
-          description: optional(values.description),
-          priority: values.priority,
-          startDate: optional(values.startDate),
-          assignedTo: optional(values.assignedTo),
-          status: values.status,
-          dueDate: optional(values.dueDate),
-        });
-        await taskQuery.refetch();
-        toast.success("Đã tạo task cho segment.");
-      }
+      await updateTaskMutation.mutateAsync({
+        name: taskToEdit.name,
+        title: values.title,
+        description: values.description.trim(),
+        priority: values.priority,
+        startDate: values.startDate,
+        assignedTo: values.assignedTo,
+        status: values.status,
+        dueDate: values.dueDate,
+      });
+      await taskQuery.refetch();
+      toast.success("Đã cập nhật task.");
 
       handleTaskDialogChange(false);
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : taskToEdit
-            ? "Không thể cập nhật task."
-            : "Không thể tạo task.",
+        error instanceof Error ? error.message : "Không thể cập nhật task.",
       );
+    }
+  };
+
+  const updateTaskFields = async (
+    task: CRMTask,
+    updates: Pick<CRMTask, "status" | "priority">,
+    successMessage: string,
+  ) => {
+    if (!canUpdateTask) {
+      toast.error("Bạn không có quyền sửa task.");
+      return;
+    }
+
+    try {
+      await updateTaskMutation.mutateAsync({ name: task.name, ...updates });
+      await taskQuery.refetch();
+      toast.success(successMessage);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật task.",
+      );
+    }
+  };
+
+  const handleStatusChange = async (
+    task: CRMTask,
+    status: CRMTaskStatus,
+  ) => {
+    await updateTaskFields(task, { status }, "Đã cập nhật trạng thái task.");
+  };
+
+  const handlePriorityChange = async (
+    task: CRMTask,
+    priority: CRMTaskPriority,
+  ) => {
+    await updateTaskFields(task, { priority }, "Đã cập nhật mức ưu tiên task.");
+  };
+
+  const handleCreateTask = async (values: TaskCreateFormValues) => {
+    try {
+      if (!canCreateTask) throw new Error("Bạn không có quyền tạo task.");
+
+      await createTaskMutation.mutateAsync({
+        referenceDoctype: "CRM Segment",
+        referenceDocname: segmentId,
+        ...taskCreateFormValuesToSegmentPayload(values),
+      });
+      await taskQuery.refetch();
+      toast.success("Đã tạo task cho segment.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể tạo task.",
+      );
+      throw error;
     }
   };
 
@@ -332,6 +376,8 @@ export default function SegmentTasksTab({ segmentId }: { segmentId: string }) {
                   onEdit={openEditTask}
                   onDelete={setTaskToDelete}
                   onToggleStatus={handleToggleStatus}
+                  onStatusChange={handleStatusChange}
+                  onPriorityChange={handlePriorityChange}
                 />
               ))}
             </StudentActivityGroup>
@@ -339,19 +385,28 @@ export default function SegmentTasksTab({ segmentId }: { segmentId: string }) {
         </div>
       )}
 
-      <SegmentTaskDialog
-        key={`${isTaskDialogOpen ? "open" : "closed"}:${taskToEdit?.name ?? "new"}`}
-        isOpen={isTaskDialogOpen}
-        task={taskToEdit}
-        assignees={taskAssignees}
-        isLoadingAssignees={taskAssigneesQuery.isPending}
-        assigneesError={taskAssigneesQuery.error}
-        isSubmitting={
-          createTaskMutation.isPending || updateTaskMutation.isPending
-        }
-        onOpenChange={handleTaskDialogChange}
-        onSubmit={handleSubmitTask}
-      />
+      {taskToEdit ? (
+        <SegmentTaskDialog
+          key={`${isTaskDialogOpen ? "open" : "closed"}:${taskToEdit.name}`}
+          isOpen={isTaskDialogOpen}
+          task={taskToEdit}
+          assignees={taskAssignees}
+          isLoadingAssignees={taskAssigneesQuery.isPending}
+          assigneesError={taskAssigneesQuery.error}
+          isSubmitting={updateTaskMutation.isPending}
+          onOpenChange={handleTaskDialogChange}
+          onSubmit={handleUpdateTask}
+        />
+      ) : (
+        <SegmentTaskCreateDialog
+          key={`${isTaskDialogOpen ? "open" : "closed"}:new`}
+          isOpen={isTaskDialogOpen}
+          segmentName={segmentName || "Segment hiện tại"}
+          isSubmitting={createTaskMutation.isPending}
+          onOpenChange={handleTaskDialogChange}
+          onSubmit={handleCreateTask}
+        />
+      )}
 
       <DeleteRecordDialog
         isOpen={Boolean(taskToDelete)}

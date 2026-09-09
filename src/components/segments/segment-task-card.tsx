@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 
-import type { CRMTask } from "@/services/api/crm-tasks";
+import type {
+  CRMTask,
+  CRMTaskPriority,
+  CRMTaskStatus,
+} from "@/services/api/crm-tasks";
 
 import SegmentTaskCardDetails from "./segment-task-card-details";
 import SegmentTaskCardHeader from "./segment-task-card-header";
 import SegmentTaskCardHero from "./segment-task-card-hero";
 import {
   getSegmentTaskDeadlineStatus,
-  SEGMENT_TASK_PRIORITY_LABEL,
-  SEGMENT_TASK_STATUS_LABEL,
 } from "./segment-task-utils";
 
 interface SegmentTaskCardProps {
@@ -24,6 +26,8 @@ interface SegmentTaskCardProps {
   onEdit: (task: CRMTask) => void;
   onDelete: (task: CRMTask) => void;
   onToggleStatus: (task: CRMTask) => void;
+  onStatusChange: (task: CRMTask, status: CRMTaskStatus) => void;
+  onPriorityChange: (task: CRMTask, priority: CRMTaskPriority) => void;
 }
 
 export default function SegmentTaskCard({
@@ -37,17 +41,12 @@ export default function SegmentTaskCard({
   onEdit,
   onDelete,
   onToggleStatus,
+  onStatusChange,
+  onPriorityChange,
 }: SegmentTaskCardProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const expanded = expandedProp ?? internalExpanded;
   const deadlineStatus = getSegmentTaskDeadlineStatus(task);
-  const status = task.status
-    ? SEGMENT_TASK_STATUS_LABEL[task.status]
-    : "Chưa xác định";
-  const priority = task.priority
-    ? SEGMENT_TASK_PRIORITY_LABEL[task.priority]
-    : null;
-
   const toggleExpanded = () => {
     const nextExpanded = !expanded;
     if (expandedProp === undefined) setInternalExpanded(nextExpanded);
@@ -70,12 +69,12 @@ export default function SegmentTaskCard({
 
       <SegmentTaskCardHero
         task={task}
-        status={status}
-        priority={priority}
         canUpdate={canUpdate}
         isActionPending={isActionPending}
         compact={!expanded}
         onToggleStatus={onToggleStatus}
+        onStatusChange={(status) => onStatusChange(task, status)}
+        onPriorityChange={(priority) => onPriorityChange(task, priority)}
       />
 
       {expanded ? (

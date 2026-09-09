@@ -3,6 +3,7 @@ import type {
   DeleteSegmentPayload,
   ListSegmentsParams,
   SegmentFieldDefinition,
+  SegmentAnalysisResponse,
   SegmentFilterOptionsResponse,
   SegmentPreviewParams,
   SegmentPreviewResponse,
@@ -19,6 +20,8 @@ const METHODS = {
   FIELDS: "crm.api.student_segment.get_fields",
   LIST: "crm.api.student_segment.list_segments",
   GET: "crm.api.student_segment.get_segment",
+  GET_BY_CODE: "crm.api.student_segment.get_segment_by_code",
+  ANALYSIS: "crm.api.student_segment.get_segment_analysis",
   PREVIEW: "crm.api.student_segment.preview_segment",
   CREATE: "crm.api.student_segment.create_segment",
   UPDATE: "crm.api.student_segment.update_segment",
@@ -231,6 +234,27 @@ export async function getSegment(
   options: RequestOptions = {},
 ): Promise<SegmentRecord> {
   return callSegmentApi<SegmentRecord>(METHODS.GET, "GET", options, { name });
+}
+
+export async function getSegmentByCode(
+  segmentCode: string,
+  options: RequestOptions = {},
+): Promise<SegmentRecord> {
+  return callSegmentApi<SegmentRecord>(METHODS.GET_BY_CODE, "GET", options, {
+    segment_code: segmentCode,
+  });
+}
+
+export async function getSegmentAnalysis(
+  selectedSegmentCodes: string[] = [],
+  options: RequestOptions = {},
+): Promise<SegmentAnalysisResponse> {
+  return callSegmentApi<SegmentAnalysisResponse>(
+    METHODS.ANALYSIS,
+    "GET",
+    options,
+    { selected_segment_codes: JSON.stringify(selectedSegmentCodes) },
+  );
 }
 
 export async function previewSegment(

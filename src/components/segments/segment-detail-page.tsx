@@ -4,10 +4,8 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "react-aria-components";
-import { RefreshCircle1Clockwise } from "@tailgrids/icons";
 import { toast } from "sonner";
 
-import { Button } from "@/components/tailgrids/core/button";
 import {
   useDeleteSegmentMutation,
   useSegmentDetailQuery,
@@ -159,7 +157,7 @@ export function SegmentDetailPage({
             <SegmentDetailFilters
               overview={{
                 createdAt: segment.createdAt,
-                groupLogic: "OR",
+                groupLogic: filters.logic,
                 groups: filters.groups,
               }}
               options={filterOptions}
@@ -172,17 +170,6 @@ export function SegmentDetailPage({
                 students={students}
                 isLoading={previewQuery.isLoading}
                 error={previewQuery.error?.message}
-                headerAction={
-                  <Button
-                    size="sm"
-                    appearance="outline"
-                    isDisabled={previewQuery.isFetching}
-                    onPress={() => void previewQuery.refetch()}
-                  >
-                    <RefreshCircle1Clockwise size={16} aria-hidden="true" />
-                    Làm mới kết quả
-                  </Button>
-                }
               />
             </section>
           </TabPanel>
@@ -190,7 +177,7 @@ export function SegmentDetailPage({
             id="tasks"
             className="scrollbar-thin min-h-0 min-w-0 overflow-y-auto pt-5 outline-none lg:h-full lg:overscroll-contain"
           >
-            <SegmentTasksTab segmentId={segment.id} />
+            <SegmentTasksTab segmentId={segment.id} segmentName={segment.name} />
           </TabPanel>
           <TabPanel
             id="activity-log"

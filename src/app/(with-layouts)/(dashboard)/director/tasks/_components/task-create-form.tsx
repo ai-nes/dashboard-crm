@@ -28,6 +28,8 @@ interface TaskCreateFormProps {
   heading: string;
   studentField: ReactNode;
   assigneeName: string;
+  parentLabel?: string;
+  hideAssignee?: boolean;
   externalValid?: boolean;
   initialDueDate?: string;
   initialDueTime?: string;
@@ -48,6 +50,8 @@ export default function TaskCreateForm({
   heading,
   studentField,
   assigneeName,
+  parentLabel = "Học sinh *",
+  hideAssignee = false,
   externalValid = true,
   initialDueDate = getTodayInputValue(),
   initialDueTime = "09:00",
@@ -123,6 +127,8 @@ export default function TaskCreateForm({
               status={status}
               onStatusChange={setStatus}
               assigneeName={assigneeName}
+              parentLabel={parentLabel}
+              hideAssignee={hideAssignee}
               parentField={studentField}
               priority={priority}
               onPriorityChange={setPriority}

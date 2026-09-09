@@ -1,6 +1,9 @@
 import type { SegmentStudentRecord } from "@/services/api/segments";
 
-import type { SegmentFilterGroup } from "./segment-filter-config";
+import type {
+  SegmentFilterGroup,
+  SegmentFilterLogic,
+} from "./segment-filter-config";
 
 export interface SegmentStudent {
   id: string;
@@ -32,6 +35,6 @@ export function toSegmentStudent(
 
 export interface SegmentOverviewData {
   createdAt: string;
-  groupLogic: "OR";
+  groupLogic: SegmentFilterLogic;
   groups: SegmentFilterGroup[];
 }

@@ -91,6 +91,7 @@ export default function SegmentEditPage({
       managementHref={backHref}
       initialSegmentName={segment.name}
       initialGroups={filters.groups}
+      initialLogic={filters.logic}
       initialPurpose={segment.description}
       initialCategory={getSegmentCategory(segment.category, filters.groups)}
       mode="edit"
