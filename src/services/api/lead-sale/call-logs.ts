@@ -88,6 +88,12 @@ function normalizeCall(value: unknown): LeadCallRecord | null {
 
   return {
     id: text(row.id),
+    ...(typeof row.interactionId === "string" && row.interactionId.trim()
+      ? { interactionId: row.interactionId }
+      : {}),
+    ...(typeof row.evidenceId === "string" && row.evidenceId.trim()
+      ? { evidenceId: row.evidenceId }
+      : {}),
     time: text(row.time),
     direction: direction as LeadCallRecord["direction"],
     outcome: outcome as LeadCallRecord["outcome"],
