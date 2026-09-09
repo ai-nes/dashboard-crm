@@ -59,7 +59,6 @@ export default function SegmentBuilderPage({
   mode = "create",
   segmentId,
   expectedRevision,
-  initialStatus = "draft",
 }: {
   backHref: string;
   managementHref?: string;
@@ -67,7 +66,7 @@ export default function SegmentBuilderPage({
   initialGroups?: SegmentFilterGroup[];
   initialLogic?: SegmentFilterLogic;
   initialPurpose?: string;
-  initialCategory?: SegmentCreateDetails["category"];
+  initialCategory?: SegmentCategory;
   mode?: "create" | "edit";
   segmentId?: string;
   expectedRevision?: number;
