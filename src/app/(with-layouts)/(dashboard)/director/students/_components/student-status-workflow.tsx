@@ -16,7 +16,6 @@ import {
 import type { StudentStatus } from "@/services/api/students/types";
 import { cn } from "@/utils/cn";
 import { MenuDotsIcon } from "@/utils/icon";
-
 import {
   studentStatusBadgeColor,
   studentStatusLabel,
@@ -90,12 +89,8 @@ export default function StudentStatusWorkflow({
             aria-current="step"
             color={studentStatusBadgeColor[value]}
             size="md"
-            className="mt-1 border border-current px-2.5 py-1 text-sm font-semibold shadow-xs"
+            className="mt-1 border border-current font-semibold shadow-xs"
           >
-            <span
-              aria-hidden="true"
-              className="size-2 rounded-full bg-current ring-2 ring-current/20"
-            />
             {studentStatusLabel[value]}
           </Badge>
         </div>
@@ -117,8 +112,8 @@ export default function StudentStatusWorkflow({
                 variant="primary"
                 appearance="outline"
                 className={cn(
-                  "min-w-0 cursor-pointer whitespace-nowrap border-card-border bg-background-soft-50 text-text-secondary shadow-xs hover:border-text-secondary hover:bg-background-soft-100 hover:text-text-primary",
-                  stageActionDisabledClassName,
+                  "min-w-0 cursor-pointer whitespace-nowrap border-card-border shadow-xs hover:border-current",
+                  getStageActionToneClassName(getPrimaryTransition(value)),
                 )}
                 isDisabled={isDisabled}
                 onPress={() =>
