@@ -5,8 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { SegmentList } from "@/components/segments/segment-list";
 
-import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -26,8 +24,6 @@ export default function SegmentManagementPage({
   const router = useRouter();
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState("manage");
-  const { user } = useAuth();
-  const canManage = hasFrappeTechnicalRole(user?.roles, "System Manager");
 
   return (
     <main
@@ -55,18 +51,16 @@ export default function SegmentManagementPage({
             </p>
           </div>
 
-          {canManage && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="md"
-                className="shrink-0"
-                onPress={() => router.push(createHref)}
-              >
-                <Plus size={16} aria-hidden="true" />
-                Tạo segment
-              </Button>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="md"
+              className="shrink-0"
+              onPress={() => router.push(createHref)}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Tạo segment
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -83,7 +77,7 @@ export default function SegmentManagementPage({
         </TabList>
 
         <TabContent value="manage" className="px-0 pt-5">
-          <SegmentList detailBaseHref={pathname} canManage={canManage} />
+          <SegmentList detailBaseHref={pathname} />
         </TabContent>
         <TabContent value="analyze" className="px-0 pt-5">
           <SegmentAnalysisEmptyState

@@ -21,12 +21,6 @@ export default function AdminPage() {
           href: "/director/admin/nba-actions",
         },
         {
-          label: "Quản lý segments",
-          description:
-            "Tạo và quản lý các nhóm học sinh dùng chung cho toàn bộ đội tuyển sinh.",
-          href: "/director/admin/segments",
-        },
-        {
           label: "Sức khỏe dữ liệu",
           description:
             "Kiểm tra nguồn dữ liệu, trạng thái đồng bộ và bản ghi cần xử lý.",

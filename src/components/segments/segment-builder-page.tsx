@@ -59,7 +59,6 @@ export default function SegmentBuilderPage({
   mode = "create",
   segmentId,
   expectedRevision,
-  defaultIsPublic = 0,
 }: {
   backHref: string;
   managementHref?: string;
@@ -71,7 +70,6 @@ export default function SegmentBuilderPage({
   mode?: "create" | "edit";
   segmentId?: string;
   expectedRevision?: number;
-  defaultIsPublic?: 0 | 1;
 }) {
   const router = useRouter();
   const isEditMode = mode === "edit";
@@ -159,7 +157,7 @@ export default function SegmentBuilderPage({
         purpose,
         segment_type: "dynamic",
         category,
-        is_public: defaultIsPublic,
+        is_public: 0,
         filters: backendFilters,
       });
 

@@ -124,10 +124,6 @@ const NBA_ACTIONS_READ_ROLES = [
   "System Manager",
 ] as const satisfies readonly DashboardRole[];
 
-const SEGMENTS_ADMIN_ROLES = [
-  "System Manager",
-] as const satisfies readonly DashboardRole[];
-
 const CAMPAIGN_INTELLIGENCE_ROLES = [
   "Marketing",
   "Lead Marketing",
@@ -248,7 +244,6 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
     path: "/director/admin/action-recommendations",
     roles: NBA_ACTIONS_READ_ROLES,
   },
-  { path: "/director/admin/segments", roles: SEGMENTS_ADMIN_ROLES },
   {
     path: "/director/campaign-intelligence",
     roles: CAMPAIGN_INTELLIGENCE_ROLES,

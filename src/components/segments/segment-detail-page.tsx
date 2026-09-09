@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "react-aria-components";
 import { toast } from "sonner";
 
-import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
 import {
   useDeleteSegmentMutation,
   useSegmentDetailQuery,
@@ -41,8 +39,6 @@ export function SegmentDetailPage({
   editHref: string;
 }) {
   const router = useRouter();
-  const { user } = useAuth();
-  const canManage = hasFrappeTechnicalRole(user?.roles, "System Manager");
   const segmentQuery = useSegmentDetailQuery(segmentId);
   const previewQuery = useSegmentPreviewQuery(
     { segment: segmentId, pageLength: 100 },
@@ -122,7 +118,6 @@ export function SegmentDetailPage({
         segment={segment}
         createdAt={segment.createdAt}
         backHref={backHref}
-        canManage={canManage}
         onEdit={() =>
           router.push(
             `${editHref.replace(/\/$/, "")}/${encodeURIComponent(segment.segmentCode)}`,

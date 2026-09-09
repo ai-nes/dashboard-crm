@@ -36,13 +36,7 @@ const normalizeSearch = (value: string) =>
     .replace(/Đ/g, "D")
     .toLowerCase();
 
-export function SegmentList({
-  detailBaseHref,
-  canManage,
-}: {
-  detailBaseHref: string;
-  canManage: boolean;
-}) {
+export function SegmentList({ detailBaseHref }: { detailBaseHref: string }) {
   const { segments, isLoading, error, refetch, transitionSegment } =
     useSegmentData();
   const [globalFilter, setGlobalFilter] = useState("");
@@ -75,7 +69,6 @@ export function SegmentList({
     () =>
       getSegmentListColumns({
         detailBaseHref,
-        canManage,
         onStatusChange: (segment, status) => {
           void transitionSegment({
             name: segment.id,
@@ -98,7 +91,7 @@ export function SegmentList({
         onDelete: setSegmentToDelete,
         isDeleteDisabled: deleteMutation.isPending,
       }),
-    [canManage, deleteMutation.isPending, detailBaseHref, transitionSegment],
+    [deleteMutation.isPending, detailBaseHref, transitionSegment],
   );
   const table = useReactTable({
     data: segments,

@@ -22,7 +22,6 @@ interface SegmentDetailHeaderProps {
   segment: SegmentListItem;
   createdAt: string;
   backHref: string;
-  canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }
@@ -31,7 +30,6 @@ export function SegmentDetailHeader({
   segment,
   createdAt,
   backHref,
-  canManage,
   onEdit,
   onDelete,
 }: SegmentDetailHeaderProps) {
@@ -82,23 +80,21 @@ export function SegmentDetailHeader({
             </span>
           </div>
         </div>
-        {canManage && (
-          <div className="flex shrink-0 items-center gap-2">
-            <Button size="md" onPress={onEdit}>
-              <Pencil1 size={16} aria-hidden="true" />
-              Chỉnh sửa
-            </Button>
-            <Button
-              size="md"
-              variant="danger"
-              appearance="outline"
-              onPress={onDelete}
-            >
-              <Trash1 size={16} aria-hidden="true" />
-              Xóa
-            </Button>
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          <Button size="md" onPress={onEdit}>
+            <Pencil1 size={16} aria-hidden="true" />
+            Chỉnh sửa
+          </Button>
+          <Button
+            size="md"
+            variant="danger"
+            appearance="outline"
+            onPress={onDelete}
+          >
+            <Trash1 size={16} aria-hidden="true" />
+            Xóa
+          </Button>
+        </div>
       </div>
     </header>
   );
