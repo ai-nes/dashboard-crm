@@ -222,7 +222,7 @@ Query parameters:
 | `admissionYear` | integer | Không | Kỳ đang active | Kỳ tuyển sinh cần xem; nếu bỏ trống, backend chọn kỳ active mới nhất |
 | `page` | integer | Không | `1` | Trang, bắt đầu từ `1` |
 | `pageSize` | integer | Không | `20` | Số dòng/trang; backend nên giới hạn tối đa `100` |
-| `q` | string | Không | `""` | Tìm theo tên, mã học sinh, trường, ngành, người phụ trách; hỗ trợ mã hiển thị `HS-YYYY-HCM-NNNNNN` |
+| `q` | string | Không | `""` | Tìm theo tên, mã học sinh, số điện thoại, email, trường, ngành, người phụ trách; hỗ trợ mã hiển thị `HS-YYYY-HCM-NNNNNN` |
 | `stage` | enum | Không | Không lọc | Dùng `interested`, `exploring`, `counselling`, `applying`, `enrolled`; có thể dùng label tiếng Việt tương ứng |
 | `assignmentStatus` | enum | Không | Không lọc | `assigned` hoặc `unassigned`; có thể dùng nhãn `Đã phân công`/`Chưa phân công` |
 | `lifecycleStatus` | enum | Không | Không lọc | `Lead`, `MQL`, `Applicant`, `Enrolled`, `Lost`; lọc trực tiếp theo lifecycle canonical |
