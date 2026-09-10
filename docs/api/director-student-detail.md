@@ -52,9 +52,9 @@ Request không có body.
 
 ### Query parameters
 
-| Tên | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| `student_id` | string | Có | Mã hoặc ID học sinh, ví dụ `ENR-2026-00005`, `STU-2026-04821` hoặc `nguyen-minh-an` |
+| Tên          | Kiểu   | Bắt buộc | Mô tả                                                                               |
+| ------------ | ------ | -------: | ----------------------------------------------------------------------------------- |
+| `student_id` | string |       Có | Mã hoặc ID học sinh, ví dụ `ENR-2026-00005`, `STU-2026-04821` hoặc `nguyen-minh-an` |
 
 Mock ID / Code hiện có:
 
@@ -161,8 +161,16 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
   ],
   "family": [
     { "label": "Người liên hệ chính", "value": "Nguyễn Văn Minh · Bố" },
-    { "label": "Vai trò quyết định", "value": "Người đồng quyết định chính", "emphasis": true },
-    { "label": "Mối quan tâm", "value": "Học phí & phương án tài chính", "emphasis": true },
+    {
+      "label": "Vai trò quyết định",
+      "value": "Người đồng quyết định chính",
+      "emphasis": true
+    },
+    {
+      "label": "Mối quan tâm",
+      "value": "Học phí & phương án tài chính",
+      "emphasis": true
+    },
     { "label": "Kênh phù hợp", "value": "Cuộc gọi 16:00–18:00" }
   ],
   "classification": {
@@ -188,14 +196,37 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
         "label": "Mức độ phù hợp",
         "value": "Phù hợp cao",
         "description": "Đánh giá theo ngành, hồ sơ học tập, phương thức xét tuyển, chi phí và địa lý.",
-        "evidence": ["Ngành Trí tuệ nhân tạo có trong danh mục", "Hồ sơ học tập khả thi"],
+        "evidence": [
+          "Ngành Trí tuệ nhân tạo có trong danh mục",
+          "Hồ sơ học tập khả thi"
+        ],
         "tone": "sky",
         "fitFactors": [
-          { "label": "Ngành", "value": "Trí tuệ nhân tạo trong danh mục", "tone": "success" },
-          { "label": "Hồ sơ học tập", "value": "Nền tảng khả thi", "tone": "success" },
-          { "label": "Phương thức xét tuyển", "value": "Có phương thức khả thi", "tone": "success" },
-          { "label": "Chi phí", "value": "Cần phương án học bổng", "tone": "warning" },
-          { "label": "Địa lý", "value": "Cần làm rõ di chuyển", "tone": "warning" }
+          {
+            "label": "Ngành",
+            "value": "Trí tuệ nhân tạo trong danh mục",
+            "tone": "success"
+          },
+          {
+            "label": "Hồ sơ học tập",
+            "value": "Nền tảng khả thi",
+            "tone": "success"
+          },
+          {
+            "label": "Phương thức xét tuyển",
+            "value": "Có phương thức khả thi",
+            "tone": "success"
+          },
+          {
+            "label": "Chi phí",
+            "value": "Cần phương án học bổng",
+            "tone": "warning"
+          },
+          {
+            "label": "Địa lý",
+            "value": "Cần làm rõ di chuyển",
+            "tone": "warning"
+          }
         ]
       },
       {
@@ -293,15 +324,35 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
     }
   ],
   "engagement": [
-    { "label": "Website & landing page", "value": "22 lượt truy cập / 30 ngày", "level": "Cao" },
+    {
+      "label": "Website & landing page",
+      "value": "22 lượt truy cập / 30 ngày",
+      "level": "Cao"
+    },
     { "label": "Sự kiện", "value": "Open Day · đã tham gia", "level": "Cao" },
-    { "label": "Email & Zalo", "value": "Mở 5/6 nội dung gần nhất", "level": "Cao" },
-    { "label": "Cuộc gọi", "value": "2 cuộc gọi · phản hồi trong ngày", "level": "Trung bình" }
+    {
+      "label": "Email & Zalo",
+      "value": "Mở 5/6 nội dung gần nhất",
+      "level": "Cao"
+    },
+    {
+      "label": "Cuộc gọi",
+      "value": "2 cuộc gọi · phản hồi trong ngày",
+      "level": "Trung bình"
+    }
   ],
   "application": [
-    { "label": "Nguyện vọng", "value": "Trí tuệ nhân tạo", "status": "primary" },
+    {
+      "label": "Nguyện vọng",
+      "value": "Trí tuệ nhân tạo",
+      "status": "primary"
+    },
     { "label": "Kỳ tuyển sinh", "value": "Đợt 2 · 2026" },
-    { "label": "Trạng thái hồ sơ", "value": "Chưa bắt đầu · 0/5 tài liệu", "status": "warning" },
+    {
+      "label": "Trạng thái hồ sơ",
+      "value": "Chưa bắt đầu · 0/5 tài liệu",
+      "status": "warning"
+    },
     { "label": "Học bổng", "value": "Đề xuất mức 30%", "status": "success" },
     { "label": "Hạn hoàn tất", "value": "Còn 12 ngày", "status": "warning" }
   ],
@@ -358,13 +409,29 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
     }
   ],
   "documents": [
-    { "name": "Phiếu đăng ký tư vấn", "type": "Biểu mẫu", "status": "Đã nhận", "tone": "success", "date": "2026-05-28" }
+    {
+      "name": "Phiếu đăng ký tư vấn",
+      "type": "Biểu mẫu",
+      "status": "Đã nhận",
+      "tone": "success",
+      "date": "2026-05-28"
+    }
   ],
   "notes": [
-    { "author": "Trần Quốc Bảo", "date": "2026-06-06T16:42:00+07:00", "content": "Cần gửi phương án học bổng trước cuộc gọi tiếp theo." }
+    {
+      "author": "Trần Quốc Bảo",
+      "date": "2026-06-06T16:42:00+07:00",
+      "content": "Cần gửi phương án học bổng trước cuộc gọi tiếp theo."
+    }
   ],
   "auditEvents": [
-    { "actor": "Trần Quốc Bảo", "action": "Cập nhật khuyến nghị", "time": "2026-06-06T16:42:00+07:00", "status": "Đã ghi nhận", "tone": "success" }
+    {
+      "actor": "Trần Quốc Bảo",
+      "action": "Cập nhật khuyến nghị",
+      "time": "2026-06-06T16:42:00+07:00",
+      "status": "Đã ghi nhận",
+      "tone": "success"
+    }
   ]
 }
 ```
@@ -377,33 +444,58 @@ Schema nguồn hiện tại nằm tại [types.ts](../../src/services/api/studen
 
 ### 5.1. `student`
 
-| Field | Kiểu | Bắt buộc | Dùng ở UI |
-|---|---|---:|---|
-| `id` | string | Có | Mã canonical nội bộ; URL có thể dùng mã hiển thị `HS-YYYY-HCM-NNNNNN` |
-| `initials` | string | Có | Avatar |
-| `name` | string | Có | Header và hồ sơ |
-| `code` | string | Có | Mã hồ sơ |
-| `school` | string | Có | Trường THPT và địa bàn |
-| `grade` | string | Có | Lớp/giai đoạn học tập |
-| `major` | string | Có | Ngành quan tâm/nguyện vọng |
-| `phone` | string | Có | Liên hệ; production phải theo policy PII |
-| `email` | string | Có | Liên hệ; production phải theo policy PII |
-| `province` | string | Có | Khu vực |
-| `provinceId` | string nullable | Không | ID `CRM Province` dùng khi chỉnh sửa hồ sơ |
-| `ward` | string nullable | Không | Tên phường/xã hiển thị trên hồ sơ |
-| `wardId` | string nullable | Không | ID `CRM Ward` dùng khi chỉnh sửa hồ sơ |
-| `currentGrade` | string nullable | Không | Giá trị lớp gốc (`10`, `11`, `12`, `post_exam`) |
-| `studyStage` | string nullable | Không | Giai đoạn học tập gốc |
-| `aspiration` | string nullable | Không | Nguyện vọng ưu tiên |
-| `aspirationId` | string nullable | Không | ID `CRM Aspiration` dùng khi chỉnh sửa nguyện vọng |
-| `counselor` | string | Có | Người phụ trách |
-| `revision` | number | Có | Ownership revision dùng làm CAS token khi phân công |
-| `priority` | enum | Có | Mức ưu tiên hiển thị ở header: `Cao`, `Trung bình`, `Thấp` |
-| `verificationStatus` | enum | Có | Trạng thái xác thực hồ sơ: `Đã xác thực`, `Chưa xác thực`, `Cần xác minh` |
-| `contactConsent` | object | Có | Trạng thái và các kênh học sinh đã đồng ý nhận tư vấn |
-| `lastUpdatedAt` | string ISO-8601 | Có | Thời điểm cập nhật hồ sơ gần nhất |
+| Field                | Kiểu            | Bắt buộc | Dùng ở UI                                                                 |
+| -------------------- | --------------- | -------: | ------------------------------------------------------------------------- |
+| `id`                 | string          |       Có | Mã canonical nội bộ; URL có thể dùng mã hiển thị `HS-YYYY-HCM-NNNNNN`     |
+| `initials`           | string          |       Có | Avatar                                                                    |
+| `name`               | string          |       Có | Header và hồ sơ                                                           |
+| `code`               | string          |       Có | Mã hồ sơ                                                                  |
+| `school`             | string          |       Có | Trường THPT và địa bàn                                                    |
+| `grade`              | string          |       Có | Lớp/giai đoạn học tập                                                     |
+| `major`              | string          |       Có | Ngành quan tâm/nguyện vọng                                                |
+| `phone`              | string          |       Có | Liên hệ; production phải theo policy PII                                  |
+| `email`              | string          |       Có | Liên hệ; production phải theo policy PII                                  |
+| `province`           | string          |       Có | Khu vực                                                                   |
+| `provinceId`         | string nullable |    Không | ID `CRM Province` dùng khi chỉnh sửa hồ sơ                                |
+| `ward`               | string nullable |    Không | Tên phường/xã hiển thị trên hồ sơ                                         |
+| `wardId`             | string nullable |    Không | ID `CRM Ward` dùng khi chỉnh sửa hồ sơ                                    |
+| `currentGrade`       | string nullable |    Không | Giá trị lớp gốc (`10`, `11`, `12`, `post_exam`)                           |
+| `studyStage`         | string nullable |    Không | Giai đoạn học tập gốc                                                     |
+| `aspiration`         | string nullable |    Không | Nguyện vọng ưu tiên                                                       |
+| `aspirationId`       | string nullable |    Không | ID `CRM Aspiration` dùng khi chỉnh sửa nguyện vọng                        |
+| `counselor`          | string          |       Có | Người phụ trách                                                           |
+| `revision`           | number          |       Có | Ownership revision dùng làm CAS token khi phân công                       |
+| `priority`           | enum            |       Có | Mức ưu tiên hiển thị ở header: `Cao`, `Trung bình`, `Thấp`                |
+| `verificationStatus` | enum            |       Có | Trạng thái xác thực hồ sơ: `Đã xác thực`, `Chưa xác thực`, `Cần xác minh` |
+| `contactConsent`     | object          |       Có | Trạng thái và các kênh học sinh đã đồng ý nhận tư vấn                     |
+| `lastUpdatedAt`      | string ISO-8601 |       Có | Thời điểm cập nhật hồ sơ gần nhất                                         |
+| `profileDetails`     | object          |       Có | Dữ liệu chi tiết cho ba card hiện có trong tab `Hồ sơ học sinh`           |
 
-Tab `Hồ sơ học sinh` dùng projection GET ở trên để hiển thị dữ liệu và gọi API cập nhật từng phần:
+`profileDetails` giữ nguyên cấu trúc UI hiện tại và trả cả giá trị đã resolve để hiển thị:
+
+`profileDetails.contact` là dữ liệu người liên hệ của học sinh (không phải dữ liệu cá
+nhân của học sinh). Các trường phụ huynh/người liên hệ nằm trong nhóm `Parent Information`
+của `CRM Student`; thông tin tài khoản ngân hàng lấy từ `CRM Student Payment Account`.
+
+```typescript
+{
+  personal: {
+    fullName, dateOfBirth, gender, idNumber, birthPlace, ethnicity,
+    religion, nationality, idIssuedDate, idIssuedPlace, phone, otherPhone,
+    email, otherEmail, source, campaign, owner, convertedFromLead,
+    sourceLead, majorId, major, admissionYearId, admissionYear, branchId, branch,
+    createdAt, modifiedAt,
+  },
+  contact: {
+    name, phone, otherPhone, email, bankName, accountNumber, accountHolder,
+    fatherEmail, fatherName, fatherPhone, fatherOccupation, motherPhone,
+    motherName, motherEmail, motherOccupation,
+  },
+  address: { province, provinceId, ward, wardId, fullAddress },
+}
+```
+
+Tab `Hồ sơ học sinh` dùng projection GET ở trên để hiển thị nguyên ba card hiện có. API PUT cập nhật từng phần vẫn dùng contract sau:
 
 ```http
 PUT /api/method/crm.api.student_school.update_student
@@ -412,7 +504,13 @@ Content-Type: application/json
 {"name":"<crm_student_name>","fields":{"phone":"0900000000","current_grade":"12"}}
 ```
 
-`fields` phải là object không rỗng và chỉ được chứa các field trong allowlist của backend. Backend kiểm tra quyền `write`; response trả `name` và `updated_fields`. Frontend dùng ID canonical của `CRM Student`, không dùng label tỉnh/phường để gửi update.
+`fields` phải là object không rỗng và chỉ được chứa các field trong allowlist của backend.
+Các field thông tin người liên hệ gồm `alt_name`, `alt_phone`, `parent_other_phone`,
+`parent_email`, `bank_name`, `account_number`, `account_holder`, `father_name`,
+`father_phone`, `father_email`, `father_occupation`, `mother_name`, `mother_phone`,
+`mother_email`, `mother_occupation`. Backend kiểm tra quyền `write`; response trả `name`
+và `updated_fields`. Frontend dùng ID canonical của `CRM Student`, không dùng label
+tỉnh/phường để gửi update.
 
 `contactConsent`:
 
@@ -428,12 +526,12 @@ Content-Type: application/json
 
 Mỗi item:
 
-| Field | Kiểu | Quy tắc |
-|---|---|---|
-| `label` | string | Nhãn chỉ số, hiện gồm `Hồ sơ`, `Gia đình`, `Tương tác` |
-| `value` | number | Điểm phần trăm, `0..100` |
-| `tone` | `success \| warning \| error` | Màu trạng thái |
-| `detail` | string | Lý do/diễn giải ngắn |
+| Field    | Kiểu                          | Quy tắc                                                |
+| -------- | ----------------------------- | ------------------------------------------------------ |
+| `label`  | string                        | Nhãn chỉ số, hiện gồm `Hồ sơ`, `Gia đình`, `Tương tác` |
+| `value`  | number                        | Điểm phần trăm, `0..100`                               |
+| `tone`   | `success \| warning \| error` | Màu trạng thái                                         |
+| `detail` | string                        | Lý do/diễn giải ngắn                                   |
 
 ### 5.3. `profile`, `academics`, `family`
 
@@ -453,16 +551,16 @@ Frontend dùng dimension có `id = "fit"` cho nhãn mức độ phù hợp; back
 
 ### 5.4. `classification`
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| `dimensions` | `StudentClassificationDimension[]` | Có | Bốn chiều: `journey`, `interest`, `fit`, `barrier` |
-| `combination` | string | Có | Tóm tắt tổ hợp phân loại |
-| `interpretation` | string | Có | Diễn giải ưu tiên |
-| `action` | string | Có | Hành động tiếp theo |
-| `updatedAt` | string | Có | Thời điểm cập nhật; production nên bổ sung timestamp ISO |
-| `updateTrigger` | string | Có | Tín hiệu làm thay đổi đánh giá |
-| `reviewStatus` | enum | Có | `Đã xác nhận` hoặc `Chờ xác nhận` |
-| `reviewedBy` | string | Có | Người xác nhận/chờ xác nhận |
+| Field            | Kiểu                               | Bắt buộc | Mô tả                                                    |
+| ---------------- | ---------------------------------- | -------: | -------------------------------------------------------- |
+| `dimensions`     | `StudentClassificationDimension[]` |       Có | Bốn chiều: `journey`, `interest`, `fit`, `barrier`       |
+| `combination`    | string                             |       Có | Tóm tắt tổ hợp phân loại                                 |
+| `interpretation` | string                             |       Có | Diễn giải ưu tiên                                        |
+| `action`         | string                             |       Có | Hành động tiếp theo                                      |
+| `updatedAt`      | string                             |       Có | Thời điểm cập nhật; production nên bổ sung timestamp ISO |
+| `updateTrigger`  | string                             |       Có | Tín hiệu làm thay đổi đánh giá                           |
+| `reviewStatus`   | enum                               |       Có | `Đã xác nhận` hoặc `Chờ xác nhận`                        |
+| `reviewedBy`     | string                             |       Có | Người xác nhận/chờ xác nhận                              |
 
 Một `dimension`:
 
@@ -484,84 +582,84 @@ Một `dimension`:
 
 ### 5.5. `acquisition`
 
-| Field | Kiểu | Mô tả |
-|---|---|---|
-| `firstTouch` | string | Điểm chạm đầu tiên |
-| `sourceGroup` | enum | `Trực tuyến chủ động`, `Trực tuyến qua quảng cáo`, `Thực địa`, `Giới thiệu` |
-| `campaign` | string | Campaign/nguồn gắn với hồ sơ |
-| `capturedAt` | string | Thời điểm thu thập consent/lead |
-| `attributionModel` | string | Mô hình attribution |
-| `consent` | string | Nội dung/trạng thái đồng ý liên hệ |
+| Field              | Kiểu   | Mô tả                                                                       |
+| ------------------ | ------ | --------------------------------------------------------------------------- |
+| `firstTouch`       | string | Điểm chạm đầu tiên                                                          |
+| `sourceGroup`      | enum   | `Trực tuyến chủ động`, `Trực tuyến qua quảng cáo`, `Thực địa`, `Giới thiệu` |
+| `campaign`         | string | Campaign/nguồn gắn với hồ sơ                                                |
+| `capturedAt`       | string | Thời điểm thu thập consent/lead                                             |
+| `attributionModel` | string | Mô hình attribution                                                         |
+| `consent`          | string | Nội dung/trạng thái đồng ý liên hệ                                          |
 
 ### 5.6. `segmentation`
 
-| Field | Kiểu | Mô tả |
-|---|---|---|
-| `learningStage` | string | Giai đoạn học tập |
-| `approachGoal` | string | Mục tiêu tiếp cận |
-| `geographyTier` | string | Nhóm địa lý |
-| `geographyImplication` | string | Hàm ý tư vấn theo địa lý |
-| `schoolTier` | string | Nhóm trường |
-| `economicContext` | string | Ngữ cảnh kinh tế do người dùng chia sẻ |
-| `economicUsage` | string | Quy tắc sử dụng dữ liệu kinh tế |
+| Field                  | Kiểu   | Mô tả                                  |
+| ---------------------- | ------ | -------------------------------------- |
+| `learningStage`        | string | Giai đoạn học tập                      |
+| `approachGoal`         | string | Mục tiêu tiếp cận                      |
+| `geographyTier`        | string | Nhóm địa lý                            |
+| `geographyImplication` | string | Hàm ý tư vấn theo địa lý               |
+| `schoolTier`           | string | Nhóm trường                            |
+| `economicContext`      | string | Ngữ cảnh kinh tế do người dùng chia sẻ |
+| `economicUsage`        | string | Quy tắc sử dụng dữ liệu kinh tế        |
 
 ### 5.7. `parentProfile`
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| `name` | string | Có | Tên phụ huynh/người liên hệ |
-| `relation` | string | Có | Quan hệ với học sinh |
-| `involvement` | enum | Có | `Cao`, `Trung bình`, `Thấp`, `Chưa xác định` |
-| `role` | string | Có | Vai trò quyết định |
-| `concerns` | string[] | Có | Các mối quan tâm |
-| `preferredChannel` | string | Có | Kênh liên hệ phù hợp |
-| `bestContactTime` | string | Có | Khung giờ liên hệ |
-| `consentStatus` | string | Có | Quyền/trạng thái đồng ý liên hệ |
-| `lastInteraction` | string | Có | Tương tác gần nhất |
+| Field              | Kiểu     | Bắt buộc | Mô tả                                        |
+| ------------------ | -------- | -------: | -------------------------------------------- |
+| `name`             | string   |       Có | Tên phụ huynh/người liên hệ                  |
+| `relation`         | string   |       Có | Quan hệ với học sinh                         |
+| `involvement`      | enum     |       Có | `Cao`, `Trung bình`, `Thấp`, `Chưa xác định` |
+| `role`             | string   |       Có | Vai trò quyết định                           |
+| `concerns`         | string[] |       Có | Các mối quan tâm                             |
+| `preferredChannel` | string   |       Có | Kênh liên hệ phù hợp                         |
+| `bestContactTime`  | string   |       Có | Khung giờ liên hệ                            |
+| `consentStatus`    | string   |       Có | Quyền/trạng thái đồng ý liên hệ              |
+| `lastInteraction`  | string   |       Có | Tương tác gần nhất                           |
 
 ### 5.8. `insight`
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| `summary` | string | Có | Tóm tắt insight |
-| `signalScore` | number | Có | Điểm tín hiệu, thường `0..100` |
-| `probability` | number | Có | Xác suất nhập học, `%` |
-| `potentialLabel` | enum | Có | Nhãn đi cùng điểm: `Tiềm năng cao`, `Tiềm năng vừa`, `Cần chú ý` |
-| `priorityThreshold` | number | Có | Ngưỡng ưu tiên trên biểu đồ, `0..100`; ví dụ `70` |
-| `scoreDelta` | number | Không | Thay đổi điểm gần nhất |
-| `baseline` | number | Không | Điểm baseline của biểu đồ |
-| `confidence` | number | Không | Độ tin cậy insight, `%` |
-| `concern` | string | Có | Rào cản cần xử lý |
-| `decisionMaker` | string | Có | Người ra quyết định |
-| `evidence` | string[] | Có | Tối đa các bằng chứng nổi bật |
-| `recommendation` | string | Có | Khuyến nghị hành động |
+| Field               | Kiểu     | Bắt buộc | Mô tả                                                            |
+| ------------------- | -------- | -------: | ---------------------------------------------------------------- |
+| `summary`           | string   |       Có | Tóm tắt insight                                                  |
+| `signalScore`       | number   |       Có | Điểm tín hiệu, thường `0..100`                                   |
+| `probability`       | number   |       Có | Xác suất nhập học, `%`                                           |
+| `potentialLabel`    | enum     |       Có | Nhãn đi cùng điểm: `Tiềm năng cao`, `Tiềm năng vừa`, `Cần chú ý` |
+| `priorityThreshold` | number   |       Có | Ngưỡng ưu tiên trên biểu đồ, `0..100`; ví dụ `70`                |
+| `scoreDelta`        | number   |    Không | Thay đổi điểm gần nhất                                           |
+| `baseline`          | number   |    Không | Điểm baseline của biểu đồ                                        |
+| `confidence`        | number   |    Không | Độ tin cậy insight, `%`                                          |
+| `concern`           | string   |       Có | Rào cản cần xử lý                                                |
+| `decisionMaker`     | string   |       Có | Người ra quyết định                                              |
+| `evidence`          | string[] |       Có | Tối đa các bằng chứng nổi bật                                    |
+| `recommendation`    | string   |       Có | Khuyến nghị hành động                                            |
 
 ### 5.9. `journey[]`
 
-| Field | Kiểu | Mô tả |
-|---|---|---|
-| `id` | string | ID event |
-| `date` | string | Nhãn ngày hiển thị hiện tại; nên bổ sung `occurredAt` ISO |
-| `title` | string | Tên mốc nghiệp vụ tuyển sinh |
-| `description` | string | Mô tả/tóm tắt kết quả |
-| `channel` | enum | `Website`, `Sự kiện`, `Cuộc gọi`, `Zalo`, `Hồ sơ` |
-| `status` | enum | `completed`, `current`, `upcoming` |
+| Field         | Kiểu   | Mô tả                                                     |
+| ------------- | ------ | --------------------------------------------------------- |
+| `id`          | string | ID event                                                  |
+| `date`        | string | Nhãn ngày hiển thị hiện tại; nên bổ sung `occurredAt` ISO |
+| `title`       | string | Tên mốc nghiệp vụ tuyển sinh                              |
+| `description` | string | Mô tả/tóm tắt kết quả                                     |
+| `channel`     | enum   | `Website`, `Sự kiện`, `Cuộc gọi`, `Zalo`, `Hồ sơ`         |
+| `status`      | enum   | `completed`, `current`, `upcoming`                        |
 
 ### 5.10. `engagement[]`
 
-| Field | Kiểu | Mô tả |
-|---|---|---|
-| `label` | string | Kênh/nhóm tín hiệu |
+| Field   | Kiểu   | Mô tả                          |
+| ------- | ------ | ------------------------------ |
+| `label` | string | Kênh/nhóm tín hiệu             |
 | `value` | string | Tóm tắt số lượt/tỷ lệ hiện tại |
-| `level` | enum | `Cao`, `Trung bình`, `Thấp` |
+| `level` | enum   | `Cao`, `Trung bình`, `Thấp`    |
 
 ### 5.11. `application[]`
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| `label` | string | Có | `Nguyện vọng`, `Kỳ tuyển sinh`, `Trạng thái hồ sơ`, `Học bổng`, `Hạn hoàn tất` |
-| `value` | string | Có | Giá trị hiển thị |
-| `status` | enum | Không | `success`, `warning`, `primary` |
+| Field    | Kiểu   | Bắt buộc | Mô tả                                                                          |
+| -------- | ------ | -------: | ------------------------------------------------------------------------------ |
+| `label`  | string |       Có | `Nguyện vọng`, `Kỳ tuyển sinh`, `Trạng thái hồ sơ`, `Học bổng`, `Hạn hoàn tất` |
+| `value`  | string |       Có | Giá trị hiển thị                                                               |
+| `status` | enum   |    Không | `success`, `warning`, `primary`                                                |
 
 ## 6. Field mở rộng cho chart và hồ sơ xử lý
 
@@ -571,14 +669,14 @@ Các field dưới đây được frontend dùng trực tiếp cho biểu đồ 
 
 Dùng cho chart `StudentChartsSection` — đường xu hướng xác suất nhập học. `score` là điểm phần trăm tại mốc thời gian, không dùng tên `probability`.
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| `date` | string ISO-8601 | Có | Thời điểm của mốc xu hướng |
-| `score` | number | Có | Điểm xác suất `0..100` |
-| `touches` | integer | Có | Số điểm chạm tích lũy tại mốc đó, `>= 0` |
-| `eventTitle` | string | Không | Tên sự kiện/điểm chạm hiển thị trong bảng chi tiết mốc |
-| `eventDetail` | string | Không | Diễn giải sự kiện/điểm chạm |
-| `channel` | enum | Không | `Website`, `Sự kiện`, `Cuộc gọi`, `Zalo`, `Hồ sơ` |
+| Field         | Kiểu            | Bắt buộc | Mô tả                                                  |
+| ------------- | --------------- | -------: | ------------------------------------------------------ |
+| `date`        | string ISO-8601 |       Có | Thời điểm của mốc xu hướng                             |
+| `score`       | number          |       Có | Điểm xác suất `0..100`                                 |
+| `touches`     | integer         |       Có | Số điểm chạm tích lũy tại mốc đó, `>= 0`               |
+| `eventTitle`  | string          |    Không | Tên sự kiện/điểm chạm hiển thị trong bảng chi tiết mốc |
+| `eventDetail` | string          |    Không | Diễn giải sự kiện/điểm chạm                            |
+| `channel`     | enum            |    Không | `Website`, `Sự kiện`, `Cuộc gọi`, `Zalo`, `Hồ sơ`      |
 
 Mỗi mốc nên có `eventTitle`, `eventDetail` và `channel` nếu mốc được tạo từ một điểm chạm cụ thể; nếu không có sự kiện liên quan thì để `null` hoặc bỏ field.
 
@@ -586,14 +684,14 @@ Mỗi mốc nên có `eventTitle`, `eventDetail` và `channel` nếu mốc đư�
 
 Dùng cho chart hiệu suất theo kênh.
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| `channel` | string | Có | Tên kênh, ví dụ `Website`, `Cuộc gọi`, `Zalo` |
-| `touches` | integer | Có | Số điểm chạm của kênh, `>= 0` |
-| `response` | number | Có | Tỷ lệ phản hồi `0..100` |
-| `activities` | `ChannelActivity[]` | Không | Các hoạt động chi tiết hiển thị khi mở bảng kiểm tra kênh |
-| `effectiveness` | string | Không | Nhận xét hiệu quả của kênh |
-| `notes` | string | Không | Ghi chú bổ sung cho kênh |
+| Field           | Kiểu                | Bắt buộc | Mô tả                                                     |
+| --------------- | ------------------- | -------: | --------------------------------------------------------- |
+| `channel`       | string              |       Có | Tên kênh, ví dụ `Website`, `Cuộc gọi`, `Zalo`             |
+| `touches`       | integer             |       Có | Số điểm chạm của kênh, `>= 0`                             |
+| `response`      | number              |       Có | Tỷ lệ phản hồi `0..100`                                   |
+| `activities`    | `ChannelActivity[]` |    Không | Các hoạt động chi tiết hiển thị khi mở bảng kiểm tra kênh |
+| `effectiveness` | string              |    Không | Nhận xét hiệu quả của kênh                                |
+| `notes`         | string              |    Không | Ghi chú bổ sung cho kênh                                  |
 
 `ChannelActivity`:
 
@@ -609,31 +707,31 @@ Không cần trả `fill`; đây là token màu dành riêng cho frontend.
 
 ### 6.3. `documents[]`
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| `name` | string | Có | Tên tài liệu |
-| `type` | string | Có | Loại tài liệu |
-| `status` | string | Có | Trạng thái hiển thị |
-| `tone` | enum | Có | `success`, `warning`, `gray`, `primary`, `error` |
-| `date` | string | Có | Thời điểm nhận/cập nhật |
+| Field    | Kiểu   | Bắt buộc | Mô tả                                            |
+| -------- | ------ | -------: | ------------------------------------------------ |
+| `name`   | string |       Có | Tên tài liệu                                     |
+| `type`   | string |       Có | Loại tài liệu                                    |
+| `status` | string |       Có | Trạng thái hiển thị                              |
+| `tone`   | enum   |       Có | `success`, `warning`, `gray`, `primary`, `error` |
+| `date`   | string |       Có | Thời điểm nhận/cập nhật                          |
 
 ### 6.4. `notes[]`
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| `author` | string | Có | Người tạo ghi chú |
-| `date` | string | Có | Thời điểm tạo |
-| `content` | string | Có | Nội dung ghi chú |
+| Field     | Kiểu   | Bắt buộc | Mô tả             |
+| --------- | ------ | -------: | ----------------- |
+| `author`  | string |       Có | Người tạo ghi chú |
+| `date`    | string |       Có | Thời điểm tạo     |
+| `content` | string |       Có | Nội dung ghi chú  |
 
 ### 6.5. `auditEvents[]`
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|---:|---|
-| `actor` | string | Có | Người hoặc hệ thống thực hiện |
-| `action` | string | Có | Hành động đã ghi nhận |
-| `time` | string | Có | Thời điểm thực hiện |
-| `status` | string | Có | Trạng thái hiển thị |
-| `tone` | enum | Có | `success`, `primary`, `warning`, `error` |
+| Field    | Kiểu   | Bắt buộc | Mô tả                                    |
+| -------- | ------ | -------: | ---------------------------------------- |
+| `actor`  | string |       Có | Người hoặc hệ thống thực hiện            |
+| `action` | string |       Có | Hành động đã ghi nhận                    |
+| `time`   | string |       Có | Thời điểm thực hiện                      |
+| `status` | string |       Có | Trạng thái hiển thị                      |
+| `tone`   | enum   |       Có | `success`, `primary`, `warning`, `error` |
 
 Khi các collection tùy chọn bị bỏ qua hoặc trả `[]`, frontend giữ khung section và dùng empty state. `probabilityTrend` và `channelPerformance` hiện có fixture fallback ở mock; production nên trả dữ liệu thật để không hiển thị số minh họa.
 
@@ -656,15 +754,15 @@ HTTP/1.1 404 Not Found
 
 Status production nên thống nhất thêm:
 
-| Status | Code | Khi dùng |
-|---:|---|---|
-| `200` | - | Trả hồ sơ thành công |
-| `400` | `INVALID_STUDENT_ID` | ID rỗng/sai format |
-| `401` | `UNAUTHENTICATED` | Thiếu hoặc hết hạn access token |
-| `403` | `FORBIDDEN` | Hồ sơ không thuộc phạm vi Director/team/territory |
-| `404` | `STUDENT_NOT_FOUND` | Không tồn tại hoặc không được phép nhìn thấy |
-| `502` | `INVALID_STUDENT_RESPONSE` | Backend trả payload không đúng contract |
-| `500` | `INTERNAL_ERROR` | Lỗi không dự kiến phía server |
+| Status | Code                       | Khi dùng                                          |
+| -----: | -------------------------- | ------------------------------------------------- |
+|  `200` | -                          | Trả hồ sơ thành công                              |
+|  `400` | `INVALID_STUDENT_ID`       | ID rỗng/sai format                                |
+|  `401` | `UNAUTHENTICATED`          | Thiếu hoặc hết hạn access token                   |
+|  `403` | `FORBIDDEN`                | Hồ sơ không thuộc phạm vi Director/team/territory |
+|  `404` | `STUDENT_NOT_FOUND`        | Không tồn tại hoặc không được phép nhìn thấy      |
+|  `502` | `INVALID_STUDENT_RESPONSE` | Backend trả payload không đúng contract           |
+|  `500` | `INTERNAL_ERROR`           | Lỗi không dự kiến phía server                     |
 
 Vì response có phone, email và thông tin phụ huynh, server phải filter quyền truy cập trước khi trả dữ liệu. Không ghi PII đầy đủ vào log, cache public hoặc error message.
 
