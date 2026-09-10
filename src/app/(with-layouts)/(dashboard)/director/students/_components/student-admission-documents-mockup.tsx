@@ -7,9 +7,10 @@ import { FileText, UploadCloud } from "@tailgrids/icons";
 import { Radio, RadioGroup } from "react-aria-components";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/tailgrids/core/badge";
+import { DatePickerField } from "@/components/common/date-picker-field";
 import { Card } from "@/components/tailgrids/core/card";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
+import { Input } from "@/components/tailgrids/core/input";
 import { studentsKeys } from "@/hooks/use-students-queries";
 import { uploadStudentAdmissionDocument } from "@/services/api/admission-profile-catalog";
 import type {
@@ -30,6 +31,20 @@ interface RequirementGroup {
   requirements: StudentAdmissionRequirement[];
 }
 
+interface AdmissionDocumentField {
+  label: string;
+  type?: "date" | "number" | "text";
+  value?: string;
+  placeholder?: string;
+}
+
+const englishCertificateFields: AdmissionDocumentField[] = [
+  { label: "Loại chứng chỉ", placeholder: "Ví dụ: IELTS, TOEIC" },
+  { label: "Điểm chứng chỉ", type: "number" },
+  { label: "Ngày cấp", type: "date" },
+  { label: "Ngày hết hạn", type: "date" },
+];
+
 type DocumentUploadHandler = (
   requirement: StudentAdmissionRequirement,
   file: File,
@@ -40,7 +55,7 @@ function sectionTitle(sectionCode: string): string {
     case "special_program":
       return "Hồ sơ bổ sung";
     default:
-      return "Hồ sơ nhập học";
+      return "Hồ sơ thông thường";
   }
 }
 
@@ -50,10 +65,10 @@ function requirementGroupTitle(
 ): string {
   const group = requirementGroup.toLowerCase();
   if (group.includes("identity")) {
-    return "Một trong các giấy tờ tùy thân sau";
+    return "Một trong các giấy tờ tùy thân sau:";
   }
   if (group.includes("graduation")) {
-    return "Một trong các giấy tờ xác nhận tốt nghiệp THPT sau";
+    return "Một trong các giấy tờ xác nhận tốt nghiệp THPT sau:";
   }
   return sectionTitle(sectionCode);
 }
@@ -100,24 +115,6 @@ function splitRequirements(requirements: StudentAdmissionRequirement[]) {
   ] as const;
 }
 
-function groupCompleted(group: RequirementGroup): number {
-  return group.requirements.filter((item) => item.hasDocument).length;
-}
-
-function ProgressBadge({
-  completed,
-  total,
-}: {
-  completed: number;
-  total: number;
-}) {
-  return (
-    <Badge color={total > 0 && completed >= total ? "success" : "warning"}>
-      {completed}/{total}
-    </Badge>
-  );
-}
-
 export default function StudentAdmissionDocumentsMockup({
   data,
 }: Student360SectionProps) {
@@ -126,6 +123,11 @@ export default function StudentAdmissionDocumentsMockup({
   const [uploadingDocumentType, setUploadingDocumentType] = useState<
     string | null
   >(null);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      englishCertificateFields.map((field) => [field.label, field.value ?? ""]),
+    ),
+  );
   const uploadMutation = useMutation({
     mutationFn: ({
       requirement,
@@ -175,11 +177,20 @@ export default function StudentAdmissionDocumentsMockup({
       {!profile ? (
         <EmptyAdmissionProfile />
       ) : (
-        <AdmissionProfileChecklist
-          isUploading={uploadingDocumentType}
-          onUpload={handleUpload}
-          profile={profile}
-        />
+        <>
+          <AdmissionProfileChecklist
+            certificateValues={fieldValues}
+            isUploading={uploadingDocumentType}
+            onCertificateChange={(label, value) =>
+              setFieldValues((current) => ({
+                ...current,
+                [label]: value,
+              }))
+            }
+            onUpload={handleUpload}
+            profile={profile}
+          />
+        </>
       )}
     </Card>
   );
@@ -201,42 +212,56 @@ function EmptyAdmissionProfile() {
 
 function AdmissionProfileChecklist({
   profile,
+  certificateValues,
   isUploading,
+  onCertificateChange,
   onUpload,
 }: {
   profile: StudentAdmissionProfile;
+  certificateValues: Record<string, string>;
   isUploading: string | null;
+  onCertificateChange: (label: string, value: string) => void;
   onUpload: DocumentUploadHandler;
 }) {
   const groups = getGroups(profile);
   const standardGroups = groups.filter(
-    (group) => group.sectionCode !== "special_program",
+    (group) => group.sectionCode === "basic_admission",
   );
+  const methodGroups = groups.filter((group) => group.sectionCode === "method");
   const supplementaryGroups = groups.filter(
-    (group) => group.sectionCode === "special_program",
+    (group) =>
+      group.sectionCode === "special_program" ||
+      group.sectionCode === "scholarship",
   );
   const standardAll = standardGroups
     .filter((group) => group.mode === "ALL")
     .flatMap((group) => group.requirements);
   const [standardLeft, standardRight] = splitRequirements(standardAll);
   const standardAny = standardGroups.filter((group) => group.mode === "ANY");
-  const supplementaryAll = supplementaryGroups
-    .filter((group) => group.mode === "ALL")
-    .flatMap((group) => group.requirements);
-  const [supplementaryLeft, supplementaryRight] =
-    splitRequirements(supplementaryAll);
-  const supplementaryAny = supplementaryGroups.filter(
-    (group) => group.mode === "ANY",
+  const graduationGroup = standardAny.find((group) =>
+    group.id.toLowerCase().includes("graduation"),
   );
-  const completeness = profile.documentCompleteness;
-  const completed = Number(completeness?.completed ?? 0);
-  const total = Number(completeness?.total ?? 0);
-  const standardCompleted = standardAll.filter(
-    (requirement) => requirement.hasDocument,
-  ).length;
-  const supplementaryCompleted = supplementaryAll.filter(
-    (requirement) => requirement.hasDocument,
-  ).length;
+  const identityGroup = standardAny.find((group) =>
+    group.id.toLowerCase().includes("identity"),
+  );
+  const otherStandardAny = standardAny.filter(
+    (group) => group !== graduationGroup && group !== identityGroup,
+  );
+  const methodRequirements = methodGroups
+    .flatMap((group) => group.requirements)
+    .sort((left, right) => left.orderDisplay - right.orderDisplay);
+  const supplementaryLeft = [
+    ...methodRequirements,
+    ...supplementaryGroups
+      .filter((group) => isLeftSupplementaryGroup(group))
+      .flatMap((group) => group.requirements),
+  ].sort((left, right) => left.orderDisplay - right.orderDisplay);
+  const supplementaryRight = supplementaryGroups
+    .filter((group) => !isLeftSupplementaryGroup(group))
+    .flatMap((group) => group.requirements)
+    .sort((left, right) => left.orderDisplay - right.orderDisplay);
+  const hasSupplementary =
+    supplementaryLeft.length > 0 || supplementaryRight.length > 0;
 
   if (!groups.length) {
     return (
@@ -253,40 +278,16 @@ function AdmissionProfileChecklist({
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-card-border bg-background-gray-secondary px-4 py-3">
-        <Badge color="primary">
-          {profile.profileTemplateName ||
-            profile.profileTemplateCode ||
-            profile.profileTemplate}
-        </Badge>
-        <span className="text-sm text-text-primary">
-          {profile.admissionMethodName ||
-            profile.admissionMethodCode ||
-            "Chưa có phương thức xét tuyển"}
-        </span>
-        <span className="text-sm text-text-secondary">
-          {total
-            ? `${completed}/${total} giấy tờ đã nộp`
-            : "Chưa có dữ liệu tiến độ"}
-        </span>
-      </div>
-
       <div className="w-full overflow-x-auto">
         <table className="w-full min-w-[760px] table-fixed border-collapse border border-card-border">
           <thead>
             <tr>
               <th
-                className="border border-card-border bg-background-gray-primary px-4 py-3 text-base font-semibold text-text-primary"
+                className="border border-card-border bg-background-gray-primary px-4 py-3 text-center text-base font-semibold uppercase tracking-wide text-text-primary"
                 colSpan={2}
                 scope="colgroup"
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span>Hồ sơ nhập học</span>
-                  <ProgressBadge
-                    completed={standardCompleted}
-                    total={standardAll.length}
-                  />
-                </div>
+                Hồ sơ thông thường
               </th>
             </tr>
           </thead>
@@ -298,6 +299,13 @@ function AdmissionProfileChecklist({
                   onUpload={onUpload}
                   requirements={standardLeft}
                 />
+                {graduationGroup && (
+                  <AdmissionAlternativeGroup
+                    group={graduationGroup}
+                    isUploading={isUploading}
+                    onUpload={onUpload}
+                  />
+                )}
               </td>
               <td className="w-1/2 align-top border border-card-border p-4">
                 <AdmissionChecklistItemList
@@ -305,10 +313,17 @@ function AdmissionProfileChecklist({
                   onUpload={onUpload}
                   requirements={standardRight}
                 />
+                {identityGroup && (
+                  <AdmissionAlternativeGroup
+                    group={identityGroup}
+                    isUploading={isUploading}
+                    onUpload={onUpload}
+                  />
+                )}
               </td>
             </tr>
 
-            {standardAny.map((group) => (
+            {otherStandardAny.map((group) => (
               <Fragment key={group.id}>
                 <tr>
                   <th
@@ -316,15 +331,7 @@ function AdmissionProfileChecklist({
                     colSpan={2}
                     scope="colgroup"
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <span>
-                        {group.title} · Chọn ít nhất {group.minimumRequired}
-                      </span>
-                      <ProgressBadge
-                        completed={groupCompleted(group)}
-                        total={group.minimumRequired}
-                      />
-                    </div>
+                    {group.title}
                   </th>
                 </tr>
                 <tr>
@@ -342,43 +349,31 @@ function AdmissionProfileChecklist({
               </Fragment>
             ))}
 
-            {supplementaryGroups.length > 0 && (
+            {hasSupplementary && (
               <>
                 <tr>
                   <th
-                    className="border border-card-border bg-background-gray-primary px-4 py-3 text-base font-semibold uppercase tracking-wide text-text-primary"
+                    className="border border-card-border bg-background-gray-primary px-4 py-3 text-center text-base font-semibold uppercase tracking-wide text-text-primary"
                     scope="col"
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Hồ sơ bổ sung</span>
-                      <ProgressBadge
-                        completed={supplementaryCompleted}
-                        total={supplementaryAll.length}
-                      />
-                    </div>
+                    Hồ sơ bổ sung
                   </th>
                   <th
-                    className="border border-card-border bg-background-gray-primary px-4 py-3 text-base font-semibold uppercase tracking-wide text-text-primary"
+                    className="border border-card-border bg-background-gray-primary px-4 py-3 text-center text-base font-semibold uppercase tracking-wide text-text-primary"
                     scope="col"
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <span>
-                        Hồ sơ bổ sung
-                        <span className="block normal-case">
-                          (diện học bổng/Học trước – Trả sau/ưu đãi)
-                        </span>
-                      </span>
-                      <ProgressBadge
-                        completed={supplementaryCompleted}
-                        total={supplementaryAll.length}
-                      />
-                    </div>
+                    Hồ sơ bổ sung
+                    <span className="block normal-case">
+                      (diện học bổng/Học trước – Trả sau/ưu đãi)
+                    </span>
                   </th>
                 </tr>
                 <tr>
                   <td className="align-top border border-card-border p-4">
                     <AdmissionChecklistItemList
+                      certificateValues={certificateValues}
                       isUploading={isUploading}
+                      onCertificateChange={onCertificateChange}
                       onUpload={onUpload}
                       requirements={supplementaryLeft}
                     />
@@ -393,40 +388,6 @@ function AdmissionProfileChecklist({
                 </tr>
               </>
             )}
-
-            {supplementaryAny.map((group) => (
-              <Fragment key={group.id}>
-                <tr>
-                  <th
-                    className="border border-card-border bg-background-gray-primary px-4 py-3 text-left text-base font-semibold text-text-primary"
-                    colSpan={2}
-                    scope="colgroup"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span>
-                        {group.title} · Chọn ít nhất {group.minimumRequired}
-                      </span>
-                      <ProgressBadge
-                        completed={groupCompleted(group)}
-                        total={group.minimumRequired}
-                      />
-                    </div>
-                  </th>
-                </tr>
-                <tr>
-                  <td
-                    className="align-top border border-card-border p-4"
-                    colSpan={2}
-                  >
-                    <AdmissionAlternativeGroup
-                      group={group}
-                      isUploading={isUploading}
-                      onUpload={onUpload}
-                    />
-                  </td>
-                </tr>
-              </Fragment>
-            ))}
           </tbody>
         </table>
       </div>
@@ -434,21 +395,38 @@ function AdmissionProfileChecklist({
   );
 }
 
+function isLeftSupplementaryGroup(group: RequirementGroup): boolean {
+  const groupCode = group.id.toUpperCase();
+  return [
+    "FIRST_GENERATION",
+    "LANGUAGE_CERTIFICATE",
+    "INTERNATIONAL_PROGRAM",
+    "FPT_POLYTECHNIC",
+    "ACHIEVEMENT",
+  ].some((code) => groupCode.includes(code));
+}
+
 function AdmissionChecklistItemList({
   requirements,
+  certificateValues,
   isUploading,
+  onCertificateChange,
   onUpload,
 }: {
   requirements: StudentAdmissionRequirement[];
+  certificateValues?: Record<string, string>;
   isUploading: string | null;
+  onCertificateChange?: (label: string, value: string) => void;
   onUpload: DocumentUploadHandler;
 }) {
   return (
     <div className="space-y-3">
       {requirements.map((requirement) => (
         <AdmissionChecklistItem
+          certificateValues={certificateValues}
           isUploading={isUploading}
           key={requirement.documentType}
+          onCertificateChange={onCertificateChange}
           onUpload={onUpload}
           requirement={requirement}
         />
@@ -459,11 +437,15 @@ function AdmissionChecklistItemList({
 
 function AdmissionChecklistItem({
   requirement,
+  certificateValues,
   isUploading,
+  onCertificateChange,
   onUpload,
 }: {
   requirement: StudentAdmissionRequirement;
+  certificateValues?: Record<string, string>;
   isUploading: string | null;
+  onCertificateChange?: (label: string, value: string) => void;
   onUpload: DocumentUploadHandler;
 }) {
   return (
@@ -485,6 +467,14 @@ function AdmissionChecklistItem({
           onUpload={onUpload}
           requirement={requirement}
         />
+        {requirement.documentCode === "ENGLISH_EXEMPTION_CERTIFICATE" &&
+          certificateValues &&
+          onCertificateChange && (
+            <AdmissionCertificateFields
+              onChange={onCertificateChange}
+              values={certificateValues}
+            />
+          )}
       </div>
     </div>
   );
@@ -539,16 +529,6 @@ function RequirementDetails({
 }) {
   return (
     <div className="mt-2 space-y-1">
-      {requirement.instruction && (
-        <p className="text-xs leading-5 text-text-tertiary">
-          {requirement.instruction}
-        </p>
-      )}
-      {requirement.description && !requirement.instruction && (
-        <p className="text-xs leading-5 text-text-tertiary">
-          {requirement.description}
-        </p>
-      )}
       {requirement.documents.length ? (
         requirement.documents.map((document) => (
           <AdmissionDocumentLink key={document.id} document={document} />
@@ -561,6 +541,66 @@ function RequirementDetails({
         onUpload={onUpload}
         requirement={requirement}
       />
+    </div>
+  );
+}
+
+function AdmissionDocumentField({
+  field,
+  value,
+  onChange,
+}: {
+  field: AdmissionDocumentField;
+  value: string;
+  onChange: (label: string, value: string) => void;
+}) {
+  return (
+    <label className="block min-w-0">
+      <span className="block text-xs leading-5 font-medium text-text-primary">
+        {field.label}
+      </span>
+      {field.type === "date" ? (
+        <div className="mt-1">
+          <DatePickerField
+            ariaLabel={field.label}
+            className="h-8 px-2 text-xs"
+            onChange={(nextValue) => onChange(field.label, nextValue)}
+            value={value}
+          />
+        </div>
+      ) : (
+        <Input
+          aria-label={field.label}
+          className="mt-1 h-8 w-full px-2 text-xs"
+          inputMode={field.type === "number" ? "decimal" : undefined}
+          min={field.type === "number" ? 0 : undefined}
+          onChange={(event) => onChange(field.label, event.target.value)}
+          placeholder={field.placeholder ?? "Nhấn để nhập thông tin"}
+          type={field.type ?? "text"}
+          value={value}
+        />
+      )}
+    </label>
+  );
+}
+
+function AdmissionCertificateFields({
+  values,
+  onChange,
+}: {
+  values: Record<string, string>;
+  onChange: (label: string, value: string) => void;
+}) {
+  return (
+    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+      {englishCertificateFields.map((field) => (
+        <AdmissionDocumentField
+          field={field}
+          key={field.label}
+          onChange={onChange}
+          value={values[field.label] ?? ""}
+        />
+      ))}
     </div>
   );
 }

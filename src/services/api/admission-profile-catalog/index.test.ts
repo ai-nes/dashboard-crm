@@ -2,10 +2,15 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createAdmissionApplication,
+  createAdmissionProfileTemplate,
+  deleteAdmissionProfileTemplate,
   getAdmissionProfileCatalog,
   AdmissionProfileCatalogApiError,
+  listAdmissionProfileTemplates,
+  transitionAdmissionProfileTemplate,
   uploadStudentAdmissionDocument,
   updateAdmissionApplication,
+  updateAdmissionProfileTemplate,
   updateAdmissionApplicationPreference,
 } from ".";
 
@@ -15,6 +20,12 @@ const catalog = {
   offerings: [],
   documentTypes: [],
   templates: [],
+  specialTemplates: [],
+};
+
+const adminTemplateCatalog = {
+  templates: [],
+  documentTypes: [],
 };
 
 describe("admission profile catalog API", () => {
@@ -55,6 +66,99 @@ describe("admission profile catalog API", () => {
     );
   });
 
+  it("lists templates for the admin catalog", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: adminTemplateCatalog }), {
+        status: 200,
+      }),
+    );
+
+    await expect(
+      listAdmissionProfileTemplates({
+        baseUrl: "http://frappe:8000",
+        status: "Draft",
+      }),
+    ).resolves.toEqual(adminTemplateCatalog);
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.admission_profile_templates.list_admission_profile_templates?status=Draft",
+      expect.objectContaining({ cache: "no-store", credentials: "include" }),
+    );
+  });
+
+  it("calls the admin CRUD methods with the Frappe payload contract", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: { id: "TPL-1" } }), {
+        status: 200,
+      }),
+    );
+    const data = {
+      template_code: "STANDARD",
+      template_name: "Hồ sơ tiêu chuẩn",
+      template_kind: "standard" as const,
+      profile_type: "academic_admission" as const,
+      status: "Draft" as const,
+      version: 1,
+      requirements: [],
+    };
+
+    await createAdmissionProfileTemplate(data, { baseUrl: "http://frappe:8000" });
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      "http://frappe:8000/api/method/crm.api.admission_profile_templates.create_admission_profile_template",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ data }),
+      }),
+    );
+
+    await updateAdmissionProfileTemplate(
+      { name: "TPL-1", data, expectedModified: "2026-09-10 10:00:00" },
+      { baseUrl: "http://frappe:8000" },
+    );
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      "http://frappe:8000/api/method/crm.api.admission_profile_templates.update_admission_profile_template",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          name: "TPL-1",
+          data,
+          expected_modified: "2026-09-10 10:00:00",
+        }),
+      }),
+    );
+
+    await transitionAdmissionProfileTemplate(
+      { name: "TPL-1", status: "Active", expectedModified: "2026-09-10 10:00:00" },
+      { baseUrl: "http://frappe:8000" },
+    );
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      "http://frappe:8000/api/method/crm.api.admission_profile_templates.transition_admission_profile_template",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          name: "TPL-1",
+          status: "Active",
+          expected_modified: "2026-09-10 10:00:00",
+        }),
+      }),
+    );
+
+    await deleteAdmissionProfileTemplate(
+      { name: "TPL-1", expectedModified: "2026-09-10 10:00:00" },
+      { baseUrl: "http://frappe:8000" },
+    );
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      "http://frappe:8000/api/method/crm.api.admission_profile_templates.delete_admission_profile_template",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          name: "TPL-1",
+          expected_modified: "2026-09-10 10:00:00",
+        }),
+      }),
+    );
+  });
+
   it("creates an application with the selected offering, method and template", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ message: { application: "APP-1" } }), {
@@ -70,6 +174,7 @@ describe("admission profile catalog API", () => {
           admission_year: "2026",
           admission_method: "THPT_SCORE",
           profile_template: "STANDARD",
+          special_profile_options: ["SCHOLARSHIP"],
           preference_order: 1,
           preference: "Primary",
           status: "Draft",
@@ -85,6 +190,12 @@ describe("admission profile catalog API", () => {
       expect.objectContaining({
         method: "POST",
         body: expect.stringContaining('"profile_template":"STANDARD"'),
+      }),
+    );
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: expect.stringContaining('"special_profile_options":["SCHOLARSHIP"]'),
       }),
     );
   });
@@ -142,6 +253,7 @@ describe("admission profile catalog API", () => {
         values: {
           admission_method: "THPT_SCORE",
           profile_template: "SCHOLARSHIP",
+          special_profile_options: ["FIRST_GENERATION", "SCHOLARSHIP"],
           preference: "Primary",
         },
       },
@@ -157,6 +269,7 @@ describe("admission profile catalog API", () => {
           values: {
             admission_method: "THPT_SCORE",
             profile_template: "SCHOLARSHIP",
+            special_profile_options: ["FIRST_GENERATION", "SCHOLARSHIP"],
             preference: "Primary",
           },
         }),

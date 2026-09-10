@@ -193,6 +193,7 @@ export default function StudentHighSchoolMockup({
         scoreUpdates.graduation_score = parseScoreNumber(
           form.graduation_score,
           "Điểm tốt nghiệp THPT",
+          30,
         );
       }
       if (form.is_high_school_graduate !== initial.is_high_school_graduate) {
@@ -335,7 +336,7 @@ export default function StudentHighSchoolMockup({
           isDisabled={scoreQuery.isLoading}
           isEditing={isEditing}
           label="Điểm tốt nghiệp THPT"
-          max={10}
+          max={30}
           min={0}
           onChange={(value) =>
             setForm((current) => ({ ...current, graduation_score: value }))
@@ -508,11 +509,22 @@ function parseBoolean(value: string): boolean | null {
   return value === "1";
 }
 
-function parseScoreNumber(value: string, label: string): number | null {
+function parseScoreNumber(
+  value: string,
+  label: string,
+  max?: number,
+): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   const parsed = Number(trimmed);
-  if (!Number.isFinite(parsed) || parsed < 0) {
+  if (
+    !Number.isFinite(parsed) ||
+    parsed < 0 ||
+    (max !== undefined && parsed > max)
+  ) {
+    if (max !== undefined && parsed > max) {
+      throw new Error(`${label} phải từ 0 đến ${max}.`);
+    }
     throw new Error(`${label} phải là số lớn hơn hoặc bằng 0.`);
   }
   return parsed;

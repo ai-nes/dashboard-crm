@@ -12,6 +12,18 @@ import {
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card } from "@/components/tailgrids/core/card";
 import {
+  Select,
+  SelectContent,
+  SelectIndicator,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/tailgrids/core/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/tailgrids/core/tooltip";
+import {
   createAdmissionApplication,
   getAdmissionProfileCatalog,
   updateAdmissionApplication,
@@ -57,14 +69,24 @@ function selectedMethodCode(
   );
 }
 
-function selectedTemplateCode(profile: StudentAdmissionProfile | null): string {
-  return profile?.profileTemplateCode || profile?.profileTemplate || "";
-}
-
 function selectedPreferenceCode(
   profile: StudentAdmissionProfile | null,
 ): "Primary" | "Alternative" {
   return profile?.preference === "Alternative" ? "Alternative" : "Primary";
+}
+
+function selectedSpecialProfileCodes(
+  profile: StudentAdmissionProfile | null,
+): string[] {
+  return (
+    profile?.specialProfileOptions
+      ?.map((option) => option.code || option.id)
+      .filter(Boolean) || []
+  );
+}
+
+function sameSelection(left: string[], right: string[]): boolean {
+  return [...left].sort().join("|") === [...right].sort().join("|");
 }
 
 export default function StudentAdmissionInformationMockup({
@@ -79,11 +101,11 @@ export default function StudentAdmissionInformationMockup({
   const [selectedMethod, setSelectedMethod] = useState(
     selectedMethodCode(data, profile),
   );
-  const [selectedTemplate, setSelectedTemplate] = useState(
-    selectedTemplateCode(profile),
-  );
   const [selectedPreference, setSelectedPreference] = useState(
     selectedPreferenceCode(profile),
+  );
+  const [selectedSpecialProfiles, setSelectedSpecialProfiles] = useState(() =>
+    selectedSpecialProfileCodes(profile),
   );
 
   const catalogQuery = useQuery<AdmissionProfileCatalog>({
@@ -100,23 +122,45 @@ export default function StudentAdmissionInformationMockup({
   });
 
   const selectedTemplateRecord = catalogQuery.data?.templates.find(
-    (item) => item.id === selectedTemplate || item.code === selectedTemplate,
+    (item) => item.code === "STANDARD",
   );
+  const effectiveTemplate = selectedTemplateRecord?.code || "STANDARD";
+  const specialProfileOptions = catalogQuery.data?.specialTemplates ?? [];
+  const selectedSpecialProfile = specialProfileOptions.find(
+    (item) =>
+      item.code === selectedSpecialProfiles[0] ||
+      item.id === selectedSpecialProfiles[0],
+  );
+  const firstSavedSpecialProfile = profile?.specialProfileOptions?.[0];
+  const additionalSelectedSpecialProfiles = selectedSpecialProfiles
+    .slice(1)
+    .map(
+      (code) =>
+        specialProfileOptions.find(
+          (item) => item.code === code || item.id === code,
+        )?.name || code,
+    );
+  const additionalSavedSpecialProfiles =
+    profile?.specialProfileOptions?.slice(1).map((option) => option.name) ?? [];
   const currentApplication = profile?.application || null;
   const initialMethod = selectedMethodCode(data, profile);
-  const initialTemplate = selectedTemplateCode(profile);
   const initialPreference = selectedPreferenceCode(profile);
+  const initialSpecialProfiles = selectedSpecialProfileCodes(profile);
   const hasExistingApplication = Boolean(currentApplication);
-  const methodChanged = hasExistingApplication && selectedMethod !== initialMethod;
-  const templateChanged = hasExistingApplication && selectedTemplate !== initialTemplate;
+  const methodChanged =
+    hasExistingApplication && selectedMethod !== initialMethod;
   const preferenceChanged =
+    hasExistingApplication && selectedPreference !== initialPreference;
+  const specialProfilesChanged =
     hasExistingApplication &&
-    selectedPreference !== initialPreference;
-  const selectionChanged = methodChanged || templateChanged || preferenceChanged;
+    !sameSelection(selectedSpecialProfiles, initialSpecialProfiles);
+  const selectionChanged =
+    methodChanged || preferenceChanged || specialProfilesChanged;
   const selectionKey = [
     selectedMethod,
-    selectedTemplate,
+    effectiveTemplate,
     selectedPreference,
+    ...[...selectedSpecialProfiles].sort(),
   ].join("|");
 
   const createMutation = useMutation({
@@ -134,6 +178,7 @@ export default function StudentAdmissionInformationMockup({
         values: {
           admission_method: selectedMethod,
           profile_template: selectedTemplateRecord.code,
+          special_profile_options: selectedSpecialProfiles,
           preference_order: selectedPreference === "Primary" ? 1 : 2,
           preference: selectedPreference,
           status: "Draft",
@@ -153,6 +198,7 @@ export default function StudentAdmissionInformationMockup({
         values: {
           admission_method: selectedMethod,
           profile_template: selectedTemplateRecord.code,
+          special_profile_options: selectedSpecialProfiles,
           preference: selectedPreference,
         },
       });
@@ -166,8 +212,8 @@ export default function StudentAdmissionInformationMockup({
     createMutation.reset();
     updateMutation.reset();
     setSelectedMethod(selectedMethodCode(data, profile));
-    setSelectedTemplate(selectedTemplateCode(profile));
     setSelectedPreference(selectedPreferenceCode(profile));
+    setSelectedSpecialProfiles(selectedSpecialProfileCodes(profile));
     setIsEditing(true);
   };
 
@@ -176,8 +222,8 @@ export default function StudentAdmissionInformationMockup({
     createMutation.reset();
     updateMutation.reset();
     setSelectedMethod(selectedMethodCode(data, profile));
-    setSelectedTemplate(selectedTemplateCode(profile));
     setSelectedPreference(selectedPreferenceCode(profile));
+    setSelectedSpecialProfiles(selectedSpecialProfileCodes(profile));
     setIsEditing(false);
   };
 
@@ -215,9 +261,6 @@ export default function StudentAdmissionInformationMockup({
   const methodOptions: EditableDetailOption[] = (
     catalogQuery.data?.methods ?? []
   ).map((method) => ({ id: method.code, label: method.name }));
-  const templateOptions: EditableDetailOption[] = (
-    catalogQuery.data?.templates ?? []
-  ).map((template) => ({ id: template.code, label: template.name }));
   const methodLabel =
     catalogQuery.data?.methods.find(
       (method) =>
@@ -225,10 +268,6 @@ export default function StudentAdmissionInformationMockup({
     )?.name ||
     profile?.admissionMethodName ||
     selectedMethod;
-  const templateLabel =
-    selectedTemplateRecord?.name ||
-    profile?.profileTemplateName ||
-    selectedTemplate;
   const preferenceLabel =
     preferenceOptions.find((option) => option.id === selectedPreference)
       ?.label || selectedPreference;
@@ -283,13 +322,109 @@ export default function StudentAdmissionInformationMockup({
           options={methodOptions}
           value={isEditing ? selectedMethod : methodLabel}
         />
-        <EditableDetailField
-          isEditing={isEditing}
-          label="Loại hồ sơ nhập học"
-          onChange={setSelectedTemplate}
-          options={templateOptions}
-          value={isEditing ? selectedTemplate : templateLabel}
-        />
+        <div className="min-w-0">
+          <dt className="text-xs text-text-tertiary">Loại hồ sơ</dt>
+          {isEditing ? (
+            <dd className="mt-1.5">
+              <Select
+                aria-label="Loại hồ sơ"
+                className="w-full gap-0"
+                isDisabled={
+                  isSaving ||
+                  catalogQuery.isLoading ||
+                  specialProfileOptions.length === 0
+                }
+                onChange={(value) =>
+                  setSelectedSpecialProfiles(
+                    Array.from(value as Iterable<string>, String),
+                  )
+                }
+                selectionMode="multiple"
+                value={selectedSpecialProfiles}
+              >
+                <SelectTrigger className="h-auto min-h-9 w-full flex-wrap justify-between gap-1.5 px-3 py-1.5 text-sm">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                    {selectedSpecialProfiles.length === 0 ? (
+                      <span className="text-input-placeholder-text">
+                        Hồ sơ thông thường
+                      </span>
+                    ) : (
+                      <>
+                        <span
+                          className="inline-flex max-w-full items-center rounded-md border border-card-border bg-background-white-primary px-2 py-1 text-xs font-medium text-text-primary"
+                          title={
+                            selectedSpecialProfile?.name ||
+                            selectedSpecialProfiles[0]
+                          }
+                        >
+                          <span className="truncate">
+                            {selectedSpecialProfile?.name ||
+                              selectedSpecialProfiles[0]}
+                          </span>
+                        </span>
+                        {selectedSpecialProfiles.length > 1 && (
+                          <MoreSpecialProfiles
+                            profiles={additionalSelectedSpecialProfiles}
+                          />
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <SelectIndicator />
+                </SelectTrigger>
+                <SelectContent
+                  className="max-h-60 min-w-(--trigger-width)"
+                  header={
+                    <p className="border-b border-card-border px-3 py-2 text-xs leading-5 text-text-tertiary">
+                      Chọn hồ sơ bổ sung (có thể chọn nhiều).
+                    </p>
+                  }
+                >
+                  {specialProfileOptions.length > 0 ? (
+                    specialProfileOptions.map((option) => (
+                      <SelectItem
+                        key={option.id}
+                        id={option.code}
+                        textValue={option.name}
+                      >
+                        <span className="block min-w-0 truncate text-text-primary">
+                          {option.name}
+                        </span>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem
+                      id="no-special-profile-options"
+                      isDisabled
+                      textValue="Chưa có hồ sơ bổ sung"
+                    >
+                      Chưa có hồ sơ bổ sung đang hoạt động.
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </dd>
+          ) : (
+            <dd className="mt-1 flex min-h-6 flex-wrap items-center gap-1.5 text-sm font-medium text-text-primary">
+              {firstSavedSpecialProfile ? (
+                <>
+                  <span className="inline-flex max-w-full items-center rounded-md border border-card-border bg-background-white-primary px-2 py-1 text-xs font-medium text-text-primary">
+                    <span className="truncate">
+                      {firstSavedSpecialProfile.name}
+                    </span>
+                  </span>
+                  {additionalSavedSpecialProfiles.length > 0 && (
+                    <MoreSpecialProfiles
+                      profiles={additionalSavedSpecialProfiles}
+                    />
+                  )}
+                </>
+              ) : (
+                <span className="text-text-tertiary">Hồ sơ thông thường</span>
+              )}
+            </dd>
+          )}
+        </div>
         <EditableDetailField
           isEditing={isEditing}
           label="Nguyện vọng FPT"
@@ -323,5 +458,30 @@ export default function StudentAdmissionInformationMockup({
     <Card className="p-5">
       {isEditing ? <form onSubmit={saveAdmission}>{content}</form> : content}
     </Card>
+  );
+}
+
+function MoreSpecialProfiles({ profiles }: { profiles: string[] }) {
+  if (profiles.length === 0) return null;
+
+  return (
+    <Tooltip placement="top">
+      <TooltipTrigger asChild>
+        <span
+          aria-label={`Xem ${profiles.length} hồ sơ bổ sung khác`}
+          className="cursor-help text-xs text-text-tertiary underline decoration-dotted underline-offset-2"
+          tabIndex={0}
+        >
+          +{profiles.length}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm p-3">
+        <ul className="space-y-1 text-left text-xs leading-5">
+          {profiles.map((profile, index) => (
+            <li key={`${profile}-${index}`}>{profile}</li>
+          ))}
+        </ul>
+      </TooltipContent>
+    </Tooltip>
   );
 }

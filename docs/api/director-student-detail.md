@@ -545,16 +545,24 @@ Content-Type: application/json
   "application": "APP-2026-00001",
   "values": {
     "admission_method": "THPT_SCORE",
-    "profile_template": "SCHOLARSHIP",
+    "profile_template": "STANDARD",
+    "special_profile_options": ["FIRST_GENERATION", "SCHOLARSHIP"],
     "preference": "Primary"
   }
 }
 ```
 
-Nếu Profile Template mới đã có một `CRM Student Admission Profile` ở trạng thái
-`Draft` của cùng học sinh và năm tuyển sinh, backend sẽ dùng lại profile đó, giữ
-nguyên mã application đang chỉnh sửa, archive profile cũ và chuyển application
-nháp trùng sang `Withdrawn`. Các `CRM Student Document` đã upload không bị xóa.
+`profile_template` được giữ trong request để tương thích API, nhưng giao diện
+không cho chọn template nền khác `STANDARD`. `special_profile_options` là mảng
+mã template diện đặc biệt, có thể rỗng hoặc chứa nhiều giá trị trong các nhóm:
+`FIRST_GENERATION`, `LANGUAGE_CERTIFICATE`, `INTERNATIONAL_PROGRAM`,
+`FPT_POLYTECHNIC`, `ACHIEVEMENT`, `STUDY_NOW_PAY_LATER`, `FAMILY_FE_FPT` và
+`SCHOLARSHIP`.
+
+Một `CRM Admission Application` chỉ có một `CRM Student Admission Profile`.
+Khi đổi phương thức, hồ sơ nền hoặc danh sách diện đặc biệt, backend cập nhật
+profile hiện tại và materialize lại checklist; không tạo profile trùng và không
+archive/withdraw application khác. Các `CRM Student Document` đã upload không bị xóa.
 
 `contactConsent`:
 

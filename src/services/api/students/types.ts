@@ -378,6 +378,11 @@ export interface StudentAdmissionProfile {
   admissionYear: string;
   attemptNumber: number;
   application?: string | null;
+  specialProfileOptions?: {
+    id: string;
+    code: string;
+    name: string;
+  }[];
   profileStatus: string;
   enrollmentStatus: string;
   revision: number;

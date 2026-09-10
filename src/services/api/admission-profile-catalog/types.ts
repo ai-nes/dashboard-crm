@@ -51,13 +51,43 @@ export interface AdmissionProfileTemplateOption {
   id: string;
   code: string;
   name: string;
+  templateKind: "standard" | "special";
   profileType: string;
-  status: string;
+  status: AdmissionProfileTemplateStatus;
   version: number;
   educationProgram?: string | null;
   admissionMethod?: string | null;
   description?: string | null;
+  modified?: string | null;
   requirements: AdmissionProfileRequirement[];
+}
+
+export type AdmissionProfileTemplateStatus = "Draft" | "Active" | "Archived";
+
+export interface AdmissionProfileTemplateRequirementInput {
+  section_code: string;
+  document_type: string;
+  requirement_group: string;
+  requirement_mode: "ALL" | "ANY";
+  is_required: boolean;
+  min_required: number;
+  quantity: number;
+  order_display: number;
+  condition_key?: string | null;
+  instruction?: string | null;
+}
+
+export interface AdmissionProfileTemplateMutationInput {
+  template_code: string;
+  template_name: string;
+  template_kind: "standard" | "special";
+  profile_type: "academic_admission";
+  status: AdmissionProfileTemplateStatus;
+  version: number;
+  education_program?: string | null;
+  admission_method?: string | null;
+  description?: string | null;
+  requirements: AdmissionProfileTemplateRequirementInput[];
 }
 
 export interface AdmissionDocumentTypeOption {
@@ -74,6 +104,12 @@ export interface AdmissionProfileCatalog {
   offerings: AdmissionOfferingOption[];
   documentTypes: AdmissionDocumentTypeOption[];
   templates: AdmissionProfileTemplateOption[];
+  specialTemplates: AdmissionProfileTemplateOption[];
+}
+
+export interface AdminAdmissionProfileTemplateCatalog {
+  templates: AdmissionProfileTemplateOption[];
+  documentTypes: AdmissionDocumentTypeOption[];
 }
 
 export interface CreateAdmissionApplicationInput {
@@ -83,6 +119,7 @@ export interface CreateAdmissionApplicationInput {
     admission_year?: string;
     admission_method: string;
     profile_template: string;
+    special_profile_options?: string[];
     preference_order: number;
     preference: "Primary" | "Alternative";
     status: "Draft";
@@ -97,6 +134,7 @@ export interface CreateAdmissionApplicationResponse {
   admission_profile: string;
   profile_created: boolean;
   profile_template: string;
+  special_profile_options?: string[];
   document_checklist: AdmissionProfileRequirement[];
   document_completeness: Record<string, unknown>;
   replayed?: boolean;
@@ -150,6 +188,7 @@ export interface UpdateAdmissionApplicationInput {
   values: {
     admission_method: string;
     profile_template: string;
+    special_profile_options?: string[];
     preference: "Primary" | "Alternative";
   };
 }
@@ -163,6 +202,7 @@ export interface UpdateAdmissionApplicationResponse {
   admission_profile: string;
   profile_created: boolean;
   profile_template: string;
+  special_profile_options?: string[];
   document_checklist: AdmissionProfileRequirement[];
   document_completeness: Record<string, unknown>;
 }
