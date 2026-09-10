@@ -1,6 +1,7 @@
 "use client";
 
 import { UserCircle1 } from "@tailgrids/icons";
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
@@ -15,7 +16,7 @@ import type {
   Student360Data,
   StudentProfilePersonalDetails,
 } from "@/services/api/students/types";
-import { formatDate, formatDateTime } from "@/utils/format-date";
+import { formatDate } from "@/utils/format-date";
 
 import StudentContactAddressMockup from "./student-contact-address-mockup";
 import StudentContactInformationMockup from "./student-contact-information-mockup";
@@ -51,6 +52,7 @@ interface PersonalContactField {
   type?: "date" | "email" | "tel" | "text";
   options?: EditableDetailOption[];
   searchable?: boolean;
+  searchPlaceholder?: string;
 }
 
 interface StudentPersonalContactMockupProps {
@@ -86,7 +88,15 @@ export default function StudentPersonalContactMockup({
     { doctype: "CRM Student", fieldname: "branch", limit: 100 },
     isEditing,
   );
+  const birthPlaceOptionsQuery = useStudentSchoolFieldOptions(
+    { doctype: "CRM Student", fieldname: "province", limit: 100 },
+    isEditing,
+  );
   const personalContactFields = getPersonalContactFields(data, details, {
+    birthPlace: toBirthPlaceOptions(
+      birthPlaceOptionsQuery.data?.options,
+      form.birth_place,
+    ),
     major: toEditableOptions(majorOptionsQuery.data?.options),
     admissionYear: toEditableOptions(admissionYearOptionsQuery.data?.options),
     branch: toEditableOptions(branchOptionsQuery.data?.options),
@@ -194,6 +204,7 @@ export default function StudentPersonalContactMockup({
                 }
                 options={field.options}
                 searchable={field.searchable}
+                searchPlaceholder={field.searchPlaceholder}
                 type={field.type}
                 value={form[editKey]}
               />
@@ -238,14 +249,12 @@ function PersonalContactDisplayField({
       <dt className="text-xs text-text-tertiary">{field.label}</dt>
       <dd className="mt-1 break-words text-sm font-medium text-text-primary">
         {field.href && field.value ? (
-          <a
+          <Link
             className="text-primary-500 underline-offset-2 hover:underline"
             href={field.href}
-            rel="noreferrer"
-            target="_blank"
           >
             {field.value}
-          </a>
+          </Link>
         ) : (
           field.value || "-"
         )}
@@ -281,12 +290,18 @@ function getPersonalContactFields(
   data: Student360Data,
   details?: StudentProfilePersonalDetails | null,
   options?: {
+    birthPlace: EditableDetailOption[];
     major: EditableDetailOption[];
     admissionYear: EditableDetailOption[];
     branch: EditableDetailOption[];
   },
 ): PersonalContactField[] {
-  const fieldOptions = options ?? { major: [], admissionYear: [], branch: [] };
+  const fieldOptions = options ?? {
+    birthPlace: [],
+    major: [],
+    admissionYear: [],
+    branch: [],
+  };
   return [
     {
       label: "Họ và Tên",
@@ -314,6 +329,9 @@ function getPersonalContactFields(
       label: "Nơi sinh",
       value: details?.birthPlace,
       editKey: "birth_place",
+      options: fieldOptions.birthPlace,
+      searchable: true,
+      searchPlaceholder: "Tìm tỉnh / thành phố...",
     },
     {
       label: "Dân tộc",
@@ -371,8 +389,13 @@ function getPersonalContactFields(
     },
     { label: "Chiến dịch", value: details?.campaign },
     { label: "Giao cho", value: details?.owner || data.student.counselor },
-    { label: "Chuyển đổi từ Đầu mối", value: details?.convertedFromLead },
-    { label: "Chuyển từ Lead", value: details?.sourceLead },
+    {
+      label: "Chuyển từ Lead",
+      value: details?.sourceLead,
+      href: details?.sourceLeadId
+        ? `/director/leads/${encodeURIComponent(details.sourceLeadId)}`
+        : undefined,
+    },
     {
       label: "Ngành học quan tâm",
       value: details?.major || data.student.major,
@@ -392,8 +415,6 @@ function getPersonalContactFields(
       editKey: "branch",
       options: fieldOptions.branch,
     },
-    { label: "Ngày tạo", value: formatDateTime(details?.createdAt) },
-    { label: "Ngày sửa", value: formatDateTime(details?.modifiedAt) },
   ];
 }
 
@@ -405,6 +426,18 @@ function toEditableOptions(
   options: Array<{ value: string; label: string }> | undefined,
 ): EditableDetailOption[] {
   return options?.map(({ value, label }) => ({ id: value, label })) ?? [];
+}
+
+function toBirthPlaceOptions(
+  options: Array<{ value: string; label: string }> | undefined,
+  currentValue: string,
+): EditableDetailOption[] {
+  const mapped =
+    options?.map(({ label }) => ({ id: label, label })) ?? [];
+  if (currentValue && !mapped.some((option) => option.id === currentValue)) {
+    mapped.unshift({ id: currentValue, label: currentValue });
+  }
+  return mapped;
 }
 
 function nullable(value: string) {

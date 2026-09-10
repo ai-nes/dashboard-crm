@@ -61,7 +61,8 @@ export default function StudentHeader({
 }: StudentHeaderProps) {
   const { student } = data;
   const subtitle = student.grade || "-";
-  const hasMetadata = Boolean(student.lastUpdatedAt);
+  const createdAt = student.profileDetails?.personal?.createdAt;
+  const hasMetadata = Boolean(createdAt || student.lastUpdatedAt);
   const scoreCandidate = data.insight.signalScore ?? data.insight.probability;
   const score =
     typeof scoreCandidate === "number" && Number.isFinite(scoreCandidate)
@@ -223,6 +224,12 @@ export default function StudentHeader({
           </div>
           {hasMetadata && (
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-card-border pt-3 text-xs">
+              {createdAt && (
+                <HeaderMeta
+                  label="Ngày tạo"
+                  value={formatDateTime(createdAt)}
+                />
+              )}
               {student.lastUpdatedAt && (
                 <HeaderMeta
                   label="Cập nhật"

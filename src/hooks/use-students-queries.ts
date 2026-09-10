@@ -30,6 +30,8 @@ export const studentsKeys = {
     sessionUser?: string | null,
   ) => ["assigned-students", sessionUser ?? "anonymous", params] as const,
   student360: (studentId: string) => ["student-360", studentId] as const,
+  studentHighSchoolScore: (studentId: string, admissionYear?: string | null) =>
+    ["student-high-school-score", studentId, admissionYear ?? null] as const,
   studentChatwootInteractions: (studentId: string) =>
     ["student-chatwoot-interactions", studentId] as const,
   studentInteractions: (studentId: string) =>

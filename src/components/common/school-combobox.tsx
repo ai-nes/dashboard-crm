@@ -23,6 +23,7 @@ import { cn } from "@/utils/cn";
 
 interface SchoolComboboxProps {
   value: string;
+  selectedSchoolLabel?: string;
   province?: string;
   ward?: string;
   requiresWard?: boolean;
@@ -34,6 +35,7 @@ interface SchoolComboboxProps {
 
 export function SchoolCombobox({
   value,
+  selectedSchoolLabel,
   province = "",
   ward = "",
   requiresWard = true,
@@ -92,7 +94,10 @@ export function SchoolCombobox({
         type="button"
       >
         <span className="min-w-0 truncate">
-          {selectedSchool?.name || value || "Chọn trường THPT"}
+          {selectedSchool?.name ||
+            selectedSchoolLabel ||
+            value ||
+            "Chọn trường THPT"}
         </span>
         <ChevronDown className="size-4 shrink-0 text-text-tertiary" />
       </Button>

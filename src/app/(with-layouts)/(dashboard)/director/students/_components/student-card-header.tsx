@@ -4,6 +4,7 @@ interface StudentCardHeaderProps {
   description: string;
   icon: ReactNode;
   title: string;
+  titleBadge?: ReactNode;
   rightAction?: ReactNode;
 }
 
@@ -11,6 +12,7 @@ export default function StudentCardHeader({
   description,
   icon,
   title,
+  titleBadge,
   rightAction,
 }: StudentCardHeaderProps) {
   return (
@@ -22,7 +24,10 @@ export default function StudentCardHeader({
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+          {titleBadge}
+        </div>
         <p className="mt-1 text-xs leading-5 text-text-tertiary">
           {description}
         </p>

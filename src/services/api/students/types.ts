@@ -283,6 +283,7 @@ export interface StudentProfilePersonalDetails {
   campaign?: string | null;
   owner?: string | null;
   convertedFromLead?: string | null;
+  sourceLeadId?: string | null;
   sourceLead?: string | null;
   majorId?: string | null;
   major?: string | null;
@@ -326,6 +327,64 @@ export interface StudentProfileDetails {
   address?: StudentProfileAddressDetails | null;
 }
 
+export interface StudentAdmissionDocument {
+  id: string;
+  student?: string | null;
+  profile?: string | null;
+  documentType: string;
+  application?: string | null;
+  file?: string | null;
+  isPrivate?: boolean;
+  status: string;
+  version: number;
+  sourceReference?: string | null;
+  verifiedBy?: string | null;
+  verifiedAt?: string | null;
+  rejectionReason?: string | null;
+  modifiedAt?: string | null;
+}
+
+export interface StudentAdmissionRequirement {
+  sectionCode: string;
+  documentType: string;
+  documentCode: string;
+  documentLabel: string;
+  category?: string | null;
+  description?: string | null;
+  requirementGroup: string;
+  requirementMode: "ALL" | "ANY";
+  isRequired: boolean;
+  minimumRequired: number;
+  quantity: number;
+  orderDisplay: number;
+  conditionKey?: string | null;
+  instruction?: string | null;
+  documents: StudentAdmissionDocument[];
+  hasDocument: boolean;
+}
+
+export interface StudentAdmissionProfile {
+  id: string;
+  student: string;
+  profileTemplate: string;
+  profileTemplateCode?: string | null;
+  profileTemplateName?: string | null;
+  admissionMethodCode?: string | null;
+  admissionMethodName?: string | null;
+  preference?: "Primary" | "Alternative" | string | null;
+  preferenceOrder?: number | null;
+  offering?: string | null;
+  offeringKey?: string | null;
+  admissionYear: string;
+  attemptNumber: number;
+  application?: string | null;
+  profileStatus: string;
+  enrollmentStatus: string;
+  revision: number;
+  documentCompleteness?: Record<string, unknown> | null;
+  requirements: StudentAdmissionRequirement[];
+}
+
 export interface Student360Data {
   student: {
     /** CRM Lead name used to load the Student 360 projection. */
@@ -336,7 +395,10 @@ export interface Student360Data {
     name: string;
     code: string;
     school: string;
+    schoolId?: string | null;
     grade: string;
+    admissionYear?: string | null;
+    admissionMethod?: string | null;
     /** Contact-stage enum used by the editable status control. */
     studentStage?: StudentStatus | null;
     studyStage?: string | null;
@@ -352,6 +414,8 @@ export interface Student360Data {
     ownerId?: string | null;
     /** Ownership revision used as the CAS token when changing the owner. */
     revision?: number;
+    /** Engagement revision used as the CAS token for admission application commands. */
+    engagementRevision?: number;
     priority?: StudentPriority | null;
     verificationStatus?: StudentVerificationStatus | null;
     contactConsent?: StudentContactConsent | null;
@@ -436,6 +500,7 @@ export interface Student360Data {
     value: string;
     status?: "success" | "warning" | "primary";
   }[];
+  admissionProfiles?: StudentAdmissionProfile[];
   probabilityTrend?: StudentProbabilityTrendPoint[];
   channelPerformance?: StudentChannelPerformanceItem[];
   documents?: {

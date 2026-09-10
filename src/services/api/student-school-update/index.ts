@@ -131,6 +131,42 @@ export interface StudentSchoolRecord<TFields = Record<string, unknown>> {
   fields: TFields;
 }
 
+export type StudentScoreDetails = Record<string, unknown> | unknown[];
+
+export interface StudentHighSchoolScoreFields {
+  graduation_score: number | null;
+  transcript_score: number | null;
+  total_score: number | null;
+  is_high_school_graduate: boolean | null;
+  graduation_year: number | null;
+  academic_rank: string | null;
+  priority_group: string | null;
+  graduation_classification: string | null;
+  conduct_rank: string | null;
+  grade_12_gpa: number | null;
+  exam_candidate_number: string | null;
+  score_details: StudentScoreDetails | null;
+  encouragement_type: string | null;
+  encouragement_score: number | null;
+  priority_type: string | null;
+  priority_score: number | null;
+}
+
+export type StudentHighSchoolScoreUpdateFields =
+  Partial<StudentHighSchoolScoreFields>;
+
+export interface StudentHighSchoolScoreResponse {
+  doctype: "CRM Student";
+  name: string;
+  admission_profile: string | null;
+  admission_year: string | null;
+  fields: StudentHighSchoolScoreFields;
+}
+
+export interface UpdateStudentHighSchoolScoreResponse extends StudentHighSchoolScoreResponse {
+  updated_fields: StudentHighSchoolScoreUpdateFields;
+}
+
 export interface SchoolListRecord {
   name: string;
   fields: Record<string, unknown>;
@@ -194,6 +230,7 @@ export interface GetFieldOptionsParams {
   search?: string;
   filters?: Record<string, CrudFieldValue>;
   province?: string;
+  high_school?: string;
   limit?: number;
 }
 
@@ -453,6 +490,225 @@ export function getStudent<TFields = Record<string, unknown>>(name: string) {
   return readRecord<TFields>("get_student", name);
 }
 
+function isNullableNumber(value: unknown): value is number | null {
+  return (
+    value === null || (typeof value === "number" && Number.isFinite(value))
+  );
+}
+
+function isNullableBoolean(value: unknown): value is boolean | null {
+  return value === null || typeof value === "boolean";
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+function isScoreDetails(value: unknown): value is StudentScoreDetails | null {
+  return value === null || (typeof value === "object" && value !== null);
+}
+
+function isScoreFieldValue(
+  fieldname: keyof StudentHighSchoolScoreFields,
+  value: unknown,
+): boolean {
+  if (
+    fieldname === "graduation_score" ||
+    fieldname === "transcript_score" ||
+    fieldname === "total_score" ||
+    fieldname === "graduation_year" ||
+    fieldname === "grade_12_gpa" ||
+    fieldname === "encouragement_score" ||
+    fieldname === "priority_score"
+  ) {
+    return isNullableNumber(value);
+  }
+  if (fieldname === "is_high_school_graduate") return isNullableBoolean(value);
+  if (fieldname === "score_details") return isScoreDetails(value);
+  return isNullableString(value);
+}
+
+function parseStudentHighSchoolScoreResponse(
+  payload: unknown,
+): StudentHighSchoolScoreResponse {
+  const message = getMessage(payload);
+  assertObject(message);
+  const fields = message.fields;
+  const fieldNames = Object.keys({
+    graduation_score: true,
+    transcript_score: true,
+    total_score: true,
+    is_high_school_graduate: true,
+    graduation_year: true,
+    academic_rank: true,
+    priority_group: true,
+    graduation_classification: true,
+    conduct_rank: true,
+    grade_12_gpa: true,
+    exam_candidate_number: true,
+    score_details: true,
+    encouragement_type: true,
+    encouragement_score: true,
+    priority_type: true,
+    priority_score: true,
+  }) as Array<keyof StudentHighSchoolScoreFields>;
+
+  if (
+    message.doctype !== "CRM Student" ||
+    typeof message.name !== "string" ||
+    !fields ||
+    typeof fields !== "object" ||
+    Array.isArray(fields) ||
+    (typeof message.admission_profile !== "string" &&
+      message.admission_profile !== null) ||
+    (typeof message.admission_year !== "string" &&
+      message.admission_year !== null) ||
+    fieldNames.some((fieldname) => {
+      const value = (fields as Record<string, unknown>)[fieldname];
+      return !isScoreFieldValue(fieldname, value);
+    })
+  ) {
+    throw new StudentSchoolUpdateApiError(
+      502,
+      "INVALID_STUDENT_HIGH_SCHOOL_SCORE_RESPONSE",
+      "Phản hồi điểm THPT không hợp lệ.",
+    );
+  }
+
+  return message as unknown as StudentHighSchoolScoreResponse;
+}
+
+export async function getStudentHighSchoolScore(
+  name: string,
+  admissionYear?: string,
+): Promise<StudentHighSchoolScoreResponse> {
+  const normalizedName = name.trim();
+  if (!normalizedName) {
+    throw new StudentSchoolUpdateApiError(
+      400,
+      "INVALID_NAME",
+      "Thiếu tên bản ghi cần tải điểm THPT.",
+    );
+  }
+
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    throw new StudentSchoolUpdateApiError(
+      503,
+      "STUDENT_HIGH_SCHOOL_SCORE_READ_UNAVAILABLE",
+      "Chưa cấu hình Frappe CRM API nên không thể tải điểm THPT.",
+    );
+  }
+
+  const url = new URL(
+    `${baseUrl}/api/method/crm.api.student_school.get_student_high_school_score`,
+  );
+  url.searchParams.set("name", normalizedName);
+  addOptionalQueryParam(url.searchParams, "admission_year", admissionYear);
+  const response = await fetch(url.toString(), getReadRequestInit());
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const details = getErrorDetails(payload, response.status, "read");
+    throw new StudentSchoolUpdateApiError(
+      response.status,
+      details.code,
+      details.message,
+    );
+  }
+
+  return parseStudentHighSchoolScoreResponse(payload);
+}
+
+export async function updateStudentHighSchoolScore(
+  name: string,
+  fields: StudentHighSchoolScoreUpdateFields,
+  admissionYear?: string,
+): Promise<UpdateStudentHighSchoolScoreResponse> {
+  const normalizedName = name.trim();
+  if (!normalizedName) {
+    throw new StudentSchoolUpdateApiError(
+      400,
+      "INVALID_NAME",
+      "Thiếu tên bản ghi cần cập nhật điểm THPT.",
+    );
+  }
+  if (!fields || Object.keys(fields).length === 0) {
+    throw new StudentSchoolUpdateApiError(
+      400,
+      "INVALID_FIELDS",
+      "Vui lòng thay đổi ít nhất một trường điểm THPT.",
+    );
+  }
+
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    throw new StudentSchoolUpdateApiError(
+      503,
+      "STUDENT_HIGH_SCHOOL_SCORE_UPDATE_UNAVAILABLE",
+      "Chưa cấu hình Frappe CRM API nên không thể lưu điểm THPT.",
+    );
+  }
+
+  const response = await fetch(
+    `${baseUrl}/api/method/crm.api.student_school.update_student_high_school_score`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: await getRequestHeaders(),
+      body: JSON.stringify({
+        name: normalizedName,
+        ...(admissionYear?.trim()
+          ? { admission_year: admissionYear.trim() }
+          : {}),
+        fields,
+      }),
+    },
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const details = getErrorDetails(payload, response.status, "update");
+    throw new StudentSchoolUpdateApiError(
+      response.status,
+      details.code,
+      details.message,
+    );
+  }
+
+  const result = parseStudentHighSchoolScoreResponse(payload);
+  const root =
+    payload && typeof payload === "object"
+      ? (payload as Record<string, unknown>)
+      : {};
+  const message =
+    root.message && typeof root.message === "object"
+      ? (root.message as Record<string, unknown>)
+      : root;
+  if (
+    !message.updated_fields ||
+    typeof message.updated_fields !== "object" ||
+    Array.isArray(message.updated_fields) ||
+    Object.entries(message.updated_fields).some(([fieldname, value]) => {
+      if (!(fieldname in result.fields)) return true;
+      return !isScoreFieldValue(
+        fieldname as keyof StudentHighSchoolScoreFields,
+        value,
+      );
+    })
+  ) {
+    throw new StudentSchoolUpdateApiError(
+      502,
+      "INVALID_STUDENT_HIGH_SCHOOL_SCORE_UPDATE_RESPONSE",
+      "Phản hồi cập nhật điểm THPT không hợp lệ.",
+    );
+  }
+
+  return {
+    ...result,
+    updated_fields:
+      message.updated_fields as StudentHighSchoolScoreUpdateFields,
+  };
+}
+
 export function getSchool<TFields = Record<string, unknown>>(name: string) {
   return readRecord<TFields>("get_school", name);
 }
@@ -567,6 +823,7 @@ export async function getFieldOptions(
   url.searchParams.set("fieldname", fieldname);
   addOptionalQueryParam(url.searchParams, "search", params.search);
   addOptionalQueryParam(url.searchParams, "province", params.province);
+  addOptionalQueryParam(url.searchParams, "high_school", params.high_school);
   addOptionalQueryParam(url.searchParams, "limit", params.limit);
   if (params.filters && Object.keys(params.filters).length > 0) {
     url.searchParams.set("filters", JSON.stringify(params.filters));

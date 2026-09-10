@@ -118,6 +118,7 @@ Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_
     "province": "Cần Thơ",
     "counselor": "Trần Quốc Bảo",
     "revision": 4,
+    "engagementRevision": 8,
     "priority": "Cao",
     "verificationStatus": "Đã xác thực",
     "contactConsent": {
@@ -451,6 +452,7 @@ Schema nguồn hiện tại nằm tại [types.ts](../../src/services/api/studen
 | `name`               | string          |       Có | Header và hồ sơ                                                           |
 | `code`               | string          |       Có | Mã hồ sơ                                                                  |
 | `school`             | string          |       Có | Trường THPT và địa bàn                                                    |
+| `schoolId`           | string nullable |    Không | ID `CRM High School` dùng để lấy Khu vực theo trường                      |
 | `grade`              | string          |       Có | Lớp/giai đoạn học tập                                                     |
 | `major`              | string          |       Có | Ngành quan tâm/nguyện vọng                                                |
 | `phone`              | string          |       Có | Liên hệ; production phải theo policy PII                                  |
@@ -465,6 +467,7 @@ Schema nguồn hiện tại nằm tại [types.ts](../../src/services/api/studen
 | `aspirationId`       | string nullable |    Không | ID `CRM Aspiration` dùng khi chỉnh sửa nguyện vọng                        |
 | `counselor`          | string          |       Có | Người phụ trách                                                           |
 | `revision`           | number          |       Có | Ownership revision dùng làm CAS token khi phân công                       |
+| `engagementRevision`  | number          |       Có | Engagement revision dùng làm CAS token khi tạo Admission Application     |
 | `priority`           | enum            |       Có | Mức ưu tiên hiển thị ở header: `Cao`, `Trung bình`, `Thấp`                |
 | `verificationStatus` | enum            |       Có | Trạng thái xác thực hồ sơ: `Đã xác thực`, `Chưa xác thực`, `Cần xác minh` |
 | `contactConsent`     | object          |       Có | Trạng thái và các kênh học sinh đã đồng ý nhận tư vấn                     |
@@ -483,7 +486,7 @@ của `CRM Student`; thông tin tài khoản ngân hàng lấy từ `CRM Student
     fullName, dateOfBirth, gender, idNumber, birthPlace, ethnicity,
     religion, nationality, idIssuedDate, idIssuedPlace, phone, otherPhone,
     email, otherEmail, source, campaign, owner, convertedFromLead,
-    sourceLead, majorId, major, admissionYearId, admissionYear, branchId, branch,
+    sourceLeadId, sourceLead, majorId, major, admissionYearId, admissionYear, branchId, branch,
     createdAt, modifiedAt,
   },
   contact: {
@@ -491,8 +494,16 @@ của `CRM Student`; thông tin tài khoản ngân hàng lấy từ `CRM Student
     fatherEmail, fatherName, fatherPhone, fatherOccupation, motherPhone,
     motherName, motherEmail, motherOccupation,
   },
-  address: { province, provinceId, ward, wardId, fullAddress },
+address: { province, provinceId, ward, wardId, fullAddress },
 }
+```
+
+Khu vực của trường THPT không lưu lặp trên hồ sơ học sinh. Dashboard lấy từ
+`CRM High School.school_area` qua API field options:
+
+```http
+GET /api/method/crm.api.student_school.get_field_options
+  ?doctype=CRM%20High%20School&fieldname=school_area&high_school=<school_name>&limit=1
 ```
 
 Tab `Hồ sơ học sinh` dùng projection GET ở trên để hiển thị nguyên ba card hiện có. API PUT cập nhật từng phần vẫn dùng contract sau:
@@ -511,6 +522,39 @@ Các field thông tin người liên hệ gồm `alt_name`, `alt_phone`, `parent
 `mother_email`, `mother_occupation`. Backend kiểm tra quyền `write`; response trả `name`
 và `updated_fields`. Frontend dùng ID canonical của `CRM Student`, không dùng label
 tỉnh/phường để gửi update.
+
+`Nguyện vọng FPT` trên card tuyển sinh là `CRM Admission Application.preference`.
+Giá trị hợp lệ là `Primary` hoặc `Alternative`; hồ sơ đã tạo có thể cập nhật bằng:
+
+```http
+PUT /api/method/crm.api.admission_application.update_preference
+Content-Type: application/json
+
+{"application":"APP-2026-00001","preference":"Alternative"}
+```
+
+Khi chỉnh sửa card tuyển sinh, Dashboard cập nhật cùng một hồ sơ hiện tại bằng
+API dưới đây. Backend giữ nguyên mã hồ sơ và materialize lại
+`CRM Student Admission Profile` cùng checklist theo Profile Template mới:
+
+```http
+PUT /api/method/crm.api.admission_application.update_application
+Content-Type: application/json
+
+{
+  "application": "APP-2026-00001",
+  "values": {
+    "admission_method": "THPT_SCORE",
+    "profile_template": "SCHOLARSHIP",
+    "preference": "Primary"
+  }
+}
+```
+
+Nếu Profile Template mới đã có một `CRM Student Admission Profile` ở trạng thái
+`Draft` của cùng học sinh và năm tuyển sinh, backend sẽ dùng lại profile đó, giữ
+nguyên mã application đang chỉnh sửa, archive profile cũ và chuyển application
+nháp trùng sang `Withdrawn`. Các `CRM Student Document` đã upload không bị xóa.
 
 `contactConsent`:
 
@@ -818,3 +862,73 @@ Trang detail gọi endpoint này ở server và hook TanStack Query tiếp tục
 khi component hoạt động ở browser. Nếu API chưa cấu hình hoặc trả `404`, tab
 Zalo dùng `data.zaloMessages` từ Student360 để giữ tương thích với fixture và
 backend cũ; không thay đổi giao diện, bộ lọc hoặc thao tác tạo dữ liệu.
+
+## 11. Card Điểm THPT
+
+Card `Điểm THPT` dùng hai RPC riêng để đọc/cập nhật dữ liệu thật. Các field thuộc
+`CRM Student Admission Profile` được đọc từ hồ sơ của Student trong năm tuyển sinh
+được truyền vào; nếu không truyền năm, backend dùng `CRM Student.admission_year`.
+
+### Đọc điểm
+
+```http
+GET /api/method/crm.api.student_school.get_student_high_school_score?name=HS-2026-HCM-000001&admission_year=2026
+Cookie: sid=<Frappe session cookie>
+```
+
+Response trong `message`:
+
+```typescript
+{
+  doctype: "CRM Student";
+  name: string;
+  admission_profile: string | null;
+  admission_year: string | null;
+  fields: {
+    graduation_score: number | null;
+    transcript_score: number | null;
+    total_score: number | null;
+    is_high_school_graduate: boolean | null;
+    graduation_year: number | null;
+    academic_rank: string | null;
+    priority_group: string | null;
+    graduation_classification: string | null;
+    conduct_rank: string | null;
+    grade_12_gpa: number | null;
+    exam_candidate_number: string | null;
+    score_details: Record<string, unknown> | unknown[] | null;
+    encouragement_type: string | null;
+    encouragement_score: number | null;
+    priority_type: string | null;
+    priority_score: number | null;
+  };
+}
+```
+
+`graduation_score`, `transcript_score` và `total_score` được đọc từ `CRM Student`.
+Các trường thông tin hồ sơ được đọc từ `CRM Student Admission Profile`; riêng
+`academic_rank` được đọc từ dòng lớp 12 trong bảng `academic_results` của Student.
+
+### Cập nhật điểm
+
+```http
+PUT /api/method/crm.api.student_school.update_student_high_school_score
+Content-Type: application/json
+
+{
+  "name": "HS-2026-HCM-000001",
+  "admission_year": "2026",
+  "fields": {
+    "grade_12_gpa": 8.75,
+    "transcript_score": 8.5,
+    "score_details": {"toan": 9, "ngu_van": 8}
+  }
+}
+```
+
+API cập nhật một phần. Các trường điểm phải là số không âm; `graduation_year` phải
+là số nguyên; `score_details` phải là JSON object/array hợp lệ. Các trường thuộc
+Student được lưu trên `CRM Student`, các trường hồ sơ được lưu trên admission
+profile, còn `academic_rank` được lưu ở dòng lớp 12. Nếu cập nhật field profile khi
+Student chưa có admission profile tương ứng, API trả `404`. Backend luôn kiểm tra
+quyền `read` hoặc `write` trên các document trước khi trả/lưu dữ liệu.

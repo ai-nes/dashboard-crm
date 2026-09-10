@@ -12,10 +12,12 @@ import {
   getSchools,
   importLeads,
   getStudent,
+  getStudentHighSchoolScore,
   StudentSchoolUpdateApiError,
   requestStudentStageTransition,
   updateSchool,
   updateStudent,
+  updateStudentHighSchoolScore,
 } from ".";
 
 afterEach(() => {
@@ -88,6 +90,108 @@ describe("student and school update contract", () => {
     );
   });
 
+  it("reads the Student Detail high-school score fields", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
+    const payload = {
+      doctype: "CRM Student",
+      name: "STU-2026-00001",
+      admission_profile: "SAP-2026-00001",
+      admission_year: "2026",
+      fields: {
+        graduation_score: 8.6,
+        transcript_score: 8.5,
+        total_score: 27.25,
+        is_high_school_graduate: true,
+        graduation_year: 2026,
+        academic_rank: "Giỏi",
+        priority_group: "KV1",
+        graduation_classification: "Khá",
+        conduct_rank: "Tốt",
+        grade_12_gpa: 8.75,
+        exam_candidate_number: "012345",
+        score_details: { toan: 9 },
+        encouragement_type: "HSG",
+        encouragement_score: 1,
+        priority_type: "KV1",
+        priority_score: 0.25,
+      },
+    };
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(JSON.stringify({ message: payload }), { status: 200 }),
+      );
+
+    await expect(
+      getStudentHighSchoolScore(" STU-2026-00001 ", "2026"),
+    ).resolves.toEqual(payload);
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.student_school.get_student_high_school_score?name=STU-2026-00001&admission_year=2026",
+      expect.objectContaining({ method: "GET", credentials: "include" }),
+    );
+  });
+
+  it("updates the Student Detail high-school score fields", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
+    const fields = {
+      transcript_score: 8.5,
+      score_details: { toan: 9 },
+    };
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            doctype: "CRM Student",
+            name: "STU-2026-00001",
+            admission_profile: "SAP-2026-00001",
+            admission_year: "2026",
+            fields: {
+              graduation_score: 8.6,
+              transcript_score: 8.5,
+              total_score: null,
+              is_high_school_graduate: true,
+              graduation_year: 2026,
+              academic_rank: "Giỏi",
+              priority_group: "KV1",
+              graduation_classification: "Khá",
+              conduct_rank: "Tốt",
+              grade_12_gpa: null,
+              exam_candidate_number: null,
+              score_details: { toan: 9 },
+              encouragement_type: null,
+              encouragement_score: null,
+              priority_type: null,
+              priority_score: null,
+            },
+            updated_fields: fields,
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      updateStudentHighSchoolScore("STU-2026-00001", fields, "2026"),
+    ).resolves.toMatchObject({
+      name: "STU-2026-00001",
+      updated_fields: fields,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.student_school.update_student_high_school_score",
+      expect.objectContaining({
+        method: "PUT",
+        credentials: "include",
+        body: JSON.stringify({
+          name: "STU-2026-00001",
+          admission_year: "2026",
+          fields,
+        }),
+      }),
+    );
+  });
+
   it("reads schools with the documented filters", async () => {
     vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -129,11 +233,11 @@ describe("student and school update contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Student",
-            fieldname: "ward",
+            doctype: "CRM High School",
+            fieldname: "school_area",
             fieldtype: "Link",
-            target_doctype: "CRM Ward",
-            options: [{ value: "WARD-001", label: "Phường An Bình" }],
+            target_doctype: "CRM School Area",
+            options: [{ value: "KV3", label: "Khu vực 3" }],
           },
         }),
         { status: 200 },
@@ -142,26 +246,23 @@ describe("student and school update contract", () => {
 
     await expect(
       getFieldOptions({
-        doctype: "CRM Student",
-        fieldname: "ward",
-        province: "PROVINCE-001",
-        filters: { province: "PROVINCE-001" },
+        doctype: "CRM High School",
+        fieldname: "school_area",
+        high_school: "SCHOOL-001",
+        limit: 1,
       }),
     ).resolves.toMatchObject({
-      fieldname: "ward",
-      options: [{ value: "WARD-001", label: "Phường An Bình" }],
+      fieldname: "school_area",
+      options: [{ value: "KV3", label: "Khu vực 3" }],
     });
 
     const [url] = fetchSpy.mock.calls[0] as [string, RequestInit];
     expect(url).toContain(
       "http://frappe:8000/api/method/crm.api.student_school.get_field_options?",
     );
-    expect(url).toContain("doctype=CRM+Student");
-    expect(url).toContain("fieldname=ward");
-    expect(url).toContain("province=PROVINCE-001");
-    expect(url).toContain(
-      `filters=${encodeURIComponent(JSON.stringify({ province: "PROVINCE-001" }))}`,
-    );
+    expect(url).toContain("doctype=CRM+High+School");
+    expect(url).toContain("fieldname=school_area");
+    expect(url).toContain("high_school=SCHOOL-001");
   });
 
   it("puts only the requested student fields to the documented RPC", async () => {

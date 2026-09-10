@@ -387,11 +387,19 @@ function getStudentTabs(
       label: "Học tập và tuyển sinh",
       content: (
         <div className="space-y-6">
+          <StudentAdmissionInformationMockup data={data} />
           <div className="grid items-stretch gap-6 lg:grid-cols-2">
-            <StudentHighSchoolMockup />
-            <StudentHighSchoolScoreMockup />
+            <StudentHighSchoolMockup
+              canEdit={canUpdateStudent}
+              data={data}
+              studentId={analysisTargetId}
+            />
+            <StudentHighSchoolScoreMockup
+              canEdit={canUpdateStudent}
+              data={data}
+              studentId={analysisTargetId}
+            />
           </div>
-          <StudentAdmissionInformationMockup />
         </div>
       ),
     },

@@ -1,5 +1,6 @@
 "use client";
 
+import { InfoTriangle } from "@tailgrids/icons";
 import { useEffect, useMemo, useState } from "react";
 
 import type { StudentTaskItem } from "@/services/api/students/types";
@@ -243,6 +244,20 @@ export default function StudentTasksTab({
             </section>
           ))}
         </div>
+      )}
+
+      {!canCreateTask && createTaskDisabledReason && (
+        <p
+          className="flex items-start gap-1.5 px-1 text-sm leading-5 text-badge-warning-text"
+          role="status"
+        >
+          <InfoTriangle
+            size={15}
+            className="mt-0.5 shrink-0"
+            aria-hidden="true"
+          />
+          <span>{createTaskDisabledReason}</span>
+        </p>
       )}
 
       <StudentCreateTaskDialog

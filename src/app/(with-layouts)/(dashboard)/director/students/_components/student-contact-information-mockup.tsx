@@ -44,6 +44,11 @@ interface ContactInformationField {
   type?: "email" | "tel" | "text";
 }
 
+interface ContactInformationGroup {
+  title: string;
+  fields: ContactInformationField[];
+}
+
 interface StudentContactInformationMockupProps {
   data: Student360Data;
   studentId: string;
@@ -77,7 +82,7 @@ export default function StudentContactInformationMockup({
   const [form, setForm] = useState<ContactForm>(() => getContactForm(data));
   const updateMutation = useStudentProfileUpdate(studentId);
   const details = data.student.profileDetails?.contact;
-  const contactInformationFields = getContactInformationFields(data, details);
+  const contactInformationGroups = getContactInformationGroups(data, details);
 
   const startEditing = () => {
     if (updateMutation.isPending) return;
@@ -136,34 +141,19 @@ export default function StudentContactInformationMockup({
         title="Thông tin người liên hệ"
       />
 
-      <dl className="grid gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
-        {contactInformationFields.map((field) => {
-          if (isEditing && field.editKey) {
-            const editKey = field.editKey;
-            return (
-              <EditableDetailField
-                key={field.label}
-                isEditing
-                label={field.label}
-                onChange={(value) =>
-                  setForm((current) => ({ ...current, [editKey]: value }))
-                }
-                type={field.type}
-                value={form[editKey]}
-              />
-            );
-          }
-
-          return (
-            <div key={field.label} className="min-w-0">
-              <dt className="text-xs text-text-tertiary">{field.label}</dt>
-              <dd className="mt-1 break-words text-sm font-medium text-text-primary">
-                {field.value || "-"}
-              </dd>
-            </div>
-          );
-        })}
-      </dl>
+      <div className="space-y-4">
+        {contactInformationGroups.map((group) => (
+          <ContactInformationGroupSection
+            key={group.title}
+            group={group}
+            isEditing={isEditing}
+            form={form}
+            onChange={(editKey, value) =>
+              setForm((current) => ({ ...current, [editKey]: value }))
+            }
+          />
+        ))}
+      </div>
     </>
   );
 
@@ -171,6 +161,55 @@ export default function StudentContactInformationMockup({
     <Card className="p-5">
       {isEditing ? <form onSubmit={saveContact}>{content}</form> : content}
     </Card>
+  );
+}
+
+function ContactInformationGroupSection({
+  group,
+  isEditing,
+  form,
+  onChange,
+}: {
+  group: ContactInformationGroup;
+  isEditing: boolean;
+  form: ContactForm;
+  onChange: (editKey: keyof ContactForm, value: string) => void;
+}) {
+  return (
+    <section aria-label={group.title}>
+      <h3 className="border-b border-card-border pb-1 text-sm font-semibold text-text-primary">
+        {group.title}
+      </h3>
+      <dl className="mt-2 grid gap-x-8 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
+        {group.fields.map((field) => {
+          if (isEditing && field.editKey) {
+            const editKey = field.editKey;
+            return (
+              <EditableDetailField
+                key={field.label}
+                isEditing
+                label={field.label}
+                onChange={(value) => onChange(editKey, value)}
+                type={field.type}
+                value={form[editKey]}
+              />
+            );
+          }
+
+          return (
+            <div
+              key={field.label}
+              className="flex min-w-0 items-baseline gap-2 leading-5"
+            >
+              <dt className="shrink-0 text-xs text-text-tertiary">{field.label}</dt>
+              <dd className="min-w-0 break-words text-sm font-medium text-text-primary">
+                {field.value || "-"}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </section>
   );
 }
 
@@ -198,95 +237,110 @@ function getContactForm(data: Student360Data): ContactForm {
   };
 }
 
-function getContactInformationFields(
+function getContactInformationGroups(
   data: Student360Data,
   details?: StudentProfileContactDetails | null,
-): ContactInformationField[] {
+): ContactInformationGroup[] {
   const familyValue = (label: string) =>
     data.family?.find((item) => item.label === label)?.value;
 
   return [
     {
-      label: "Họ và tên người liên hệ",
-      value: details?.name || familyValue("Người liên hệ"),
-      editKey: "alt_name",
+      title: "Người liên hệ",
+      fields: [
+        {
+          label: "Họ và tên người liên hệ",
+          value: details?.name || familyValue("Người liên hệ"),
+          editKey: "alt_name",
+        },
+        {
+          label: "Số điện thoại",
+          value: details?.phone,
+          editKey: "alt_phone",
+          type: "tel",
+        },
+        {
+          label: "Số điện thoại khác (nếu có)",
+          value: details?.otherPhone,
+          editKey: "parent_other_phone",
+          type: "tel",
+        },
+        {
+          label: "Email",
+          value: details?.email,
+          editKey: "parent_email",
+          type: "email",
+        },
+        {
+          label: "Tên ngân hàng",
+          value: details?.bankName,
+          editKey: "bank_name",
+        },
+        {
+          label: "Số tài khoản",
+          value: details?.accountNumber,
+          editKey: "account_number",
+        },
+        {
+          label: "Tên chủ tài khoản",
+          value: details?.accountHolder,
+          editKey: "account_holder",
+        },
+      ],
     },
     {
-      label: "Số điện thoại",
-      value: details?.phone,
-      editKey: "alt_phone",
-      type: "tel",
+      title: "Cha",
+      fields: [
+        {
+          label: "Họ tên cha",
+          value: details?.fatherName,
+          editKey: "father_name",
+        },
+        {
+          label: "SĐT cha",
+          value: details?.fatherPhone,
+          editKey: "father_phone",
+          type: "tel",
+        },
+        {
+          label: "Email cha",
+          value: details?.fatherEmail,
+          editKey: "father_email",
+          type: "email",
+        },
+        {
+          label: "Nghề nghiệp cha",
+          value: details?.fatherOccupation,
+          editKey: "father_occupation",
+        },
+      ],
     },
     {
-      label: "Số điện thoại khác (nếu có)",
-      value: details?.otherPhone,
-      editKey: "parent_other_phone",
-      type: "tel",
-    },
-    {
-      label: "Email",
-      value: details?.email,
-      editKey: "parent_email",
-      type: "email",
-    },
-    {
-      label: "Tên ngân hàng",
-      value: details?.bankName,
-      editKey: "bank_name",
-    },
-    {
-      label: "Số tài khoản",
-      value: details?.accountNumber,
-      editKey: "account_number",
-    },
-    {
-      label: "Tên chủ tài khoản",
-      value: details?.accountHolder,
-      editKey: "account_holder",
-    },
-    {
-      label: "Email cha",
-      value: details?.fatherEmail,
-      editKey: "father_email",
-      type: "email",
-    },
-    {
-      label: "Họ tên cha",
-      value: details?.fatherName,
-      editKey: "father_name",
-    },
-    {
-      label: "SĐT cha",
-      value: details?.fatherPhone,
-      editKey: "father_phone",
-      type: "tel",
-    },
-    {
-      label: "Nghề nghiệp cha",
-      value: details?.fatherOccupation,
-      editKey: "father_occupation",
-    },
-    {
-      label: "SĐT mẹ",
-      value: details?.motherPhone,
-      editKey: "mother_phone",
-      type: "tel",
-    },
-    {
-      label: "Họ tên mẹ",
-      value: details?.motherName,
-      editKey: "mother_name",
-    },
-    {
-      label: "Email mẹ",
-      value: details?.motherEmail,
-      editKey: "mother_email",
-      type: "email",
-    },
-    {
-      label: "Nghề nghiệp mẹ",
-      value: details?.motherOccupation,
-      editKey: "mother_occupation",
+      title: "Mẹ",
+      fields: [
+        {
+          label: "Họ tên mẹ",
+          value: details?.motherName,
+          editKey: "mother_name",
+        },
+        {
+          label: "SĐT mẹ",
+          value: details?.motherPhone,
+          editKey: "mother_phone",
+          type: "tel",
+        },
+        {
+          label: "Email mẹ",
+          value: details?.motherEmail,
+          editKey: "mother_email",
+          type: "email",
+        },
+        {
+          label: "Nghề nghiệp mẹ",
+          value: details?.motherOccupation,
+          editKey: "mother_occupation",
+        },
+      ],
     },
   ];
 }
