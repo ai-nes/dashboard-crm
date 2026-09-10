@@ -204,7 +204,7 @@ export default function StudentTagsCell({
             setTagSearch("");
             setIsEditing(true);
           }}
-          className="group/tags mt-0.5 flex h-auto min-h-7 min-w-0 max-w-full items-center gap-1.5 rounded border border-card-border bg-card-background px-1.5 py-0.5 text-left text-sm font-medium text-text-primary shadow-xs transition-[border-color,box-shadow,background-color] hover:border-card-border-hover hover:bg-background-soft-50 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:cursor-not-allowed disabled:opacity-70"
+          className="group/tags mt-0.5 flex h-auto min-h-7 min-w-0 max-w-full items-center gap-1.5 rounded bg-card-background px-1.5 py-0.5 text-left text-sm font-medium text-text-primary transition-colors hover:bg-background-soft-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:cursor-not-allowed disabled:opacity-70"
           aria-label={
             assignedTags.length > 0
               ? `${editable ? "Sửa hoặc thêm tag" : "Xem tag"}: ${assignedTags.map((tag) => getTagLabel(tag.tag)).join(", ")}`
