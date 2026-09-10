@@ -391,7 +391,7 @@ function getStudentTabs(
 function getInitialTab(initialTab?: string, initialTaskId?: string): string {
   if (initialTaskId) return "tasks";
 
-  if (initialTab === "activities") return "notes";
+  if (initialTab === "activities") return "calls";
 
   const supportedTabs = new Set([
     "decision",
