@@ -107,7 +107,7 @@ export type SchoolCreateFields = SchoolUpdateFields & {
 export type CrudFieldValue = string | number | boolean | null;
 
 export interface StudentSchoolRecord<TFields = Record<string, unknown>> {
-  doctype: "CRM Lead" | "CRM High School";
+  doctype: "CRM Lead" | "CRM Student" | "CRM High School";
   name: string;
   fields: TFields;
 }
@@ -129,7 +129,7 @@ export interface FieldOption {
 }
 
 export interface GetFieldOptionsResponse {
-  doctype: "CRM Lead" | "CRM High School";
+  doctype: "CRM Lead" | "CRM Student" | "CRM High School";
   fieldname: string;
   fieldtype: "Link" | "Select";
   target_doctype: string | null;
@@ -170,7 +170,7 @@ export interface GetSchoolsParams {
 }
 
 export interface GetFieldOptionsParams {
-  doctype: "CRM Lead" | "CRM High School";
+  doctype: "CRM Lead" | "CRM Student" | "CRM High School";
   fieldname: string;
   search?: string;
   filters?: Record<string, CrudFieldValue>;
@@ -179,7 +179,7 @@ export interface GetFieldOptionsParams {
 }
 
 export interface UpdateRecordResponse<TFields> {
-  doctype: "CRM Lead" | "CRM High School";
+  doctype: "CRM Lead" | "CRM Student" | "CRM High School";
   name: string;
   updated_fields: TFields;
 }
@@ -208,7 +208,7 @@ export class StudentSchoolUpdateApiError extends Error {
 }
 
 /**
- * Keeps the CRUD payload aligned with CRM Lead's grade/study-stage contract.
+ * Keeps the CRUD payload aligned with CRM Student's grade/study-stage contract.
  * The backend deliberately does not infer study_stage, so the client must
  * remove an unknown or incompatible stage instead of sending a wrong value.
  */
@@ -567,7 +567,9 @@ export async function getFieldOptions(
   const message = getMessage(payload);
   assertObject(message);
   if (
-    (message.doctype !== "CRM Lead" && message.doctype !== "CRM High School") ||
+    (message.doctype !== "CRM Lead" &&
+      message.doctype !== "CRM Student" &&
+      message.doctype !== "CRM High School") ||
     typeof message.fieldname !== "string" ||
     (message.fieldtype !== "Link" && message.fieldtype !== "Select") ||
     !(
@@ -699,7 +701,7 @@ async function updateRecord<TFields>(
   const response = await fetch(
     `${baseUrl}/api/method/crm.api.student_school.${method}`,
     {
-      method: "POST",
+      method: "PUT",
       credentials: "include",
       headers: await getRequestHeaders(),
       body: JSON.stringify({ name: normalizedName, fields }),

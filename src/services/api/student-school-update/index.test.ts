@@ -64,7 +64,7 @@ describe("student and school update contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Lead",
+            doctype: "CRM Student",
             name: "ENR-2026-00001",
             fields: { student_name: "Nguyễn Văn An" },
           },
@@ -74,7 +74,7 @@ describe("student and school update contract", () => {
     );
 
     await expect(getStudent("ENR-2026-00001")).resolves.toMatchObject({
-      doctype: "CRM Lead",
+      doctype: "CRM Student",
       name: "ENR-2026-00001",
       fields: { student_name: "Nguyễn Văn An" },
     });
@@ -129,7 +129,7 @@ describe("student and school update contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Lead",
+            doctype: "CRM Student",
             fieldname: "ward",
             fieldtype: "Link",
             target_doctype: "CRM Ward",
@@ -142,7 +142,7 @@ describe("student and school update contract", () => {
 
     await expect(
       getFieldOptions({
-        doctype: "CRM Lead",
+        doctype: "CRM Student",
         fieldname: "ward",
         province: "PROVINCE-001",
         filters: { province: "PROVINCE-001" },
@@ -156,7 +156,7 @@ describe("student and school update contract", () => {
     expect(url).toContain(
       "http://frappe:8000/api/method/crm.api.student_school.get_field_options?",
     );
-    expect(url).toContain("doctype=CRM+Lead");
+    expect(url).toContain("doctype=CRM+Student");
     expect(url).toContain("fieldname=ward");
     expect(url).toContain("province=PROVINCE-001");
     expect(url).toContain(
@@ -164,13 +164,13 @@ describe("student and school update contract", () => {
     );
   });
 
-  it("posts only the requested student fields to the documented RPC", async () => {
+  it("puts only the requested student fields to the documented RPC", async () => {
     vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Lead",
+            doctype: "CRM Student",
             name: "ENR-2026-00001",
             updated_fields: { phone: "0900000000" },
           },
@@ -189,7 +189,7 @@ describe("student and school update contract", () => {
     expect(fetchSpy).toHaveBeenCalledWith(
       "http://frappe:8000/api/method/crm.api.student_school.update_student",
       expect.objectContaining({
-        method: "POST",
+        method: "PUT",
         credentials: "include",
         body: JSON.stringify({
           name: "ENR-2026-00001",
@@ -205,7 +205,7 @@ describe("student and school update contract", () => {
       new Response(
         JSON.stringify({
           message: {
-            doctype: "CRM Lead",
+            doctype: "CRM Student",
             name: "ENR-2026-00001",
             updated_fields: {
               current_grade: "10",

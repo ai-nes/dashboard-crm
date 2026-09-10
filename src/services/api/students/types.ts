@@ -282,7 +282,10 @@ export interface Student360Data {
     phone: string;
     email: string;
     province: string;
+    provinceId?: string | null;
     ward?: string | null;
+    wardId?: string | null;
+    currentGrade?: string | null;
     counselor: string;
     ownerId?: string | null;
     /** Ownership revision used as the CAS token when changing the owner. */
@@ -291,6 +294,8 @@ export interface Student360Data {
     verificationStatus?: StudentVerificationStatus | null;
     contactConsent?: StudentContactConsent | null;
     lastUpdatedAt?: string | null;
+    aspiration?: string | null;
+    aspirationId?: string | null;
   };
   readiness: {
     label: string;

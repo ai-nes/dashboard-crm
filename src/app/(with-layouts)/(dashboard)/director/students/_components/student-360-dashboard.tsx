@@ -35,10 +35,10 @@ import StudentAdmissionInformationMockup from "./student-admission-information-m
 import StudentAdmissionTabs from "./student-admission-tabs";
 import StudentAuditTab from "./student-audit-tab";
 import StudentClassificationCockpit from "./student-classification-cockpit";
+import StudentDetailsTab from "./student-details-tab";
 import StudentHeader from "./student-header";
 import StudentHighSchoolMockup from "./student-high-school-mockup";
 import StudentHighSchoolScoreMockup from "./student-high-school-score-mockup";
-import StudentPersonalContactMockup from "./student-personal-contact-mockup";
 import { canTransitionStudentStatus } from "./student-status";
 
 interface Student360DashboardProps {
@@ -331,7 +331,7 @@ export default function Student360Dashboard({
         <StudentActivitiesTab
           data={data}
           defaultSelectedKey={getInitialTab(initialTab, initialTaskId)}
-          detailTabs={getStudentTabs(data, targetId)}
+          detailTabs={getStudentTabs(data, targetId, canUpdateStudent)}
           initialChatwootInteractions={initialChatwootInteractions}
           initialStudentInteractions={initialStudentInteractions}
           initialTaskId={initialTaskId}
@@ -353,6 +353,7 @@ export default function Student360Dashboard({
 function getStudentTabs(
   data: Student360Data,
   analysisTargetId: string,
+  canUpdateStudent: boolean,
 ): DetailTabItem[] {
   const auditStudentId = data.student.studentId || analysisTargetId;
   return [
@@ -369,7 +370,13 @@ function getStudentTabs(
     {
       id: "student-profile",
       label: "Hồ sơ học sinh",
-      content: <StudentPersonalContactMockup />,
+      content: (
+        <StudentDetailsTab
+          canEdit={canUpdateStudent}
+          data={data}
+          studentId={analysisTargetId}
+        />
+      ),
     },
     {
       id: "academic-admission",

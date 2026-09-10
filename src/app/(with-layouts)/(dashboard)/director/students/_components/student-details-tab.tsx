@@ -96,18 +96,22 @@ export default function StudentDetailsTab({
   const personalEditing = editingCard === "personal";
   const academicEditing = editingCard === "academic";
   const provinceOptionsQuery = useStudentSchoolFieldOptions(
-    { doctype: "CRM Lead", fieldname: "province" },
+    { doctype: "CRM Student", fieldname: "province" },
     personalEditing,
   );
   const wardOptionsQuery = useStudentSchoolFieldOptions(
     personalForm.province
       ? {
-          doctype: "CRM Lead",
+          doctype: "CRM Student",
           fieldname: "ward",
           province: personalForm.province,
         }
       : null,
     personalEditing,
+  );
+  const aspirationOptionsQuery = useStudentSchoolFieldOptions(
+    { doctype: "CRM Student", fieldname: "aspiration", limit: 100 },
+    academicEditing,
   );
   const provinceOptions =
     provinceOptionsQuery.data?.options.map(({ value, label }) => ({
@@ -116,6 +120,11 @@ export default function StudentDetailsTab({
     })) ?? [];
   const wardOptions =
     wardOptionsQuery.data?.options.map(({ value, label }) => ({
+      id: value,
+      label,
+    })) ?? [];
+  const aspirationOptions =
+    aspirationOptionsQuery.data?.options.map(({ value, label }) => ({
       id: value,
       label,
     })) ?? [];
@@ -440,11 +449,13 @@ export default function StudentDetailsTab({
           />
           <EditableDetailField
             isEditing={academicEditing}
+            isDisabled={aspirationOptionsQuery.isLoading}
             label="Nguyện vọng ưu tiên"
             onChange={(value) =>
               setAcademicForm((form) => ({ ...form, aspiration: value }))
             }
-            value={academicEditing ? academicForm.aspiration : student.major}
+            options={academicEditing ? aspirationOptions : undefined}
+            value={academicEditing ? academicForm.aspiration : student.aspiration || student.major}
           />
           <EditableDetailField
             label="Cập nhật gần nhất"
@@ -469,8 +480,8 @@ function getPersonalForm(data: Student360Data): PersonalForm {
     student_name: data.student.name || "",
     date_of_birth: toDateInputValue(getProfileValue(data, "Ngày sinh")),
     gender: gender === "-" ? "" : gender,
-    province: data.student.province || "",
-    ward: data.student.ward || "",
+    province: data.student.provinceId || data.student.province || "",
+    ward: data.student.wardId || data.student.ward || "",
     phone: data.student.phone || "",
     email: data.student.email || "",
   };
@@ -490,7 +501,11 @@ function getAcademicForm(data: Student360Data): AcademicForm {
     high_school: getSchoolName(data.student.school, data.student.province),
     current_grade: currentGrade,
     study_stage: studyStage ?? "",
-    aspiration: data.student.major || "",
+    aspiration:
+      data.student.aspirationId ||
+      data.student.aspiration ||
+      data.student.major ||
+      "",
   };
 }
 

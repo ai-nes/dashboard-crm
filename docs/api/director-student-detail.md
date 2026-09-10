@@ -389,12 +389,30 @@ Schema nguồn hiện tại nằm tại [types.ts](../../src/services/api/studen
 | `phone` | string | Có | Liên hệ; production phải theo policy PII |
 | `email` | string | Có | Liên hệ; production phải theo policy PII |
 | `province` | string | Có | Khu vực |
+| `provinceId` | string nullable | Không | ID `CRM Province` dùng khi chỉnh sửa hồ sơ |
+| `ward` | string nullable | Không | Tên phường/xã hiển thị trên hồ sơ |
+| `wardId` | string nullable | Không | ID `CRM Ward` dùng khi chỉnh sửa hồ sơ |
+| `currentGrade` | string nullable | Không | Giá trị lớp gốc (`10`, `11`, `12`, `post_exam`) |
+| `studyStage` | string nullable | Không | Giai đoạn học tập gốc |
+| `aspiration` | string nullable | Không | Nguyện vọng ưu tiên |
+| `aspirationId` | string nullable | Không | ID `CRM Aspiration` dùng khi chỉnh sửa nguyện vọng |
 | `counselor` | string | Có | Người phụ trách |
 | `revision` | number | Có | Ownership revision dùng làm CAS token khi phân công |
 | `priority` | enum | Có | Mức ưu tiên hiển thị ở header: `Cao`, `Trung bình`, `Thấp` |
 | `verificationStatus` | enum | Có | Trạng thái xác thực hồ sơ: `Đã xác thực`, `Chưa xác thực`, `Cần xác minh` |
 | `contactConsent` | object | Có | Trạng thái và các kênh học sinh đã đồng ý nhận tư vấn |
 | `lastUpdatedAt` | string ISO-8601 | Có | Thời điểm cập nhật hồ sơ gần nhất |
+
+Tab `Hồ sơ học sinh` dùng projection GET ở trên để hiển thị dữ liệu và gọi API cập nhật từng phần:
+
+```http
+PUT /api/method/crm.api.student_school.update_student
+Content-Type: application/json
+
+{"name":"<crm_student_name>","fields":{"phone":"0900000000","current_grade":"12"}}
+```
+
+`fields` phải là object không rỗng và chỉ được chứa các field trong allowlist của backend. Backend kiểm tra quyền `write`; response trả `name` và `updated_fields`. Frontend dùng ID canonical của `CRM Student`, không dùng label tỉnh/phường để gửi update.
 
 `contactConsent`:
 
