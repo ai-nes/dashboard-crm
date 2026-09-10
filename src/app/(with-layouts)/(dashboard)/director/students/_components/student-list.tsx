@@ -18,7 +18,8 @@ function getScoreTone(score: number): "success" | "warning" | "error" {
   return "error";
 }
 
-export const studentListGrid = "lg:grid-cols-7";
+export const studentListGrid =
+  "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(104px,0.7fr)_minmax(88px,0.55fr)_minmax(0,1.2fr)]";
 
 export default function StudentList({
   students,
@@ -100,7 +101,7 @@ export default function StudentList({
                   Trạng thái
                 </p>
                 {status ? (
-                  <Badge color={studentStatusBadgeColor[status]} size="sm">
+                  <Badge color={studentStatusBadgeColor[status]} size="md">
                     {studentStatusLabel[status]}
                   </Badge>
                 ) : (
@@ -115,7 +116,9 @@ export default function StudentList({
                 <p className="text-xs text-text-tertiary lg:hidden">
                   Điểm tiềm năng
                 </p>
-                <Badge color={scoreTone}>{student.score}</Badge>
+                <Badge color={scoreTone} size="md">
+                  {student.score}
+                </Badge>
               </div>
 
               {/* Cột 7: Người phụ trách */}
