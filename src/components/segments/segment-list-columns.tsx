@@ -4,13 +4,20 @@ import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { Trash1 } from "@tailgrids/icons";
 
+import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 
-import { type SegmentListItem, type SegmentStatus } from "./segment-list-types";
+import {
+  SEGMENT_STATUS_BADGE_COLORS,
+  SEGMENT_STATUS_LABELS,
+  type SegmentListItem,
+  type SegmentStatus,
+} from "./segment-list-types";
 import { SegmentStatusSelect } from "./segment-status-select";
 
 interface SegmentColumnOptions {
   detailBaseHref: string;
+  canManage: boolean;
   onStatusChange: (segment: SegmentListItem, status: SegmentStatus) => void;
   onDelete: (segment: SegmentListItem) => void;
   isDeleteDisabled?: boolean;
@@ -18,11 +25,12 @@ interface SegmentColumnOptions {
 
 export function getSegmentListColumns({
   detailBaseHref,
+  canManage,
   onStatusChange,
   onDelete,
   isDeleteDisabled = false,
 }: SegmentColumnOptions): ColumnDef<SegmentListItem>[] {
-  return [
+  const columns: ColumnDef<SegmentListItem>[] = [
     {
       accessorKey: "segmentCode",
       header: "Mã segment",
@@ -66,13 +74,18 @@ export function getSegmentListColumns({
       header: "Trạng thái",
       enableGlobalFilter: false,
       filterFn: "equals",
-      cell: ({ row }) => (
-        <SegmentStatusSelect
-          value={row.original.status}
-          ariaLabel={`Cập nhật trạng thái ${row.original.name}`}
-          onChange={(status) => onStatusChange(row.original, status)}
-        />
-      ),
+      cell: ({ row }) =>
+        canManage ? (
+          <SegmentStatusSelect
+            value={row.original.status}
+            ariaLabel={`Cập nhật trạng thái ${row.original.name}`}
+            onChange={(status) => onStatusChange(row.original, status)}
+          />
+        ) : (
+          <Badge color={SEGMENT_STATUS_BADGE_COLORS[row.original.status]}>
+            {SEGMENT_STATUS_LABELS[row.original.status]}
+          </Badge>
+        ),
     },
     {
       accessorKey: "updatedAt",
@@ -94,7 +107,10 @@ export function getSegmentListColumns({
         </time>
       ),
     },
-    {
+  ];
+
+  if (canManage) {
+    columns.push({
       id: "actions",
       header: "Hành động",
       enableGlobalFilter: false,
@@ -112,6 +128,8 @@ export function getSegmentListColumns({
           <Trash1 size={16} aria-hidden="true" />
         </Button>
       ),
-    },
-  ];
+    });
+  }
+
+  return columns;
 }

@@ -160,6 +160,21 @@ export const NAV_DATA: NavigationSection[] = [
         url: "/director/admin/nba-actions",
         icon: <Widget4Icon />,
       }),
+      navItem({
+        title: "Quản lý segments",
+        url: "/director/admin/segments",
+        icon: <AlphabetIcon />,
+      }),
+      navItem({
+        title: "Cấu hình học sinh",
+        url: "/director/admin/student-config",
+        icon: <Widget4Icon />,
+      }),
+      navItem({
+        title: "Nhật ký hoạt động",
+        url: "/director/admin/activity-logs",
+        icon: <ClockThree size={18} />,
+      }),
     ],
   },
 ];
