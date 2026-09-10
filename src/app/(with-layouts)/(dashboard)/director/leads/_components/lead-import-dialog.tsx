@@ -36,6 +36,15 @@ export default function LeadImportDialog({
   const campaignsQuery = useLeadSaleCampaignsQuery({});
   const panelRef = useRef<QuickCreateLeadImportPanelHandle>(null);
   const [currentStep, setCurrentStep] = useState(0);
+
+  // Mở lại luôn bắt đầu từ bước 1: đưa currentStep về 0 ngay khi dialog đóng
+  // (làm ở render theo hướng dẫn "adjusting state on prop change" của React, không
+  // dùng useEffect). Vì dialog không còn animate max-width nên đóng là biến mất luôn.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (!isOpen) setCurrentStep(0);
+  }
   const campaigns = campaignsQuery.data?.campaigns ?? [];
   const campaignOptions = campaigns
     .filter((campaign) => {
@@ -50,10 +59,8 @@ export default function LeadImportDialog({
       label: `${campaign.stableCode} — ${campaign.title}`,
     }));
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) setCurrentStep(0);
-    onOpenChange(open);
-  };
+  // Bước 1 (chọn file + campaign) giữ dialog gọn; từ bước 2 (bảng map cột) mới mở rộng.
+  const dialogSize = currentStep === 0 ? "default" : "wide";
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -63,13 +70,13 @@ export default function LeadImportDialog({
   return (
     <MultiStepDialog
       isOpen={isOpen}
-      onOpenChange={handleOpenChange}
+      onOpenChange={onOpenChange}
       title="Import Lead từ file"
       description="Kiểm tra cột và dữ liệu trước khi tạo Lead. Backend sẽ đọc lại file gốc khi nhập."
       ariaLabel="Import Lead từ file"
       steps={STEPS}
       currentStep={currentStep}
-      size="wide"
+      size={dialogSize}
       isBusy={isSubmitting}
       onSubmit={handleSubmit}
       footer={
@@ -89,7 +96,7 @@ export default function LeadImportDialog({
               size="sm"
               appearance="outline"
               isDisabled={isSubmitting}
-              onPress={() => handleOpenChange(false)}
+              onPress={() => onOpenChange(false)}
             >
               Đóng
             </Button>
