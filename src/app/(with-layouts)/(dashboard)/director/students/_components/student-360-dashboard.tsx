@@ -19,6 +19,7 @@ import {
   useDirectorStudentsQuery,
   useStudent360Query,
 } from "@/hooks/use-students-queries";
+import { studentAuditKeys } from "@/hooks/use-student-audit-query";
 import {
   deleteStudent,
   requestStudentStageTransition,
@@ -119,6 +120,7 @@ export default function Student360Dashboard({
       });
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
+      await queryClient.invalidateQueries({ queryKey: studentAuditKeys.all });
       toast.success("Đã cập nhật trạng thái học sinh.");
     },
     onError: (error, variables) => {
