@@ -21,8 +21,10 @@ import type {
 
 export const studentsKeys = {
   all: ["students"] as const,
+  directorStudentsRoot: ["director-students"] as const,
   directorStudents: (params?: DirectorStudentsParams) =>
     ["director-students", params] as const,
+  assignedStudentsRoot: ["assigned-students"] as const,
   assignedStudents: (
     params?: DirectorStudentsParams,
     sessionUser?: string | null,

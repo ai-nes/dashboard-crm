@@ -264,6 +264,68 @@ export interface StudentJourneyEvent {
   status: "completed" | "current" | "upcoming";
 }
 
+export interface StudentProfilePersonalDetails {
+  fullName?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  idNumber?: string | null;
+  birthPlace?: string | null;
+  ethnicity?: string | null;
+  religion?: string | null;
+  nationality?: string | null;
+  idIssuedDate?: string | null;
+  idIssuedPlace?: string | null;
+  phone?: string | null;
+  otherPhone?: string | null;
+  email?: string | null;
+  otherEmail?: string | null;
+  source?: string | null;
+  campaign?: string | null;
+  owner?: string | null;
+  convertedFromLead?: string | null;
+  sourceLead?: string | null;
+  majorId?: string | null;
+  major?: string | null;
+  admissionYearId?: string | null;
+  admissionYear?: string | null;
+  branchId?: string | null;
+  branch?: string | null;
+  createdAt?: string | null;
+  modifiedAt?: string | null;
+}
+
+export interface StudentProfileContactDetails {
+  name?: string | null;
+  phone?: string | null;
+  otherPhone?: string | null;
+  email?: string | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  accountHolder?: string | null;
+  fatherEmail?: string | null;
+  fatherName?: string | null;
+  fatherPhone?: string | null;
+  fatherOccupation?: string | null;
+  motherPhone?: string | null;
+  motherName?: string | null;
+  motherEmail?: string | null;
+  motherOccupation?: string | null;
+}
+
+export interface StudentProfileAddressDetails {
+  province?: string | null;
+  provinceId?: string | null;
+  ward?: string | null;
+  wardId?: string | null;
+  fullAddress?: string | null;
+}
+
+export interface StudentProfileDetails {
+  personal?: StudentProfilePersonalDetails | null;
+  contact?: StudentProfileContactDetails | null;
+  address?: StudentProfileAddressDetails | null;
+}
+
 export interface Student360Data {
   student: {
     /** CRM Lead name used to load the Student 360 projection. */
@@ -296,6 +358,7 @@ export interface Student360Data {
     lastUpdatedAt?: string | null;
     aspiration?: string | null;
     aspirationId?: string | null;
+    profileDetails?: StudentProfileDetails | null;
   };
   readiness: {
     label: string;

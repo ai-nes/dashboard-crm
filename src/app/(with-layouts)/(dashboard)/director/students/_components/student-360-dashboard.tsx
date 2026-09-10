@@ -35,10 +35,10 @@ import StudentAdmissionInformationMockup from "./student-admission-information-m
 import StudentAdmissionTabs from "./student-admission-tabs";
 import StudentAuditTab from "./student-audit-tab";
 import StudentClassificationCockpit from "./student-classification-cockpit";
-import StudentDetailsTab from "./student-details-tab";
 import StudentHeader from "./student-header";
 import StudentHighSchoolMockup from "./student-high-school-mockup";
 import StudentHighSchoolScoreMockup from "./student-high-school-score-mockup";
+import StudentPersonalContactMockup from "./student-personal-contact-mockup";
 import { canTransitionStudentStatus } from "./student-status";
 
 interface Student360DashboardProps {
@@ -67,7 +67,10 @@ export default function Student360Dashboard({
   initialTaskId,
 }: Student360DashboardProps) {
   const targetId =
-    studentId?.trim() || propData?.student.code?.trim() || propData?.student.name?.trim() || "";
+    studentId?.trim() ||
+    propData?.student.code?.trim() ||
+    propData?.student.name?.trim() ||
+    "";
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -156,8 +159,7 @@ export default function Student360Dashboard({
       studentOwnership,
       user,
     );
-  const canAssignStudent =
-    permissions.student.canAssign && canUpdateStudent;
+  const canAssignStudent = permissions.student.canAssign && canUpdateStudent;
   const readScope = permissions.student.readScope ?? permissions.student.scope;
   const isSessionScopedStudentQuery =
     readScope === "assigned" || readScope === "team";
@@ -371,7 +373,7 @@ function getStudentTabs(
       id: "student-profile",
       label: "Hồ sơ học sinh",
       content: (
-        <StudentDetailsTab
+        <StudentPersonalContactMockup
           canEdit={canUpdateStudent}
           data={data}
           studentId={analysisTargetId}
