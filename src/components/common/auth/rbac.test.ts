@@ -63,6 +63,13 @@ describe("dashboard RBAC", () => {
     ).toBe(false);
   });
 
+  it("resolves /admin/users to the /admin route rule", () => {
+    expect(findRouteAccessRule("/admin/users")?.path).toBe("/admin");
+    expect(canAccessDashboardPath("/admin/users", ["System Manager"])).toBe(true);
+    expect(canAccessDashboardPath("/admin/users", ["Administrator"])).toBe(true);
+    expect(canAccessDashboardPath("/admin/users", ["Sale"])).toBe(false);
+  });
+
   it("allows the Rule Engine route from the backend capability", () => {
     expect(
       canAccessDashboardPath("/director/admin/rules-config", ["Lead Sale"], ["rule.manage"]),
@@ -212,6 +219,7 @@ describe("dashboard RBAC", () => {
       "/director/ai",
       "/director/data-health",
       "/director/alerts",
+      "/admin/users",
       "/director/admin/nba-actions",
       "/director/admin/segments",
       "/director/admin/rules-config",

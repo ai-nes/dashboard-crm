@@ -150,6 +150,11 @@ export const NAV_DATA: NavigationSection[] = [
     label: 'CẤU HÌNH',
     items: [
       navItem({
+        title: 'Quản lý người dùng',
+        url: '/admin/users',
+        icon: <UserPencil size={18} />,
+      }),
+      navItem({
         title: 'Quản lý cấu hình NBA',
         url: '/director/admin/nba-actions',
         icon: <Widget4Icon />,
