@@ -19,6 +19,7 @@ import { Button } from "./button";
 
 export type RichTextEditorExtension = NonNullable<UseEditorOptions["extensions"]>[number];
 type RichTextEditorInstance = NonNullable<ReturnType<typeof useEditor>>;
+export type { RichTextEditorInstance };
 
 export interface RichTextEditorProps {
   value: string;
@@ -27,9 +28,13 @@ export interface RichTextEditorProps {
   className?: string;
   showInsertButton?: boolean;
   onInsert?: () => void;
-  renderInsertControl?: (onInsertToken: (token: string) => void) => ReactNode;
+  renderInsertControl?: (
+    onInsertToken: (token: string) => void,
+    onInsertContent: (content: string) => void,
+  ) => ReactNode;
   extensions?: RichTextEditorExtension[];
   onInsertToken?: (editor: RichTextEditorInstance, token: string) => void;
+  onEditorUpdate?: (editor: RichTextEditorInstance) => void;
 }
 
 interface ToolbarButtonProps {
@@ -67,6 +72,7 @@ export function RichTextEditor({
   renderInsertControl,
   extensions = [],
   onInsertToken,
+  onEditorUpdate,
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -82,7 +88,10 @@ export function RichTextEditor({
           "min-h-28 px-4 py-3 text-sm leading-6 text-text-primary outline-none [&_p]:my-1 [&_a]:text-primary-500 [&_a]:underline",
       },
     },
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => {
+      onEditorUpdate?.(editor);
+      onChange(editor.getHTML());
+    },
   });
 
   if (!editor) return null;
@@ -106,6 +115,10 @@ export function RichTextEditor({
     }
 
     editor.chain().focus().insertContent(`{{${token}}}`).run();
+  };
+  const handleInsertContent = (content: string) => {
+    if (!content) return;
+    editor.chain().focus().insertContent(content).run();
   };
 
   return (
@@ -153,7 +166,7 @@ export function RichTextEditor({
           <SparkleFill size={16} />
         </ToolbarButton>
         {renderInsertControl
-          ? renderInsertControl(handleInsertToken)
+          ? renderInsertControl(handleInsertToken, handleInsertContent)
           : showInsertButton && (
               <Button
                 variant="ghost"

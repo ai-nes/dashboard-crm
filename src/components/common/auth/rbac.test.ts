@@ -89,6 +89,12 @@ describe("dashboard RBAC", () => {
     ).toBe(true);
   });
 
+  it("allows every authenticated dashboard role to manage snippets", () => {
+    for (const role of [...CRM_ROLES, "System Manager"]) {
+      expect(canAccessDashboardPath("/lead-sale/snippest", [role])).toBe(true);
+    }
+  });
+
   it("protects school detail aliases with the school intelligence permission", () => {
     expect(
       canAccessDashboardPath("/director/schools/HIGH-001", ["Promoter"]),
@@ -189,7 +195,7 @@ describe("dashboard RBAC", () => {
           ["Administrator"],
         ),
       ),
-       ).toHaveLength(11);
+       ).toHaveLength(14);
     expect(primaryItems).not.toContain("Cấu hình Action NBA");
     expect(
       findActiveGroupKeyInNavigation("/director/ai", directorNavigation),
@@ -215,6 +221,7 @@ describe("dashboard RBAC", () => {
       "/director/admin/nba-actions",
       "/director/admin/segments",
       "/director/admin/rules-config",
+      "/director/admin/message-templates",
       "/director/admin/student-config",
       "/director/admin/activity-logs",
     ]);

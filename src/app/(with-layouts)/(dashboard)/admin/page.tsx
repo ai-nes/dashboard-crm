@@ -25,6 +25,11 @@ export default function AdminPage() {
           href: '/director/admin/rules-config',
         },
         {
+          label: 'Quản lý Message Template',
+          description: 'Quản lý các mẫu email dùng chung trong thư viện tạo mẫu.',
+          href: '/director/admin/message-templates',
+        },
+        {
           label: 'Quản lý segments',
           description: 'Tạo và quản lý các nhóm học sinh dùng chung cho toàn bộ đội tuyển sinh.',
           href: '/director/admin/segments',

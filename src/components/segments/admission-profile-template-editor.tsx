@@ -315,6 +315,7 @@ export function AdmissionProfileTemplateEditor({
               <AdmissionProfileTemplateDocuments
                 requirements={form.requirements}
                 documentTypes={documentTypes}
+                admissionMethods={admissionMethods}
                 isSaving={isSaving}
                 selectedGroup={selectedRequirementGroup}
                 documentSearch={documentSearch}

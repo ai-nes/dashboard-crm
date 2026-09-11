@@ -1,5 +1,4 @@
-export interface MessageTemplateDraft {
-  name: string;
-  subject: string;
-  body: string;
-}
+export type {
+  MessageTemplateDraft,
+  MessageTemplateSharing,
+} from "@/services/api/message-templates";

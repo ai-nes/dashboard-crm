@@ -1,4 +1,5 @@
 import type {
+  AdmissionMethodOption,
   AdmissionDocumentTypeOption,
   AdmissionProfileTemplateOption,
   AdmissionProfileTemplateStatus,
@@ -25,6 +26,7 @@ export const REQUIREMENT_GROUP_OPTIONS = [
   {value: 'BASIC_ADMISSION', label: 'Hồ sơ cơ bản'},
   {value: 'IDENTITY', label: 'Giấy tờ tùy thân'},
   {value: 'GRADUATION', label: 'Tốt nghiệp THPT'},
+  {value: 'COLLEGE_GRADUATION', label: 'Tốt nghiệp Cao đẳng'},
   {value: 'ACHIEVEMENT', label: 'Thành tích'},
   {value: 'FIRST_GENERATION', label: 'Thế hệ đầu tiên'},
   {value: 'LANGUAGE_CERTIFICATE', label: 'Chứng chỉ ngoại ngữ'},
@@ -35,17 +37,50 @@ export const REQUIREMENT_GROUP_OPTIONS = [
   {value: 'SCHOLARSHIP', label: 'Học bổng'},
 ]
 
-export const REQUIREMENT_CONDITION_OPTIONS = [
+export const SPECIAL_PROFILE_CONDITION_OPTIONS = [
   {value: '', label: 'Không áp dụng'},
   {value: 'FIRST_GENERATION', label: 'Diện thế hệ đầu tiên'},
   {value: 'LANGUAGE_CERTIFICATE', label: 'Diện chứng chỉ ngoại ngữ'},
   {value: 'INTERNATIONAL_PROGRAM', label: 'Diện chương trình quốc tế'},
-  {value: 'FPT_POLYTECHNIC', label: 'Diện FPT Polytechnic'},
   {value: 'ACHIEVEMENT', label: 'Diện thành tích'},
   {value: 'STUDY_NOW_PAY_LATER', label: 'Diện học trước - trả sau'},
   {value: 'FAMILY_FE_FPT', label: 'Diện gia đình FE FPT'},
   {value: 'SCHOLARSHIP', label: 'Diện học bổng'},
 ]
+
+export type TechnicalSelectOption = {value: string; label: string}
+
+export function includeCurrentOption(
+  options: readonly TechnicalSelectOption[],
+  currentValue: string,
+): TechnicalSelectOption[] {
+  if (!currentValue || options.some((option) => option.value === currentValue)) return [...options]
+  return [{value: currentValue, label: `Giá trị hiện tại (${currentValue})`}, ...options]
+}
+
+export function requirementConditionOptions(
+  sectionCode: string,
+  admissionMethods: readonly AdmissionMethodOption[],
+): TechnicalSelectOption[] {
+  const methodOptions = admissionMethods.map((method) => ({
+    value: `field:application.admission_method=${method.code || method.id}`,
+    label: `Phương thức: ${method.name || method.code || method.id}`,
+  }))
+
+  if (sectionCode === 'method') {
+    return [{value: '', label: 'Không áp dụng'}, ...methodOptions]
+  }
+
+  if (sectionCode === 'special_program' || sectionCode === 'scholarship') {
+    return [...SPECIAL_PROFILE_CONDITION_OPTIONS]
+  }
+
+  return [
+    {value: '', label: 'Không áp dụng'},
+    ...methodOptions,
+    ...SPECIAL_PROFILE_CONDITION_OPTIONS.slice(1),
+  ]
+}
 
 export type EditorSection = 'overview' | 'documents'
 

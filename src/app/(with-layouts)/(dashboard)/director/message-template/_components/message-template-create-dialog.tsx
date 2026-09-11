@@ -11,6 +11,7 @@ import {
 } from "@/components/tailgrids/core/dialog";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
 import { cn } from "@/utils/cn";
+import type { SnippetRecord } from "@/services/api/snippets";
 
 import MessageTemplateCreateEditor from "./message-template-create-editor";
 import MessageTemplateCreatePreview from "./message-template-create-preview";
@@ -21,13 +22,19 @@ interface MessageTemplateCreateDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   draft: MessageTemplateDraft;
+  ownerName: string;
   onDraftChange: (field: keyof MessageTemplateDraft, value: string) => void;
   template?: MessageTemplateRecord | null;
-  onSave?: (draft: MessageTemplateDraft) => void;
+  sharingLocked?: boolean;
+  onSave?: (draft: MessageTemplateDraft) => Promise<void> | void;
+  isSaving?: boolean;
   isPreviewVisible: boolean;
   onPreviewVisibilityChange: (isVisible: boolean) => void;
   selectedContact: string;
   onContactChange: (contact: string) => void;
+  snippets?: SnippetRecord[];
+  isLoadingSnippets?: boolean;
+  snippetsError?: string | null;
 }
 
 function isBodyValid(body: string) {
@@ -70,13 +77,19 @@ export default function MessageTemplateCreateDialog({
   isOpen,
   onOpenChange,
   draft,
+  ownerName,
   onDraftChange,
   template = null,
+  sharingLocked = false,
   onSave,
+  isSaving = false,
   isPreviewVisible,
   onPreviewVisibilityChange,
   selectedContact,
   onContactChange,
+  snippets = [],
+  isLoadingSnippets = false,
+  snippetsError = null,
 }: MessageTemplateCreateDialogProps) {
   const isEditMode = Boolean(template);
 
@@ -136,7 +149,12 @@ export default function MessageTemplateCreateDialog({
             >
               <MessageTemplateCreateEditor
                 draft={editorDraft}
+                ownerName={ownerName}
                 onChange={onDraftChange}
+                sharingLocked={sharingLocked}
+                snippets={snippets}
+                isLoadingSnippets={isLoadingSnippets}
+                snippetsError={snippetsError}
                 showPreviewToggle={!isPreviewVisible}
                 onShowPreview={() => onPreviewVisibilityChange(true)}
               />
@@ -144,6 +162,7 @@ export default function MessageTemplateCreateDialog({
             {isPreviewVisible && (
               <div className="flex min-h-0 flex-col overflow-hidden px-5 py-5 sm:px-7 sm:py-6 lg:pl-2">
                 <MessageTemplateCreatePreview
+                  isOpen={isOpen}
                   draft={draft}
                   isPreviewVisible={isPreviewVisible}
                   onPreviewVisibilityChange={onPreviewVisibilityChange}
@@ -159,11 +178,16 @@ export default function MessageTemplateCreateDialog({
               Hủy
             </Button>
             <Button
-              isDisabled={!canSave}
+              isDisabled={!canSave || isSaving}
+              isPending={isSaving}
               className="sm:min-w-44"
-              onPress={() => {
-                onSave?.(draft);
-                onOpenChange(false);
+              onPress={async () => {
+                try {
+                  await onSave?.(draft);
+                  onOpenChange(false);
+                } catch {
+                  // The page-level mutation handler already surfaces the error.
+                }
               }}
             >
               {isEditMode ? "Lưu thay đổi" : "Tạo mẫu"}

@@ -165,6 +165,11 @@ export const NAV_DATA: NavigationSection[] = [
         icon: <Widget4Icon />,
       }),
       navItem({
+        title: 'Quản lý Message Template',
+        url: '/director/admin/message-templates',
+        icon: <ChatIcon />,
+      }),
+      navItem({
         title: 'Cấu hình học sinh',
         url: '/director/admin/student-config',
         icon: <Widget4Icon />,
@@ -196,6 +201,11 @@ export const DIRECTOR_NAV_DATA: NavigationSection[] = NAV_DATA.map((section) => 
   ...section,
   items: section.items.filter((item) => item.url && DIRECTOR_NAV_PATHS.has(item.url)),
 })).filter((section) => section.items.length > 0)
+
+const ADMIN_NAV_DATA: NavigationSection[] = [
+  ...DIRECTOR_NAV_DATA,
+  NAV_DATA.find((section) => section.label === 'CẤU HÌNH')!,
+]
 
 /**
  * Dedicated, curated navigation for CTV Sale — a small, focused set of
@@ -432,8 +442,10 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
 export function getNavigationDataForRoles(userRoles: readonly string[]): NavigationSection[] {
   const effectiveRoles = getEffectiveDashboardRoles(userRoles)
   const navigation =
-    effectiveRoles.includes('Admissions Director') || effectiveRoles.includes('Administrator')
-      ? DIRECTOR_NAV_DATA
+    effectiveRoles.includes('Administrator')
+      ? ADMIN_NAV_DATA
+      : effectiveRoles.includes('Admissions Director')
+        ? DIRECTOR_NAV_DATA
       : effectiveRoles.includes('CTV Sale')
         ? CTV_SALE_NAV_DATA
         : effectiveRoles.includes('Lead Sale')
