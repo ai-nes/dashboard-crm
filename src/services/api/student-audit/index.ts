@@ -206,7 +206,7 @@ async function getAuditLogs(
   options: RequestOptions = {},
   method = METHOD,
   queryParam: "student" | "lead_id" | "segment" = "student",
-  responseKey: "student" | "segment" = "student",
+  responseKey: "student" | "lead_id" | "segment" = "student",
   entityLabel = "học sinh",
 ): Promise<StudentAuditLogsResponse> {
   const entityId = params.id.trim();
@@ -285,7 +285,7 @@ export async function getLeadAuditLogs(
     options,
     LEAD_METHOD,
     "lead_id",
-    "student",
+    "lead_id",
     "Lead",
   );
 }

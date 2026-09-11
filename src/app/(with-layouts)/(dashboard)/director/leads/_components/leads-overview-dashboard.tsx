@@ -6,7 +6,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { getCrmPermissions } from "@/components/common/auth/permissions";
+import {
+  getCrmPermissions,
+  hasCrmCapability,
+} from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
@@ -43,6 +46,8 @@ export default function LeadsOverviewDashboard() {
   const permissions = getCrmPermissions(user?.roles);
   const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
   const canManageLeadIntake = permissions.lead.canAssign && !isAuthLoading;
+  const canAssignLead =
+    !isAuthLoading && hasCrmCapability(user, "student.routing.operate");
   const queryClient = useQueryClient();
   const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
   const createMutation = useCreateLeadMutation();
@@ -349,7 +354,7 @@ export default function LeadsOverviewDashboard() {
                 Đang tải danh sách Lead…
               </div>
             ) : (
-              <LeadList leads={leads} />
+              <LeadList canAssign={canAssignLead} leads={leads} />
             )}
           </div>
         </div>

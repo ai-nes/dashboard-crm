@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  assignLeadToStaff,
   convertLeadToStudent,
   createLead,
   deleteLead,
   getLeadDetail,
+  getLeadAssignmentTargets,
   getLeadList,
   importLeadFile,
   importLeadRows,
@@ -42,6 +44,9 @@ function listFixture() {
         result: "MATCHED",
         source: "Website",
         owner: "Chưa phân công",
+        ownerStaff: "STAFF-1",
+        owningTeam: "TEAM-1",
+        ownershipRevision: 2,
         contactNoAnswer: 2,
         contactSuccess: 3,
         createdAt: "2026-09-07T10:00:00+07:00",
@@ -99,6 +104,9 @@ describe("Lead list/detail API contract", () => {
     expect(result.data[0]?.statusCode).toBe("PROCESSED");
     expect(result.data[0]?.processingStatus).toBe("PROCESSED");
     expect(result.data[0]?.result).toBe("MATCHED");
+    expect(result.data[0]?.ownerStaff).toBe("STAFF-1");
+    expect(result.data[0]?.owningTeam).toBe("TEAM-1");
+    expect(result.data[0]?.ownershipRevision).toBe(2);
     expect(result.data[0]?.contactNoAnswer).toBe(2);
     expect(result.data[0]?.contactSuccess).toBe(3);
     expect(result.data[0]?.createdAt).toBe("2026-09-07T10:00:00+07:00");
@@ -207,6 +215,106 @@ describe("Lead list/detail API contract", () => {
       newValue: "PROCESSING",
       source: "Version",
     });
+  });
+
+  it("loads eligible Sale/CTV targets for a Lead", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            lead: "LEAD-2026-00001",
+            province: "Ho Chi Minh City",
+            ownership_revision: 2,
+            targets: [
+              {
+                staff: "STAFF-1",
+                staffName: "Nguyễn Minh An",
+                team: "TEAM-1",
+                teamName: "Sale HCM",
+                function: "Sale",
+                capacity: { active: 3, limit: 10, remaining: 7 },
+                effectiveActive: 3,
+              },
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      getLeadAssignmentTargets("LEAD-2026-00001", {
+        baseUrl: "http://frappe:8000",
+      }),
+    ).resolves.toMatchObject({
+      ownershipRevision: 2,
+      targets: [
+        expect.objectContaining({
+          id: "STAFF-1",
+          displayName: "Nguyễn Minh An",
+          teamId: "TEAM-1",
+          teamName: "Sale HCM",
+          effectiveActive: 3,
+        }),
+      ],
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_processing.list_lead_assignment_targets?lead=LEAD-2026-00001",
+      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    );
+  });
+
+  it("assigns a Lead with its ownership revision", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            status: "ASSIGNED",
+            resolution: "PENDING",
+            lead: "LEAD-2026-00001",
+            ownership: {
+              owner_staff: "STAFF-1",
+              owning_team: "TEAM-1",
+              revision: 3,
+            },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      assignLeadToStaff(
+        {
+          lead: "LEAD-2026-00001",
+          ownerStaff: "STAFF-1",
+          targetTeamId: "TEAM-1",
+          expectedRevision: 2,
+          reason: "Phân công từ chi tiết Lead",
+          idempotencyKey: "lead-detail-assignment:test-1",
+        },
+        { baseUrl: "http://frappe:8000" },
+      ),
+    ).resolves.toMatchObject({
+      status: "ASSIGNED",
+      ownership: { ownerStaff: "STAFF-1", owningTeam: "TEAM-1", revision: 3 },
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_processing.assign_lead",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          lead: "LEAD-2026-00001",
+          owner_staff: "STAFF-1",
+          target_team_id: "TEAM-1",
+          reason: "Phân công từ chi tiết Lead",
+          idempotency_key: "lead-detail-assignment:test-1",
+          expected_revision: 2,
+        }),
+      }),
+    );
   });
 
   it("normalizes detailed Lead audit metadata additively", () => {

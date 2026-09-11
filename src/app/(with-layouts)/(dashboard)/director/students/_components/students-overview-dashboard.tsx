@@ -20,6 +20,7 @@ import {
   useAssignedStudentsQuery,
   useDirectorStudentsQuery,
 } from "@/hooks/use-students-queries";
+import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-queries";
 import {
   createStudentWithLead,
   type StudentCreateWithLeadFields,
@@ -55,8 +56,14 @@ export default function StudentsOverviewDashboard() {
   const [assignmentStatus, setAssignmentStatus] = useState<
     StudentAssignmentStatus | "all"
   >("all");
+  const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+
+  const campaignsQuery = useLeadSaleCampaignsQuery({
+    leadOnly: true,
+  });
+  const availableCampaigns = campaignsQuery.data?.campaigns ?? [];
 
   const studentsQueryParams = {
     admissionYear: 2026,
@@ -64,7 +71,9 @@ export default function StudentsOverviewDashboard() {
     pageSize,
     q: query || undefined,
     province,
+    lifecycleStatus: studentStatus === "all" ? undefined : studentStatus,
     assignmentStatus,
+    campaign: campaign || undefined,
     // Session-scoped roles must never be able to widen the list with an owner
     // query parameter. The backend derives pool/team scope from the session.
     ownerId: isSessionScoped ? undefined : ownerId,
@@ -87,20 +96,13 @@ export default function StudentsOverviewDashboard() {
   const { data: response, isError, error, isPlaceholderData } = studentsQuery;
 
   const students = response?.data ?? [];
-  const filteredStudents =
-    studentStatus === "all"
-      ? students
-      : students.filter((student) => student.studentStage === studentStatus);
   const meta = response?.meta;
 
-  const totalCount =
-    studentStatus === "all"
-      ? (meta?.total ?? students.length)
-      : filteredStudents.length;
-  const totalPages =
-    studentStatus === "all"
-      ? Math.max(1, meta?.totalPages ?? Math.ceil(totalCount / pageSize))
-      : Math.max(1, Math.ceil(totalCount / pageSize));
+  const totalCount = meta?.total ?? students.length;
+  const totalPages = Math.max(
+    1,
+    meta?.totalPages ?? Math.ceil(totalCount / pageSize),
+  );
   const currentPage = meta ? Math.min(page, totalPages) : page;
 
   const createMutation = useMutation({
@@ -144,6 +146,11 @@ export default function StudentsOverviewDashboard() {
     setPage(1);
   };
 
+  const handleCampaignChange = (val: string) => {
+    setCampaign(val);
+    setPage(1);
+  };
+
   const openCreateDialog = () => {
     createMutation.reset();
     setCreateDialogOpen(true);
@@ -154,6 +161,7 @@ export default function StudentsOverviewDashboard() {
     setStudentStatus("all");
     setProvince("all");
     setAssignmentStatus("all");
+    setCampaign("");
     setPage(1);
   };
 
@@ -220,11 +228,16 @@ export default function StudentsOverviewDashboard() {
         studentStatus={studentStatus}
         province={province}
         assignmentStatus={assignmentStatus}
+        campaign={campaign}
+        campaigns={availableCampaigns}
+        campaignLoading={campaignsQuery.isPending}
+        campaignError={campaignsQuery.error?.message}
         resultCount={totalCount}
         onQueryChange={handleQueryChange}
         onStatusChange={handleStudentStatusFilterChange}
         onProvinceChange={handleProvinceChange}
         onAssignmentStatusChange={handleAssignmentStatusChange}
+        onCampaignChange={handleCampaignChange}
         onReset={resetFilters}
       />
 
@@ -244,7 +257,7 @@ export default function StudentsOverviewDashboard() {
               <span className="min-w-0 truncate">Người phụ trách</span>
             </div>
             <StudentList
-              students={filteredStudents}
+              students={students}
               ownerEditable={permissions.student.canAssign}
             />
           </div>

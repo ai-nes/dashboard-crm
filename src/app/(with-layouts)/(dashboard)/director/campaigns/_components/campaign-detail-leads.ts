@@ -57,6 +57,7 @@ export function countCampaignLeadsByStatus(
   const counts: Record<CampaignLeadStatusFilter, number> = {
     all: leads.length,
     NEW: 0,
+    PROCESSING: 0,
     PROCESSED: 0,
     ASSIGNED: 0,
     CLOSED: 0,

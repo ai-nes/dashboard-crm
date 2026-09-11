@@ -42,6 +42,9 @@ export interface LeadListItem {
   result: LeadResolution | "";
   source: string;
   owner: string;
+  ownerStaff?: string | null;
+  owningTeam?: string | null;
+  ownershipRevision?: number | null;
   contactNoAnswer: number;
   contactSuccess: number;
   createdAt?: string | null;
@@ -72,6 +75,9 @@ export interface LeadDetail extends LeadListItem {
   fptAspiration: FptAspiration;
   eventsParticipated: string[];
   description: string;
+  ownerStaff?: string | null;
+  owningTeam?: string | null;
+  ownershipRevision?: number | null;
   modifiedAt?: string | null;
 }
 
@@ -176,6 +182,50 @@ export interface LeadConversionResponse {
   lead: string;
   student: string;
   studentStage: string;
+}
+
+export interface LeadAssignmentCapacity {
+  active: number;
+  limit: number | null;
+  remaining: number | null;
+}
+
+export interface LeadAssignmentTarget {
+  id: string;
+  displayName: string;
+  teamId: string;
+  teamName: string;
+  function: string;
+  capacity: LeadAssignmentCapacity;
+  effectiveActive: number;
+}
+
+export interface LeadAssignmentTargetsResponse {
+  lead: string;
+  province: string;
+  ownershipRevision: number;
+  targets: LeadAssignmentTarget[];
+}
+
+export interface LeadAssignmentRequest {
+  lead: string;
+  ownerStaff: string;
+  targetTeamId: string;
+  expectedRevision: number;
+  reason?: string;
+  idempotencyKey?: string;
+  correlationId?: string;
+}
+
+export interface LeadAssignmentResponse {
+  status: "ASSIGNED";
+  resolution: "PENDING";
+  lead: string;
+  ownership: {
+    ownerStaff: string | null;
+    owningTeam: string | null;
+    revision: number;
+  };
 }
 
 export interface LeadProcessScanRequest {
@@ -322,6 +372,9 @@ const IMPORT_METHOD = "crm.api.lead_mapping.import_leads";
 const UPDATE_METHOD = "crm.api.lead.update_lead";
 const DELETE_METHOD = "crm.api.lead.delete_lead";
 const CONVERT_METHOD = "crm.api.lead_processing.convert_to_student";
+const ASSIGNMENT_TARGETS_METHOD =
+  "crm.api.lead_processing.list_lead_assignment_targets";
+const ASSIGN_METHOD = "crm.api.lead_processing.assign_lead";
 const PROCESS_METHOD = "crm.api.lead_processing.process_lead";
 const PROCESS_SCAN_METHOD = "crm.api.lead_processing.process_new_leads";
 const STATUS_UPDATE_METHOD = "crm.api.lead_processing.update_processing_status";
@@ -460,6 +513,76 @@ function normalizeConversionResponse(value: unknown): LeadConversionResponse {
   };
 }
 
+function normalizeAssignmentTarget(
+  value: unknown,
+): LeadAssignmentTarget | null {
+  const row = asRecord(value) ?? {};
+  const id = firstText([row.id, row.staff]);
+  const teamId = firstText([row.teamId, row.team_id, row.team]);
+  if (!id || !teamId) return null;
+
+  const capacity = asRecord(row.capacity) ?? {};
+  return {
+    id,
+    displayName: firstText([row.displayName, row.staffName, row.staff_name], id),
+    teamId,
+    teamName: firstText([row.teamName, row.team_name], teamId),
+    function: firstText([row.function], "Sale"),
+    capacity: {
+      active: count(capacity.active),
+      limit: integerOrNull(capacity.limit),
+      remaining: integerOrNull(capacity.remaining),
+    },
+    effectiveActive: count(row.effectiveActive ?? row.effective_active),
+  };
+}
+
+function normalizeAssignmentTargets(
+  value: unknown,
+): LeadAssignmentTargetsResponse {
+  const payload = asRecord(unwrapMessage(value));
+  const rawTargets = Array.isArray(payload?.targets) ? payload.targets : [];
+  const targets = rawTargets
+    .map(normalizeAssignmentTarget)
+    .filter((target): target is LeadAssignmentTarget => target !== null);
+  if (!payload || !Array.isArray(payload.targets)) {
+    throw new Error("Invalid Lead assignment targets response");
+  }
+  return {
+    lead: firstText([payload.lead]),
+    province: firstText([payload.province]),
+    ownershipRevision:
+      integerOrNull(payload.ownershipRevision ?? payload.ownership_revision) ??
+      0,
+    targets,
+  };
+}
+
+function normalizeAssignmentResponse(value: unknown): LeadAssignmentResponse {
+  const payload = asRecord(unwrapMessage(value));
+  const ownership = asRecord(payload?.ownership) ?? {};
+  if (
+    !payload ||
+    text(payload.status).toUpperCase() !== "ASSIGNED" ||
+    text(payload.resolution, "PENDING").toUpperCase() !== "PENDING" ||
+    !firstText([payload.lead])
+  ) {
+    throw new Error("Invalid Lead assignment response");
+  }
+  return {
+    status: "ASSIGNED",
+    resolution: "PENDING",
+    lead: firstText([payload.lead]),
+    ownership: {
+      ownerStaff:
+        firstText([ownership.ownerStaff, ownership.owner_staff]) || null,
+      owningTeam:
+        firstText([ownership.owningTeam, ownership.owning_team]) || null,
+      revision: integerOrNull(ownership.revision) ?? 0,
+    },
+  };
+}
+
 function unwrapMessage(value: unknown): unknown {
   const root = asRecord(value);
   return root?.message !== undefined ? root.message : value;
@@ -569,6 +692,14 @@ function normalizeListItem(value: unknown): LeadListItem {
     result: normalizeResolution(row.result ?? row.resolution),
     source: firstText([row.source]),
     owner,
+    ownerStaff:
+      firstText([row.ownerStaff, row.owner_staff, row.assignedTo, row.assigned_to]) ||
+      null,
+    owningTeam:
+      firstText([row.owningTeam, row.owning_team]) || null,
+    ownershipRevision: integerOrNull(
+      row.ownershipRevision ?? row.ownership_revision,
+    ),
     contactNoAnswer: count(
       row.contactNoAnswer ?? row.contact_no_answer ?? row.no_answer_calls,
     ),
@@ -705,6 +836,16 @@ function normalizeDetail(value: unknown): LeadDetail {
       row.eventsParticipated ?? row.events_participated,
     ),
     description: firstText([row.description, row.notes]),
+    ownerStaff:
+      firstText([
+        row.ownerStaff,
+        row.owner_staff,
+        row.assignedTo,
+        row.assigned_to,
+      ]) || null,
+    owningTeam: firstText([row.owningTeam, row.owning_team]) || null,
+    ownershipRevision:
+      integerOrNull(row.ownershipRevision ?? row.ownership_revision) ?? 0,
     modifiedAt:
       firstText([row.modifiedAt, row.modified_at, row.modified]) || null,
   };
@@ -1224,6 +1365,36 @@ export async function getLeadDetail(
   }
 }
 
+export async function getLeadAssignmentTargets(
+  leadId: string,
+  options: LeadApiRequestOptions = {},
+): Promise<LeadAssignmentTargetsResponse> {
+  const normalizedLeadId = leadId.trim();
+  if (!normalizedLeadId) {
+    throw new LeadApiError(
+      400,
+      "INVALID_LEAD_NAME",
+      "Thiếu mã Lead cần tải danh sách phân công.",
+    );
+  }
+
+  try {
+    const payload = await request(
+      ASSIGNMENT_TARGETS_METHOD,
+      new URLSearchParams({ lead: normalizedLeadId }),
+      options,
+    );
+    return normalizeAssignmentTargets(payload);
+  } catch (error) {
+    if (error instanceof LeadApiError) throw error;
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_ASSIGNMENT_TARGETS_RESPONSE",
+      "Danh sách Sale/CTV phân công Lead không hợp lệ.",
+    );
+  }
+}
+
 export async function createLead(
   fields: LeadCreateFields,
   options: LeadApiRequestOptions = {},
@@ -1434,6 +1605,62 @@ export async function updateLead(
       502,
       "INVALID_LEAD_UPDATE_RESPONSE",
       "Phản hồi cập nhật Lead không hợp lệ.",
+    );
+  }
+}
+
+function createAssignmentIdempotencyKey(lead: string): string {
+  const suffix =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `lead-detail-assignment:${lead}:${suffix}`;
+}
+
+export async function assignLeadToStaff(
+  request: LeadAssignmentRequest,
+  options: LeadApiRequestOptions = {},
+): Promise<LeadAssignmentResponse> {
+  const lead = request.lead.trim();
+  const ownerStaff = request.ownerStaff.trim();
+  const targetTeamId = request.targetTeamId.trim();
+  if (!lead || !ownerStaff || !targetTeamId) {
+    throw new LeadApiError(
+      400,
+      "INVALID_ASSIGNMENT_TARGET",
+      "Vui lòng chọn Sale/CTV và Team để phân công Lead.",
+    );
+  }
+  if (!Number.isSafeInteger(request.expectedRevision) || request.expectedRevision < 0) {
+    throw new LeadApiError(
+      400,
+      "INVALID_OWNERSHIP_REVISION",
+      "Thông tin phân công đã cũ, vui lòng tải lại Lead.",
+    );
+  }
+
+  const body: Record<string, unknown> = {
+    lead,
+    owner_staff: ownerStaff,
+    target_team_id: targetTeamId,
+    reason:
+      request.reason?.trim() || "Phân công thủ công từ màn hình chi tiết Lead.",
+    idempotency_key:
+      request.idempotencyKey?.trim() || createAssignmentIdempotencyKey(lead),
+    expected_revision: request.expectedRevision,
+  };
+  if (request.correlationId?.trim()) {
+    body.correlation_id = request.correlationId.trim();
+  }
+
+  const payload = await mutationRequest(ASSIGN_METHOD, "POST", body, options);
+  try {
+    return normalizeAssignmentResponse(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_ASSIGNMENT_RESPONSE",
+      "Phản hồi phân công Lead không hợp lệ.",
     );
   }
 }

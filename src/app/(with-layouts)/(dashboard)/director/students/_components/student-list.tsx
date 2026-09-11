@@ -19,7 +19,7 @@ function getScoreTone(score: number): "success" | "warning" | "error" {
 }
 
 export const studentListGrid =
-  "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(104px,0.7fr)_minmax(88px,0.55fr)_minmax(0,1.2fr)]";
+  "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(136px,0.8fr)_minmax(88px,0.55fr)_minmax(0,1.2fr)]";
 
 export default function StudentList({
   students,

@@ -201,7 +201,7 @@ GET /api/method/crm.api.director_students.get_director_students
 ### 3.1. Request
 
 ```http
-GET /api/method/crm.api.director_students.get_director_students?admissionYear=2026&page=1&pageSize=20&q=nguyen&stage=counselling&assignmentStatus=assigned&lifecycleStatus=MQL&province=can-tho&sort=score&order=desc
+GET /api/method/crm.api.director_students.get_director_students?admissionYear=2026&page=1&pageSize=20&q=nguyen&stage=counselling&assignmentStatus=assigned&lifecycleStatus=MQL&campaign=CAM-2026-00001&province=can-tho&sort=score&order=desc
 Accept: application/json
 Origin: https://faip.pro
 ```
@@ -226,6 +226,7 @@ Query parameters:
 | `stage` | enum | Không | Không lọc | Dùng `interested`, `exploring`, `counselling`, `applying`, `enrolled`; có thể dùng label tiếng Việt tương ứng |
 | `assignmentStatus` | enum | Không | Không lọc | `assigned` hoặc `unassigned`; có thể dùng nhãn `Đã phân công`/`Chưa phân công` |
 | `lifecycleStatus` | enum | Không | Không lọc | `Lead`, `MQL`, `Applicant`, `Enrolled`, `Lost`; lọc trực tiếp theo lifecycle canonical |
+| `campaign` | string | Không | Không lọc | Mã ổn định hoặc tên document của campaign; lọc các hồ sơ học sinh thuộc campaign |
 | `province` | string | Không | Không lọc | Mã/ID địa bàn hoặc tên hiển thị; ví dụ `can-tho` |
 | `provinceId` | string | Không | Không lọc | Alias của `province` khi client đã có ID tỉnh; không cần gửi đồng thời với `province` |
 | `sort` | enum | Không | `score` | `score`, `priority`, `lastActivityAt`, `nextActionDueAt` |
@@ -234,7 +235,7 @@ Query parameters:
 Quy tắc filter cần thống nhất với UI hiện tại:
 
 - `q` được trim khoảng trắng và tìm bằng điều kiện `like` trên `name`, `student_name`, `case_key`, `high_school`, `province`, `major`, `owner_staff` và `source`; mã hiển thị `HS-YYYY-HCM-NNNNNN` được resolve về hồ sơ canonical tương ứng.
-- `stage`, `assignmentStatus`, `lifecycleStatus` và `province` kết hợp theo điều kiện `AND` với `q`.
+- `stage`, `assignmentStatus`, `lifecycleStatus`, `campaign` và `province` kết hợp theo điều kiện `AND` với `q`.
 - `assignmentStatus` dùng `owner_staff` canonical; `assigned` là hồ sơ có người phụ trách, `unassigned` là hồ sơ chưa có người phụ trách.
 - `stage` và `lifecycleStatus` phải cùng trỏ tới một lifecycle; ví dụ `stage=counselling` chỉ hợp lệ cùng `lifecycleStatus=MQL`.
 - `meta.total` là tổng số kết quả sau filter, không phải chỉ số dòng của trang hiện tại.
@@ -307,6 +308,7 @@ Theo chuẩn Frappe RPC method, response trả về qua wrapper `message`. Servi
       "stage": "Tư vấn",
       "assignmentStatus": "assigned",
       "lifecycleStatus": "MQL",
+      "campaign": "CAM-2026-00001",
       "province": "Cần Thơ"
     },
     "sort": {
@@ -498,7 +500,7 @@ Request không cần `Authorization` header. Response bắt buộc phải có:
 3. `actionSummary` cho action banner và positive signal.
 4. `meta.total`, `meta.totalAll`, pagination và `meta.asOf`.
 
-Khi người dùng thay đổi toolbar, frontend gọi lại cùng endpoint với `q`, `stage` và `province`. Khi người dùng click một dòng, frontend gọi:
+Khi người dùng thay đổi toolbar, frontend gọi lại cùng endpoint với `q`, `stage`, `campaign` và `province`. Khi người dùng click một dòng, frontend gọi:
 
 ```http
 GET /api/method/crm.api.director_students.get_director_student?student_id={studentId}

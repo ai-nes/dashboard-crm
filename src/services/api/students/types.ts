@@ -537,6 +537,7 @@ export interface DirectorStudentsParams {
   province?: string;
   provinceId?: string;
   ownerId?: string;
+  campaign?: string;
   assignmentStatus?: StudentAssignmentStatus | "all" | string;
   lifecycleStatus?: StudentLifecycleStatus | "all" | string;
   sort?: "score" | "priority" | "lastActivityAt" | "nextActionDueAt" | string;
@@ -572,6 +573,7 @@ export interface DirectorStudentsMeta {
     stage?: string;
     assignmentStatus?: string;
     lifecycleStatus?: string;
+    campaign?: string;
     province?: string;
   };
   sort?: {

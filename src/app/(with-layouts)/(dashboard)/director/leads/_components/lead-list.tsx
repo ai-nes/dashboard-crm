@@ -4,6 +4,7 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { formatDate } from "@/utils/format-date";
 
 import LeadResultCell from "./lead-result-cell";
+import LeadListAssigneeCell from "./lead-list-assignee-cell";
 import {
   leadStageStatusColor,
   leadStageStatusLabel,
@@ -20,9 +21,10 @@ export function getLeadDetailHref(leadId: string) {
 
 interface LeadListProps {
   leads: LeadListItem[];
+  canAssign?: boolean;
 }
 
-export default function LeadList({ leads }: LeadListProps) {
+export default function LeadList({ leads, canAssign = false }: LeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
@@ -111,9 +113,7 @@ export default function LeadList({ leads }: LeadListProps) {
                 <p className="mb-1 text-xs text-text-tertiary lg:hidden">
                   Người phụ trách
                 </p>
-                <p className="truncate text-sm text-text-primary">
-                  {lead.owner}
-                </p>
+                <LeadListAssigneeCell canAssign={canAssign} lead={lead} />
               </div>
 
               <div className="flex min-w-0 items-center justify-between gap-2 lg:block">
