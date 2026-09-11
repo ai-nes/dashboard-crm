@@ -170,6 +170,14 @@ export interface LeadProcessResponse {
   validation: Record<string, boolean>;
 }
 
+export interface LeadConversionResponse {
+  status: LeadProcessStatus;
+  resolution: LeadProcessResolution;
+  lead: string;
+  student: string;
+  studentStage: string;
+}
+
 export interface LeadProcessScanRequest {
   admissionYear?: number | string | null;
   limit?: number;
@@ -313,6 +321,7 @@ const PREVIEW_IMPORT_METHOD = "crm.api.lead_mapping.preview_lead_import";
 const IMPORT_METHOD = "crm.api.lead_mapping.import_leads";
 const UPDATE_METHOD = "crm.api.lead.update_lead";
 const DELETE_METHOD = "crm.api.lead.delete_lead";
+const CONVERT_METHOD = "crm.api.lead_processing.convert_to_student";
 const PROCESS_METHOD = "crm.api.lead_processing.process_lead";
 const PROCESS_SCAN_METHOD = "crm.api.lead_processing.process_new_leads";
 const STATUS_UPDATE_METHOD = "crm.api.lead_processing.update_processing_status";
@@ -402,6 +411,51 @@ function normalizeProcessResponse(value: unknown): LeadProcessResponse {
       firstText([payload.targetStudent, payload.target_student]) || null,
     validation: Object.fromEntries(
       Object.entries(rawValidation).map(([key, item]) => [key, Boolean(item)]),
+    ),
+  };
+}
+
+function normalizeConversionResponse(value: unknown): LeadConversionResponse {
+  const payload = asRecord(unwrapMessage(value));
+  const conversion = asRecord(payload?.conversion);
+  const status = text(payload?.status).toUpperCase() as LeadProcessStatus;
+  const resolution = text(
+    payload?.resolution,
+    "CREATED",
+  ).toUpperCase() as LeadProcessResolution;
+  const student = firstText([
+    payload?.student,
+    payload?.targetStudent,
+    payload?.target_student,
+    conversion?.student,
+    conversion?.studentId,
+    conversion?.student_id,
+    conversion?.targetStudent,
+    conversion?.target_student,
+  ]);
+
+  if (
+    !payload ||
+    !LEAD_PROCESS_STATUSES.has(status) ||
+    !LEAD_PROCESS_RESOLUTIONS.has(resolution) ||
+    !student
+  ) {
+    throw new Error("Invalid Lead conversion response");
+  }
+
+  return {
+    status,
+    resolution,
+    lead: firstText([payload.lead]),
+    student,
+    studentStage: firstText(
+      [
+        payload.studentStage,
+        payload.student_stage,
+        conversion?.studentStage,
+        conversion?.student_stage,
+      ],
+      "New",
     ),
   };
 }
@@ -1380,6 +1434,36 @@ export async function updateLead(
       502,
       "INVALID_LEAD_UPDATE_RESPONSE",
       "Phản hồi cập nhật Lead không hợp lệ.",
+    );
+  }
+}
+
+export async function convertLeadToStudent(
+  leadId: string,
+  options: LeadApiRequestOptions = {},
+): Promise<LeadConversionResponse> {
+  const normalizedLeadId = leadId.trim();
+  if (!normalizedLeadId) {
+    throw new LeadApiError(
+      400,
+      "INVALID_LEAD_NAME",
+      "Thiếu mã Lead cần chuyển đổi.",
+    );
+  }
+
+  const payload = await mutationRequest(
+    CONVERT_METHOD,
+    "POST",
+    { lead: normalizedLeadId },
+    options,
+  );
+  try {
+    return normalizeConversionResponse(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_CONVERSION_RESPONSE",
+      "Phản hồi chuyển Lead thành Student không hợp lệ.",
     );
   }
 }

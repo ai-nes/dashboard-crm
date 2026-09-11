@@ -1,9 +1,10 @@
 'use client'
 
-import {useState} from 'react'
+import {type FormEvent, useState} from 'react'
 import {toast} from 'sonner'
 
 import {Button} from '@/components/tailgrids/core/button'
+import {useAdmissionMethodsQuery} from '@/hooks/use-admission-catalog-queries'
 import {
   useCreateAdmissionProfileTemplateMutation,
   useUpdateAdmissionProfileTemplateMutation,
@@ -59,14 +60,14 @@ function initialForm(template: AdmissionProfileTemplateOption | null): TemplateF
   }
 }
 
-function toMutationInput(form: TemplateForm): AdmissionProfileTemplateMutationInput {
+function toMutationInput(form: TemplateForm, version: number): AdmissionProfileTemplateMutationInput {
   return {
     template_code: form.template_code.trim().toUpperCase(),
     template_name: form.template_name.trim(),
     template_kind: form.template_kind,
     profile_type: 'academic_admission',
     status: form.status,
-    version: Number(form.version),
+    version,
     education_program: form.education_program.trim() || null,
     admission_method: form.admission_method || null,
     description: form.description.trim() || null,
@@ -105,12 +106,16 @@ function requirementForNewRow(
 
 function SectionTab({
   active,
+  controls,
+  id,
   label,
   value,
   count,
   onPress,
 }: {
   active: boolean
+  controls: string
+  id: string
   label: string
   value: EditorSection
   count?: number
@@ -121,6 +126,8 @@ function SectionTab({
       type="button"
       role="tab"
       aria-selected={active}
+      aria-controls={controls}
+      id={id}
       onClick={() => onPress(value)}
       className={`border-b-2 px-1 py-3 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 sm:px-2 ${active ? 'border-primary-500 text-primary-600' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
     >
@@ -137,7 +144,7 @@ function SectionTab({
 export function AdmissionProfileTemplateEditor({
   template,
   documentTypes,
-  initialSection = 'documents',
+  initialSection = 'overview',
   onSaved,
 }: {
   template: AdmissionProfileTemplateOption | null
@@ -147,12 +154,15 @@ export function AdmissionProfileTemplateEditor({
 }) {
   const [form, setForm] = useState(() => initialForm(template))
   const [activeSection, setActiveSection] = useState<EditorSection>(initialSection)
+  const [isOverviewEditing, setIsOverviewEditing] = useState(() => !template)
   const [selectedRequirementIndex, setSelectedRequirementIndex] = useState<number | null>(null)
   const [selectedRequirementGroup, setSelectedRequirementGroup] = useState('all')
   const [documentSearch, setDocumentSearch] = useState('')
   const createMutation = useCreateAdmissionProfileTemplateMutation()
   const updateMutation = useUpdateAdmissionProfileTemplateMutation()
+  const methodsQuery = useAdmissionMethodsQuery({includeDisabled: false})
   const isSaving = createMutation.isPending || updateMutation.isPending
+  const admissionMethods = methodsQuery.data?.methods || []
 
   const setField: TemplateFieldSetter = (field, value) => {
     setForm((current) => ({...current, [field]: value}))
@@ -165,12 +175,15 @@ export function AdmissionProfileTemplateEditor({
       toast.info('Tất cả loại giấy tờ đang có đã được thêm vào loại hồ sơ.')
       return
     }
-    const nextIndex = form.requirements.length
+    const nextOrder = form.requirements.reduce(
+      (maximum, requirement) => Math.max(maximum, Number(requirement.order_display) || 0),
+      0,
+    ) + 1
     setField('requirements', [
       ...form.requirements,
-      requirementForNewRow(nextDocumentType, nextIndex + 1),
+      requirementForNewRow(nextDocumentType, nextOrder),
     ])
-    setSelectedRequirementIndex(nextIndex)
+    setSelectedRequirementIndex(form.requirements.length)
   }
 
   const removeRequirement = (index: number) => {
@@ -181,8 +194,27 @@ export function AdmissionProfileTemplateEditor({
     })
   }
 
-  const save = async () => {
-    const input = toMutationInput(form)
+  const cancelOverviewEditing = () => {
+    if (isSaving) return
+    const initial = initialForm(template)
+    setForm((current) => ({
+      ...current,
+      template_code: initial.template_code,
+      template_name: initial.template_name,
+      template_kind: initial.template_kind,
+      status: initial.status,
+      version: initial.version,
+      education_program: initial.education_program,
+      admission_method: initial.admission_method,
+      description: initial.description,
+    }))
+    setIsOverviewEditing(false)
+  }
+
+  const save = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault()
+    const nextVersion = template ? Math.max(1, template.version || 1) + 1 : 1
+    const input = toMutationInput(form, nextVersion)
     if (!input.template_code || !/^[A-Z][A-Z0-9_]*$/.test(input.template_code)) {
       toast.error('Mã loại hồ sơ phải bắt đầu bằng A-Z và chỉ gồm A-Z, 0-9, dấu gạch dưới.')
       setActiveSection('overview')
@@ -241,39 +273,72 @@ export function AdmissionProfileTemplateEditor({
   return (
     <main className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-card-background text-text-primary">
       <div className="flex shrink-0 items-center gap-4 overflow-x-auto border-b border-card-border px-4 sm:px-8" role="tablist" aria-label="Nội dung loại hồ sơ">
-        <SectionTab active={activeSection === 'documents'} label="Tài liệu cần nộp" value="documents" count={form.requirements.length} onPress={setActiveSection} />
-        <SectionTab active={activeSection === 'overview'} label="Thông tin chung" value="overview" onPress={setActiveSection} />
+        <SectionTab
+          active={activeSection === 'overview'}
+          controls="admission-template-overview-panel"
+          id="admission-template-overview-tab"
+          label="Thông tin chung"
+          value="overview"
+          onPress={setActiveSection}
+        />
+        <SectionTab
+          active={activeSection === 'documents'}
+          controls="admission-template-documents-panel"
+          id="admission-template-documents-tab"
+          label="Tài liệu cần nộp"
+          value="documents"
+          count={form.requirements.length}
+          onPress={setActiveSection}
+        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-background-gray-secondary/20">
         <div className="w-full px-3 py-5 sm:px-6 lg:px-8 lg:py-7">
-          {activeSection === 'overview' ? (
-            <AdmissionProfileTemplateOverview form={form} template={template} isSaving={isSaving} setField={setField} />
-          ) : (
-            <AdmissionProfileTemplateDocuments
-              requirements={form.requirements}
-              documentTypes={documentTypes}
-              isSaving={isSaving}
-              selectedGroup={selectedRequirementGroup}
-              documentSearch={documentSearch}
-              selectedIndex={selectedRequirementIndex}
-              onAdd={addRequirement}
-              onRemove={removeRequirement}
-              onSelectGroup={setSelectedRequirementGroup}
-              onSearchChange={setDocumentSearch}
-              onSelect={setSelectedRequirementIndex}
-              onCloseDetail={() => setSelectedRequirementIndex(null)}
-              onRequirementsChange={(requirements) => setField('requirements', requirements)}
-            />
-          )}
+          <div
+            role="tabpanel"
+            id={activeSection === 'overview' ? 'admission-template-overview-panel' : 'admission-template-documents-panel'}
+            aria-labelledby={activeSection === 'overview' ? 'admission-template-overview-tab' : 'admission-template-documents-tab'}
+          >
+            {activeSection === 'overview' ? (
+              <AdmissionProfileTemplateOverview
+                form={form}
+                template={template}
+                admissionMethods={admissionMethods}
+                isSaving={isSaving}
+                isEditing={isOverviewEditing}
+                onEdit={() => setIsOverviewEditing(true)}
+                onCancel={cancelOverviewEditing}
+                onSave={(event) => void save(event)}
+                setField={setField}
+              />
+            ) : (
+              <AdmissionProfileTemplateDocuments
+                requirements={form.requirements}
+                documentTypes={documentTypes}
+                isSaving={isSaving}
+                selectedGroup={selectedRequirementGroup}
+                documentSearch={documentSearch}
+                selectedIndex={selectedRequirementIndex}
+                onAdd={addRequirement}
+                onRemove={removeRequirement}
+                onSelectGroup={setSelectedRequirementGroup}
+                onSearchChange={setDocumentSearch}
+                onSelect={setSelectedRequirementIndex}
+                onCloseDetail={() => setSelectedRequirementIndex(null)}
+                onRequirementsChange={(requirements) => setField('requirements', requirements)}
+              />
+            )}
+          </div>
         </div>
       </div>
 
-      <footer className="flex shrink-0 justify-end border-t border-card-border bg-card-background px-3 py-3 sm:px-6">
-        <Button size="sm" onPress={() => void save()} isDisabled={isSaving}>
-          {isSaving ? 'Đang lưu…' : template ? 'Lưu thay đổi' : 'Tạo loại hồ sơ'}
-        </Button>
-      </footer>
+      {activeSection === 'documents' && (
+        <footer className="flex shrink-0 justify-end border-t border-card-border bg-card-background px-3 py-3 sm:px-6">
+          <Button size="sm" onPress={() => void save()} isDisabled={isSaving}>
+            {isSaving ? 'Đang lưu…' : template ? 'Lưu thay đổi' : 'Tạo loại hồ sơ'}
+          </Button>
+        </footer>
+      )}
 
     </main>
   )

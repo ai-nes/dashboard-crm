@@ -49,3 +49,33 @@ endpoints:
 Notes require non-empty text content up to 20,000 characters. The audit
 response is read-only and includes creation, tracked field changes, lifecycle,
 assignment, processing, and deletion events for the Lead.
+
+## Convert Lead to Student
+
+Endpoint: `POST /api/method/crm.api.lead_processing.convert_to_student`
+
+Request body:
+
+```json
+{ "lead": "HS-2026-HCM-000091" }
+```
+
+Only `Sale`, `CTV Sale`, and `Lead Sale` may call this endpoint. `Sale` and `CTV Sale`
+may convert only their assigned Leads; `Lead Sale` may convert any Lead in scope. The
+backend also accepts only a Lead with `processing_status=ASSIGNED` and complete
+conversion data, including `high_school` and `major`. It creates a new `CRM Student`
+with `student_stage=New`, then closes the Lead with `resolution=CREATED`. The operation
+is transactional: a failed conversion leaves the Lead assigned and does not leave a
+partial Student.
+
+Successful response (inside Frappe's `message` envelope):
+
+```json
+{
+  "status": "CLOSED",
+  "resolution": "CREATED",
+  "lead": "HS-2026-HCM-000091",
+  "student": "STU-2026-000001",
+  "student_stage": "New"
+}
+```

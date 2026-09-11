@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createAdmissionProfileTemplate,
   deleteAdmissionProfileTemplate,
+  listAdmissionDocumentTypes,
   listAdmissionProfileTemplates,
   transitionAdmissionProfileTemplate,
   updateAdmissionProfileTemplate,
@@ -17,6 +18,8 @@ import {
 export const admissionProfileTemplateKeys = {
   all: ["admission-profile-templates"] as const,
   catalog: ["admission-profile-templates", "catalog"] as const,
+  documentTypes: (search: string) =>
+    ["admission-profile-templates", "document-types", search] as const,
 };
 
 export function useAdmissionProfileTemplatesQuery() {
@@ -24,6 +27,19 @@ export function useAdmissionProfileTemplatesQuery() {
     queryKey: admissionProfileTemplateKeys.catalog,
     queryFn: () => listAdmissionProfileTemplates(),
     staleTime: 30_000,
+  });
+}
+
+export function useAdmissionProfileDocumentTypesQuery(search: string) {
+  const normalizedSearch = search.trim();
+
+  return useQuery({
+    queryKey: admissionProfileTemplateKeys.documentTypes(normalizedSearch),
+    queryFn: async () =>
+      (await listAdmissionDocumentTypes({ search: normalizedSearch, includeArchived: false }))
+        .documentTypes,
+    enabled: Boolean(normalizedSearch),
+    staleTime: 60_000,
   });
 }
 

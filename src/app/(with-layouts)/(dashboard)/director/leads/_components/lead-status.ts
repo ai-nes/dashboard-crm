@@ -48,7 +48,7 @@ export type LeadResultFilter = LeadResolutionFilter;
 export const leadResultLabel: Record<LeadResultStatus, string> = {
   PENDING: "Chưa có kết quả",
   MATCHED: "Đã liên kết",
-  CREATED: "Sẽ tạo khi chuyển đổi",
+  CREATED: "Đã tạo mới",
   DUPLICATE: "Trùng lặp",
   INVALID: "Không hợp lệ",
   SPAM: "Spam",

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
   canAccessStudent,
+  canConvertLeadToStudent,
   canPerformStudentAction,
   getCrmPermissions,
 } from "@/components/common/auth/permissions";
@@ -17,6 +18,7 @@ import DetailTabs, {
 import { Card } from "@/components/tailgrids/core/card";
 import { useLeadCallLogsQuery } from "@/hooks/use-lead-call-logs-query";
 import {
+  useConvertLeadToStudentMutation,
   useDeleteLeadMutation,
   useLeadSaleLeadQuery,
 } from "@/hooks/use-lead-sale-leads-queries";
@@ -40,6 +42,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     enabled: activeTab === "calls",
   });
   const deleteMutation = useDeleteLeadMutation();
+  const convertMutation = useConvertLeadToStudentMutation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const leadOwnership = { owner: data?.lead.owner };
@@ -54,6 +57,33 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const canDeleteLead =
     !isAuthLoading &&
     canPerformStudentAction(permissions.lead, "delete", leadOwnership, user);
+  const isLeadAssigned =
+    normalizeLeadStageStatus(
+      data?.lead.processingStatus ?? data?.lead.statusCode ?? data?.lead.status,
+    ) === "ASSIGNED";
+  const canConvertLead =
+    !isAuthLoading &&
+    isLeadAssigned &&
+    !data?.lead.studentId &&
+    canConvertLeadToStudent(user?.roles, leadOwnership, user);
+  const handleConvert = () => {
+    convertMutation.mutate(leadId, {
+      onSuccess: (result) => {
+        toast.success("Đã chuyển đổi Lead thành học sinh.");
+        router.replace(
+          `/director/students/${encodeURIComponent(result.student)}`,
+        );
+        router.refresh();
+      },
+      onError: (convertError) => {
+        toast.error(
+          convertError instanceof Error
+            ? convertError.message
+            : "Chưa thể chuyển đổi Lead thành học sinh.",
+        );
+      },
+    });
+  };
   const handleDelete = () => {
     deleteMutation.mutate(leadId, {
       onSuccess: () => {
@@ -182,6 +212,8 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
           backHref={leadListHref}
           lead={data.lead}
           createdAt={data.lead.createdAt ?? undefined}
+          isConverting={convertMutation.isPending}
+          onConvertRequest={canConvertLead ? handleConvert : undefined}
           onDeleteRequest={
             canDeleteLead ? () => setDeleteDialogOpen(true) : undefined
           }

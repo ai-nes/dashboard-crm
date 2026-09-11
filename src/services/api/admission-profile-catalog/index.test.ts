@@ -2,16 +2,24 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createAdmissionApplication,
+  createAdmissionDocumentType,
+  createAdmissionMethod,
   createAdmissionProfileTemplate,
+  deleteAdmissionDocumentType,
+  deleteAdmissionMethod,
   deleteAdmissionProfileTemplate,
   getAdmissionProfileCatalog,
   AdmissionProfileCatalogApiError,
   listAdmissionProfileTemplates,
+  listAdmissionDocumentTypes,
+  listAdmissionMethods,
   transitionAdmissionProfileTemplate,
   uploadStudentAdmissionDocument,
   updateAdmissionApplication,
   updateAdmissionProfileTemplate,
   updateAdmissionApplicationPreference,
+  updateAdmissionDocumentType,
+  updateAdmissionMethod,
 } from ".";
 
 const catalog = {
@@ -86,6 +94,26 @@ describe("admission profile catalog API", () => {
     );
   });
 
+  it("passes document type search to the admin catalog endpoint", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: adminTemplateCatalog }), {
+        status: 200,
+      }),
+    );
+
+    await expect(
+      listAdmissionProfileTemplates({
+        baseUrl: "http://frappe:8000",
+        search: "achievement",
+      }),
+    ).resolves.toEqual(adminTemplateCatalog);
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.admission_profile_templates.list_admission_profile_templates?search=achievement",
+      expect.objectContaining({ cache: "no-store", credentials: "include" }),
+    );
+  });
+
   it("calls the admin CRUD methods with the Frappe payload contract", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ message: { id: "TPL-1" } }), {
@@ -156,6 +184,94 @@ describe("admission profile catalog API", () => {
           expected_modified: "2026-09-10 10:00:00",
         }),
       }),
+    );
+  });
+
+  it("calls document type and admission method CRUD with the catalog contract", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes("list_admission_document_types")) {
+        return new Response(JSON.stringify({ message: { documentTypes: [] } }), { status: 200 });
+      }
+      if (url.includes("list_admission_methods")) {
+        return new Response(JSON.stringify({ message: { methods: [] } }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ message: { deleted: "CAT-1" } }), { status: 200 });
+    });
+    const baseUrl = "http://frappe:8000";
+    const documentType = {
+      code: "BIRTH_CERTIFICATE",
+      label: "Giấy khai sinh",
+      category: "identity",
+      description: null,
+      conditional_key: null,
+      status: "Active" as const,
+      is_active: true,
+    };
+    const method = {
+      code: "TRANSCRIPT_REVIEW",
+      display_name: "Xét học bạ",
+      description: null,
+      enabled: true,
+      sort_order: 30,
+    };
+
+    await listAdmissionDocumentTypes({ baseUrl, search: "birth", includeArchived: true });
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      `${baseUrl}/api/method/crm.api.admission_catalog.list_admission_document_types?search=birth&include_archived=1`,
+      expect.objectContaining({ cache: "no-store", credentials: "include" }),
+    );
+    await createAdmissionDocumentType(documentType, { baseUrl });
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      `${baseUrl}/api/method/crm.api.admission_catalog.create_admission_document_type`,
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ data: documentType }) }),
+    );
+    await updateAdmissionDocumentType(
+      { name: "BIRTH_CERTIFICATE", data: documentType, expectedModified: "2026-09-11 10:00:00" },
+      { baseUrl },
+    );
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      `${baseUrl}/api/method/crm.api.admission_catalog.update_admission_document_type`,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          name: "BIRTH_CERTIFICATE",
+          data: documentType,
+          expected_modified: "2026-09-11 10:00:00",
+        }),
+      }),
+    );
+    await deleteAdmissionDocumentType({ name: "BIRTH_CERTIFICATE" }, { baseUrl });
+
+    await listAdmissionMethods({ baseUrl, search: "transcript", includeDisabled: false });
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      `${baseUrl}/api/method/crm.api.admission_catalog.list_admission_methods?search=transcript&include_disabled=0`,
+      expect.objectContaining({ cache: "no-store", credentials: "include" }),
+    );
+    await createAdmissionMethod(method, { baseUrl });
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      `${baseUrl}/api/method/crm.api.admission_catalog.create_admission_method`,
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ data: method }) }),
+    );
+    await updateAdmissionMethod(
+      { name: "TRANSCRIPT_REVIEW", data: method, expectedModified: "2026-09-11 10:00:00" },
+      { baseUrl },
+    );
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      `${baseUrl}/api/method/crm.api.admission_catalog.update_admission_method`,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          name: "TRANSCRIPT_REVIEW",
+          data: method,
+          expected_modified: "2026-09-11 10:00:00",
+        }),
+      }),
+    );
+    await deleteAdmissionMethod({ name: "TRANSCRIPT_REVIEW" }, { baseUrl });
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      `${baseUrl}/api/method/crm.api.admission_catalog.delete_admission_method`,
+      expect.objectContaining({ method: "POST" }),
     );
   });
 

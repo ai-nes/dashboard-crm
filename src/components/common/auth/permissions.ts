@@ -205,3 +205,19 @@ export function canPerformStudentAction(
   if (permissions.scope !== "assigned") return false;
   return isStudentAssignedToUser(student, user);
 }
+
+export function canConvertLeadToStudent(
+  roles: readonly string[] | null | undefined,
+  lead: StudentOwnershipInfo,
+  user: CurrentUser | null | undefined,
+): boolean {
+  const effectiveRoles = getEffectiveDashboardRoles(roles);
+  if (effectiveRoles.includes("Lead Sale")) return true;
+  if (
+    !effectiveRoles.includes("Sale") &&
+    !effectiveRoles.includes("CTV Sale")
+  ) {
+    return false;
+  }
+  return isStudentAssignedToUser(lead, user);
+}

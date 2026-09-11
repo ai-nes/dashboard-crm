@@ -388,7 +388,7 @@ export function ClassificationGroupManagement({
                     <button
                       key={group.name}
                       type="button"
-                      className={`w-full px-5 py-4 text-left transition-colors ${isSelected ? 'bg-orange-50/70 shadow-[inset_3px_0_0_0] shadow-orange-500' : 'hover:bg-background-gray-secondary_alt'}`}
+                      className={`w-full px-5 py-4 text-left transition-colors ${isSelected ? 'bg-tab-active-background shadow-[inset_3px_0_0_0] shadow-primary-500' : 'hover:bg-background-gray-secondary_alt'}`}
                       onClick={() => setSelectedGroupName(group.name)}
                       aria-pressed={isSelected}
                     >

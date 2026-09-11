@@ -4,6 +4,8 @@ export interface AdmissionMethodOption {
   name: string;
   description?: string | null;
   sortOrder: number;
+  enabled?: boolean;
+  modified?: string | null;
 }
 
 export interface AdmissionYearOption {
@@ -96,6 +98,38 @@ export interface AdmissionDocumentTypeOption {
   name: string;
   category: string;
   description?: string | null;
+  conditionalKey?: string | null;
+  status?: AdmissionDocumentTypeStatus;
+  isActive?: boolean;
+  modified?: string | null;
+}
+
+export type AdmissionDocumentTypeStatus = 'Active' | 'Archived'
+
+export interface AdmissionDocumentTypeMutationInput {
+  code: string
+  label: string
+  category: string
+  description?: string | null
+  conditional_key?: string | null
+  status: AdmissionDocumentTypeStatus
+  is_active: boolean
+}
+
+export interface AdmissionMethodMutationInput {
+  code: string
+  display_name: string
+  description?: string | null
+  enabled: boolean
+  sort_order: number
+}
+
+export interface AdmissionDocumentTypeCatalog {
+  documentTypes: AdmissionDocumentTypeOption[]
+}
+
+export interface AdmissionMethodCatalog {
+  methods: AdmissionMethodOption[]
 }
 
 export interface AdmissionProfileCatalog {

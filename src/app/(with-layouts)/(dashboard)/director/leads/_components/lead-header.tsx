@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  ArrowRight,
   Copy1,
   Envelope1,
   MapMarker5,
@@ -27,12 +28,16 @@ export default function LeadHeader({
   children,
   createdAt,
   backHref = "/lead-sale/leads",
+  isConverting = false,
+  onConvertRequest,
   onDeleteRequest,
 }: {
   lead: LeadDetail;
   children?: ReactNode;
   createdAt?: string;
   backHref?: string;
+  isConverting?: boolean;
+  onConvertRequest?: () => void;
   onDeleteRequest?: () => void;
 }) {
   const subtitle = [
@@ -128,6 +133,20 @@ export default function LeadHeader({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 lg:pt-1">
+              {onConvertRequest && (
+                <Button
+                  aria-label="Chuyển đổi Lead"
+                  appearance="fill"
+                  className="shadow-xs"
+                  isDisabled={isConverting}
+                  onPress={onConvertRequest}
+                  size="md"
+                  variant="primary"
+                >
+                  <ArrowRight size={15} aria-hidden="true" />
+                  {isConverting ? "Đang chuyển đổi…" : "Chuyển đổi Lead"}
+                </Button>
+              )}
               {onDeleteRequest && (
                 <Button
                   aria-label="Xóa Lead"

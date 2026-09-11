@@ -5,10 +5,9 @@ import {Trash1} from '@tailgrids/icons'
 import {Badge} from '@/components/tailgrids/core/badge'
 import {Button} from '@/components/tailgrids/core/button'
 import {Input} from '@/components/tailgrids/core/input'
-import {Backdrop} from '@/components/tailgrids/core/overlay'
 import type {AdmissionDocumentTypeOption} from '@/services/api/admission-profile-catalog'
 
-import {AdmissionProfileTemplateDocumentDetailDialog} from './admission-profile-template-document-detail-dialog'
+import {AdmissionProfileTemplateDocumentDetailPage} from './admission-profile-template-document-detail-page'
 import {
   documentTypeLabel,
   requirementModeLabel,
@@ -60,6 +59,19 @@ export function AdmissionProfileTemplateDocuments({
       return matchesGroup && matchesSearch
     })
 
+  const selectedRequirement = selectedIndex === null ? null : requirements[selectedIndex]
+  if (selectedRequirement && selectedIndex !== null) {
+    return (
+      <AdmissionProfileTemplateDocumentDetailPage
+        requirement={selectedRequirement}
+        documentTypes={documentTypes}
+        isSaving={isSaving}
+        onBack={onCloseDetail}
+        onChange={(patch) => onRequirementsChange(updateRequirement(requirements, selectedIndex, patch))}
+      />
+    )
+  }
+
   return (
     <section className="overflow-hidden rounded-xl border border-card-border bg-card-background">
       <div className="border-b border-card-border px-4 py-4 sm:px-6">
@@ -108,19 +120,6 @@ export function AdmissionProfileTemplateDocuments({
                 </span>
                 <Badge color={requirement.is_required ? 'primary' : 'gray'} size="sm">{requirement.is_required ? 'Bắt buộc' : 'Tùy chọn'}</Badge>
               </button>
-              <Backdrop
-                isOpen={isSelected}
-                onOpenChange={(open) => {
-                  if (!open && isSelected) onCloseDetail()
-                }}
-              >
-                <AdmissionProfileTemplateDocumentDetailDialog
-                  requirement={requirement}
-                  documentTypes={documentTypes}
-                  isSaving={isSaving}
-                  onChange={(patch) => onRequirementsChange(updateRequirement(requirements, index, patch))}
-                />
-              </Backdrop>
               <Button aria-label={`Xóa ${documentTypeLabel(requirement.document_type, documentTypes)}`} iconOnly size="sm" appearance="ghost" variant="danger" onPress={() => onRemove(index)} isDisabled={isSaving}>
                 <Trash1 size={15} aria-hidden="true" />
               </Button>

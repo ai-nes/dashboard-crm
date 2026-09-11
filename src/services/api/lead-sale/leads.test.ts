@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  convertLeadToStudent,
   createLead,
   deleteLead,
   getLeadDetail,
@@ -884,6 +885,43 @@ describe("Lead list/detail API contract", () => {
         method: "DELETE",
         cache: "no-store",
         body: JSON.stringify({ name: "LEAD-2026-00004" }),
+      }),
+    );
+  });
+
+  it("converts an assigned Lead into a new Student", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            status: "CLOSED",
+            resolution: "CREATED",
+            lead: "HS-2026-HCM-000005",
+            student: "STU-2026-00001",
+            student_stage: "New",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      convertLeadToStudent(" HS-2026-HCM-000005 ", {
+        baseUrl: "http://frappe:8000",
+      }),
+    ).resolves.toEqual({
+      status: "CLOSED",
+      resolution: "CREATED",
+      lead: "HS-2026-HCM-000005",
+      student: "STU-2026-00001",
+      studentStage: "New",
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_processing.convert_to_student",
+      expect.objectContaining({
+        method: "POST",
+        cache: "no-store",
+        body: JSON.stringify({ lead: "HS-2026-HCM-000005" }),
       }),
     );
   });

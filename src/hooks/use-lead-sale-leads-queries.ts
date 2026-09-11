@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-query";
 
 import {
+  convertLeadToStudent,
   createLead,
   deleteLead,
   getLeadDetail,
@@ -25,6 +26,7 @@ import {
   type LeadCreateFields,
   type LeadUpdateFields,
   type LeadDetailResponse,
+  type LeadConversionResponse,
   type LeadListParams,
   type LeadListResponse,
   type LeadProcessRequest,
@@ -195,6 +197,21 @@ export function useDeleteLeadMutation() {
     mutationFn: (leadId) => deleteLead(leadId),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+  });
+}
+
+export function useConvertLeadToStudentMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadConversionResponse, Error, string>({
+    mutationFn: (leadId) => convertLeadToStudent(leadId),
+    onSuccess: (_data, leadId) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(leadId),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
   });
 }
 

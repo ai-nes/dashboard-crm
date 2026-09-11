@@ -204,6 +204,7 @@ describe("dashboard RBAC", () => {
       "/director/alerts",
       "/director/admin/nba-actions",
       "/director/admin/segments",
+      "/director/admin/student-config",
       "/director/admin/activity-logs",
     ]);
     expect(

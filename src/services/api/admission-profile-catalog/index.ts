@@ -1,5 +1,9 @@
 import type {
   AdminAdmissionProfileTemplateCatalog,
+  AdmissionDocumentTypeCatalog,
+  AdmissionDocumentTypeMutationInput,
+  AdmissionMethodCatalog,
+  AdmissionMethodMutationInput,
   AdmissionProfileCatalog,
   AdmissionProfileTemplateMutationInput,
   AdmissionProfileTemplateOption,
@@ -132,7 +136,7 @@ function isCatalog(value: unknown): value is AdmissionProfileCatalog {
 }
 
 export async function getAdmissionProfileCatalog(
-  options: { baseUrl?: string; admissionYear?: string } = {},
+  options: { baseUrl?: string; admissionYear?: string; search?: string } = {},
 ): Promise<AdmissionProfileCatalog> {
   const root = baseUrl(options.baseUrl);
   if (!root) {
@@ -142,9 +146,10 @@ export async function getAdmissionProfileCatalog(
       "Chưa cấu hình API Frappe CRM cho catalog tuyển sinh.",
     );
   }
-  const query = options.admissionYear
-    ? `?admission_year=${encodeURIComponent(options.admissionYear)}`
-    : "";
+  const params = new URLSearchParams();
+  if (options.admissionYear) params.set("admission_year", options.admissionYear);
+  if (options.search?.trim()) params.set("search", options.search.trim());
+  const query = params.toString() ? `?${params.toString()}` : "";
   const result = await request(
     `${root}/api/method/crm.api.admission_profile_templates.get_admission_profile_catalog${query}`,
     {},
@@ -171,6 +176,16 @@ function isAdminTemplateCatalog(
   );
 }
 
+function isDocumentTypeCatalog(value: unknown): value is AdmissionDocumentTypeCatalog {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return Array.isArray((value as Partial<AdmissionDocumentTypeCatalog>).documentTypes);
+}
+
+function isMethodCatalog(value: unknown): value is AdmissionMethodCatalog {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return Array.isArray((value as Partial<AdmissionMethodCatalog>).methods);
+}
+
 function ensureApiRoot(root: string, message: string): void {
   if (!root) {
     throw new AdmissionProfileCatalogApiError(
@@ -182,16 +197,21 @@ function ensureApiRoot(root: string, message: string): void {
 }
 
 export async function listAdmissionProfileTemplates(
-  options: { baseUrl?: string; status?: AdmissionProfileTemplateStatus } = {},
+  options: {
+    baseUrl?: string;
+    status?: AdmissionProfileTemplateStatus;
+    search?: string;
+  } = {},
 ): Promise<AdminAdmissionProfileTemplateCatalog> {
   const root = baseUrl(options.baseUrl);
   ensureApiRoot(
     root,
     "Chưa cấu hình API Frappe CRM để quản lý loại hồ sơ nhập học.",
   );
-  const query = options.status
-    ? `?status=${encodeURIComponent(options.status)}`
-    : "";
+  const params = new URLSearchParams();
+  if (options.status) params.set("status", options.status);
+  if (options.search?.trim()) params.set("search", options.search.trim());
+  const query = params.toString() ? `?${params.toString()}` : "";
   const result = await request(
     `${root}/api/method/crm.api.admission_profile_templates.list_admission_profile_templates${query}`,
     {},
@@ -301,6 +321,190 @@ export async function deleteAdmissionProfileTemplate(
     root,
   );
   return result as unknown as { name: string; deleted: boolean };
+}
+
+export async function listAdmissionDocumentTypes(
+  options: { baseUrl?: string; search?: string; includeArchived?: boolean } = {},
+): Promise<AdmissionDocumentTypeCatalog> {
+  const root = baseUrl(options.baseUrl);
+  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để quản lý loại tài liệu.");
+  const params = new URLSearchParams();
+  if (options.search?.trim()) params.set("search", options.search.trim());
+  if (options.includeArchived !== undefined) {
+    params.set("include_archived", options.includeArchived ? "1" : "0");
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const result = await request(
+    `${root}/api/method/crm.api.admission_catalog.list_admission_document_types${query}`,
+    {},
+    root,
+  );
+  if (!isDocumentTypeCatalog(result)) {
+    throw new AdmissionProfileCatalogApiError(
+      502,
+      "INVALID_ADMISSION_DOCUMENT_TYPE_RESPONSE",
+      "Phản hồi danh mục loại tài liệu không hợp lệ.",
+    );
+  }
+  return result;
+}
+
+export async function createAdmissionDocumentType(
+  data: AdmissionDocumentTypeMutationInput,
+  options: { baseUrl?: string } = {},
+): Promise<AdmissionDocumentTypeCatalog["documentTypes"][number]> {
+  const root = baseUrl(options.baseUrl);
+  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để tạo loại tài liệu.");
+  const result = await request(
+    `${root}/api/method/crm.api.admission_catalog.create_admission_document_type`,
+    { method: "POST", body: JSON.stringify({ data }) },
+    root,
+  );
+  return result as unknown as AdmissionDocumentTypeCatalog["documentTypes"][number];
+}
+
+export interface UpdateAdmissionDocumentTypeInput {
+  name: string;
+  data: AdmissionDocumentTypeMutationInput;
+  expectedModified?: string | null;
+}
+
+export async function updateAdmissionDocumentType(
+  input: UpdateAdmissionDocumentTypeInput,
+  options: { baseUrl?: string } = {},
+): Promise<AdmissionDocumentTypeCatalog["documentTypes"][number]> {
+  const root = baseUrl(options.baseUrl);
+  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để sửa loại tài liệu.");
+  const result = await request(
+    `${root}/api/method/crm.api.admission_catalog.update_admission_document_type`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        name: input.name,
+        data: input.data,
+        expected_modified: input.expectedModified,
+      }),
+    },
+    root,
+  );
+  return result as unknown as AdmissionDocumentTypeCatalog["documentTypes"][number];
+}
+
+export interface DeleteAdmissionDocumentTypeInput {
+  name: string;
+  expectedModified?: string | null;
+}
+
+export async function deleteAdmissionDocumentType(
+  input: DeleteAdmissionDocumentTypeInput,
+  options: { baseUrl?: string } = {},
+): Promise<{ deleted: string }> {
+  const root = baseUrl(options.baseUrl);
+  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để xóa loại tài liệu.");
+  const result = await request(
+    `${root}/api/method/crm.api.admission_catalog.delete_admission_document_type`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        name: input.name,
+        expected_modified: input.expectedModified,
+      }),
+    },
+    root,
+  );
+  return result as unknown as { deleted: string };
+}
+
+export async function listAdmissionMethods(
+  options: { baseUrl?: string; search?: string; includeDisabled?: boolean } = {},
+): Promise<AdmissionMethodCatalog> {
+  const root = baseUrl(options.baseUrl);
+  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để quản lý phương thức xét tuyển.");
+  const params = new URLSearchParams();
+  if (options.search?.trim()) params.set("search", options.search.trim());
+  if (options.includeDisabled !== undefined) {
+    params.set("include_disabled", options.includeDisabled ? "1" : "0");
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const result = await request(
+    `${root}/api/method/crm.api.admission_catalog.list_admission_methods${query}`,
+    {},
+    root,
+  );
+  if (!isMethodCatalog(result)) {
+    throw new AdmissionProfileCatalogApiError(
+      502,
+      "INVALID_ADMISSION_METHOD_RESPONSE",
+      "Phản hồi danh mục phương thức xét tuyển không hợp lệ.",
+    );
+  }
+  return result;
+}
+
+export async function createAdmissionMethod(
+  data: AdmissionMethodMutationInput,
+  options: { baseUrl?: string } = {},
+): Promise<AdmissionMethodCatalog["methods"][number]> {
+  const root = baseUrl(options.baseUrl);
+  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để tạo phương thức xét tuyển.");
+  const result = await request(
+    `${root}/api/method/crm.api.admission_catalog.create_admission_method`,
+    { method: "POST", body: JSON.stringify({ data }) },
+    root,
+  );
+  return result as unknown as AdmissionMethodCatalog["methods"][number];
+}
+
+export interface UpdateAdmissionMethodInput {
+  name: string;
+  data: AdmissionMethodMutationInput;
+  expectedModified?: string | null;
+}
+
+export async function updateAdmissionMethod(
+  input: UpdateAdmissionMethodInput,
+  options: { baseUrl?: string } = {},
+): Promise<AdmissionMethodCatalog["methods"][number]> {
+  const root = baseUrl(options.baseUrl);
+  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để sửa phương thức xét tuyển.");
+  const result = await request(
+    `${root}/api/method/crm.api.admission_catalog.update_admission_method`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        name: input.name,
+        data: input.data,
+        expected_modified: input.expectedModified,
+      }),
+    },
+    root,
+  );
+  return result as unknown as AdmissionMethodCatalog["methods"][number];
+}
+
+export interface DeleteAdmissionMethodInput {
+  name: string;
+  expectedModified?: string | null;
+}
+
+export async function deleteAdmissionMethod(
+  input: DeleteAdmissionMethodInput,
+  options: { baseUrl?: string } = {},
+): Promise<{ deleted: string }> {
+  const root = baseUrl(options.baseUrl);
+  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để xóa phương thức xét tuyển.");
+  const result = await request(
+    `${root}/api/method/crm.api.admission_catalog.delete_admission_method`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        name: input.name,
+        expected_modified: input.expectedModified,
+      }),
+    },
+    root,
+  );
+  return result as unknown as { deleted: string };
 }
 
 export async function createAdmissionApplication(

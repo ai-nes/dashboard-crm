@@ -44,7 +44,7 @@ export function AdmissionProfileTemplateEditorDialog({
           <AdmissionProfileTemplateEditor
             template={template}
             documentTypes={documentTypes}
-            initialSection={isCreate ? 'overview' : 'documents'}
+            initialSection="overview"
             onSaved={() => setIsOpen(false)}
           />
         </Dialog>

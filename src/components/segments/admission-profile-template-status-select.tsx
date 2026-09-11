@@ -16,12 +16,6 @@ const STATUS_TRIGGER_CLASSES: Record<AdmissionProfileTemplateStatus, string> = {
   Archived: 'border-transparent bg-badge-neutral-background text-badge-neutral-text hover:bg-badge-neutral-background/80',
 }
 
-const STATUS_DOT_CLASSES: Record<AdmissionProfileTemplateStatus, string> = {
-  Draft: 'bg-badge-warning-icon-color',
-  Active: 'bg-badge-success-icon-color',
-  Archived: 'bg-badge-neutral-icon-color',
-}
-
 const ALL_STATUSES: AdmissionProfileTemplateStatus[] = ['Draft', 'Active', 'Archived']
 
 export function AdmissionProfileTemplateStatusSelect({
@@ -52,19 +46,13 @@ export function AdmissionProfileTemplateStatusSelect({
       onChange={(nextValue) => onChange(String(nextValue) as AdmissionProfileTemplateStatus)}
     >
       <SelectTrigger size={size} className={cn('min-w-32 justify-between border-transparent shadow-none', STATUS_TRIGGER_CLASSES[value], triggerClassName)}>
-        <span className="flex min-w-0 items-center gap-2">
-          <span className={cn('size-1.5 shrink-0 rounded-full', STATUS_DOT_CLASSES[value])} aria-hidden="true" />
-          <SelectValue className="truncate" />
-        </span>
+        <SelectValue className="truncate" />
         <SelectIndicator className="text-current" />
       </SelectTrigger>
       <SelectContent>
         {options.map((status) => (
           <SelectItem key={status} id={status} textValue={STATUS_LABELS[status]}>
-            <span className="flex items-center gap-2">
-              <span className={cn('size-1.5 shrink-0 rounded-full', STATUS_DOT_CLASSES[status])} aria-hidden="true" />
-              <span>{STATUS_LABELS[status]}</span>
-            </span>
+            {STATUS_LABELS[status]}
           </SelectItem>
         ))}
       </SelectContent>
