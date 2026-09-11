@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, Eye } from "@tailgrids/icons";
-import { useState } from "react";
+import { useRef } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
 import { Input } from "@/components/tailgrids/core/input";
@@ -16,7 +16,9 @@ import {
 import {
   RichTextEditor,
   type RichTextEditorExtension,
+  type RichTextEditorInstance,
 } from "@/components/tailgrids/core/rich-text-editor";
+import type { SnippetRecord } from "@/services/api/snippets";
 
 import type { MessageTemplateDraft } from "./message-template-create-types";
 import MessageTemplateTokenPopover from "./message-template-token-popover";
@@ -25,18 +27,79 @@ import MessageTemplateSubjectEditor from "./message-template-subject-editor";
 
 interface MessageTemplateCreateEditorProps {
   draft: MessageTemplateDraft;
+  ownerName: string;
   onChange: (field: keyof MessageTemplateDraft, value: string) => void;
+  sharingLocked?: boolean;
   showPreviewToggle?: boolean;
   onShowPreview?: () => void;
+  snippets?: SnippetRecord[];
+  isLoadingSnippets?: boolean;
+  snippetsError?: string | null;
+}
+
+const SNIPPET_REFERENCE_PATTERN = /#\(\s*([^()\r\n]+?)\s*\)|#([A-Za-z0-9][A-Za-z0-9_.-]*)/g;
+
+function expandSnippetReferences(
+  editor: RichTextEditorInstance,
+  snippets: SnippetRecord[],
+  isExpanding: { current: boolean },
+) {
+  if (!snippets.length || isExpanding.current) return;
+
+  const snippetsByReference = new Map<string, SnippetRecord>();
+  snippets.forEach((snippet) => {
+    [snippet.name, snippet.code].forEach((reference) => {
+      const normalized = reference.trim().toLocaleLowerCase();
+      if (normalized) snippetsByReference.set(normalized, snippet);
+    });
+  });
+
+  const replacements: Array<{ from: number; to: number; content: string }> = [];
+  editor.state.doc.descendants((node, position) => {
+    if (!node.isText || !node.text) return;
+
+    for (const match of node.text.matchAll(SNIPPET_REFERENCE_PATTERN)) {
+      const reference = (match[1] ?? match[2] ?? "").trim().toLocaleLowerCase();
+      const snippet = snippetsByReference.get(reference);
+      if (!snippet) continue;
+
+      replacements.push({
+        from: position + match.index,
+        to: position + match.index + match[0].length,
+        content: snippet.content,
+      });
+    }
+  });
+
+  if (!replacements.length) return;
+
+  isExpanding.current = true;
+  try {
+    const chain = editor.chain().focus();
+    replacements
+      .sort((left, right) => right.from - left.from)
+      .forEach(({ from, to, content }) => {
+        chain.insertContentAt({ from, to }, content);
+      });
+    chain.run();
+  } finally {
+    isExpanding.current = false;
+  }
 }
 
 export default function MessageTemplateCreateEditor({
   draft,
+  ownerName,
   onChange,
+  sharingLocked = false,
   showPreviewToggle = false,
   onShowPreview,
+  snippets = [],
+  isLoadingSnippets = false,
+  snippetsError = null,
 }: MessageTemplateCreateEditorProps) {
-  const [sharingOption, setSharingOption] = useState("everyone");
+  const isExpandingSnippet = useRef(false);
+  const hasSnippets = snippets.length > 0;
 
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
@@ -57,33 +120,39 @@ export default function MessageTemplateCreateEditor({
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-button-primary-outline-stroke bg-background-white-primary">
         <div className="grid shrink-0 border-b border-button-primary-outline-stroke sm:grid-cols-[minmax(0,1fr)_auto]">
-          <Select
-            aria-label="Quyền chia sẻ"
-            className="min-w-0 gap-0"
-            value={sharingOption}
-            onChange={(value) => setSharingOption(String(value ?? ""))}
-          >
-            <SelectTrigger className="h-11 min-w-0 rounded-none border-0 bg-transparent px-4 text-sm font-semibold shadow-none focus:ring-0">
-              <SelectValue>
-                {sharingOption === "private" ? "Chỉ mình tôi" : "Chia sẻ với mọi người"}
-              </SelectValue>
-              <SelectIndicator>
-                <ChevronDown size={14} />
-              </SelectIndicator>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem id="everyone" textValue="Chia sẻ với mọi người">
-                Chia sẻ với mọi người
-              </SelectItem>
-              <SelectItem id="private" textValue="Chỉ mình tôi">
-                Chỉ mình tôi
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          {sharingLocked ? (
+            <div className="flex h-11 items-center px-4 text-sm font-semibold text-text-primary">
+              Chia sẻ với mọi người
+            </div>
+          ) : (
+            <Select
+              aria-label="Quyền chia sẻ"
+              className="min-w-0 gap-0"
+              value={draft.sharing}
+              onChange={(value) => onChange("sharing", String(value ?? "public"))}
+            >
+              <SelectTrigger className="h-11 min-w-0 rounded-none border-0 bg-transparent px-4 text-sm font-semibold shadow-none focus:ring-0">
+                <SelectValue>
+                  {draft.sharing === "private" ? "Chỉ mình tôi" : "Chia sẻ với mọi người"}
+                </SelectValue>
+                <SelectIndicator>
+                  <ChevronDown size={14} />
+                </SelectIndicator>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem id="public" textValue="Chia sẻ với mọi người">
+                  Chia sẻ với mọi người
+                </SelectItem>
+                <SelectItem id="private" textValue="Chỉ mình tôi">
+                  Chỉ mình tôi
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          )}
 
           <div className="flex h-11 items-center border-t border-button-primary-outline-stroke px-4 text-sm sm:border-t-0 sm:border-l">
             <span className="font-semibold text-text-primary">Chủ sở hữu:</span>
-            <span className="ml-1.5 text-text-secondary">Thịnh Phú</span>
+            <span className="ml-1.5 truncate text-text-secondary">{ownerName}</span>
           </div>
         </div>
 
@@ -112,8 +181,20 @@ export default function MessageTemplateCreateEditor({
           value={draft.body}
           onChange={(value) => onChange("body", value)}
           placeholder="Nhập nội dung mẫu email..."
-          renderInsertControl={(onInsertToken) => (
-            <MessageTemplateTokenPopover onInsertToken={onInsertToken} />
+          toolbarPlacement="bottom"
+          toolbarEndContent={
+            <Button appearance="ghost" size="xs" onPress={() => undefined}>
+              Tạo bằng AI
+            </Button>
+          }
+          renderInsertControl={(onInsertToken, onInsertContent) => (
+            <MessageTemplateTokenPopover
+              onInsertToken={onInsertToken}
+              snippets={snippets}
+              isLoadingSnippets={isLoadingSnippets}
+              snippetsError={snippetsError}
+              onInsertSnippet={(snippet) => onInsertContent(snippet.content)}
+            />
           )}
           extensions={[MessageTemplateToken as unknown as RichTextEditorExtension]}
           onInsertToken={(editor, token) => {
@@ -126,14 +207,13 @@ export default function MessageTemplateCreateEditor({
               })
               .run();
           }}
-          className="min-h-0 flex-1 rounded-none border-0 bg-transparent [&>div:first-child]:border-button-primary-outline-stroke [&_.ProseMirror]:min-h-[14rem] [&_.ProseMirror]:text-sm sm:[&_.ProseMirror]:min-h-[17rem]"
+          onEditorUpdate={(editor) => {
+            if (hasSnippets) {
+              expandSnippetReferences(editor, snippets, isExpandingSnippet);
+            }
+          }}
+          className="flex min-h-0 flex-1 flex-col rounded-none border-0 bg-transparent [&_.ProseMirror]:min-h-[14rem] [&_.ProseMirror]:text-base [&_.ProseMirror]:leading-8 [&_.ProseMirror_p]:my-0 [&_.ProseMirror_p:not(:last-child)]:mb-8 sm:[&_.ProseMirror]:min-h-[17rem]"
         />
-
-        <div className="flex shrink-0 justify-end px-4 py-3">
-          <Button appearance="ghost" size="xs" onPress={() => undefined}>
-            Tạo bằng AI
-          </Button>
-        </div>
       </div>
     </section>
   );

@@ -3,12 +3,8 @@
 import { Copy4, Trash1 } from "@tailgrids/icons";
 import type { KeyboardEvent } from "react";
 
+import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/tailgrids/core/tooltip";
 import {
   TableBody,
   TableCell,
@@ -17,67 +13,84 @@ import {
   TableRoot,
   TableRow,
 } from "@/components/tailgrids/core/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/tailgrids/core/tooltip";
 
-import type { MessageTemplateRecord } from "./message-template-data";
+import type { SnippetRecord } from "@/services/api/snippets";
 
-interface MessageTemplateTableProps {
-  templates: MessageTemplateRecord[];
+interface SnippetTableProps {
+  snippets: SnippetRecord[];
   totalCount: number;
   isLoading?: boolean;
-  onDuplicate: (template: MessageTemplateRecord) => void;
-  onDelete: (template: MessageTemplateRecord) => void;
-  onEdit: (template: MessageTemplateRecord) => void;
+  onDuplicate: (snippet: SnippetRecord) => void;
+  onDelete: (snippet: SnippetRecord) => void;
+  onEdit: (snippet: SnippetRecord) => void;
 }
 
 function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     timeZone: "Asia/Ho_Chi_Minh",
-  }).format(new Date(value));
+  }).format(date);
 }
 
-export default function MessageTemplateTable({
-  templates,
+function getContentPreview(content: string) {
+  return content
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export default function SnippetTable({
+  snippets,
   totalCount,
   isLoading = false,
   onDuplicate,
   onDelete,
   onEdit,
-}: MessageTemplateTableProps) {
+}: SnippetTableProps) {
   const handleRowKeyDown = (
     event: KeyboardEvent<HTMLTableRowElement>,
-    template: MessageTemplateRecord,
+    snippet: SnippetRecord,
   ) => {
     if (event.key !== "Enter" && event.key !== " ") return;
 
     event.preventDefault();
-    if (template.canEdit) onEdit(template);
+    if (snippet.canEdit) onEdit(snippet);
   };
 
   return (
     <TableRoot
       fullBleed
-      className="w-full min-w-[54rem] border-0"
-      aria-label="Danh sách mẫu tin nhắn"
+      className="w-full min-w-[68rem] border-0"
+      aria-label="Danh sách snippet"
     >
       <TableHeader className="bg-background-gray-secondary">
         <TableRow>
-          <TableHead scope="col" className="w-36 whitespace-nowrap">
-            Mã mẫu
+          <TableHead scope="col" className="w-32 whitespace-nowrap">
+            Mã snippet
+          </TableHead>
+          <TableHead scope="col" className="min-w-56 whitespace-nowrap">
+            Tên snippet
           </TableHead>
           <TableHead scope="col" className="min-w-72 whitespace-nowrap">
-            Tên mẫu
+            Nội dung
           </TableHead>
           <TableHead scope="col" className="whitespace-nowrap">
             Người sở hữu
           </TableHead>
           <TableHead scope="col" className="whitespace-nowrap">
-            Ngày tạo
+            Chia sẻ
           </TableHead>
           <TableHead scope="col" className="whitespace-nowrap">
-            Ngày chỉnh sửa
+            Chỉnh sửa
           </TableHead>
           <TableHead scope="col" className="w-28 whitespace-nowrap text-right">
             Thao tác
@@ -85,29 +98,42 @@ export default function MessageTemplateTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {templates.map((template) => (
+        {snippets.map((snippet) => (
           <TableRow
-            key={template.id}
-            tabIndex={template.canEdit ? 0 : -1}
-            aria-label={template.canEdit ? `Chỉnh sửa ${template.name}` : template.name}
-            onClick={() => template.canEdit && onEdit(template)}
-            onKeyDown={(event) => handleRowKeyDown(event, template)}
-            className={template.canEdit ? "cursor-pointer outline-none hover:bg-background-gray-secondary/30 focus-visible:bg-background-gray-secondary/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500" : "outline-none"}
+            key={snippet.id}
+            tabIndex={snippet.canEdit ? 0 : -1}
+            aria-label={
+              snippet.canEdit ? `Chỉnh sửa ${snippet.name}` : snippet.name
+            }
+            onClick={() => snippet.canEdit && onEdit(snippet)}
+            onKeyDown={(event) => handleRowKeyDown(event, snippet)}
+            className={
+              snippet.canEdit
+                ? "cursor-pointer outline-none hover:bg-background-gray-secondary/30 focus-visible:bg-background-gray-secondary/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+                : "outline-none"
+            }
           >
             <TableCell className="whitespace-nowrap font-mono text-xs text-text-tertiary">
-              {template.code}
+              {snippet.code}
             </TableCell>
-            <TableCell className="min-w-72 text-sm font-semibold text-text-primary">
-              {template.name}
+            <TableCell className="min-w-56 text-sm font-semibold text-text-primary">
+              {snippet.name}
+            </TableCell>
+            <TableCell className="max-w-96 text-sm text-text-secondary">
+              <span className="line-clamp-2">
+                {getContentPreview(snippet.content) || "—"}
+              </span>
             </TableCell>
             <TableCell className="whitespace-nowrap text-sm text-text-secondary">
-              {template.owner}
+              {snippet.owner}
+            </TableCell>
+            <TableCell className="whitespace-nowrap">
+              <Badge color={snippet.sharing === "public" ? "success" : "gray"}>
+                {snippet.sharing === "public" ? "Công khai" : "Riêng tư"}
+              </Badge>
             </TableCell>
             <TableCell className="whitespace-nowrap text-sm text-text-secondary">
-              {formatDate(template.createdAt)}
-            </TableCell>
-            <TableCell className="whitespace-nowrap text-sm text-text-secondary">
-              {formatDate(template.modifiedAt)}
+              {formatDate(snippet.modifiedAt)}
             </TableCell>
             <TableCell className="text-right">
               <div
@@ -122,15 +148,15 @@ export default function MessageTemplateTable({
                       iconOnly
                       size="sm"
                       appearance="ghost"
-                      aria-label={`Nhân bản ${template.name}`}
-                      onPress={() => onDuplicate(template)}
+                      aria-label={`Nhân bản ${snippet.name}`}
+                      onPress={() => onDuplicate(snippet)}
                     >
                       <Copy4 size={17} aria-hidden="true" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Nhân bản</TooltipContent>
                 </Tooltip>
-                {template.canEdit ? (
+                {snippet.canEdit ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -139,8 +165,8 @@ export default function MessageTemplateTable({
                         size="sm"
                         appearance="ghost"
                         variant="danger"
-                        aria-label={`Xóa ${template.name}`}
-                        onPress={() => onDelete(template)}
+                        aria-label={`Xóa ${snippet.name}`}
+                        onPress={() => onDelete(snippet)}
                       >
                         <Trash1 size={17} aria-hidden="true" />
                       </Button>
@@ -154,16 +180,22 @@ export default function MessageTemplateTable({
         ))}
         {isLoading ? (
           <TableRow>
-            <TableCell colSpan={6} className="py-16 text-center text-sm text-text-tertiary">
-              Đang tải mẫu email...
+            <TableCell
+              colSpan={7}
+              className="py-16 text-center text-sm text-text-tertiary"
+            >
+              Đang tải snippet...
             </TableCell>
           </TableRow>
-        ) : templates.length === 0 ? (
+        ) : snippets.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="py-16 text-center text-sm text-text-tertiary">
+            <TableCell
+              colSpan={7}
+              className="py-16 text-center text-sm text-text-tertiary"
+            >
               {totalCount === 0
-                ? "Chưa có mẫu tin nhắn nào. Tạo mẫu để bắt đầu."
-                : "Không tìm thấy mẫu tin nhắn phù hợp."}
+                ? "Chưa có snippet nào. Tạo snippet để bắt đầu."
+                : "Không tìm thấy snippet phù hợp."}
             </TableCell>
           </TableRow>
         ) : null}

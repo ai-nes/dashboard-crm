@@ -15,6 +15,11 @@ export default function AdminPage() {
       description="Quản lý cấu hình nền tảng, chất lượng dữ liệu và các chính sách hỗ trợ vận hành tuyển sinh."
       links={[
         {
+          label: 'Quản lý người dùng',
+          description: 'Xem danh sách người dùng CRM, đổi vai trò hoặc gỡ quyền truy cập.',
+          href: '/admin/users',
+        },
+        {
           label: 'Cấu hình hành động NBA',
           description: 'Thiết lập nhóm hành động, khung thời gian và quy tắc đề xuất.',
           href: '/director/admin/nba-actions',
@@ -23,6 +28,11 @@ export default function AdminPage() {
           label: 'Quản lý rule',
           description: 'Tạo, kiểm tra và phát hành các CRM Rule dùng cho quy trình nghiệp vụ.',
           href: '/director/admin/rules-config',
+        },
+        {
+          label: 'Quản lý Message Template',
+          description: 'Quản lý các mẫu email dùng chung trong thư viện tạo mẫu.',
+          href: '/director/admin/message-templates',
         },
         {
           label: 'Quản lý segments',

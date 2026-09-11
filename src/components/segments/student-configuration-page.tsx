@@ -17,9 +17,20 @@ import {
   canManageStudentConfiguration,
 } from '@/components/segments/student-configuration-permissions'
 
+const CONFIGURATION_TAB_VALUES = new Set([
+  'needs',
+  'tags',
+  'profile-types',
+  'document-types',
+  'admission-methods',
+])
+
 export function StudentConfigurationPage() {
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'needs')
+  const [activeTab, setActiveTab] = useState(() => {
+    const requestedTab = searchParams.get('tab')
+    return requestedTab && CONFIGURATION_TAB_VALUES.has(requestedTab) ? requestedTab : 'needs'
+  })
   const {user} = useAuth()
   const canManage = canManageStudentConfiguration(user?.roles)
   const canManageDocumentTypes = canManageAdmissionDocumentTypes(user?.roles)
@@ -40,7 +51,6 @@ export function StudentConfigurationPage() {
           <TabTrigger value="needs">Nhu cầu</TabTrigger>
           <TabTrigger value="tags">Tag</TabTrigger>
           <TabTrigger value="profile-types">Loại hồ sơ</TabTrigger>
-          <TabTrigger value="profile-type-config">Cấu hình loại hồ sơ</TabTrigger>
           <TabTrigger value="document-types">Loại tài liệu</TabTrigger>
           <TabTrigger value="admission-methods">Phương thức xét tuyển</TabTrigger>
         </TabList>
@@ -52,9 +62,6 @@ export function StudentConfigurationPage() {
         </TabContent>
         <TabContent value="profile-types" className="flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-5">
           <AdmissionProfileTemplateManagement canManage={canManage} />
-        </TabContent>
-        <TabContent value="profile-type-config" className="min-h-0 flex-1 overflow-hidden px-0 pt-5">
-          {null}
         </TabContent>
         <TabContent value="document-types" className="flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-5">
           <AdmissionDocumentTypeManagement canManage={canManageDocumentTypes} canDelete={canDeleteDocumentTypes} />

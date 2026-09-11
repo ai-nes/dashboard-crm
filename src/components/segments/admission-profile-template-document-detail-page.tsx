@@ -10,7 +10,7 @@ import {Input} from '@/components/tailgrids/core/input'
 import {InputGroup, InputGroupAddon, InputGroupInput} from '@/components/tailgrids/core/input-group'
 import {Select, SelectContent, SelectIndicator, SelectItem, SelectTrigger, SelectValue} from '@/components/tailgrids/core/select'
 import {TextArea} from '@/components/tailgrids/core/text-area'
-import type {AdmissionDocumentTypeOption} from '@/services/api/admission-profile-catalog'
+import type {AdmissionDocumentTypeOption, AdmissionMethodOption} from '@/services/api/admission-profile-catalog'
 
 import {FieldLabel} from './admission-profile-template-editor-shared'
 import {
@@ -18,18 +18,11 @@ import {
   REQUIREMENT_GROUP_OPTIONS,
   REQUIREMENT_SECTION_OPTIONS,
   documentTypeLabel,
+  includeCurrentOption,
+  requirementConditionOptions,
+  type TechnicalSelectOption,
   type RequirementForm,
 } from './admission-profile-template-editor-types'
-
-type TechnicalSelectOption = {value: string; label: string}
-
-function includeCurrentOption(
-  options: readonly TechnicalSelectOption[],
-  currentValue: string,
-): TechnicalSelectOption[] {
-  if (!currentValue || options.some((option) => option.value === currentValue)) return [...options]
-  return [{value: currentValue, label: `Giá trị hiện tại (${currentValue})`}, ...options]
-}
 
 function TechnicalSelectField({
   label,
@@ -63,12 +56,14 @@ function TechnicalSelectField({
 export function AdmissionProfileTemplateDocumentDetailPage({
   requirement,
   documentTypes,
+  admissionMethods,
   isSaving,
   onBack,
   onChange,
 }: {
   requirement: RequirementForm
   documentTypes: AdmissionDocumentTypeOption[]
+  admissionMethods: AdmissionMethodOption[]
   isSaving: boolean
   onBack: () => void
   onChange: (patch: Partial<RequirementForm>) => void
@@ -78,6 +73,10 @@ export function AdmissionProfileTemplateDocumentDetailPage({
   const documentTypeQuery = useAdmissionProfileDocumentTypesQuery(documentTypeSearch)
   const sectionOptions = includeCurrentOption(REQUIREMENT_SECTION_OPTIONS, requirement.section_code)
   const groupOptions = includeCurrentOption(REQUIREMENT_GROUP_OPTIONS, requirement.requirement_group)
+  const conditionOptions = includeCurrentOption(
+    requirementConditionOptions(requirement.section_code, admissionMethods),
+    requirement.condition_key,
+  )
   const hasDocumentTypeSearch = Boolean(documentTypeSearch.trim())
   const visibleDocumentTypes = hasDocumentTypeSearch ? documentTypeQuery.data ?? [] : documentTypes
 
@@ -179,18 +178,15 @@ export function AdmissionProfileTemplateDocumentDetailPage({
               <FieldLabel>Số bản</FieldLabel>
               <Input type="number" min="1" value={requirement.quantity} onChange={(event) => onChange({quantity: event.target.value})} disabled={isSaving || requirement.requirement_mode === 'ANY'} className={FIELD_CLASS} />
             </label>
-            <label className="block space-y-1.5 md:col-span-2">
-              <FieldLabel>Điều kiện áp dụng</FieldLabel>
-              <Input
+            <div className="md:col-span-2">
+              <TechnicalSelectField
+                label="Điều kiện áp dụng"
                 value={requirement.condition_key}
-                aria-label="Điều kiện áp dụng"
-                onChange={(event) => onChange({condition_key: event.target.value})}
-                disabled={isSaving}
-                className={FIELD_CLASS}
-                placeholder="field:application.admission_method=THPT_SCORE"
+                options={conditionOptions}
+                isDisabled={isSaving}
+                onChange={(value) => onChange({condition_key: value})}
               />
-              <p className="text-xs text-text-tertiary">Để trống nếu không áp dụng; dùng định dạng field:&lt;nguồn&gt;.&lt;trường&gt;=&lt;giá trị&gt;.</p>
-            </label>
+            </div>
           </div>
         </details>
       </div>
