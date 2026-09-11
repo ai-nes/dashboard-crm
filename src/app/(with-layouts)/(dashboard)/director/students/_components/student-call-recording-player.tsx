@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
 import type { StudentCallRecord } from "@/services/api/students/types";
-import { cn } from "@/utils/cn";
 
 interface StudentCallRecordingPlayerProps {
   call: StudentCallRecord;
@@ -82,20 +81,20 @@ export default function StudentCallRecordingPlayer({ call }: StudentCallRecordin
       });
   };
 
-  const handleSeek = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
     const audio = audioRef.current;
     if (!audio || !audioUrl || duration <= 0) return;
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
-    const targetTime = ratio * duration;
+    const targetTime = Number(event.target.value);
+    if (!Number.isFinite(targetTime)) return;
 
-    audio.currentTime = targetTime;
+    try {
+      audio.currentTime = targetTime;
+    } catch {
+      return;
+    }
     setCurrentTime(targetTime);
   };
-
-  const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background-gray-secondary/40 px-3 py-2.5">
@@ -131,24 +130,17 @@ export default function StudentCallRecordingPlayer({ call }: StudentCallRecordin
             {formatDuration(currentTime)} / {formatDuration(duration)}
           </span>
         </div>
-        <div
-          role="progressbar"
-          aria-valuenow={currentTime}
-          aria-valuemin={0}
-          aria-valuemax={duration}
+        <input
+          type="range"
+          min={0}
+          max={duration > 0 ? duration : 1}
+          step="0.01"
+          value={Math.min(currentTime, duration > 0 ? duration : 1)}
           aria-label="Tiến trình bản ghi âm"
-          tabIndex={audioUrl ? 0 : undefined}
-          onClick={audioUrl ? handleSeek : undefined}
-          className={cn(
-            "mt-2 h-1.5 overflow-hidden rounded-full bg-card-border",
-            audioUrl ? "cursor-pointer" : "cursor-default",
-          )}
-        >
-          <div
-            className="h-full rounded-full bg-primary-500 transition-[width]"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+          disabled={!audioUrl || duration <= 0}
+          onChange={handleSeek}
+          className="mt-2 h-1.5 w-full cursor-pointer accent-primary-500 disabled:cursor-default disabled:opacity-60"
+        />
         {!audioUrl ? (
           <p className="mt-1 text-xs text-text-tertiary">Bản ghi sẽ khả dụng khi API trả về đường dẫn âm thanh.</p>
         ) : hasError ? (
