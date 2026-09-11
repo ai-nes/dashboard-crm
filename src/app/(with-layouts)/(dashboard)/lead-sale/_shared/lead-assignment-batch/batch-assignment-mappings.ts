@@ -240,12 +240,16 @@ export function assignmentReasonLabel(
   const contextualReason = contextualReasonLabel(item, code);
   if (contextualReason) return contextualReason;
 
+  // A specific reason from the backend (e.g. "Đã đóng hồ sơ vì: Thiếu số điện
+  // thoại.") must win over a generic status label like reasonLabels.INVALID —
+  // otherwise every closed Lead shows the same catch-all text regardless of
+  // why it was actually closed.
+  const reason = item.reason ? humanizeReason(item.reason) : "";
+  if (reason) return reason;
+
   if (item.errorCode && reasonLabels[item.errorCode]) {
     return reasonLabels[item.errorCode];
   }
-
-  const reason = item.reason ? humanizeReason(item.reason) : "";
-  if (reason) return reason;
 
   // Never infer a data problem from an unknown backend code. Keep the
   // internal identifier out of the UI and give the operator a safe next step.
