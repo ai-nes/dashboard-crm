@@ -99,6 +99,7 @@ const workspace: TeamManagementWorkspace = {
       revision: "team-3-rev",
     },
   ],
+  availableMembers: [],
   members: [
     {
       id: "staff-group-lead",

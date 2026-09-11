@@ -25,6 +25,7 @@ interface SmallTeamCardProps {
   members: TeamMember[];
   onEdit: (name: string) => void;
   onDelete: () => void;
+  onReactivate: () => void;
   onLeadChange: (leadId: string | null) => void;
   canManageTeam?: boolean;
 }
@@ -35,11 +36,13 @@ export default function SmallTeamCard({
   members,
   onEdit,
   onDelete,
+  onReactivate,
   onLeadChange,
   canManageTeam = false,
 }: SmallTeamCardProps) {
   const visibleMembers = members.slice(0, MAX_AVATARS);
   const remaining = members.length - visibleMembers.length;
+  const isActive = smallTeam.isActive !== false;
 
   return (
     <Card className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-card-border p-0 transition-shadow hover:shadow-md">
@@ -52,6 +55,9 @@ export default function SmallTeamCard({
               isDisabled={!canManageTeam}
             />
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <Badge size="sm" color={isActive ? "success" : "gray"}>
+                {isActive ? "Đang hoạt động" : "Đã ngừng hoạt động"}
+              </Badge>
               <Badge
                 size="sm"
                 color="gray"
@@ -59,25 +65,14 @@ export default function SmallTeamCard({
               >
                 {members.length} thành viên
               </Badge>
-              {smallTeam.readiness && (
-                <Badge
-                  size="sm"
-                  color={
-                    smallTeam.readiness === "ready" ? "success" : "warning"
-                  }
-                  title={smallTeam.readinessReason}
-                >
-                  {smallTeam.readiness === "ready"
-                    ? "Sẵn sàng nhận Lead"
-                    : "Chưa sẵn sàng"}
-                </Badge>
-              )}
             </div>
           </div>
           <TeamCardActions
             name={smallTeam.name}
             kind="đội"
             onDelete={onDelete}
+            onReactivate={onReactivate}
+            isActive={smallTeam.isActive}
             isDisabled={!canManageTeam}
           />
         </div>

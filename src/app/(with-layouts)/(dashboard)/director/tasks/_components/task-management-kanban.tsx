@@ -114,7 +114,7 @@ function TaskManagementKanbanColumn({
       ref={ref}
       aria-labelledby={`task-column-${status}`}
       aria-busy={isLoading}
-      className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-background-soft-50 transition-colors ${
+      className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-card-border bg-background-soft-50 transition-colors ${
         isDropTarget ? "bg-primary-50/50" : ""
       }`}
     >

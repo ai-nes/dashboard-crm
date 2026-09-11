@@ -388,6 +388,21 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
     ],
   },
   {
+    label: 'Mẫu & Nội dung',
+    items: [
+      navItem({
+        title: 'Message Template',
+        url: '/lead-sale/message-template',
+        icon: <ChatIcon />,
+      }),
+      navItem({
+        title: 'Snippest',
+        url: '/lead-sale/snippest',
+        icon: <Widget4Icon />,
+      }),
+    ],
+  },
+  {
     label: 'VẬN HÀNH TUYỂN SINH',
     items: [
       navItem({

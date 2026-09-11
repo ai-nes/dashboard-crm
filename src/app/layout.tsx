@@ -53,7 +53,10 @@ export default function RootLayout({
       lang="vi"
       className={cn("h-full overflow-hidden antialiased", geistInter.className)}
     >
-      <body className="h-full overflow-hidden bg-background-gray-secondary_alt_2">
+      <body
+        suppressHydrationWarning
+        className="h-full overflow-hidden bg-background-gray-secondary_alt_2"
+      >
         <ThemeProvider defaultTheme="light" enableSystem>
           <Providers>{children}</Providers>
         </ThemeProvider>

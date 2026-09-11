@@ -202,7 +202,8 @@ export default function MarketIntelligenceDashboard({
           schoolFilters={schoolFilters}
           selectedCode={selectedCode}
           selectedSchoolId={visibleSelectedSchoolId}
-          totalProvinces={provinces.length}
+          totalSchools={overview?.totalSchools ?? null}
+          totalProvinces={overview?.totalProvinces ?? provinces.length}
         />
         {region === "all" && !selectedCode ? (
           <AllSchoolsInspector

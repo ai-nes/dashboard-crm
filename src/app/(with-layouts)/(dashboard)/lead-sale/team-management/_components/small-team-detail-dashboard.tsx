@@ -8,8 +8,12 @@ import AddMemberDropdown from "./add-member-dropdown";
 import SmallTeamDetailHeader from "./small-team-detail-header";
 import LeadPickerField from "./lead-picker-field";
 import SmallTeamStats from "./small-team-stats";
+import TeamManagementSkeleton from "./team-management-skeleton";
 import { canManageMembers, canManageTeam } from "./team-management-access";
-import { findMember, membersOfSmallTeam } from "./team-management-utils";
+import {
+  findMember,
+  membersOfSmallTeam,
+} from "./team-management-utils";
 import TeamMemberList from "./team-member-list";
 import { useTeamManagement } from "./use-team-management";
 
@@ -26,7 +30,6 @@ export default function SmallTeamDetailDashboard({
     error,
     saveTeam,
     addMember,
-    moveMember,
     removeMember,
     updateMember,
   } = useTeamManagement();
@@ -56,6 +59,8 @@ export default function SmallTeamDetailDashboard({
     (member) =>
       member.isActive !== false &&
       member.campusId === smallTeam.campusId &&
+      member.role !== "LEAD_SALE" &&
+      (member.teamIds ?? []).length === 0 &&
       !smallTeam.memberIds.includes(member.id),
   );
   const saleCount = members.filter((member) => member.role === "SALE").length;
@@ -93,34 +98,18 @@ export default function SmallTeamDetailDashboard({
   const handleAddMember = (memberId: string) => {
     const added = findMember(state.members, memberId);
     if (!added) return;
-    const sourceTeamId = added.teamIds?.find(
-      (teamId) => teamId !== smallTeam.id,
-    );
     const functionName =
       added.role === "CTV_SALE"
         ? "CTV Sale"
-        : added.role === "LEAD_SALE"
-          ? "Lead Sale"
-          : "Sale";
-    const action = sourceTeamId
-      ? () =>
-          moveMember({
-            staffId: memberId,
-            sourceTeamId,
-            targetTeamId: smallTeam.id,
-            function: functionName,
-          })
-      : () =>
-          addMember({
-            staffId: memberId,
-            teamId: smallTeam.id,
-            function: functionName,
-          });
+        : "Sale";
     void run(
-      action,
-      sourceTeamId
-        ? `Đã chuyển ${added.name} vào ${smallTeam.name}.`
-        : `Đã thêm ${added.name} vào ${smallTeam.name}.`,
+      () =>
+        addMember({
+          staffId: memberId,
+          teamId: smallTeam.id,
+          function: functionName,
+        }),
+      `Đã thêm ${added.name} vào ${smallTeam.name}.`,
     );
   };
 
@@ -217,13 +206,7 @@ export default function SmallTeamDetailDashboard({
 }
 
 function LoadingState() {
-  return (
-    <main id="main-content" className="min-w-0 p-6">
-      <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-secondary">
-        Đang tải dữ liệu đội ngũ...
-      </div>
-    </main>
-  );
+  return <TeamManagementSkeleton view="team" />;
 }
 
 function ErrorState({ message }: { message: string }) {

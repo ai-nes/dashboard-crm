@@ -162,6 +162,11 @@ const TEAM_MANAGEMENT_ROLES = [
   "Lead Sale",
   "System Manager",
 ] as const satisfies readonly DashboardRole[];
+const MESSAGE_CONTENT_ROLES = [
+  "Lead Sale",
+  "Admissions Director",
+  "Administrator",
+] as const satisfies readonly DashboardRole[];
 
 /**
  * Public workspace routes. A workspace is the stable entry point for a role;
@@ -219,6 +224,8 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/ctv-sale/next-best-action", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/lead-sale", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/lead-sale/segments", roles: ROLE_ROUTE_ROLES["lead-sale"] },
+  { path: "/lead-sale/message-template", roles: MESSAGE_CONTENT_ROLES },
+  { path: "/lead-sale/snippest", roles: MESSAGE_CONTENT_ROLES },
   {
     path: "/lead-sale/next-best-action",
     roles: ROLE_ROUTE_ROLES["lead-sale"],
@@ -242,6 +249,8 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/lead-sale/campaigns", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/director/ai/next-best-action", roles: OVERVIEW_ACTION_ROLES },
   { path: "/director/ai", roles: AI_CENTER_ROLES },
+  { path: "/director/message-template", roles: MESSAGE_CONTENT_ROLES },
+  { path: "/director/snippest", roles: MESSAGE_CONTENT_ROLES },
   { path: "/director/demographics", roles: DEMOGRAPHICS_ROLES },
   { path: "/director/students", roles: CUSTOMER_DATA_ROLES },
   { path: "/director/leads", roles: CUSTOMER_DATA_ROLES },

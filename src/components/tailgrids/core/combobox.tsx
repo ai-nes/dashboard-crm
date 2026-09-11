@@ -62,7 +62,10 @@ export function Combobox({
           placeholder={placeholder}
           className={cn("h-9 w-full pr-8 pl-8.5 text-sm", triggerClassName)}
         />
-        <Button className="absolute right-2.5 flex shrink-0 items-center justify-center text-icon-tertiary outline-none">
+        <Button
+          aria-label="Mở danh sách"
+          className="absolute right-2.5 flex shrink-0 items-center justify-center text-icon-tertiary outline-none"
+        >
           <ChevronDown
             size={14}
             className="transition-transform group-data-open:rotate-180"

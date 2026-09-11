@@ -64,6 +64,7 @@ interface MarketMapProps {
   schoolFilters: SchoolMarkerFilters;
   selectedSchoolId: string | null;
   engagementOptions: SchoolEngagementOption[];
+  totalSchools: number | null;
   totalProvinces: number;
 }
 
@@ -187,6 +188,7 @@ export default function MarketMap({
   schoolFilters,
   selectedSchoolId,
   engagementOptions,
+  totalSchools: totalSchoolsFromApi,
   totalProvinces,
 }: MarketMapProps) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
@@ -198,14 +200,12 @@ export default function MarketMap({
     () => new Map(provinces.map((province) => [province.code, province])),
     [provinces],
   );
-  const totalSchools = useMemo(
-    () =>
-      provinces.reduce(
-        (total, province) => total + province.highSchools.length,
-        0,
-      ),
-    [provinces],
-  );
+  const totalSchools =
+    totalSchoolsFromApi ??
+    provinces.reduce(
+      (total, province) => total + province.highSchools.length,
+      0,
+    );
   const provinceHeatScores = useMemo(
     () =>
       provinces
@@ -297,7 +297,7 @@ export default function MarketMap({
               </span>
             </div>
             <p className="mt-0.5 truncate text-xs text-text-tertiary">
-              {totalSchools} trường nổi bật ·{" "}
+              {totalSchools} trường trong phạm vi ·{" "}
               {admissionYear === null
                 ? "Kỳ hiện hành"
                 : `Niên khóa ${admissionYear}`}

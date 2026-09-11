@@ -127,6 +127,7 @@ Ví dụ chỉ minh hoạ shape. Giá trị thực phụ thuộc quyền theo d�
 ## Nguồn và semantics
 
 - Tỉnh/trường: `CRM Province`, `CRM High School`.
+- `CRM Province.province_code` dùng mã nguồn chuẩn dạng `VN_*`; API quy đổi mã nguồn này sang mã geometry số trong `provinces[].code` để client join với asset bản đồ.
 - Lead/prospect: số `CRM Student` duy nhất theo tỉnh/trường và kỳ tuyển sinh.
 - `schoolCount`: tổng số trường THPT của tỉnh; khác với `highSchools`, vốn là danh sách trường nổi bật và bị giới hạn bởi `schoolLimit`.
 - `highSchools[].coordinates`: tọa độ thật của trường theo dạng `{ latitude, longitude }`; có thể trả `null` khi nguồn địa lý chưa có.

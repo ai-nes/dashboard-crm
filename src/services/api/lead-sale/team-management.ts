@@ -63,6 +63,7 @@ export interface TeamManagementWorkspace {
   groups: TeamManagementGroup[];
   teams: TeamManagementTeam[];
   members: TeamManagementMember[];
+  availableMembers: TeamManagementMember[];
   options: {
     campuses: Array<{ id: string; label: string }>;
     provinces: Array<{ id: string; label: string; code?: string | null }>;
@@ -83,6 +84,7 @@ export interface TeamManagementMutationResponse {
   replayed?: boolean;
   groupId?: string;
   teamId?: string;
+  teamLeadStaffId?: string | null;
   staffId?: string;
   revision?: string;
 }

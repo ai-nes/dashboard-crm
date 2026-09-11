@@ -11,6 +11,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import OverviewFact from "./overview-fact";
 import BigTeamCard from "./big-team-card";
 import CreateTeamDialog from "./create-team-dialog";
+import TeamManagementSkeleton from "./team-management-skeleton";
 import {
   getTeamManagementEntryPath,
   membersOfBigTeam,
@@ -39,6 +40,9 @@ export default function BigTeamOverviewDashboard() {
   const activeLeadCandidates = state.members.filter(
     (member) => member.isActive !== false,
   );
+  const assignedMemberCount = new Set(
+    state.smallTeams.flatMap((team) => team.memberIds),
+  ).size;
   const run = async (action: () => Promise<void>, success: string) => {
     try {
       await action();
@@ -91,7 +95,7 @@ export default function BigTeamOverviewDashboard() {
           label="Team"
           value={state.smallTeams.length}
         />
-        <OverviewFact label="Thành viên" value={state.members.length} />
+        <OverviewFact label="Thành viên" value={assignedMemberCount} />
       </div>
 
       {state.bigTeams.length === 0 ? (
@@ -134,6 +138,18 @@ export default function BigTeamOverviewDashboard() {
                       expectedRevision: bigTeam.revision,
                     }),
                   `Đã ngừng hoạt động Group "${bigTeam.name}".`,
+                )
+              }
+              onReactivate={() =>
+                void run(
+                  () =>
+                    saveGroup({
+                      groupId: bigTeam.id,
+                      groupName: bigTeam.name,
+                      isActive: true,
+                      expectedRevision: bigTeam.revision,
+                    }),
+                  `Đã kích hoạt lại Group "${bigTeam.name}".`,
                 )
               }
               onLeadChange={(leadId) =>
@@ -200,13 +216,7 @@ function LoadingState({
 }: {
   message?: string;
 }) {
-  return (
-    <main id="main-content" className="min-w-0 p-6">
-      <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-secondary">
-        {message}
-      </div>
-    </main>
-  );
+  return <TeamManagementSkeleton message={message} />;
 }
 
 function ErrorState({ message }: { message: string }) {
