@@ -21,6 +21,7 @@ import {
 } from "@/services/api/message-templates";
 
 import type { MessageTemplateDraft } from "./message-template-create-types";
+import { messageTemplatePreviewDocument } from "./message-template-body";
 
 interface MessageTemplateCreatePreviewProps {
   isOpen?: boolean;
@@ -33,16 +34,6 @@ interface MessageTemplateCreatePreviewProps {
 
 function hasBodyContent(body: string) {
   return body.replace(/<[^>]*>/g, "").trim().length > 0;
-}
-
-function previewDocument(body: string) {
-  return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><style>body{font-family:Inter,Arial,sans-serif;color:#1f2937;font-size:14px;line-height:1.6;margin:24px;word-break:break-word}img{max-width:100%;height:auto}a{color:#ea580c}</style></head><body>${body}</body></html>`;
-}
-
-function formatMissingReference(reference: string) {
-  return reference.startsWith("#(") && reference.endsWith(")")
-    ? reference
-    : `{{${reference}}}`;
 }
 
 export default function MessageTemplateCreatePreview({
@@ -174,44 +165,37 @@ export default function MessageTemplateCreatePreview({
         </div>
 
         {isPreviewVisible ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-card-border bg-background-white-primary">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {contactsError ? (
-              <div className="flex flex-1 flex-col items-center justify-center px-6 text-center text-sm text-button-error-outline-text">
+              <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-card-border bg-background-white-primary px-6 text-center text-sm text-button-error-outline-text">
                 <p>{contactsError}</p>
                 <button type="button" className="mt-3 underline" onClick={() => void loadContacts()}>
                   Thử lại
                 </button>
               </div>
             ) : previewError ? (
-              <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-button-error-outline-text">
+              <div className="flex flex-1 items-center justify-center rounded-lg border border-card-border bg-background-white-primary px-6 text-center text-sm text-button-error-outline-text">
                 {previewError}
               </div>
             ) : currentPreview ? (
-              <div className="flex min-h-0 flex-1 flex-col">
-                <div className="shrink-0 border-b border-card-border px-5 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
-                    Tiêu đề
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-text-primary">
-                    {currentPreview.subject}
-                  </p>
-                  {currentPreview.missingTokens.length > 0 ? (
-                    <p className="mt-2 text-xs text-text-tertiary">
-                      Chưa có dữ liệu: {currentPreview.missingTokens
-                        .map(formatMissingReference)
-                        .join(", ")}
+              <div className="flex min-h-0 flex-1 rounded-lg bg-background-gray-secondary/55 p-3 sm:p-5">
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-card-border bg-background-white-primary">
+                  <div className="shrink-0 border-b border-card-border px-5 py-4">
+                    <p className="text-sm font-semibold text-text-primary">
+                      <span className="text-text-tertiary">Tiêu đề:</span>{" "}
+                      {currentPreview.subject}
                     </p>
-                  ) : null}
+                  </div>
+                  <iframe
+                    title="Nội dung email preview"
+                    sandbox=""
+                    srcDoc={messageTemplatePreviewDocument(currentPreview.body)}
+                    className="min-h-0 flex-1 border-0 bg-background-white-primary"
+                  />
                 </div>
-                <iframe
-                  title="Nội dung email preview"
-                  sandbox=""
-                  srcDoc={previewDocument(currentPreview.body)}
-                  className="min-h-0 flex-1 border-0 bg-background-white-primary"
-                />
               </div>
             ) : (
-              <div className="flex flex-1 items-center justify-center px-6 text-center">
+              <div className="flex flex-1 items-center justify-center rounded-lg border border-card-border bg-background-white-primary px-6 text-center">
                 <StudentCardEmptyState
                   message={
                     contacts.length === 0

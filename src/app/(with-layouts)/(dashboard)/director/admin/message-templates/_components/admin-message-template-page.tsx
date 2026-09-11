@@ -17,6 +17,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardTitle } from "@/components/tailgrids/core/card";
 
 import MessageTemplateCreateDialog from "@/app/(with-layouts)/(dashboard)/director/message-template/_components/message-template-create-dialog";
+import { normalizeMessageTemplateBody } from "@/app/(with-layouts)/(dashboard)/director/message-template/_components/message-template-body";
 import type { MessageTemplateDraft } from "@/app/(with-layouts)/(dashboard)/director/message-template/_components/message-template-create-types";
 import MessageTemplateList from "@/app/(with-layouts)/(dashboard)/director/message-template/_components/message-template-list";
 
@@ -33,7 +34,7 @@ function getDraft(template: MessageTemplateRecord | null): MessageTemplateDraft 
   return {
     name: template.name,
     subject: template.subject,
-    body: template.body,
+    body: normalizeMessageTemplateBody(template.body),
     sharing: "public",
   };
 }
@@ -101,16 +102,20 @@ export default function AdminMessageTemplatePage() {
 
   const saveTemplate = async (nextDraft: MessageTemplateDraft) => {
     setIsSaving(true);
+    const normalizedDraft = {
+      ...nextDraft,
+      body: normalizeMessageTemplateBody(nextDraft.body),
+    };
     try {
       if (templateToEdit) {
         await updateMessageTemplateLibrary(
           templateToEdit.id,
-          nextDraft,
+          normalizedDraft,
           templateToEdit.modifiedAt,
         );
         toast.success("Đã lưu thay đổi mẫu dùng chung.");
       } else {
-        await createMessageTemplateLibrary(nextDraft);
+        await createMessageTemplateLibrary(normalizedDraft);
         toast.success("Đã tạo mẫu dùng chung.");
       }
       await loadTemplates();

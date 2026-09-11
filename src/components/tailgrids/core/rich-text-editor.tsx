@@ -35,6 +35,8 @@ export interface RichTextEditorProps {
   extensions?: RichTextEditorExtension[];
   onInsertToken?: (editor: RichTextEditorInstance, token: string) => void;
   onEditorUpdate?: (editor: RichTextEditorInstance) => void;
+  toolbarPlacement?: "top" | "bottom";
+  toolbarEndContent?: ReactNode;
 }
 
 interface ToolbarButtonProps {
@@ -73,6 +75,8 @@ export function RichTextEditor({
   extensions = [],
   onInsertToken,
   onEditorUpdate,
+  toolbarPlacement = "top",
+  toolbarEndContent,
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -121,66 +125,79 @@ export function RichTextEditor({
     editor.chain().focus().insertContent(content).run();
   };
 
+  const toolbar = (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-1 px-2 py-1.5",
+        toolbarPlacement === "top"
+          ? "border-b border-card-border"
+          : "border-t border-card-border",
+      )}
+    >
+      <ToolbarButton
+        label="In đậm"
+        active={editor.isActive("bold")}
+        onPress={() => editor.chain().focus().toggleBold().run()}
+      >
+        <span className="font-bold">B</span>
+      </ToolbarButton>
+      <ToolbarButton
+        label="In nghiêng"
+        active={editor.isActive("italic")}
+        onPress={() => editor.chain().focus().toggleItalic().run()}
+      >
+        <span className="italic">I</span>
+      </ToolbarButton>
+      <ToolbarButton
+        label="Gạch chân"
+        active={editor.isActive("underline")}
+        onPress={() => editor.chain().focus().toggleUnderline().run()}
+      >
+        <span className="underline">U</span>
+      </ToolbarButton>
+      <ToolbarButton
+        label="Gạch ngang"
+        active={editor.isActive("strike")}
+        onPress={() => editor.chain().focus().toggleStrike().run()}
+      >
+        <span className="line-through">S</span>
+      </ToolbarButton>
+      <span className="mx-1 h-5 w-px bg-card-border" aria-hidden="true" />
+      <ToolbarButton label="Chèn liên kết" active={editor.isActive("link")} onPress={handleLink}>
+        <Link1AngularRight size={16} />
+      </ToolbarButton>
+      <ToolbarButton label="Chèn ảnh" active={false} onPress={handleUnsupported}>
+        <FileImage size={16} />
+      </ToolbarButton>
+      <ToolbarButton label="Đính kèm tệp" active={false} onPress={handleUnsupported}>
+        <Paperclip2 size={16} />
+      </ToolbarButton>
+      <ToolbarButton label="Trợ lý AI" active={false} onPress={handleUnsupported}>
+        <SparkleFill size={16} />
+      </ToolbarButton>
+      {renderInsertControl
+        ? renderInsertControl(handleInsertToken, handleInsertContent)
+        : showInsertButton && (
+            <Button
+              variant="ghost"
+              size="xs"
+              aria-label="Chèn nội dung"
+              onPress={onInsert}
+              className="gap-1 px-1.5 text-sm font-semibold text-text-secondary"
+            >
+              Chèn
+              <ChevronDown size={14} aria-hidden="true" />
+            </Button>
+          )}
+      {toolbarEndContent ? <div className="ml-auto shrink-0">{toolbarEndContent}</div> : null}
+    </div>
+  );
+
   return (
     <div className={cn("rounded-lg border border-card-border bg-input-background", className)}>
-      <div className="flex flex-wrap items-center gap-1 border-b border-card-border px-2 py-1.5">
-        <ToolbarButton
-          label="In đậm"
-          active={editor.isActive("bold")}
-          onPress={() => editor.chain().focus().toggleBold().run()}
-        >
-          <span className="font-bold">B</span>
-        </ToolbarButton>
-        <ToolbarButton
-          label="In nghiêng"
-          active={editor.isActive("italic")}
-          onPress={() => editor.chain().focus().toggleItalic().run()}
-        >
-          <span className="italic">I</span>
-        </ToolbarButton>
-        <ToolbarButton
-          label="Gạch chân"
-          active={editor.isActive("underline")}
-          onPress={() => editor.chain().focus().toggleUnderline().run()}
-        >
-          <span className="underline">U</span>
-        </ToolbarButton>
-        <ToolbarButton
-          label="Gạch ngang"
-          active={editor.isActive("strike")}
-          onPress={() => editor.chain().focus().toggleStrike().run()}
-        >
-          <span className="line-through">S</span>
-        </ToolbarButton>
-        <span className="mx-1 h-5 w-px bg-card-border" aria-hidden="true" />
-        <ToolbarButton label="Chèn liên kết" active={editor.isActive("link")} onPress={handleLink}>
-          <Link1AngularRight size={16} />
-        </ToolbarButton>
-        <ToolbarButton label="Chèn ảnh" active={false} onPress={handleUnsupported}>
-          <FileImage size={16} />
-        </ToolbarButton>
-        <ToolbarButton label="Đính kèm tệp" active={false} onPress={handleUnsupported}>
-          <Paperclip2 size={16} />
-        </ToolbarButton>
-        <ToolbarButton label="Trợ lý AI" active={false} onPress={handleUnsupported}>
-          <SparkleFill size={16} />
-        </ToolbarButton>
-        {renderInsertControl
-          ? renderInsertControl(handleInsertToken, handleInsertContent)
-          : showInsertButton && (
-              <Button
-                variant="ghost"
-                size="xs"
-                aria-label="Chèn nội dung"
-                onPress={onInsert}
-                className="gap-1 px-1.5 text-sm font-semibold text-text-secondary"
-              >
-                Chèn
-                <ChevronDown size={14} aria-hidden="true" />
-              </Button>
-            )}
-      </div>
-      <EditorContent editor={editor} />
+      {toolbarPlacement === "top" ? toolbar : null}
+      <EditorContent editor={editor} className="min-h-0 flex-1" />
+      {toolbarPlacement === "bottom" ? toolbar : null}
     </div>
   );
 }

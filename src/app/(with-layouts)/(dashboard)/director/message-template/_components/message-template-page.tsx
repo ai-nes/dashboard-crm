@@ -15,6 +15,7 @@ import {
 import { listSnippets, type SnippetRecord } from "@/services/api/snippets";
 
 import ContentCreateMenu from "../../_components/content-create-menu";
+import { normalizeMessageTemplateBody } from "./message-template-body";
 import MessageTemplateCreateDialog from "./message-template-create-dialog";
 import MessageTemplateLibraryDialog from "./message-template-library-dialog";
 import MessageTemplateList from "./message-template-list";
@@ -34,7 +35,7 @@ function getDraftForTemplate(template: MessageTemplateRecord | null): MessageTem
   return {
     name: template.name,
     subject: template.subject,
-    body: template.body,
+    body: normalizeMessageTemplateBody(template.body),
     sharing: template.sharing,
   };
 }
@@ -117,7 +118,10 @@ export default function MessageTemplatePage() {
 
   const useLibraryTemplate = (libraryDraft: MessageTemplateDraft) => {
     setTemplateToEdit(null);
-    setDraft(libraryDraft);
+    setDraft({
+      ...libraryDraft,
+      body: normalizeMessageTemplateBody(libraryDraft.body),
+    });
     setIsPreviewVisible(true);
     setSelectedContact("");
     setIsCreateDialogOpen(true);
@@ -134,16 +138,20 @@ export default function MessageTemplatePage() {
 
   const saveTemplate = async (nextDraft: MessageTemplateDraft) => {
     setIsSaving(true);
+    const normalizedDraft = {
+      ...nextDraft,
+      body: normalizeMessageTemplateBody(nextDraft.body),
+    };
     try {
       if (templateToEdit) {
         await updateMessageTemplate(
           templateToEdit.id,
-          nextDraft,
+          normalizedDraft,
           templateToEdit.modifiedAt,
         );
         toast.success("Đã lưu thay đổi mẫu email.");
       } else {
-        await createMessageTemplate(nextDraft);
+        await createMessageTemplate(normalizedDraft);
         toast.success("Đã tạo mẫu email.");
       }
       await loadTemplates();

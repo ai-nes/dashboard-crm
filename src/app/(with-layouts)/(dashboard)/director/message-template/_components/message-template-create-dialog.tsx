@@ -13,6 +13,7 @@ import { Backdrop } from "@/components/tailgrids/core/overlay";
 import { cn } from "@/utils/cn";
 import type { SnippetRecord } from "@/services/api/snippets";
 
+import { normalizeMessageTemplateBody } from "./message-template-body";
 import MessageTemplateCreateEditor from "./message-template-create-editor";
 import MessageTemplateCreatePreview from "./message-template-create-preview";
 import type { MessageTemplateRecord } from "./message-template-data";
@@ -41,38 +42,6 @@ function isBodyValid(body: string) {
   return body.replace(/<[^>]*>/g, "").trim().length > 0;
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function getEditorBody(body: string) {
-  if (!body || /<\/?[a-z][\s\S]*>/i.test(body)) return body;
-
-  const renderLine = (line: string) =>
-    line
-      .split(/(\{\{[^}]+\}\})/g)
-      .map((part) => {
-        if (!part.startsWith("{{") || !part.endsWith("}}")) {
-          return escapeHtml(part);
-        }
-
-        const token = part.slice(2, -2);
-
-        return `<span data-message-template-token="${escapeHtml(token)}">${escapeHtml(part)}</span>`;
-      })
-      .join("");
-
-  return body
-    .split(/\n{2,}/g)
-    .map((paragraph) => `<p>${paragraph.split("\n").map(renderLine).join("<br />")}</p>`)
-    .join("");
-}
-
 export default function MessageTemplateCreateDialog({
   isOpen,
   onOpenChange,
@@ -96,9 +65,7 @@ export default function MessageTemplateCreateDialog({
   const canSave = Boolean(
     draft.name.trim() && draft.subject.trim() && isBodyValid(draft.body),
   );
-  const editorDraft = isEditMode
-    ? { ...draft, body: getEditorBody(draft.body) }
-    : draft;
+  const editorDraft = { ...draft, body: normalizeMessageTemplateBody(draft.body) };
 
   return (
     <Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>

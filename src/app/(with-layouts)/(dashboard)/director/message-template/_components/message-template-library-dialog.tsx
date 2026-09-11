@@ -24,6 +24,7 @@ import {
 } from "@/services/api/message-templates";
 
 import type { MessageTemplateDraft } from "./message-template-create-types";
+import { normalizeMessageTemplateBody } from "./message-template-body";
 
 interface MessageTemplateLibraryDialogProps {
   isOpen: boolean;
@@ -362,7 +363,7 @@ export default function MessageTemplateLibraryDialog({
                 onUseTemplate?.({
                   name: previewedTemplate.name,
                   subject: previewedTemplate.subject,
-                  body: previewedTemplate.body,
+                  body: normalizeMessageTemplateBody(previewedTemplate.body),
                   sharing: "public",
                 });
                 onOpenChange(false);

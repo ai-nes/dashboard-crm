@@ -181,6 +181,12 @@ export default function MessageTemplateCreateEditor({
           value={draft.body}
           onChange={(value) => onChange("body", value)}
           placeholder="Nhập nội dung mẫu email..."
+          toolbarPlacement="bottom"
+          toolbarEndContent={
+            <Button appearance="ghost" size="xs" onPress={() => undefined}>
+              Tạo bằng AI
+            </Button>
+          }
           renderInsertControl={(onInsertToken, onInsertContent) => (
             <MessageTemplateTokenPopover
               onInsertToken={onInsertToken}
@@ -206,14 +212,8 @@ export default function MessageTemplateCreateEditor({
               expandSnippetReferences(editor, snippets, isExpandingSnippet);
             }
           }}
-          className="min-h-0 flex-1 rounded-none border-0 bg-transparent [&>div:first-child]:border-button-primary-outline-stroke [&_.ProseMirror]:min-h-[14rem] [&_.ProseMirror]:text-sm sm:[&_.ProseMirror]:min-h-[17rem]"
+          className="flex min-h-0 flex-1 flex-col rounded-none border-0 bg-transparent [&_.ProseMirror]:min-h-[14rem] [&_.ProseMirror]:text-base [&_.ProseMirror]:leading-8 [&_.ProseMirror_p]:my-0 [&_.ProseMirror_p:not(:last-child)]:mb-8 sm:[&_.ProseMirror]:min-h-[17rem]"
         />
-
-        <div className="flex shrink-0 justify-end px-4 py-3">
-          <Button appearance="ghost" size="xs" onPress={() => undefined}>
-            Tạo bằng AI
-          </Button>
-        </div>
       </div>
     </section>
   );
