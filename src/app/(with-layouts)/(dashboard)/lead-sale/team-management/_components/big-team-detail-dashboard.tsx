@@ -10,11 +10,13 @@ import BigTeamStats from "./big-team-stats";
 import BigTeamDetailHeader from "./big-team-detail-header";
 import CreateTeamDialog from "./create-team-dialog";
 import SmallTeamCard from "./small-team-card";
+import TeamManagementSkeleton from "./team-management-skeleton";
 import {
   getTeamManagementEntryPath,
   membersOfBigTeam,
   membersOfSmallTeam,
   smallTeamsOfBigTeam,
+  unassignedMembers,
 } from "./team-management-utils";
 import { canManageTeam } from "./team-management-access";
 import { useTeamManagement } from "./use-team-management";
@@ -132,6 +134,12 @@ export default function BigTeamDetailDashboard({
                   `Đã ngừng hoạt động nhóm "${smallTeam.name}".`,
                 )
               }
+              onReactivate={() =>
+                void run(
+                  () => saveExistingTeam(smallTeam.id, { isActive: true }),
+                  `Đã kích hoạt lại nhóm "${smallTeam.name}".`,
+                )
+              }
               onLeadChange={(leadId) =>
                 void run(
                   () => saveExistingTeam(smallTeam.id, { leadId }),
@@ -147,13 +155,14 @@ export default function BigTeamDetailDashboard({
       {isCreating && (
         <CreateTeamDialog
           title="Tạo Team"
-          description={`Team thuộc Group ${bigTeam.name} (${bigTeam.provinceName ?? "chưa có tỉnh"}), gồm trưởng nhóm và các thành viên Sale/CTV Sale.`}
+          description={`Team thuộc Group ${bigTeam.name} (${bigTeam.provinceName ?? "chưa có tỉnh"}). Người được chọn làm Trưởng nhóm sẽ được tự động thêm vào Team và phân công sau khi tạo.`}
           fieldLabel="Tên Team"
           placeholder="Ví dụ: Team Tư vấn Khu Đông"
           submitLabel="Tạo Team"
           campusOptions={state.options?.campuses}
-          teamLeadOptions={state.members.filter(
-            (member) => member.isActive !== false,
+          teamLeadOptions={unassignedMembers(state).filter(
+            (member) =>
+              member.isActive !== false && member.role !== "LEAD_SALE",
           )}
           onClose={() => setIsCreating(false)}
           onSubmit={(name, campusId, _provinceId, teamLeadId) => {
@@ -182,13 +191,7 @@ function LoadingState({
 }: {
   message?: string;
 }) {
-  return (
-    <main id="main-content" className="min-w-0 p-6">
-      <div className="rounded-2xl border border-card-border bg-card-background p-10 text-center text-sm text-text-secondary">
-        {message}
-      </div>
-    </main>
-  );
+  return <TeamManagementSkeleton view="group" message={message} />;
 }
 
 function ErrorState({ message }: { message: string }) {

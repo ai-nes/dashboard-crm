@@ -180,7 +180,7 @@ function resolveError(
 
 function isAuditLogsResponse(
   value: unknown,
-  entityKey: "student" | "segment",
+  entityKey: "student" | "lead_id" | "segment",
 ): value is {
   [key: string]: unknown;
   logs: unknown[];

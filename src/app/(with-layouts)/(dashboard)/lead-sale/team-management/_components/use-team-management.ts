@@ -33,6 +33,7 @@ function normalizeWorkspace(
       .filter(
         (member) =>
           permissions.canManageAll ||
+          (member.isActive !== false && (member.teamIds ?? []).length === 0) ||
           (member.teamIds ?? []).some((teamId) => visibleTeamIds.has(teamId)),
       )
       .map((member) => member.id),

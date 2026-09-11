@@ -70,6 +70,10 @@ export default function CreateTeamDialog({
     initialTeamLeadId ?? null,
   );
   const [error, setError] = useState<string | null>(null);
+  const selectableTeamLeadOptions =
+    teamLeadOptions?.filter(
+      (member) => !campusId || member.campusId === campusId,
+    ) ?? [];
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -127,7 +131,20 @@ export default function CreateTeamDialog({
                 </span>
                 <Combobox
                   value={campusId}
-                  onChange={(key) => setCampusId(key ? String(key) : null)}
+                  onChange={(key) => {
+                    const nextCampusId = key ? String(key) : null;
+                    setCampusId(nextCampusId);
+                    if (
+                      teamLeadId &&
+                      !teamLeadOptions?.some(
+                        (member) =>
+                          member.id === teamLeadId &&
+                          (!nextCampusId || member.campusId === nextCampusId),
+                      )
+                    ) {
+                      setTeamLeadId(null);
+                    }
+                  }}
                   aria-label="Chọn cơ sở"
                   placeholder="Chọn cơ sở hoạt động..."
                 >
@@ -191,16 +208,16 @@ export default function CreateTeamDialog({
                   Trưởng nhóm
                 </span>
                 <LeadPickerField
-                  candidates={teamLeadOptions}
+                  candidates={selectableTeamLeadOptions}
                   value={teamLeadId}
                   onChange={setTeamLeadId}
                   ariaLabel="Chọn trưởng nhóm"
                   placeholder={
-                    teamLeadOptions.length > 0
+                    selectableTeamLeadOptions.length > 0
                       ? "Chọn trưởng nhóm..."
-                      : "Chưa có thành viên để chọn"
+                      : "Chưa có nhân sự phù hợp để chọn"
                   }
-                  isDisabled={teamLeadOptions.length === 0}
+                  isDisabled={selectableTeamLeadOptions.length === 0}
                 />
               </label>
             )}

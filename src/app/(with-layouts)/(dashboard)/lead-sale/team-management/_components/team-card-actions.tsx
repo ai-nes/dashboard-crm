@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash1 } from "@tailgrids/icons";
+import { RefreshCircle1Clockwise, Trash1 } from "@tailgrids/icons";
 import { useState } from "react";
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -15,6 +15,8 @@ interface TeamCardActionsProps {
   name: string;
   kind: "đội" | "nhóm";
   onDelete: () => void;
+  onReactivate?: () => void;
+  isActive?: boolean;
   isDisabled?: boolean;
 }
 
@@ -22,24 +24,42 @@ export default function TeamCardActions({
   name,
   kind,
   onDelete,
+  onReactivate,
+  isActive = true,
   isDisabled = false,
 }: TeamCardActionsProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReactivating, setIsReactivating] = useState(false);
   if (isDisabled) return null;
+  const canReactivate = isActive === false && onReactivate;
   return (
     <>
       <div className="flex shrink-0 items-center gap-1">
-        <Button
-          iconOnly
-          appearance="ghost"
-          size="sm"
-          variant="danger"
-          aria-label={`Ngừng hoạt động ${name}`}
-          onPress={() => setIsDeleting(true)}
-          className="size-8 text-text-tertiary hover:bg-badge-error-background hover:text-badge-error-text"
-        >
-          <Trash1 size={16} aria-hidden="true" />
-        </Button>
+        {canReactivate ? (
+          <Button
+            iconOnly
+            appearance="ghost"
+            size="sm"
+            variant="success"
+            aria-label={`Kích hoạt lại ${name}`}
+            onPress={() => setIsReactivating(true)}
+            className="size-8 text-text-tertiary hover:bg-badge-success-background hover:text-badge-success-text"
+          >
+            <RefreshCircle1Clockwise size={16} aria-hidden="true" />
+          </Button>
+        ) : (
+          <Button
+            iconOnly
+            appearance="ghost"
+            size="sm"
+            variant="danger"
+            aria-label={`Ngừng hoạt động ${name}`}
+            onPress={() => setIsDeleting(true)}
+            className="size-8 text-text-tertiary hover:bg-badge-error-background hover:text-badge-error-text"
+          >
+            <Trash1 size={16} aria-hidden="true" />
+          </Button>
+        )}
       </div>
       {isDeleting && (
         <Backdrop isOpen onOpenChange={(open) => !open && setIsDeleting(false)}>
@@ -75,6 +95,47 @@ export default function TeamCardActions({
                 }}
               >
                 Ngừng hoạt động
+              </Button>
+            </DialogFooter>
+          </Dialog>
+        </Backdrop>
+      )}
+      {isReactivating && onReactivate && (
+        <Backdrop
+          isOpen
+          onOpenChange={(open) => !open && setIsReactivating(false)}
+        >
+          <Dialog
+            role="alertdialog"
+            aria-label={`Kích hoạt lại ${kind}`}
+            className="max-w-100 p-0"
+          >
+            <DialogBody className="space-y-3 p-5">
+              <DialogTitle>
+                Kích hoạt lại {kind} “{name}”?
+              </DialogTitle>
+              <p className="text-sm leading-6 text-text-secondary">
+                {kind === "đội"
+                  ? "Team sẽ được phép nhận Lead trở lại. Thành viên và dữ liệu hiện có vẫn được giữ nguyên."
+                  : "Group sẽ được hoạt động trở lại. Team, thành viên và dữ liệu hiện có vẫn được giữ nguyên."}
+              </p>
+            </DialogBody>
+            <DialogFooter className="px-5 pb-5">
+              <Button
+                appearance="outline"
+                autoFocus
+                onPress={() => setIsReactivating(false)}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="success"
+                onPress={() => {
+                  setIsReactivating(false);
+                  onReactivate();
+                }}
+              >
+                Kích hoạt lại
               </Button>
             </DialogFooter>
           </Dialog>

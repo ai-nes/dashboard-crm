@@ -21,6 +21,7 @@ interface BigTeamCardProps {
   canManageGroup: boolean;
   onEdit: (name: string) => void;
   onDelete: () => void;
+  onReactivate: () => void;
   onLeadChange: (leadId: string | null) => void;
   onProvinceChange: (provinceId: string | null) => void;
 }
@@ -34,9 +35,12 @@ export default function BigTeamCard({
   canManageGroup,
   onEdit,
   onDelete,
+  onReactivate,
   onLeadChange,
   onProvinceChange,
 }: BigTeamCardProps) {
+  const isActive = bigTeam.isActive !== false;
+
   return (
     <Card className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-card-border p-0 transition-shadow hover:shadow-md">
       <div className="flex min-w-0 flex-1 flex-col gap-5 p-5">
@@ -48,6 +52,9 @@ export default function BigTeamCard({
               isDisabled={!canManageGroup}
             />
             <div className="mt-2 flex flex-wrap gap-2">
+              <Badge size="sm" color={isActive ? "success" : "gray"}>
+                {isActive ? "Đang hoạt động" : "Đã ngừng hoạt động"}
+              </Badge>
               <Badge
                 size="sm"
                 color="gray"
@@ -92,6 +99,8 @@ export default function BigTeamCard({
             name={bigTeam.name}
             kind="nhóm"
             onDelete={onDelete}
+            onReactivate={onReactivate}
+            isActive={bigTeam.isActive}
             isDisabled={!canManageGroup}
           />
         </div>
