@@ -252,9 +252,11 @@ function TermEditor({
 export function ClassificationGroupManagement({
   kind,
   canManage,
+  hideHeader = false,
 }: {
   kind: ClassificationGroupKind
   canManage: boolean
+  hideHeader?: boolean
 }) {
   const query = useClassificationGroupsQuery(kind)
   const termsQuery = useClassificationTermsQuery(kind)
@@ -355,8 +357,8 @@ export function ClassificationGroupManagement({
     : []
   return (
     <>
-      <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs">
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-card-border px-5 py-4">
+      <section className={`flex h-full min-h-0 flex-col overflow-hidden bg-card-background ${hideHeader ? 'rounded-none border-0 shadow-none' : 'rounded-2xl border border-card-border shadow-xs'}`}>
+        {!hideHeader && <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-card-border px-5 py-4">
           <div>
             <h2 className="text-base font-semibold text-text-primary">Danh sách {title}</h2>
             <p className="mt-1 text-sm text-text-tertiary">{groups.length} nhóm trong hệ thống</p>
@@ -372,7 +374,7 @@ export function ClassificationGroupManagement({
               <Plus size={16} aria-hidden="true" /> Tạo nhóm
             </Button>
           )}
-        </div>
+        </div>}
         {groups.length > 0 ? (
           <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(260px,0.9fr)_minmax(0,2fr)]">
             <div className="min-h-0 overflow-y-auto border-b border-card-border lg:border-b-0 lg:border-r">

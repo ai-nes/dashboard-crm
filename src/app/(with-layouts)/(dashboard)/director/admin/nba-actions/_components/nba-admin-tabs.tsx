@@ -7,6 +7,7 @@ import { TabContent, TabList, TabRoot, TabTrigger } from "@/components/tailgrids
 import ActionTypesTable from "../../action-recommendations/_components/action-types-table";
 import RecommendationRulesTable from "../../action-recommendations/_components/recommendation-rules-table";
 import TimingPoliciesTable from "../../action-recommendations/_components/timing-policies-table";
+import RulesConfigAdminPage from "../../rules-config/_components/rules-config-admin-page";
 
 interface NbaAdminTabsProps {
   actionsPanel: ReactNode;
@@ -22,6 +23,7 @@ export default function NbaAdminTabs({ actionsPanel, actionCount, canEdit }: Nba
           <TabTrigger value="action-types">Nhóm hành động</TabTrigger>
           <TabTrigger value="timing-policies">Chính sách thời gian</TabTrigger>
           <TabTrigger value="rules">Quy tắc đề xuất</TabTrigger>
+          <TabTrigger value="rules-config">Quản lý Rule</TabTrigger>
         </TabList>
 
         <TabContent value="actions" className="p-3 sm:p-4">
@@ -35,6 +37,9 @@ export default function NbaAdminTabs({ actionsPanel, actionCount, canEdit }: Nba
         </TabContent>
         <TabContent value="rules" className="p-3 sm:p-4">
           <RecommendationRulesTable canEdit={canEdit} />
+        </TabContent>
+        <TabContent value="rules-config" className="p-3 sm:p-4">
+          <RulesConfigAdminPage embedded />
         </TabContent>
       </TabRoot>
   );

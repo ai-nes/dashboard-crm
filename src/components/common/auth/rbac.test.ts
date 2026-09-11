@@ -40,6 +40,7 @@ describe("dashboard RBAC", () => {
       "Marketing",
       "Lead Marketing",
       "Admissions Director",
+      "Business Admin",
       "Administrator",
     ]);
     expect(getRecognizedRoles(["Sale", "sale", " Sale "])).toEqual(["Sale"]);
@@ -59,6 +60,15 @@ describe("dashboard RBAC", () => {
       canAccessDashboardPath("/director/ai/next-best-action/ABC", [
         "Marketing",
       ]),
+    ).toBe(false);
+  });
+
+  it("allows the Rule Engine route from the backend capability", () => {
+    expect(
+      canAccessDashboardPath("/director/admin/rules-config", ["Lead Sale"], ["rule.manage"]),
+    ).toBe(true);
+    expect(
+      canAccessDashboardPath("/director/admin/rules-config", ["Lead Sale"], []),
     ).toBe(false);
   });
 
@@ -204,6 +214,8 @@ describe("dashboard RBAC", () => {
       "/director/alerts",
       "/director/admin/nba-actions",
       "/director/admin/segments",
+      "/director/admin/rules-config",
+      "/director/admin/student-config",
       "/director/admin/activity-logs",
     ]);
     expect(

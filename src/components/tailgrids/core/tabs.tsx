@@ -195,6 +195,7 @@ type TabTriggerProps = HTMLAttributes<HTMLButtonElement> & {
   value: string;
   icon?: React.ReactNode;
   badge?: string | number;
+  disabled?: boolean;
 };
 
 export function TabTrigger({ value, children, className, icon, badge, ...props }: TabTriggerProps) {
