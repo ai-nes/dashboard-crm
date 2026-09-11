@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { formatDate } from "@/utils/format-date";
 
-import LeadContactLogCell from "./lead-contact-log-cell";
 import LeadResultCell from "./lead-result-cell";
+import LeadListAssigneeCell from "./lead-list-assignee-cell";
 import {
   leadStageStatusColor,
   leadStageStatusLabel,
@@ -21,9 +21,10 @@ export function getLeadDetailHref(leadId: string) {
 
 interface LeadListProps {
   leads: LeadListItem[];
+  canAssign?: boolean;
 }
 
-export default function LeadList({ leads }: LeadListProps) {
+export default function LeadList({ leads, canAssign = false }: LeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
@@ -48,46 +49,46 @@ export default function LeadList({ leads }: LeadListProps) {
             <div
               className={`grid gap-4 px-4 py-4 ${leadListGrid} lg:items-center lg:px-5`}
             >
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-sm font-semibold text-badge-primary-text">
-                  {lead.initials || "L"}
-                </span>
-                <div className="min-w-0">
-                  <Link
-                    href={getLeadDetailHref(lead.id)}
-                    className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
-                  >
-                    {lead.name || "-"}
-                  </Link>
-                  <p className="mt-0.5 truncate text-xs text-text-tertiary" title={lead.school || undefined}>
-                    {lead.school || "-"}
-                  </p>
-                </div>
+              <div className="flex min-w-0 items-center justify-between gap-2 lg:block">
+                <p className="text-xs text-text-tertiary lg:hidden">Mã Lead</p>
+                <p className="truncate text-sm font-medium text-text-primary">
+                  {lead.leadCode || "-"}
+                </p>
               </div>
 
-              <div className="flex items-center justify-between gap-2 lg:block">
+              <div className="min-w-0">
+                <Link
+                  href={getLeadDetailHref(lead.id)}
+                  className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
+                >
+                  {lead.name || "-"}
+                </Link>
+                <p
+                  className="mt-0.5 truncate text-xs text-text-tertiary"
+                  title={lead.school || undefined}
+                >
+                  {lead.school || "-"}
+                </p>
+              </div>
+
+              <div className="flex min-w-0 items-center justify-between gap-2 lg:block">
                 <p className="text-xs text-text-tertiary lg:hidden">Di động</p>
                 <p className="truncate text-sm text-text-primary tabular-nums">
                   {lead.phone || "-"}
                 </p>
               </div>
 
-              <div className="flex items-center justify-between gap-2 lg:block">
+              <div className="flex min-w-0 items-center justify-between gap-2 lg:block">
                 <p className="text-xs text-text-tertiary lg:hidden">Nguồn</p>
                 <p className="truncate text-sm text-text-primary">
                   {lead.source || "-"}
                 </p>
               </div>
 
-              <div className="min-w-0">
-                <p className="mb-1 text-xs text-text-tertiary lg:hidden">
-                  Người phụ trách
+              <div className="flex min-w-0 items-center justify-between gap-2 lg:justify-start">
+                <p className="text-xs text-text-tertiary lg:hidden">
+                  Trạng thái lead
                 </p>
-                <p className="truncate text-sm text-text-primary">{lead.owner}</p>
-              </div>
-
-              <div className="flex items-center justify-between gap-2 lg:justify-start">
-                <p className="text-xs text-text-tertiary lg:hidden">Trạng thái lead</p>
                 {status ? (
                   <Badge
                     color={leadStageStatusColor[status]}
@@ -97,25 +98,25 @@ export default function LeadList({ leads }: LeadListProps) {
                     {leadStageStatusLabel[status]}
                   </Badge>
                 ) : (
-                  <span className="text-sm text-text-tertiary">Chưa cập nhật</span>
+                  <span className="text-sm text-text-tertiary">
+                    Chưa cập nhật
+                  </span>
                 )}
               </div>
 
-              <div className="flex items-center justify-between gap-2 lg:justify-start">
+              <div className="flex min-w-0 items-center justify-between gap-2 lg:justify-start">
                 <p className="text-xs text-text-tertiary lg:hidden">Kết quả</p>
                 <LeadResultCell result={lead.result} />
               </div>
 
-              <div className="flex items-center justify-between gap-2 lg:block">
-                <p className="text-xs text-text-tertiary lg:hidden">Số lần liên hệ</p>
-                <LeadContactLogCell
-                  leadName={lead.name}
-                  noAnswer={lead.contactNoAnswer}
-                  success={lead.contactSuccess}
-                />
+              <div className="min-w-0">
+                <p className="mb-1 text-xs text-text-tertiary lg:hidden">
+                  Người phụ trách
+                </p>
+                <LeadListAssigneeCell canAssign={canAssign} lead={lead} />
               </div>
 
-              <div className="flex items-center justify-between gap-2 lg:block">
+              <div className="flex min-w-0 items-center justify-between gap-2 lg:block">
                 <p className="text-xs text-text-tertiary lg:hidden">Ngày tạo</p>
                 <p className="truncate text-sm text-text-secondary tabular-nums">
                   {formatDate(lead.createdAt ?? "")}

@@ -94,7 +94,7 @@ export function CreateDialogSelect({
   value,
   onChange,
   options,
-  placeholder = "Chọn giá trị",
+  placeholder = "Chọn campaign",
   isDisabled = false,
 }: CreateDialogSelectProps) {
   return (

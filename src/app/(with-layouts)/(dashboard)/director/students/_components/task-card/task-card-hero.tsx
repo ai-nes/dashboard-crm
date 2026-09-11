@@ -25,7 +25,7 @@ export default function TaskCardHero({
 }: TaskCardHeroProps) {
   if (compact) {
     return (
-      <div className="flex min-w-0 flex-1 items-start gap-3 px-4 py-4 sm:px-5">
+      <div className="flex min-w-0 flex-1 items-start gap-2.5 px-4 py-3.5 sm:px-5">
         <TaskCardQuickStatusButton
           status={task.status}
           overdue={deadlineStatus.tone === "overdue"}
@@ -41,7 +41,7 @@ export default function TaskCardHero({
             textClassName="text-base leading-6 font-semibold"
             className="-mx-2 min-w-0"
           />
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <StudentTaskStatusSelect
               taskTitle={task.title}
               status={task.status}
@@ -64,8 +64,8 @@ export default function TaskCardHero({
   }
 
   return (
-    <div className="px-4 pt-5 pb-4 sm:px-5">
-      <div className="flex items-start gap-3">
+    <div className="px-4 pt-4 pb-3 sm:px-5">
+      <div className="flex items-start gap-2.5">
         <TaskCardQuickStatusButton
           status={task.status}
           overdue={deadlineStatus.tone === "overdue"}
@@ -79,11 +79,11 @@ export default function TaskCardHero({
             value={task.title}
             onCommit={(title) => onUpdateTask({ title })}
             strikethrough={task.status === "done" || task.status === "canceled"}
-            textClassName="text-xl leading-7 font-semibold sm:text-2xl sm:leading-8"
+            textClassName="text-lg leading-6 font-semibold sm:text-xl sm:leading-7"
             className="-mx-2 min-w-0"
           />
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <StudentTaskStatusSelect
               taskTitle={task.title}
               status={task.status}

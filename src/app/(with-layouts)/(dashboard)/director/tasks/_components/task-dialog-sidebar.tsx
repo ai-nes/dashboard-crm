@@ -4,6 +4,7 @@ import { Calendar, User2 } from "@tailgrids/icons";
 import type { ReactNode } from "react";
 
 import { DatePickerField } from "@/components/common/date-picker-field";
+import { TimePickerField } from "@/components/common/time-picker-field";
 import { TaskActionSelect } from "@/components/common/task-action-select";
 import {
   Select,
@@ -24,6 +25,8 @@ export interface TaskDialogSidebarProps {
   status: StudentTaskItem["status"];
   onStatusChange?: (status: StudentTaskItem["status"]) => void;
   assigneeName?: string;
+  parentLabel?: string;
+  hideAssignee?: boolean;
   parentField?: ReactNode;
   priority: StudentPriority;
   onPriorityChange?: (priority: StudentPriority) => void;
@@ -79,6 +82,8 @@ export default function TaskDialogSidebar({
   status,
   onStatusChange,
   assigneeName = "Chưa phân công",
+  parentLabel = "Học sinh *",
+  hideAssignee = false,
   parentField,
   priority,
   onPriorityChange,
@@ -206,7 +211,7 @@ export default function TaskDialogSidebar({
 
           {/* Hồ sơ học sinh */}
           <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-2 py-2">
-            <span className="font-medium text-text-secondary">Học sinh *</span>
+            <span className="font-medium text-text-secondary">{parentLabel}</span>
             <div className="min-w-0">
               {parentField ? (
                 parentField
@@ -219,25 +224,27 @@ export default function TaskDialogSidebar({
           </div>
 
           {/* Người phụ trách */}
-          <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-2 py-2">
-            <span className="font-medium text-text-secondary">
-              Người phụ trách
-            </span>
-            <div className="space-y-1">
-              <div className="flex h-9 items-center gap-2 text-sm font-medium text-text-primary">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">
-                  {assigneeName === "Chưa phân công" ? (
-                    <User2 size={12} />
-                  ) : (
-                    getInitials(assigneeName)
-                  )}
-                </span>
-                <span className="truncate text-sm font-medium text-text-primary">
-                  {assigneeName}
-                </span>
+          {!hideAssignee && (
+            <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-2 py-2">
+              <span className="font-medium text-text-secondary">
+                Người phụ trách
+              </span>
+              <div className="space-y-1">
+                <div className="flex h-9 items-center gap-2 text-sm font-medium text-text-primary">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">
+                    {assigneeName === "Chưa phân công" ? (
+                      <User2 size={12} />
+                    ) : (
+                      getInitials(assigneeName)
+                    )}
+                  </span>
+                  <span className="truncate text-sm font-medium text-text-primary">
+                    {assigneeName}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Loại task */}
           <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-2 py-2">
@@ -281,11 +288,10 @@ export default function TaskDialogSidebar({
             <span className="font-medium text-text-secondary">Giờ xử lý *</span>
             <div className="min-w-0">
               {onDueTimeChange ? (
-                <input
-                  type="time"
+                <TimePickerField
+                  ariaLabel="Giờ xử lý"
                   value={dueTime}
-                  onChange={(e) => onDueTimeChange(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-card-border bg-card-background px-3 text-sm font-medium text-text-primary shadow-xs focus:border-primary-500 focus:outline-none"
+                  onChange={onDueTimeChange}
                 />
               ) : (
                 <span className="flex h-9 w-full items-center rounded-lg border border-card-border bg-card-background px-3 text-sm font-medium text-text-primary shadow-xs">

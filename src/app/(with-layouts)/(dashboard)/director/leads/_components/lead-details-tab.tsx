@@ -23,6 +23,7 @@ import type { LeadDetail, LeadUpdateFields } from "@/services/api/lead-sale";
 
 import LeadDetailSection from "./lead-detail-section";
 import { LeadDetailTags } from "./lead-detail-field";
+import LeadAssigneeField from "./lead-assignee-field";
 
 type EditableLeadSection = "contact" | "admission" | "source";
 
@@ -30,6 +31,7 @@ interface LeadDetailsTabProps {
   lead: LeadDetail;
   leadId: string;
   canEdit?: boolean;
+  canAssign?: boolean;
 }
 
 interface ContactForm {
@@ -74,6 +76,7 @@ export default function LeadDetailsTab({
   lead,
   leadId,
   canEdit = true,
+  canAssign = false,
 }: LeadDetailsTabProps) {
   const [editingSection, setEditingSection] =
     useState<EditableLeadSection | null>(null);
@@ -473,11 +476,12 @@ export default function LeadDetailsTab({
                 : (lead.conversionPotential ?? "")
             }
           />
-          <EditableDetailField
-            className="sm:col-span-2"
-            label="Người phụ trách"
-            readOnly
-            value={lead.owner}
+          <LeadAssigneeField
+            canAssign={canAssign}
+            key={leadId}
+            lead={lead}
+            leadId={leadId}
+            isEditing={admissionEditing}
           />
         </dl>
       </LeadDetailSection>

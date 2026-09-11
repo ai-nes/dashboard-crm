@@ -36,7 +36,7 @@ interface QuickCreateLeadForm {
   ward: string;
   high_school: string;
   major: string;
-  source: string;
+  campaign: string;
   advertising_channel: string;
   admission_year: string;
   branch: string;
@@ -54,7 +54,7 @@ const initialForm: QuickCreateLeadForm = {
   ward: "",
   high_school: "",
   major: "",
-  source: "",
+  campaign: "",
   advertising_channel: "",
   admission_year: "2026",
   branch: "",
@@ -84,8 +84,8 @@ export default function QuickCreateLeadDialog({
     },
     isOpen && Boolean(form.province),
   );
-  const sourceOptionsQuery = useStudentSchoolFieldOptions(
-    { doctype: "CRM Lead", fieldname: "source", limit: 100 },
+  const campaignOptionsQuery = useStudentSchoolFieldOptions(
+    { doctype: "CRM Lead", fieldname: "campaign", limit: 100 },
     isOpen,
   );
   const majorOptionsQuery = useStudentSchoolFieldOptions(
@@ -99,7 +99,7 @@ export default function QuickCreateLeadDialog({
 
   const provinceOptions = toSelectOptions(provinceOptionsQuery.data?.options);
   const wardOptions = toSelectOptions(wardOptionsQuery.data?.options);
-  const sourceOptions = toSelectOptions(sourceOptionsQuery.data?.options);
+  const campaignOptions = toSelectOptions(campaignOptionsQuery.data?.options);
   const majorOptions = toSelectOptions(majorOptionsQuery.data?.options);
   const branchOptions = toSelectOptions(branchOptionsQuery.data?.options);
 
@@ -148,7 +148,7 @@ export default function QuickCreateLeadDialog({
     if (!form.student_name.trim())
       errors.student_name = "Vui lòng nhập họ tên.";
     if (!form.phone.trim()) errors.phone = "Vui lòng nhập số điện thoại.";
-    if (!form.source.trim()) errors.source = "Vui lòng chọn nguồn Lead.";
+    if (!form.campaign.trim()) errors.campaign = "Vui lòng chọn Campaign.";
     if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) {
       errors.email = "Email không đúng định dạng.";
     }
@@ -232,15 +232,15 @@ export default function QuickCreateLeadDialog({
                 <FormFieldError message={fieldErrors.email} />
               </CreateDialogField>
 
-              <CreateDialogField label="Nguồn" required>
+              <CreateDialogField label="Chiến dịch" required>
                 <CreateDialogSelect
-                  label="Nguồn"
-                  options={sourceOptions}
-                  value={form.source}
-                  isDisabled={sourceOptionsQuery.isPending}
-                  onChange={(value) => setField("source", value)}
+                  label="Chiến dịch"
+                  options={campaignOptions}
+                  value={form.campaign}
+                  isDisabled={campaignOptionsQuery.isPending}
+                  onChange={(value) => setField("campaign", value)}
                 />
-                <FormFieldError message={fieldErrors.source} />
+                <FormFieldError message={fieldErrors.campaign} />
               </CreateDialogField>
 
               <CreateDialogField label="Tỉnh / thành phố">
@@ -328,7 +328,7 @@ export default function QuickCreateLeadDialog({
               </CreateDialogField>
             </div>
 
-            {(sourceOptionsQuery.isError ||
+            {(campaignOptionsQuery.isError ||
               provinceOptionsQuery.isError ||
               wardOptionsQuery.isError) && (
               <p className="text-xs text-error-600" role="alert">
@@ -366,7 +366,7 @@ function toLeadCreateFields(form: QuickCreateLeadForm): LeadCreateFields {
     student_name: form.student_name.trim(),
     phone: form.phone.trim(),
     province: form.province.trim(),
-    source: form.source.trim(),
+    campaign: form.campaign.trim(),
     ...compactFields({
       email: form.email,
       ward: form.ward,

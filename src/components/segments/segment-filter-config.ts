@@ -1,13 +1,31 @@
-export enum SegmentFilterCategory {
-  ADMISSION_STAGE = "ADMISSION_STAGE",
-}
+import type {
+  SegmentFilterLogic,
+  SegmentFilterOptionsResponse,
+  SegmentFilterPayload,
+  SegmentTermRecord,
+} from "@/services/api/segments/types";
+import { getKnownStudentTagLabel } from "@/services/api/student-classification/tag-labels";
+import {
+  LEAD_NEED_CATEGORY_LABEL,
+  LEAD_NEED_SUBTYPE_LABEL,
+  TAG_CATEGORY_LABEL,
+  TAG_SUBTYPE_LABEL,
+} from "@/services/api/student-classification/classification-types";
 
-export const SEGMENT_FILTER_CATEGORY_LABEL: Record<
-  SegmentFilterCategory,
-  string
-> = {
-  [SegmentFilterCategory.ADMISSION_STAGE]: "Giai đoạn tuyển sinh",
-};
+export {
+  LEAD_NEED_CATEGORY_LABEL,
+  LEAD_NEED_SUBTYPE_LABEL,
+  NEED_CATEGORY_SUBTYPES,
+  LeadNeedCategory,
+  LeadNeedSubtype,
+  TAG_CATEGORY_LABEL,
+  TAG_CATEGORY_SUBTYPES,
+  TAG_SUBTYPE_LABEL,
+  TagCategory,
+  TagSubtype,
+} from "@/services/api/student-classification/classification-types";
+
+export type { SegmentFilterLogic } from "@/services/api/segments/types";
 
 export enum StudentSegmentProperty {
   JOURNEY_STAGE = "JOURNEY_STAGE",
@@ -33,15 +51,6 @@ export enum SegmentOperator {
   IS_NONE_OF = "IS_NONE_OF",
   EQUAL = "EQUAL",
   NOT_EQUAL = "NOT_EQUAL",
-  GREATER_THAN = "GREATER_THAN",
-  GREATER_THAN_OR_EQUAL = "GREATER_THAN_OR_EQUAL",
-  LESS_THAN = "LESS_THAN",
-  LESS_THAN_OR_EQUAL = "LESS_THAN_OR_EQUAL",
-  BETWEEN = "BETWEEN",
-  BEFORE = "BEFORE",
-  AFTER = "AFTER",
-  IS_KNOWN = "IS_KNOWN",
-  IS_UNKNOWN = "IS_UNKNOWN",
 }
 
 export const SEGMENT_OPERATOR_LABEL: Record<SegmentOperator, string> = {
@@ -49,31 +58,11 @@ export const SEGMENT_OPERATOR_LABEL: Record<SegmentOperator, string> = {
   [SegmentOperator.IS_NONE_OF]: "Không thuộc",
   [SegmentOperator.EQUAL]: "Bằng",
   [SegmentOperator.NOT_EQUAL]: "Không bằng",
-  [SegmentOperator.GREATER_THAN]: "Lớn hơn",
-  [SegmentOperator.GREATER_THAN_OR_EQUAL]: "Lớn hơn hoặc bằng",
-  [SegmentOperator.LESS_THAN]: "Nhỏ hơn",
-  [SegmentOperator.LESS_THAN_OR_EQUAL]: "Nhỏ hơn hoặc bằng",
-  [SegmentOperator.BETWEEN]: "Trong khoảng",
-  [SegmentOperator.BEFORE]: "Trước",
-  [SegmentOperator.AFTER]: "Sau",
-  [SegmentOperator.IS_KNOWN]: "Đã có dữ liệu",
-  [SegmentOperator.IS_UNKNOWN]: "Chưa có dữ liệu",
 };
 
-/**
- * IS_ANY_OF/IS_NONE_OF read as "là một trong" / "không thuộc" by default,
- * which doesn't fit every property's grammar (a journey stage is one of
- * several "giai đoạn", a level like tiềm năng/ý định is "ở mức", a need or
- * tag is one of several "nhu cầu"/"thẻ"). This overrides the phrasing per
- * property so the built sentence reads naturally in Vietnamese.
- */
 const PROPERTY_OPERATOR_PHRASE: Partial<
   Record<StudentSegmentProperty, Partial<Record<SegmentOperator, string>>>
 > = {
-  [StudentSegmentProperty.JOURNEY_STAGE]: {
-    [SegmentOperator.IS_ANY_OF]: "Là một trong những giai đoạn",
-    [SegmentOperator.IS_NONE_OF]: "Không thuộc những giai đoạn",
-  },
   [StudentSegmentProperty.POTENTIAL]: {
     [SegmentOperator.IS_ANY_OF]: "Ở mức",
     [SegmentOperator.IS_NONE_OF]: "Không ở mức",
@@ -81,6 +70,10 @@ const PROPERTY_OPERATOR_PHRASE: Partial<
   [StudentSegmentProperty.INTENT]: {
     [SegmentOperator.IS_ANY_OF]: "Ở mức",
     [SegmentOperator.IS_NONE_OF]: "Không ở mức",
+  },
+  [StudentSegmentProperty.JOURNEY_STAGE]: {
+    [SegmentOperator.IS_ANY_OF]: "Là một trong những giai đoạn",
+    [SegmentOperator.IS_NONE_OF]: "Không thuộc những giai đoạn",
   },
   [StudentSegmentProperty.NEED]: {
     [SegmentOperator.IS_ANY_OF]: "Là một trong những nhu cầu",
@@ -102,22 +95,6 @@ export function getOperatorLabel(
   );
 }
 
-export enum JourneyStage {
-  NEW = "NEW",
-  ATTEMPTING = "ATTEMPTING",
-  CONNECTED = "CONNECTED",
-  QUALIFIED = "QUALIFIED",
-  DISQUALIFIED = "DISQUALIFIED",
-}
-
-export const JOURNEY_STAGE_LABEL: Record<JourneyStage, string> = {
-  [JourneyStage.NEW]: "Mới",
-  [JourneyStage.ATTEMPTING]: "Đang liên hệ",
-  [JourneyStage.CONNECTED]: "Đã kết nối",
-  [JourneyStage.QUALIFIED]: "Đủ điều kiện",
-  [JourneyStage.DISQUALIFIED]: "Không đủ điều kiện",
-};
-
 export enum SegmentLevel {
   LOW = "LOW",
   MEDIUM = "MEDIUM",
@@ -130,213 +107,178 @@ export const SEGMENT_LEVEL_LABEL: Record<SegmentLevel, string> = {
   [SegmentLevel.HIGH]: "Cao",
 };
 
+export const SEGMENT_LEVEL_BADGE_COLORS: Record<
+  SegmentLevel,
+  "success" | "warning" | "error"
+> = {
+  [SegmentLevel.LOW]: "error",
+  [SegmentLevel.MEDIUM]: "warning",
+  [SegmentLevel.HIGH]: "success",
+};
+
+export function getSegmentLevelLabel(value: string | null | undefined): string {
+  if (!value) return "Chưa cập nhật";
+  return SEGMENT_LEVEL_LABEL[value as SegmentLevel] ?? value;
+}
+
+export function getSegmentLevelBadgeColor(
+  value: string | null | undefined,
+): "success" | "warning" | "error" | "gray" {
+  return value && value in SEGMENT_LEVEL_BADGE_COLORS
+    ? SEGMENT_LEVEL_BADGE_COLORS[value as SegmentLevel]
+    : "gray";
+}
+
+export const STUDENT_STAGE_VALUES = [
+  "New",
+  "Attempting",
+  "Connected",
+  "Qualified",
+  "Disqualified",
+] as const;
+
+export const STUDENT_STAGE_LABEL: Record<
+  (typeof STUDENT_STAGE_VALUES)[number],
+  string
+> = {
+  New: "Mới",
+  Attempting: "Đang liên hệ",
+  Connected: "Đã kết nối",
+  Qualified: "Đủ điều kiện",
+  Disqualified: "Không đủ điều kiện",
+};
+
+export type StudentStageValue = (typeof STUDENT_STAGE_VALUES)[number];
+export type StudentStageBadgeColor =
+  | "sky"
+  | "warning"
+  | "violet"
+  | "success"
+  | "gray";
+
+export const STUDENT_STAGE_BADGE_COLORS: Record<
+  StudentStageValue,
+  StudentStageBadgeColor
+> = {
+  New: "sky",
+  Attempting: "warning",
+  Connected: "violet",
+  Qualified: "success",
+  Disqualified: "gray",
+};
+
+export function getStudentStageLabel(value: string | null | undefined): string {
+  if (!value) return "Chưa cập nhật";
+  return STUDENT_STAGE_LABEL[value as StudentStageValue] ?? value;
+}
+
+export function getStudentStageBadgeColor(
+  value: string | null | undefined,
+): StudentStageBadgeColor {
+  return value && value in STUDENT_STAGE_BADGE_COLORS
+    ? STUDENT_STAGE_BADGE_COLORS[value as StudentStageValue]
+    : "gray";
+}
+
+export const STUDENT_STAGE_OPTIONS: SegmentOption[] = STUDENT_STAGE_VALUES.map(
+  (value) => ({
+    value,
+    label: STUDENT_STAGE_LABEL[value],
+  }),
+);
+
 export interface SegmentOption {
   value: string;
   label: string;
   description?: string;
+  groupName?: string;
 }
 
-/**
- * Top-level lead-need categories. The filter only exposes these categories —
- * the underlying granular need sub-types (e.g. FIRST_CONTACT, CALLBACK under
- * NEED_CONTACT) are matched against downstream, at search time, via
- * NEED_CATEGORY_SUBTYPES.
- */
-export enum LeadNeedCategory {
-  NEED_CONTACT = "NEED_CONTACT",
-  NEED_INFORMATION = "NEED_INFORMATION",
-  NEED_ENGAGEMENT = "NEED_ENGAGEMENT",
-  NEED_APPLICATION = "NEED_APPLICATION",
-  NEED_CONVERSION = "NEED_CONVERSION",
-  NEED_PARENT = "NEED_PARENT",
-  NEED_RECOVERY = "NEED_RECOVERY",
+export const CLASSIFICATION_PROPERTIES = [
+  StudentSegmentProperty.NEED,
+  StudentSegmentProperty.TAG,
+] as const;
+
+const CLASSIFICATION_GROUP_LABEL: Record<string, string> = {
+  ...LEAD_NEED_CATEGORY_LABEL,
+  ...TAG_CATEGORY_LABEL,
+};
+
+const CLASSIFICATION_TERM_LABEL: Record<string, string> = {
+  "first contact": "Liên hệ lần đầu",
+  "follow up": "Theo dõi tiếp",
+  callback: "Gọi lại",
+  "program information": "Thông tin ngành học",
+  "admission information": "Thông tin tuyển sinh",
+  "application deadline": "Hạn nộp hồ sơ",
+  "application guidance": "Hướng dẫn hồ sơ",
+  "application incomplete": "Hồ sơ chưa hoàn tất",
+  "document support": "Hỗ trợ giấy tờ",
+  "tuition information": "Thông tin học phí",
+  "scholarship information": "Thông tin học bổng",
+  "major information": "Thông tin ngành học",
+  "career information": "Thông tin nghề nghiệp",
+  counseling: "Tư vấn",
+  "event engagement": "Tham gia sự kiện",
+  "campus experience": "Trải nghiệm trường",
+  "decision support": "Hỗ trợ ra quyết định",
+  "enrollment support": "Hỗ trợ nhập học",
+  "financial support": "Hỗ trợ tài chính",
+  "re engagement": "Tái kết nối",
+  "no response": "Không phản hồi",
+  "not ready": "Chưa sẵn sàng",
+  "admission requirements": "Điều kiện tuyển sinh",
+  "high prior": "Ưu tiên cao",
+};
+
+const CONTROLLED_CLASSIFICATION_TERM_LABEL: Record<string, string> = {
+  ...LEAD_NEED_SUBTYPE_LABEL,
+  ...TAG_SUBTYPE_LABEL,
+};
+
+function normalizeClassificationTerm(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase("en-US")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
 }
 
-export const LEAD_NEED_CATEGORY_LABEL: Record<LeadNeedCategory, string> = {
-  [LeadNeedCategory.NEED_CONTACT]: "Cần liên hệ",
-  [LeadNeedCategory.NEED_INFORMATION]: "Cần thông tin",
-  [LeadNeedCategory.NEED_ENGAGEMENT]: "Cần tương tác",
-  [LeadNeedCategory.NEED_APPLICATION]: "Cần hỗ trợ hồ sơ",
-  [LeadNeedCategory.NEED_CONVERSION]: "Cần hỗ trợ chuyển đổi",
-  [LeadNeedCategory.NEED_PARENT]: "Cần hỗ trợ phụ huynh",
-  [LeadNeedCategory.NEED_RECOVERY]: "Cần phục hồi",
-};
+export function getClassificationTermLabel(term: SegmentTermRecord): string {
+  const candidates = [term.label, term.code, term.name].filter(
+    (value): value is string => Boolean(value?.trim()),
+  );
 
-export enum LeadNeedSubtype {
-  FIRST_CONTACT = "FIRST_CONTACT",
-  FOLLOW_UP = "FOLLOW_UP",
-  CALLBACK = "CALLBACK",
-  PROGRAM_INFORMATION = "PROGRAM_INFORMATION",
-  ADMISSION_INFORMATION = "ADMISSION_INFORMATION",
-  TUITION_INFORMATION = "TUITION_INFORMATION",
-  SCHOLARSHIP_INFORMATION = "SCHOLARSHIP_INFORMATION",
-  CAREER_INFORMATION = "CAREER_INFORMATION",
-  COUNSELING = "COUNSELING",
-  EVENT_ENGAGEMENT = "EVENT_ENGAGEMENT",
-  CAMPUS_EXPERIENCE = "CAMPUS_EXPERIENCE",
-  APPLICATION_GUIDANCE = "APPLICATION_GUIDANCE",
-  APPLICATION_INCOMPLETE = "APPLICATION_INCOMPLETE",
-  DOCUMENT_SUPPORT = "DOCUMENT_SUPPORT",
-  APPLICATION_DEADLINE = "APPLICATION_DEADLINE",
-  DECISION_SUPPORT = "DECISION_SUPPORT",
-  ENROLLMENT_SUPPORT = "ENROLLMENT_SUPPORT",
-  FINANCIAL_SUPPORT = "FINANCIAL_SUPPORT",
-  PARENT_ENGAGEMENT = "PARENT_ENGAGEMENT",
-  PARENT_COUNSELING = "PARENT_COUNSELING",
-  RE_ENGAGEMENT = "RE_ENGAGEMENT",
-  NO_RESPONSE = "NO_RESPONSE",
-  NOT_READY = "NOT_READY",
+  for (const candidate of candidates) {
+    const normalizedCandidate = candidate
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
+    const translated =
+      getKnownStudentTagLabel(candidate) ??
+      CONTROLLED_CLASSIFICATION_TERM_LABEL[normalizedCandidate] ??
+      CLASSIFICATION_TERM_LABEL[normalizeClassificationTerm(candidate)];
+    if (translated) return translated;
+  }
+
+  return candidates[0] ?? "Chưa đặt tên";
 }
 
-/**
- * Maps each lead-need category to its granular sub-types, so downstream
- * search/matching can resolve a selected category (as shown in the filter)
- * to the actual need values recorded on a lead.
- */
-export const NEED_CATEGORY_SUBTYPES: Record<LeadNeedCategory, LeadNeedSubtype[]> = {
-  [LeadNeedCategory.NEED_CONTACT]: [
-    LeadNeedSubtype.FIRST_CONTACT,
-    LeadNeedSubtype.FOLLOW_UP,
-    LeadNeedSubtype.CALLBACK,
-  ],
-  [LeadNeedCategory.NEED_INFORMATION]: [
-    LeadNeedSubtype.PROGRAM_INFORMATION,
-    LeadNeedSubtype.ADMISSION_INFORMATION,
-    LeadNeedSubtype.TUITION_INFORMATION,
-    LeadNeedSubtype.SCHOLARSHIP_INFORMATION,
-    LeadNeedSubtype.CAREER_INFORMATION,
-  ],
-  [LeadNeedCategory.NEED_ENGAGEMENT]: [
-    LeadNeedSubtype.COUNSELING,
-    LeadNeedSubtype.EVENT_ENGAGEMENT,
-    LeadNeedSubtype.CAMPUS_EXPERIENCE,
-  ],
-  [LeadNeedCategory.NEED_APPLICATION]: [
-    LeadNeedSubtype.APPLICATION_GUIDANCE,
-    LeadNeedSubtype.APPLICATION_INCOMPLETE,
-    LeadNeedSubtype.DOCUMENT_SUPPORT,
-    LeadNeedSubtype.APPLICATION_DEADLINE,
-  ],
-  [LeadNeedCategory.NEED_CONVERSION]: [
-    LeadNeedSubtype.DECISION_SUPPORT,
-    LeadNeedSubtype.ENROLLMENT_SUPPORT,
-    LeadNeedSubtype.FINANCIAL_SUPPORT,
-  ],
-  [LeadNeedCategory.NEED_PARENT]: [
-    LeadNeedSubtype.PARENT_ENGAGEMENT,
-    LeadNeedSubtype.PARENT_COUNSELING,
-  ],
-  [LeadNeedCategory.NEED_RECOVERY]: [
-    LeadNeedSubtype.RE_ENGAGEMENT,
-    LeadNeedSubtype.NO_RESPONSE,
-    LeadNeedSubtype.NOT_READY,
-  ],
-};
-
-export const LEAD_NEED_SUBTYPE_LABEL: Record<LeadNeedSubtype, string> = {
-  [LeadNeedSubtype.FIRST_CONTACT]: "Liên hệ lần đầu",
-  [LeadNeedSubtype.FOLLOW_UP]: "Theo dõi tiếp",
-  [LeadNeedSubtype.CALLBACK]: "Gọi lại",
-  [LeadNeedSubtype.PROGRAM_INFORMATION]: "Thông tin ngành học",
-  [LeadNeedSubtype.ADMISSION_INFORMATION]: "Thông tin tuyển sinh",
-  [LeadNeedSubtype.TUITION_INFORMATION]: "Thông tin học phí",
-  [LeadNeedSubtype.SCHOLARSHIP_INFORMATION]: "Thông tin học bổng",
-  [LeadNeedSubtype.CAREER_INFORMATION]: "Thông tin nghề nghiệp",
-  [LeadNeedSubtype.COUNSELING]: "Tư vấn",
-  [LeadNeedSubtype.EVENT_ENGAGEMENT]: "Tham gia sự kiện",
-  [LeadNeedSubtype.CAMPUS_EXPERIENCE]: "Trải nghiệm trường",
-  [LeadNeedSubtype.APPLICATION_GUIDANCE]: "Hướng dẫn hồ sơ",
-  [LeadNeedSubtype.APPLICATION_INCOMPLETE]: "Hồ sơ chưa hoàn tất",
-  [LeadNeedSubtype.DOCUMENT_SUPPORT]: "Hỗ trợ giấy tờ",
-  [LeadNeedSubtype.APPLICATION_DEADLINE]: "Hạn nộp hồ sơ",
-  [LeadNeedSubtype.DECISION_SUPPORT]: "Hỗ trợ ra quyết định",
-  [LeadNeedSubtype.ENROLLMENT_SUPPORT]: "Hỗ trợ nhập học",
-  [LeadNeedSubtype.FINANCIAL_SUPPORT]: "Hỗ trợ tài chính",
-  [LeadNeedSubtype.PARENT_ENGAGEMENT]: "Tương tác phụ huynh",
-  [LeadNeedSubtype.PARENT_COUNSELING]: "Tư vấn phụ huynh",
-  [LeadNeedSubtype.RE_ENGAGEMENT]: "Tái kết nối",
-  [LeadNeedSubtype.NO_RESPONSE]: "Không phản hồi",
-  [LeadNeedSubtype.NOT_READY]: "Chưa sẵn sàng",
-};
-
-/**
- * Top-level lead-tag categories. Same shape as LeadNeedCategory: the filter
- * only exposes these categories, the granular tags underneath are matched
- * downstream via TAG_CATEGORY_SUBTYPES.
- */
-export enum TagCategory {
-  ATTENTION = "ATTENTION",
-  RELATIONSHIP = "RELATIONSHIP",
-  CONTEXT = "CONTEXT",
-  OPERATIONAL = "OPERATIONAL",
+export function getClassificationGroupLabel(groupName: string): string {
+  return CLASSIFICATION_GROUP_LABEL[groupName] ?? groupName;
 }
 
-export const TAG_CATEGORY_LABEL: Record<TagCategory, string> = {
-  [TagCategory.ATTENTION]: "Cần chú ý",
-  [TagCategory.RELATIONSHIP]: "Quan hệ",
-  [TagCategory.CONTEXT]: "Bối cảnh",
-  [TagCategory.OPERATIONAL]: "Vận hành",
-};
-
-export enum TagSubtype {
-  VIP = "VIP",
-  HIGH_PRIORITY = "HIGH_PRIORITY",
-  SPECIAL_ATTENTION = "SPECIAL_ATTENTION",
-  PARENT_INVOLVED = "PARENT_INVOLVED",
-  PARENT_DECISION_MAKER = "PARENT_DECISION_MAKER",
-  OTHER_DECISION_MAKER = "OTHER_DECISION_MAKER",
-  SPECIAL_CASE = "SPECIAL_CASE",
-  HARD_TO_REACH = "HARD_TO_REACH",
-  SPECIAL_REQUIREMENT = "SPECIAL_REQUIREMENT",
-  MANUAL_REVIEW = "MANUAL_REVIEW",
-  SPECIAL_HANDLING = "SPECIAL_HANDLING",
-  ESCALATED = "ESCALATED",
+export function isClassificationProperty(
+  property: StudentSegmentProperty,
+): boolean {
+  return CLASSIFICATION_PROPERTIES.some(
+    (classificationProperty) => classificationProperty === property,
+  );
 }
 
-export const TAG_CATEGORY_SUBTYPES: Record<TagCategory, TagSubtype[]> = {
-  [TagCategory.ATTENTION]: [
-    TagSubtype.VIP,
-    TagSubtype.HIGH_PRIORITY,
-    TagSubtype.SPECIAL_ATTENTION,
-  ],
-  [TagCategory.RELATIONSHIP]: [
-    TagSubtype.PARENT_INVOLVED,
-    TagSubtype.PARENT_DECISION_MAKER,
-    TagSubtype.OTHER_DECISION_MAKER,
-  ],
-  [TagCategory.CONTEXT]: [
-    TagSubtype.SPECIAL_CASE,
-    TagSubtype.HARD_TO_REACH,
-    TagSubtype.SPECIAL_REQUIREMENT,
-  ],
-  [TagCategory.OPERATIONAL]: [
-    TagSubtype.MANUAL_REVIEW,
-    TagSubtype.SPECIAL_HANDLING,
-    TagSubtype.ESCALATED,
-  ],
-};
-
-export const TAG_SUBTYPE_LABEL: Record<TagSubtype, string> = {
-  [TagSubtype.VIP]: "Ưu tiên đặc biệt",
-  [TagSubtype.HIGH_PRIORITY]: "Ưu tiên cao",
-  [TagSubtype.SPECIAL_ATTENTION]: "Cần quan tâm đặc biệt",
-  [TagSubtype.PARENT_INVOLVED]: "Phụ huynh tham gia",
-  [TagSubtype.PARENT_DECISION_MAKER]: "Phụ huynh quyết định",
-  [TagSubtype.OTHER_DECISION_MAKER]: "Người khác quyết định",
-  [TagSubtype.SPECIAL_CASE]: "Trường hợp đặc biệt",
-  [TagSubtype.HARD_TO_REACH]: "Khó liên hệ",
-  [TagSubtype.SPECIAL_REQUIREMENT]: "Yêu cầu đặc biệt",
-  [TagSubtype.MANUAL_REVIEW]: "Cần rà soát thủ công",
-  [TagSubtype.SPECIAL_HANDLING]: "Xử lý đặc biệt",
-  [TagSubtype.ESCALATED]: "Đã leo thang",
-};
-
-export const JOURNEY_STAGE_OPTIONS: SegmentOption[] = Object.values(
-  JourneyStage,
-).map((value) => ({
-  value,
-  label: JOURNEY_STAGE_LABEL[value],
-}));
+export type SegmentFilterOptions = Partial<
+  Record<StudentSegmentProperty, SegmentOption[]>
+>;
 
 export const SEGMENT_LEVEL_OPTIONS: SegmentOption[] = Object.values(
   SegmentLevel,
@@ -345,103 +287,22 @@ export const SEGMENT_LEVEL_OPTIONS: SegmentOption[] = Object.values(
   label: SEGMENT_LEVEL_LABEL[value],
 }));
 
-export const LEAD_NEED_CATEGORY_OPTIONS: SegmentOption[] = Object.values(
-  LeadNeedCategory,
-).map((value) => ({
-  value,
-  label: LEAD_NEED_CATEGORY_LABEL[value],
-}));
-
-export const TAG_CATEGORY_OPTIONS: SegmentOption[] = Object.values(
-  TagCategory,
-).map((value) => ({
-  value,
-  label: TAG_CATEGORY_LABEL[value],
-}));
-
-/**
- * Properties whose filter value is chosen in two steps: pick a top-level
- * category (shown directly in the property picker), then pick from the
- * granular sub-items scoped to that category (shown in the value picker).
- * NEED and TAG both follow this shape — this table drives the picker, the
- * condition row, and the value resolution generically for both.
- */
-export interface CascadingPropertyConfig {
-  categoryOptions: SegmentOption[];
-  categoryLabel: Record<string, string>;
-  subtypesByCategory: Record<string, SegmentOption[]>;
-}
-
-function buildSubtypesByCategory<Category extends string, Subtype extends string>(
-  categorySubtypes: Record<Category, Subtype[]>,
-  subtypeLabel: Record<Subtype, string>,
-): Record<string, SegmentOption[]> {
-  return Object.fromEntries(
-    Object.entries(categorySubtypes).map(([category, subtypes]) => [
-      category,
-      (subtypes as Subtype[]).map((value) => ({
-        value,
-        label: subtypeLabel[value],
-      })),
-    ]),
-  );
-}
-
-export const CASCADING_PROPERTY_CONFIG: Partial<
-  Record<StudentSegmentProperty, CascadingPropertyConfig>
-> = {
-  [StudentSegmentProperty.NEED]: {
-    categoryOptions: LEAD_NEED_CATEGORY_OPTIONS,
-    categoryLabel: LEAD_NEED_CATEGORY_LABEL,
-    subtypesByCategory: buildSubtypesByCategory(
-      NEED_CATEGORY_SUBTYPES,
-      LEAD_NEED_SUBTYPE_LABEL,
-    ),
-  },
-  [StudentSegmentProperty.TAG]: {
-    categoryOptions: TAG_CATEGORY_OPTIONS,
-    categoryLabel: TAG_CATEGORY_LABEL,
-    subtypesByCategory: buildSubtypesByCategory(
-      TAG_CATEGORY_SUBTYPES,
-      TAG_SUBTYPE_LABEL,
-    ),
-  },
-};
-
-export const CASCADING_PROPERTIES = Object.keys(
-  CASCADING_PROPERTY_CONFIG,
-) as StudentSegmentProperty[];
-
-export function isCascadingProperty(property: StudentSegmentProperty) {
-  return property in CASCADING_PROPERTY_CONFIG;
-}
-
-export function getCascadingSubtypeOptions(
-  property: StudentSegmentProperty,
-  category: string | null | undefined,
-): SegmentOption[] {
-  if (!category) return [];
-  return CASCADING_PROPERTY_CONFIG[property]?.subtypesByCategory[category] ?? [];
-}
-
-export type SegmentValueType = "MULTI_SELECT" | "NUMBER" | "YEAR" | "PRESENCE";
+export type SegmentValueType = "MULTI_SELECT";
 
 export interface SegmentPropertyConfig {
   label: string;
-  category: SegmentFilterCategory;
   valueType: SegmentValueType;
   operators: SegmentOperator[];
 }
 
-const PRESENCE_OPERATORS = [
-  SegmentOperator.IS_KNOWN,
-  SegmentOperator.IS_UNKNOWN,
-];
-const MULTI_SELECT_OPERATORS = [
+const LEVEL_OPERATORS = [
   SegmentOperator.IS_ANY_OF,
   SegmentOperator.IS_NONE_OF,
-  ...PRESENCE_OPERATORS,
+  SegmentOperator.EQUAL,
+  SegmentOperator.NOT_EQUAL,
 ];
+const TERM_OPERATORS = [SegmentOperator.IS_ANY_OF, SegmentOperator.IS_NONE_OF];
+const STAGE_OPERATORS = LEVEL_OPERATORS;
 
 export const SEGMENT_PROPERTY_CONFIG: Record<
   StudentSegmentProperty,
@@ -449,48 +310,37 @@ export const SEGMENT_PROPERTY_CONFIG: Record<
 > = {
   [StudentSegmentProperty.JOURNEY_STAGE]: {
     label: STUDENT_SEGMENT_PROPERTY_LABEL[StudentSegmentProperty.JOURNEY_STAGE],
-    category: SegmentFilterCategory.ADMISSION_STAGE,
     valueType: "MULTI_SELECT",
-    operators: MULTI_SELECT_OPERATORS,
+    operators: STAGE_OPERATORS,
   },
   [StudentSegmentProperty.POTENTIAL]: {
     label: STUDENT_SEGMENT_PROPERTY_LABEL[StudentSegmentProperty.POTENTIAL],
-    category: SegmentFilterCategory.ADMISSION_STAGE,
     valueType: "MULTI_SELECT",
-    operators: MULTI_SELECT_OPERATORS,
+    operators: LEVEL_OPERATORS,
   },
   [StudentSegmentProperty.INTENT]: {
     label: STUDENT_SEGMENT_PROPERTY_LABEL[StudentSegmentProperty.INTENT],
-    category: SegmentFilterCategory.ADMISSION_STAGE,
     valueType: "MULTI_SELECT",
-    operators: MULTI_SELECT_OPERATORS,
+    operators: LEVEL_OPERATORS,
   },
   [StudentSegmentProperty.NEED]: {
     label: STUDENT_SEGMENT_PROPERTY_LABEL[StudentSegmentProperty.NEED],
-    category: SegmentFilterCategory.ADMISSION_STAGE,
     valueType: "MULTI_SELECT",
-    operators: MULTI_SELECT_OPERATORS,
+    operators: TERM_OPERATORS,
   },
   [StudentSegmentProperty.TAG]: {
     label: STUDENT_SEGMENT_PROPERTY_LABEL[StudentSegmentProperty.TAG],
-    category: SegmentFilterCategory.ADMISSION_STAGE,
     valueType: "MULTI_SELECT",
-    operators: MULTI_SELECT_OPERATORS,
+    operators: TERM_OPERATORS,
   },
 };
 
-export const MOCK_SEGMENT_MASTER_OPTIONS: Record<
-  StudentSegmentProperty,
-  SegmentOption[]
-> = {
-  [StudentSegmentProperty.JOURNEY_STAGE]: JOURNEY_STAGE_OPTIONS,
+const DEFAULT_OPTIONS: SegmentFilterOptions = {
+  [StudentSegmentProperty.JOURNEY_STAGE]: STUDENT_STAGE_OPTIONS,
   [StudentSegmentProperty.POTENTIAL]: SEGMENT_LEVEL_OPTIONS,
   [StudentSegmentProperty.INTENT]: SEGMENT_LEVEL_OPTIONS,
-  [StudentSegmentProperty.NEED]: LEAD_NEED_CATEGORY_OPTIONS,
-  [StudentSegmentProperty.TAG]: TAG_CATEGORY_OPTIONS,
 };
 
-export const SEGMENT_FILTER_CATEGORIES = Object.values(SegmentFilterCategory);
 export const SEGMENT_PROPERTIES = Object.values(StudentSegmentProperty);
 
 export type SegmentConditionValue = string[] | string | null;
@@ -500,101 +350,355 @@ export interface SegmentCondition {
   property: StudentSegmentProperty;
   operator: SegmentOperator;
   value: SegmentConditionValue;
-  /** Only used for cascading properties (NEED, TAG): the chosen top-level category. */
-  category?: string | null;
+  /** UI-only scope used while a classification group awaits term selection. */
+  classificationGroupName?: string;
 }
 
 export interface SegmentFilterGroup {
   id: string;
   name: string;
-  logic: "AND" | "OR";
+  logic: SegmentFilterLogic;
   conditions: SegmentCondition[];
 }
 
-export function isConditionComplete(condition: SegmentCondition): boolean {
-  if (isPresenceOperator(condition.operator)) return true;
-  if (isCascadingProperty(condition.property))
-    return (
-      Boolean(condition.category) &&
-      Array.isArray(condition.value) &&
-      condition.value.length > 0
-    );
-  if (SEGMENT_PROPERTY_CONFIG[condition.property].valueType === "MULTI_SELECT")
-    return Array.isArray(condition.value) && condition.value.length > 0;
-  const values = Array.isArray(condition.value)
-    ? condition.value
-    : [condition.value];
-  if (condition.operator === SegmentOperator.BETWEEN && values.length !== 2)
-    return false;
-  if (
-    !values.every(
-      (value) =>
-        typeof value === "string" &&
-        value.trim() !== "" &&
-        Number.isFinite(Number(value)),
-    )
-  )
-    return false;
-  if (
-    SEGMENT_PROPERTY_CONFIG[condition.property].valueType === "YEAR" &&
-    !values.every(
-      (value) => Number.isInteger(Number(value)) && Number(value) > 0,
-    )
-  )
-    return false;
-  return (
-    condition.operator !== SegmentOperator.BETWEEN ||
-    Number(values[0]) <= Number(values[1])
-  );
-}
-
-export function conditionValueLabel(condition: SegmentCondition): string {
-  if (isPresenceOperator(condition.operator)) return "";
-  if (isCascadingProperty(condition.property)) {
-    const options = getCascadingSubtypeOptions(
-      condition.property,
-      condition.category,
-    );
-    return (Array.isArray(condition.value) ? condition.value : [])
-      .map(
-        (value) =>
-          options.find((option) => option.value === value)?.label ?? value,
-      )
-      .join(", ");
-  }
-  if (
-    SEGMENT_PROPERTY_CONFIG[condition.property].valueType === "MULTI_SELECT"
-  ) {
-    const options = getOptionsForProperty(condition.property);
-    return (Array.isArray(condition.value) ? condition.value : [])
-      .map(
-        (value) =>
-          options.find((option) => option.value === value)?.label ?? value,
-      )
-      .join(", ");
-  }
-  return Array.isArray(condition.value)
-    ? condition.value.join(" đến ")
-    : (condition.value ?? "");
-}
-
-export function isPresenceOperator(operator: SegmentOperator) {
-  return (
-    operator === SegmentOperator.IS_KNOWN ||
-    operator === SegmentOperator.IS_UNKNOWN
-  );
-}
-
-export function getInitialConditionValue(
+export function getOptionsForProperty(
   property: StudentSegmentProperty,
-  operator: SegmentOperator,
-): SegmentConditionValue {
-  if (isPresenceOperator(operator)) return null;
-  if (SEGMENT_PROPERTY_CONFIG[property].valueType === "MULTI_SELECT") return [];
-  if (operator === SegmentOperator.BETWEEN) return ["", ""];
-  return "";
+  options: SegmentFilterOptions = {},
+): SegmentOption[] {
+  return options[property] ?? DEFAULT_OPTIONS[property] ?? [];
 }
 
-export function getOptionsForProperty(property: StudentSegmentProperty) {
-  return MOCK_SEGMENT_MASTER_OPTIONS[property] ?? [];
+export interface ClassificationGroup {
+  groupName: string;
+  label: string;
+  options: SegmentOption[];
+}
+
+export function getClassificationGroups(
+  property: StudentSegmentProperty,
+  options: SegmentFilterOptions = {},
+): ClassificationGroup[] {
+  if (!isClassificationProperty(property)) return [];
+
+  const groups = new Map<string, SegmentOption[]>();
+  for (const option of getOptionsForProperty(property, options)) {
+    const groupName = option.groupName || "Khác";
+    const group = groups.get(groupName) ?? [];
+    group.push(option);
+    groups.set(groupName, group);
+  }
+
+  return [...groups.entries()].map(([groupName, groupOptions]) => ({
+    groupName,
+    label: getClassificationGroupLabel(groupName),
+    options: groupOptions,
+  }));
+}
+
+export function getOptionsForSelectedClassificationGroup(
+  selectedValues: string[],
+  options: SegmentOption[],
+  selectedGroupName?: string,
+): SegmentOption[] {
+  const selectedOptions = options.filter((option) =>
+    selectedValues.includes(option.value),
+  );
+  const activeGroupName = selectedGroupName ?? selectedOptions[0]?.groupName;
+
+  if (
+    !activeGroupName ||
+    (!selectedGroupName &&
+      selectedOptions.some((option) => option.groupName !== activeGroupName))
+  ) {
+    return options;
+  }
+
+  const groupOptions = options.filter(
+    (option) => option.groupName === activeGroupName,
+  );
+  return groupOptions.length > 0 ? groupOptions : options;
+}
+
+const API_FIELD_BY_PROPERTY: Record<StudentSegmentProperty, string> = {
+  [StudentSegmentProperty.JOURNEY_STAGE]: "student_stage",
+  [StudentSegmentProperty.POTENTIAL]: "potential",
+  [StudentSegmentProperty.INTENT]: "intent",
+  [StudentSegmentProperty.NEED]: "need",
+  [StudentSegmentProperty.TAG]: "tag",
+};
+
+export function buildSegmentFilterOptions(
+  response?: SegmentFilterOptionsResponse,
+): SegmentFilterOptions {
+  const options: SegmentFilterOptions = {};
+  const fields = response?.fields ?? [];
+
+  for (const property of [
+    StudentSegmentProperty.JOURNEY_STAGE,
+    StudentSegmentProperty.POTENTIAL,
+    StudentSegmentProperty.INTENT,
+  ]) {
+    const field = fields.find(
+      (item) => item.fieldname === API_FIELD_BY_PROPERTY[property],
+    );
+    const values = field?.options?.split("\n").filter(Boolean) ?? [];
+    if (values.length === 0) continue;
+
+    options[property] = values.map((value) => ({
+      value,
+      label:
+        property === StudentSegmentProperty.JOURNEY_STAGE
+          ? (STUDENT_STAGE_LABEL[value as keyof typeof STUDENT_STAGE_LABEL] ??
+            value)
+          : (SEGMENT_LEVEL_LABEL[value as keyof typeof SEGMENT_LEVEL_LABEL] ??
+            value),
+    }));
+  }
+
+  options[StudentSegmentProperty.NEED] = (response?.needs ?? []).map(
+    (term) => ({
+      value: term.name,
+      label: getClassificationTermLabel(term),
+      description: term.description ?? undefined,
+      groupName: term.group_name ?? undefined,
+    }),
+  );
+  options[StudentSegmentProperty.TAG] = (response?.tags ?? []).map((term) => ({
+    value: term.name,
+    label: getClassificationTermLabel(term),
+    description: term.description ?? undefined,
+    groupName: term.group_name ?? undefined,
+  }));
+
+  return options;
+}
+
+export function isConditionComplete(condition: SegmentCondition): boolean {
+  return (
+    SEGMENT_PROPERTY_CONFIG[condition.property].valueType === "MULTI_SELECT" &&
+    Array.isArray(condition.value) &&
+    condition.value.length > 0
+  );
+}
+
+export function conditionValueLabel(
+  condition: SegmentCondition,
+  options: SegmentFilterOptions = {},
+): string {
+  const values = Array.isArray(condition.value) ? condition.value : [];
+  const propertyOptions = getOptionsForProperty(condition.property, options);
+  return getSelectedOptionLabels(values, propertyOptions).join(", ");
+}
+
+export function getSelectedOptionLabels(
+  selectedValues: string[],
+  options: SegmentOption[],
+): string[] {
+  const selected = new Set(selectedValues);
+  const groupedOptions = new Map<string, SegmentOption[]>();
+
+  for (const option of options) {
+    if (!option.groupName) continue;
+    const group = groupedOptions.get(option.groupName) ?? [];
+    group.push(option);
+    groupedOptions.set(option.groupName, group);
+  }
+
+  const labels: string[] = [];
+  const groupedValues = new Set<string>();
+  const renderedGroups = new Set<string>();
+
+  for (const option of options) {
+    if (!selected.has(option.value)) continue;
+
+    if (option.groupName) {
+      const groupOptions = groupedOptions.get(option.groupName) ?? [];
+      const isGroupSelected = groupOptions.every((groupOption) =>
+        selected.has(groupOption.value),
+      );
+
+      if (isGroupSelected) {
+        if (!renderedGroups.has(option.groupName)) {
+          labels.push(getClassificationGroupLabel(option.groupName));
+          renderedGroups.add(option.groupName);
+          groupOptions.forEach((groupOption) =>
+            groupedValues.add(groupOption.value),
+          );
+        }
+        continue;
+      }
+    }
+
+    if (!groupedValues.has(option.value)) labels.push(option.label);
+  }
+
+  const knownValues = new Set(options.map((option) => option.value));
+  for (const value of selectedValues) {
+    if (!knownValues.has(value)) labels.push(value);
+  }
+
+  return labels;
+}
+
+export function getInitialConditionValue(): SegmentConditionValue {
+  return [];
+}
+
+function parseSegmentLogic(
+  value: unknown,
+  fallback: SegmentFilterLogic,
+): SegmentFilterLogic {
+  return value === "AND" || value === "OR" ? value : fallback;
+}
+
+const UI_TO_BACKEND_FIELD: Record<
+  StudentSegmentProperty,
+  SegmentFilterPayload["groups"][number]["conditions"][number]["field"]
+> = {
+  [StudentSegmentProperty.JOURNEY_STAGE]: "student_stage",
+  [StudentSegmentProperty.POTENTIAL]: "potential",
+  [StudentSegmentProperty.INTENT]: "intent",
+  [StudentSegmentProperty.NEED]: "need",
+  [StudentSegmentProperty.TAG]: "tag",
+};
+
+const UI_TO_BACKEND_OPERATOR: Record<
+  SegmentOperator,
+  SegmentFilterPayload["groups"][number]["conditions"][number]["operator"]
+> = {
+  [SegmentOperator.IS_ANY_OF]: "in",
+  [SegmentOperator.IS_NONE_OF]: "not in",
+  [SegmentOperator.EQUAL]: "=",
+  [SegmentOperator.NOT_EQUAL]: "!=",
+};
+
+const BACKEND_FIELD_TO_UI: Record<string, StudentSegmentProperty> = {
+  student_stage: StudentSegmentProperty.JOURNEY_STAGE,
+  potential: StudentSegmentProperty.POTENTIAL,
+  intent: StudentSegmentProperty.INTENT,
+  need: StudentSegmentProperty.NEED,
+  tag: StudentSegmentProperty.TAG,
+};
+
+const BACKEND_OPERATOR_TO_UI: Record<string, SegmentOperator> = {
+  in: SegmentOperator.IS_ANY_OF,
+  "not in": SegmentOperator.IS_NONE_OF,
+  "=": SegmentOperator.EQUAL,
+  "!=": SegmentOperator.NOT_EQUAL,
+};
+
+export function toBackendSegmentFilters(
+  groups: SegmentFilterGroup[],
+  logic: SegmentFilterLogic = "OR",
+): SegmentFilterPayload | null {
+  if (
+    groups.length === 0 ||
+    groups.some(
+      (group) =>
+        group.conditions.length === 0 ||
+        group.conditions.some((condition) => !isConditionComplete(condition)),
+    )
+  ) {
+    return null;
+  }
+
+  return {
+    logic,
+    groups: groups.map((group) => ({
+      logic: group.logic,
+      name: group.name.trim() || undefined,
+      conditions: group.conditions.map((condition) => ({
+        field: UI_TO_BACKEND_FIELD[condition.property],
+        operator: UI_TO_BACKEND_OPERATOR[condition.operator],
+        value:
+          condition.operator === SegmentOperator.EQUAL ||
+          condition.operator === SegmentOperator.NOT_EQUAL
+            ? (condition.value as string[])[0]
+            : (condition.value as string[]),
+      })),
+    })),
+  };
+}
+
+export function fromBackendSegmentFilters(rawFilters: unknown): {
+  logic: SegmentFilterLogic;
+  groups: SegmentFilterGroup[];
+} {
+  let filters = rawFilters;
+  if (typeof filters === "string") {
+    try {
+      filters = JSON.parse(filters);
+    } catch {
+      return { logic: "OR", groups: [] };
+    }
+  }
+
+  if (!filters || typeof filters !== "object") {
+    return { logic: "OR", groups: [] };
+  }
+
+  const rawGroups = (filters as { groups?: unknown }).groups;
+  if (!Array.isArray(rawGroups)) return { logic: "OR", groups: [] };
+  const logic = parseSegmentLogic((filters as { logic?: unknown }).logic, "OR");
+
+  const groups = rawGroups.flatMap((rawGroup, groupIndex) => {
+    if (!rawGroup || typeof rawGroup !== "object") return [];
+    const rawGroupData = rawGroup as {
+      logic?: unknown;
+      name?: unknown;
+      conditions?: unknown;
+    };
+    const rawConditions = rawGroupData.conditions;
+    if (!Array.isArray(rawConditions)) return [];
+
+    const conditions = rawConditions.flatMap((rawCondition, conditionIndex) => {
+      if (!rawCondition || typeof rawCondition !== "object") return [];
+      const condition = rawCondition as {
+        field?: unknown;
+        operator?: unknown;
+        value?: unknown;
+      };
+      const property =
+        typeof condition.field === "string"
+          ? BACKEND_FIELD_TO_UI[condition.field]
+          : undefined;
+      const operator =
+        typeof condition.operator === "string"
+          ? BACKEND_OPERATOR_TO_UI[condition.operator]
+          : undefined;
+      if (!property || !operator) return [];
+
+      const value = Array.isArray(condition.value)
+        ? condition.value.filter(
+            (item): item is string => typeof item === "string",
+          )
+        : typeof condition.value === "string"
+          ? [condition.value]
+          : [];
+      return [
+        {
+          id: `condition-${groupIndex + 1}-${conditionIndex + 1}`,
+          property,
+          operator,
+          value,
+        } satisfies SegmentCondition,
+      ];
+    });
+
+    return conditions.length
+      ? [
+          {
+            id: `group-${groupIndex + 1}`,
+            name:
+              typeof rawGroupData.name === "string" && rawGroupData.name.trim()
+                ? rawGroupData.name.trim()
+                : `Nhóm ${groupIndex + 1}`,
+            logic: parseSegmentLogic(rawGroupData.logic, "AND"),
+            conditions,
+          },
+        ]
+      : [];
+  });
+
+  return { logic, groups };
 }

@@ -10,6 +10,8 @@ import { Popover } from "@/components/tailgrids/core/popover";
 import { cn } from "@/utils/cn";
 
 import {
+  getOptionsForSelectedClassificationGroup,
+  getSelectedOptionLabels,
   type SegmentConditionValue,
   type SegmentOption,
 } from "./segment-filter-config";
@@ -19,6 +21,7 @@ interface SegmentFilterValuePickerProps {
   label: string;
   options: SegmentOption[];
   value: SegmentConditionValue;
+  selectedGroupName?: string;
   onChange: (value: string[]) => void;
 }
 
@@ -27,23 +30,34 @@ export function SegmentFilterValuePicker({
   label,
   options,
   value,
+  selectedGroupName,
   onChange,
 }: SegmentFilterValuePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const selectedValues = Array.isArray(value) ? value : [];
+  const selectedValues = useMemo(
+    () => (Array.isArray(value) ? value : []),
+    [value],
+  );
   const normalizedSearch = search.trim().toLocaleLowerCase("vi-VN");
+  const visibleOptions = useMemo(
+    () =>
+      getOptionsForSelectedClassificationGroup(
+        selectedValues,
+        options,
+        selectedGroupName,
+      ),
+    [options, selectedGroupName, selectedValues],
+  );
   const filteredOptions = useMemo(
     () =>
-      options.filter((option) =>
+      visibleOptions.filter((option) =>
         option.label.toLocaleLowerCase("vi-VN").includes(normalizedSearch),
       ),
-    [normalizedSearch, options],
+    [normalizedSearch, visibleOptions],
   );
 
-  const selectedLabels = options
-    .filter((option) => selectedValues.includes(option.value))
-    .map((option) => option.label);
+  const selectedLabels = getSelectedOptionLabels(selectedValues, options);
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     setIsOpen(nextIsOpen);

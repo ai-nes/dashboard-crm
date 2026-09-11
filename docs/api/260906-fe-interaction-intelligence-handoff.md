@@ -252,6 +252,16 @@ Task trả về dữ liệu thao tác như `title`, `description`, `action_code`
 `action_code` lấy từ `action`, fallback sang `action_type`. Chỉ Task đã hoàn thành mới được hook tạo
 Interaction `SYSTEM_ACTIVITY`; danh sách Task vẫn phải lấy từ Task API.
 
+Tạo task dùng cùng API với payload JSON:
+
+```http
+POST /api/method/crm.api.task.create_task
+```
+
+`action_code` là tùy chọn và nhận mã canonical trong CRM Action catalog, ví dụ
+`CALL_BACK`, `SEND_ZALO` hoặc `CREATE_TASK`. Nếu bỏ qua, backend giữ tương thích
+bằng cách dùng `CREATE_TASK`. Mã không hợp lệ bị từ chối bằng lỗi validation.
+
 ### Audit
 
 ```http

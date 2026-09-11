@@ -92,7 +92,7 @@ export default function AssignmentBatchWorkflow() {
     (step) => step.id === selectedStep,
   );
   const reviewHistoryQuery = useInfiniteLeadAssignmentHistoryQuery({
-    status: "manual_review",
+    status: "issues",
     limit: 20,
   }, selectedStep === "review");
   const reviewItems = useMemo(
@@ -140,7 +140,7 @@ export default function AssignmentBatchWorkflow() {
 
   function openReviewQueue() {
     if (!reviewTotal) return;
-    const query = new URLSearchParams({ status: "manual_review", open: "1" });
+    const query = new URLSearchParams({ status: "all", open: "1" });
     setSelectedStep(null);
     router.push(`/lead-sale/assignment-history?${query.toString()}`);
   }
@@ -383,7 +383,7 @@ export default function AssignmentBatchWorkflow() {
                     : workflow.hasRun
                       ? "Trong lần chạy đang xem"
                       : hasWorkflowData
-                        ? `Tổng quan hiện tại · ${workflow.summary.assigned} đã phân công · ${workflow.summary.manualReview + workflow.summary.deferred + workflow.summary.failed} cần xử lý`
+                        ? `Tổng quan hiện tại · ${workflow.summary.assigned} đã phân công · ${workflow.summary.skipped + workflow.summary.manualReview + workflow.summary.deferred + workflow.summary.failed} hồ sơ cần lưu ý`
                         : "Chưa có lần chạy"}
                 </p>
                 <p className="mt-2 text-lg font-semibold text-text-primary">
@@ -395,15 +395,15 @@ export default function AssignmentBatchWorkflow() {
           {selectedWorkflowStep.id === "review" && (
             <section
               className="mb-6"
-              aria-label="Danh sách cần xử lý"
+              aria-label="Danh sách hồ sơ cần lưu ý"
             >
               {reviewHistoryQuery.error ? (
                 <p className="mt-3 rounded-lg bg-badge-error-background p-3 text-xs leading-5 text-badge-error-text">
-                  Không thể tải danh sách hồ sơ cần xử lý.
+                  Không thể tải danh sách hồ sơ cần lưu ý.
                 </p>
               ) : reviewHistoryQuery.isLoading ? (
                 <p className="mt-3 text-sm text-text-tertiary">
-                  Đang lấy danh sách từ hệ thống phân công…
+                  Đang lấy danh sách hồ sơ cần lưu ý từ hệ thống phân công…
                 </p>
               ) : reviewItems.length ? (
                 <>
@@ -412,13 +412,13 @@ export default function AssignmentBatchWorkflow() {
                   >
                     <div className="border-b border-card-border px-4 py-3">
                       <p className="text-sm font-semibold text-text-primary">
-                        Số hồ sơ cần xử lý là {reviewTotal}/{reviewOverallTotal}
+                        Số hồ sơ cần lưu ý là {reviewTotal}/{reviewOverallTotal}
                       </p>
                     </div>
                     <div
                       ref={reviewListRef}
                       className="max-h-[420px] space-y-2 overflow-y-auto p-2"
-                      aria-label="Danh sách cần xử lý"
+                      aria-label="Danh sách hồ sơ cần lưu ý"
                     >
                       {reviewItems.map((item) => (
                         <div
@@ -451,12 +451,12 @@ export default function AssignmentBatchWorkflow() {
                     isDisabled={reviewHistoryQuery.isFetching}
                     onPress={openReviewQueue}
                   >
-                    Xử lý
+                    Xem danh sách
                   </Button>
                 </>
               ) : (
                 <p className="mt-3 text-sm text-text-tertiary">
-                  Không còn hồ sơ cần xử lý.
+                  Không có hồ sơ cần lưu ý.
                 </p>
               )}
             </section>

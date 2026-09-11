@@ -31,12 +31,12 @@ import {
 
 const statusTabs = [
   { id: "all", label: "Tất cả" },
-  { id: "manual_review", label: "Cần kiểm tra" },
-  { id: "failed", label: "Lỗi xử lý" },
-  { id: "deferred", label: "Tạm hoãn" },
-  { id: "pending", label: "Chờ phân công" },
   { id: "assigned", label: "Đã phân công" },
   { id: "skipped", label: "Đã bỏ qua" },
+  { id: "failed", label: "Lỗi xử lý" },
+  { id: "manual_review", label: "Cần kiểm tra" },
+  { id: "deferred", label: "Tạm hoãn" },
+  { id: "pending", label: "Chờ phân công" },
 ] as const;
 
 type HistoryStatus = (typeof statusTabs)[number]["id"];
@@ -64,9 +64,11 @@ function HistoryRow({
         {item.phone || "Chưa có số điện thoại"}
       </TableCell>
       <TableCell className="min-w-44">
-        <div>{item.team || "Chưa tìm được Team"}</div>
-        <div className="mt-0.5 text-xs text-text-tertiary">
+        <div className="font-medium text-text-primary">
           {item.ownerStaff || "Chưa có người phụ trách"}
+        </div>
+        <div className="mt-0.5 text-xs text-text-tertiary">
+          {item.team || "Chưa tìm được Team"}
         </div>
       </TableCell>
       <TableCell className="min-w-32">
@@ -81,9 +83,9 @@ function HistoryRow({
         {item.status === "assigned"
           ? "Đã phân công thành công."
           : assignmentReasonLabel(item)}
-        {item.processingStatus === "CLOSED" && (
+        {item.status === "skipped" && (
           <span className="mt-0.5 block text-xs text-text-tertiary">
-            Hồ sơ đang đóng — mở lại trong phần xử lý.
+            Hồ sơ đã bị loại khỏi luồng phân công — không cần xử lý thêm.
           </span>
         )}
       </TableCell>

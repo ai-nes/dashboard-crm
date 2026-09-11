@@ -21,13 +21,17 @@ import type {
 
 export const studentsKeys = {
   all: ["students"] as const,
+  directorStudentsRoot: ["director-students"] as const,
   directorStudents: (params?: DirectorStudentsParams) =>
     ["director-students", params] as const,
+  assignedStudentsRoot: ["assigned-students"] as const,
   assignedStudents: (
     params?: DirectorStudentsParams,
     sessionUser?: string | null,
   ) => ["assigned-students", sessionUser ?? "anonymous", params] as const,
   student360: (studentId: string) => ["student-360", studentId] as const,
+  studentHighSchoolScore: (studentId: string, admissionYear?: string | null) =>
+    ["student-high-school-score", studentId, admissionYear ?? null] as const,
   studentChatwootInteractions: (studentId: string) =>
     ["student-chatwoot-interactions", studentId] as const,
   studentInteractions: (studentId: string) =>

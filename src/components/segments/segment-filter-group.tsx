@@ -12,22 +12,26 @@ import {
 import type {
   SegmentCondition,
   SegmentFilterGroup as SegmentFilterGroupData,
+  SegmentFilterLogic,
+  SegmentFilterOptions,
   StudentSegmentProperty,
 } from "./segment-filter-config";
 import { SegmentFilterConditionRow } from "./segment-filter-condition-row";
 import { SegmentFilterPropertyPicker } from "./segment-filter-property-picker";
-import { SegmentLogicSelect } from "./segment-logic-select";
 import { SegmentFilterGroupName } from "./segment-filter-group-name";
+import { SegmentFilterLogicSelect } from "./segment-filter-logic-select";
 
 interface SegmentFilterGroupProps {
   group: SegmentFilterGroupData;
   index: number;
+  options?: SegmentFilterOptions;
   canDelete: boolean;
   onNameChange: (name: string) => void;
-  onLogicChange: (logic: "AND" | "OR") => void;
+  onLogicChange: (logic: SegmentFilterLogic) => void;
   onAddCondition: (
     property: StudentSegmentProperty,
-    category?: string,
+    values?: string[],
+    groupName?: string,
   ) => void;
   onUpdateCondition: (condition: SegmentCondition) => void;
   onRemoveCondition: (conditionId: string) => void;
@@ -38,6 +42,7 @@ interface SegmentFilterGroupProps {
 export function SegmentFilterGroup({
   group,
   index,
+  options,
   canDelete,
   onNameChange,
   onLogicChange,
@@ -103,18 +108,26 @@ export function SegmentFilterGroup({
       <div className="space-y-2">
         {group.conditions.length === 0 ? (
           <div className="rounded-lg bg-background-gray-secondary p-3">
-            <SegmentFilterPropertyPicker onSelect={onAddCondition} />
+            <SegmentFilterPropertyPicker
+              options={options}
+              onSelect={onAddCondition}
+            />
           </div>
         ) : (
           group.conditions.map((condition, conditionIndex) => (
             <div key={condition.id} className="space-y-2">
               {conditionIndex > 0 && (
-                <p className="px-2 text-sm font-medium text-text-secondary">
-                  {group.logic === "AND" ? "và" : "hoặc"}
-                </p>
+                <div className="flex items-center gap-3">
+                  <SegmentFilterLogicSelect
+                    value={group.logic}
+                    onChange={onLogicChange}
+                    ariaLabel="Toán tử giữa các điều kiện trong nhóm"
+                  />
+                </div>
               )}
               <SegmentFilterConditionRow
                 condition={condition}
+                options={options}
                 onChange={onUpdateCondition}
                 onRemove={() => onRemoveCondition(condition.id)}
               />
@@ -125,12 +138,15 @@ export function SegmentFilterGroup({
 
       {group.conditions.length > 0 && (
         <div className="mt-2 flex items-center gap-3 rounded-lg bg-background-gray-secondary p-3">
-          <SegmentLogicSelect
+          <SegmentFilterLogicSelect
             value={group.logic}
             onChange={onLogicChange}
-            label="Liên kết điều kiện trong nhóm"
+            ariaLabel="Toán tử khi thêm điều kiện vào nhóm"
           />
-          <SegmentFilterPropertyPicker onSelect={onAddCondition} />
+          <SegmentFilterPropertyPicker
+            options={options}
+            onSelect={onAddCondition}
+          />
         </div>
       )}
     </section>

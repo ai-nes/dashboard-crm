@@ -114,6 +114,40 @@ describe("director students API contract", () => {
     );
   });
 
+  it("passes the student stage status filter as lifecycleStatus", async () => {
+    const mockData = computeDirectorStudents({ admissionYear: 2026 });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockData }), { status: 200 }),
+    );
+
+    await getDirectorStudents(
+      { admissionYear: 2026, lifecycleStatus: "Attempting" },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_director_students?admissionYear=2026&lifecycleStatus=Attempting",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+  });
+
+  it("passes the campaign code filter to the students endpoint", async () => {
+    const mockData = computeDirectorStudents({ admissionYear: 2026 });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: mockData }), { status: 200 }),
+    );
+
+    await getDirectorStudents(
+      { admissionYear: 2026, campaign: "CAM-2026-00001" },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.director_students.get_director_students?admissionYear=2026&campaign=CAM-2026-00001",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+  });
+
   it("throws DirectorStudentsApiError on authorization failure", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

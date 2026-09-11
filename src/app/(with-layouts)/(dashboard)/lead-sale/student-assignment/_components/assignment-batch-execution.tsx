@@ -46,6 +46,7 @@ export default function AssignmentBatchExecution({
 
   if (!activeBatch) return null;
   const retryableItems = items.filter((item) =>
+    item.processingStatus !== "CLOSED" &&
     retryableStatuses.includes(
       item.status as (typeof retryableStatuses)[number],
     ),

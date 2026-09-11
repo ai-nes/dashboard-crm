@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { CurrentUser } from "@/services/api/auth";
 
-import { canPerformStudentAction, getCrmPermissions } from "./permissions";
+import {
+  canConvertLeadToStudent,
+  canPerformStudentAction,
+  getCrmPermissions,
+} from "./permissions";
 
 describe("CRM sales permissions", () => {
   it("gives Lead Sale CRUD on every student", () => {
@@ -78,5 +82,25 @@ describe("CRM sales permissions", () => {
     });
     expect(permissions.task.canCreate).toBe(false);
     expect(permissions.lead.canAssign).toBe(false);
+  });
+
+  it("limits Lead conversion to Sales roles and assigned records", () => {
+    const sale = {
+      user: "sale@example.com",
+      email: "sale@example.com",
+      full_name: "Nguyễn Văn Sale",
+    } as CurrentUser;
+    const assignedLead = { owner: "sale@example.com" };
+    const otherLead = { owner: "other@example.com" };
+
+    expect(canConvertLeadToStudent(["Sale"], assignedLead, sale)).toBe(true);
+    expect(canConvertLeadToStudent(["Sale"], otherLead, sale)).toBe(false);
+    expect(canConvertLeadToStudent(["CTV Sale"], assignedLead, sale)).toBe(
+      true,
+    );
+    expect(canConvertLeadToStudent(["Lead Sale"], otherLead, sale)).toBe(true);
+    expect(
+      canConvertLeadToStudent(["Admissions Director"], assignedLead, sale),
+    ).toBe(false);
   });
 });

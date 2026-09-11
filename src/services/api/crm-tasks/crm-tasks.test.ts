@@ -69,6 +69,48 @@ describe("CRM Tasks API Service", () => {
     });
   });
 
+  it("list task riêng của Segment", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        message: {
+          total: 1,
+          start: 0,
+          page_length: 100,
+          tasks: [
+            {
+              name: "TASK-SEGMENT-1",
+              title: "Rà soát tệp chăm sóc",
+              reference_doctype: "CRM Segment",
+              reference_docname: "SEG-0001",
+              status: "Todo",
+            },
+          ],
+        },
+      }),
+    });
+
+    const result = await listTasks(
+      {
+        referenceDoctype: "CRM Segment",
+        referenceDocname: "SEG-0001",
+        pageLength: 100,
+      },
+      { baseUrl },
+    );
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      `${baseUrl}/api/method/crm.api.task.list_tasks?reference_doctype=CRM+Segment&reference_docname=SEG-0001&start=0&page_length=100`,
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(result.tasks[0]).toMatchObject({
+      referenceDoctype: "CRM Segment",
+      referenceDocname: "SEG-0001",
+      status: "Todo",
+    });
+  });
+
   it("list task theo scope session khi không truyền hồ sơ", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,

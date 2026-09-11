@@ -12,10 +12,21 @@ export const defaultStudentStatus: StudentStatus = "New";
 
 export const studentStatusLabel: Record<StudentStatus, string> = {
   New: "Mới",
-  Attempting: "Đang tiếp cận",
+  Attempting: "Đang liên hệ",
   Connected: "Đã kết nối",
   Qualified: "Đủ điều kiện",
   Disqualified: "Không đủ điều kiện",
+};
+
+export const studentStatusBadgeColor: Record<
+  StudentStatus,
+  "success" | "error" | "warning" | "primary" | "sky"
+> = {
+  New: "sky",
+  Attempting: "warning",
+  Connected: "primary",
+  Qualified: "success",
+  Disqualified: "error",
 };
 
 export const studentStatusTransitions: Record<
@@ -23,7 +34,7 @@ export const studentStatusTransitions: Record<
   readonly StudentStatus[]
 > = {
   New: ["Attempting"],
-  Attempting: ["Connected"],
+  Attempting: ["Connected", "Disqualified"],
   Connected: ["Qualified", "Disqualified"],
   Qualified: [],
   Disqualified: [],

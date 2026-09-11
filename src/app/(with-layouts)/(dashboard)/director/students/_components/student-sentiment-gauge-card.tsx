@@ -1,6 +1,6 @@
 "use client";
 
-import { ThumbsDown2, ThumbsUp2 } from "@tailgrids/icons";
+import { ThumbsDown2, ThumbsUp2, TrendUp2 } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/tailgrids/core/card";
@@ -51,6 +51,8 @@ export default function StudentSentimentGaugeCard({
   return (
     <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
       <StudentAICardHeader
+        description="Đánh giá mức độ sẵn sàng và khả năng chuyển đổi."
+        icon={<TrendUp2 size={18} aria-hidden="true" />}
         title="Điểm tiềm năng"
         isRefreshing={isRefreshing}
         onRefresh={onRefresh}

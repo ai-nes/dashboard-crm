@@ -23,16 +23,23 @@ interface SegmentStatusSelectProps {
   value: SegmentStatus;
   ariaLabel: string;
   onChange: (status: SegmentStatus) => void;
+  isDisabled?: boolean;
+  labels?: Partial<Record<SegmentStatus, string>>;
 }
 
 export function SegmentStatusSelect({
   value,
   ariaLabel,
   onChange,
+  isDisabled = false,
+  labels,
 }: SegmentStatusSelectProps) {
+  const getLabel = (status: SegmentStatus) => labels?.[status] ?? SEGMENT_STATUS_LABELS[status];
+
   return (
     <Select
       aria-label={ariaLabel}
+      isDisabled={isDisabled}
       className="w-fit gap-0"
       value={value}
       onChange={(nextValue) => onChange(nextValue as SegmentStatus)}
@@ -45,19 +52,33 @@ export function SegmentStatusSelect({
         )}
       >
         <SelectValue className="max-w-none text-inherit">
-          {SEGMENT_STATUS_LABELS[value]}
+          {getLabel(value)}
         </SelectValue>
         <SelectIndicator className="text-inherit" />
       </SelectTrigger>
       <SelectContent className="min-w-40">
-        {SEGMENT_STATUS_OPTIONS.map((option) => (
+        {SEGMENT_STATUS_OPTIONS.filter((option) =>
+          value === "draft"
+            ? option.value === "draft" ||
+              option.value === "active" ||
+              option.value === "archive"
+            : value === "active"
+              ? option.value === "active" ||
+                option.value === "inactive" ||
+                option.value === "archive"
+              : value === "inactive"
+                ? option.value === "inactive" ||
+                  option.value === "active" ||
+                  option.value === "archive"
+                : option.value === "archive",
+        ).map((option) => (
           <SelectItem
             key={option.value}
             id={option.value}
             textValue={option.label}
           >
             <Badge color={SEGMENT_STATUS_BADGE_COLORS[option.value]}>
-              {option.label}
+              {getLabel(option.value)}
             </Badge>
           </SelectItem>
         ))}

@@ -13,7 +13,7 @@ export default function TaskCardContext({
 }: TaskCardContextProps) {
   return (
     <section
-      className="border-t border-border-primary pt-5"
+      className="border-t border-border-primary pt-4"
       aria-label="Ghi chú"
     >
       <div className="mb-2 flex items-center justify-between gap-3">

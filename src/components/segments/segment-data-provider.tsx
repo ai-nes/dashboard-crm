@@ -1,25 +1,44 @@
 "use client";
 
+import { createContext, useContext, type ReactNode } from "react";
+
 import {
-  createContext,
-  useContext,
-  useState,
-  type Dispatch,
-  type ReactNode,
-  type SetStateAction,
-} from "react";
-import { MOCK_SEGMENTS } from "./segment-list-mock-data";
-import type { SegmentListItem } from "./segment-list-types";
+  useSegmentsQuery,
+  useTransitionSegmentMutation,
+} from "@/hooks/use-segment-queries";
+import type { SegmentStatus } from "@/services/api/segments";
+
+import { toSegmentListItem, type SegmentListItem } from "./segment-list-types";
 
 const SegmentDataContext = createContext<{
   segments: SegmentListItem[];
-  setSegments: Dispatch<SetStateAction<SegmentListItem[]>>;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => Promise<unknown>;
+  transitionSegment: (payload: {
+    name: string;
+    status: SegmentStatus;
+    expectedRevision: number;
+  }) => Promise<unknown>;
 } | null>(null);
 
 export function SegmentDataProvider({ children }: { children: ReactNode }) {
-  const [segments, setSegments] = useState(MOCK_SEGMENTS);
+  const segmentsQuery = useSegmentsQuery();
+  const transitionMutation = useTransitionSegmentMutation();
+  const segments = (segmentsQuery.data ?? []).map((segment) =>
+    toSegmentListItem(segment),
+  );
+
   return (
-    <SegmentDataContext.Provider value={{ segments, setSegments }}>
+    <SegmentDataContext.Provider
+      value={{
+        segments,
+        isLoading: segmentsQuery.isLoading,
+        error: segmentsQuery.error,
+        refetch: segmentsQuery.refetch,
+        transitionSegment: (payload) => transitionMutation.mutateAsync(payload),
+      }}
+    >
       {children}
     </SegmentDataContext.Provider>
   );

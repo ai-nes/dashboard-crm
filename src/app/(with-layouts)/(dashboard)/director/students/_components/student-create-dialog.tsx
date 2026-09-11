@@ -41,7 +41,7 @@ interface StudentCreateForm {
   ward: string;
   high_school: string;
   major: string;
-  source: string;
+  campaign: string;
   assigned_to: string;
   advertising_channel: string;
   admission_year: string;
@@ -61,7 +61,7 @@ const initialForm: StudentCreateForm = {
   ward: "",
   high_school: "",
   major: "",
-  source: "",
+  campaign: "",
   assigned_to: "",
   advertising_channel: "",
   admission_year: "2026",
@@ -92,8 +92,8 @@ export default function StudentCreateDialog({
     },
     isOpen && Boolean(form.province),
   );
-  const sourceOptionsQuery = useStudentSchoolFieldOptions(
-    { doctype: "CRM Lead", fieldname: "source", limit: 100 },
+  const campaignOptionsQuery = useStudentSchoolFieldOptions(
+    { doctype: "CRM Lead", fieldname: "campaign", limit: 100 },
     isOpen,
   );
   const leadMappingOptionsQuery = useLeadMappingOptions(isOpen);
@@ -108,7 +108,7 @@ export default function StudentCreateDialog({
 
   const provinceOptions = toSelectOptions(provinceOptionsQuery.data?.options);
   const wardOptions = toSelectOptions(wardOptionsQuery.data?.options);
-  const sourceOptions = toSelectOptions(sourceOptionsQuery.data?.options);
+  const campaignOptions = toSelectOptions(campaignOptionsQuery.data?.options);
   const majorOptions = toSelectOptions(majorOptionsQuery.data?.options);
   const branchOptions = toSelectOptions(branchOptionsQuery.data?.options);
   const assignedToOptions =
@@ -174,8 +174,8 @@ export default function StudentCreateDialog({
     if (!form.province.trim()) {
       errors.province = "Vui lòng chọn tỉnh / thành phố.";
     }
-    if (!form.source.trim()) {
-      errors.source = "Vui lòng chọn nguồn Lead.";
+    if (!form.campaign.trim()) {
+      errors.campaign = "Vui lòng chọn Campaign.";
     }
     if (!form.assigned_to.trim()) {
       errors.assigned_to = "Vui lòng chọn người phụ trách.";
@@ -274,15 +274,15 @@ export default function StudentCreateDialog({
                   <FormFieldError message={fieldErrors.email} />
                 </CreateDialogField>
 
-                <CreateDialogField label="Nguồn" required>
+                <CreateDialogField label="Chiến dịch" required>
                   <CreateDialogSelect
-                    label="Nguồn"
-                    options={sourceOptions}
-                    value={form.source}
-                    isDisabled={sourceOptionsQuery.isPending}
-                    onChange={(value) => setField("source", value)}
+                    label="Chiến dịch"
+                    options={campaignOptions}
+                    value={form.campaign}
+                    isDisabled={campaignOptionsQuery.isPending}
+                    onChange={(value) => setField("campaign", value)}
                   />
-                  <FormFieldError message={fieldErrors.source} />
+                  <FormFieldError message={fieldErrors.campaign} />
                 </CreateDialogField>
 
                 <CreateDialogField label="Người phụ trách" required>
@@ -384,7 +384,7 @@ export default function StudentCreateDialog({
                 </CreateDialogField>
               </div>
 
-              {(sourceOptionsQuery.isError ||
+              {(campaignOptionsQuery.isError ||
                 provinceOptionsQuery.isError ||
                 wardOptionsQuery.isError ||
                 leadMappingOptionsQuery.isError) && (
@@ -427,7 +427,7 @@ function toStudentCreateFields(
     phone: form.phone.trim(),
     id_number: form.id_number.trim(),
     province: form.province.trim(),
-    source: form.source.trim(),
+    campaign: form.campaign.trim(),
     assigned_to: form.assigned_to.trim(),
     ...compactFields({
       email: form.email,

@@ -6,7 +6,6 @@ import {
   Envelope1,
   MapMarker5,
   Phone,
-  Sparkle,
   Trash1,
 } from "@tailgrids/icons";
 import Link from "next/link";
@@ -22,31 +21,31 @@ import { formatDateTime } from "@/utils/format-date";
 import type {
   StudentPriority,
   StudentStatus,
-  StudentVerificationStatus,
 } from "@/services/api/students/types";
 
 import StudentCopyBadge from "./student-copy-badge";
 import StudentGaugeChart from "./student-gauge-chart";
 import StudentOwnerCell from "./student-owner-cell";
-import StudentStatusSelect from "./student-status-select";
+import StudentTagsCell from "./student-tags-cell";
 import { studentStatusLabel } from "./student-status";
+import StudentStatusWorkflow from "./student-status-workflow";
 import type { Student360SectionProps } from "./types";
 
 interface StudentHeaderProps extends Student360SectionProps {
-  contactCount?: number;
   isStatusUpdating?: boolean;
   onDeleteRequest?: () => void;
   onOwnerChange?: (owner: string) => void;
-  onStatusChange?: (status: StudentStatus) => void;
+  onStatusChange?: (status: StudentStatus) => boolean | Promise<boolean>;
   owner?: string | null;
   ownerEditable?: boolean;
   ownerRevision?: number;
   studentId: string;
+  tagStudentId?: string | null;
+  tagsEditable?: boolean;
   status?: StudentStatus | null;
 }
 
 export default function StudentHeader({
-  contactCount,
   data,
   isStatusUpdating,
   onDeleteRequest,
@@ -56,11 +55,14 @@ export default function StudentHeader({
   ownerEditable = false,
   ownerRevision,
   studentId,
+  tagStudentId,
+  tagsEditable = false,
   status,
 }: StudentHeaderProps) {
   const { student } = data;
   const subtitle = student.grade || "-";
-  const hasMetadata = Boolean(student.lastUpdatedAt);
+  const createdAt = student.profileDetails?.personal?.createdAt;
+  const hasMetadata = Boolean(createdAt || student.lastUpdatedAt);
   const scoreCandidate = data.insight.signalScore ?? data.insight.probability;
   const score =
     typeof scoreCandidate === "number" && Number.isFinite(scoreCandidate)
@@ -88,7 +90,7 @@ export default function StudentHeader({
                 <AvatarBadge size="md" status="online" />
               </Avatar>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-3">
                   <h1 className="min-w-0 text-balance text-xl font-semibold tracking-[-0.4px] text-text-primary lg:text-2xl lg:leading-8">
                     {student.name || "-"}
                   </h1>
@@ -96,25 +98,6 @@ export default function StudentHeader({
                     <Badge color={getPriorityColor(student.priority)}>
                       Ưu tiên {student.priority.toLowerCase()}
                     </Badge>
-                  )}
-                  {student.verificationStatus && (
-                    <Badge
-                      color={getVerificationColor(student.verificationStatus)}
-                    >
-                      {student.verificationStatus}
-                    </Badge>
-                  )}
-                  <Badge color="primary">
-                    {data.segmentation?.learningStage || "Đang tư vấn"}
-                  </Badge>
-                  {student.code && (
-                    <StudentCopyBadge
-                      icon={Copy1}
-                      label="mã học sinh"
-                      value={student.code}
-                    >
-                      Sao chép ID
-                    </StudentCopyBadge>
                   )}
                   {onDeleteRequest && (
                     <Button
@@ -129,17 +112,30 @@ export default function StudentHeader({
                     </Button>
                   )}
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-text-tertiary">
-                  <span>{subtitle}</span>
-                  {student.major && (
-                    <Badge
-                      color="violet"
-                      prefixIcon={<Sparkle size={12} aria-hidden="true" />}
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-tertiary">
+                  {student.code && (
+                    <StudentCopyBadge
+                      className="h-auto rounded-none bg-transparent px-0 text-sm text-text-tertiary hover:bg-transparent hover:text-text-primary"
+                      icon={Copy1}
+                      label="mã học sinh"
+                      showLeadingIcon={false}
+                      value={student.code}
                     >
-                      Quan tâm ngành: {student.major}
-                    </Badge>
+                      Mã học sinh: {student.code}
+                    </StudentCopyBadge>
                   )}
+                  {student.code && subtitle && (
+                    <span aria-hidden="true">·</span>
+                  )}
+                  <span>{subtitle}</span>
                 </div>
+                {student.major && (
+                  <div className="mt-2 min-w-0 text-sm text-text-secondary">
+                    <span className="min-w-0 truncate">
+                      Quan tâm ngành: {student.major}
+                    </span>
+                  </div>
+                )}
                 <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs text-text-secondary">
                   {student.phone && (
                     <StudentCopyBadge
@@ -187,18 +183,24 @@ export default function StudentHeader({
 
           <div className="mt-3 grid divide-y divide-card-border border-t border-card-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <div className="min-w-0 px-3 py-2">
-              <p className="text-[11px] text-text-tertiary">Trạng thái</p>
               {onStatusChange && studentStatus ? (
-                <StudentStatusSelect
+                <StudentStatusWorkflow
                   studentName={student.name || "học sinh"}
                   value={studentStatus}
                   isDisabled={isStatusUpdating}
-                  onChange={onStatusChange}
+                  onTransition={onStatusChange}
                 />
               ) : studentStatus ? (
-                <p className="mt-0.5 text-sm font-semibold text-text-primary">
-                  {studentStatus ? studentStatusLabel[studentStatus] : "Chưa xác định"}
-                </p>
+                <div>
+                  <p className="text-[11px] text-text-tertiary">
+                    Trạng thái hiện tại
+                  </p>
+                  <p className="mt-0.5 text-sm font-semibold text-text-primary">
+                    {studentStatus
+                      ? studentStatusLabel[studentStatus]
+                      : "Chưa xác định"}
+                  </p>
+                </div>
               ) : (
                 <p className="mt-0.5 text-sm text-text-tertiary">
                   Chưa có CRM Student
@@ -215,13 +217,19 @@ export default function StudentHeader({
                 onChange={onOwnerChange ?? (() => undefined)}
               />
             </div>
-            <HeaderFact
-              label="Số lần liên hệ"
-              value={`${contactCount ?? 0} lần liên hệ`}
+            <StudentTagsCell
+              studentId={tagStudentId ?? ""}
+              editable={tagsEditable}
             />
           </div>
           {hasMetadata && (
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-card-border pt-3 text-xs">
+              {createdAt && (
+                <HeaderMeta
+                  label="Ngày tạo"
+                  value={formatDateTime(createdAt)}
+                />
+              )}
               {student.lastUpdatedAt && (
                 <HeaderMeta
                   label="Cập nhật"
@@ -233,21 +241,6 @@ export default function StudentHeader({
         </div>
       </div>
     </header>
-  );
-}
-
-function HeaderFact({ label, value }: { label: string; value: string }) {
-  const displayValue = value || "-";
-  return (
-    <div className="min-w-0 px-3 py-2">
-      <p className="text-[11px] text-text-tertiary">{label}</p>
-      <p
-        className="mt-0.5 truncate text-sm font-semibold text-text-primary"
-        title={displayValue}
-      >
-        {displayValue}
-      </p>
-    </div>
   );
 }
 
@@ -264,10 +257,4 @@ function getPriorityColor(priority: StudentPriority) {
   if (priority === "Cao") return "success" as const;
   if (priority === "Thấp") return "gray" as const;
   return "warning" as const;
-}
-
-function getVerificationColor(status: StudentVerificationStatus) {
-  if (status === "Đã xác thực") return "success" as const;
-  if (status === "Cần xác minh") return "warning" as const;
-  return "gray" as const;
 }

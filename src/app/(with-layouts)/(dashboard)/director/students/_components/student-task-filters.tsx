@@ -1,7 +1,5 @@
 "use client";
 
-import { InfoTriangle } from "@tailgrids/icons";
-
 import type { StudentTaskItem } from "@/services/api/students/types";
 
 import StudentActivityToolbar, {
@@ -80,20 +78,6 @@ export default function StudentTaskFilters({
         isCreateDisabled={!canCreateTask}
         createDisabledReason={createTaskDisabledReason}
       />
-
-      {!canCreateTask && createTaskDisabledReason && (
-        <div
-          className="flex items-start gap-2 rounded-lg border border-warning-200 bg-badge-warning-background px-3 py-2.5 text-sm text-badge-warning-text"
-          role="status"
-        >
-          <InfoTriangle
-            size={16}
-            className="mt-0.5 shrink-0"
-            aria-hidden="true"
-          />
-          <span>{createTaskDisabledReason}</span>
-        </div>
-      )}
 
       <div className="grid w-full max-w-md grid-cols-3 items-center gap-x-2">
         <ActivityFilterSelect

@@ -19,6 +19,7 @@ import {
   useDirectorStudentsQuery,
   useStudent360Query,
 } from "@/hooks/use-students-queries";
+import { studentAuditKeys } from "@/hooks/use-student-audit-query";
 import {
   deleteStudent,
   requestStudentStageTransition,
@@ -31,13 +32,14 @@ import type {
 } from "@/services/api/students/types";
 
 import StudentActivitiesTab from "./student-activities-tab";
+import StudentAdmissionInformationMockup from "./student-admission-information-mockup";
+import StudentAdmissionTabs from "./student-admission-tabs";
 import StudentAuditTab from "./student-audit-tab";
 import StudentClassificationCockpit from "./student-classification-cockpit";
-import StudentDetailsTab from "./student-details-tab";
-import StudentDocumentsTab from "./student-documents-tab";
-import StudentFamilyTab from "./student-family-tab";
 import StudentHeader from "./student-header";
-import StudentSourceContext from "./student-source-context";
+import StudentHighSchoolMockup from "./student-high-school-mockup";
+import StudentHighSchoolScoreMockup from "./student-high-school-score-mockup";
+import StudentPersonalContactMockup from "./student-personal-contact-mockup";
 import { canTransitionStudentStatus } from "./student-status";
 
 interface Student360DashboardProps {
@@ -66,7 +68,10 @@ export default function Student360Dashboard({
   initialTaskId,
 }: Student360DashboardProps) {
   const targetId =
-    studentId?.trim() || propData?.student.code?.trim() || propData?.student.name?.trim() || "";
+    studentId?.trim() ||
+    propData?.student.code?.trim() ||
+    propData?.student.name?.trim() ||
+    "";
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -97,7 +102,10 @@ export default function Student360Dashboard({
     },
   });
   const stageTransitionMutation = useMutation({
-    mutationFn: ({ targetStudent, targetStage }: StudentStageTransitionVariables) =>
+    mutationFn: ({
+      targetStudent,
+      targetStage,
+    }: StudentStageTransitionVariables) =>
       requestStudentStageTransition({
         student: targetStudent,
         target_stage: targetStage,
@@ -112,6 +120,7 @@ export default function Student360Dashboard({
       });
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
+      await queryClient.invalidateQueries({ queryKey: studentAuditKeys.all });
       toast.success("Đã cập nhật trạng thái học sinh.");
     },
     onError: (error, variables) => {
@@ -152,8 +161,7 @@ export default function Student360Dashboard({
       studentOwnership,
       user,
     );
-  const canAssignStudent =
-    permissions.student.canAssign && canUpdateStudent;
+  const canAssignStudent = permissions.student.canAssign && canUpdateStudent;
   const readScope = permissions.student.readScope ?? permissions.student.scope;
   const isSessionScopedStudentQuery =
     readScope === "assigned" || readScope === "team";
@@ -217,26 +225,32 @@ export default function Student360Dashboard({
       : null) ??
     data?.student.counselor ??
     "";
-  const handleStudentStatusChange = (nextStatus: StudentStatus) => {
+  const handleStudentStatusChange = async (
+    nextStatus: StudentStatus,
+  ): Promise<boolean> => {
     if (!canonicalStudentId) {
       toast.error("Hồ sơ này chưa được liên kết với bản ghi CRM Student.");
-      return;
+      return false;
     }
     if (!studentStatus) {
       toast.error("Hồ sơ chưa có trạng thái Student hợp lệ.");
-      return;
+      return false;
     }
     if (!canTransitionStudentStatus(studentStatus, nextStatus)) {
       toast.error("Trạng thái chỉ được chuyển theo đúng quy trình.");
-      return;
+      return false;
     }
-
     setStudentStatusDraft({ studentId: targetId, status: nextStatus });
-    stageTransitionMutation.mutate({
-      student: targetId,
-      targetStudent: canonicalStudentId,
-      targetStage: nextStatus,
-    });
+    try {
+      await stageTransitionMutation.mutateAsync({
+        student: targetId,
+        targetStudent: canonicalStudentId,
+        targetStage: nextStatus,
+      });
+      return true;
+    } catch {
+      return false;
+    }
   };
   const handleStudentOwnerChange = (owner: string) => {
     setStudentOwnerDraft({ studentId: targetId, owner });
@@ -298,7 +312,6 @@ export default function Student360Dashboard({
       )}
       <div className="px-2 pt-4 lg:px-6">
         <StudentHeader
-          contactCount={initialStudentInteractions?.total_interactions}
           data={data}
           isStatusUpdating={stageTransitionMutation.isPending}
           status={studentStatus}
@@ -313,6 +326,8 @@ export default function Student360Dashboard({
           ownerEditable={canAssignStudent}
           ownerRevision={ownerRevision}
           studentId={targetId}
+          tagStudentId={canonicalStudentId}
+          tagsEditable={canUpdateStudent && Boolean(canonicalStudentId)}
         />
       </div>
 
@@ -342,7 +357,7 @@ export default function Student360Dashboard({
 function getStudentTabs(
   data: Student360Data,
   analysisTargetId: string,
-  canEditStudent: boolean,
+  canUpdateStudent: boolean,
 ): DetailTabItem[] {
   const auditStudentId = data.student.studentId || analysisTargetId;
   return [
@@ -357,33 +372,46 @@ function getStudentTabs(
       ),
     },
     {
-      id: "audit",
-      label: "Nhật ký",
-      content: <StudentAuditTab studentId={auditStudentId} />,
+      id: "student-profile",
+      label: "Hồ sơ học sinh",
+      content: (
+        <StudentPersonalContactMockup
+          canEdit={canUpdateStudent}
+          data={data}
+          studentId={analysisTargetId}
+        />
+      ),
     },
     {
-      id: "profile",
-      label: "Thông tin học sinh",
+      id: "academic-admission",
+      label: "Học tập và tuyển sinh",
       content: (
         <div className="space-y-6">
-          <StudentDetailsTab
-            data={data}
-            studentId={analysisTargetId}
-            canEdit={canEditStudent}
-          />
-          <StudentSourceContext
-            data={data}
-            studentId={analysisTargetId}
-            canEdit={canEditStudent}
-          />
-          <StudentFamilyTab data={data} canEdit={canEditStudent} />
+          <StudentAdmissionInformationMockup data={data} />
+          <div className="grid items-stretch gap-6 lg:grid-cols-2">
+            <StudentHighSchoolMockup
+              canEdit={canUpdateStudent}
+              data={data}
+              studentId={analysisTargetId}
+            />
+            <StudentHighSchoolScoreMockup
+              canEdit={canUpdateStudent}
+              data={data}
+              studentId={analysisTargetId}
+            />
+          </div>
         </div>
       ),
     },
     {
-      id: "records",
-      label: "Hồ sơ & tài liệu",
-      content: <StudentDocumentsTab data={data} />,
+      id: "admission",
+      label: "Nhập học",
+      content: <StudentAdmissionTabs data={data} />,
+    },
+    {
+      id: "audit",
+      label: "Nhật ký",
+      content: <StudentAuditTab studentId={auditStudentId} />,
     },
   ];
 }
@@ -395,17 +423,22 @@ function getInitialTab(initialTab?: string, initialTaskId?: string): string {
 
   const supportedTabs = new Set([
     "decision",
+    "student-profile",
+    "academic-admission",
+    "admission",
     "notes",
     "tasks",
-    "zalo",
-    "calls",
+    "interactions",
     "profile",
     "audit",
-    "records",
   ]);
 
   const legacyTabAliases: Record<string, string> = {
-    family: "profile",
+    family: "student-profile",
+    profile: "student-profile",
+    records: "admission",
+    zalo: "interactions",
+    calls: "interactions",
     log: "audit",
   };
   const normalizedTab = initialTab

@@ -13,14 +13,12 @@ import {
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
-  leadAssignmentBatchKeys,
   useCreateLeadAssignmentBatchMutation,
   useRetryLeadAssignmentBatchMutation,
   useRunLeadAssignmentBatchMutation,
 } from "@/hooks/use-lead-assignment-batch-queries";
 import {
   leadSaleLeadsKeys,
-  useReopenLeadMutation,
   useUpdateLeadMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 import { useStudentSchoolFieldOptions } from "@/hooks/use-student-school-field-options";
@@ -69,7 +67,6 @@ export default function AssignmentHistoryItemDrawer({
   const [step, setStep] = useState<string | null>(null);
 
   const updateMutation = useUpdateLeadMutation();
-  const reopenMutation = useReopenLeadMutation();
   const retryMutation = useRetryLeadAssignmentBatchMutation();
   const createBatchMutation = useCreateLeadAssignmentBatchMutation();
   const runBatchMutation = useRunLeadAssignmentBatchMutation();
@@ -92,7 +89,7 @@ export default function AssignmentHistoryItemDrawer({
     fieldname: "major",
   });
 
-  const isClosed = item.processingStatus === "CLOSED";
+  const isClosed = item.status === "skipped";
   const isLiveReview = !item.batchId;
   const isDirty =
     phone !== (item.phone ?? "") ||
@@ -103,6 +100,8 @@ export default function AssignmentHistoryItemDrawer({
   const isBusy = step !== null;
 
   async function handleResolve() {
+    if (isClosed) return;
+
     try {
       if (isDirty) {
         setStep("Đang lưu thông tin hồ sơ…");
@@ -123,25 +122,6 @@ export default function AssignmentHistoryItemDrawer({
           fields.branch = branch || null;
         }
         await updateMutation.mutateAsync({ leadId: item.leadId, fields });
-      }
-
-      if (isClosed) {
-        setStep("Đang mở lại hồ sơ…");
-        const reopened = await reopenMutation.mutateAsync({
-          lead: item.leadId,
-          reason: "Mở lại hồ sơ sau khi bổ sung thông tin phân công.",
-        });
-        // Reopening replays intake validation. A record still missing phone,
-        // province, trường THPT or ngành quan tâm closes again instead of moving on.
-        if (reopened.status !== "PROCESSED") {
-          await queryClient.invalidateQueries({
-            queryKey: leadAssignmentBatchKeys.all,
-          });
-          toast.error(
-            "Hồ sơ vẫn chưa qua được bước kiểm tra dữ liệu: cần đủ số điện thoại, tỉnh, trường THPT và ngành quan tâm.",
-          );
-          return;
-        }
       }
 
       setStep("Đang phân công lại…");
@@ -181,21 +161,23 @@ export default function AssignmentHistoryItemDrawer({
       onClose={onClose}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Badge color={itemStatusColors[item.status]}>
-          {itemStatusLabels[item.status]}
+        <Badge color={itemStatusColors[isClosed ? "skipped" : item.status]}>
+          {itemStatusLabels[isClosed ? "skipped" : item.status]}
         </Badge>
         {isClosed && (
-          <span className="text-xs text-text-tertiary">Hồ sơ đang đóng</span>
+          <span className="text-xs text-text-tertiary">
+            Hồ sơ đã bị loại khỏi luồng phân công
+          </span>
         )}
       </div>
 
       <div className="mt-5 rounded-xl bg-badge-warning-background p-4 text-badge-warning-text">
         <p className="flex items-center gap-2 text-sm font-semibold">
           <InfoTriangle size={17} aria-hidden="true" />
-          Lý do chưa phân công được
+          {isClosed ? "Lý do hồ sơ đã bị loại" : "Lý do chưa phân công được"}
         </p>
         <p className="mt-2 text-sm leading-6">{assignmentReasonLabel(item)}</p>
-        {item.errorCode === "TEAM_NOT_FOUND_FOR_PROVINCE" && (
+        {!isClosed && item.errorCode === "TEAM_NOT_FOUND_FOR_PROVINCE" && (
           <p className="mt-2 text-sm leading-6">
             Tỉnh này chưa được Team nào phụ trách. Hãy thêm tỉnh cho một Team ở{" "}
             <Link
@@ -209,7 +191,7 @@ export default function AssignmentHistoryItemDrawer({
         )}
       </div>
 
-      <section className="mt-6" aria-labelledby="routing-fix-heading">
+      {!isClosed && <section className="mt-6" aria-labelledby="routing-fix-heading">
         <h2
           id="routing-fix-heading"
           className="text-sm font-semibold text-text-primary"
@@ -217,7 +199,7 @@ export default function AssignmentHistoryItemDrawer({
           Bổ sung thông tin định tuyến
         </h2>
         <p className="mt-1 text-xs leading-5 text-text-tertiary">
-          Bổ sung đủ số điện thoại, tỉnh, trường THPT và ngành quan tâm. Sau đó
+          Bổ sung đủ họ tên, số điện thoại và tỉnh/thành phố. Sau đó
           hệ thống sẽ tìm Team theo tỉnh và phân công lại.
         </p>
         <dl className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
@@ -274,7 +256,7 @@ export default function AssignmentHistoryItemDrawer({
             value={branch}
           />
         </dl>
-      </section>
+      </section>}
 
       <div className="mt-8 flex items-center gap-3 border-t border-card-border pt-5">
         {/* Empty until a step starts, so the buttons keep one row to themselves. */}
@@ -293,9 +275,11 @@ export default function AssignmentHistoryItemDrawer({
           >
             Đóng
           </Button>
-          <Button isDisabled={isBusy} onPress={handleResolve} size="sm">
-            {isBusy ? "Đang xử lý…" : "Lưu và phân công lại"}
-          </Button>
+          {!isClosed && (
+            <Button isDisabled={isBusy} onPress={handleResolve} size="sm">
+              {isBusy ? "Đang xử lý…" : "Lưu và phân công lại"}
+            </Button>
+          )}
         </div>
       </div>
     </DetailDrawer>

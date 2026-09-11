@@ -40,6 +40,7 @@ describe("dashboard RBAC", () => {
       "Marketing",
       "Lead Marketing",
       "Admissions Director",
+      "Business Admin",
       "Administrator",
     ]);
     expect(getRecognizedRoles(["Sale", "sale", " Sale "])).toEqual(["Sale"]);
@@ -60,6 +61,32 @@ describe("dashboard RBAC", () => {
         "Marketing",
       ]),
     ).toBe(false);
+  });
+
+  it("allows the Rule Engine route from the backend capability", () => {
+    expect(
+      canAccessDashboardPath("/director/admin/rules-config", ["Lead Sale"], ["rule.manage"]),
+    ).toBe(true);
+    expect(
+      canAccessDashboardPath("/director/admin/rules-config", ["Lead Sale"], []),
+    ).toBe(false);
+  });
+
+  it("uses the canonical Lead Sale segments route", () => {
+    const leadSaleNavigation = filterNavigationByRoles(
+      getNavigationDataForRoles(["Lead Sale"]),
+      ["Lead Sale"],
+    );
+
+    expect(getNavigationUrls(leadSaleNavigation)).toContain(
+      "/lead-sale/segments",
+    );
+    expect(
+      findRouteAccessRule("/lead-sale/segments/SEG-001")?.path,
+    ).toBe("/lead-sale/segments");
+    expect(
+      canAccessDashboardPath("/lead-sale/segments/SEG-001", ["Lead Sale"]),
+    ).toBe(true);
   });
 
   it("protects school detail aliases with the school intelligence permission", () => {
@@ -186,6 +213,10 @@ describe("dashboard RBAC", () => {
       "/director/data-health",
       "/director/alerts",
       "/director/admin/nba-actions",
+      "/director/admin/segments",
+      "/director/admin/rules-config",
+      "/director/admin/student-config",
+      "/director/admin/activity-logs",
     ]);
     expect(
       canAccessDashboardPath("/director/students", ["System Manager"]),

@@ -7,7 +7,7 @@ import {
   CalendarGridBody,
   CalendarGridHeader,
   CalendarHeader,
-  CalendarHeading,
+  CalendarMonthYearPicker,
   NavButton,
 } from "@/components/tailgrids/core/calendar";
 import { DateInput, DateSegment } from "@/components/tailgrids/core/date-field";
@@ -85,8 +85,8 @@ export function DatePickerField({
         <DatePickerPopover className="z-50 w-[min(21rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-card-border bg-background-100 p-0 shadow-lg">
           <Calendar className="rounded-2xl border-0 p-3 shadow-none sm:p-4">
             <CalendarHeader className="mb-3 px-0">
-              <CalendarHeading className="text-left text-sm font-semibold text-text-primary" />
-              <div className="flex items-center gap-0.5">
+              <CalendarMonthYearPicker className="min-w-0 flex-1" />
+              <div className="flex shrink-0 items-center gap-0.5">
                 <NavButton slot="previous" className="size-8" />
                 <NavButton slot="next" className="size-8" />
               </div>

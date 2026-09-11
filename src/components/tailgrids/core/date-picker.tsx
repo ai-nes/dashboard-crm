@@ -10,7 +10,7 @@ import {
   type DatePickerProps as AriaDatePickerProps,
   type GroupProps as AriaGroupProps,
   type PopoverProps as AriaPopoverProps,
-  type DateValue
+  type DateValue,
 } from "react-aria-components";
 
 export interface DatePickerProps<T extends DateValue> extends Omit<
@@ -71,8 +71,8 @@ export function DatePickerTrigger({
     <AriaButton
       slot="trigger"
       className={cn(
-        "absolute top-1/2 right-5 -translate-y-1/2 [:where(&>svg)]:size-5 outline-offset-5 rounded-full",
-        className
+        "absolute top-1/2 right-5 flex size-8 -translate-y-1/2 items-center justify-center rounded-full p-0 outline-offset-5 [:where(&>svg)]:size-5",
+        className,
       )}
       {...props}
     >

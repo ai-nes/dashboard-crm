@@ -103,7 +103,7 @@ export function getBatchWorkflowStepMetric(step: WorkflowStep): string {
     case "matching":
       return `${metrics.successCount} đã có owner`;
     case "review":
-      return `${metrics.warningCount + metrics.errorCount} hồ sơ cần xử lý`;
+      return `${metrics.warningCount + metrics.errorCount} hồ sơ cần lưu ý`;
     case "assignment":
       return `${metrics.successCount} Lead đã phân công`;
   }

@@ -9,18 +9,29 @@ import {
 } from "@tanstack/react-query";
 
 import {
+  convertLeadToStudent,
+  assignLeadToStaff,
   createLead,
   deleteLead,
+  getLeadAssignmentTargets,
   getLeadDetail,
   getLeadList,
+  importLeadFile,
+  importLeadRows,
   processLead,
   processNewLeads,
+  type LeadImportResponse,
+  type LeadImportMapping,
   reopenLead,
   updateLeadProcessingStatus,
   updateLead,
   type LeadCreateFields,
   type LeadUpdateFields,
   type LeadDetailResponse,
+  type LeadConversionResponse,
+  type LeadAssignmentRequest,
+  type LeadAssignmentResponse,
+  type LeadAssignmentTargetsResponse,
   type LeadListParams,
   type LeadListResponse,
   type LeadProcessRequest,
@@ -36,6 +47,8 @@ export const leadSaleLeadsKeys = {
   list: (params?: LeadListParams) =>
     ["lead-sale-leads", "list", params] as const,
   detail: (leadId: string) => ["lead-sale-leads", "detail", leadId] as const,
+  assignmentTargets: (leadId: string) =>
+    ["lead-sale-leads", "assignment-targets", leadId] as const,
 };
 
 export function useLeadSaleLeadsQuery<TData = LeadListResponse>(
@@ -77,6 +90,26 @@ export function useLeadSaleLeadQuery<TData = LeadDetailResponse | null>(
   });
 }
 
+export function useLeadAssignmentTargetsQuery(
+  leadId: string,
+  options?: Omit<
+    UseQueryOptions<
+      LeadAssignmentTargetsResponse,
+      Error,
+      LeadAssignmentTargetsResponse,
+      ReturnType<typeof leadSaleLeadsKeys.assignmentTargets>
+    >,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<LeadAssignmentTargetsResponse, Error> {
+  return useQuery({
+    queryKey: leadSaleLeadsKeys.assignmentTargets(leadId),
+    queryFn: () => getLeadAssignmentTargets(leadId),
+    enabled: Boolean(leadId) && (options?.enabled ?? true),
+    ...options,
+  });
+}
+
 export function useUpdateLeadMutation() {
   const queryClient = useQueryClient();
 
@@ -92,6 +125,24 @@ export function useUpdateLeadMutation() {
           queryKey: leadSaleLeadsKeys.detail(variables.leadId),
         }),
         queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
+  });
+}
+
+export function useAssignLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadAssignmentResponse, Error, LeadAssignmentRequest>({
+    mutationFn: (request) => assignLeadToStaff(request),
+    onSuccess: (_data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(variables.lead),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.assignmentTargets(variables.lead),
+        }),
       ]),
   });
 }
@@ -124,11 +175,7 @@ export function useProcessNewLeadsMutation() {
 export function useUpdateLeadProcessingStatusMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    LeadProcessResponse,
-    Error,
-    LeadStatusUpdateRequest
-  >({
+  return useMutation<LeadProcessResponse, Error, LeadStatusUpdateRequest>({
     mutationFn: (request) => updateLeadProcessingStatus(request),
     onSuccess: (_data, variables) =>
       Promise.all([
@@ -150,6 +197,44 @@ export function useCreateLeadMutation() {
   });
 }
 
+export function useImportLeadRowsMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    LeadImportResponse,
+    Error,
+    {
+      rows: Record<string, unknown>[];
+      filename: string;
+      campaignCode: string;
+    }
+  >({
+    mutationFn: ({ rows, filename, campaignCode }) =>
+      importLeadRows(rows, filename, campaignCode),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+  });
+}
+
+export function useImportLeadFileMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    LeadImportResponse,
+    Error,
+    {
+      file: File;
+      campaignCode: string;
+      mapping: LeadImportMapping[];
+    }
+  >({
+    mutationFn: ({ file, campaignCode, mapping }) =>
+      importLeadFile(file, campaignCode, mapping),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+  });
+}
+
 export function useDeleteLeadMutation() {
   const queryClient = useQueryClient();
 
@@ -157,6 +242,21 @@ export function useDeleteLeadMutation() {
     mutationFn: (leadId) => deleteLead(leadId),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+  });
+}
+
+export function useConvertLeadToStudentMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadConversionResponse, Error, string>({
+    mutationFn: (leadId) => convertLeadToStudent(leadId),
+    onSuccess: (_data, leadId) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(leadId),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
   });
 }
 

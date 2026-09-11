@@ -118,7 +118,7 @@ export default function StudentTaskCard({
             studentStage={studentStage}
             onUpdateTask={updateTask}
           />
-          <div className="space-y-5 border-t border-border-primary px-4 py-5 sm:px-5">
+          <div className="space-y-4 border-t border-border-primary px-4 py-4 sm:px-5">
             <TaskCardMetadata
               task={task}
               deadlineStatus={deadlineStatus}

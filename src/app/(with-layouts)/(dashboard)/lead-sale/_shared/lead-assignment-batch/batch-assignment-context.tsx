@@ -286,7 +286,7 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
         queryKey: leadAssignmentBatchKeys.all,
       });
       toast.success(`Đã xử lý ${summary.scanned} Lead`, {
-        description: `${summary.processed} Lead sẵn sàng phân công; ${summary.closed} Lead đã đóng do thiếu dữ liệu.`,
+        description: `${summary.processed} Lead sẵn sàng phân công; ${summary.closed} Lead đã bị loại do thiếu dữ liệu bắt buộc.`,
       });
     } catch (mutationError) {
       toast.error("Không thể xử lý Lead", {

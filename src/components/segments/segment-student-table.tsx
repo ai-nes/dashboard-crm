@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Search1 } from "@tailgrids/icons";
 import {
   flexRender,
@@ -36,10 +36,12 @@ const normalize = (value: string) =>
 
 export function SegmentStudentTable({
   students,
-  headerAction,
+  isLoading = false,
+  error,
 }: {
   students: SegmentStudent[];
-  headerAction?: ReactNode;
+  isLoading?: boolean;
+  error?: string;
 }) {
   const [search, setSearch] = useState("");
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -68,7 +70,6 @@ export function SegmentStudentTable({
           <h2 className="text-base font-semibold text-text-primary">
             Danh sách học sinh
           </h2>
-          {headerAction}
         </div>
         <InputGroup className="h-9 w-full sm:max-w-xs">
           <InputGroupAddon
@@ -90,7 +91,15 @@ export function SegmentStudentTable({
           />
         </InputGroup>
       </div>
-      {total > 0 ? (
+      {isLoading ? (
+        <div className="rounded-xl border border-card-border px-5 py-16 text-center text-sm text-text-secondary">
+          Đang tải học sinh khớp segment…
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border border-badge-error-icon-color bg-badge-error-background px-5 py-16 text-center text-sm text-badge-error-text">
+          {error}
+        </div>
+      ) : total > 0 ? (
         <TableRoot aria-label="Học sinh trong segment">
           <TableHeader className="bg-background-gray-secondary">
             {table.getHeaderGroups().map((group) => (

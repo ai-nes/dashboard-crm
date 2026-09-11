@@ -54,6 +54,19 @@ export interface NbaExplanation {
   evidence: NbaExplanationEvidence[];
   uncertainty: string;
   timing: NbaExplanationTiming;
+  sales_next_step?: string | null;
+}
+
+export interface NbaRuleDecision {
+  outcome: string;
+  matchedRuleIds: string[];
+  reasonCodes: string[];
+  businessReason: string | null;
+  salesNextStep: string | null;
+  affectedActions: string[];
+  ruleVersion: string | null;
+  ruleVersionDigest: string | null;
+  rulesetDigest: string | null;
 }
 
 export interface NbaEvaluationReference {
@@ -84,6 +97,7 @@ export interface NbaRecommendation {
   status: NbaRecommendationStatus;
   aiPayload: Record<string, unknown>;
   explanation: NbaExplanation | null;
+  ruleDecision: NbaRuleDecision | null;
   explanationSource: "model" | null;
   evaluation: NbaEvaluationReference;
   generatedAt: string;

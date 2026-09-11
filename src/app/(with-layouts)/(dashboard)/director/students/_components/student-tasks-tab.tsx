@@ -1,77 +1,96 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { InfoTriangle } from "@tailgrids/icons";
+import { useEffect, useMemo, useState } from "react";
 
-import { Input } from "@/components/tailgrids/core/input";
-import type { StudentWorklistItem } from "@/services/api/student-worklist";
+import type { StudentTaskItem } from "@/services/api/students/types";
 
-import StudentActionItemCard from "./student-action-item-card";
-import StudentCompleteActionDialog from "./student-complete-action-dialog";
+import StudentCreateTaskDialog from "./student-create-task-dialog";
+import StudentTaskFilters, {
+  type TaskExpansionMode,
+  type TaskPriorityFilter,
+  type TaskTimeFilter,
+} from "./student-task-filters";
+import StudentTaskCard, { isTaskOverdue } from "./student-task-card";
+import {
+  matchesActivityTimeFilter,
+  parseStudentActivityDate,
+} from "./student-activity-utils";
 
 interface StudentTasksTabProps {
-  actions: StudentWorklistItem[];
+  studentName: string;
+  assignee: string;
+  studentStage?: string;
+  tasks: StudentTaskItem[];
+  onCreateTask: (task: StudentTaskItem) => Promise<void>;
+  onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
+  onDeleteTask?: (id: string) => void;
+  canCreateTask: boolean;
+  createTaskDisabledReason?: string;
+  assigneeId?: string;
+  isCreating?: boolean;
   isLoading?: boolean;
-  startingActionName?: string | null;
-  isCompleting?: boolean;
   initialTaskId?: string;
-  onStart: (action: StudentWorklistItem) => void;
-  onComplete: (
-    action: StudentWorklistItem,
-    input: { outcomeCode: string; outcomeNotes?: string },
-  ) => Promise<void>;
 }
 
-interface ActionGroup {
+interface StudentTaskGroup {
   id: string;
   label: string;
+  tasks: StudentTaskItem[];
   sortTime: number;
-  actions: StudentWorklistItem[];
 }
 
-function parseDueAt(value: string | null): number {
-  if (!value) return Number.MAX_SAFE_INTEGER;
-  const timestamp = new Date(value.replace(" ", "T")).getTime();
-  return Number.isNaN(timestamp) ? Number.MAX_SAFE_INTEGER : timestamp;
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function groupActions(actions: StudentWorklistItem[]): ActionGroup[] {
-  const groups = new Map<string, ActionGroup>();
+function getTaskGroup(task: StudentTaskItem): Omit<StudentTaskGroup, "tasks"> {
+  if (isTaskOverdue(task)) {
+    return {
+      id: "overdue",
+      label: "Quá hạn",
+      sortTime: Number.MIN_SAFE_INTEGER,
+    };
+  }
 
-  for (const action of actions) {
-    const isTerminal = ["completed", "failed", "cancelled"].includes(
-      action.executionStatus || "planned",
-    );
-    let id: string;
-    let label: string;
-    let sortTime: number;
+  const taskDate = parseStudentActivityDate(task.dueDate);
+  if (taskDate.getTime() === 0) {
+    return {
+      id: "unscheduled",
+      label: "Chưa đặt hạn",
+      sortTime: Number.MAX_SAFE_INTEGER,
+    };
+  }
 
-    if (action.isOverdue && !isTerminal) {
-      id = "overdue";
-      label = "Quá hạn";
-      sortTime = Number.MIN_SAFE_INTEGER;
-    } else if (isTerminal) {
-      id = "done";
-      label = "Đã xử lý";
-      sortTime = Number.MAX_SAFE_INTEGER - 1;
-    } else if (!action.dueAt) {
-      id = "unscheduled";
-      label = "Chưa đặt hạn";
-      sortTime = Number.MAX_SAFE_INTEGER;
-    } else if (action.isToday) {
-      id = "today";
-      label = "Hôm nay";
-      sortTime = parseDueAt(action.dueAt);
-    } else {
-      id = "upcoming";
-      label = "Sắp tới";
-      sortTime = parseDueAt(action.dueAt);
-    }
+  const today = startOfDay(new Date());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const existing = groups.get(id);
+  if (taskDate.getTime() === today.getTime()) {
+    return { id: "today", label: "Hôm nay", sortTime: taskDate.getTime() };
+  }
+
+  if (taskDate.getTime() === tomorrow.getTime()) {
+    return { id: "tomorrow", label: "Ngày mai", sortTime: taskDate.getTime() };
+  }
+
+  return {
+    id: `date-${taskDate.getFullYear()}-${taskDate.getMonth()}-${taskDate.getDate()}`,
+    label: taskDate.toLocaleDateString("vi-VN"),
+    sortTime: taskDate.getTime(),
+  };
+}
+
+function groupTasks(tasks: StudentTaskItem[]): StudentTaskGroup[] {
+  const groups = new Map<string, StudentTaskGroup>();
+
+  for (const task of tasks) {
+    const group = getTaskGroup(task);
+    const existing = groups.get(group.id);
     if (existing) {
-      existing.actions.push(action);
+      existing.tasks.push(task);
     } else {
-      groups.set(id, { id, label, sortTime, actions: [action] });
+      groups.set(group.id, { ...group, tasks: [task] });
     }
   }
 
@@ -79,50 +98,118 @@ function groupActions(actions: StudentWorklistItem[]): ActionGroup[] {
 }
 
 export default function StudentTasksTab({
-  actions,
+  studentName,
+  assignee,
+  studentStage,
+  tasks,
+  onCreateTask,
+  onUpdateTask,
+  onDeleteTask,
+  canCreateTask,
+  createTaskDisabledReason,
+  assigneeId,
+  isCreating = false,
   isLoading = false,
-  startingActionName,
-  isCompleting = false,
-  onStart,
-  onComplete,
+  initialTaskId,
 }: StudentTasksTabProps) {
   const [search, setSearch] = useState("");
-  const [completingAction, setCompletingAction] =
-    useState<StudentWorklistItem | null>(null);
+  const [timeFilter, setTimeFilter] = useState<TaskTimeFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | StudentTaskItem["status"]
+  >("all");
+  const [priorityFilter, setPriorityFilter] =
+    useState<TaskPriorityFilter>("all");
+  const [expansionMode, setExpansionMode] =
+    useState<TaskExpansionMode>("collapse");
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(
+    () => new Set(tasks.map((task) => task.id)),
+  );
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const filteredActions = useMemo(() => {
+  useEffect(() => {
+    if (!initialTaskId) return;
+    document
+      .getElementById(`student-task-${initialTaskId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [initialTaskId]);
+
+  const filteredTasks = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return actions;
-    return actions.filter(
-      (action) =>
-        action.objective.toLowerCase().includes(query) ||
-        (action.actionType || "").toLowerCase().includes(query),
-    );
-  }, [actions, search]);
+    return tasks.filter((task) => {
+      const matchesStatus =
+        statusFilter === "all" || task.status === statusFilter;
+      const matchesTime = matchesActivityTimeFilter(task.dueDate, timeFilter);
+      const matchesPriority =
+        priorityFilter === "all" || task.priority === priorityFilter;
+      const matchesSearch =
+        !query ||
+        task.title.toLowerCase().includes(query) ||
+        task.assignee.toLowerCase().includes(query);
+      return matchesTime && matchesStatus && matchesPriority && matchesSearch;
+    });
+  }, [tasks, timeFilter, statusFilter, priorityFilter, search]);
 
-  const groups = useMemo(() => groupActions(filteredActions), [filteredActions]);
+  const taskGroups = useMemo(() => groupTasks(filteredTasks), [filteredTasks]);
+
+  const handleExpansionModeChange = (mode: TaskExpansionMode) => {
+    setExpansionMode(mode);
+    setExpandedTaskIds(
+      new Set(mode === "expand" ? tasks.map((task) => task.id) : []),
+    );
+  };
+
+  const handleTaskExpandedChange = (id: string, expanded: boolean) => {
+    setExpandedTaskIds((current) => {
+      const next = new Set(current);
+      if (expanded) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const handleCreateTask = async (task: StudentTaskItem) => {
+    await onCreateTask(task);
+    setExpandedTaskIds((current) => new Set(current).add(task.id));
+  };
 
   return (
     <div className="space-y-4">
-      <Input
-        placeholder="Tìm theo nội dung công việc…"
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        className="max-w-sm"
+      <StudentTaskFilters
+        search={search}
+        onSearchChange={setSearch}
+        timeFilter={timeFilter}
+        onTimeFilterChange={setTimeFilter}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        priorityFilter={priorityFilter}
+        onPriorityFilterChange={setPriorityFilter}
+        expansionMode={expansionMode}
+        onExpansionModeChange={handleExpansionModeChange}
+        onCreateTask={() => setDialogOpen(true)}
+        canCreateTask={canCreateTask}
+        createTaskDisabledReason={createTaskDisabledReason}
       />
 
       {isLoading ? (
-        <p className="py-2 text-xs text-text-tertiary">Đang tải công việc…</p>
-      ) : filteredActions.length === 0 ? (
+        <p className="py-2 text-xs text-text-tertiary">Đang tải task...</p>
+      ) : filteredTasks.length === 0 ? (
         <p className="py-2 text-xs text-text-tertiary">
-          Chưa có công việc nào phù hợp.
+          Chưa có task nào phù hợp.
         </p>
       ) : (
         <div className="space-y-6">
-          {groups.map((group) => (
-            <section key={group.id} className="space-y-3">
+          {taskGroups.map((group) => (
+            <section
+              key={group.id}
+              className="space-y-3"
+              aria-labelledby={`task-group-${group.id}`}
+            >
               <div className="flex items-center gap-2">
                 <h3
+                  id={`task-group-${group.id}`}
                   className={
                     group.id === "overdue"
                       ? "text-sm font-semibold text-error-500"
@@ -132,18 +219,25 @@ export default function StudentTasksTab({
                   {group.label}
                 </h3>
                 <span className="rounded-full bg-background-gray-secondary_alt px-2 py-0.5 text-xs font-medium text-text-tertiary">
-                  {group.actions.length}
+                  {group.tasks.length}
                 </span>
-                <span className="h-px flex-1 bg-card-border" aria-hidden="true" />
+                <span
+                  className="h-px flex-1 bg-card-border"
+                  aria-hidden="true"
+                />
               </div>
               <div className="space-y-3">
-                {group.actions.map((action) => (
-                  <StudentActionItemCard
-                    key={action.name}
-                    action={action}
-                    onStart={onStart}
-                    onOpenComplete={setCompletingAction}
-                    isStarting={startingActionName === action.name}
+                {group.tasks.map((task) => (
+                  <StudentTaskCard
+                    key={task.id}
+                    task={task}
+                    onUpdateTask={onUpdateTask}
+                    onDeleteTask={onDeleteTask}
+                    studentStage={studentStage}
+                    expanded={expandedTaskIds.has(task.id)}
+                    onExpandedChange={(expanded) =>
+                      handleTaskExpandedChange(task.id, expanded)
+                    }
                   />
                 ))}
               </div>
@@ -152,17 +246,29 @@ export default function StudentTasksTab({
         </div>
       )}
 
-      <StudentCompleteActionDialog
-        action={completingAction}
-        onOpenChange={(open) => {
-          if (!open) setCompletingAction(null);
-        }}
-        isSubmitting={isCompleting}
-        onConfirm={async (input) => {
-          if (!completingAction) return;
-          await onComplete(completingAction, input);
-          setCompletingAction(null);
-        }}
+      {!canCreateTask && createTaskDisabledReason && (
+        <p
+          className="flex items-start gap-1.5 px-1 text-sm leading-5 text-badge-warning-text"
+          role="status"
+        >
+          <InfoTriangle
+            size={15}
+            className="mt-0.5 shrink-0"
+            aria-hidden="true"
+          />
+          <span>{createTaskDisabledReason}</span>
+        </p>
+      )}
+
+      <StudentCreateTaskDialog
+        isOpen={dialogOpen}
+        onOpenChange={setDialogOpen}
+        studentName={studentName}
+        assignee={assignee}
+        assigneeId={assigneeId}
+        isAssignmentLocked
+        onCreate={handleCreateTask}
+        isSubmitting={isCreating}
       />
     </div>
   );

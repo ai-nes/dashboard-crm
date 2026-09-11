@@ -1,26 +1,28 @@
 import { Fragment } from "react";
+
 import {
-  CASCADING_PROPERTY_CONFIG,
   conditionValueLabel,
   getOperatorLabel,
-  isCascadingProperty,
   STUDENT_SEGMENT_PROPERTY_LABEL,
+  type SegmentFilterOptions,
   type SegmentCondition,
 } from "./segment-filter-config";
 import type { SegmentOverviewData } from "./segment-detail-types";
 
+function logicLabel(logic: SegmentOverviewData["groupLogic"]): string {
+  return logic === "AND" ? "VÀ" : "HOẶC";
+}
+
 function conditionPropertyLabel(condition: SegmentCondition): string {
-  return isCascadingProperty(condition.property) && condition.category
-    ? CASCADING_PROPERTY_CONFIG[condition.property]!.categoryLabel[
-        condition.category
-      ]
-    : STUDENT_SEGMENT_PROPERTY_LABEL[condition.property];
+  return STUDENT_SEGMENT_PROPERTY_LABEL[condition.property];
 }
 
 export function SegmentDetailFilters({
   overview,
+  options,
 }: {
   overview: SegmentOverviewData;
+  options?: SegmentFilterOptions;
 }) {
   return (
     <section
@@ -46,7 +48,7 @@ export function SegmentDetailFilters({
               >
                 <span aria-hidden="true" className="h-px w-4 bg-card-border" />
                 <span className="text-xs font-semibold text-text-tertiary">
-                  {overview.groupLogic === "AND" ? "VÀ" : "HOẶC"}
+                  {logicLabel(overview.groupLogic)}
                 </span>
                 <span aria-hidden="true" className="h-px w-4 bg-card-border" />
               </div>
@@ -60,7 +62,7 @@ export function SegmentDetailFilters({
                   <Fragment key={condition.id}>
                     {conditionIndex > 0 && (
                       <span className="shrink-0 px-1 text-[11px] font-semibold text-text-tertiary">
-                        {group.logic === "AND" ? "VÀ" : "HOẶC"}
+                        {logicLabel(group.logic)}
                       </span>
                     )}
                     <p className="min-w-0 rounded-lg bg-background-gray-secondary px-3 py-2 text-sm leading-6 break-words text-text-secondary">
@@ -72,7 +74,7 @@ export function SegmentDetailFilters({
                         condition.operator,
                       ).toLocaleLowerCase("vi-VN")}{" "}
                       <strong className="font-semibold text-text-primary">
-                        {conditionValueLabel(condition)}
+                        {conditionValueLabel(condition, options)}
                       </strong>
                     </p>
                   </Fragment>

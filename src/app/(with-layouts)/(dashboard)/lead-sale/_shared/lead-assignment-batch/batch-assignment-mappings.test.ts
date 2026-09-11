@@ -59,4 +59,34 @@ describe("assignmentReasonLabel", () => {
       "Chưa có Team nào được cấu hình phụ trách tỉnh Hồ Chí Minh.",
     );
   });
+
+  it("prefers the backend's specific reason over the generic status label", () => {
+    // The backend's errorCode for a closed Lead is the bare resolution status
+    // (INVALID/DUPLICATE/SPAM/FAILED), which has its own generic entry in
+    // reasonLabels. The specific prose reason must still win so two Leads
+    // closed for different data problems don't render the same message.
+    const item = {
+      errorCode: "INVALID",
+      reason: "Đã đóng hồ sơ vì: Thiếu số điện thoại.",
+      province: "Hồ Chí Minh",
+      branch: "HCM",
+    } as LeadAssignmentBatchItem;
+
+    expect(assignmentReasonLabel(item)).toBe(
+      "Đã đóng hồ sơ vì: Thiếu số điện thoại.",
+    );
+  });
+
+  it("falls back to the generic status label when no specific reason is given", () => {
+    const item = {
+      errorCode: "INVALID",
+      reason: "",
+      province: "Hồ Chí Minh",
+      branch: "HCM",
+    } as LeadAssignmentBatchItem;
+
+    expect(assignmentReasonLabel(item)).toBe(
+      "Hồ sơ không hợp lệ nên đã đóng, không tiếp tục phân công.",
+    );
+  });
 });

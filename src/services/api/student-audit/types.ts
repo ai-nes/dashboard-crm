@@ -82,3 +82,18 @@ export interface LeadAuditLogsParams {
   start?: number;
   pageLength?: number;
 }
+
+export interface SegmentAuditLogsParams {
+  segment: string;
+  start?: number;
+  pageLength?: number;
+}
+
+export interface SegmentAuditLogsResponse {
+  segment: string;
+  logs: StudentAuditLog[];
+  total: number;
+  start: number;
+  pageLength: number;
+  readOnly: boolean;
+}

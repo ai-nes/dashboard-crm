@@ -22,16 +22,22 @@ import {
 
 interface StudentAuditItemProps {
   event: StudentAuditLog;
+  recordLabel?: string;
 }
 
-export default function StudentAuditItem({ event }: StudentAuditItemProps) {
+export default function StudentAuditItem({
+  event,
+  recordLabel = "hồ sơ học sinh",
+}: StudentAuditItemProps) {
   const actor = getStudentAuditActor(event);
   const role = getStudentAuditActorRole(event);
   const tone = getStudentAuditTone(event);
   const status = getStudentAuditStatus(event);
   const isFieldChange = isStudentAuditFieldChange(event);
   const fileUrl =
-    typeof event.metadata?.file_url === "string" ? event.metadata.file_url : null;
+    typeof event.metadata?.file_url === "string"
+      ? event.metadata.file_url
+      : null;
 
   const dotColorClass =
     tone === "success"
@@ -81,17 +87,7 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
 
       {/* Content Bubble Box */}
       <div className="mt-3 w-fit max-w-2xl rounded-2xl rounded-bl-md bg-background-gray-secondary px-4 py-3">
-        {event.action === "created" ? (
-          <p className="text-sm leading-6 text-text-primary">
-            Đã tạo hồ sơ học sinh thành công.
-          </p>
-        ) : event.action === "deleted" ? (
-          <p className="text-sm leading-6 text-text-primary">
-            {event.restored
-              ? "Đã khôi phục hồ sơ học sinh sau khi bị xóa."
-              : "Đã xóa hồ sơ học sinh khỏi hệ thống."}
-          </p>
-        ) : isFieldChange ? (
+        {isFieldChange ? (
           <div className="space-y-2">
             <p className="text-sm leading-6 text-text-primary">
               Cập nhật trường{" "}
@@ -113,9 +109,7 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
         ) : (
           <div className="space-y-2">
             <p className="text-sm font-semibold leading-6 text-text-primary">
-              {event.eventType
-                ? getAuditRecordTitle(event.eventType)
-                : "Đã cập nhật thông tin hồ sơ học sinh."}
+              {getAuditRecordTitle(event, recordLabel)}
             </p>
             {event.subject && (
               <p className="text-xs font-medium text-text-primary">
@@ -167,8 +161,11 @@ export default function StudentAuditItem({ event }: StudentAuditItemProps) {
   );
 }
 
-function getAuditRecordTitle(eventType?: string | null): string {
-  switch (eventType) {
+function getAuditRecordTitle(
+  event: StudentAuditLog,
+  recordLabel: string,
+): string {
+  switch (event.eventType) {
     case "comment_added":
       return "Đã thêm bình luận.";
     case "communication_recorded":
@@ -193,9 +190,18 @@ function getAuditRecordTitle(eventType?: string | null): string {
       return "Đã ghi nhận consent / privacy.";
     case "conversion_completed":
       return "Đã hoàn tất chuyển đổi.";
-    default:
-      return "Đã cập nhật thông tin hồ sơ học sinh.";
   }
+
+  if (event.action === "created") {
+    return `Đã tạo ${recordLabel} thành công.`;
+  }
+  if (event.action === "deleted") {
+    return event.restored
+      ? `Đã khôi phục ${recordLabel} sau khi bị xóa.`
+      : `Đã xóa ${recordLabel} khỏi hệ thống.`;
+  }
+
+  return `Đã cập nhật thông tin ${recordLabel}.`;
 }
 
 function getStudentAuditActorRole(event: StudentAuditLog): string {

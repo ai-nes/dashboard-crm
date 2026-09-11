@@ -1171,6 +1171,8 @@ export async function getDirectorStudents(
   if (params?.province && params.province !== "all")
     searchParams.set("province", params.province);
   if (params?.provinceId) searchParams.set("provinceId", params.provinceId);
+  if (params?.campaign && params.campaign !== "all")
+    searchParams.set("campaign", params.campaign);
   if (params?.ownerId) searchParams.set("ownerId", params.ownerId);
   if (params?.assignmentStatus && params.assignmentStatus !== "all")
     searchParams.set("assignmentStatus", params.assignmentStatus);

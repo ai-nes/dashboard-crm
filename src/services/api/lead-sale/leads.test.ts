@@ -1,13 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  assignLeadToStaff,
+  convertLeadToStudent,
   createLead,
   deleteLead,
   getLeadDetail,
+  getLeadAssignmentTargets,
   getLeadList,
+  importLeadFile,
+  importLeadRows,
+  inspectLeadImport,
   LeadApiError,
   normalizeLeadDetail,
   normalizeLeadList,
+  previewLeadImport,
   processLead,
   processNewLeads,
   updateLeadProcessingStatus,
@@ -37,6 +44,9 @@ function listFixture() {
         result: "MATCHED",
         source: "Website",
         owner: "Chưa phân công",
+        ownerStaff: "STAFF-1",
+        owningTeam: "TEAM-1",
+        ownershipRevision: 2,
         contactNoAnswer: 2,
         contactSuccess: 3,
         createdAt: "2026-09-07T10:00:00+07:00",
@@ -94,6 +104,9 @@ describe("Lead list/detail API contract", () => {
     expect(result.data[0]?.statusCode).toBe("PROCESSED");
     expect(result.data[0]?.processingStatus).toBe("PROCESSED");
     expect(result.data[0]?.result).toBe("MATCHED");
+    expect(result.data[0]?.ownerStaff).toBe("STAFF-1");
+    expect(result.data[0]?.owningTeam).toBe("TEAM-1");
+    expect(result.data[0]?.ownershipRevision).toBe(2);
     expect(result.data[0]?.contactNoAnswer).toBe(2);
     expect(result.data[0]?.contactSuccess).toBe(3);
     expect(result.data[0]?.createdAt).toBe("2026-09-07T10:00:00+07:00");
@@ -166,15 +179,14 @@ describe("Lead list/detail API contract", () => {
           author: "Administrator",
           date: "2026-09-07T11:00:00+07:00",
           content:
-            'Enrollment Status được cập nhật từ "Mới" sang "Có triển vọng".',
-          event_type: "status_changed",
-          category: "status",
-          fieldname: "enrollment_status",
-          field_label: "Enrollment Status",
-          old_value: "Mới",
-          new_value: "Có triển vọng",
-          metadata: { old_code: "NEW", new_code: "PROSPECT" },
-          source: "Status Change Log",
+            'Processing Status được cập nhật từ "NEW" sang "PROCESSING".',
+          event_type: "processing_status_changed",
+          category: "processing",
+          fieldname: "processing_status",
+          field_label: "Processing Status",
+          old_value: "NEW",
+          new_value: "PROCESSING",
+          source: "Version",
         },
       ],
       meta: {},
@@ -197,13 +209,112 @@ describe("Lead list/detail API contract", () => {
     expect(result?.lead.ward).toBe("Phường An Cư");
     expect(result?.lead.segments).toEqual(["Quan tâm học bổng"]);
     expect(result?.log[0]).toMatchObject({
-      eventType: "status_changed",
-      category: "status",
-      oldValue: "Mới",
-      newValue: "Có triển vọng",
-      metadata: { old_code: "NEW", new_code: "PROSPECT" },
-      source: "Status Change Log",
+      eventType: "processing_status_changed",
+      category: "processing",
+      oldValue: "NEW",
+      newValue: "PROCESSING",
+      source: "Version",
     });
+  });
+
+  it("loads eligible Sale/CTV targets for a Lead", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            lead: "LEAD-2026-00001",
+            province: "Ho Chi Minh City",
+            ownership_revision: 2,
+            targets: [
+              {
+                staff: "STAFF-1",
+                staffName: "Nguyễn Minh An",
+                team: "TEAM-1",
+                teamName: "Sale HCM",
+                function: "Sale",
+                capacity: { active: 3, limit: 10, remaining: 7 },
+                effectiveActive: 3,
+              },
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      getLeadAssignmentTargets("LEAD-2026-00001", {
+        baseUrl: "http://frappe:8000",
+      }),
+    ).resolves.toMatchObject({
+      ownershipRevision: 2,
+      targets: [
+        expect.objectContaining({
+          id: "STAFF-1",
+          displayName: "Nguyễn Minh An",
+          teamId: "TEAM-1",
+          teamName: "Sale HCM",
+          effectiveActive: 3,
+        }),
+      ],
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_processing.list_lead_assignment_targets?lead=LEAD-2026-00001",
+      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    );
+  });
+
+  it("assigns a Lead with its ownership revision", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            status: "ASSIGNED",
+            resolution: "PENDING",
+            lead: "LEAD-2026-00001",
+            ownership: {
+              owner_staff: "STAFF-1",
+              owning_team: "TEAM-1",
+              revision: 3,
+            },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      assignLeadToStaff(
+        {
+          lead: "LEAD-2026-00001",
+          ownerStaff: "STAFF-1",
+          targetTeamId: "TEAM-1",
+          expectedRevision: 2,
+          reason: "Phân công từ chi tiết Lead",
+          idempotencyKey: "lead-detail-assignment:test-1",
+        },
+        { baseUrl: "http://frappe:8000" },
+      ),
+    ).resolves.toMatchObject({
+      status: "ASSIGNED",
+      ownership: { ownerStaff: "STAFF-1", owningTeam: "TEAM-1", revision: 3 },
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_processing.assign_lead",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          lead: "LEAD-2026-00001",
+          owner_staff: "STAFF-1",
+          target_team_id: "TEAM-1",
+          reason: "Phân công từ chi tiết Lead",
+          idempotency_key: "lead-detail-assignment:test-1",
+          expected_revision: 2,
+        }),
+      }),
+    );
   });
 
   it("normalizes detailed Lead audit metadata additively", () => {
@@ -313,7 +424,7 @@ describe("Lead list/detail API contract", () => {
             student_name: "Lê Văn Cường",
             phone: "0922222222",
             province: "Cần Thơ",
-            source: "Website",
+            campaign: "Campaign 1",
           },
         }),
         { status: 200 },
@@ -326,7 +437,7 @@ describe("Lead list/detail API contract", () => {
         phone: "0922222222",
         province: "Cần Thơ",
         ward: "WARD-CT-1",
-        source: "Website",
+        campaign: "Campaign 1",
         email: "cuong@example.com",
       },
       { baseUrl: "http://frappe:8000" },
@@ -343,7 +454,7 @@ describe("Lead list/detail API contract", () => {
             phone: "0922222222",
             province: "Cần Thơ",
             ward: "WARD-CT-1",
-            source: "Website",
+            campaign: "Campaign 1",
             email: "cuong@example.com",
           },
         }),
@@ -351,6 +462,275 @@ describe("Lead list/detail API contract", () => {
     );
     expect(result.lead.name).toBe("Lê Văn Cường");
     expect(result.lead.province).toBe("Cần Thơ");
+  });
+
+  it("previews a CSV/XLSX import with an optional campaign context", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            filename: "leads.csv",
+            total: 2,
+            valid: 1,
+            failed: 1,
+            rows: [
+              {
+                row: 2,
+                fields: { student_name: "Nguyễn Văn An" },
+                errors: [],
+              },
+              {
+                row: 3,
+                fields: { student_name: "Trần Văn B" },
+                errors: [
+                  {
+                    row: 3,
+                    code: "INVALID_PHONE",
+                    message: "Số điện thoại không hợp lệ.",
+                  },
+                ],
+              },
+            ],
+            errors: [
+              {
+                row: 3,
+                code: "INVALID_PHONE",
+                message: "Số điện thoại không hợp lệ.",
+              },
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    const file = new File(
+      ["Họ và tên,Di động\nNguyễn Văn An,0900000000"],
+      "leads.csv",
+      {
+        type: "text/csv",
+      },
+    );
+
+    const result = await previewLeadImport(file, "CAM-2026-00001", {
+      baseUrl: "http://frappe:8000",
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_mapping.preview_lead_import",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.any(FormData),
+      }),
+    );
+    const request = fetchSpy.mock.calls[0]?.[1];
+    const requestBody = request?.body as FormData;
+    expect(requestBody.get("file")).toBeInstanceOf(File);
+    expect(requestBody.getAll("campaign_code")).toEqual(["CAM-2026-00001"]);
+    expect(result).toMatchObject({
+      filename: "leads.csv",
+      total: 2,
+      valid: 1,
+      failed: 1,
+    });
+    expect(result.errors[0]?.code).toBe("INVALID_PHONE");
+  });
+
+  it("surfaces Frappe server messages for import validation errors", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          exception: "frappe.exceptions.ValidationError",
+          _server_messages: JSON.stringify([
+            {
+              message:
+                "<strong>CAMPAIGN_STATUS_NOT_ALLOWED</strong>: Chỉ Campaign ACTIVE hoặc CLOSED mới được dùng.",
+            },
+          ]),
+        }),
+        { status: 417 },
+      ),
+    );
+
+    const file = new File(["data"], "leads.csv", { type: "text/csv" });
+
+    await expect(
+      previewLeadImport(file, undefined, { baseUrl: "http://frappe:8000" }),
+    ).rejects.toMatchObject({
+      code: "CAMPAIGN_STATUS_NOT_ALLOWED",
+      message:
+        "CAMPAIGN_STATUS_NOT_ALLOWED: Chỉ Campaign ACTIVE hoặc CLOSED mới được dùng.",
+    });
+  });
+
+  it("inspects arbitrary source columns and normalizes the field catalog", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            filename: "arbitrary.csv",
+            fieldCatalog: [
+              { key: "student_name", label: "Họ và tên", required: true, valueType: "text" },
+            ],
+            headers: [
+              { sourceIndex: 0, label: "Name", inferredField: "student_name", enabled: true },
+              { sourceIndex: 1, label: "Unknown", inferredField: null, enabled: false },
+            ],
+            sampleRows: [{ row: 3, values: ["An", null] }],
+            requiredFields: ["student_name"],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    const file = new File(["\nName,Unknown\nAn,"], "arbitrary.csv", {
+      type: "text/csv",
+    });
+
+    const result = await inspectLeadImport(file, {
+      baseUrl: "http://frappe:8000",
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_mapping.inspect_lead_import",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
+    );
+    expect(result.headers[0]).toMatchObject({
+      sourceIndex: 0,
+      inferredField: "student_name",
+    });
+    expect(result.sampleRows[0]?.row).toBe(3);
+    expect(result.sampleRows[0]?.values).toEqual(["An", null]);
+  });
+
+  it("serializes source-index mappings for mapped preview", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            filename: "leads.csv",
+            total: 1,
+            valid: 1,
+            failed: 0,
+            mappedFields: ["student_name", "phone"],
+            ignoredColumns: [{ sourceIndex: 2, label: "Ignore" }],
+            rows: [{ row: 3, fields: { student_name: "An" }, errors: [] }],
+            errors: [],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    const file = new File(["\nName,Phone,Ignore\nAn,0900000000,x"], "leads.csv", {
+      type: "text/csv",
+    });
+    const mapping = [
+      { sourceIndex: 0, targetField: "student_name", enabled: true },
+      { sourceIndex: 1, targetField: "phone", enabled: true },
+      { sourceIndex: 2, targetField: null, enabled: false },
+    ];
+
+    const result = await previewLeadImport(file, "CAM-2026-00001", mapping, {
+      baseUrl: "http://frappe:8000",
+    });
+
+    const requestBody = fetchSpy.mock.calls[0]?.[1]?.body as FormData;
+    expect(requestBody.get("file")).toBeInstanceOf(File);
+    expect(requestBody.getAll("campaign_code")).toEqual(["CAM-2026-00001"]);
+    expect(JSON.parse(String(requestBody.get("column_mapping")))).toEqual(mapping);
+    expect(result.mappedFields).toEqual(["student_name", "phone"]);
+    expect(result.ignoredColumns).toEqual([{ sourceIndex: 2, label: "Ignore" }]);
+  });
+
+  it("commits the original file and mapping instead of browser-normalized rows", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            filename: "leads.csv",
+            total: 1,
+            created: 1,
+            failed: 0,
+            students: [{ name: "LEAD-1" }],
+            errors: [],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    const file = new File(["Name,Phone\nAn,0900000000"], "leads.csv", {
+      type: "text/csv",
+    });
+    const mapping = [
+      { sourceIndex: 0, targetField: "student_name", enabled: true },
+      { sourceIndex: 1, targetField: "phone", enabled: true },
+    ];
+
+    const result = await importLeadFile(file, "CAM-2026-00001", mapping, {
+      baseUrl: "http://frappe:8000",
+    });
+
+    const requestBody = fetchSpy.mock.calls[0]?.[1]?.body as FormData;
+    expect(requestBody.get("file")).toBeInstanceOf(File);
+    expect(requestBody.getAll("campaign_code")).toEqual(["CAM-2026-00001"]);
+    expect(requestBody.getAll("import_mode")).toEqual(["quick_create"]);
+    expect(JSON.parse(String(requestBody.get("column_mapping")))).toEqual(mapping);
+    expect(requestBody.get("rows")).toBeNull();
+    expect(result.created).toBe(1);
+  });
+
+  it("commits preview rows with one top-level campaign context", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            filename: "leads.xlsx",
+            total: 1,
+            created: 1,
+            failed: 0,
+            students: [{ row: 2, name: "LEAD-2026-00004" }],
+            errors: [],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const rows = [
+      {
+        student_name: "Nguyễn Văn An",
+        phone: "0900000000",
+        assigned_to: null,
+      },
+    ];
+    const result = await importLeadRows(rows, "leads.xlsx", "CAM-2026-00001", {
+      baseUrl: "http://frappe:8000",
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_mapping.import_leads",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.any(String),
+      }),
+    );
+    const serializedBody = String(fetchSpy.mock.calls[0]?.[1]?.body);
+    const requestBody = JSON.parse(serializedBody) as Record<string, unknown>;
+    const requestRows = requestBody.rows as Record<string, unknown>[];
+    expect(requestBody).toEqual({
+      rows,
+      filename: "leads.xlsx",
+      import_mode: "quick_create",
+      campaign_code: "CAM-2026-00001",
+    });
+    expect(
+      requestRows.every(
+        (row) =>
+          !Object.prototype.hasOwnProperty.call(row, "campaign") &&
+          !Object.prototype.hasOwnProperty.call(row, "campaign_code"),
+      ),
+    ).toBe(true);
+    expect((serializedBody.match(/"campaign_code"/g) ?? []).length).toBe(1);
+    expect(result.created).toBe(1);
   });
 
   it("updates a Lead through the CRUD endpoint", async () => {
@@ -544,7 +924,10 @@ describe("Lead list/detail API contract", () => {
 
   it("rejects a malformed intake year before calling the bulk command", async () => {
     await expect(
-      processNewLeads({ admissionYear: "20x6" }, { baseUrl: "http://frappe:8000" }),
+      processNewLeads(
+        { admissionYear: "20x6" },
+        { baseUrl: "http://frappe:8000" },
+      ),
     ).rejects.toEqual(
       expect.objectContaining<Partial<LeadApiError>>({
         status: 400,
@@ -610,6 +993,43 @@ describe("Lead list/detail API contract", () => {
         method: "DELETE",
         cache: "no-store",
         body: JSON.stringify({ name: "LEAD-2026-00004" }),
+      }),
+    );
+  });
+
+  it("converts an assigned Lead into a new Student", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            status: "CLOSED",
+            resolution: "CREATED",
+            lead: "HS-2026-HCM-000005",
+            student: "STU-2026-00001",
+            student_stage: "New",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      convertLeadToStudent(" HS-2026-HCM-000005 ", {
+        baseUrl: "http://frappe:8000",
+      }),
+    ).resolves.toEqual({
+      status: "CLOSED",
+      resolution: "CREATED",
+      lead: "HS-2026-HCM-000005",
+      student: "STU-2026-00001",
+      studentStage: "New",
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_processing.convert_to_student",
+      expect.objectContaining({
+        method: "POST",
+        cache: "no-store",
+        body: JSON.stringify({ lead: "HS-2026-HCM-000005" }),
       }),
     );
   });

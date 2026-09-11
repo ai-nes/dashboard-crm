@@ -1,15 +1,18 @@
 "use client";
 
-import { CheckCircle1 } from "@tailgrids/icons";
+import { CheckCircle1, Copy1 } from "@tailgrids/icons";
 import { useState, type ComponentType, type ReactNode } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
+import { cn } from "@/utils/cn";
 
 interface StudentCopyBadgeProps {
   label: string;
   value: string;
   icon: ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
   children: ReactNode;
+  className?: string;
+  showLeadingIcon?: boolean;
 }
 
 export default function StudentCopyBadge({
@@ -17,6 +20,8 @@ export default function StudentCopyBadge({
   value,
   icon: Icon,
   children,
+  className,
+  showLeadingIcon = true,
 }: StudentCopyBadgeProps) {
   const [isCopied, setIsCopied] = useState(false);
 
@@ -35,17 +40,21 @@ export default function StudentCopyBadge({
     <Button
       appearance="ghost"
       aria-label={`Sao chép ${label}`}
-      className="h-6 max-w-full rounded-full bg-background-soft-50 px-2 text-xs text-text-secondary"
+      className={cn(
+        "h-6 max-w-full rounded-full bg-background-soft-50 px-2 text-xs text-text-secondary",
+        className,
+      )}
       onPress={() => void copyValue()}
       size="xs"
       variant="primary"
     >
+      {showLeadingIcon && <Icon size={13} aria-hidden />}
+      <span className="truncate">{isCopied ? "Đã sao chép" : children}</span>
       {isCopied ? (
         <CheckCircle1 size={13} aria-hidden />
       ) : (
-        <Icon size={13} aria-hidden />
+        <Copy1 size={13} aria-hidden />
       )}
-      <span className="truncate">{isCopied ? "Đã sao chép" : children}</span>
     </Button>
   );
 }

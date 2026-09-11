@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-
-import SegmentManagementPage from "@/app/(with-layouts)/(dashboard)/sale/next-best-action/_components/segment-management-page";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Quản lý segments",
@@ -8,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function LeadSaleNextBestActionPage() {
-  return <SegmentManagementPage createHref="/lead-sale/segments/create" />;
+  redirect("/lead-sale/segments");
 }

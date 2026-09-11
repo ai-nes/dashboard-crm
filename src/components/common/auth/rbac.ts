@@ -14,6 +14,7 @@ export const CRM_ROLES = [
   "Marketing",
   "Lead Marketing",
   "Admissions Director",
+  "Business Admin",
   "Administrator",
 ] as const;
 
@@ -124,6 +125,22 @@ const NBA_ACTIONS_READ_ROLES = [
   "System Manager",
 ] as const satisfies readonly DashboardRole[];
 
+const CRM_RULES_ADMIN_ROLES = [
+  "System Manager",
+  "Admissions Director",
+  "Business Admin",
+  "Administrator",
+] as const satisfies readonly DashboardRole[];
+
+const SEGMENTS_ADMIN_ROLES = [
+  "System Manager",
+] as const satisfies readonly DashboardRole[];
+
+const ACTIVITY_LOG_ADMIN_ROLES = [
+  "System Manager",
+  "Administrator",
+] as const satisfies readonly DashboardRole[];
+
 const CAMPAIGN_INTELLIGENCE_ROLES = [
   "Marketing",
   "Lead Marketing",
@@ -151,8 +168,8 @@ const TEAM_MANAGEMENT_ROLES = [
  * feature screens can be added below it without changing the login contract.
  */
 export const ROLE_ROUTE_ROLES = {
-  director: ["Admissions Director", "Administrator"],
-  admin: ["System Manager"],
+  director: ["Admissions Director", "Business Admin", "Administrator"],
+  admin: ["System Manager", "Administrator"],
   marketing: ["Marketing", "Lead Marketing"],
   sale: ["Sale"],
   "ctv-sale": ["CTV Sale"],
@@ -201,6 +218,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/ctv-sale/tasks", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/next-best-action", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/lead-sale", roles: ROLE_ROUTE_ROLES["lead-sale"] },
+  { path: "/lead-sale/segments", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   {
     path: "/lead-sale/next-best-action",
     roles: ROLE_ROUTE_ROLES["lead-sale"],
@@ -243,6 +261,13 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
     path: "/director/admin/action-recommendations",
     roles: NBA_ACTIONS_READ_ROLES,
   },
+  { path: "/director/admin/rules-config", roles: CRM_RULES_ADMIN_ROLES },
+  { path: "/director/admin/segments", roles: SEGMENTS_ADMIN_ROLES },
+  { path: "/director/admin/student-config", roles: SEGMENTS_ADMIN_ROLES },
+  {
+    path: "/director/admin/activity-logs",
+    roles: ACTIVITY_LOG_ADMIN_ROLES,
+  },
   {
     path: "/director/campaign-intelligence",
     roles: CAMPAIGN_INTELLIGENCE_ROLES,
@@ -280,6 +305,7 @@ const ROLE_DEFAULT_ROUTES: Record<DashboardRole, string> = {
   Marketing: ROLE_ROUTE_PATHS.marketing,
   "Lead Marketing": ROLE_ROUTE_PATHS.marketing,
   "Admissions Director": ROLE_ROUTE_PATHS.director,
+  "Business Admin": ROLE_ROUTE_PATHS.director,
   Administrator: ROLE_ROUTE_PATHS.director,
   "System Manager": ROLE_ROUTE_PATHS.admin,
 };
@@ -363,8 +389,16 @@ export function isProtectedDashboardPath(pathname: string): boolean {
 export function canAccessDashboardPath(
   pathname: string,
   roles: readonly string[] | null | undefined,
+  capabilities: readonly string[] | null | undefined = [],
 ): boolean {
   if (!isProtectedDashboardPath(pathname)) return true;
+
+  if (
+    isPathWithinRoute("/director/admin/rules-config", pathname) &&
+    capabilities?.includes("rule.manage")
+  ) {
+    return true;
+  }
 
   const rule = findRouteAccessRule(pathname);
   if (!rule) return false;

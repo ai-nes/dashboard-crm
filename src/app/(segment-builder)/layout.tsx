@@ -8,7 +8,11 @@ export default function SegmentBuilderLayout({
 }>) {
   return (
     <AuthGuard>
-      <DashboardAccessGuard>{children}</DashboardAccessGuard>
+      <DashboardAccessGuard>
+        <div className="h-dvh min-h-0 overflow-hidden bg-card-background">
+          {children}
+        </div>
+      </DashboardAccessGuard>
     </AuthGuard>
   );
 }

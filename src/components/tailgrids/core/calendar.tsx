@@ -2,9 +2,21 @@
 
 import { buttonStyles } from "@/components/tailgrids/core/button";
 import { cn } from "@/utils/cn";
-import { ChevronDown, ChevronLeft, ChevronRight } from "@tailgrids/icons";
+import {
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from "@tailgrids/icons";
 import { cva } from "class-variance-authority";
-import { useContext, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import {
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
 import {
   Button as AriaButton,
   Calendar as AriaCalendar,
@@ -107,31 +119,33 @@ export function NavButton({ slot, className, ...props }: NavButtonProps) {
   );
 }
 
-type YearPickerProps = {
+type CalendarPickerProps = {
   className?: string;
 };
 
-export function CalendarYearPicker({ className }: YearPickerProps) {
+export function CalendarMonthYearPicker({ className }: CalendarPickerProps) {
   const state = useContext(CalendarStateContext);
   const { locale } = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const monthListboxRef = useRef<HTMLDivElement>(null);
   const listboxRef = useRef<HTMLDivElement>(null);
 
   const currentMonth = state?.focusedDate.month ?? new Date().getMonth() + 1;
   const currentYear = state?.focusedDate.year ?? new Date().getFullYear();
+  const months = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(locale, { month: "long" });
 
-  const years = useMemo(() => {
-    const yearStart = currentYear - 20;
-    return Array.from({ length: 40 }, (_, index) => yearStart + index);
-  }, [currentYear]);
+    return Array.from({ length: 12 }, (_, index) => ({
+      value: index + 1,
+      label: formatter.format(new Date(Date.UTC(2000, index, 1))),
+    }));
+  }, [locale]);
 
-  const monthFormatter = useMemo(
-    () => new Intl.DateTimeFormat(locale, { month: "short" }),
-    [locale],
+  const years = useMemo(
+    () => Array.from({ length: 201 }, (_, index) => 1900 + index),
+    [],
   );
-
-  const currentMonthLabel = monthFormatter.format(new Date(Date.UTC(2000, currentMonth - 1, 1)));
 
   useLayoutEffect(() => {
     if (!isOpen) {
@@ -139,23 +153,30 @@ export function CalendarYearPicker({ className }: YearPickerProps) {
     }
 
     const frame = requestAnimationFrame(() => {
-      const listboxElement = listboxRef.current;
-      const selectedItem = listboxElement?.querySelector<HTMLElement>("[data-selected='true']");
+      [monthListboxRef.current, listboxRef.current].forEach(
+        (listboxElement) => {
+          const selectedItem = listboxElement?.querySelector<HTMLElement>(
+            "[data-selected='true']",
+          );
 
-      if (!listboxElement || !selectedItem) {
-        return;
-      }
+          if (!listboxElement || !selectedItem) {
+            return;
+          }
 
-      const targetScrollTop =
-        selectedItem.offsetTop - listboxElement.clientHeight / 2 + selectedItem.clientHeight / 2;
+          const listboxRect = listboxElement.getBoundingClientRect();
+          const selectedItemRect = selectedItem.getBoundingClientRect();
+          const selectedItemOffset =
+            selectedItemRect.top -
+            listboxRect.top -
+            (listboxRect.height - selectedItemRect.height) / 2;
 
-      listboxElement.scrollTop = Math.max(0, targetScrollTop);
+          listboxElement.scrollTop += selectedItemOffset;
+        },
+      );
     });
 
-    return () => {
-      cancelAnimationFrame(frame);
-    };
-  }, [isOpen, currentYear]);
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen, currentMonth, currentYear]);
 
   if (!state) {
     return;
@@ -163,10 +184,17 @@ export function CalendarYearPicker({ className }: YearPickerProps) {
 
   const focusedDate = state.focusedDate;
   const currentDay = focusedDate.day;
-  const clampFocusedDateToYear = (year: number) => {
+  const currentMonthLabel = months[currentMonth - 1]?.label ?? "";
+  const currentMonthTitle = `${currentMonthLabel.charAt(0).toUpperCase()}${currentMonthLabel.slice(1)}`;
+  const setFocusedMonth = (month: number) => {
+    const safeDate = focusedDate.set({ day: 1, month });
+    const maxDay = safeDate.calendar.getDaysInMonth(safeDate);
+    state.setFocusedDate(safeDate.set({ day: Math.min(currentDay, maxDay) }));
+  };
+  const setFocusedYear = (year: number) => {
     const safeDate = focusedDate.set({ day: 1, year });
     const maxDay = safeDate.calendar.getDaysInMonth(safeDate);
-    return safeDate.set({ day: Math.min(currentDay, maxDay) });
+    state.setFocusedDate(safeDate.set({ day: Math.min(currentDay, maxDay) }));
   };
 
   return (
@@ -174,26 +202,19 @@ export function CalendarYearPicker({ className }: YearPickerProps) {
       <button
         ref={triggerRef}
         type="button"
-        aria-label="Select year"
-        aria-haspopup="listbox"
+        aria-label="Chọn tháng và năm"
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
-        onClick={() => {
-          setIsOpen((open) => !open);
-        }}
+        onClick={() => setIsOpen((open) => !open)}
         className={cn(
-          buttonStyles({
-            variant: "ghost",
-            iconOnly: false,
-            size: "sm",
-          }),
-          "h-10 min-w-24 justify-between rounded-full border border-base-100 bg-white-100 px-3 text-sm font-medium text-title-50 hover:bg-white-100 hover:text-title-50 focus:ring-button-primary-focus-ring sm:h-11",
+          "flex h-11 min-w-0 items-center justify-start gap-2 rounded-md p-0 text-left text-base font-medium text-title-50 hover:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-button-primary-focus-ring focus-visible:ring-offset-2",
           className,
         )}
       >
-        <span>
-          {currentMonthLabel} {currentYear}
+        <span className="truncate">
+          {currentMonthTitle} năm {currentYear}
         </span>
-        <ChevronDown aria-hidden className="size-4 shrink-0 text-text-100" />
+        <ChevronDown aria-hidden className="size-5 shrink-0 text-text-50" />
       </button>
 
       <Popover
@@ -202,46 +223,111 @@ export function CalendarYearPicker({ className }: YearPickerProps) {
         triggerRef={triggerRef}
         placement="bottom"
         offset={8}
-        className="w-56 overflow-hidden rounded-xl border border-base-100 bg-dropdown-background p-0 shadow-md"
+        className="w-[min(21rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-dropdown-background p-2 shadow-lg"
       >
-        <ListBox
-          ref={listboxRef}
-          aria-label="Select year"
-          autoFocus
-          selectionMode="single"
-          selectedKeys={[String(currentYear)]}
-          disallowEmptySelection
-          shouldFocusWrap
-          onSelectionChange={(keys) => {
-            if (keys === "all") {
-              return;
-            }
+        <div className="grid grid-cols-2 gap-2">
+          <div className="min-w-0">
+            <p className="px-3 py-2 text-xs font-semibold text-text-100">
+              Tháng
+            </p>
+            <ListBox
+              ref={monthListboxRef}
+              aria-label="Chọn tháng"
+              autoFocus
+              selectionMode="single"
+              selectedKeys={[`month-${currentMonth}`]}
+              disallowEmptySelection
+              onSelectionChange={(keys) => {
+                if (keys === "all") {
+                  return;
+                }
 
-            const selectedYear = Number([...keys][0]);
-            if (Number.isNaN(selectedYear)) {
-              return;
-            }
-
-            state.setFocusedDate(clampFocusedDateToYear(selectedYear));
-            setIsOpen(false);
-          }}
-          className="max-h-60 overflow-y-auto p-1.5 outline-none"
-        >
-          {years.map((year) => (
-            <ListBoxItem
-              key={year}
-              id={String(year)}
-              textValue={String(year)}
-              className={cn(
-                "flex w-full justify-between rounded-md px-3 py-2 text-left text-sm outline-hidden",
-                "data-[selected=true]:bg-dropdown-hover-background data-[selected=true]:text-title-50",
-                "data-[focused=true]:bg-dropdown-hover-background data-[focused=true]:text-title-50",
-              )}
+                const selectedMonth = Number(
+                  String([...keys][0]).replace("month-", ""),
+                );
+                if (!Number.isNaN(selectedMonth)) {
+                  setFocusedMonth(selectedMonth);
+                }
+              }}
+              className="scrollbar-none max-h-64 overflow-y-auto p-1 outline-none"
             >
-              {year}
-            </ListBoxItem>
-          ))}
-        </ListBox>
+              {months.map((month) => (
+                <ListBoxItem
+                  key={`month-${month.value}`}
+                  id={`month-${month.value}`}
+                  textValue={month.label}
+                  className={cn(
+                    "relative flex w-full cursor-pointer rounded-md py-2 pr-8 pl-3 text-left text-sm capitalize outline-hidden",
+                    "data-[selected=true]:bg-dropdown-hover-background data-[selected=true]:text-title-50",
+                    "data-[focused=true]:bg-dropdown-hover-background data-[focused=true]:text-title-50",
+                  )}
+                >
+                  {({ isSelected }) => (
+                    <>
+                      {month.label}
+                      {isSelected && (
+                        <Check
+                          aria-hidden="true"
+                          className="absolute top-1/2 right-2 size-4 -translate-y-1/2"
+                        />
+                      )}
+                    </>
+                  )}
+                </ListBoxItem>
+              ))}
+            </ListBox>
+          </div>
+
+          <div className="min-w-0">
+            <p className="px-3 py-2 text-xs font-semibold text-text-100">Năm</p>
+            <ListBox
+              ref={listboxRef}
+              aria-label="Chọn năm"
+              selectionMode="single"
+              selectedKeys={[`year-${currentYear}`]}
+              disallowEmptySelection
+              shouldFocusWrap
+              onSelectionChange={(keys) => {
+                if (keys === "all") {
+                  return;
+                }
+
+                const selectedYear = Number(
+                  String([...keys][0]).replace("year-", ""),
+                );
+                if (!Number.isNaN(selectedYear)) {
+                  setFocusedYear(selectedYear);
+                }
+              }}
+              className="scrollbar-none max-h-64 overflow-y-auto p-1 outline-none"
+            >
+              {years.map((year) => (
+                <ListBoxItem
+                  key={`year-${year}`}
+                  id={`year-${year}`}
+                  textValue={String(year)}
+                  className={cn(
+                    "relative flex w-full cursor-pointer rounded-md py-2 pr-8 pl-3 text-left text-sm outline-hidden",
+                    "data-[selected=true]:bg-dropdown-hover-background data-[selected=true]:text-title-50",
+                    "data-[focused=true]:bg-dropdown-hover-background data-[focused=true]:text-title-50",
+                  )}
+                >
+                  {({ isSelected }) => (
+                    <>
+                      {year}
+                      {isSelected && (
+                        <Check
+                          aria-hidden="true"
+                          className="absolute top-1/2 right-2 size-4 -translate-y-1/2"
+                        />
+                      )}
+                    </>
+                  )}
+                </ListBoxItem>
+              ))}
+            </ListBox>
+          </div>
+        </div>
       </Popover>
     </>
   );
@@ -252,7 +338,12 @@ const calendarGridStyles = cva("w-full border-collapse border-spacing-0");
 type CalendarGridProps = ComponentProps<typeof AriaCalendarGrid>;
 
 export function CalendarGrid({ className, ...props }: CalendarGridProps) {
-  return <AriaCalendarGrid className={cn(calendarGridStyles(), className)} {...props} />;
+  return (
+    <AriaCalendarGrid
+      className={cn(calendarGridStyles(), className)}
+      {...props}
+    />
+  );
 }
 
 type CalendarGridBodyProps = ComponentProps<typeof AriaCalendarGridBody>;
@@ -264,7 +355,9 @@ export function CalendarGridBody({ ...props }: CalendarGridBodyProps) {
 type CalendarHeadingProps = ComponentProps<typeof AriaHeading>;
 
 export function CalendarHeading({ className, ...props }: CalendarHeadingProps) {
-  return <AriaHeading {...props} className={cn("flex-1 text-center", className)} />;
+  return (
+    <AriaHeading {...props} className={cn("flex-1 text-center", className)} />
+  );
 }
 
 export type { DateValue };
@@ -277,7 +370,9 @@ export function CalendarGridHeader({ className }: { className?: string }) {
   return (
     <AriaCalendarGridHeader>
       {(day: string) => (
-        <CalendarHeaderCell className={cn(calendarGridHeaderCellStyles(), className)}>
+        <CalendarHeaderCell
+          className={cn(calendarGridHeaderCellStyles(), className)}
+        >
           {day}
         </CalendarHeaderCell>
       )}
@@ -291,7 +386,11 @@ const calendarCellButtonStyles = cva(
 
 interface CalendarCellProps extends Omit<
   AriaCalendarCellProps,
-  "isDisabled" | "isFocusVisible" | "isOutsideMonth" | "isPressed" | "isSelected"
+  | "isDisabled"
+  | "isFocusVisible"
+  | "isOutsideMonth"
+  | "isPressed"
+  | "isSelected"
 > {
   className?: string;
   disabled?: boolean;

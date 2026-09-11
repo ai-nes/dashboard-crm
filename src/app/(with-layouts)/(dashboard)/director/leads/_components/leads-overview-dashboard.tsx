@@ -1,12 +1,15 @@
 "use client";
 
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
-import { Bolt1, Play, Plus } from "@tailgrids/icons";
+import { Bolt1, Play, Plus, UploadCloud } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { getCrmPermissions } from "@/components/common/auth/permissions";
+import {
+  getCrmPermissions,
+  hasCrmCapability,
+} from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
@@ -19,20 +22,21 @@ import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-querie
 import {
   leadSaleLeadsKeys,
   useCreateLeadMutation,
+  useImportLeadFileMutation,
   useLeadSaleLeadsQuery,
   useProcessNewLeadsMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 import type {
   LeadCreateFields,
+  LeadImportMapping,
+  LeadImportResponse,
   LeadListParams,
 } from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
+import LeadImportDialog from "./lead-import-dialog";
 import LeadListToolbar from "./lead-list-toolbar";
-import {
-  type LeadResultFilter,
-  type LeadStageStatus,
-} from "./lead-status";
+import { type LeadResultFilter, type LeadStageStatus } from "./lead-status";
 import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 
 const pageSize = 10;
@@ -42,16 +46,18 @@ export default function LeadsOverviewDashboard() {
   const permissions = getCrmPermissions(user?.roles);
   const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
   const canManageLeadIntake = permissions.lead.canAssign && !isAuthLoading;
+  const canAssignLead =
+    !isAuthLoading && hasCrmCapability(user, "student.routing.operate");
   const queryClient = useQueryClient();
   const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
   const createMutation = useCreateLeadMutation();
+  const importMutation = useImportLeadFileMutation();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const processNewLeadsMutation = useProcessNewLeadsMutation();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStageStatus | "all">("all");
-  const [resolution, setResolution] = useState<LeadResultFilter | "all">(
-    "all",
-  );
+  const [resolution, setResolution] = useState<LeadResultFilter | "all">("all");
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
 
@@ -124,6 +130,30 @@ export default function LeadsOverviewDashboard() {
     setCreateDialogOpen(false);
     setPage(1);
     toast.success("Đã tạo Lead.");
+  };
+
+  const handleImportLeads = async (
+    file: File,
+    campaignCode: string,
+    mapping: LeadImportMapping[],
+  ): Promise<LeadImportResponse> => {
+    const result = await importMutation.mutateAsync({
+      file,
+      campaignCode,
+      mapping,
+    });
+    setPage(1);
+    const total = result.total;
+    const failed = result.failed;
+    if (failed > 0) {
+      toast.warning(`Đã tạo ${result.created}/${total} Lead.`, {
+        description: `${failed} dòng chưa được nhập; vui lòng kiểm tra lại file.`,
+      });
+    } else {
+      toast.success(`Đã tạo ${result.created}/${total} Lead.`);
+      setImportDialogOpen(false);
+    }
+    return result;
   };
 
   const runLeadProcessing = async () => {
@@ -222,6 +252,18 @@ export default function LeadsOverviewDashboard() {
             <div className="flex flex-wrap items-center justify-end gap-3 max-sm:w-full">
               {canCreateLead && (
                 <Button
+                  appearance="outline"
+                  className="shrink-0 max-sm:w-full"
+                  onPress={() => setImportDialogOpen(true)}
+                  size="md"
+                  aria-label="Import Lead từ file"
+                >
+                  <UploadCloud size={18} aria-hidden="true" />
+                  Import Excel
+                </Button>
+              )}
+              {canCreateLead && (
+                <Button
                   className="shrink-0 max-sm:w-full"
                   onPress={() => setCreateDialogOpen(true)}
                   size="md"
@@ -289,20 +331,20 @@ export default function LeadsOverviewDashboard() {
       />
 
       <Card className="min-w-0 overflow-hidden p-0">
-        <div className="lg:overflow-x-auto">
-          <div className="lg:min-w-[1350px]">
+        <div>
+          <div>
             <div
               className={`hidden ${leadListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
               aria-hidden="true"
             >
-              <span>Họ và Tên</span>
-              <span>Di động</span>
-              <span>Nguồn</span>
-              <span>Người phụ trách</span>
-              <span>Trạng thái lead</span>
-              <span>Kết quả</span>
-              <span>Số lần liên hệ</span>
-              <span>Ngày tạo</span>
+              <span className="min-w-0 truncate">Mã Lead</span>
+              <span className="min-w-0 truncate">Họ và Tên</span>
+              <span className="min-w-0 truncate">Di động</span>
+              <span className="min-w-0 truncate">Nguồn</span>
+              <span className="min-w-0 truncate">Trạng thái lead</span>
+              <span className="min-w-0 truncate">Kết quả</span>
+              <span className="min-w-0 truncate">Người phụ trách</span>
+              <span className="min-w-0 truncate">Ngày tạo</span>
             </div>
             {isPending && !response ? (
               <div
@@ -312,7 +354,7 @@ export default function LeadsOverviewDashboard() {
                 Đang tải danh sách Lead…
               </div>
             ) : (
-              <LeadList leads={leads} />
+              <LeadList canAssign={canAssignLead} leads={leads} />
             )}
           </div>
         </div>
@@ -361,7 +403,14 @@ export default function LeadsOverviewDashboard() {
           onCreate={handleCreateLead}
         />
       )}
-
+      {canCreateLead && (
+        <LeadImportDialog
+          isOpen={importDialogOpen}
+          isSubmitting={importMutation.isPending}
+          onOpenChange={setImportDialogOpen}
+          onImport={handleImportLeads}
+        />
+      )}
     </main>
   );
 }

@@ -10,7 +10,7 @@ export const batchStatusLabels: Record<LeadAssignmentBatchStatus, string> = {
   ready: "Đã kiểm tra, chờ phân công",
   running: "Đang phân công",
   completed: "Hoàn tất",
-  completed_with_errors: "Hoàn tất, còn hồ sơ cần xử lý",
+  completed_with_errors: "Hoàn tất, còn hồ sơ cần lưu ý",
   cancelled: "Đã hủy",
 };
 
@@ -63,8 +63,12 @@ export const summaryCards = (summary: LeadAssignmentBatchSummary) =>
     },
     {
       key: "attention",
-      label: "Cần xử lý",
-      value: summary.deferred + summary.manualReview + summary.failed,
+      label: "Cần lưu ý",
+      value:
+        summary.skipped +
+        summary.deferred +
+        summary.manualReview +
+        summary.failed,
       tone: "warning",
     },
   ] as const;
@@ -99,8 +103,8 @@ export function workflowResultLabel(
 ): string {
   if (!hasData || !summary?.total) return "Chưa có dữ liệu";
   if (summary.pending) return "Chờ phân công";
-  if (summary.manualReview + summary.deferred + summary.failed) {
-    return "Cần xử lý";
+  if (summary.skipped + summary.manualReview + summary.deferred + summary.failed) {
+    return "Cần lưu ý";
   }
   if (summary.assigned) return "Đã phân công";
   return "Đã xử lý";
@@ -236,12 +240,16 @@ export function assignmentReasonLabel(
   const contextualReason = contextualReasonLabel(item, code);
   if (contextualReason) return contextualReason;
 
+  // A specific reason from the backend (e.g. "Đã đóng hồ sơ vì: Thiếu số điện
+  // thoại.") must win over a generic status label like reasonLabels.INVALID —
+  // otherwise every closed Lead shows the same catch-all text regardless of
+  // why it was actually closed.
+  const reason = item.reason ? humanizeReason(item.reason) : "";
+  if (reason) return reason;
+
   if (item.errorCode && reasonLabels[item.errorCode]) {
     return reasonLabels[item.errorCode];
   }
-
-  const reason = item.reason ? humanizeReason(item.reason) : "";
-  if (reason) return reason;
 
   // Never infer a data problem from an unknown backend code. Keep the
   // internal identifier out of the UI and give the operator a safe next step.

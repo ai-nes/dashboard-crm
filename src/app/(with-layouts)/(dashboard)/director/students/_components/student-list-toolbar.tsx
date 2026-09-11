@@ -17,11 +17,13 @@ import {
   SelectValue,
 } from "@/components/tailgrids/core/select";
 import { useStudentSchoolFieldOptions } from "@/hooks/use-student-school-field-options";
+import type { LeadSaleCampaign } from "@/services/api/lead-sale";
 import type {
   StudentAssignmentStatus,
   StudentStatus,
 } from "@/services/api/students/types";
 
+import CampaignFilter from "../../leads/_components/campaign-filter";
 import { studentStatusLabel, studentStatusOptions } from "./student-status";
 import { getSouthernProvinceOptions } from "./student-province-options";
 
@@ -30,11 +32,16 @@ interface StudentListToolbarProps {
   studentStatus: StudentStatus | "all";
   province: string;
   assignmentStatus: StudentAssignmentStatus | "all";
+  campaign: string;
+  campaigns: LeadSaleCampaign[];
+  campaignLoading: boolean;
+  campaignError?: string;
   resultCount: number;
   onQueryChange: (value: string) => void;
   onStatusChange: (value: StudentStatus | "all") => void;
   onProvinceChange: (value: string) => void;
   onAssignmentStatusChange: (value: StudentAssignmentStatus | "all") => void;
+  onCampaignChange: (value: string) => void;
   onReset: () => void;
 }
 
@@ -48,18 +55,24 @@ export default function StudentListToolbar({
   studentStatus,
   province,
   assignmentStatus,
+  campaign,
+  campaigns,
+  campaignLoading,
+  campaignError,
   resultCount,
   onQueryChange,
   onStatusChange,
   onProvinceChange,
   onAssignmentStatusChange,
+  onCampaignChange,
   onReset,
 }: StudentListToolbarProps) {
   const hasFilter =
     query.trim().length > 0 ||
     studentStatus !== "all" ||
     province !== "all" ||
-    assignmentStatus !== "all";
+    assignmentStatus !== "all" ||
+    campaign !== "";
   const provinceOptionsQuery = useStudentSchoolFieldOptions({
     doctype: "CRM Lead",
     fieldname: "province",
@@ -185,6 +198,18 @@ export default function StudentListToolbar({
           )}
         </div>
       </div>
+
+      <CampaignFilter
+        value={campaign}
+        campaigns={campaigns}
+        isLoading={campaignLoading}
+        onChange={onCampaignChange}
+      />
+      {campaignError ? (
+        <p className="text-xs text-error-600" role="status">
+          Không thể tải danh sách campaign để lọc.
+        </p>
+      ) : null}
     </div>
   );
 }
