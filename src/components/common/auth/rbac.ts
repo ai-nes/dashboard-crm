@@ -132,6 +132,11 @@ const CRM_RULES_ADMIN_ROLES = [
   "Administrator",
 ] as const satisfies readonly DashboardRole[];
 
+const MESSAGE_TEMPLATE_ADMIN_ROLES = [
+  "System Manager",
+  "Administrator",
+] as const satisfies readonly DashboardRole[];
+
 const SEGMENTS_ADMIN_ROLES = [
   "System Manager",
 ] as const satisfies readonly DashboardRole[];
@@ -225,7 +230,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/lead-sale", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/lead-sale/segments", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/lead-sale/message-template", roles: MESSAGE_CONTENT_ROLES },
-  { path: "/lead-sale/snippest", roles: MESSAGE_CONTENT_ROLES },
+  { path: "/lead-sale/snippest", roles: DASHBOARD_ROLES },
   {
     path: "/lead-sale/next-best-action",
     roles: ROLE_ROUTE_ROLES["lead-sale"],
@@ -271,6 +276,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
     roles: NBA_ACTIONS_READ_ROLES,
   },
   { path: "/director/admin/rules-config", roles: CRM_RULES_ADMIN_ROLES },
+  { path: "/director/admin/message-templates", roles: MESSAGE_TEMPLATE_ADMIN_ROLES },
   { path: "/director/admin/segments", roles: SEGMENTS_ADMIN_ROLES },
   { path: "/director/admin/student-config", roles: SEGMENTS_ADMIN_ROLES },
   {

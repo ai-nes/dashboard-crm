@@ -5,7 +5,7 @@ import {Trash1} from '@tailgrids/icons'
 import {Badge} from '@/components/tailgrids/core/badge'
 import {Button} from '@/components/tailgrids/core/button'
 import {Input} from '@/components/tailgrids/core/input'
-import type {AdmissionDocumentTypeOption} from '@/services/api/admission-profile-catalog'
+import type {AdmissionDocumentTypeOption, AdmissionMethodOption} from '@/services/api/admission-profile-catalog'
 
 import {AdmissionProfileTemplateDocumentDetailPage} from './admission-profile-template-document-detail-page'
 import {
@@ -18,6 +18,7 @@ import {
 export function AdmissionProfileTemplateDocuments({
   requirements,
   documentTypes,
+  admissionMethods,
   isSaving,
   selectedGroup,
   documentSearch,
@@ -32,6 +33,7 @@ export function AdmissionProfileTemplateDocuments({
 }: {
   requirements: RequirementForm[]
   documentTypes: AdmissionDocumentTypeOption[]
+  admissionMethods: AdmissionMethodOption[]
   isSaving: boolean
   selectedGroup: string
   documentSearch: string
@@ -65,6 +67,7 @@ export function AdmissionProfileTemplateDocuments({
       <AdmissionProfileTemplateDocumentDetailPage
         requirement={selectedRequirement}
         documentTypes={documentTypes}
+        admissionMethods={admissionMethods}
         isSaving={isSaving}
         onBack={onCloseDetail}
         onChange={(patch) => onRequirementsChange(updateRequirement(requirements, selectedIndex, patch))}

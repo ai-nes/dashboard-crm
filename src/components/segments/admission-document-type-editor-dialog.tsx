@@ -30,6 +30,8 @@ import {
 import type {AdmissionDocumentTypeOption, AdmissionDocumentTypeStatus} from '@/services/api/admission-profile-catalog'
 import {Button} from '@/components/tailgrids/core/button'
 
+import {SPECIAL_PROFILE_CONDITION_OPTIONS, includeCurrentOption} from './admission-profile-template-editor-types'
+
 const CATEGORY_OPTIONS = [
   {value: 'identity', label: 'Giấy tờ định danh'},
   {value: 'education', label: 'Học tập'},
@@ -75,6 +77,7 @@ export function AdmissionDocumentTypeEditorDialog({
   const createMutation = useCreateAdmissionDocumentTypeMutation()
   const updateMutation = useUpdateAdmissionDocumentTypeMutation()
   const isSaving = createMutation.isPending || updateMutation.isPending
+  const conditionOptions = includeCurrentOption(SPECIAL_PROFILE_CONDITION_OPTIONS, form.conditionalKey)
 
   const setField = <K extends keyof DocumentTypeForm>(field: K, value: DocumentTypeForm[K]) => {
     setForm((current) => ({...current, [field]: value}))
@@ -187,16 +190,28 @@ export function AdmissionDocumentTypeEditorDialog({
                   </SelectContent>
                 </Select>
               </label>
-              <label className="block space-y-1.5">
+              <div className="block space-y-1.5">
                 <span className="text-sm font-medium text-input-label-text-color">Điều kiện áp dụng</span>
-                <Input
+                <Select
                   value={form.conditionalKey}
-                  onChange={(event) => setField('conditionalKey', event.target.value)}
-                  disabled={isSaving}
-                  placeholder="Ví dụ: scholarship"
-                  className="h-10 w-full"
-                />
-              </label>
+                  onChange={(value) => setField('conditionalKey', String(value))}
+                  isDisabled={isSaving}
+                  aria-label="Điều kiện áp dụng"
+                  className="w-full gap-0"
+                >
+                  <SelectTrigger className="h-10 w-full justify-between">
+                    <SelectValue />
+                    <SelectIndicator />
+                  </SelectTrigger>
+                  <SelectContent className="min-w-(--trigger-width)">
+                    {conditionOptions.map((option) => (
+                      <SelectItem key={option.value} id={option.value} textValue={option.label}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <label className="block space-y-1.5">
               <span className="text-sm font-medium text-input-label-text-color">Mô tả</span>
