@@ -15,6 +15,11 @@ export default function AdminPage() {
       description="Quản lý cấu hình nền tảng, chất lượng dữ liệu và các chính sách hỗ trợ vận hành tuyển sinh."
       links={[
         {
+          label: 'Quản lý người dùng',
+          description: 'Xem danh sách người dùng CRM, đổi vai trò hoặc gỡ quyền truy cập.',
+          href: '/admin/users',
+        },
+        {
           label: 'Cấu hình hành động NBA',
           description: 'Thiết lập nhóm hành động, khung thời gian và quy tắc đề xuất.',
           href: '/director/admin/nba-actions',
