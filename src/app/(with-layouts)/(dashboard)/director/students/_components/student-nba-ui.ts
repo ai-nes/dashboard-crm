@@ -55,6 +55,15 @@ export const NBA_PRIORITY_COLORS: Record<
   low: "gray",
 };
 
+export function formatNbaEvaluationFailure(
+  reason: string | null | undefined,
+): string {
+  const normalized = reason?.trim();
+  return normalized
+    ? `Đánh giá NBA chưa hoàn tất: ${normalized}. Vui lòng thử lại.`
+    : "Đánh giá NBA chưa hoàn tất. Vui lòng thử lại.";
+}
+
 export interface DecisionFields {
   reason?: string;
   revisitAt?: string;

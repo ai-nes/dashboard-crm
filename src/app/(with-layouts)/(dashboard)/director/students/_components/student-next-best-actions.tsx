@@ -25,6 +25,7 @@ import StudentConsultationWorkspace from "./student-consultation-workspace";
 import {
   NBA_OPERATION_LABELS,
   type DecisionFields,
+  formatNbaEvaluationFailure,
   toIsoDateTime,
 } from "./student-nba-ui";
 
@@ -59,6 +60,9 @@ export default function StudentNextBestActions({
   const [postRecommendations, setPostRecommendations] = useState<
     NbaRecommendation[] | null
   >(null);
+  const [evaluationFailure, setEvaluationFailure] = useState<string | null>(
+    null,
+  );
   const [idempotencyKeys, setIdempotencyKeys] = useState<
     Record<string, string>
   >({});
@@ -117,6 +121,15 @@ export default function StudentNextBestActions({
 	const runNba = async () => {
 		try {
 			const result = await runMutation.mutateAsync({ studentId });
+			const normalizedStatus = result.status.trim().toLowerCase();
+			if (normalizedStatus === "failed" || normalizedStatus === "dead_lettered") {
+				const message = formatNbaEvaluationFailure(result.terminalReason);
+				setEvaluationFailure(message);
+				setPostRecommendations(null);
+				toast.error(message);
+				return;
+			}
+			setEvaluationFailure(null);
 			const refreshed = await query.refetch();
 			// The run endpoint is already scoped to this one requested student. Its
 			// recommendation target uses the canonical CRM Student id, which may
@@ -285,7 +298,28 @@ export default function StudentNextBestActions({
           </div>
         )}
 
-        {!query.isLoading && !query.isError && actions.length === 0 && (
+        {!query.isLoading && !query.isError && evaluationFailure && (
+          <div
+            className="mt-5 flex items-start gap-2.5 rounded-lg border border-error-200 bg-badge-error-background p-3"
+            role="alert"
+          >
+            <ErrorCircle1
+              size={16}
+              className="mt-0.5 shrink-0 text-error-600"
+              aria-hidden="true"
+            />
+            <div>
+              <p className="text-sm font-semibold text-text-primary">
+                Không thể tạo đề xuất NBA
+              </p>
+              <p className="mt-1 text-xs leading-5 text-text-secondary">
+                {evaluationFailure}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!query.isLoading && !query.isError && !evaluationFailure && actions.length === 0 && (
           <div
             className="mt-8 flex flex-col items-center px-4 py-8 text-center"
             role="status"
