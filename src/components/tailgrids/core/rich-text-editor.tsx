@@ -1,8 +1,14 @@
 "use client";
 
-import { FileImage, Link1AngularRight, Paperclip2, SparkleFill } from "@tailgrids/icons";
+import {
+  ChevronDown,
+  FileImage,
+  Link1AngularRight,
+  Paperclip2,
+  SparkleFill,
+} from "@tailgrids/icons";
 import Placeholder from "@tiptap/extension-placeholder";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, type UseEditorOptions } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
@@ -11,11 +17,19 @@ import { cn } from "@/utils/cn";
 
 import { Button } from "./button";
 
+export type RichTextEditorExtension = NonNullable<UseEditorOptions["extensions"]>[number];
+type RichTextEditorInstance = NonNullable<ReturnType<typeof useEditor>>;
+
 export interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
   className?: string;
+  showInsertButton?: boolean;
+  onInsert?: () => void;
+  renderInsertControl?: (onInsertToken: (token: string) => void) => ReactNode;
+  extensions?: RichTextEditorExtension[];
+  onInsertToken?: (editor: RichTextEditorInstance, token: string) => void;
 }
 
 interface ToolbarButtonProps {
@@ -43,11 +57,22 @@ function ToolbarButton({ active, onPress, label, children }: ToolbarButtonProps)
   );
 }
 
-export function RichTextEditor({ value, onChange, placeholder, className }: RichTextEditorProps) {
+export function RichTextEditor({
+  value,
+  onChange,
+  placeholder,
+  className,
+  showInsertButton = false,
+  onInsert,
+  renderInsertControl,
+  extensions = [],
+  onInsertToken,
+}: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder: placeholder ?? "Nhập nội dung..." }),
+      ...extensions,
     ],
     content: value,
     immediatelyRender: false,
@@ -74,6 +99,14 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
   };
 
   const handleUnsupported = () => toast.info("Tính năng này đang được phát triển.");
+  const handleInsertToken = (token: string) => {
+    if (onInsertToken) {
+      onInsertToken(editor, token);
+      return;
+    }
+
+    editor.chain().focus().insertContent(`{{${token}}}`).run();
+  };
 
   return (
     <div className={cn("rounded-lg border border-card-border bg-input-background", className)}>
@@ -119,6 +152,20 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
         <ToolbarButton label="Trợ lý AI" active={false} onPress={handleUnsupported}>
           <SparkleFill size={16} />
         </ToolbarButton>
+        {renderInsertControl
+          ? renderInsertControl(handleInsertToken)
+          : showInsertButton && (
+              <Button
+                variant="ghost"
+                size="xs"
+                aria-label="Chèn nội dung"
+                onPress={onInsert}
+                className="gap-1 px-1.5 text-sm font-semibold text-text-secondary"
+              >
+                Chèn
+                <ChevronDown size={14} aria-hidden="true" />
+              </Button>
+            )}
       </div>
       <EditorContent editor={editor} />
     </div>
