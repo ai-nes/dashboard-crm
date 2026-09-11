@@ -5,6 +5,13 @@ import { getEffectiveDashboardRoles } from "./rbac";
 export type CrmRecordScope = "assigned" | "team" | "all" | "none";
 export type CrmPermissionAction = "create" | "read" | "update" | "delete";
 
+export function hasCrmCapability(
+  user: CurrentUser | null | undefined,
+  capability: string,
+): boolean {
+  return user?.crm_capabilities?.includes(capability) ?? false;
+}
+
 export interface CrmResourcePermissions {
   /** Scope used for mutations on an existing record. */
   scope: CrmRecordScope;
