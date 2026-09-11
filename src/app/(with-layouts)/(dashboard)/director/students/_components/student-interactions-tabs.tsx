@@ -15,10 +15,17 @@ interface StudentInteractionsTabsProps {
   messages: StudentZaloMessage[];
 }
 
+export function getDefaultInteractionTab(
+  calls: StudentCallRecord[],
+): "zalo" | "calls" {
+  return calls.length > 0 ? "calls" : "zalo";
+}
+
 export default function StudentInteractionsTabs({
   calls,
   messages,
 }: StudentInteractionsTabsProps) {
+  const defaultSelectedKey = getDefaultInteractionTab(calls);
   const interactionTabs: DetailTabItem[] = [
     {
       id: "zalo",
@@ -35,7 +42,8 @@ export default function StudentInteractionsTabs({
   return (
     <DetailTabs
       ariaLabel="Các phần trong tương tác"
-      defaultSelectedKey="zalo"
+      key={defaultSelectedKey}
+      defaultSelectedKey={defaultSelectedKey}
       isSticky={false}
       tabs={interactionTabs}
     />
