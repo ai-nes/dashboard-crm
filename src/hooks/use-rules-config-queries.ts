@@ -12,7 +12,9 @@ import {
   archiveCrmRuleVersion,
   cloneCrmRuleVersion,
   createCrmRule,
+  createCrmRuleGroup,
   createCrmRuleVersion,
+  deleteCrmRuleGroup,
   deleteCrmRule,
   getCrmRule,
   getCrmRuleVersion,
@@ -20,7 +22,8 @@ import {
   listCrmRuleGroups,
   listCrmRules,
   listCrmRuleVersions,
-  publishCrmRuleVersion,
+  setCrmRuleEnabled,
+  updateCrmRuleGroup,
   updateCrmRule,
   updateCrmRuleVersion,
   CrmRulesApiError,
@@ -30,6 +33,9 @@ import {
   type CrmRule,
   type CrmRuleFactCatalog,
   type CrmRuleGroupSummary,
+  type CrmRuleGroupPayload,
+  type UpdateCrmRuleGroupPayload,
+  type DeleteCrmRuleGroupPayload,
   type CrmRuleVersionDetail,
   type CrmRuleVersionPayload,
   type DeleteCrmRulePayload,
@@ -37,6 +43,7 @@ import {
   type ListCrmRulesResponse,
   type ListCrmRuleVersionsParams,
   type ListCrmRuleVersionsResponse,
+  type SetCrmRuleEnabledPayload,
   type UpdateCrmRulePayload,
   type UpdateCrmRuleVersionPayload,
 } from "@/services/api/rules-config";
@@ -169,8 +176,49 @@ export function useCloneCrmRuleVersionMutation() {
 export function usePublishCrmRuleVersionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, expectedRevision }: { name: string; expectedRevision: number }) => publishCrmRuleVersion(name, expectedRevision),
+    mutationFn: ({ name, expectedRevision, expectedSettingsRevision }: { name: string; expectedRevision: number; expectedSettingsRevision?: number }) => updateCrmRuleVersion({
+      name,
+      expectedRevision,
+      status: "active",
+      expectedSettingsRevision,
+    }),
     onSuccess: () => invalidateRules(queryClient),
+    onError: (error) => refreshAfterStale(queryClient, error),
+  });
+}
+
+export function useCreateCrmRuleGroupMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CrmRuleGroupPayload) => createCrmRuleGroup(payload),
+    onSuccess: (_group, payload) => {
+      void queryClient.invalidateQueries({ queryKey: crmRulesKeys.groups(payload.versionName) });
+      return invalidateRules(queryClient);
+    },
+    onError: (error) => refreshAfterStale(queryClient, error),
+  });
+}
+
+export function useUpdateCrmRuleGroupMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateCrmRuleGroupPayload) => updateCrmRuleGroup(payload),
+    onSuccess: (_group, payload) => {
+      void queryClient.invalidateQueries({ queryKey: crmRulesKeys.groups(payload.versionName) });
+      return invalidateRules(queryClient);
+    },
+    onError: (error) => refreshAfterStale(queryClient, error),
+  });
+}
+
+export function useDeleteCrmRuleGroupMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: DeleteCrmRuleGroupPayload) => deleteCrmRuleGroup(payload),
+    onSuccess: (_result, payload) => {
+      void queryClient.invalidateQueries({ queryKey: crmRulesKeys.groups(payload.versionName) });
+      return invalidateRules(queryClient);
+    },
     onError: (error) => refreshAfterStale(queryClient, error),
   });
 }
@@ -210,6 +258,18 @@ export function useDeleteCrmRuleMutation() {
   return useMutation({
     mutationFn: (payload: DeleteCrmRulePayload) => deleteCrmRule(payload),
     onSuccess: () => invalidateRules(queryClient),
+    onError: (error) => refreshAfterStale(queryClient, error),
+  });
+}
+
+export function useSetCrmRuleEnabledMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: SetCrmRuleEnabledPayload) => setCrmRuleEnabled(payload),
+    onSuccess: (rule) => {
+      queryClient.setQueryData(crmRulesKeys.detail(rule.name), rule);
+      return invalidateRules(queryClient);
+    },
     onError: (error) => refreshAfterStale(queryClient, error),
   });
 }

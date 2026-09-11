@@ -21,6 +21,7 @@ import {
   useDeleteCrmRuleMutation,
   useUpdateCrmRuleMutation,
 } from "@/hooks/use-rules-config-queries";
+import { useNbaActionsQuery } from "@/hooks/use-nba-actions-queries";
 import type {
   CrmRule,
   CrmRuleCondition,
@@ -63,6 +64,8 @@ function defaultMetadata(ruleGroup: string): MetadataForm {
     priority: 100,
     action: "",
     targetActions: [],
+    businessReasonTemplate: "{action} is governed by {rule_name}.",
+    salesNextStepTemplate: "Chưa có bước tiếp theo được xác định.",
   };
 }
 
@@ -78,6 +81,8 @@ function metadataFromRule(rule: CrmRule): MetadataForm {
     priority: rule.priority,
     action: rule.action,
     targetActions: rule.targetActions,
+    businessReasonTemplate: rule.businessReasonTemplate,
+    salesNextStepTemplate: rule.salesNextStepTemplate,
   };
 }
 
@@ -106,6 +111,7 @@ export default function RuleBuilderPage({
   const detailQuery = useCrmRuleQuery(ruleName ?? "", { enabled: !isCreate && Boolean(ruleName) });
   const factsQuery = useCrmFactsQuery();
   const siblingRulesQuery = useCrmRulesQuery({ versionName, pageLength: 200 }, { enabled: Boolean(versionName) });
+  const actionCatalogQuery = useNbaActionsQuery({ pageLength: 100 });
   const createMutation = useCreateCrmRuleMutation();
   const updateMutation = useUpdateCrmRuleMutation();
   const deleteMutation = useDeleteCrmRuleMutation();
@@ -141,9 +147,10 @@ export default function RuleBuilderPage({
   }, [detailQuery.data, initialized, isCreate]);
 
   const facts = factsQuery.data?.facts ?? [];
-  const actionSuggestions = Array.from(
-    new Set((siblingRulesQuery.data?.rules ?? []).map((rule) => rule.action).filter(Boolean)),
-  ).sort();
+  const actionSuggestions = Array.from(new Set([
+    ...(actionCatalogQuery.data?.actions ?? []).map((action) => action.code),
+    ...(siblingRulesQuery.data?.rules ?? []).map((rule) => rule.action).filter(Boolean),
+  ])).sort();
   const version = versionQuery.data;
   const isBusy = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
   const editable = canEdit && version?.status === "draft" && (isCreate || sourceRule?.status === "draft");
@@ -367,9 +374,9 @@ export default function RuleBuilderPage({
                   onChange={(event) => updateForm("featureScope", event.target.value as CrmRuleFeatureScope)}
                 >
                   <option value="all">all</option>
-                  <option value="intent">intent</option>
+                  <option value="conversation_analysis">conversation_analysis</option>
                   <option value="student_360">student_360</option>
-                  <option value="scoring">scoring</option>
+                  <option value="school_360">school_360</option>
                   <option value="nba">nba</option>
                   <option value="copilot">copilot</option>
                 </select>
@@ -397,7 +404,7 @@ export default function RuleBuilderPage({
                   value={form.gateOutcome}
                   onChange={(event) => updateForm("gateOutcome", event.target.value as CrmRuleGateOutcome)}
                 >
-                  {["PASS", "WAIT", "STOP"].map((value) => (
+                  {["PASS", "WAIT", "STOP", "DIRECT", "ESCALATE"].map((value) => (
                     <option key={value} value={value}>
                       {value}
                     </option>
@@ -446,6 +453,28 @@ export default function RuleBuilderPage({
                   Chọn từ danh mục CRM Action thật (dùng chung với NBA) để tránh gõ sai mã.
                 </p>
               </div>
+              <label className="space-y-1.5 text-sm font-medium text-title-50 sm:col-span-2">
+                Lý do nghiệp vụ
+                <textarea
+                  className={textAreaClass}
+                  disabled={!editable}
+                  value={form.businessReasonTemplate ?? ""}
+                  onChange={(event) => updateForm("businessReasonTemplate", event.target.value)}
+                  placeholder="{action} is governed by {rule_name}."
+                  maxLength={240}
+                />
+              </label>
+              <label className="space-y-1.5 text-sm font-medium text-title-50 sm:col-span-2">
+                Bước tiếp theo cho tư vấn viên
+                <textarea
+                  className={textAreaClass}
+                  disabled={!editable}
+                  value={form.salesNextStepTemplate ?? ""}
+                  onChange={(event) => updateForm("salesNextStepTemplate", event.target.value)}
+                  placeholder="Gọi lại để xác nhận nhu cầu nhập học."
+                  maxLength={240}
+                />
+              </label>
             </div>
           </section>
 

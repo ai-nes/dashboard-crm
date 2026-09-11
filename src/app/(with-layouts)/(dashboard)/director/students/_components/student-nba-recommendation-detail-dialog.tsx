@@ -79,6 +79,35 @@ export default function StudentNbaRecommendationDetailDialog({
               </div>
             )}
 
+            {recommendation.ruleDecision ? (
+              <div className="rounded-lg border border-card-border bg-background-gray-secondary/60 p-4">
+                <p className="text-xs font-semibold text-text-tertiary">Căn cứ Rule Engine</p>
+                <p className="mt-1.5 text-sm leading-6 text-text-primary">
+                  {recommendation.ruleDecision.businessReason ?? "Đã nhận quyết định từ Rule Engine."}
+                </p>
+                {recommendation.ruleDecision.salesNextStep ? (
+                  <p className="mt-2 text-sm leading-6 text-text-primary">
+                    <span className="font-semibold">Bước tiếp theo: </span>
+                    {recommendation.ruleDecision.salesNextStep}
+                  </p>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-text-tertiary">
+                  <span>Outcome: {recommendation.ruleDecision.outcome}</span>
+                  {recommendation.ruleDecision.ruleVersion ? <span>Version: {recommendation.ruleDecision.ruleVersion}</span> : null}
+                </div>
+                {recommendation.ruleDecision.matchedRuleIds.length > 0 ? (
+                  <p className="mt-2 text-xs text-text-secondary">
+                    Rule khớp: {recommendation.ruleDecision.matchedRuleIds.slice(0, 5).join(", ")}
+                  </p>
+                ) : null}
+                {recommendation.ruleDecision.reasonCodes.length > 0 ? (
+                  <p className="mt-1 text-xs text-text-secondary">
+                    Mã lý do: {recommendation.ruleDecision.reasonCodes.slice(0, 5).join(", ")}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="grid gap-4 border-t border-card-border pt-4 sm:grid-cols-2">
               <TimingField
                 label="Thực hiện từ"

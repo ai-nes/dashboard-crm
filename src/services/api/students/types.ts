@@ -165,6 +165,7 @@ export interface StudentCallRecord {
   summaryStatus?: StudentCallSummaryStatus;
   transcript?: string | null;
   recordingUrl?: string;
+  interactionId?: string | null;
 }
 
 export interface StudentInteractionsResponse {

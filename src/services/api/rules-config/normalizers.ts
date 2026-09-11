@@ -3,6 +3,7 @@ import type {
   CrmRule,
   CrmRuleCondition,
   CrmRuleGroupSummary,
+  CrmRuleStatus,
   CrmRuleVersion,
   CrmRuleVersionDetail,
 } from "./types";
@@ -48,10 +49,16 @@ function jsonValue(value: unknown, fallback: unknown): unknown {
   }
 }
 
-const STATUSES = ["draft", "published", "archived"] as const;
-const SCOPES = ["all", "intent", "student_360", "scoring", "nba", "copilot"] as const;
+const STATUSES = ["draft", "testing", "active", "archived"] as const;
+const SCOPES = ["all", "conversation_analysis", "student_360", "school_360", "nba", "copilot"] as const;
 const TYPES = ["GUARDRAIL", "ELIGIBILITY", "PREREQUISITE", "MODIFIER", "RESOLUTION"] as const;
-const OUTCOMES = ["PASS", "WAIT", "STOP"] as const;
+const OUTCOMES = ["PASS", "WAIT", "STOP", "DIRECT", "ESCALATE"] as const;
+
+function normalizeStatus(value: unknown): CrmRuleStatus {
+  if (value === "published") return "active";
+  if (value === "superseded") return "archived";
+  return enumValue(value, STATUSES, "draft");
+}
 
 export function unwrapMethodPayload(value: unknown): unknown {
   const root = asRecord(value);
@@ -91,25 +98,30 @@ export function normalizeRule(value: unknown): CrmRule {
     versionId: stringValue(object.version_id ?? object.versionId ?? object.rule_version),
     ruleVersion: stringValue(object.rule_version ?? object.versionId ?? object.version_id),
     ruleId,
-    ruleGroup: stringValue(object.rule_group ?? object.ruleGroup),
+    ruleGroup: stringValue(object.rule_group ?? object.ruleGroup ?? object.group_code),
     ruleName: stringValue(object.rule_name ?? object.ruleName, ruleId),
     description: nullableString(object.description),
     featureScope: enumValue(object.feature_scope ?? object.featureScope, SCOPES, "all"),
     ruleType: enumValue(object.rule_type ?? object.ruleType, TYPES, "GUARDRAIL"),
-    gateOutcome: enumValue(object.gate_outcome ?? object.gateOutcome, OUTCOMES, "PASS"),
-    priority: numberValue(object.priority),
+    gateOutcome: enumValue(object.gate_outcome ?? object.gateOutcome ?? object.outcome, OUTCOMES, "PASS"),
+    priority: numberValue(object.priority ?? object.precedence),
     action: stringValue(object.action),
     targetActions: Array.isArray(targetActions)
       ? targetActions.filter((item): item is string => typeof item === "string")
       : [],
-    condition: normalizeCondition(object.condition),
-    status: enumValue(object.status, STATUSES, "draft"),
+    condition: normalizeCondition(object.condition ?? object.conditions),
+    businessReasonTemplate: stringValue(
+      object.business_reason_template ?? object.businessReasonTemplate,
+      "{action} is governed by {rule_name}.",
+    ),
+    salesNextStepTemplate: stringValue(
+      object.sales_next_step_template ?? object.salesNextStepTemplate,
+      "Chưa có bước tiếp theo được xác định.",
+    ),
+    status: normalizeStatus(object.status),
     enabled: booleanValue(object.enabled),
     revision: numberValue(object.revision),
     schemaVersion: stringValue(object.schema_version ?? object.schemaVersion, "crm-rule-v1"),
-    publishedAt: nullableString(object.published_at ?? object.publishedAt),
-    publishedBy: nullableString(object.published_by ?? object.publishedBy),
-    archiveReason: nullableString(object.archive_reason ?? object.archiveReason),
     modified: nullableString(object.modified),
   };
 }
@@ -125,15 +137,18 @@ export function normalizeRuleVersion(value: unknown): CrmRuleVersion {
     versionId,
     versionName: stringValue(object.version_name ?? object.versionName, versionId),
     description: nullableString(object.description),
-    status: enumValue(object.status, STATUSES, "draft"),
+    status: normalizeStatus(object.status),
     isActive: booleanValue(object.is_active ?? object.isActive),
     revision: numberValue(object.revision),
     schemaVersion: stringValue(object.schema_version ?? object.schemaVersion, "crm-rule-v1"),
     rulesetRevision: nullableString(object.ruleset_revision ?? object.rulesetRevision),
     rulesetDigest: nullableString(object.ruleset_digest ?? object.rulesetDigest),
-    publishedAt: nullableString(object.published_at ?? object.publishedAt),
-    publishedBy: nullableString(object.published_by ?? object.publishedBy),
-    archiveReason: nullableString(object.archive_reason ?? object.archiveReason),
+    activatedAt: nullableString(object.activated_at ?? object.activatedAt ?? object.published_at ?? object.publishedAt),
+    activatedBy: nullableString(object.activated_by ?? object.activatedBy ?? object.published_by ?? object.publishedBy),
+    archivedAt: nullableString(object.archived_at ?? object.archivedAt),
+    archivedBy: nullableString(object.archived_by ?? object.archivedBy),
+    changeNote: nullableString(object.change_note ?? object.changeNote),
+    settingsRevision: numberValue(object.settings_revision ?? object.settingsRevision),
     rulesCount: numberValue(object.rules_count ?? object.rulesCount),
     creation: nullableString(object.creation),
     modified: nullableString(object.modified),
@@ -143,11 +158,14 @@ export function normalizeRuleVersion(value: unknown): CrmRuleVersion {
 export function normalizeRuleGroup(value: unknown): CrmRuleGroupSummary {
   const object = asRecord(value);
   if (!object) throw new Error("CRM Rule Group must be an object");
-  const groupId = stringValue(object.group_id ?? object.groupId);
+  const groupId = stringValue(object.code ?? object.group_id ?? object.groupId);
   return {
     groupId,
     label: stringValue(object.label, groupId),
-    count: numberValue(object.count),
+    count: numberValue(object.rule_count ?? object.count),
+    enabled: booleanValue(object.enabled, true),
+    description: nullableString(object.description),
+    sortOrder: numberValue(object.sort_order ?? object.sortOrder),
   };
 }
 

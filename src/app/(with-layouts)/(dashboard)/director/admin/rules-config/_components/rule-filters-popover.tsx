@@ -17,9 +17,9 @@ import {
 import type { CrmRuleFeatureScope, CrmRuleGateOutcome, CrmRuleType } from "@/services/api/rules-config";
 
 const FEATURE_SCOPE_OPTIONS: Array<{ value: CrmRuleFeatureScope; label: string }> = [
-  { value: "intent", label: "Intent" },
+  { value: "conversation_analysis", label: "Conversation analysis" },
   { value: "student_360", label: "Student 360" },
-  { value: "scoring", label: "Scoring" },
+  { value: "school_360", label: "School 360" },
   { value: "nba", label: "NBA" },
   { value: "copilot", label: "Copilot" },
 ];
@@ -36,6 +36,8 @@ const GATE_OUTCOME_OPTIONS: Array<{ value: CrmRuleGateOutcome; label: string }> 
   { value: "PASS", label: "PASS" },
   { value: "WAIT", label: "WAIT" },
   { value: "STOP", label: "STOP" },
+  { value: "DIRECT", label: "DIRECT" },
+  { value: "ESCALATE", label: "ESCALATE" },
 ];
 
 interface RuleFiltersPopoverProps {

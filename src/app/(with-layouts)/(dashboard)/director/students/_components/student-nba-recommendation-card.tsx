@@ -108,6 +108,15 @@ export default function StudentNbaRecommendationCard({
           </div>
         )}
 
+        {recommendation.ruleDecision?.salesNextStep || recommendation.explanation?.sales_next_step ? (
+          <div className="mt-3 rounded-lg border border-primary-500/20 bg-badge-primary-background px-3 py-2.5">
+            <p className="text-xs font-semibold text-primary-600 dark:text-primary-300">Bước tiếp theo</p>
+            <p className="mt-1 text-sm leading-5 text-text-primary">
+              {recommendation.ruleDecision?.salesNextStep ?? recommendation.explanation?.sales_next_step}
+            </p>
+          </div>
+        ) : null}
+
         {recommendation.context.length > 0 && (
           <div className="mt-3 border-t border-card-border pt-3">
             <p className="text-xs font-semibold text-text-tertiary">Bối cảnh</p>

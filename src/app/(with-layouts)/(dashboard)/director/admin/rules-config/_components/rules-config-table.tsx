@@ -4,6 +4,7 @@ import { Trash1 } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
+import { Toggle } from "@/components/tailgrids/core/toggle";
 import {
   TableBody,
   TableCell,
@@ -20,9 +21,11 @@ interface RulesConfigTableProps {
   total: number;
   isLoading: boolean;
   canDelete: boolean;
+  canToggle?: boolean;
   isDeleteDisabled?: boolean;
   onSelect: (rule: CrmRule) => void;
   onDelete: (rule: CrmRule) => void;
+  onToggle?: (rule: CrmRule) => void;
 }
 
 export default function RulesConfigTable({
@@ -30,11 +33,13 @@ export default function RulesConfigTable({
   total,
   isLoading,
   canDelete,
+  canToggle = false,
   isDeleteDisabled = false,
   onSelect,
   onDelete,
+  onToggle,
 }: RulesConfigTableProps) {
-  const columnCount = canDelete ? 7 : 6;
+  const columnCount = 6 + (canToggle ? 1 : 0) + (canDelete ? 1 : 0);
 
   return (
     <TableRoot fullBleed className="border-0" aria-label="Danh sách Rule">
@@ -58,6 +63,11 @@ export default function RulesConfigTable({
           <TableHead scope="col" className="whitespace-nowrap">
             Gate
           </TableHead>
+          {canToggle ? (
+            <TableHead scope="col" className="whitespace-nowrap">
+              Bật Rule
+            </TableHead>
+          ) : null}
           {canDelete ? (
             <TableHead scope="col" className="whitespace-nowrap">
               Hành động
@@ -119,6 +129,17 @@ export default function RulesConfigTable({
                 <TableCell className="py-5 text-sm font-normal">
                   <CrmRuleOutcomeBadge outcome={rule.gateOutcome} />
                 </TableCell>
+                {canToggle ? (
+                  <TableCell className="py-5 text-sm" onClick={(event) => event.stopPropagation()}>
+                    <Toggle
+                      size="sm"
+                      aria-label={`${rule.enabled ? "Tắt" : "Bật"} Rule ${rule.ruleName}`}
+                      checked={rule.enabled}
+                      disabled={!onToggle || isDeleteDisabled}
+                      onChange={() => onToggle?.(rule)}
+                    />
+                  </TableCell>
+                ) : null}
                 {canDelete ? (
                   <TableCell className="py-5 text-sm">
                     <div

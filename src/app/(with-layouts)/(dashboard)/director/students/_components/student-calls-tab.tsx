@@ -24,6 +24,7 @@ import {
   type ActivityTimeFilter,
 } from "./student-activity-utils";
 import StudentCallRecordingPlayer from "./student-call-recording-player";
+import StudentInteractionDetail from "./student-interaction-detail";
 
 interface StudentCallsTabProps {
   calls: StudentCallRecord[];
@@ -253,6 +254,12 @@ export function StudentCallDetails({
             Đang chờ phân tích tự động…
           </span>
         </div>
+      ) : null}
+
+      {call.interactionId ? (
+        <section className="border-t border-card-border pt-4" aria-label="Phân tích CRM Interaction">
+          <StudentInteractionDetail interactionId={call.interactionId} />
+        </section>
       ) : null}
 
       <StudentCallRecordingPlayer call={call} />

@@ -1,9 +1,9 @@
-export type CrmRuleStatus = "draft" | "published" | "archived";
+export type CrmRuleStatus = "draft" | "testing" | "active" | "archived";
 export type CrmRuleFeatureScope =
   | "all"
-  | "intent"
+  | "conversation_analysis"
   | "student_360"
-  | "scoring"
+  | "school_360"
   | "nba"
   | "copilot";
 export type CrmRuleType =
@@ -12,7 +12,7 @@ export type CrmRuleType =
   | "PREREQUISITE"
   | "MODIFIER"
   | "RESOLUTION";
-export type CrmRuleGateOutcome = "PASS" | "WAIT" | "STOP";
+export type CrmRuleGateOutcome = "PASS" | "WAIT" | "STOP" | "DIRECT" | "ESCALATE";
 export type CrmRuleOperator =
   | "eq"
   | "neq"
@@ -69,13 +69,12 @@ export interface CrmRule {
   action: string;
   targetActions: string[];
   condition: CrmRuleCondition;
+  businessReasonTemplate: string;
+  salesNextStepTemplate: string;
   status: CrmRuleStatus;
   enabled: boolean;
   revision: number;
   schemaVersion: string;
-  publishedAt: string | null;
-  publishedBy: string | null;
-  archiveReason: string | null;
   modified: string | null;
 }
 
@@ -91,9 +90,12 @@ export interface CrmRuleVersion {
   schemaVersion: string;
   rulesetRevision: string | null;
   rulesetDigest: string | null;
-  publishedAt: string | null;
-  publishedBy: string | null;
-  archiveReason: string | null;
+  activatedAt: string | null;
+  activatedBy: string | null;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  changeNote: string | null;
+  settingsRevision: number;
   rulesCount: number;
   creation: string | null;
   modified: string | null;
@@ -103,6 +105,27 @@ export interface CrmRuleGroupSummary {
   groupId: string;
   label: string;
   count: number;
+  enabled?: boolean;
+  description?: string | null;
+  sortOrder?: number;
+}
+
+export interface CrmRuleGroupPayload {
+  versionName: string;
+  expectedVersionRevision: number;
+  code: string;
+  label?: string;
+  enabled?: boolean;
+  description?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateCrmRuleGroupPayload extends CrmRuleGroupPayload {}
+
+export interface DeleteCrmRuleGroupPayload {
+  versionName: string;
+  expectedVersionRevision: number;
+  code: string;
 }
 
 export interface CrmRuleVersionDetail extends CrmRuleVersion {
@@ -134,6 +157,9 @@ export interface UpdateCrmRuleVersionPayload {
   expectedRevision: number;
   versionName?: string;
   description?: string;
+  status?: CrmRuleStatus;
+  expectedSettingsRevision?: number;
+  changeNote?: string;
 }
 
 export interface CloneCrmRuleVersionPayload {
@@ -172,6 +198,8 @@ export interface CrmRulePayload {
   action: string;
   targetActions: string[];
   condition: CrmRuleCondition;
+  businessReasonTemplate?: string;
+  salesNextStepTemplate?: string;
 }
 
 export interface CreateCrmRulePayload extends CrmRulePayload {
@@ -187,6 +215,12 @@ export interface UpdateCrmRulePayload extends CrmRulePayload {
 export interface DeleteCrmRulePayload {
   name: string;
   expectedVersionRevision: number;
+}
+
+export interface SetCrmRuleEnabledPayload {
+  name: string;
+  expectedVersionRevision: number;
+  enabled: boolean;
 }
 
 export interface ArchiveCrmRuleVersionPayload {
