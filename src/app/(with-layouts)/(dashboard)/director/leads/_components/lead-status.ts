@@ -5,12 +5,14 @@ import type {
 
 export type LeadStageStatus =
   | "NEW"
+  | "PROCESSING"
   | "PROCESSED"
   | "ASSIGNED"
   | "CLOSED";
 
 export const leadStageStatusLabel: Record<LeadStageStatus, string> = {
   NEW: "Mới",
+  PROCESSING: "Đang xử lý",
   PROCESSED: "Đã xử lý",
   ASSIGNED: "Đã phân công",
   CLOSED: "Đã đóng",
@@ -21,6 +23,7 @@ export const leadStageStatusColor: Record<
   "primary" | "sky" | "violet" | "success"
 > = {
   NEW: "primary",
+  PROCESSING: "sky",
   PROCESSED: "sky",
   ASSIGNED: "violet",
   CLOSED: "success",
@@ -28,6 +31,7 @@ export const leadStageStatusColor: Record<
 
 export const leadStageStatusOptions: LeadStageStatus[] = [
   "NEW",
+  "PROCESSING",
   "PROCESSED",
   "ASSIGNED",
   "CLOSED",
@@ -40,6 +44,11 @@ export function normalizeLeadStageStatus(
   return leadStageStatusOptions.includes(candidate as LeadStageStatus)
     ? (candidate as LeadStageStatus)
     : null;
+}
+
+export function isLeadAssignableStatus(value: unknown): boolean {
+  const status = normalizeLeadStageStatus(value);
+  return status !== null && status !== "NEW" && status !== "CLOSED";
 }
 
 export type LeadResultStatus = LeadResolution;

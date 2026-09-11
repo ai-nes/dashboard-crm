@@ -23,7 +23,6 @@ import {
   TooltipTrigger,
 } from "@/components/tailgrids/core/tooltip";
 import {
-  useArchiveCrmRuleVersionMutation,
   useCloneCrmRuleVersionMutation,
   useCreateCrmRuleVersionMutation,
   usePublishCrmRuleVersionMutation,
@@ -69,7 +68,6 @@ export default function RuleVersionActions({
   const cloneMutation = useCloneCrmRuleVersionMutation();
   const updateMutation = useUpdateCrmRuleVersionMutation();
   const publishMutation = usePublishCrmRuleVersionMutation();
-  const archiveMutation = useArchiveCrmRuleVersionMutation();
 
   const openEdit = () => {
     if (!version) return;
@@ -83,8 +81,7 @@ export default function RuleVersionActions({
     createMutation.isPending ||
     cloneMutation.isPending ||
     updateMutation.isPending ||
-    publishMutation.isPending ||
-    archiveMutation.isPending;
+    publishMutation.isPending;
   const openCreateForm = () => {
     setMode("create");
     setVersionId("");
@@ -142,53 +139,34 @@ export default function RuleVersionActions({
     }
   };
 
-  const publish = async () => {
+  const changeStatus = async (status: "testing" | "draft" | "active") => {
     if (!version) return;
     try {
-      const updated = await publishMutation.mutateAsync({
-        name: version.name,
-        expectedRevision: version.revision,
-      });
-      toast.success("Đã phát hành toàn bộ Version.");
+      const updated = await (status === "active"
+        ? publishMutation.mutateAsync({
+            name: version.name,
+            expectedRevision: version.revision,
+            expectedSettingsRevision: version.settingsRevision,
+          })
+        : updateMutation.mutateAsync({
+            name: version.name,
+            expectedRevision: version.revision,
+            status,
+          }));
+      toast.success(status === "active" ? "Đã kích hoạt Version." : status === "testing" ? "Đã chuyển Version sang kiểm thử." : "Đã đưa Version về bản nháp.");
       onChanged(updated);
     } catch (error) {
       toast.error(errorMessage(error));
     }
   };
 
-  const archive = async () => {
-    if (
-      !version ||
-      version.isActive ||
-      !window.confirm("Lưu trữ Version này và các Rule bên trong?")
-    )
-      return;
-    const reason = window.prompt("Nhập lý do lưu trữ Version:")?.trim();
-    if (!reason) {
-      toast.error("Cần nhập lý do lưu trữ Version.");
-      return;
-    }
-    try {
-      const updated = await archiveMutation.mutateAsync({
-        name: version.name,
-        expectedRevision: version.revision,
-        reason,
-      });
-      toast.success("Đã lưu trữ Version.");
-      onChanged(updated);
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
-  };
-
-  const canShowEdit = version?.status === "draft";
-  const canShowPublish = version?.status === "draft";
+  const canShowEdit = canEdit && version?.status === "draft";
+  const canShowTesting = canEdit && version?.status === "draft";
+  const canShowReturnDraft = canEdit && version?.status === "testing";
+  const canShowPublish = canEdit && version?.status === "testing";
   const canShowClone = Boolean(canEdit && version && version.rulesCount > 0);
-  const canShowArchive = Boolean(
-    canEdit && version && version.status !== "archived" && !version.isActive,
-  );
   const hasAnyAction =
-    canShowEdit || canShowPublish || canShowClone || canShowArchive;
+    canShowEdit || canShowTesting || canShowReturnDraft || canShowPublish || canShowClone;
 
   return (
     <div className="space-y-3">
@@ -240,14 +218,33 @@ export default function RuleVersionActions({
                   Sửa metadata
                 </DropdownMenuItem>
               ) : null}
+              {canShowTesting ? (
+                <DropdownMenuItem
+                  id="testing"
+                  textValue="Chuyển sang kiểm thử"
+                  isDisabled={version.rulesCount === 0}
+                  onAction={() => void changeStatus("testing")}
+                >
+                  Chuyển sang kiểm thử
+                </DropdownMenuItem>
+              ) : null}
+              {canShowReturnDraft ? (
+                <DropdownMenuItem
+                  id="draft"
+                  textValue="Đưa về bản nháp"
+                  onAction={() => void changeStatus("draft")}
+                >
+                  Đưa về bản nháp
+                </DropdownMenuItem>
+              ) : null}
               {canShowPublish ? (
                 <DropdownMenuItem
-                  id="publish"
-                  textValue="Phát hành Version"
+                  id="active"
+                  textValue="Kích hoạt Version"
                   isDisabled={version.rulesCount === 0}
-                  onAction={() => void publish()}
+                  onAction={() => void changeStatus("active")}
                 >
-                  Phát hành Version
+                  Kích hoạt Version
                 </DropdownMenuItem>
               ) : null}
               {canShowClone ? (
@@ -257,16 +254,6 @@ export default function RuleVersionActions({
                   onAction={openClone}
                 >
                   Clone thành bản nháp
-                </DropdownMenuItem>
-              ) : null}
-              {canShowArchive ? (
-                <DropdownMenuItem
-                  id="archive"
-                  textValue="Lưu trữ"
-                  onAction={() => void archive()}
-                  className="text-error-500 data-[focused]:text-error-500"
-                >
-                  Lưu trữ
                 </DropdownMenuItem>
               ) : null}
             </Menu>

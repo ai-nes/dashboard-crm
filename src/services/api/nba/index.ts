@@ -73,6 +73,24 @@ function stringArray(value: unknown): string[] {
     : [];
 }
 
+function normalizeRuleDecision(value: unknown): NbaRecommendation["ruleDecision"] {
+  const record = asRecord(value);
+  if (!record) return null;
+  const outcome = text(record.outcome);
+  if (!outcome) return null;
+  return {
+    outcome,
+    matchedRuleIds: stringArray(record.matched_rule_ids ?? record.matchedRuleIds).slice(0, 50),
+    reasonCodes: stringArray(record.reason_codes ?? record.reasonCodes).slice(0, 12),
+    businessReason: text(record.business_reason ?? record.businessReason),
+    salesNextStep: text(record.sales_next_step ?? record.salesNextStep),
+    affectedActions: stringArray(record.affected_actions ?? record.affectedActions).slice(0, 30),
+    ruleVersion: text(record.rule_version ?? record.ruleVersion),
+    ruleVersionDigest: text(record.rule_version_digest ?? record.ruleVersionDigest),
+    rulesetDigest: text(record.ruleset_digest ?? record.rulesetDigest),
+  };
+}
+
 function normalizeEvaluation(value: unknown): NbaEvaluationReference {
   const record = asRecord(value) ?? {};
   return {
@@ -142,6 +160,7 @@ function normalizeExplanation(value: unknown): NbaExplanation | null {
     evidence,
     uncertainty,
     timing: { recommended_at: recommendedAt, reason: timingReason },
+    sales_next_step: text(record.sales_next_step ?? record.salesNextStep),
   };
 }
 
@@ -182,6 +201,9 @@ function normalizeRecommendation(
       : null;
   const explanation = normalizeExplanation(
     record.explanation ?? record.explanation_json ?? record.explanationJson,
+  );
+  const ruleDecision = normalizeRuleDecision(
+    record.rule_decision ?? record.ruleDecision ?? aiPayload.rule_decision ?? aiPayload.ruleDecision,
   );
   const status = asRecord(record.status);
   const timing = asRecord(record.timing);
@@ -232,6 +254,7 @@ function normalizeRecommendation(
     },
     aiPayload,
     explanation,
+    ruleDecision,
     explanationSource,
     evaluation: normalizeEvaluation(record.evaluation),
     generatedAt: text(record.generatedAt) ?? text(record.generated_at) ?? "",

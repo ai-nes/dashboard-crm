@@ -23,7 +23,8 @@ import { RuleFiltersPopover } from "./rule-filters-popover";
 const STATUS_TABS: Array<{ id: CrmRuleStatus | "all"; label: string }> = [
   { id: "all", label: "Tất cả" },
   { id: "draft", label: "Bản nháp" },
-  { id: "published", label: "Đã phát hành" },
+  { id: "testing", label: "Đang kiểm thử" },
+  { id: "active", label: "Đang hoạt động" },
   { id: "archived", label: "Đã lưu trữ" },
 ];
 

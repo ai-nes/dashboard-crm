@@ -85,6 +85,7 @@ describe("campaign detail lead filters", () => {
     expect(countCampaignLeadsByStatus(leads)).toEqual({
       all: 2,
       NEW: 0,
+      PROCESSING: 0,
       PROCESSED: 1,
       ASSIGNED: 0,
       CLOSED: 1,

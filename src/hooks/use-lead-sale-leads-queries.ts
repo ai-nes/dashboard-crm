@@ -10,8 +10,10 @@ import {
 
 import {
   convertLeadToStudent,
+  assignLeadToStaff,
   createLead,
   deleteLead,
+  getLeadAssignmentTargets,
   getLeadDetail,
   getLeadList,
   importLeadFile,
@@ -27,6 +29,9 @@ import {
   type LeadUpdateFields,
   type LeadDetailResponse,
   type LeadConversionResponse,
+  type LeadAssignmentRequest,
+  type LeadAssignmentResponse,
+  type LeadAssignmentTargetsResponse,
   type LeadListParams,
   type LeadListResponse,
   type LeadProcessRequest,
@@ -42,6 +47,8 @@ export const leadSaleLeadsKeys = {
   list: (params?: LeadListParams) =>
     ["lead-sale-leads", "list", params] as const,
   detail: (leadId: string) => ["lead-sale-leads", "detail", leadId] as const,
+  assignmentTargets: (leadId: string) =>
+    ["lead-sale-leads", "assignment-targets", leadId] as const,
 };
 
 export function useLeadSaleLeadsQuery<TData = LeadListResponse>(
@@ -83,6 +90,26 @@ export function useLeadSaleLeadQuery<TData = LeadDetailResponse | null>(
   });
 }
 
+export function useLeadAssignmentTargetsQuery(
+  leadId: string,
+  options?: Omit<
+    UseQueryOptions<
+      LeadAssignmentTargetsResponse,
+      Error,
+      LeadAssignmentTargetsResponse,
+      ReturnType<typeof leadSaleLeadsKeys.assignmentTargets>
+    >,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<LeadAssignmentTargetsResponse, Error> {
+  return useQuery({
+    queryKey: leadSaleLeadsKeys.assignmentTargets(leadId),
+    queryFn: () => getLeadAssignmentTargets(leadId),
+    enabled: Boolean(leadId) && (options?.enabled ?? true),
+    ...options,
+  });
+}
+
 export function useUpdateLeadMutation() {
   const queryClient = useQueryClient();
 
@@ -98,6 +125,24 @@ export function useUpdateLeadMutation() {
           queryKey: leadSaleLeadsKeys.detail(variables.leadId),
         }),
         queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      ]),
+  });
+}
+
+export function useAssignLeadMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<LeadAssignmentResponse, Error, LeadAssignmentRequest>({
+    mutationFn: (request) => assignLeadToStaff(request),
+    onSuccess: (_data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.detail(variables.lead),
+        }),
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        queryClient.invalidateQueries({
+          queryKey: leadSaleLeadsKeys.assignmentTargets(variables.lead),
+        }),
       ]),
   });
 }

@@ -124,7 +124,6 @@ describe("student audit API contract", () => {
         JSON.stringify({
           message: {
             lead_id: "LEAD-1",
-            student: "LEAD-1",
             logs: [],
             total: 0,
             start: 0,

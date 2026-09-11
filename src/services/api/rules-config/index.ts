@@ -15,6 +15,9 @@ import type {
   CrmRuleConditionNode,
   CrmRuleFactCatalog,
   CrmRuleGroupSummary,
+  CrmRuleGroupPayload,
+  UpdateCrmRuleGroupPayload,
+  DeleteCrmRuleGroupPayload,
   CrmRulePayload,
   CrmRuleVersion,
   CrmRuleVersionDetail,
@@ -25,6 +28,7 @@ import type {
   ListCrmRuleVersionsParams,
   ListCrmRuleVersionsResponse,
   RequestOptions,
+  SetCrmRuleEnabledPayload,
   UpdateCrmRulePayload,
   UpdateCrmRuleVersionPayload,
 } from "./types";
@@ -38,11 +42,15 @@ const METHODS = {
   UPDATE_VERSION: "crm.api.rule_engine.update_rule_version",
   CLONE_VERSION: "crm.api.rule_engine.clone_rule_version",
   LIST_GROUPS: "crm.api.rule_engine.list_rule_groups",
+  CREATE_GROUP: "crm.api.rule_engine.create_rule_group",
+  UPDATE_GROUP: "crm.api.rule_engine.update_rule_group",
+  DELETE_GROUP: "crm.api.rule_engine.delete_rule_group",
   LIST_RULES: "crm.api.rule_engine.list_rules",
   GET_RULE: "crm.api.rule_engine.get_rule",
   CREATE_RULE: "crm.api.rule_engine.create_rule",
   UPDATE_RULE: "crm.api.rule_engine.update_rule",
   DELETE_RULE: "crm.api.rule_engine.delete_draft_rule",
+  SET_RULE_ENABLED: "crm.api.rule_engine.set_rule_enabled",
   PUBLISH_VERSION: "crm.api.rule_engine.publish_rule_version",
   ARCHIVE_VERSION: "crm.api.rule_engine.archive_rule_version",
   LIST_FACT_CATALOG: "crm.api.rule_engine.list_fact_catalog",
@@ -187,6 +195,8 @@ function ruleBody(payload: CrmRulePayload): Record<string, unknown> {
     action: payload.action,
     target_actions: payload.targetActions,
     condition: serializeCondition(payload.condition),
+    business_reason_template: payload.businessReasonTemplate ?? "{action} is governed by {rule_name}.",
+    sales_next_step_template: payload.salesNextStepTemplate ?? "Chưa có bước tiếp theo được xác định.",
   };
 }
 
@@ -233,6 +243,11 @@ export async function updateCrmRuleVersion(
     expected_revision: payload.expectedRevision,
     ...(payload.versionName !== undefined ? { version_name: payload.versionName } : {}),
     ...(payload.description !== undefined ? { description: payload.description } : {}),
+    ...(payload.status !== undefined ? { status: payload.status } : {}),
+    ...(payload.expectedSettingsRevision !== undefined
+      ? { expected_settings_revision: payload.expectedSettingsRevision }
+      : {}),
+    ...(payload.changeNote !== undefined ? { change_note: payload.changeNote } : {}),
   }));
 }
 
@@ -251,6 +266,50 @@ export async function cloneCrmRuleVersion(
 export async function listCrmRuleGroups(versionName: string, options: RequestOptions = {}): Promise<CrmRuleGroupSummary[]> {
   const payload = asRecord(await call(METHODS.LIST_GROUPS, "GET", options, { version_name: versionName }));
   return Array.isArray(payload?.groups) ? payload.groups.map(normalizeRuleGroup) : [];
+}
+
+export async function createCrmRuleGroup(
+  payload: CrmRuleGroupPayload,
+  options: RequestOptions = {},
+): Promise<CrmRuleGroupSummary> {
+  const raw = asRecord(await call(METHODS.CREATE_GROUP, "POST", options, {}, {
+    version_name: payload.versionName,
+    expected_version_revision: payload.expectedVersionRevision,
+    code: payload.code,
+    label: payload.label ?? payload.code,
+    enabled: payload.enabled ?? true,
+    description: payload.description,
+    sort_order: payload.sortOrder,
+  }));
+  return normalizeRuleGroup(raw?.group ?? raw);
+}
+
+export async function updateCrmRuleGroup(
+  payload: UpdateCrmRuleGroupPayload,
+  options: RequestOptions = {},
+): Promise<CrmRuleGroupSummary> {
+  const raw = asRecord(await call(METHODS.UPDATE_GROUP, "PUT", options, {}, {
+    version_name: payload.versionName,
+    expected_version_revision: payload.expectedVersionRevision,
+    code: payload.code,
+    label: payload.label,
+    enabled: payload.enabled,
+    description: payload.description,
+    sort_order: payload.sortOrder,
+  }));
+  return normalizeRuleGroup(raw?.group ?? raw);
+}
+
+export async function deleteCrmRuleGroup(
+  payload: DeleteCrmRuleGroupPayload,
+  options: RequestOptions = {},
+): Promise<{ code: string; deleted: boolean }> {
+  const raw = asRecord(await call(METHODS.DELETE_GROUP, "DELETE", options, {}, {
+    version_name: payload.versionName,
+    expected_version_revision: payload.expectedVersionRevision,
+    code: payload.code,
+  }));
+  return { code: String(raw?.code ?? payload.code), deleted: Boolean(raw?.deleted) };
 }
 
 export async function listCrmRules(params: ListCrmRulesParams = {}, options: RequestOptions = {}): Promise<ListCrmRulesResponse> {
@@ -304,8 +363,28 @@ export async function deleteCrmRule(payload: DeleteCrmRulePayload, options: Requ
   };
 }
 
-export async function publishCrmRuleVersion(name: string, expectedRevision: number, options: RequestOptions = {}): Promise<CrmRuleVersion> {
-  return normalizeRuleVersion(await call(METHODS.PUBLISH_VERSION, "POST", options, {}, { name, expected_revision: expectedRevision }));
+export async function updateCrmRuleVersionStatus(
+  payload: UpdateCrmRuleVersionPayload,
+  options: RequestOptions = {},
+): Promise<CrmRuleVersion> {
+  return normalizeRuleVersion(await call(METHODS.UPDATE_VERSION, "PUT", options, {}, {
+    name: payload.name,
+    expected_revision: payload.expectedRevision,
+    status: payload.status,
+    expected_settings_revision: payload.expectedSettingsRevision,
+    change_note: payload.changeNote,
+  }));
+}
+
+export async function setCrmRuleEnabled(
+  payload: SetCrmRuleEnabledPayload,
+  options: RequestOptions = {},
+): Promise<CrmRule> {
+  return normalizeRule(await call(METHODS.SET_RULE_ENABLED, "PUT", options, {}, {
+    name: payload.name,
+    expected_version_revision: payload.expectedVersionRevision,
+    enabled: payload.enabled,
+  }));
 }
 
 export async function archiveCrmRuleVersion(payload: ArchiveCrmRuleVersionPayload, options: RequestOptions = {}): Promise<CrmRuleVersion> {

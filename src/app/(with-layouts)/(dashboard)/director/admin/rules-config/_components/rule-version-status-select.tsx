@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/tailgrids/core/select";
-import { usePublishCrmRuleVersionMutation } from "@/hooks/use-rules-config-queries";
+import { useUpdateCrmRuleVersionMutation } from "@/hooks/use-rules-config-queries";
 import type {
   CrmRuleStatus,
   CrmRuleVersion,
@@ -20,23 +20,27 @@ import { cn } from "@/utils/cn";
 
 const STATUS_LABELS: Record<CrmRuleStatus, string> = {
   draft: "Bản nháp",
-  published: "Đã phát hành",
+  testing: "Đang kiểm thử",
+  active: "Đang hoạt động",
   archived: "Đã lưu trữ",
 };
 
 const STATUS_BADGE_COLORS: Record<
   CrmRuleStatus,
-  "gray" | "success" | "warning"
+  "gray" | "success" | "warning" | "primary"
 > = {
   draft: "warning",
-  published: "success",
+  testing: "primary",
+  active: "success",
   archived: "gray",
 };
 
 const STATUS_SELECT_STYLES: Record<CrmRuleStatus, string> = {
   draft:
     "border-transparent bg-badge-warning-background text-badge-warning-text hover:bg-badge-warning-background",
-  published:
+  testing:
+    "border-transparent bg-badge-primary-background text-badge-primary-text hover:bg-badge-primary-background",
+  active:
     "border-transparent bg-badge-success-background text-badge-success-text hover:bg-badge-success-background",
   archived:
     "border-transparent bg-badge-neutral-background text-badge-neutral-text hover:bg-badge-neutral-background",
@@ -59,28 +63,41 @@ export function RuleVersionStatusSelect({
   canEdit,
   onChanged,
 }: RuleVersionStatusSelectProps) {
-  const publishMutation = usePublishCrmRuleVersionMutation();
-  const isBusy = publishMutation.isPending;
+  const statusMutation = useUpdateCrmRuleVersionMutation();
+  const isBusy = statusMutation.isPending;
 
   const options: CrmRuleStatus[] =
     version.status === "draft"
-      ? ["draft", "published"]
-      : version.status === "archived"
-        ? ["archived", "published"]
-        : ["published"];
+      ? ["draft", "testing"]
+      : version.status === "testing"
+        ? ["testing", "draft", "active"]
+        : version.status === "archived"
+          ? ["archived"]
+          : ["active"];
 
   const changeStatus = async (nextStatus: CrmRuleStatus) => {
     if (nextStatus === version.status || isBusy) return;
 
     try {
-      if (nextStatus === "published") {
-        const updated = await publishMutation.mutateAsync({
+      if (nextStatus === "active" && version.status === "testing") {
+        const updated = await statusMutation.mutateAsync({
           name: version.name,
           expectedRevision: version.revision,
+          status: nextStatus,
+          expectedSettingsRevision: version.settingsRevision,
         });
-        toast.success("Đã phát hành toàn bộ Version.");
+        toast.success("Đã kích hoạt Version.");
         onChanged(updated);
         return;
+      }
+      if (nextStatus === "testing" || nextStatus === "draft") {
+        const updated = await statusMutation.mutateAsync({
+          name: version.name,
+          expectedRevision: version.revision,
+          status: nextStatus,
+        });
+        toast.success(nextStatus === "testing" ? "Đã chuyển Version sang kiểm thử." : "Đã đưa Version về bản nháp.");
+        onChanged(updated);
       }
     } catch (error) {
       toast.error(getErrorMessage(error));

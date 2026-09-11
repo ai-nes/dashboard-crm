@@ -24,6 +24,7 @@ import {
   useCrmRuleVersionQuery,
   useCrmRuleVersionsQuery,
   useDeleteCrmRuleMutation,
+  useSetCrmRuleEnabledMutation,
 } from "@/hooks/use-rules-config-queries";
 import type {
   CrmRule,
@@ -87,6 +88,7 @@ export default function RulesConfigAdminPage({
   const [activeTab, setActiveTab] = useState("manage");
   const [ruleToDelete, setRuleToDelete] = useState<CrmRule | null>(null);
   const deleteMutation = useDeleteCrmRuleMutation();
+  const enabledMutation = useSetCrmRuleEnabledMutation();
 
   const versionsQuery = useCrmRuleVersionsQuery({ start: 0, pageLength: 100 });
   const versions = versionsQuery.data?.versions ?? [];
@@ -192,6 +194,21 @@ export default function RulesConfigAdminPage({
     }
   };
 
+  const handleToggleRule = async (rule: CrmRule) => {
+    const expectedVersionRevision = (versionQuery.data ?? currentVersion)?.revision;
+    if (expectedVersionRevision === undefined) return;
+    try {
+      await enabledMutation.mutateAsync({
+        name: rule.name,
+        expectedVersionRevision,
+        enabled: !rule.enabled,
+      });
+      toast.success(rule.enabled ? "Đã tắt Rule trong bản nháp." : "Đã bật Rule trong bản nháp.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật trạng thái Rule.");
+    }
+  };
+
   const isDraft =
     (versionQuery.data?.status ?? currentVersion?.status) === "draft";
   const activeVersion = versionQuery.data ?? currentVersion;
@@ -285,9 +302,11 @@ export default function RulesConfigAdminPage({
             rulesQuery.isFetching
           }
           canDelete={canEdit && isDraft}
-          isDeleteDisabled={deleteMutation.isPending}
+          canToggle={canEdit && isDraft}
+          isDeleteDisabled={deleteMutation.isPending || enabledMutation.isPending}
           onSelect={openEditRule}
           onDelete={setRuleToDelete}
+          onToggle={handleToggleRule}
         />
       </RuleListToolbar>
     </section>
@@ -335,6 +354,15 @@ export default function RulesConfigAdminPage({
           selectedGroup={ruleGroup}
           onGroupChange={setRuleGroup}
           isLoading={groupsQuery.isPending || versionQuery.isPending}
+          canEdit={canEdit && isDraft}
+          versionName={versionName}
+          versionRevision={versionQuery.data?.revision ?? currentVersion.revision}
+          onChanged={() => {
+            void versionsQuery.refetch();
+            void versionQuery.refetch();
+            void groupsQuery.refetch();
+            void rulesQuery.refetch();
+          }}
         />
       ) : null}
 

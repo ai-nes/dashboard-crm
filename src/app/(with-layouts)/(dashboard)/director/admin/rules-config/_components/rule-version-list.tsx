@@ -25,13 +25,13 @@ import type {
   CrmRuleVersion,
 } from "@/services/api/rules-config";
 
-import { RuleVersionArchiveButton } from "./rule-version-archive-button";
 import { RuleVersionStatusSelect } from "./rule-version-status-select";
 
 const STATUS_TABS: Array<{ id: CrmRuleStatus | "all"; label: string }> = [
   { id: "all", label: "Tất cả" },
   { id: "draft", label: "Bản nháp" },
-  { id: "published", label: "Đã phát hành" },
+  { id: "testing", label: "Đang kiểm thử" },
+  { id: "active", label: "Đang hoạt động" },
   { id: "archived", label: "Đã lưu trữ" },
 ];
 
@@ -194,11 +194,6 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
                   <TableHead scope="col" className="whitespace-nowrap">
                     Cập nhật lần cuối
                   </TableHead>
-                  {canEdit ? (
-                    <TableHead scope="col" className="whitespace-nowrap">
-                      Hành động
-                    </TableHead>
-                  ) : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -243,27 +238,12 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
                     <TableCell className="whitespace-nowrap py-5 text-sm text-text-secondary">
                       {formatDate(version.modified)}
                     </TableCell>
-                    {canEdit ? (
-                      <TableCell
-                        className="py-5 text-center text-sm"
-                        onClick={(event) => event.stopPropagation()}
-                        onKeyDown={(event) => event.stopPropagation()}
-                      >
-                        <div className="flex justify-center">
-                          <RuleVersionArchiveButton
-                            version={version}
-                            canEdit={canEdit}
-                            onChanged={() => void versionsQuery.refetch()}
-                          />
-                        </div>
-                      </TableCell>
-                    ) : null}
                   </TableRow>
                 ))}
                 {filteredVersions.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={canEdit ? 7 : 6}
+                      colSpan={6}
                       className="py-16 text-center text-sm text-text-tertiary"
                     >
                       {versions.length === 0

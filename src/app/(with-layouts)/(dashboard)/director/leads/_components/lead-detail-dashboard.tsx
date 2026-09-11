@@ -10,6 +10,7 @@ import {
   canConvertLeadToStudent,
   canPerformStudentAction,
   getCrmPermissions,
+  hasCrmCapability,
 } from "@/components/common/auth/permissions";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import DetailTabs, {
@@ -21,14 +22,21 @@ import {
   useConvertLeadToStudentMutation,
   useDeleteLeadMutation,
   useLeadSaleLeadQuery,
+  useUpdateLeadMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
+import type { LeadUpdateFields } from "@/services/api/lead-sale";
 
 import LeadCallsTab from "./lead-calls-tab";
+import LeadConversionDialog from "./lead-conversion-dialog";
 import LeadDetailsTab from "./lead-details-tab";
 import LeadHeader from "./lead-header";
 import LeadLogTab from "./lead-log-tab";
 import LeadNotesTab from "./lead-notes-tab";
 import LeadWorkflowSection from "./lead-workflow-section";
+import {
+  getLeadConversionMissingFields,
+  type LeadConversionField,
+} from "./lead-conversion-validation";
 import { normalizeLeadStageStatus } from "./lead-status";
 
 export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
@@ -43,7 +51,12 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   });
   const deleteMutation = useDeleteLeadMutation();
   const convertMutation = useConvertLeadToStudentMutation();
+  const updateMutation = useUpdateLeadMutation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversionDialogOpen, setConversionDialogOpen] = useState(false);
+  const [conversionMissingFields, setConversionMissingFields] = useState<
+    LeadConversionField[]
+  >([]);
 
   const leadOwnership = { owner: data?.lead.owner };
   const hasLeadAccess =
@@ -57,6 +70,8 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const canDeleteLead =
     !isAuthLoading &&
     canPerformStudentAction(permissions.lead, "delete", leadOwnership, user);
+  const canAssignLead =
+    !isAuthLoading && hasCrmCapability(user, "student.routing.operate");
   const isLeadAssigned =
     normalizeLeadStageStatus(
       data?.lead.processingStatus ?? data?.lead.statusCode ?? data?.lead.status,
@@ -66,7 +81,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     isLeadAssigned &&
     !data?.lead.studentId &&
     canConvertLeadToStudent(user?.roles, leadOwnership, user);
-  const handleConvert = () => {
+  const submitConversion = () => {
     convertMutation.mutate(leadId, {
       onSuccess: (result) => {
         toast.success("Đã chuyển đổi Lead thành học sinh.");
@@ -83,6 +98,26 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
         );
       },
     });
+  };
+
+  const handleConvert = () => {
+    if (!data) return;
+    if (convertMutation.isPending || updateMutation.isPending) return;
+    const missingFields = getLeadConversionMissingFields(data.lead);
+    if (missingFields.length > 0) {
+      updateMutation.reset();
+      setConversionMissingFields(missingFields);
+      setConversionDialogOpen(true);
+      return;
+    }
+    submitConversion();
+  };
+
+  const handleConversionDetailsSubmit = async (fields: LeadUpdateFields) => {
+    await updateMutation.mutateAsync({ leadId, fields });
+    setConversionDialogOpen(false);
+    setConversionMissingFields([]);
+    submitConversion();
   };
   const handleDelete = () => {
     deleteMutation.mutate(leadId, {
@@ -164,6 +199,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       label: "Chi tiết",
       content: (
         <LeadDetailsTab
+          canAssign={canAssignLead}
           canEdit={canUpdateLead}
           lead={data.lead}
           leadId={leadId}
@@ -212,7 +248,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
           backHref={leadListHref}
           lead={data.lead}
           createdAt={data.lead.createdAt ?? undefined}
-          isConverting={convertMutation.isPending}
+          isConverting={convertMutation.isPending || updateMutation.isPending}
           onConvertRequest={canConvertLead ? handleConvert : undefined}
           onDeleteRequest={
             canDeleteLead ? () => setDeleteDialogOpen(true) : undefined
@@ -243,6 +279,24 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
         onOpenChange={setDeleteDialogOpen}
         recordName={data.lead.name || leadId}
         recordType="Lead"
+      />
+      <LeadConversionDialog
+        key={
+          leadId +
+          "-" +
+          (conversionDialogOpen ? "open" : "closed") +
+          "-" +
+          conversionMissingFields.join(",")
+        }
+        isOpen={conversionDialogOpen}
+        isSubmitting={updateMutation.isPending || convertMutation.isPending}
+        lead={data.lead}
+        missingFields={conversionMissingFields}
+        onOpenChange={(open) => {
+          setConversionDialogOpen(open);
+          if (!open) setConversionMissingFields([]);
+        }}
+        onSubmit={handleConversionDetailsSubmit}
       />
     </main>
   );
