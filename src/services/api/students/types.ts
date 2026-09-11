@@ -150,7 +150,6 @@ export type StudentCallSummaryStatus =
 
 export interface StudentCallRecord {
   id: string;
-  interactionId?: string | null;
   evidenceId?: string | null;
   time: string;
   direction: StudentCallDirection;
