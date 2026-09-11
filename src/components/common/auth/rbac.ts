@@ -375,7 +375,7 @@ export function hasFrappeTechnicalRole(
 }
 
 export function getRolesForRoute(path: string): readonly DashboardRole[] {
-  return ROUTE_ACCESS.find((rule) => rule.path === path)?.roles ?? [];
+  return findRouteAccessRule(path)?.roles ?? [];
 }
 
 function isPathWithinRoute(path: string, pathname: string): boolean {
