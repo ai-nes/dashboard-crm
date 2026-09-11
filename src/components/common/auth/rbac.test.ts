@@ -202,7 +202,7 @@ describe("dashboard RBAC", () => {
           ["Administrator"],
         ),
       ),
-       ).toHaveLength(14);
+       ).toHaveLength(15);
     expect(primaryItems).not.toContain("Cấu hình Action NBA");
     expect(
       findActiveGroupKeyInNavigation("/director/ai", directorNavigation),
