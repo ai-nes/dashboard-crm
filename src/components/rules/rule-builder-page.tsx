@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { canManageCrmRules } from "@/components/common/auth/permissions";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
+import { canEditRuleInVersion } from "@/components/rules/rule-admin-edit-policy";
 import { Button } from "@/components/tailgrids/core/button";
 import { Input } from "@/components/tailgrids/core/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tailgrids/core/tooltip";
@@ -152,7 +153,8 @@ export default function RuleBuilderPage({
   ])).sort();
   const version = versionQuery.data;
   const isBusy = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
-  const editable = canEdit && version?.status === "draft" && (isCreate || sourceRule?.status === "draft");
+  const isActive = version?.status === "active";
+  const editable = canEdit && canEditRuleInVersion(version?.status, sourceRule?.status, isCreate);
   const title = form.ruleName || (isCreate ? "Rule mới" : "Chi tiết Rule");
   const updateForm = <K extends keyof MetadataForm>(key: K, value: MetadataForm[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -186,10 +188,18 @@ export default function RuleBuilderPage({
       const payload: CrmRulePayload = { ...form, condition };
       if (isCreate) {
         await createMutation.mutateAsync({ ...payload, versionName: version.name, expectedVersionRevision: version.revision });
-        toast.success("Đã tạo bản nháp Rule.");
+        toast.success(
+          isActive
+            ? "Đã tạo Rule trong Version Active. Thay đổi có hiệu lực ngay."
+            : "Đã tạo bản nháp Rule.",
+        );
       } else if (sourceRule) {
         await updateMutation.mutateAsync({ ...payload, name: sourceRule.name, expectedVersionRevision: version.revision });
-        toast.success("Đã lưu bản nháp Rule.");
+        toast.success(
+          isActive
+            ? "Đã lưu Rule. Thay đổi có hiệu lực ngay trong Rule Engine."
+            : "Đã lưu bản nháp Rule.",
+        );
       }
       router.push(backHref);
     } catch (error) {
@@ -201,7 +211,7 @@ export default function RuleBuilderPage({
     if (!sourceRule || !version) return;
     try {
       await deleteMutation.mutateAsync({ name: sourceRule.name, expectedVersionRevision: version.revision });
-      toast.success("Đã xoá Rule bản nháp.");
+      toast.success(isActive ? "Đã xóa Rule Active. Thay đổi có hiệu lực ngay." : "Đã xoá Rule bản nháp.");
       router.push(backHref);
     } catch (error) {
       toast.error(errorMessage(error));
@@ -288,9 +298,9 @@ export default function RuleBuilderPage({
         </div>
 
         <div className="flex items-center gap-2">
-          {!isCreate && sourceRule?.status === "draft" && canEdit && version?.status === "draft" ? (
+          {!isCreate && editable ? (
             <Button type="button" variant="danger" appearance="ghost" size="lg" isDisabled={isBusy} onPress={() => setIsDeleteOpen(true)}>
-              Xoá bản nháp
+              {isActive ? "Xóa Rule Active" : "Xoá bản nháp"}
             </Button>
           ) : null}
           {editable ? (
@@ -302,6 +312,14 @@ export default function RuleBuilderPage({
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
+        {isActive && canEdit ? (
+          <p
+            role="alert"
+            className="border-b border-card-border bg-background-gray-secondary px-4 py-3 text-sm text-text-secondary sm:px-8"
+          >
+            Cảnh báo: Version đang Active. Lưu Rule sẽ thay đổi hành vi Rule Engine ngay lập tức.
+          </p>
+        ) : null}
         {!version ? (
           <p className="border-b border-card-border bg-alert-danger-background px-4 py-3 text-sm text-alert-danger-title sm:px-8">
             Chưa có Rule Version. Hãy quay lại quản lý Rule để chọn Version.
@@ -309,7 +327,7 @@ export default function RuleBuilderPage({
         ) : null}
         {sourceRule && !editable ? (
           <p className="border-b border-card-border bg-background-gray-secondary px-4 py-3 text-sm text-text-secondary sm:px-8">
-            Version hoặc Rule đang ở trạng thái chỉ xem. Hãy clone Version để tạo bản nháp mới.
+            Version hoặc Rule đang ở trạng thái chỉ xem. Chỉ Draft và Active mới cho phép chỉnh sửa Rule.
           </p>
         ) : null}
         {factsQuery.error ? (
@@ -504,7 +522,11 @@ export default function RuleBuilderPage({
           }}
           onConfirm={handleDelete}
         >
-          <p className="text-sm text-text-secondary">Rule sẽ bị xóa khỏi bản nháp Version này.</p>
+          <p className="text-sm text-text-secondary">
+            {isActive
+              ? "Rule sẽ bị xóa khỏi Version Active và thay đổi có hiệu lực ngay. Không thể xóa Rule cuối cùng."
+              : "Rule sẽ bị xóa khỏi bản nháp Version này."}
+          </p>
         </DeleteRecordDialog>
       ) : null}
     </main>

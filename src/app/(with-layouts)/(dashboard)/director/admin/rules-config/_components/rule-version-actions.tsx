@@ -25,10 +25,12 @@ import {
 import {
   useCloneCrmRuleVersionMutation,
   useCreateCrmRuleVersionMutation,
-  usePublishCrmRuleVersionMutation,
   useUpdateCrmRuleVersionMutation,
 } from "@/hooks/use-rules-config-queries";
-import type { CrmRuleVersion } from "@/services/api/rules-config";
+import type { CrmRuleStatus, CrmRuleVersion } from "@/services/api/rules-config";
+
+import { RuleVersionActivationDialog } from "./rule-version-activation-dialog";
+import { getRuleVersionStatusOptions } from "./rule-version-status-options";
 
 const inputClass =
   "h-10 w-full rounded-lg border border-card-border bg-input-background px-3 text-sm text-title-50 outline-none placeholder:text-input-placeholder-text focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20 disabled:cursor-not-allowed disabled:bg-background-gray-secondary";
@@ -38,6 +40,20 @@ const textAreaClass =
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Thao tác Version thất bại.";
 }
+
+const STATUS_ACTION_LABELS: Record<CrmRuleStatus, string> = {
+  draft: "Đưa về bản nháp",
+  testing: "Chuyển sang kiểm thử",
+  active: "Kích hoạt Version",
+  archived: "Lưu trữ Version",
+};
+
+const STATUS_SUCCESS_MESSAGES: Record<CrmRuleStatus, string> = {
+  draft: "Đã đưa Version về bản nháp.",
+  testing: "Đã chuyển Version sang kiểm thử.",
+  active: "Đã kích hoạt Version; Version Active cũ đã được lưu trữ.",
+  archived: "Đã lưu trữ Version.",
+};
 
 export default function RuleVersionActions({
   version,
@@ -64,10 +80,10 @@ export default function RuleVersionActions({
   const [versionId, setVersionId] = useState("");
   const [versionName, setVersionName] = useState("");
   const [description, setDescription] = useState("");
+  const [isActivationDialogOpen, setIsActivationDialogOpen] = useState(false);
   const createMutation = useCreateCrmRuleVersionMutation();
   const cloneMutation = useCloneCrmRuleVersionMutation();
   const updateMutation = useUpdateCrmRuleVersionMutation();
-  const publishMutation = usePublishCrmRuleVersionMutation();
 
   const openEdit = () => {
     if (!version) return;
@@ -80,8 +96,7 @@ export default function RuleVersionActions({
   const busy =
     createMutation.isPending ||
     cloneMutation.isPending ||
-    updateMutation.isPending ||
-    publishMutation.isPending;
+    updateMutation.isPending;
   const openCreateForm = () => {
     setMode("create");
     setVersionId("");
@@ -139,34 +154,58 @@ export default function RuleVersionActions({
     }
   };
 
-  const changeStatus = async (status: "testing" | "draft" | "active") => {
+  const changeStatus = async (status: CrmRuleStatus) => {
     if (!version) return;
+    if (status === "active") {
+      setIsActivationDialogOpen(true);
+      return;
+    }
     try {
-      const updated = await (status === "active"
-        ? publishMutation.mutateAsync({
-            name: version.name,
-            expectedRevision: version.revision,
-            expectedSettingsRevision: version.settingsRevision,
-          })
-        : updateMutation.mutateAsync({
-            name: version.name,
-            expectedRevision: version.revision,
-            status,
-          }));
-      toast.success(status === "active" ? "Đã kích hoạt Version." : status === "testing" ? "Đã chuyển Version sang kiểm thử." : "Đã đưa Version về bản nháp.");
+      const updated = await updateMutation.mutateAsync({
+        name: version.name,
+        expectedRevision: version.revision,
+        status,
+      });
+      toast.success(STATUS_SUCCESS_MESSAGES[status]);
       onChanged(updated);
     } catch (error) {
       toast.error(errorMessage(error));
     }
   };
 
+  const activateVersion = async () => {
+    if (!version || busy) return;
+    if (!Number.isSafeInteger(version.settingsRevision)) {
+      toast.error("Không đọc được phiên bản Settings mới nhất. Hãy tải lại trang.");
+      return;
+    }
+
+    try {
+      const updated = await updateMutation.mutateAsync({
+        name: version.name,
+        expectedRevision: version.revision,
+        status: "active",
+        expectedSettingsRevision: version.settingsRevision,
+      });
+      toast.success(STATUS_SUCCESS_MESSAGES.active);
+      onChanged(updated);
+      setIsActivationDialogOpen(false);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  };
+
   const canShowEdit = canEdit && version?.status === "draft";
-  const canShowTesting = canEdit && version?.status === "draft";
-  const canShowReturnDraft = canEdit && version?.status === "testing";
-  const canShowPublish = canEdit && version?.status === "testing";
+  const statusActions =
+    version && version.status !== "active"
+      ? getRuleVersionStatusOptions(version.status).filter(
+          (status) => status !== version.status,
+        )
+      : [];
+  const canShowStatusActions = canEdit && statusActions.length > 0;
   const canShowClone = Boolean(canEdit && version && version.rulesCount > 0);
   const hasAnyAction =
-    canShowEdit || canShowTesting || canShowReturnDraft || canShowPublish || canShowClone;
+    canShowEdit || canShowStatusActions || canShowClone;
 
   return (
     <div className="space-y-3">
@@ -218,35 +257,20 @@ export default function RuleVersionActions({
                   Sửa metadata
                 </DropdownMenuItem>
               ) : null}
-              {canShowTesting ? (
+              {statusActions.map((status) => (
                 <DropdownMenuItem
-                  id="testing"
-                  textValue="Chuyển sang kiểm thử"
-                  isDisabled={version.rulesCount === 0}
-                  onAction={() => void changeStatus("testing")}
+                  key={status}
+                  id={status}
+                  textValue={STATUS_ACTION_LABELS[status]}
+                  isDisabled={
+                    (status === "testing" || status === "active") &&
+                    version.rulesCount === 0
+                  }
+                  onAction={() => void changeStatus(status)}
                 >
-                  Chuyển sang kiểm thử
+                  {STATUS_ACTION_LABELS[status]}
                 </DropdownMenuItem>
-              ) : null}
-              {canShowReturnDraft ? (
-                <DropdownMenuItem
-                  id="draft"
-                  textValue="Đưa về bản nháp"
-                  onAction={() => void changeStatus("draft")}
-                >
-                  Đưa về bản nháp
-                </DropdownMenuItem>
-              ) : null}
-              {canShowPublish ? (
-                <DropdownMenuItem
-                  id="active"
-                  textValue="Kích hoạt Version"
-                  isDisabled={version.rulesCount === 0}
-                  onAction={() => void changeStatus("active")}
-                >
-                  Kích hoạt Version
-                </DropdownMenuItem>
-              ) : null}
+              ))}
               {canShowClone ? (
                 <DropdownMenuItem
                   id="clone"
@@ -337,6 +361,15 @@ export default function RuleVersionActions({
             </DialogFooter>
           </Dialog>
         </Backdrop>
+      ) : null}
+      {version ? (
+        <RuleVersionActivationDialog
+          isOpen={isActivationDialogOpen}
+          isConfirming={updateMutation.isPending}
+          versionName={version.versionName}
+          onOpenChange={setIsActivationDialogOpen}
+          onConfirm={activateVersion}
+        />
       ) : null}
     </div>
   );

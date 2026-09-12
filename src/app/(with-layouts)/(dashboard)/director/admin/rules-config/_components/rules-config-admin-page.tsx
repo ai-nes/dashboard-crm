@@ -9,6 +9,7 @@ import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { canManageCrmRules } from "@/components/common/auth/permissions";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
+import { canEditRulesInVersion } from "@/components/rules/rule-admin-edit-policy";
 import { CrmRuleStatusBadge } from "@/components/rules/rule-status-badges";
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -22,23 +23,16 @@ import {
   useCrmRulesQuery,
   useCrmRuleVersionQuery,
   useCrmRuleVersionsQuery,
-  useCloneCrmRuleVersionMutation,
   useDeleteCrmRuleMutation,
   useSetCrmRuleEnabledMutation,
 } from "@/hooks/use-rules-config-queries";
-import { listCrmRules } from "@/services/api/rules-config";
 import type {
   CrmRule,
   CrmRuleFeatureScope,
   CrmRuleGateOutcome,
-  CrmRuleVersion,
   CrmRuleStatus,
   CrmRuleType,
 } from "@/services/api/rules-config";
-import {
-  cloneRuleIntoDraft,
-  RuleDraftCloneLookupError,
-} from "@/services/api/rules-config/draft-clone";
 
 import { RuleListToolbar } from "./rule-list-toolbar";
 import { RuleGroupTabs } from "./rule-group-tabs";
@@ -88,7 +82,6 @@ export default function RulesConfigAdminPage({
   const [ruleToDelete, setRuleToDelete] = useState<CrmRule | null>(null);
   const [isRuleActionPending, setIsRuleActionPending] = useState(false);
   const ruleActionLock = useRef(false);
-  const cloneMutation = useCloneCrmRuleVersionMutation();
   const deleteMutation = useDeleteCrmRuleMutation();
   const enabledMutation = useSetCrmRuleEnabledMutation();
 
@@ -111,6 +104,8 @@ export default function RulesConfigAdminPage({
     currentVersion?.name ?? versionLookup;
   const activeVersion = currentVersion;
   const isDraft = activeVersion?.status === "draft";
+  const isActive = activeVersion?.status === "active";
+  const canMutateRules = canEdit && canEditRulesInVersion(activeVersion?.status);
   const groupsQuery = useCrmRuleGroupsQuery(versionName, {
     enabled: Boolean(versionName),
   });
@@ -145,18 +140,6 @@ export default function RulesConfigAdminPage({
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   };
 
-  const switchToDraftVersion = (draftVersionName: string, group?: string) => {
-    setStatus("all");
-    setPage(1);
-    if (routeVersionName) {
-      const params = new URLSearchParams({ version: draftVersionName });
-      if (group) params.set("group", group);
-      router.push(`/director/admin/rules-config?${params.toString()}`);
-      return;
-    }
-    updateContext(draftVersionName, group);
-  };
-
   const beginRuleAction = () => {
     if (ruleActionLock.current) return false;
     ruleActionLock.current = true;
@@ -180,47 +163,14 @@ export default function RulesConfigAdminPage({
     router.push(`/director/admin/rules-config/create?${params.toString()}`);
   };
 
-  const draftLookupFailed = (error: unknown, rule: CrmRule) => {
-    if (!(error instanceof RuleDraftCloneLookupError)) return false;
-    switchToDraftVersion(error.draftVersion.name, rule.ruleGroup);
-    toast.error(`${error.message} Đã mở bản nháp để bạn có thể tiếp tục.`);
-    return true;
-  };
-
-  const cloneRuleToDraft = (sourceVersion: CrmRuleVersion, rule: CrmRule) =>
-    cloneRuleIntoDraft(
-      sourceVersion,
-      rule,
-      cloneMutation.mutateAsync,
-      listCrmRules,
+  const openEditRule = (rule: CrmRule) => {
+    router.push(
+      `/director/admin/rules-config/edit/${encodeURIComponent(rule.name)}?version=${encodeURIComponent(versionName)}`,
     );
-
-  const openEditRule = async (rule: CrmRule) => {
-    if (!canEdit || !activeVersion || isDraft) {
-      router.push(
-        `/director/admin/rules-config/edit/${encodeURIComponent(rule.name)}?version=${encodeURIComponent(versionName)}`,
-      );
-      return;
-    }
-    if (cloneMutation.isPending || !beginRuleAction()) return;
-
-    try {
-      const { draftVersion, draftRule } = await cloneRuleToDraft(activeVersion, rule);
-      toast.success("Đã tạo bản nháp. Thay đổi chỉ có hiệu lực sau khi phát hành Version này.");
-      router.push(
-        `/director/admin/rules-config/edit/${encodeURIComponent(draftRule.name)}?version=${encodeURIComponent(draftVersion.name)}`,
-      );
-    } catch (error) {
-      if (!draftLookupFailed(error, rule)) {
-        toast.error(error instanceof Error ? error.message : "Không thể tạo bản nháp để sửa Rule.");
-      }
-    } finally {
-      endRuleAction();
-    }
   };
 
   const handleConfirmDelete = async () => {
-    if (!ruleToDelete) return;
+    if (!ruleToDelete || !canMutateRules) return;
     const expectedVersionRevision = (versionQuery.data ?? currentVersion)
       ?.revision;
     if (expectedVersionRevision === undefined) return;
@@ -231,7 +181,11 @@ export default function RulesConfigAdminPage({
         expectedVersionRevision,
       });
       setRuleToDelete(null);
-      toast.success("Đã xóa Rule.");
+      toast.success(
+        isActive
+          ? "Đã xóa Rule khỏi Version Active. Thay đổi có hiệu lực ngay."
+          : "Đã xóa Rule khỏi bản nháp.",
+      );
     } catch (deleteError) {
       toast.error(
         deleteError instanceof Error
@@ -243,43 +197,26 @@ export default function RulesConfigAdminPage({
 
   const handleToggleRule = async (rule: CrmRule) => {
     if (
-      !canEdit ||
+      !canMutateRules ||
       !activeVersion ||
-      cloneMutation.isPending ||
       !beginRuleAction()
     ) {
       return;
     }
 
-    let targetVersion = activeVersion;
-    let targetRule = rule;
-    let cloned = false;
     try {
-      if (!isDraft || rule.status !== "draft") {
-        const clone = await cloneRuleToDraft(activeVersion, rule);
-        targetVersion = clone.draftVersion;
-        targetRule = clone.draftRule;
-        cloned = true;
-      }
-
       await enabledMutation.mutateAsync({
-        name: targetRule.name,
-        expectedVersionRevision: targetVersion.revision,
+        name: rule.name,
+        expectedVersionRevision: versionQuery.data?.revision ?? activeVersion.revision,
         enabled: !rule.enabled,
       });
-      if (cloned) {
-        switchToDraftVersion(targetVersion.name, rule.ruleGroup);
-        toast.success("Đã tạo bản nháp và cập nhật Rule. Thay đổi chỉ có hiệu lực sau khi phát hành Version này.");
-      } else {
-        toast.success(rule.enabled ? "Đã tắt Rule trong bản nháp." : "Đã bật Rule trong bản nháp.");
-      }
+      toast.success(
+        isActive
+          ? `Đã ${rule.enabled ? "tắt" : "bật"} Rule. Thay đổi có hiệu lực ngay.`
+          : `Đã ${rule.enabled ? "tắt" : "bật"} Rule trong bản nháp.`,
+      );
     } catch (error) {
-      if (!draftLookupFailed(error, rule)) {
-        if (cloned) {
-          switchToDraftVersion(targetVersion.name, rule.ruleGroup);
-        }
-        toast.error(error instanceof Error ? error.message : "Không thể cập nhật trạng thái Rule.");
-      }
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật trạng thái Rule.");
     } finally {
       endRuleAction();
     }
@@ -376,7 +313,7 @@ export default function RulesConfigAdminPage({
           setGateOutcome(value);
           setPage(1);
         }}
-        canCreate={canEdit && isDraft}
+        canCreate={canMutateRules}
         onCreate={() => openCreateRule(ruleGroup !== "all" ? ruleGroup : "")}
       >
         <RulesConfigTable
@@ -388,12 +325,11 @@ export default function RulesConfigAdminPage({
             rulesQuery.isPending ||
             rulesQuery.isFetching
           }
-          canDelete={canEdit && isDraft}
-          canToggle={canEdit}
+          canDelete={canMutateRules}
+          canToggle={canMutateRules}
           isDeleteDisabled={
             deleteMutation.isPending ||
             enabledMutation.isPending ||
-            cloneMutation.isPending ||
             isRuleActionPending
           }
           onSelect={openEditRule}
@@ -409,6 +345,15 @@ export default function RulesConfigAdminPage({
 
   const content = (
     <div className="space-y-4">
+      {isActive && canEdit ? (
+        <p
+          role="alert"
+          className="rounded-xl border border-card-border bg-background-gray-secondary px-4 py-3 text-sm text-text-secondary"
+        >
+          Bạn đang thao tác trên Version Active. Tạo, sửa, bật/tắt hoặc xóa Rule sẽ có hiệu lực ngay; quản lý
+          nhóm Rule và thông tin Version vẫn chỉ cho phép trong Draft.
+        </p>
+      ) : null}
       {versionsQuery.error ? (
         <section
           className="rounded-xl border border-alert-danger-border bg-alert-danger-background p-4"
@@ -499,7 +444,9 @@ export default function RulesConfigAdminPage({
         onConfirm={handleConfirmDelete}
       >
         <p className="text-sm text-text-secondary">
-          Rule sẽ bị xóa khỏi bản nháp Version này.
+          {isActive
+            ? "Rule sẽ bị xóa khỏi Version Active và thay đổi có hiệu lực ngay. Không thể xóa Rule cuối cùng."
+            : "Rule sẽ bị xóa khỏi bản nháp Version này."}
         </p>
       </DeleteRecordDialog>
     </div>
