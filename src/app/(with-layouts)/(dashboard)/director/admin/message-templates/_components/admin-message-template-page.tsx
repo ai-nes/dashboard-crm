@@ -4,6 +4,7 @@ import { Plus } from "@tailgrids/icons";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { getCurrentUser, type CurrentUser } from "@/services/api/auth";
 import {
   createMessageTemplateLibrary,
@@ -26,9 +27,12 @@ const emptyDraft: MessageTemplateDraft = {
   subject: "",
   body: "",
   sharing: "public",
+  customValues: {},
 };
 
-function getDraft(template: MessageTemplateRecord | null): MessageTemplateDraft {
+function getDraft(
+  template: MessageTemplateRecord | null,
+): MessageTemplateDraft {
   if (!template) return emptyDraft;
 
   return {
@@ -36,6 +40,7 @@ function getDraft(template: MessageTemplateRecord | null): MessageTemplateDraft 
     subject: template.subject,
     body: normalizeMessageTemplateBody(template.body),
     sharing: "public",
+    customValues: template.customValues ?? {},
   };
 }
 
@@ -44,9 +49,13 @@ export default function AdminMessageTemplatePage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [templateToEdit, setTemplateToEdit] = useState<MessageTemplateRecord | null>(null);
+  const [templateToEdit, setTemplateToEdit] =
+    useState<MessageTemplateRecord | null>(null);
+  const [templateToDelete, setTemplateToDelete] =
+    useState<MessageTemplateRecord | null>(null);
   const [draft, setDraft] = useState<MessageTemplateDraft>(emptyDraft);
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const [selectedContact, setSelectedContact] = useState("");
@@ -62,7 +71,9 @@ export default function AdminMessageTemplatePage() {
       setTemplates(response.templates);
       setCurrentUser(user);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Không thể tải thư viện mẫu.");
+      setLoadError(
+        error instanceof Error ? error.message : "Không thể tải thư viện mẫu.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +102,10 @@ export default function AdminMessageTemplatePage() {
     setIsDialogOpen(true);
   };
 
-  const updateDraft = (field: keyof MessageTemplateDraft, value: string) => {
+  const updateDraft = <K extends keyof MessageTemplateDraft>(
+    field: K,
+    value: MessageTemplateDraft[K],
+  ) => {
     setDraft((currentDraft) => ({ ...currentDraft, [field]: value }));
   };
 
@@ -120,7 +134,11 @@ export default function AdminMessageTemplatePage() {
       }
       await loadTemplates();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể lưu mẫu dùng chung.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể lưu mẫu dùng chung.",
+      );
       throw error;
     } finally {
       setIsSaving(false);
@@ -134,32 +152,54 @@ export default function AdminMessageTemplatePage() {
         subject: template.subject,
         body: template.body,
         sharing: "public",
+        customValues: template.customValues ?? {},
       });
       toast.success("Đã nhân bản mẫu dùng chung.");
       await loadTemplates();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể nhân bản mẫu dùng chung.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể nhân bản mẫu dùng chung.",
+      );
     }
   };
 
-  const deleteTemplate = async (template: MessageTemplateRecord) => {
-    if (!window.confirm(`Xóa mẫu dùng chung “${template.name}”?`)) return;
+  const deleteTemplate = async () => {
+    if (!templateToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await deleteMessageTemplateLibrary(template.id, template.modifiedAt);
+      await deleteMessageTemplateLibrary(
+        templateToDelete.id,
+        templateToDelete.modifiedAt,
+      );
+      setTemplateToDelete(null);
       toast.success("Đã xóa mẫu dùng chung.");
       await loadTemplates();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể xóa mẫu dùng chung.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể xóa mẫu dùng chung.",
+      );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
-    <main id="main-content" className="flex min-h-0 min-w-0 flex-col gap-5 px-2 py-4 pb-8 lg:px-6">
+    <main
+      id="main-content"
+      className="flex min-h-0 min-w-0 flex-col gap-5 px-2 py-4 pb-8 lg:px-6"
+    >
       <Card className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:p-6">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
             <Badge color="primary">QUẢN LÝ TEMPLATE</Badge>
-            <span className="text-xs text-text-tertiary">Cấu hình nội dung</span>
+            <span className="text-xs text-text-tertiary">
+              Cấu hình nội dung
+            </span>
           </div>
           <CardTitle level={1} className="mt-4 text-[28px] leading-8">
             Quản lý Message Template
@@ -177,7 +217,11 @@ export default function AdminMessageTemplatePage() {
       {loadError ? (
         <Card className="border-button-error-outline-stroke p-6 text-sm text-button-error-outline-text">
           <p>{loadError}</p>
-          <button type="button" className="mt-3 underline" onClick={() => void loadTemplates()}>
+          <button
+            type="button"
+            className="mt-3 underline"
+            onClick={() => void loadTemplates()}
+          >
             Thử lại
           </button>
         </Card>
@@ -186,16 +230,29 @@ export default function AdminMessageTemplatePage() {
           templates={templates}
           isLoading={isLoading}
           onDuplicate={duplicateTemplate}
-          onDelete={deleteTemplate}
+          onDelete={setTemplateToDelete}
           onEdit={openEditDialog}
         />
       )}
+
+      <DeleteRecordDialog
+        isOpen={Boolean(templateToDelete)}
+        recordType="mẫu dùng chung"
+        recordName={templateToDelete?.name ?? ""}
+        isDeleting={isDeleting}
+        onOpenChange={(open) => {
+          if (!open) setTemplateToDelete(null);
+        }}
+        onConfirm={deleteTemplate}
+      />
 
       <MessageTemplateCreateDialog
         isOpen={isDialogOpen}
         onOpenChange={handleDialogChange}
         draft={draft}
-        ownerName={templateToEdit?.owner ?? currentUser?.full_name ?? "Administrator"}
+        ownerName={
+          templateToEdit?.owner ?? currentUser?.full_name ?? "Administrator"
+        }
         onDraftChange={updateDraft}
         template={templateToEdit}
         sharingLocked

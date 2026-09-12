@@ -1,9 +1,10 @@
 "use client";
 
 import { Plus } from "@tailgrids/icons";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardTitle } from "@/components/tailgrids/core/card";
@@ -14,15 +15,37 @@ import {
   listSnippets,
   updateSnippet,
   type SnippetDraft,
+  type ListSnippetsParams,
+  type ListSnippetsResponse,
   type SnippetRecord,
 } from "@/services/api/snippets";
 
 import SnippetCreateDialog from "./snippet-create-dialog";
 import SnippetList from "./snippet-list";
 
+const SNIPPET_PAGE_SIZE = 5;
+const INITIAL_LIST_PARAMS: ListSnippetsParams = {
+  page: 1,
+  pageSize: SNIPPET_PAGE_SIZE,
+  scope: "all",
+};
+
+const EMPTY_LIST_RESPONSE: ListSnippetsResponse = {
+  snippets: [],
+  owners: [],
+  total: 0,
+  totalAll: 0,
+  totalMine: 0,
+  page: 1,
+  pageSize: SNIPPET_PAGE_SIZE,
+  totalPages: 1,
+  hasNextPage: false,
+};
+
 const createEmptyDraft = (): SnippetDraft => ({
-  name: "",
-  content: "",
+  internalName: "",
+  snippetText: "",
+  shortcut: "",
   sharing: "public",
 });
 
@@ -30,14 +53,36 @@ function getDraftForSnippet(snippet: SnippetRecord | null): SnippetDraft {
   if (!snippet) return createEmptyDraft();
 
   return {
-    name: snippet.name,
-    content: snippet.content,
+    internalName: snippet.internalName ?? "",
+    snippetText: snippet.snippetText ?? "",
+    shortcut: snippet.shortcut ?? "",
     sharing: snippet.sharing,
   };
 }
 
+function getDuplicateShortcut(
+  snippet: SnippetRecord,
+  snippets: SnippetRecord[],
+) {
+  const usedShortcuts = new Set(
+    snippets.map((item) => item.shortcut.trim().toLocaleLowerCase()),
+  );
+  const baseShortcut = `${snippet.shortcut}-copy`;
+  let shortcut = baseShortcut;
+  let suffix = 2;
+  while (usedShortcuts.has(shortcut.toLocaleLowerCase())) {
+    shortcut = `${baseShortcut}-${suffix}`;
+    suffix += 1;
+  }
+  return shortcut;
+}
+
 export default function SnippestPage() {
   const [snippets, setSnippets] = useState<SnippetRecord[]>([]);
+  const [listResponse, setListResponse] =
+    useState<ListSnippetsResponse>(EMPTY_LIST_RESPONSE);
+  const [listParams, setListParams] =
+    useState<ListSnippetsParams>(INITIAL_LIST_PARAMS);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -46,33 +91,50 @@ export default function SnippestPage() {
   const [snippetToEdit, setSnippetToEdit] = useState<SnippetRecord | null>(
     null,
   );
+  const [snippetToDelete, setSnippetToDelete] = useState<SnippetRecord | null>(
+    null,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
   const [draft, setDraft] = useState<SnippetDraft>(createEmptyDraft);
+  const requestId = useRef(0);
 
-  const loadSnippets = useCallback(async () => {
+  const loadSnippets = useCallback(async (params: ListSnippetsParams) => {
+    const nextRequestId = ++requestId.current;
     setIsLoading(true);
     setLoadError(null);
     try {
-      const [response, user] = await Promise.all([
-        listSnippets(),
-        getCurrentUser(),
-      ]);
+      const response = await listSnippets(params);
+      if (nextRequestId !== requestId.current) return;
       setSnippets(response.snippets);
-      setCurrentUser(user);
+      setListResponse(response);
     } catch (error) {
+      if (nextRequestId !== requestId.current) return;
       setLoadError(
         error instanceof Error ? error.message : "Không thể tải snippet.",
       );
     } finally {
-      setIsLoading(false);
+      if (nextRequestId === requestId.current) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void loadSnippets();
+      void loadSnippets(listParams);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadSnippets]);
+  }, [listParams, loadSnippets]);
+
+  useEffect(() => {
+    let isActive = true;
+    void getCurrentUser()
+      .then((user) => {
+        if (isActive) setCurrentUser(user);
+      })
+      .catch(() => undefined);
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const openCreateDialog = () => {
     setSnippetToEdit(null);
@@ -111,7 +173,7 @@ export default function SnippestPage() {
         await createSnippet(nextDraft);
         toast.success("Đã tạo snippet.");
       }
-      await loadSnippets();
+      await loadSnippets(listParams);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Không thể lưu snippet.",
@@ -125,12 +187,13 @@ export default function SnippestPage() {
   const duplicateSnippet = async (snippet: SnippetRecord) => {
     try {
       await createSnippet({
-        name: `${snippet.name} (Bản sao)`,
-        content: snippet.content,
+        internalName: `${snippet.internalName} (Bản sao)`,
+        snippetText: snippet.snippetText,
+        shortcut: getDuplicateShortcut(snippet, snippets),
         sharing: snippet.sharing,
       });
       toast.success("Đã nhân bản snippet.");
-      await loadSnippets();
+      await loadSnippets(listParams);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Không thể nhân bản snippet.",
@@ -138,16 +201,25 @@ export default function SnippestPage() {
     }
   };
 
-  const removeSnippet = async (snippet: SnippetRecord) => {
-    if (!window.confirm(`Xóa snippet “${snippet.name}”?`)) return;
+  const requestDeleteSnippet = (snippet: SnippetRecord) => {
+    setSnippetToDelete(snippet);
+  };
+
+  const confirmDeleteSnippet = async () => {
+    if (!snippetToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await deleteSnippet(snippet.id, snippet.modifiedAt);
+      await deleteSnippet(snippetToDelete.id, snippetToDelete.modifiedAt);
       toast.success("Đã xóa snippet.");
-      await loadSnippets();
+      setSnippetToDelete(null);
+      await loadSnippets(listParams);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Không thể xóa snippet.",
       );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -179,7 +251,7 @@ export default function SnippestPage() {
           <button
             type="button"
             className="mt-3 underline"
-            onClick={() => void loadSnippets()}
+            onClick={() => void loadSnippets(listParams)}
           >
             Thử lại
           </button>
@@ -187,13 +259,35 @@ export default function SnippestPage() {
       ) : (
         <SnippetList
           snippets={snippets}
+          listResponse={listResponse}
+          listParams={listParams}
           currentUserId={currentUser?.user ?? currentUser?.email}
           isLoading={isLoading}
+          onListParamsChange={(nextParams) => {
+            setListParams({
+              ...nextParams,
+              page: nextParams.page ?? 1,
+              pageSize: SNIPPET_PAGE_SIZE,
+            });
+          }}
           onDuplicate={duplicateSnippet}
-          onDelete={removeSnippet}
+          onDelete={requestDeleteSnippet}
           onEdit={openEditDialog}
         />
       )}
+
+      {snippetToDelete ? (
+        <DeleteRecordDialog
+          isOpen={Boolean(snippetToDelete)}
+          recordType="snippet"
+          recordName={snippetToDelete.internalName || snippetToDelete.code}
+          isDeleting={isDeleting}
+          onOpenChange={(open) => {
+            if (!open && !isDeleting) setSnippetToDelete(null);
+          }}
+          onConfirm={confirmDeleteSnippet}
+        />
+      ) : null}
 
       <SnippetCreateDialog
         isOpen={isDialogOpen}

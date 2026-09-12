@@ -47,28 +47,6 @@ const TOKEN_KIND_LABELS: Record<TokenKind, string> = {
   placeholder: "Placeholder",
 };
 
-const TOKEN_FIELD_LABELS: Record<string, string> = {
-  amount: "Amount",
-  career_direction: "Career Direction",
-  datetime: "Date & Time",
-  email: "Email",
-  first_name: "First Name",
-  full_name: "Full Name",
-  interest_area: "Interest Area",
-  interested_program: "Interested Program",
-  last_name: "Last Name",
-  link: "Link",
-  location: "Location",
-  missing_documents: "Missing Documents",
-  name: "Name",
-  next_step: "Next Step",
-  phone: "Phone",
-  registration_link: "Registration Link",
-  source: "Source",
-  status: "Status",
-  type: "Type",
-};
-
 const CATEGORY_ORDER = [
   "first-touch",
   "follow-up",
@@ -109,10 +87,11 @@ function renderTemplateToken(token: string, key: string) {
   const [namespace = "placeholder", ...fieldParts] = token.trim().split(".");
   const kind = tokenKind(namespace);
   const field = fieldParts.join("_") || namespace;
-  const fieldLabel = TOKEN_FIELD_LABELS[field] ?? titleCase(field);
-  const displayFieldLabel = kind === "placeholder"
-    ? `${titleCase(namespace)} ${fieldLabel}`
-    : fieldLabel;
+  const fieldLabel = titleCase(field);
+  const displayFieldLabel =
+    kind === "placeholder"
+      ? `${titleCase(namespace)} ${fieldLabel}`
+      : fieldLabel;
 
   return (
     <span
@@ -123,7 +102,9 @@ function renderTemplateToken(token: string, key: string) {
       <span className="shrink-0 text-text-secondary">
         <TokenIcon kind={kind} />
       </span>
-      <span>{TOKEN_KIND_LABELS[kind]}: {displayFieldLabel}</span>
+      <span>
+        {TOKEN_KIND_LABELS[kind]}: {displayFieldLabel}
+      </span>
     </span>
   );
 }
@@ -132,13 +113,17 @@ function renderTemplateText(text: string) {
   return text.split(/(\{\{[^}]+\}\})/g).map((part, index) => {
     const isToken = part.startsWith("{{") && part.endsWith("}}");
 
-    return isToken
-      ? renderTemplateToken(part.slice(2, -2), `${part}-${index}`)
-      : <span key={`${part}-${index}`}>{part}</span>;
+    return isToken ? (
+      renderTemplateToken(part.slice(2, -2), `${part}-${index}`)
+    ) : (
+      <span key={`${part}-${index}`}>{part}</span>
+    );
   });
 }
 
-function groupTemplates(templates: MessageTemplateRecord[]): MessageTemplateGroup[] {
+function groupTemplates(
+  templates: MessageTemplateRecord[],
+): MessageTemplateGroup[] {
   const grouped = new Map<string, MessageTemplateRecord[]>();
   templates.forEach((template) => {
     const category = template.libraryCategory || "general";
@@ -147,18 +132,22 @@ function groupTemplates(templates: MessageTemplateRecord[]): MessageTemplateGrou
 
   const orderedCategories = [
     ...CATEGORY_ORDER,
-    ...Array.from(grouped.keys()).filter((category) => !CATEGORY_ORDER.includes(category)),
+    ...Array.from(grouped.keys()).filter(
+      (category) => !CATEGORY_ORDER.includes(category),
+    ),
   ];
 
   return orderedCategories.flatMap((category) => {
     const categoryTemplates = grouped.get(category);
     if (!categoryTemplates?.length) return [];
 
-    return [{
-      id: category,
-      title: CATEGORY_LABELS[category] ?? "Mẫu dùng chung",
-      templates: categoryTemplates,
-    }];
+    return [
+      {
+        id: category,
+        title: CATEGORY_LABELS[category] ?? "Mẫu dùng chung",
+        templates: categoryTemplates,
+      },
+    ];
   });
 }
 
@@ -180,7 +169,9 @@ export default function MessageTemplateLibraryDialog({
       const response = await listMessageTemplateLibrary();
       setTemplates(response.templates);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Không thể tải thư viện mẫu.");
+      setLoadError(
+        error instanceof Error ? error.message : "Không thể tải thư viện mẫu.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -196,10 +187,12 @@ export default function MessageTemplateLibraryDialog({
 
   const groups = useMemo(() => groupTemplates(templates), [templates]);
   const firstTemplate = groups[0]?.templates[0] ?? null;
-  const selectedTemplate = templates.find((template) => template.id === selectedTemplateId)
-    ?? firstTemplate;
-  const previewedTemplate = templates.find((template) => template.id === previewedTemplateId)
-    ?? selectedTemplate;
+  const selectedTemplate =
+    templates.find((template) => template.id === selectedTemplateId) ??
+    firstTemplate;
+  const previewedTemplate =
+    templates.find((template) => template.id === previewedTemplateId) ??
+    selectedTemplate;
   const totalTemplateCount = templates.length;
 
   const selectTemplate = (templateId: string) => {
@@ -220,7 +213,10 @@ export default function MessageTemplateLibraryDialog({
       >
         <DialogHeader className="flex shrink-0 flex-row items-center justify-between gap-4 border-b border-card-border bg-card-surface-area px-5 py-4 pr-4 sm:px-7 sm:py-5">
           <div className="min-w-0">
-            <DialogTitle level={2} className="truncate text-xl font-semibold text-text-primary sm:text-2xl">
+            <DialogTitle
+              level={2}
+              className="truncate text-xl font-semibold text-text-primary sm:text-2xl"
+            >
               Message Template Library
             </DialogTitle>
             <DialogDescription className="mt-1 text-xs text-text-tertiary sm:text-sm">
@@ -243,34 +239,54 @@ export default function MessageTemplateLibraryDialog({
             aria-label="Danh sách nhóm mẫu tin nhắn"
             className="flex min-h-0 flex-col overflow-hidden border-b border-card-border bg-background-white-primary lg:border-r lg:border-b-0"
           >
-            <div role="listbox" aria-label="Các mẫu tin nhắn" className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5">
+            <div
+              role="listbox"
+              aria-label="Các mẫu tin nhắn"
+              className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5"
+            >
               {isLoading ? (
-                <p className="p-4 text-sm text-text-tertiary">Đang tải thư viện mẫu...</p>
+                <p className="p-4 text-sm text-text-tertiary">
+                  Đang tải thư viện mẫu...
+                </p>
               ) : loadError ? (
                 <div className="p-4 text-sm text-button-error-outline-text">
                   <p>{loadError}</p>
-                  <button type="button" className="mt-2 underline" onClick={() => void loadLibrary()}>
+                  <button
+                    type="button"
+                    className="mt-2 underline"
+                    onClick={() => void loadLibrary()}
+                  >
                     Thử lại
                   </button>
                 </div>
               ) : groups.length === 0 ? (
-                <p className="p-4 text-sm text-text-tertiary">Chưa có mẫu dùng chung.</p>
+                <p className="p-4 text-sm text-text-tertiary">
+                  Chưa có mẫu dùng chung.
+                </p>
               ) : (
                 <div className="space-y-6">
                   {groups.map((group, groupIndex) => (
-                    <section key={group.id} aria-labelledby={`${group.id}-heading`}>
+                    <section
+                      key={group.id}
+                      aria-labelledby={`${group.id}-heading`}
+                    >
                       <div className="flex items-center gap-2 border-b border-card-border pb-2.5">
                         <span className="rounded-md bg-background-gray-secondary px-1.5 py-0.5 text-xs font-semibold tabular-nums text-text-tertiary">
                           {String(groupIndex + 1).padStart(2, "0")}
                         </span>
-                        <h2 id={`${group.id}-heading`} className="text-sm font-bold tracking-[0.02em] text-text-primary">
+                        <h2
+                          id={`${group.id}-heading`}
+                          className="text-sm font-bold tracking-[0.02em] text-text-primary"
+                        >
                           {group.title}
                         </h2>
                       </div>
                       <div className="mt-2 space-y-1.5">
                         {group.templates.map((template) => {
-                          const isSelected = template.id === selectedTemplate?.id;
-                          const isPreviewed = template.id === previewedTemplate?.id;
+                          const isSelected =
+                            template.id === selectedTemplate?.id;
+                          const isPreviewed =
+                            template.id === previewedTemplate?.id;
 
                           return (
                             <button
@@ -318,13 +334,17 @@ export default function MessageTemplateLibraryDialog({
                 <div className="mx-auto max-w-3xl">
                   <dl className="space-y-6 text-base">
                     <div>
-                      <dt className="text-sm font-medium text-text-tertiary">Template name</dt>
+                      <dt className="text-sm font-medium text-text-tertiary">
+                        Template name
+                      </dt>
                       <dd className="mt-1 text-lg font-semibold leading-7 text-text-primary">
                         {previewedTemplate.name}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-sm font-medium text-text-tertiary">Subject</dt>
+                      <dt className="text-sm font-medium text-text-tertiary">
+                        Subject
+                      </dt>
                       <dd className="mt-1 text-base leading-8 text-text-secondary">
                         {renderTemplateText(previewedTemplate.subject)}
                       </dd>
@@ -348,11 +368,21 @@ export default function MessageTemplateLibraryDialog({
           <span className="min-w-0 truncate text-xs text-text-tertiary">
             {totalTemplateCount} mẫu có sẵn
             {previewedTemplate ? (
-              <> · Đang xem: <span className="font-medium text-text-secondary">{previewedTemplate.name}</span></>
+              <>
+                {" "}
+                · Đang xem:{" "}
+                <span className="font-medium text-text-secondary">
+                  {previewedTemplate.name}
+                </span>
+              </>
             ) : null}
           </span>
           <div className="flex shrink-0 items-center justify-end gap-2">
-            <Button appearance="outline" size="sm" onPress={() => onOpenChange(false)}>
+            <Button
+              appearance="outline"
+              size="sm"
+              onPress={() => onOpenChange(false)}
+            >
               Đóng
             </Button>
             <Button
@@ -365,6 +395,7 @@ export default function MessageTemplateLibraryDialog({
                   subject: previewedTemplate.subject,
                   body: normalizeMessageTemplateBody(previewedTemplate.body),
                   sharing: "public",
+                  customValues: previewedTemplate.customValues ?? {},
                 });
                 onOpenChange(false);
               }}

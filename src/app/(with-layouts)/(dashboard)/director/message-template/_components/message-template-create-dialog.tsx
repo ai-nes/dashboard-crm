@@ -1,7 +1,11 @@
 "use client";
 
 import { Close } from "@tailgrids/icons";
-import { Dialog as AriaDialog, Modal as AriaModal } from "react-aria-components";
+import {
+  Dialog as AriaDialog,
+  Modal as AriaModal,
+} from "react-aria-components";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -11,6 +15,10 @@ import {
 } from "@/components/tailgrids/core/dialog";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
 import { cn } from "@/utils/cn";
+import {
+  listMessageTemplateTokens,
+  type MessageTemplateTokenDefinition,
+} from "@/services/api/message-templates";
 import type { SnippetRecord } from "@/services/api/snippets";
 
 import { normalizeMessageTemplateBody } from "./message-template-body";
@@ -24,7 +32,10 @@ interface MessageTemplateCreateDialogProps {
   onOpenChange: (open: boolean) => void;
   draft: MessageTemplateDraft;
   ownerName: string;
-  onDraftChange: (field: keyof MessageTemplateDraft, value: string) => void;
+  onDraftChange: <K extends keyof MessageTemplateDraft>(
+    field: K,
+    value: MessageTemplateDraft[K],
+  ) => void;
   template?: MessageTemplateRecord | null;
   sharingLocked?: boolean;
   onSave?: (draft: MessageTemplateDraft) => Promise<void> | void;
@@ -61,11 +72,48 @@ export default function MessageTemplateCreateDialog({
   snippetsError = null,
 }: MessageTemplateCreateDialogProps) {
   const isEditMode = Boolean(template);
+  const [tokens, setTokens] = useState<MessageTemplateTokenDefinition[]>([]);
+  const [isLoadingTokens, setIsLoadingTokens] = useState(false);
+  const [tokensError, setTokensError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setIsLoadingTokens(true);
+      setTokensError(null);
+      void listMessageTemplateTokens()
+        .then((response) => {
+          if (!cancelled) setTokens(response.tokens);
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            setTokensError(
+              error instanceof Error
+                ? error.message
+                : "Không thể tải danh sách token.",
+            );
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoadingTokens(false);
+        });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [isOpen]);
 
   const canSave = Boolean(
     draft.name.trim() && draft.subject.trim() && isBodyValid(draft.body),
   );
-  const editorDraft = { ...draft, body: normalizeMessageTemplateBody(draft.body) };
+  const editorDraft = {
+    ...draft,
+    body: normalizeMessageTemplateBody(draft.body),
+  };
 
   return (
     <Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
@@ -101,23 +149,27 @@ export default function MessageTemplateCreateDialog({
 
           <div
             className={cn(
-              "grid min-h-0 flex-1",
+              "grid min-h-0 min-w-0 flex-1 overflow-y-auto lg:overflow-hidden",
               isPreviewVisible
-                ? "grid-rows-[minmax(28rem,1fr)_minmax(28rem,1fr)] lg:grid-cols-2 lg:grid-rows-1 lg:gap-0"
+                ? "grid-rows-[minmax(28rem,1fr)_minmax(28rem,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-1 lg:gap-0"
                 : "grid-rows-1 lg:grid-cols-1",
             )}
           >
             <div
               className={cn(
-                "flex min-h-0 flex-col overflow-hidden border-b border-card-border px-5 py-5 sm:px-7 sm:py-6 lg:border-b-0",
+                "flex min-h-0 min-w-0 flex-col overflow-hidden border-b border-card-border px-5 py-5 sm:px-7 sm:py-6 lg:border-b-0",
                 isPreviewVisible && "lg:pr-2",
-                !isPreviewVisible && "lg:mx-auto lg:w-full lg:max-w-full lg:px-7",
+                !isPreviewVisible &&
+                  "lg:mx-auto lg:w-full lg:max-w-full lg:px-7",
               )}
             >
               <MessageTemplateCreateEditor
                 draft={editorDraft}
                 ownerName={ownerName}
                 onChange={onDraftChange}
+                tokens={tokens}
+                isLoadingTokens={isLoadingTokens}
+                tokensError={tokensError}
                 sharingLocked={sharingLocked}
                 snippets={snippets}
                 isLoadingSnippets={isLoadingSnippets}
@@ -127,10 +179,11 @@ export default function MessageTemplateCreateDialog({
               />
             </div>
             {isPreviewVisible && (
-              <div className="flex min-h-0 flex-col overflow-hidden px-5 py-5 sm:px-7 sm:py-6 lg:pl-2">
+              <div className="flex min-h-0 min-w-0 flex-col overflow-hidden px-5 py-5 sm:px-7 sm:py-6 lg:pl-2">
                 <MessageTemplateCreatePreview
                   isOpen={isOpen}
                   draft={draft}
+                  tokens={tokens}
                   isPreviewVisible={isPreviewVisible}
                   onPreviewVisibilityChange={onPreviewVisibilityChange}
                   selectedContact={selectedContact}

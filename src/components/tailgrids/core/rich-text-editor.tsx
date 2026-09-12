@@ -10,14 +10,16 @@ import {
 import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor, type UseEditorOptions } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { cn } from "@/utils/cn";
 
 import { Button } from "./button";
 
-export type RichTextEditorExtension = NonNullable<UseEditorOptions["extensions"]>[number];
+export type RichTextEditorExtension = NonNullable<
+  UseEditorOptions["extensions"]
+>[number];
 type RichTextEditorInstance = NonNullable<ReturnType<typeof useEditor>>;
 export type { RichTextEditorInstance };
 
@@ -35,8 +37,15 @@ export interface RichTextEditorProps {
   extensions?: RichTextEditorExtension[];
   onInsertToken?: (editor: RichTextEditorInstance, token: string) => void;
   onEditorUpdate?: (editor: RichTextEditorInstance) => void;
+  onEditorSelectionUpdate?: (editor: RichTextEditorInstance) => void;
+  onEditorKeyDown?: (
+    editor: RichTextEditorInstance,
+    event: KeyboardEvent,
+  ) => boolean;
+  onEditorBlur?: (editor: RichTextEditorInstance) => void;
   toolbarPlacement?: "top" | "bottom";
   toolbarEndContent?: ReactNode;
+  scrollable?: boolean;
 }
 
 interface ToolbarButtonProps {
@@ -46,7 +55,12 @@ interface ToolbarButtonProps {
   children: ReactNode;
 }
 
-function ToolbarButton({ active, onPress, label, children }: ToolbarButtonProps) {
+function ToolbarButton({
+  active,
+  onPress,
+  label,
+  children,
+}: ToolbarButtonProps) {
   return (
     <Button
       variant="ghost"
@@ -75,9 +89,24 @@ export function RichTextEditor({
   extensions = [],
   onInsertToken,
   onEditorUpdate,
+  onEditorSelectionUpdate,
+  onEditorKeyDown,
+  onEditorBlur,
   toolbarPlacement = "top",
   toolbarEndContent,
+  scrollable = false,
 }: RichTextEditorProps) {
+  const editorRef = useRef<RichTextEditorInstance | null>(null);
+  const editorKeyDownRef = useRef(onEditorKeyDown);
+  const editorSelectionUpdateRef = useRef(onEditorSelectionUpdate);
+  const editorBlurRef = useRef(onEditorBlur);
+
+  useEffect(() => {
+    editorKeyDownRef.current = onEditorKeyDown;
+    editorSelectionUpdateRef.current = onEditorSelectionUpdate;
+    editorBlurRef.current = onEditorBlur;
+  }, [onEditorBlur, onEditorKeyDown, onEditorSelectionUpdate]);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -91,18 +120,37 @@ export function RichTextEditor({
         class:
           "min-h-28 px-4 py-3 text-sm leading-6 text-text-primary outline-none [&_p]:my-1 [&_a]:text-primary-500 [&_a]:underline",
       },
+      handleKeyDown: (_view, event) => {
+        const currentEditor = editorRef.current;
+        return currentEditor
+          ? (editorKeyDownRef.current?.(currentEditor, event) ?? false)
+          : false;
+      },
     },
     onUpdate: ({ editor }) => {
       onEditorUpdate?.(editor);
       onChange(editor.getHTML());
     },
+    onSelectionUpdate: ({ editor }) => {
+      editorSelectionUpdateRef.current?.(editor);
+    },
+    onBlur: ({ editor }) => {
+      editorBlurRef.current?.(editor);
+    },
   });
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   if (!editor) return null;
 
   const handleLink = () => {
     const previousUrl = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("Nhập đường dẫn liên kết", previousUrl ?? "https://");
+    const url = window.prompt(
+      "Nhập đường dẫn liên kết",
+      previousUrl ?? "https://",
+    );
     if (url === null) return;
     if (url === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
@@ -111,7 +159,8 @@ export function RichTextEditor({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
-  const handleUnsupported = () => toast.info("Tính năng này đang được phát triển.");
+  const handleUnsupported = () =>
+    toast.info("Tính năng này đang được phát triển.");
   const handleInsertToken = (token: string) => {
     if (onInsertToken) {
       onInsertToken(editor, token);
@@ -163,16 +212,32 @@ export function RichTextEditor({
         <span className="line-through">S</span>
       </ToolbarButton>
       <span className="mx-1 h-5 w-px bg-card-border" aria-hidden="true" />
-      <ToolbarButton label="Chèn liên kết" active={editor.isActive("link")} onPress={handleLink}>
+      <ToolbarButton
+        label="Chèn liên kết"
+        active={editor.isActive("link")}
+        onPress={handleLink}
+      >
         <Link1AngularRight size={16} />
       </ToolbarButton>
-      <ToolbarButton label="Chèn ảnh" active={false} onPress={handleUnsupported}>
+      <ToolbarButton
+        label="Chèn ảnh"
+        active={false}
+        onPress={handleUnsupported}
+      >
         <FileImage size={16} />
       </ToolbarButton>
-      <ToolbarButton label="Đính kèm tệp" active={false} onPress={handleUnsupported}>
+      <ToolbarButton
+        label="Đính kèm tệp"
+        active={false}
+        onPress={handleUnsupported}
+      >
         <Paperclip2 size={16} />
       </ToolbarButton>
-      <ToolbarButton label="Trợ lý AI" active={false} onPress={handleUnsupported}>
+      <ToolbarButton
+        label="Trợ lý AI"
+        active={false}
+        onPress={handleUnsupported}
+      >
         <SparkleFill size={16} />
       </ToolbarButton>
       {renderInsertControl
@@ -189,14 +254,27 @@ export function RichTextEditor({
               <ChevronDown size={14} aria-hidden="true" />
             </Button>
           )}
-      {toolbarEndContent ? <div className="ml-auto shrink-0">{toolbarEndContent}</div> : null}
+      {toolbarEndContent ? (
+        <div className="ml-auto shrink-0">{toolbarEndContent}</div>
+      ) : null}
     </div>
   );
 
   return (
-    <div className={cn("rounded-lg border border-card-border bg-input-background", className)}>
+    <div
+      className={cn(
+        "rounded-lg border border-card-border bg-input-background",
+        className,
+      )}
+    >
       {toolbarPlacement === "top" ? toolbar : null}
-      <EditorContent editor={editor} className="min-h-0 flex-1" />
+      <EditorContent
+        editor={editor}
+        className={cn(
+          "min-h-0 flex-1",
+          scrollable && "overflow-y-auto overscroll-contain",
+        )}
+      />
       {toolbarPlacement === "bottom" ? toolbar : null}
     </div>
   );

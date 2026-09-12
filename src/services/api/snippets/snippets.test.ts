@@ -15,8 +15,9 @@ describe("Snippets API service", () => {
   const originalFetch = globalThis.fetch;
   const baseUrl = "http://crm-test.local:8000";
   const draft = {
-    name: "Lời chào đầu tiên",
-    content: "Xin chào {{student.full_name}}",
+    internalName: "Lời chào đầu tiên",
+    snippetText: "Xin chào {{student.full_name}}",
+    shortcut: "xinchao",
     sharing: "public" as const,
   };
 
@@ -32,8 +33,22 @@ describe("Snippets API service", () => {
         JSON.stringify({
           message: {
             total: 1,
+            totalAll: 1,
+            totalMine: 1,
+            page: 1,
+            pageSize: 5,
+            totalPages: 1,
+            hasNextPage: false,
             owners: [{ id: "owner@example.com", name: "Người tạo" }],
-            snippets: [{ id: "SNP-001", code: "SNP-001", name: draft.name }],
+            snippets: [
+              {
+                id: "SNP-001",
+                code: "SNP-001",
+                internalName: draft.internalName,
+                snippetText: draft.snippetText,
+                shortcut: draft.shortcut,
+              },
+            ],
           },
         }),
         { status: 200 },
@@ -41,7 +56,14 @@ describe("Snippets API service", () => {
     );
 
     const result = await listSnippets(
-      { search: "Lời chào", owner: "owner@example.com", sharing: "private" },
+      {
+        search: "Lời chào",
+        owner: "owner@example.com",
+        sharing: "private",
+        scope: "all",
+        page: 1,
+        pageSize: 5,
+      },
       { baseUrl },
     );
 
@@ -55,6 +77,62 @@ describe("Snippets API service", () => {
     expect(requestUrl.searchParams.get("search")).toBe("Lời chào");
     expect(requestUrl.searchParams.get("owner")).toBe("owner@example.com");
     expect(requestUrl.searchParams.get("sharing")).toBe("private");
+    expect(requestUrl.searchParams.get("scope")).toBe("all");
+    expect(requestUrl.searchParams.get("page")).toBe("1");
+    expect(requestUrl.searchParams.get("pageSize")).toBe("5");
+  });
+
+  it("normalizes nullable legacy fields before the UI consumes them", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            total: 1,
+            owners: [{ id: "owner@example.com", name: null }],
+            snippets: [
+              {
+                id: "SNP-001",
+                code: "SNP-001",
+                internalName: null,
+                snippetText: null,
+                shortcut: null,
+                ownerId: null,
+                owner: null,
+                sharing: null,
+                canEdit: null,
+              },
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(listSnippets({}, { baseUrl })).resolves.toEqual({
+      total: 1,
+      totalAll: 1,
+      totalMine: 0,
+      page: 1,
+      pageSize: 5,
+      totalPages: 1,
+      hasNextPage: false,
+      owners: [{ id: "owner@example.com", name: "owner@example.com" }],
+      snippets: [
+        {
+          id: "SNP-001",
+          code: "SNP-001",
+          internalName: "",
+          snippetText: "",
+          shortcut: "",
+          ownerId: "",
+          owner: "",
+          sharing: "public",
+          createdAt: "",
+          modifiedAt: "",
+          canEdit: false,
+        },
+      ],
+    });
   });
 
   it("sends the shared draft contract for create and update", async () => {

@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/tailgrids/core/dialog";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/tailgrids/core/input";
 import {
   Select,
@@ -22,9 +23,16 @@ import {
   SelectValue,
 } from "@/components/tailgrids/core/select";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
+import { RichTextEditor } from "@/components/tailgrids/core/rich-text-editor";
 import { cn } from "@/utils/cn";
 
 import type { SnippetDraft, SnippetRecord } from "@/services/api/snippets";
+import {
+  listMessageTemplateTokens,
+  type MessageTemplateTokenDefinition,
+} from "@/services/api/message-templates";
+
+import MessageTemplateTokenPopover from "../../message-template/_components/message-template-token-popover";
 
 interface SnippetCreateDialogProps {
   isOpen: boolean;
@@ -37,8 +45,8 @@ interface SnippetCreateDialogProps {
   isSaving?: boolean;
 }
 
-function isContentValid(content: string) {
-  return content.replace(/<[^>]*>/g, "").trim().length > 0;
+function isContentValid(snippetText: string | null | undefined) {
+  return (snippetText ?? "").replace(/<[^>]*>/g, "").trim().length > 0;
 }
 
 export default function SnippetCreateDialog({
@@ -52,7 +60,46 @@ export default function SnippetCreateDialog({
   isSaving = false,
 }: SnippetCreateDialogProps) {
   const isEditMode = Boolean(snippet);
-  const canSave = Boolean(draft.name.trim() && isContentValid(draft.content));
+  const [tokens, setTokens] = useState<MessageTemplateTokenDefinition[]>([]);
+  const [isLoadingTokens, setIsLoadingTokens] = useState(false);
+  const [tokensError, setTokensError] = useState<string | null>(null);
+  const internalName = draft.internalName ?? "";
+  const snippetText = draft.snippetText ?? "";
+  const shortcut = draft.shortcut ?? "";
+  const canSave = Boolean(
+    internalName.trim() && shortcut.trim() && isContentValid(snippetText),
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setIsLoadingTokens(true);
+      setTokensError(null);
+      void listMessageTemplateTokens()
+        .then((response) => {
+          if (!cancelled) setTokens(response.tokens);
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            setTokensError(
+              error instanceof Error
+                ? error.message
+                : "Không thể tải danh sách token.",
+            );
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoadingTokens(false);
+        });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [isOpen]);
 
   return (
     <Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
@@ -81,18 +128,18 @@ export default function SnippetCreateDialog({
             <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
               <div className="min-w-0">
                 <label
-                  htmlFor="snippet-name"
+                  htmlFor="snippet-internal-name"
                   className="mb-2 block text-sm font-semibold text-text-primary"
                 >
-                  Tên snippet
+                  Internal name
                 </label>
                 <Input
-                  id="snippet-name"
-                  aria-label="Tên snippet"
-                  placeholder="Nhập tên snippet"
-                  value={draft.name}
+                  id="snippet-internal-name"
+                  aria-label="Internal name"
+                  placeholder="Nhập internal name"
+                  value={internalName}
                   onChange={(event) =>
-                    onDraftChange("name", event.target.value)
+                    onDraftChange("internalName", event.target.value)
                   }
                   className="w-full"
                 />
@@ -131,21 +178,25 @@ export default function SnippetCreateDialog({
 
             <div>
               <label
-                htmlFor="snippet-content"
+                htmlFor="snippet-text"
                 className="mb-2 block text-sm font-semibold text-text-primary"
               >
-                Nội dung
+                Snippet text
               </label>
-              <textarea
-                id="snippet-content"
-                aria-label="Nội dung snippet"
-                placeholder="Nhập đoạn nội dung dùng nhanh..."
-                value={draft.content}
-                onChange={(event) =>
-                  onDraftChange("content", event.target.value)
-                }
+              <RichTextEditor
+                value={snippetText}
+                onChange={(value) => onDraftChange("snippetText", value)}
+                placeholder="Nhập nội dung snippet..."
+                renderInsertControl={(onInsertToken) => (
+                  <MessageTemplateTokenPopover
+                    tokens={tokens}
+                    isLoadingTokens={isLoadingTokens}
+                    tokensError={tokensError}
+                    onInsertToken={onInsertToken}
+                  />
+                )}
                 className={cn(
-                  "min-h-56 w-full resize-y rounded-lg border border-card-border bg-input-background px-4 py-3 text-sm text-title-50 outline-none placeholder:text-input-placeholder-text focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20",
+                  "min-h-56 border-card-border bg-input-background [&_.ProseMirror]:min-h-48",
                 )}
               />
               <p className="mt-2 text-xs text-text-tertiary">
@@ -153,6 +204,37 @@ export default function SnippetCreateDialog({
                 <span className="font-medium text-text-secondary">
                   {ownerName}
                 </span>
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="snippet-shortcut"
+                className="mb-2 block text-sm font-semibold text-text-primary"
+              >
+                Shortcut
+              </label>
+              <div className="flex h-11 items-center rounded-lg border border-card-border bg-input-background px-3 focus-within:border-input-primary-focus-border focus-within:ring-4 focus-within:ring-input-primary-focus-border/20">
+                <span className="text-lg font-semibold text-text-secondary">
+                  #
+                </span>
+                <Input
+                  id="snippet-shortcut"
+                  aria-label="Shortcut"
+                  placeholder="xinchao"
+                  value={shortcut}
+                  onChange={(event) =>
+                    onDraftChange(
+                      "shortcut",
+                      event.target.value.replace(/^#+/, ""),
+                    )
+                  }
+                  className="h-9 flex-1 rounded-none border-0 bg-transparent px-2 py-1 text-sm shadow-none focus:ring-0"
+                />
+              </div>
+              <p className="mt-2 text-xs leading-5 text-text-tertiary">
+                Khi dùng snippet, nhập dấu # theo sau là shortcut này trong
+                trình soạn thảo.
               </p>
             </div>
           </div>

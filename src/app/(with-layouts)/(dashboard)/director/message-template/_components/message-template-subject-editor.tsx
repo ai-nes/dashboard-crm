@@ -6,6 +6,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 
 import type { RichTextEditorExtension } from "@/components/tailgrids/core/rich-text-editor";
+import type { MessageTemplateTokenDefinition } from "@/services/api/message-templates";
 
 import MessageTemplateTokenPopover from "./message-template-token-popover";
 import MessageTemplateToken from "./message-template-token-node";
@@ -13,6 +14,9 @@ import MessageTemplateToken from "./message-template-token-node";
 interface MessageTemplateSubjectEditorProps {
   value: string;
   onChange: (value: string) => void;
+  tokens: MessageTemplateTokenDefinition[];
+  isLoadingTokens?: boolean;
+  tokensError?: string | null;
 }
 
 function createSubjectContent(value: string): JSONContent {
@@ -56,6 +60,9 @@ function serializeSubject(editor: ReturnType<typeof useEditor>) {
 export default function MessageTemplateSubjectEditor({
   value,
   onChange,
+  tokens,
+  isLoadingTokens = false,
+  tokensError = null,
 }: MessageTemplateSubjectEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -72,7 +79,8 @@ export default function MessageTemplateSubjectEditor({
           "min-h-9 px-0 py-1 text-sm leading-6 text-text-primary outline-none [&_p]:my-0",
       },
     },
-    onUpdate: ({ editor: updatedEditor }) => onChange(serializeSubject(updatedEditor)),
+    onUpdate: ({ editor: updatedEditor }) =>
+      onChange(serializeSubject(updatedEditor)),
   });
 
   if (!editor) return null;
@@ -83,6 +91,9 @@ export default function MessageTemplateSubjectEditor({
         <EditorContent editor={editor} />
       </div>
       <MessageTemplateTokenPopover
+        tokens={tokens}
+        isLoadingTokens={isLoadingTokens}
+        tokensError={tokensError}
         onInsertToken={(token) => {
           editor
             .chain()

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardTitle } from "@/components/tailgrids/core/card";
 import { getCurrentUser, type CurrentUser } from "@/services/api/auth";
@@ -27,9 +28,12 @@ const emptyDraft: MessageTemplateDraft = {
   subject: "",
   body: "",
   sharing: "public",
+  customValues: {},
 };
 
-function getDraftForTemplate(template: MessageTemplateRecord | null): MessageTemplateDraft {
+function getDraftForTemplate(
+  template: MessageTemplateRecord | null,
+): MessageTemplateDraft {
   if (!template) return emptyDraft;
 
   return {
@@ -37,6 +41,7 @@ function getDraftForTemplate(template: MessageTemplateRecord | null): MessageTem
     subject: template.subject,
     body: normalizeMessageTemplateBody(template.body),
     sharing: template.sharing,
+    customValues: template.customValues ?? {},
   };
 }
 
@@ -45,10 +50,14 @@ export default function MessageTemplatePage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
-  const [templateToEdit, setTemplateToEdit] = useState<MessageTemplateRecord | null>(null);
+  const [templateToEdit, setTemplateToEdit] =
+    useState<MessageTemplateRecord | null>(null);
+  const [templateToDelete, setTemplateToDelete] =
+    useState<MessageTemplateRecord | null>(null);
   const [draft, setDraft] = useState<MessageTemplateDraft>(emptyDraft);
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const [selectedContact, setSelectedContact] = useState("");
@@ -67,7 +76,9 @@ export default function MessageTemplatePage() {
       setTemplates(response.templates);
       setCurrentUser(user);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Không thể tải mẫu email.");
+      setLoadError(
+        error instanceof Error ? error.message : "Không thể tải mẫu email.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -77,10 +88,12 @@ export default function MessageTemplatePage() {
     setIsLoadingSnippets(true);
     setSnippetsError(null);
     try {
-      const response = await listSnippets();
+      const response = await listSnippets({ pageSize: 100 });
       setSnippets(response.snippets);
     } catch (error) {
-      setSnippetsError(error instanceof Error ? error.message : "Không thể tải snippet.");
+      setSnippetsError(
+        error instanceof Error ? error.message : "Không thể tải snippet.",
+      );
     } finally {
       setIsLoadingSnippets(false);
     }
@@ -127,7 +140,10 @@ export default function MessageTemplatePage() {
     setIsCreateDialogOpen(true);
   };
 
-  const updateDraft = (field: keyof MessageTemplateDraft, value: string) => {
+  const updateDraft = <K extends keyof MessageTemplateDraft>(
+    field: K,
+    value: MessageTemplateDraft[K],
+  ) => {
     setDraft((currentDraft) => ({ ...currentDraft, [field]: value }));
   };
 
@@ -156,7 +172,9 @@ export default function MessageTemplatePage() {
       }
       await loadTemplates();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể lưu mẫu email.");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể lưu mẫu email.",
+      );
       throw error;
     } finally {
       setIsSaving(false);
@@ -170,27 +188,45 @@ export default function MessageTemplatePage() {
         subject: template.subject,
         body: template.body,
         sharing: template.sharing,
+        customValues: template.customValues ?? {},
       });
       toast.success("Đã nhân bản mẫu email.");
       await loadTemplates();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể nhân bản mẫu email.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể nhân bản mẫu email.",
+      );
     }
   };
 
-  const deleteTemplate = async (template: MessageTemplateRecord) => {
-    if (!window.confirm(`Xóa mẫu “${template.name}”?`)) return;
+  const deleteTemplate = async () => {
+    if (!templateToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await deleteMessageTemplate(template.id, template.modifiedAt);
+      await deleteMessageTemplate(
+        templateToDelete.id,
+        templateToDelete.modifiedAt,
+      );
+      setTemplateToDelete(null);
       toast.success("Đã xóa mẫu email.");
       await loadTemplates();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể xóa mẫu email.");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể xóa mẫu email.",
+      );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
-    <main id="main-content" className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6">
+    <main
+      id="main-content"
+      className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6"
+    >
       <Card className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:p-6">
         <div>
           <Badge color="primary">MẪU &amp; NỘI DUNG</Badge>
@@ -198,7 +234,8 @@ export default function MessageTemplatePage() {
             Message Template
           </CardTitle>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Quản lý các mẫu tin nhắn được sử dụng trong quá trình chăm sóc học sinh.
+            Quản lý các mẫu tin nhắn được sử dụng trong quá trình chăm sóc học
+            sinh.
           </p>
         </div>
         <ContentCreateMenu
@@ -210,7 +247,11 @@ export default function MessageTemplatePage() {
       {loadError ? (
         <Card className="border-button-error-outline-stroke p-6 text-sm text-button-error-outline-text">
           <p>{loadError}</p>
-          <button type="button" className="mt-3 underline" onClick={() => void loadTemplates()}>
+          <button
+            type="button"
+            className="mt-3 underline"
+            onClick={() => void loadTemplates()}
+          >
             Thử lại
           </button>
         </Card>
@@ -220,10 +261,21 @@ export default function MessageTemplatePage() {
           currentUserId={currentUser?.user ?? currentUser?.email}
           isLoading={isLoading}
           onDuplicate={duplicateTemplate}
-          onDelete={deleteTemplate}
+          onDelete={setTemplateToDelete}
           onEdit={openEditDialog}
         />
       )}
+
+      <DeleteRecordDialog
+        isOpen={Boolean(templateToDelete)}
+        recordType="mẫu email"
+        recordName={templateToDelete?.name ?? ""}
+        isDeleting={isDeleting}
+        onOpenChange={(open) => {
+          if (!open) setTemplateToDelete(null);
+        }}
+        onConfirm={deleteTemplate}
+      />
 
       <MessageTemplateLibraryDialog
         isOpen={isLibraryOpen}

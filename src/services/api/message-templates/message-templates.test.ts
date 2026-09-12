@@ -7,6 +7,7 @@ import {
   deleteMessageTemplateLibrary,
   listAdminMessageTemplateLibrary,
   listMessageTemplatePreviewContacts,
+  listMessageTemplateTokens,
   listMessageTemplateLibrary,
   listMessageTemplates,
   previewMessageTemplate,
@@ -26,6 +27,7 @@ describe("Message templates API service", () => {
     subject: "Chào {{student.first_name}}",
     body: "<p>Nội dung email</p>",
     sharing: "public" as const,
+    customValues: {},
   };
 
   beforeEach(() => vi.restoreAllMocks());
@@ -54,7 +56,9 @@ describe("Message templates API service", () => {
     );
 
     expect(result.total).toBe(1);
-    const requestUrl = new URL(String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]));
+    const requestUrl = new URL(
+      String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]),
+    );
     expect(requestUrl.pathname).toBe(
       "/api/method/crm.api.message_templates.list_message_templates",
     );
@@ -65,11 +69,24 @@ describe("Message templates API service", () => {
   it("sends the shared draft contract for create and update", async () => {
     globalThis.fetch = vi
       .fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ message: { id: "MSG-001" } }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ message: { id: "MSG-001" } }), { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ message: { id: "MSG-001" } }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ message: { id: "MSG-001" } }), {
+          status: 200,
+        }),
+      );
 
     await createMessageTemplate(draft, { baseUrl });
-    await updateMessageTemplate("MSG-001", { ...draft, sharing: "private" }, "modified-1", { baseUrl });
+    await updateMessageTemplate(
+      "MSG-001",
+      { ...draft, sharing: "private" },
+      "modified-1",
+      { baseUrl },
+    );
 
     expect(globalThis.fetch).toHaveBeenNthCalledWith(
       1,
@@ -94,9 +111,14 @@ describe("Message templates API service", () => {
   });
 
   it("loads the seeded system-template library", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ message: { templates: [], owners: [], total: 0 } }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ message: { templates: [], owners: [], total: 0 } }),
+          { status: 200 },
+        ),
+      );
 
     await listMessageTemplateLibrary({ baseUrl });
 
@@ -106,20 +128,83 @@ describe("Message templates API service", () => {
     );
   });
 
+  it("loads the backend-owned token catalog", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            total: 2,
+            tokens: [
+              {
+                id: "school-name",
+                value: "school.name",
+                label: "School Name",
+                group: "common",
+                groupLabel: "Thông tin chung",
+                sourceType: "admin_value",
+                adminValue: "Đại học FPT",
+              },
+              {
+                id: "program-name",
+                value: "program.name",
+                label: "Program Name",
+                group: "custom",
+                groupLabel: "Thông tin nhập thêm",
+                sourceType: "user_value",
+              },
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(listMessageTemplateTokens({ baseUrl })).resolves.toMatchObject(
+      {
+        total: 2,
+        tokens: [{ value: "school.name" }, { value: "program.name" }],
+      },
+    );
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      `${baseUrl}/api/method/crm.api.message_templates.list_message_template_tokens`,
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("uses the admin library endpoints without sending user sharing fields", async () => {
     globalThis.fetch = vi
       .fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ message: { templates: [], owners: [], total: 0 } }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ message: { id: "MSG-LIB-001" } }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ message: { id: "MSG-LIB-001" } }), { status: 200 }))
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ message: { name: "MSG-LIB-001", deleted: true } }), { status: 200 }),
+        new Response(
+          JSON.stringify({ message: { templates: [], owners: [], total: 0 } }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ message: { id: "MSG-LIB-001" } }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ message: { id: "MSG-LIB-001" } }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ message: { name: "MSG-LIB-001", deleted: true } }),
+          { status: 200 },
+        ),
       );
 
     await listAdminMessageTemplateLibrary({ baseUrl });
     await createMessageTemplateLibrary(draft, { baseUrl });
-    await updateMessageTemplateLibrary("MSG-LIB-001", draft, "modified-1", { baseUrl });
-    await deleteMessageTemplateLibrary("MSG-LIB-001", "modified-2", { baseUrl });
+    await updateMessageTemplateLibrary("MSG-LIB-001", draft, "modified-1", {
+      baseUrl,
+    });
+    await deleteMessageTemplateLibrary("MSG-LIB-001", "modified-2", {
+      baseUrl,
+    });
 
     expect(globalThis.fetch).toHaveBeenNthCalledWith(
       1,
@@ -132,7 +217,12 @@ describe("Message templates API service", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
-          data: { name: draft.name, subject: draft.subject, body: draft.body },
+          data: {
+            name: draft.name,
+            subject: draft.subject,
+            body: draft.body,
+            customValues: draft.customValues,
+          },
         }),
       }),
     );
@@ -143,7 +233,12 @@ describe("Message templates API service", () => {
         method: "POST",
         body: JSON.stringify({
           name: "MSG-LIB-001",
-          data: { name: draft.name, subject: draft.subject, body: draft.body },
+          data: {
+            name: draft.name,
+            subject: draft.subject,
+            body: draft.body,
+            customValues: draft.customValues,
+          },
           expected_modified: "modified-1",
         }),
       }),
@@ -153,17 +248,27 @@ describe("Message templates API service", () => {
       `${baseUrl}/api/method/crm.api.message_templates.delete_message_template_library`,
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ name: "MSG-LIB-001", expected_modified: "modified-2" }),
+        body: JSON.stringify({
+          name: "MSG-LIB-001",
+          expected_modified: "modified-2",
+        }),
       }),
     );
   });
 
   it("returns the delete result from the Frappe envelope", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ message: { name: "MSG-001", deleted: true } }), { status: 200 }),
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ message: { name: "MSG-001", deleted: true } }),
+          { status: 200 },
+        ),
+      );
 
-    await expect(deleteMessageTemplate("MSG-001", "modified-1", { baseUrl })).resolves.toEqual({
+    await expect(
+      deleteMessageTemplate("MSG-001", "modified-1", { baseUrl }),
+    ).resolves.toEqual({
       name: "MSG-001",
       deleted: true,
     });
@@ -210,15 +315,25 @@ describe("Message templates API service", () => {
       );
 
     await expect(
-      listMessageTemplatePreviewContacts({ search: "Minh Anh", pageLength: 100 }, { baseUrl }),
+      listMessageTemplatePreviewContacts(
+        { search: "Minh Anh", pageLength: 100 },
+        { baseUrl },
+      ),
     ).resolves.toMatchObject({ total: 1 });
     await expect(
       previewMessageTemplate(
         "LEAD-001",
-        { subject: "Chào {{student.first_name}}", body: "<p>{{student.full_name}}</p>" },
+        {
+          subject: "Chào {{student.first_name}}",
+          body: "<p>{{student.full_name}}</p>",
+          customValues: {},
+        },
         { baseUrl },
       ),
-    ).resolves.toMatchObject({ subject: "Chào Anh", body: "<p>Nguyễn Minh Anh</p>" });
+    ).resolves.toMatchObject({
+      subject: "Chào Anh",
+      body: "<p>Nguyễn Minh Anh</p>",
+    });
 
     expect(globalThis.fetch).toHaveBeenNthCalledWith(
       1,
@@ -232,7 +347,11 @@ describe("Message templates API service", () => {
         method: "POST",
         body: JSON.stringify({
           lead_id: "LEAD-001",
-          data: { subject: "Chào {{student.first_name}}", body: "<p>{{student.full_name}}</p>" },
+          data: {
+            subject: "Chào {{student.first_name}}",
+            body: "<p>{{student.full_name}}</p>",
+            customValues: {},
+          },
         }),
       }),
     );

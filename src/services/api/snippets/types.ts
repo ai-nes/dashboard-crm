@@ -3,19 +3,21 @@ export type SnippetSharing = "public" | "private";
 export interface SnippetRecord {
   id: string;
   code: string;
-  name: string;
+  internalName: string;
+  snippetText: string;
+  shortcut: string;
   ownerId: string;
   owner: string;
   sharing: SnippetSharing;
   createdAt: string;
   modifiedAt: string;
-  content: string;
   canEdit: boolean;
 }
 
 export interface SnippetDraft {
-  name: string;
-  content: string;
+  internalName: string;
+  snippetText: string;
+  shortcut: string;
   sharing: SnippetSharing;
 }
 
@@ -28,12 +30,21 @@ export interface ListSnippetsResponse {
   snippets: SnippetRecord[];
   owners: SnippetOwner[];
   total: number;
+  totalAll: number;
+  totalMine: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
 }
 
 export interface ListSnippetsParams {
   search?: string;
   owner?: string;
   sharing?: SnippetSharing;
+  scope?: "all" | "mine";
+  page?: number;
+  pageSize?: number;
 }
 
 export interface DeleteSnippetResponse {

@@ -15,73 +15,14 @@ import {
   SelectValue,
 } from "@/components/tailgrids/core/select";
 import type { SnippetRecord } from "@/services/api/snippets";
+import type { MessageTemplateTokenDefinition } from "@/services/api/message-templates";
 
-type MessageTemplateTokenType = "student" | "leads" | "sender" | "placeholder";
 type InsertMode = "menu" | "personalization" | "snippet";
 
-interface MessageTemplateTokenOption {
-  id: string;
-  label: string;
-  value: string;
-}
-
-const tokenTypes: Array<{ id: MessageTemplateTokenType; label: string }> = [
-  { id: "student", label: "Student" },
-  { id: "leads", label: "Leads" },
-  { id: "sender", label: "Sender" },
-  { id: "placeholder", label: "Placeholder" },
-];
-
-const tokenOptions: Record<
-  MessageTemplateTokenType,
-  MessageTemplateTokenOption[]
-> = {
-  student: [
-    {
-      id: "student-first-name",
-      label: "First Name",
-      value: "student.first_name",
-    },
-    { id: "student-last-name", label: "Last Name", value: "student.last_name" },
-    { id: "student-full-name", label: "Full Name", value: "student.full_name" },
-    { id: "student-email", label: "Email", value: "student.email" },
-    { id: "student-phone", label: "Phone Number", value: "student.phone" },
-  ],
-  leads: [
-    { id: "lead-source", label: "Source", value: "lead.source" },
-    { id: "lead-status", label: "Status", value: "lead.status" },
-    { id: "lead-campaign", label: "Campaign", value: "lead.campaign" },
-    { id: "lead-created-at", label: "Created At", value: "lead.created_at" },
-  ],
-  sender: [
-    { id: "sender-full-name", label: "Full Name", value: "owner.full_name" },
-    { id: "sender-email", label: "Email", value: "owner.email" },
-    { id: "sender-phone", label: "Phone Number", value: "owner.phone" },
-  ],
-  placeholder: [
-    { id: "school-name", label: "School Name", value: "school.name" },
-    { id: "program-name", label: "Program Name", value: "program.name" },
-    { id: "program-link", label: "Program Link", value: "program.link" },
-    { id: "event-name", label: "Event Name", value: "event.name" },
-    {
-      id: "event-datetime",
-      label: "Event Date & Time",
-      value: "event.datetime",
-    },
-    {
-      id: "application-missing-documents",
-      label: "Application Missing Documents",
-      value: "application.missing_documents",
-    },
-    {
-      id: "application-link",
-      label: "Application Link",
-      value: "application.link",
-    },
-  ],
-};
-
 interface MessageTemplateTokenPopoverProps {
+  tokens: MessageTemplateTokenDefinition[];
+  isLoadingTokens?: boolean;
+  tokensError?: string | null;
   onInsertToken: (token: string) => void;
   placement?: "bottom start" | "bottom end";
   snippets?: SnippetRecord[];
@@ -91,6 +32,9 @@ interface MessageTemplateTokenPopoverProps {
 }
 
 export default function MessageTemplateTokenPopover({
+  tokens,
+  isLoadingTokens = false,
+  tokensError = null,
   onInsertToken,
   placement = "bottom start",
   snippets = [],
@@ -100,14 +44,34 @@ export default function MessageTemplateTokenPopover({
 }: MessageTemplateTokenPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<InsertMode>("menu");
-  const [selectedType, setSelectedType] =
-    useState<MessageTemplateTokenType>("student");
+  const [selectedType, setSelectedType] = useState("student");
   const [selectedTokenId, setSelectedTokenId] = useState("");
   const [selectedSnippetId, setSelectedSnippetId] = useState("");
-  const selectedTypeLabel = tokenTypes.find(
-    (type) => type.id === selectedType,
-  )?.label;
-  const availableTokens = tokenOptions[selectedType];
+  const tokenGroups = useMemo(() => {
+    const groups = new Map<
+      string,
+      { id: string; label: string; tokens: MessageTemplateTokenDefinition[] }
+    >();
+    tokens.forEach((token) => {
+      const group = groups.get(token.group) ?? {
+        id: token.group,
+        label: token.groupLabel,
+        tokens: [],
+      };
+      group.tokens.push(token);
+      groups.set(token.group, group);
+    });
+    return [...groups.values()];
+  }, [tokens]);
+  const activeType = tokenGroups.some((group) => group.id === selectedType)
+    ? selectedType
+    : (tokenGroups[0]?.id ?? "");
+  const selectedGroup = tokenGroups.find((group) => group.id === activeType);
+  const selectedTypeLabel = selectedGroup?.label;
+  const availableTokens = useMemo(
+    () => selectedGroup?.tokens ?? [],
+    [selectedGroup],
+  );
   const selectedToken = useMemo(
     () => availableTokens.find((token) => token.id === selectedTokenId),
     [availableTokens, selectedTokenId],
@@ -118,7 +82,7 @@ export default function MessageTemplateTokenPopover({
   );
 
   const handleTypeChange = (value: string) => {
-    setSelectedType(value as MessageTemplateTokenType);
+    setSelectedType(value);
     setSelectedTokenId("");
   };
 
@@ -224,9 +188,23 @@ export default function MessageTemplateTokenPopover({
               <span className="block text-sm font-semibold text-text-primary">
                 Loại
               </span>
+              {isLoadingTokens ? (
+                <p className="rounded-md border border-dashed border-card-border px-3 py-2 text-sm text-text-tertiary">
+                  Đang tải danh sách token...
+                </p>
+              ) : tokensError ? (
+                <p className="rounded-md border border-dashed border-button-error-outline-stroke px-3 py-2 text-sm text-button-error-outline-text">
+                  {tokensError}
+                </p>
+              ) : null}
               <Select
                 aria-label="Loại biến cá nhân hóa"
-                value={selectedType}
+                value={activeType}
+                isDisabled={
+                  isLoadingTokens ||
+                  Boolean(tokensError) ||
+                  tokenGroups.length === 0
+                }
                 onChange={(value) =>
                   handleTypeChange(String(value ?? "student"))
                 }
@@ -239,7 +217,7 @@ export default function MessageTemplateTokenPopover({
                   </SelectIndicator>
                 </SelectTrigger>
                 <SelectContent>
-                  {tokenTypes.map((type) => (
+                  {tokenGroups.map((type) => (
                     <SelectItem
                       key={type.id}
                       id={type.id}
@@ -259,6 +237,11 @@ export default function MessageTemplateTokenPopover({
               <Select
                 aria-label="Token biến cá nhân hóa"
                 value={selectedTokenId}
+                isDisabled={
+                  isLoadingTokens ||
+                  Boolean(tokensError) ||
+                  availableTokens.length === 0
+                }
                 onChange={(value) => setSelectedTokenId(String(value ?? ""))}
                 className="gap-0"
               >
@@ -279,7 +262,16 @@ export default function MessageTemplateTokenPopover({
                     >
                       <span className="flex min-w-0 flex-col">
                         <span className="truncate">{token.label}</span>
-                        <span className="truncate text-xs text-text-tertiary">{`{{${token.value}}}`}</span>
+                        <span className="truncate text-xs text-text-tertiary">
+                          {token.sourceType === "user_value"
+                            ? "Nhập trong mẫu"
+                            : token.sourceType === "admin_value"
+                              ? "Giá trị dùng chung"
+                              : token.sourceType === "context"
+                                ? "Theo ngữ cảnh"
+                                : "Từ dữ liệu"}{" "}
+                          · {"{{" + token.value + "}}"}
+                        </span>
                       </span>
                     </SelectItem>
                   ))}
@@ -313,7 +305,7 @@ export default function MessageTemplateTokenPopover({
               >
                 <SelectTrigger className="h-10 rounded-md border-button-primary-outline-stroke bg-background-white-primary px-3 text-sm shadow-none">
                   <SelectValue>
-                    {selectedSnippet?.name ?? "Chọn snippet"}
+                    {selectedSnippet?.internalName ?? "Chọn snippet"}
                   </SelectValue>
                   <SelectIndicator>
                     <ChevronDown size={15} />
@@ -324,11 +316,12 @@ export default function MessageTemplateTokenPopover({
                     <SelectItem
                       key={snippet.id}
                       id={snippet.id}
-                      textValue={snippet.name}
+                      textValue={snippet.internalName}
                     >
                       <span className="flex min-w-0 flex-col">
-                        <span className="truncate">{snippet.name}</span>
+                        <span className="truncate">{snippet.internalName}</span>
                         <span className="truncate text-xs text-text-tertiary">
+                          #{snippet.shortcut} ·{" "}
                           {snippet.sharing === "private"
                             ? "Riêng tư"
                             : "Công khai"}

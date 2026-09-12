@@ -5,6 +5,7 @@ import type { KeyboardEvent } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
+import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import {
   TableBody,
   TableCell,
@@ -48,6 +49,43 @@ function getContentPreview(content: string) {
     .trim();
 }
 
+function SnippetSkeletonRow({ index }: { index: number }) {
+  return (
+    <TableRow key={`snippet-skeleton-${index}`} aria-hidden="true">
+      <TableCell>
+        <Skeleton className="h-3 w-20 rounded-md" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-40 rounded-md" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-24 rounded-md" />
+      </TableCell>
+      <TableCell>
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-56 rounded-md" />
+          <Skeleton className="h-3 w-36 rounded-md" />
+        </div>
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-28 rounded-md" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-6 w-20 rounded-full" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-20 rounded-md" />
+      </TableCell>
+      <TableCell>
+        <div className="flex justify-end gap-1">
+          <Skeleton className="size-8 rounded-lg" />
+          <Skeleton className="size-8 rounded-lg" />
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export default function SnippetTable({
   snippets,
   totalCount,
@@ -78,7 +116,10 @@ export default function SnippetTable({
             Mã snippet
           </TableHead>
           <TableHead scope="col" className="min-w-56 whitespace-nowrap">
-            Tên snippet
+            Internal name
+          </TableHead>
+          <TableHead scope="col" className="w-36 whitespace-nowrap">
+            Shortcut
           </TableHead>
           <TableHead scope="col" className="min-w-72 whitespace-nowrap">
             Nội dung
@@ -98,99 +139,101 @@ export default function SnippetTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {snippets.map((snippet) => (
-          <TableRow
-            key={snippet.id}
-            tabIndex={snippet.canEdit ? 0 : -1}
-            aria-label={
-              snippet.canEdit ? `Chỉnh sửa ${snippet.name}` : snippet.name
-            }
-            onClick={() => snippet.canEdit && onEdit(snippet)}
-            onKeyDown={(event) => handleRowKeyDown(event, snippet)}
-            className={
-              snippet.canEdit
-                ? "cursor-pointer outline-none hover:bg-background-gray-secondary/30 focus-visible:bg-background-gray-secondary/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
-                : "outline-none"
-            }
-          >
-            <TableCell className="whitespace-nowrap font-mono text-xs text-text-tertiary">
-              {snippet.code}
-            </TableCell>
-            <TableCell className="min-w-56 text-sm font-semibold text-text-primary">
-              {snippet.name}
-            </TableCell>
-            <TableCell className="max-w-96 text-sm text-text-secondary">
-              <span className="line-clamp-2">
-                {getContentPreview(snippet.content) || "—"}
-              </span>
-            </TableCell>
-            <TableCell className="whitespace-nowrap text-sm text-text-secondary">
-              {snippet.owner}
-            </TableCell>
-            <TableCell className="whitespace-nowrap">
-              <Badge color={snippet.sharing === "public" ? "success" : "gray"}>
-                {snippet.sharing === "public" ? "Công khai" : "Riêng tư"}
-              </Badge>
-            </TableCell>
-            <TableCell className="whitespace-nowrap text-sm text-text-secondary">
-              {formatDate(snippet.modifiedAt)}
-            </TableCell>
-            <TableCell className="text-right">
-              <div
-                className="flex justify-end gap-1"
-                onClick={(event) => event.stopPropagation()}
-                onKeyDown={(event) => event.stopPropagation()}
+        {isLoading
+          ? Array.from({ length: 5 }, (_, index) => (
+              <SnippetSkeletonRow key={index} index={index} />
+            ))
+          : snippets.map((snippet) => (
+              <TableRow
+                key={snippet.id}
+                tabIndex={snippet.canEdit ? 0 : -1}
+                aria-label={
+                  snippet.canEdit
+                    ? `Chỉnh sửa ${snippet.internalName}`
+                    : snippet.internalName
+                }
+                onClick={() => snippet.canEdit && onEdit(snippet)}
+                onKeyDown={(event) => handleRowKeyDown(event, snippet)}
+                className={
+                  snippet.canEdit
+                    ? "cursor-pointer outline-none hover:bg-background-gray-secondary/30 focus-visible:bg-background-gray-secondary/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+                    : "outline-none"
+                }
               >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      iconOnly
-                      size="sm"
-                      appearance="ghost"
-                      aria-label={`Nhân bản ${snippet.name}`}
-                      onPress={() => onDuplicate(snippet)}
-                    >
-                      <Copy4 size={17} aria-hidden="true" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Nhân bản</TooltipContent>
-                </Tooltip>
-                {snippet.canEdit ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        iconOnly
-                        size="sm"
-                        appearance="ghost"
-                        variant="danger"
-                        aria-label={`Xóa ${snippet.name}`}
-                        onPress={() => onDelete(snippet)}
-                      >
-                        <Trash1 size={17} aria-hidden="true" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Xóa</TooltipContent>
-                  </Tooltip>
-                ) : null}
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
-        {isLoading ? (
+                <TableCell className="whitespace-nowrap font-mono text-xs text-text-tertiary">
+                  {snippet.code}
+                </TableCell>
+                <TableCell className="min-w-56 text-sm font-semibold text-text-primary">
+                  {snippet.internalName}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-sm text-text-secondary">
+                  #{snippet.shortcut}
+                </TableCell>
+                <TableCell className="max-w-96 text-sm text-text-secondary">
+                  <span className="line-clamp-2">
+                    {getContentPreview(snippet.snippetText) || "—"}
+                  </span>
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-sm text-text-secondary">
+                  {snippet.owner}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <Badge
+                    color={snippet.sharing === "public" ? "success" : "gray"}
+                  >
+                    {snippet.sharing === "public" ? "Công khai" : "Riêng tư"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-sm text-text-secondary">
+                  {formatDate(snippet.modifiedAt)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div
+                    className="flex justify-end gap-1"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          iconOnly
+                          size="sm"
+                          appearance="ghost"
+                          aria-label={`Nhân bản ${snippet.internalName}`}
+                          onPress={() => onDuplicate(snippet)}
+                        >
+                          <Copy4 size={17} aria-hidden="true" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Nhân bản</TooltipContent>
+                    </Tooltip>
+                    {snippet.canEdit ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            iconOnly
+                            size="sm"
+                            appearance="ghost"
+                            variant="danger"
+                            aria-label={`Xóa ${snippet.internalName}`}
+                            onPress={() => onDelete(snippet)}
+                          >
+                            <Trash1 size={17} aria-hidden="true" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Xóa</TooltipContent>
+                      </Tooltip>
+                    ) : null}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+        {!isLoading && snippets.length === 0 ? (
           <TableRow>
             <TableCell
-              colSpan={7}
-              className="py-16 text-center text-sm text-text-tertiary"
-            >
-              Đang tải snippet...
-            </TableCell>
-          </TableRow>
-        ) : snippets.length === 0 ? (
-          <TableRow>
-            <TableCell
-              colSpan={7}
+              colSpan={8}
               className="py-16 text-center text-sm text-text-tertiary"
             >
               {totalCount === 0

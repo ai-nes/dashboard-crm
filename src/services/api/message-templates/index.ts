@@ -4,9 +4,11 @@ import type {
   ListMessageTemplatesParams,
   ListMessageTemplatesResponse,
   ListMessageTemplatePreviewContactsResponse,
+  ListMessageTemplateTokensResponse,
   MessageTemplateDraft,
   MessageTemplateRecord,
   MessageTemplatePreviewResponse,
+  MessageTemplatePreviewContext,
 } from "./types";
 
 export type * from "./types";
@@ -14,7 +16,9 @@ export type * from "./types";
 const METHODS = {
   LIST: "crm.api.message_templates.list_message_templates",
   LIBRARY: "crm.api.message_templates.list_message_template_library",
-  ADMIN_LIBRARY: "crm.api.message_templates.list_admin_message_template_library",
+  TOKENS: "crm.api.message_templates.list_message_template_tokens",
+  ADMIN_LIBRARY:
+    "crm.api.message_templates.list_admin_message_template_library",
   GET: "crm.api.message_templates.get_message_template",
   CREATE: "crm.api.message_templates.create_message_template",
   CREATE_LIBRARY: "crm.api.message_templates.create_message_template_library",
@@ -22,7 +26,8 @@ const METHODS = {
   UPDATE_LIBRARY: "crm.api.message_templates.update_message_template_library",
   DELETE: "crm.api.message_templates.delete_message_template",
   DELETE_LIBRARY: "crm.api.message_templates.delete_message_template_library",
-  PREVIEW_CONTACTS: "crm.api.message_templates.list_message_template_preview_contacts",
+  PREVIEW_CONTACTS:
+    "crm.api.message_templates.list_message_template_preview_contacts",
   PREVIEW: "crm.api.message_templates.preview_message_template",
 } as const;
 
@@ -40,10 +45,11 @@ export class MessageTemplatesApiError extends Error {
 }
 
 function baseUrl(value?: string): string {
-  return (value ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? DEFAULT_FRAPPE_URL).replace(
-    /\/+$/,
-    "",
-  );
+  return (
+    value ??
+    process.env.NEXT_PUBLIC_FRAPPE_URL ??
+    DEFAULT_FRAPPE_URL
+  ).replace(/\/+$/, "");
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -138,6 +144,12 @@ export async function listMessageTemplateLibrary(
   return request<ListMessageTemplatesResponse>(METHODS.LIBRARY, options);
 }
 
+export async function listMessageTemplateTokens(
+  options: { baseUrl?: string } = {},
+): Promise<ListMessageTemplateTokensResponse> {
+  return request<ListMessageTemplateTokensResponse>(METHODS.TOKENS, options);
+}
+
 export async function listAdminMessageTemplateLibrary(
   options: { baseUrl?: string } = {},
 ): Promise<ListMessageTemplatesResponse> {
@@ -145,26 +157,40 @@ export async function listAdminMessageTemplateLibrary(
 }
 
 export async function listMessageTemplatePreviewContacts(
-  params: { search?: string; pageLength?: number } = {},
+  params: {
+    search?: string;
+    pageLength?: number;
+    context?: MessageTemplatePreviewContext;
+  } = {},
   options: { baseUrl?: string } = {},
 ): Promise<ListMessageTemplatePreviewContactsResponse> {
-  return request<ListMessageTemplatePreviewContactsResponse>(METHODS.PREVIEW_CONTACTS, {
-    ...options,
-    query: {
-      search: params.search?.trim(),
-      page_length: params.pageLength ? String(params.pageLength) : undefined,
+  return request<ListMessageTemplatePreviewContactsResponse>(
+    METHODS.PREVIEW_CONTACTS,
+    {
+      ...options,
+      query: {
+        search: params.search?.trim(),
+        page_length: params.pageLength ? String(params.pageLength) : undefined,
+        context: params.context,
+      },
     },
-  });
+  );
 }
 
 export async function previewMessageTemplate(
-  leadId: string,
-  draft: Pick<MessageTemplateDraft, "subject" | "body">,
-  options: { baseUrl?: string } = {},
+  recordId: string,
+  draft: Pick<MessageTemplateDraft, "subject" | "body" | "customValues">,
+  options: {
+    baseUrl?: string;
+    context?: MessageTemplatePreviewContext;
+  } = {},
 ): Promise<MessageTemplatePreviewResponse> {
+  const { context, ...requestOptions } = options;
   return request<MessageTemplatePreviewResponse>(METHODS.PREVIEW, {
-    ...options,
-    body: { lead_id: leadId, data: draft },
+    ...requestOptions,
+    body: context
+      ? { record_id: recordId, context, data: draft }
+      : { lead_id: recordId, data: draft },
   });
 }
 
@@ -194,7 +220,14 @@ export async function createMessageTemplateLibrary(
 ): Promise<MessageTemplateRecord> {
   return request<MessageTemplateRecord>(METHODS.CREATE_LIBRARY, {
     ...options,
-    body: { data: { name: draft.name, subject: draft.subject, body: draft.body } },
+    body: {
+      data: {
+        name: draft.name,
+        subject: draft.subject,
+        body: draft.body,
+        customValues: draft.customValues,
+      },
+    },
   });
 }
 
@@ -220,7 +253,12 @@ export async function updateMessageTemplateLibrary(
     ...options,
     body: {
       name,
-      data: { name: draft.name, subject: draft.subject, body: draft.body },
+      data: {
+        name: draft.name,
+        subject: draft.subject,
+        body: draft.body,
+        customValues: draft.customValues,
+      },
       expected_modified: expectedModified,
     },
   });

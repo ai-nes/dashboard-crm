@@ -1,8 +1,17 @@
 "use client";
 
-import { Code1, UserCircle1, UserMultiple1, UserPencil } from "@tailgrids/icons";
+import {
+  Code1,
+  UserCircle1,
+  UserMultiple1,
+  UserPencil,
+} from "@tailgrids/icons";
 import { Node, mergeAttributes } from "@tiptap/core";
-import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
+import {
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  type NodeViewProps,
+} from "@tiptap/react";
 
 type MessageTemplateTokenKind = "student" | "leads" | "sender" | "placeholder";
 
@@ -11,24 +20,6 @@ const tokenKindLabels: Record<MessageTemplateTokenKind, string> = {
   leads: "Leads",
   sender: "Sender",
   placeholder: "Placeholder",
-};
-
-const tokenFieldLabels: Record<string, string> = {
-  amount: "Amount",
-  campaign: "Campaign",
-  created_at: "Created At",
-  datetime: "Date & Time",
-  email: "Email",
-  first_name: "First Name",
-  full_name: "Full Name",
-  last_name: "Last Name",
-  link: "Link",
-  location: "Location",
-  missing_documents: "Missing Documents",
-  name: "Name",
-  phone: "Phone Number",
-  source: "Source",
-  status: "Status",
 };
 
 function getTokenKind(namespace: string): MessageTemplateTokenKind {
@@ -48,10 +39,11 @@ export function getMessageTemplateTokenLabel(token: string): string {
   const [namespace = "placeholder", ...fieldParts] = token.trim().split(".");
   const kind = getTokenKind(namespace);
   const field = fieldParts.join("_") || namespace;
-  const fieldLabel = tokenFieldLabels[field] ?? titleCase(field);
-  const displayFieldLabel = kind === "placeholder"
-    ? `${titleCase(namespace)} ${fieldLabel}`
-    : fieldLabel;
+  const fieldLabel = titleCase(field);
+  const displayFieldLabel =
+    kind === "placeholder"
+      ? `${titleCase(namespace)} ${fieldLabel}`
+      : fieldLabel;
 
   return `${tokenKindLabels[kind]}: ${displayFieldLabel}`;
 }
@@ -94,7 +86,8 @@ const MessageTemplateToken = Node.create({
     return {
       token: {
         default: "",
-        parseHTML: (element) => element.getAttribute("data-message-template-token") ?? "",
+        parseHTML: (element) =>
+          element.getAttribute("data-message-template-token") ?? "",
       },
     };
   },
