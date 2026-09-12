@@ -187,6 +187,7 @@ export default function RulesConfigTable({
             totalPages={totalPages}
             onPageChange={onPageChange}
             variant="compact"
+            align="end"
             isDisabled={isLoading || isDeleteDisabled}
           />
         </div>

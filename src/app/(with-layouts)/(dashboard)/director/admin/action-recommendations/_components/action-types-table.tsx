@@ -206,6 +206,7 @@ export default function ActionTypesTable({ canEdit }: ActionTypesTableProps) {
                   totalPages={totalPages}
                   onPageChange={setPage}
                   variant="compact"
+                  align="end"
                   isDisabled={query.isFetching}
                 />
               </div>

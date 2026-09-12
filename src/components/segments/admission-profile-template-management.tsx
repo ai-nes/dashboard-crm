@@ -461,6 +461,7 @@ export function AdmissionProfileTemplateManagement({
                   totalPages={totalPages}
                   onPageChange={setPage}
                   variant="compact"
+                  align="end"
                   isDisabled={
                     query.isFetching ||
                     transitionMutation.isPending ||

@@ -162,6 +162,7 @@ export default function NbaActionsTable({
             onPageChange={onPageChange}
             isDisabled={isLoading || isFetching || actions.length === 0}
             variant="compact"
+            align="end"
             sideLayout="icon"
           />
         </div>
