@@ -35,10 +35,12 @@ export function SegmentDetailPage({
   segmentId,
   backHref,
   editHref,
+  isAdmin = false,
 }: {
   segmentId: string;
   backHref: string;
   editHref: string;
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
   const { user } = useAuth();
@@ -123,6 +125,7 @@ export function SegmentDetailPage({
         createdAt={segment.createdAt}
         backHref={backHref}
         canManage={canManage}
+        isAdmin={isAdmin}
         onEdit={() =>
           router.push(
             `${editHref.replace(/\/$/, "")}/${encodeURIComponent(segment.segmentCode)}`,

@@ -253,10 +253,12 @@ export function ClassificationGroupManagement({
   kind,
   canManage,
   hideHeader = false,
+  compactStatus = false,
 }: {
   kind: ClassificationGroupKind
   canManage: boolean
   hideHeader?: boolean
+  compactStatus?: boolean
 }) {
   const query = useClassificationGroupsQuery(kind)
   const termsQuery = useClassificationTermsQuery(kind)
@@ -418,7 +420,7 @@ export function ClassificationGroupManagement({
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {canManage ? (
-                        <SegmentStatusSelect ariaLabel={`Trạng thái ${selectedGroup.label}`} value={selectedGroup.status} isDisabled={transitionMutation.isPending} labels={STATUS_LABELS} onChange={(status) => void changeStatus(selectedGroup, status)} />
+                        <SegmentStatusSelect ariaLabel={`Trạng thái ${selectedGroup.label}`} value={selectedGroup.status} isDisabled={transitionMutation.isPending} labels={STATUS_LABELS} compact={compactStatus} onChange={(status) => void changeStatus(selectedGroup, status)} />
                       ) : (
                         <Badge color={selectedGroup.status === 'active' ? 'success' : selectedGroup.status === 'draft' ? 'warning' : 'gray'}>{STATUS_LABELS[selectedGroup.status]}</Badge>
                       )}
@@ -441,7 +443,7 @@ export function ClassificationGroupManagement({
                         <p className="mt-1 break-words text-sm text-text-tertiary">{term.description || 'Chưa có mô tả'}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        {canManage ? <SegmentStatusSelect ariaLabel={`Trạng thái ${term.label || term.name}`} value={(term.status as ClassificationGroupRecord['status']) || 'draft'} isDisabled={transitionTermMutation.isPending} labels={STATUS_LABELS} onChange={(status) => void changeTermStatus(term, status)} /> : <Badge color={term.status === 'active' ? 'success' : 'warning'}>{STATUS_LABELS[(term.status as ClassificationGroupRecord['status']) || 'draft']}</Badge>}
+                        {canManage ? <SegmentStatusSelect ariaLabel={`Trạng thái ${term.label || term.name}`} value={(term.status as ClassificationGroupRecord['status']) || 'draft'} isDisabled={transitionTermMutation.isPending} labels={STATUS_LABELS} compact={compactStatus} onChange={(status) => void changeTermStatus(term, status)} /> : <Badge color={term.status === 'active' ? 'success' : 'warning'}>{STATUS_LABELS[(term.status as ClassificationGroupRecord['status']) || 'draft']}</Badge>}
                         {canManage && <Button aria-label={`Sửa ${term.label || term.name}`} iconOnly size="sm" appearance="ghost" onPress={() => { setTermToEdit(term); setTermGroup(undefined) }}><Pencil1 size={15} aria-hidden="true" /></Button>}
                         {canManage && <Button aria-label={`Xóa ${term.label || term.name}`} iconOnly size="sm" appearance="ghost" variant="danger" onPress={() => setTermToDelete(term)}><Trash1 size={15} aria-hidden="true" /></Button>}
                       </div>

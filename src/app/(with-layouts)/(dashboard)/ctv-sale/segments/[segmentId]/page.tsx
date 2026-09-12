@@ -2,7 +2,7 @@ import { SegmentDetailPage } from "@/components/segments/segment-detail-page";
 
 export const metadata = { title: "Chi tiết segment" };
 
-export default async function Page({
+export default async function CtvSaleSegmentDetailPage({
   params,
 }: {
   params: Promise<{ segmentId: string }>;
@@ -13,9 +13,8 @@ export default async function Page({
     <SegmentDetailPage
       key={segmentId}
       segmentId={segmentId}
-      backHref="/director/admin/segments"
-      editHref="/director/admin/segments/edit"
-      isAdmin
+      backHref="/ctv-sale/segments"
+      editHref="/ctv-sale/segments/edit"
     />
   );
 }

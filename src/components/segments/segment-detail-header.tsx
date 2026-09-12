@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, Pencil1, Trash1 } from "@tailgrids/icons";
+import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -23,6 +24,7 @@ interface SegmentDetailHeaderProps {
   createdAt: string;
   backHref: string;
   canManage: boolean;
+  isAdmin?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }
@@ -32,9 +34,80 @@ export function SegmentDetailHeader({
   createdAt,
   backHref,
   canManage,
+  isAdmin = false,
   onEdit,
   onDelete,
 }: SegmentDetailHeaderProps) {
+  if (isAdmin) {
+    return (
+      <AdminPageHeader
+        section="Segments"
+        title={segment.name}
+        description={
+          segment.description ||
+          "Chi tiết nhóm học sinh được sử dụng trong quy trình tuyển sinh."
+        }
+        canEdit={canManage}
+        before={
+          <Link
+            href={backHref}
+            className="inline-flex items-center gap-1.5 rounded text-xs font-medium text-text-secondary outline-none hover:text-primary-500 focus-visible:ring-2 focus-visible:ring-primary-500"
+          >
+            <ArrowLeft size={14} aria-hidden="true" />
+            Quay lại quản lý segments
+          </Link>
+        }
+        details={
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-text-tertiary">
+            <Badge color={SEGMENT_STATUS_BADGE_COLORS[segment.status]}>
+              {SEGMENT_STATUS_LABELS[segment.status]}
+            </Badge>
+            <span>
+              Ngày tạo: {" "}
+              <strong className="font-medium text-text-secondary">
+                {formatDate(createdAt)}
+              </strong>
+            </span>
+            <span>
+              Cập nhật lần cuối: {" "}
+              <strong className="font-medium text-text-secondary">
+                {formatDate(segment.updatedAt)}
+              </strong>
+            </span>
+          </div>
+        }
+        actions={
+          canManage ? (
+            <>
+              <Button size="md" onPress={onEdit}>
+                <Pencil1 size={16} aria-hidden="true" />
+                Chỉnh sửa
+              </Button>
+              <Button
+                size="md"
+                variant="danger"
+                appearance="outline"
+                onPress={onDelete}
+              >
+                <Trash1 size={16} aria-hidden="true" />
+                Xóa
+              </Button>
+            </>
+          ) : null
+        }
+        metaLabel="Dữ liệu được đồng bộ từ Frappe CRM"
+        metaValue={
+          <>
+            <span className="font-semibold text-text-primary">
+              {segment.size.toLocaleString("vi-VN")}
+            </span>{" "}
+            học sinh trong segment
+          </>
+        }
+      />
+    );
+  }
+
   return (
     <header className="relative isolate shrink-0 overflow-hidden rounded-2xl border border-card-border bg-card-background px-5 py-5 shadow-xs sm:px-6 lg:px-7 lg:py-6">
       <div className="pointer-events-none absolute -top-24 -right-8 -z-10 size-72 rounded-full bg-primary-50/70 blur-3xl" />

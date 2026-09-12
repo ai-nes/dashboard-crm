@@ -9,6 +9,6 @@ export const metadata: Metadata = {
 
 export default function AdminSegmentsPage() {
   return (
-    <SegmentManagementPage createHref="/director/admin/segments/create" />
+    <SegmentManagementPage createHref="/director/admin/segments/create" isAdmin />
   );
 }

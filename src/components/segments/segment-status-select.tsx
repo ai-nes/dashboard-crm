@@ -2,6 +2,11 @@
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import {
+  ADMIN_STATUS_SELECT_CONTENT_CLASS,
+  ADMIN_STATUS_SELECT_INDICATOR_CLASS,
+  ADMIN_STATUS_SELECT_TRIGGER_CLASS,
+} from "@/components/common/admin/admin-status-select-styles";
+import {
   Select,
   SelectContent,
   SelectIndicator,
@@ -25,6 +30,7 @@ interface SegmentStatusSelectProps {
   onChange: (status: SegmentStatus) => void;
   isDisabled?: boolean;
   labels?: Partial<Record<SegmentStatus, string>>;
+  compact?: boolean;
 }
 
 export function SegmentStatusSelect({
@@ -33,6 +39,7 @@ export function SegmentStatusSelect({
   onChange,
   isDisabled = false,
   labels,
+  compact = false,
 }: SegmentStatusSelectProps) {
   const getLabel = (status: SegmentStatus) => labels?.[status] ?? SEGMENT_STATUS_LABELS[status];
 
@@ -46,17 +53,27 @@ export function SegmentStatusSelect({
     >
       <SelectTrigger
         appearance="ghost"
+        size={compact ? "sm" : undefined}
         className={cn(
-          "h-10 w-40 justify-between rounded-xl border-0 px-3.5 py-2 text-base font-medium shadow-none outline-none data-[focused=true]:ring-4 data-[focused=true]:ring-button-outline-focus-ring",
+          compact
+            ? ADMIN_STATUS_SELECT_TRIGGER_CLASS
+            : "h-10 w-40 justify-between rounded-xl border-0 px-3.5 py-2 text-base font-medium shadow-none outline-none data-[focused=true]:ring-4 data-[focused=true]:ring-button-outline-focus-ring",
           SEGMENT_STATUS_SELECT_STYLES[value],
         )}
       >
         <SelectValue className="max-w-none text-inherit">
           {getLabel(value)}
         </SelectValue>
-        <SelectIndicator className="text-inherit" />
+        <SelectIndicator
+          className={cn(
+            "text-inherit",
+            compact && ADMIN_STATUS_SELECT_INDICATOR_CLASS,
+          )}
+        />
       </SelectTrigger>
-      <SelectContent className="min-w-40">
+      <SelectContent
+        className={compact ? ADMIN_STATUS_SELECT_CONTENT_CLASS : "min-w-40"}
+      >
         {SEGMENT_STATUS_OPTIONS.filter((option) =>
           value === "draft"
             ? option.value === "draft" ||

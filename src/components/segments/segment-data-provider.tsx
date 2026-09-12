@@ -5,6 +5,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import {
   useSegmentsQuery,
   useTransitionSegmentMutation,
+  useVisibleSegmentsQuery,
 } from "@/hooks/use-segment-queries";
 import type { SegmentStatus } from "@/services/api/segments";
 
@@ -22,9 +23,23 @@ const SegmentDataContext = createContext<{
   }) => Promise<unknown>;
 } | null>(null);
 
-export function SegmentDataProvider({ children }: { children: ReactNode }) {
-  const segmentsQuery = useSegmentsQuery();
+export function SegmentDataProvider({
+  children,
+  visibleStudentsOnly = false,
+}: {
+  children: ReactNode;
+  /** Hide segments whose permission-scoped student result is empty. */
+  visibleStudentsOnly?: boolean;
+}) {
+  const allSegmentsQuery = useSegmentsQuery(
+    {},
+    { enabled: !visibleStudentsOnly },
+  );
+  const visibleSegmentsQuery = useVisibleSegmentsQuery(visibleStudentsOnly);
   const transitionMutation = useTransitionSegmentMutation();
+  const segmentsQuery = visibleStudentsOnly
+    ? visibleSegmentsQuery
+    : allSegmentsQuery;
   const segments = (segmentsQuery.data ?? []).map((segment) =>
     toSegmentListItem(segment),
   );

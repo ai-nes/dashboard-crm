@@ -21,6 +21,7 @@ interface SegmentColumnOptions {
   onStatusChange: (segment: SegmentListItem, status: SegmentStatus) => void;
   onDelete: (segment: SegmentListItem) => void;
   isDeleteDisabled?: boolean;
+  compactStatus?: boolean;
 }
 
 export function getSegmentListColumns({
@@ -29,6 +30,7 @@ export function getSegmentListColumns({
   onStatusChange,
   onDelete,
   isDeleteDisabled = false,
+  compactStatus = false,
 }: SegmentColumnOptions): ColumnDef<SegmentListItem>[] {
   const columns: ColumnDef<SegmentListItem>[] = [
     {
@@ -79,6 +81,7 @@ export function getSegmentListColumns({
           <SegmentStatusSelect
             value={row.original.status}
             ariaLabel={`Cập nhật trạng thái ${row.original.name}`}
+            compact={compactStatus}
             onChange={(status) => onStatusChange(row.original, status)}
           />
         ) : (

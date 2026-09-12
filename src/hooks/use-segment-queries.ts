@@ -45,6 +45,7 @@ export const segmentKeys = {
   all: ["segments"] as const,
   list: (params: ListSegmentsParams = {}) =>
     ["segments", "list", params] as const,
+  visibleList: ["segments", "visible-list"] as const,
   detail: (name: string) => ["segments", "detail", name] as const,
   detailByCode: (segmentCode: string) =>
     ["segments", "detail-by-code", segmentCode] as const,
@@ -144,11 +145,31 @@ export function useDeleteClassificationGroupMutation() {
   });
 }
 
-export function useSegmentsQuery(params: ListSegmentsParams = {}) {
+export function useSegmentsQuery(
+  params: ListSegmentsParams = {},
+  options: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: segmentKeys.list(params),
     queryFn: () => listSegments(params),
     staleTime: 30_000,
+    enabled: options.enabled ?? true,
+  });
+}
+
+async function listRoleVisibleSegments() {
+  const analysis = await getSegmentAnalysis();
+
+  return analysis.segments.filter((segment) => segment.member_count > 0);
+}
+
+/** Lists only segments containing students visible in the current session. */
+export function useVisibleSegmentsQuery(enabled = true) {
+  return useQuery({
+    queryKey: segmentKeys.visibleList,
+    queryFn: listRoleVisibleSegments,
+    staleTime: 30_000,
+    enabled,
   });
 }
 

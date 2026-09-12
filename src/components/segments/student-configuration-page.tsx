@@ -3,6 +3,7 @@
 import {useSearchParams} from 'next/navigation'
 import {useState} from 'react'
 
+import AdminPageHeader from '@/components/common/admin/admin-page-header'
 import {useAuth} from '@/components/common/auth/auth-provider'
 import {TabContent, TabList, TabRoot, TabTrigger} from '@/components/tailgrids/core/tabs'
 import {AdmissionDocumentTypeManagement} from '@/components/segments/admission-document-type-management'
@@ -40,6 +41,14 @@ export function StudentConfigurationPage() {
 
   return (
     <main id="main-content" className="flex h-full min-h-0 min-w-0 flex-col gap-2 overflow-hidden px-2 pt-4 lg:px-6">
+      <AdminPageHeader
+        section="Học sinh"
+        title="Cấu hình học sinh"
+        description="Danh mục hồ sơ học sinh."
+        canEdit={canManage}
+        metaLabel="Danh mục CRM"
+        metaValue="Cấu hình nền tảng tuyển sinh"
+      />
       <TabRoot
         defaultValue="needs"
         value={activeTab}
@@ -55,10 +64,10 @@ export function StudentConfigurationPage() {
           <TabTrigger value="admission-methods">Phương thức xét tuyển</TabTrigger>
         </TabList>
         <TabContent value="needs" className="flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-5">
-          <ClassificationGroupManagement kind="need" canManage={canManage} />
+          <ClassificationGroupManagement kind="need" canManage={canManage} compactStatus />
         </TabContent>
         <TabContent value="tags" className="flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-5">
-          <ClassificationGroupManagement kind="tag" canManage={canManage} />
+          <ClassificationGroupManagement kind="tag" canManage={canManage} compactStatus />
         </TabContent>
         <TabContent value="profile-types" className="flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-5">
           <AdmissionProfileTemplateManagement canManage={canManage} />

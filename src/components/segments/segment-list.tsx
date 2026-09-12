@@ -39,9 +39,11 @@ const normalizeSearch = (value: string) =>
 export function SegmentList({
   detailBaseHref,
   canManage,
+  compactStatus = false,
 }: {
   detailBaseHref: string;
   canManage: boolean;
+  compactStatus?: boolean;
 }) {
   const { segments, isLoading, error, refetch, transitionSegment } =
     useSegmentData();
@@ -97,8 +99,9 @@ export function SegmentList({
         },
         onDelete: setSegmentToDelete,
         isDeleteDisabled: deleteMutation.isPending,
+        compactStatus,
       }),
-    [canManage, deleteMutation.isPending, detailBaseHref, transitionSegment],
+    [canManage, compactStatus, deleteMutation.isPending, detailBaseHref, transitionSegment],
   );
   const table = useReactTable({
     data: segments,
