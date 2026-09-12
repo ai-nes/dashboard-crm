@@ -255,6 +255,7 @@ export default function TimingPoliciesTable({
                   totalPages={totalPages}
                   onPageChange={setPage}
                   variant="compact"
+                  align="end"
                   isDisabled={query.isFetching}
                 />
               </div>

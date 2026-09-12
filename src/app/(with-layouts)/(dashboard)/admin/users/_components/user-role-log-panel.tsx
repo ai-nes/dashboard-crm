@@ -109,6 +109,7 @@ export default function UserRoleLogPanel() {
               totalPages={totalPages}
               onPageChange={(page) => setStart((page - 1) * PAGE_LENGTH)}
               variant="compact"
+              align="end"
               isDisabled={logsQuery.isFetching}
             />
           </div>

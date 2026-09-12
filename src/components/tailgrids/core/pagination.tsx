@@ -7,13 +7,20 @@ import { Button } from "./button";
 import { getPaginationItems, normalizePagination } from "./pagination-utils";
 
 const wrapperStyles = cva(
-  "mx-auto flex w-full items-center justify-center max-sm:gap-5",
+  "flex w-full items-center max-sm:gap-5",
   {
     variants: {
+      align: {
+        center: "mx-auto justify-center",
+        end: "ml-auto justify-end",
+      },
       variant: {
         default: "gap-0.5",
         compact: "max-w-fit sm:divide-x sm:divide-button-outline-border",
       },
+    },
+    defaultVariants: {
+      align: "center",
     },
   },
 );
@@ -41,6 +48,7 @@ type PropsType = {
   onPageChange?: (page: number) => void;
   className?: string;
   variant?: "default" | "compact";
+  align?: "center" | "end";
   sideLayout?: "full" | "label" | "icon";
   isDisabled?: boolean;
 };
@@ -51,6 +59,7 @@ export function Pagination({
   onPageChange,
   className,
   variant = "default",
+  align = "center",
   sideLayout = "full",
   isDisabled = false,
 }: PropsType) {
@@ -70,7 +79,7 @@ export function Pagination({
       aria-busy={isDisabled || undefined}
       className="w-full text-sm font-medium text-text-50"
     >
-      <ul className={cn(wrapperStyles({ variant }), className)}>
+      <ul className={cn(wrapperStyles({ align, variant }), className)}>
         <li className="mr-auto">
           <Button
             appearance="outline"

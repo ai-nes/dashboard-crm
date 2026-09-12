@@ -294,6 +294,7 @@ export function AdmissionDocumentTypeManagement({
                   totalPages={totalPages}
                   onPageChange={setPage}
                   variant="compact"
+                  align="end"
                   isDisabled={query.isFetching || deleteMutation.isPending}
                 />
               </div>

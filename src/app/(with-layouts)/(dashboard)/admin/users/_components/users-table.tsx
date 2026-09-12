@@ -240,6 +240,7 @@ export default function UsersTable({
             totalPages={totalPages}
             onPageChange={onPageChange}
             variant="compact"
+            align="end"
             isDisabled={isLoading || isMutating}
           />
         </div>

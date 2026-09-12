@@ -253,6 +253,7 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
                     totalPages={totalPages}
                     onPageChange={setPage}
                     variant="compact"
+                    align="end"
                     isDisabled={versionsQuery.isFetching}
                   />
                 </div>

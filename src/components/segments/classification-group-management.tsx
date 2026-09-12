@@ -628,6 +628,7 @@ export function ClassificationGroupManagement({
                       setTermPage(1);
                     }}
                     variant="compact"
+                    align="end"
                     isDisabled={query.isFetching}
                   />
                 </div>
@@ -817,6 +818,7 @@ export function ClassificationGroupManagement({
                       totalPages={termTotalPages}
                       onPageChange={setTermPage}
                       variant="compact"
+                      align="end"
                       isDisabled={
                         termsQuery.isFetching || deleteTermMutation.isPending
                       }
