@@ -331,8 +331,8 @@ export default function StudentNextBestActions({
               Chưa có hành động phù hợp lúc này
             </p>
             <p className="mt-1 max-w-md text-xs leading-5 text-text-secondary">
-              Hệ thống sẽ cập nhật khi có tín hiệu mới. Bạn cũng có thể chọn
-              “Gợi ý hành động” để chạy đánh giá NBA ngay.
+              {query.data?.emptyReason ??
+                "Hệ thống sẽ cập nhật khi có tín hiệu mới. Bạn cũng có thể chọn “Gợi ý hành động” để chạy đánh giá NBA ngay."}
             </p>
           </div>
         )}

@@ -110,6 +110,9 @@ export interface StudentNbaWorklistResponse {
   items: NbaRecommendation[];
   nextCursor: string | null;
   policyVersion: string | null;
+  /** Plain-Vietnamese reason for an empty page (only set when items is empty
+   * and a single studentId was requested). Never carries rule codes. */
+  emptyReason: string | null;
 }
 
 export interface NbaEvaluationRunResponse {
