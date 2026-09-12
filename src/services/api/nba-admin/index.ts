@@ -31,6 +31,7 @@ export type * from "./types";
 
 const METHODS = {
   LIST_ACTION_TYPES: "crm.api.action_type.list_action_types",
+  LIST_TIMING_POLICIES: "crm.api.timing_policy.list_timing_policies",
   GET_ACTION_TYPE: "crm.api.action_type.get_action_type",
   CREATE_ACTION_TYPE: "crm.api.action_type.create_action_type",
   UPDATE_ACTION_TYPE: "crm.api.action_type.update_action_type",
@@ -47,26 +48,6 @@ const METHODS = {
 } as const;
 
 const TIMING_POLICY_DOCTYPE = encodeURIComponent("CRM Timing Policy");
-const TIMING_POLICY_FIELDS = [
-  "name",
-  "policy_key",
-  "trigger_type",
-  "trigger_event",
-  "delay_value",
-  "delay_unit",
-  "time_slot",
-  "allowed_start_time",
-  "allowed_end_time",
-  "deadline_type",
-  "deadline_offset",
-  "recurrence_type",
-  "recurrence_interval",
-  "stop_condition",
-  "optimization_enabled",
-  "optimization_objective",
-  "modified",
-];
-
 export class NbaAdminApiError extends Error {
   constructor(
     public status: number,
@@ -89,9 +70,17 @@ function asRecord(value: unknown): RecordValue | null {
 }
 
 function resolveBaseUrl(options: RequestOptions = {}): string {
-  const baseUrl = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
+  const baseUrl = (
+    options.baseUrl ??
+    process.env.NEXT_PUBLIC_FRAPPE_URL ??
+    ""
+  ).replace(/\/+$/, "");
   if (!baseUrl) {
-    throw new NbaAdminApiError(0, "FRAPPE_URL_MISSING", "Chưa cấu hình địa chỉ Frappe CRM API.");
+    throw new NbaAdminApiError(
+      0,
+      "FRAPPE_URL_MISSING",
+      "Chưa cấu hình địa chỉ Frappe CRM API.",
+    );
   }
   return baseUrl;
 }
@@ -104,7 +93,10 @@ function frappeCookieHeader(cookieHeader: string): string {
     .join("; ");
 }
 
-async function requestHeaders(options: RequestOptions, isWrite: boolean): Promise<Record<string, string>> {
+async function requestHeaders(
+  options: RequestOptions,
+  isWrite: boolean,
+): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     Accept: "application/json",
     ...(isWrite ? { "Content-Type": "application/json" } : {}),
@@ -136,11 +128,16 @@ async function requestHeaders(options: RequestOptions, isWrite: boolean): Promis
       // Cross-origin deployments can't read the Frappe-domain cookie from
       // document.cookie; fall back to fetching it from the session itself.
       try {
-        const response = await fetch(`${resolveBaseUrl(options)}/api/method/crm.api.session.me`, {
-          credentials: "include",
-          headers: { Accept: "application/json" },
-        });
-        const payload = (await response.json().catch(() => null)) as { message?: { csrf_token?: unknown } } | null;
+        const response = await fetch(
+          `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
+          {
+            credentials: "include",
+            headers: { Accept: "application/json" },
+          },
+        );
+        const payload = (await response.json().catch(() => null)) as {
+          message?: { csrf_token?: unknown };
+        } | null;
         if (typeof payload?.message?.csrf_token === "string") {
           headers["X-Frappe-CSRF-Token"] = payload.message.csrf_token;
         }
@@ -188,7 +185,8 @@ async function requestJson<T>(
 ): Promise<T> {
   const url = new URL(`${resolveBaseUrl(options)}${path}`);
   Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") url.searchParams.set(key, String(value));
+    if (value !== undefined && value !== "")
+      url.searchParams.set(key, String(value));
   });
 
   const headers = await requestHeaders(options, requestMethod !== "GET");
@@ -197,12 +195,18 @@ async function requestJson<T>(
     response = await fetch(url.toString(), {
       method: requestMethod,
       headers,
-      ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+      ...(typeof window !== "undefined"
+        ? { credentials: "include" as RequestCredentials }
+        : {}),
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       cache: "no-store",
     });
   } catch {
-    throw new NbaAdminApiError(503, "NBA_ADMIN_API_UNAVAILABLE", "Không thể kết nối đến máy chủ cấu hình NBA.");
+    throw new NbaAdminApiError(
+      503,
+      "NBA_ADMIN_API_UNAVAILABLE",
+      "Không thể kết nối đến máy chủ cấu hình NBA.",
+    );
   }
 
   const payload = await response.json().catch(() => ({}));
@@ -225,7 +229,13 @@ async function callMethod<T>(
   query: Record<string, QueryValue> = {},
   body?: Record<string, unknown>,
 ): Promise<T> {
-  const raw = await requestJson<T>(`/api/method/${method}`, requestMethod, options, query, body);
+  const raw = await requestJson<T>(
+    `/api/method/${method}`,
+    requestMethod,
+    options,
+    query,
+    body,
+  );
   return unwrapMethodPayload(raw) as T;
 }
 
@@ -236,7 +246,13 @@ async function callResource<T>(
   query: Record<string, QueryValue> = {},
   body?: Record<string, unknown>,
 ): Promise<T> {
-  const raw = await requestJson<T>(`/api/resource/${path}`, requestMethod, options, query, body);
+  const raw = await requestJson<T>(
+    `/api/resource/${path}`,
+    requestMethod,
+    options,
+    query,
+    body,
+  );
   const root = asRecord(raw);
   return (root?.data ?? raw) as T;
 }
@@ -255,12 +271,18 @@ export async function listAdminActionTypes(
   params: ListActionTypesParams = {},
   options: RequestOptions = {},
 ): Promise<ListActionTypesResponse> {
-  const raw = await callMethod<unknown>(METHODS.LIST_ACTION_TYPES, "GET", options, {
-    enabled: params.enabled === undefined ? undefined : params.enabled ? 1 : 0,
-    search: params.search,
-    start: params.start ?? 0,
-    page_length: params.pageLength ?? 100,
-  });
+  const raw = await callMethod<unknown>(
+    METHODS.LIST_ACTION_TYPES,
+    "GET",
+    options,
+    {
+      enabled:
+        params.enabled === undefined ? undefined : params.enabled ? 1 : 0,
+      search: params.search,
+      start: params.start ?? 0,
+      page_length: params.pageLength ?? 100,
+    },
+  );
   const payload = asRecord(raw);
   const rows = listValue(raw, "action_types").map(normalizeActionType);
   return {
@@ -271,8 +293,13 @@ export async function listAdminActionTypes(
   };
 }
 
-export async function getAdminActionType(name: string, options: RequestOptions = {}): Promise<NbaAdminActionType> {
-  return normalizeActionType(await callMethod(METHODS.GET_ACTION_TYPE, "GET", options, { name }));
+export async function getAdminActionType(
+  name: string,
+  options: RequestOptions = {},
+): Promise<NbaAdminActionType> {
+  return normalizeActionType(
+    await callMethod(METHODS.GET_ACTION_TYPE, "GET", options, { name }),
+  );
 }
 
 export async function updateAdminActionType(
@@ -285,9 +312,15 @@ export async function updateAdminActionType(
     options,
     { name: payload.name },
     {
-      ...(payload.displayName !== undefined ? { display_name: payload.displayName } : {}),
-      ...(payload.enabled !== undefined ? { enabled: payload.enabled ? 1 : 0 } : {}),
-      ...(payload.sortOrder !== undefined ? { sort_order: payload.sortOrder } : {}),
+      ...(payload.displayName !== undefined
+        ? { display_name: payload.displayName }
+        : {}),
+      ...(payload.enabled !== undefined
+        ? { enabled: payload.enabled ? 1 : 0 }
+        : {}),
+      ...(payload.sortOrder !== undefined
+        ? { sort_order: payload.sortOrder }
+        : {}),
     },
   );
   return normalizeActionType(raw);
@@ -297,16 +330,25 @@ export async function createAdminActionType(
   payload: CreateActionTypePayload,
   options: RequestOptions = {},
 ): Promise<NbaAdminActionType> {
-  const raw = await callMethod(METHODS.CREATE_ACTION_TYPE, "POST", options, {}, {
-    action_type: payload.actionType,
-    display_name: payload.displayName,
-    enabled: payload.enabled ? 1 : 0,
-    sort_order: payload.sortOrder,
-  });
+  const raw = await callMethod(
+    METHODS.CREATE_ACTION_TYPE,
+    "POST",
+    options,
+    {},
+    {
+      action_type: payload.actionType,
+      display_name: payload.displayName,
+      enabled: payload.enabled ? 1 : 0,
+      sort_order: payload.sortOrder,
+    },
+  );
   return normalizeActionType(raw);
 }
 
-export async function deleteAdminActionType(name: string, options: RequestOptions = {}): Promise<void> {
+export async function deleteAdminActionType(
+  name: string,
+  options: RequestOptions = {},
+): Promise<void> {
   await callMethod(METHODS.DELETE_ACTION_TYPE, "DELETE", options, { name });
 }
 
@@ -314,46 +356,104 @@ export async function listTimingPolicies(
   params: ListTimingPoliciesParams = {},
   options: RequestOptions = {},
 ): Promise<ListTimingPoliciesResponse> {
-  const raw = await callResource<unknown[]>(TIMING_POLICY_DOCTYPE, "GET", options, {
-    fields: JSON.stringify(TIMING_POLICY_FIELDS),
-    limit_start: params.start ?? 0,
-    limit_page_length: params.pageLength ?? 100,
-  });
-  const policies = (Array.isArray(raw) ? raw : []).map(normalizeTimingPolicy);
+  const raw = await callMethod<unknown>(
+    METHODS.LIST_TIMING_POLICIES,
+    "GET",
+    options,
+    {
+      search: params.search,
+      trigger_type:
+        params.triggerType && params.triggerType !== "all"
+          ? params.triggerType
+          : undefined,
+      start: params.start ?? 0,
+      page_length: params.pageLength ?? 20,
+    },
+  );
+  const payload = asRecord(raw);
+  const policies = listValue(raw, "policies").map(normalizeTimingPolicy);
   return {
-    total: policies.length,
-    start: params.start ?? 0,
-    pageLength: params.pageLength ?? 100,
+    total: numberValue(payload?.total, policies.length),
+    start: numberValue(payload?.start, params.start ?? 0),
+    pageLength: numberValue(payload?.page_length, params.pageLength ?? 20),
     policies,
   };
 }
 
-export async function getTimingPolicy(name: string, options: RequestOptions = {}): Promise<NbaTimingPolicy> {
-  return normalizeTimingPolicy(await callResource(`${TIMING_POLICY_DOCTYPE}/${encodeURIComponent(name)}`, "GET", options));
+export async function getTimingPolicy(
+  name: string,
+  options: RequestOptions = {},
+): Promise<NbaTimingPolicy> {
+  return normalizeTimingPolicy(
+    await callResource(
+      `${TIMING_POLICY_DOCTYPE}/${encodeURIComponent(name)}`,
+      "GET",
+      options,
+    ),
+  );
 }
 
-function timingPolicyBody(payload: TimingPolicyPayload): Record<string, unknown> {
+function timingPolicyBody(
+  payload: TimingPolicyPayload,
+): Record<string, unknown> {
   return {
-    ...(payload.policyKey !== undefined ? { policy_key: payload.policyKey } : {}),
+    ...(payload.policyKey !== undefined
+      ? { policy_key: payload.policyKey }
+      : {}),
     trigger_type: payload.triggerType,
-    ...(payload.triggerEvent !== undefined ? { trigger_event: payload.triggerEvent } : {}),
-    ...(payload.delayValue !== undefined ? { delay_value: payload.delayValue } : {}),
-    ...(payload.delayUnit !== undefined ? { delay_unit: payload.delayUnit } : {}),
+    ...(payload.triggerEvent !== undefined
+      ? { trigger_event: payload.triggerEvent }
+      : {}),
+    ...(payload.delayValue !== undefined
+      ? { delay_value: payload.delayValue }
+      : {}),
+    ...(payload.delayUnit !== undefined
+      ? { delay_unit: payload.delayUnit }
+      : {}),
     ...(payload.timeSlot !== undefined ? { time_slot: payload.timeSlot } : {}),
-    ...(payload.allowedStartTime !== undefined ? { allowed_start_time: payload.allowedStartTime } : {}),
-    ...(payload.allowedEndTime !== undefined ? { allowed_end_time: payload.allowedEndTime } : {}),
-    ...(payload.deadlineType !== undefined ? { deadline_type: payload.deadlineType } : {}),
-    ...(payload.deadlineOffset !== undefined ? { deadline_offset: payload.deadlineOffset } : {}),
-    ...(payload.recurrenceType !== undefined ? { recurrence_type: payload.recurrenceType } : {}),
-    ...(payload.recurrenceInterval !== undefined ? { recurrence_interval: payload.recurrenceInterval } : {}),
-    ...(payload.stopCondition !== undefined ? { stop_condition: payload.stopCondition } : {}),
-    ...(payload.optimizationEnabled !== undefined ? { optimization_enabled: payload.optimizationEnabled ? 1 : 0 } : {}),
-    ...(payload.optimizationObjective !== undefined ? { optimization_objective: payload.optimizationObjective } : {}),
+    ...(payload.allowedStartTime !== undefined
+      ? { allowed_start_time: payload.allowedStartTime }
+      : {}),
+    ...(payload.allowedEndTime !== undefined
+      ? { allowed_end_time: payload.allowedEndTime }
+      : {}),
+    ...(payload.deadlineType !== undefined
+      ? { deadline_type: payload.deadlineType }
+      : {}),
+    ...(payload.deadlineOffset !== undefined
+      ? { deadline_offset: payload.deadlineOffset }
+      : {}),
+    ...(payload.recurrenceType !== undefined
+      ? { recurrence_type: payload.recurrenceType }
+      : {}),
+    ...(payload.recurrenceInterval !== undefined
+      ? { recurrence_interval: payload.recurrenceInterval }
+      : {}),
+    ...(payload.stopCondition !== undefined
+      ? { stop_condition: payload.stopCondition }
+      : {}),
+    ...(payload.optimizationEnabled !== undefined
+      ? { optimization_enabled: payload.optimizationEnabled ? 1 : 0 }
+      : {}),
+    ...(payload.optimizationObjective !== undefined
+      ? { optimization_objective: payload.optimizationObjective }
+      : {}),
   };
 }
 
-export async function createTimingPolicy(payload: TimingPolicyPayload, options: RequestOptions = {}): Promise<NbaTimingPolicy> {
-  return normalizeTimingPolicy(await callResource(TIMING_POLICY_DOCTYPE, "POST", options, {}, timingPolicyBody(payload)));
+export async function createTimingPolicy(
+  payload: TimingPolicyPayload,
+  options: RequestOptions = {},
+): Promise<NbaTimingPolicy> {
+  return normalizeTimingPolicy(
+    await callResource(
+      TIMING_POLICY_DOCTYPE,
+      "POST",
+      options,
+      {},
+      timingPolicyBody(payload),
+    ),
+  );
 }
 
 export async function updateTimingPolicy(
@@ -361,11 +461,26 @@ export async function updateTimingPolicy(
   payload: TimingPolicyPayload,
   options: RequestOptions = {},
 ): Promise<NbaTimingPolicy> {
-  return normalizeTimingPolicy(await callResource(`${TIMING_POLICY_DOCTYPE}/${encodeURIComponent(name)}`, "PUT", options, {}, timingPolicyBody(payload)));
+  return normalizeTimingPolicy(
+    await callResource(
+      `${TIMING_POLICY_DOCTYPE}/${encodeURIComponent(name)}`,
+      "PUT",
+      options,
+      {},
+      timingPolicyBody(payload),
+    ),
+  );
 }
 
-export async function deleteTimingPolicy(name: string, options: RequestOptions = {}): Promise<void> {
-  await callResource(`${TIMING_POLICY_DOCTYPE}/${encodeURIComponent(name)}`, "DELETE", options);
+export async function deleteTimingPolicy(
+  name: string,
+  options: RequestOptions = {},
+): Promise<void> {
+  await callResource(
+    `${TIMING_POLICY_DOCTYPE}/${encodeURIComponent(name)}`,
+    "DELETE",
+    options,
+  );
 }
 
 export async function listRecommendationRules(
@@ -391,31 +506,71 @@ export async function listRecommendationRules(
   };
 }
 
-export async function getRecommendationRule(name: string, options: RequestOptions = {}): Promise<NbaRecommendationRule> {
-  return normalizeRule(await callMethod(METHODS.GET_RULE, "GET", options, { name }));
+export async function getRecommendationRule(
+  name: string,
+  options: RequestOptions = {},
+): Promise<NbaRecommendationRule> {
+  return normalizeRule(
+    await callMethod(METHODS.GET_RULE, "GET", options, { name }),
+  );
 }
 
 function ruleBody(payload: RecommendationRulePayload): Record<string, unknown> {
   return {
     ...(payload.ruleKey !== undefined ? { rule_key: payload.ruleKey } : {}),
-    ...(payload.displayName !== undefined ? { display_name: payload.displayName } : {}),
-    ...(payload.description !== undefined ? { description: payload.description } : {}),
-    ...(payload.actionCode !== undefined ? { action_code: payload.actionCode } : {}),
+    ...(payload.displayName !== undefined
+      ? { display_name: payload.displayName }
+      : {}),
+    ...(payload.description !== undefined
+      ? { description: payload.description }
+      : {}),
+    ...(payload.actionCode !== undefined
+      ? { action_code: payload.actionCode }
+      : {}),
     ...(payload.priority !== undefined ? { priority: payload.priority } : {}),
-    ...(payload.triggerType !== undefined ? { trigger_type: payload.triggerType } : {}),
-    ...(payload.triggerEvent !== undefined ? { trigger_event: payload.triggerEvent } : {}),
-    ...(payload.conditions !== undefined ? { conditions: payload.conditions } : {}),
-    ...(payload.timingPolicy !== undefined ? { timing_policy: payload.timingPolicy } : {}),
-    ...(payload.cooldownValue !== undefined ? { cooldown_value: payload.cooldownValue } : {}),
-    ...(payload.cooldownUnit !== undefined ? { cooldown_unit: payload.cooldownUnit } : {}),
-    ...(payload.maxOccurrences !== undefined ? { max_occurrences: payload.maxOccurrences } : {}),
-    ...(payload.expiresAfterHours !== undefined ? { expires_after_hours: payload.expiresAfterHours } : {}),
-    ...(payload.stopConditions !== undefined ? { stop_conditions: payload.stopConditions } : {}),
+    ...(payload.triggerType !== undefined
+      ? { trigger_type: payload.triggerType }
+      : {}),
+    ...(payload.triggerEvent !== undefined
+      ? { trigger_event: payload.triggerEvent }
+      : {}),
+    ...(payload.conditions !== undefined
+      ? { conditions: payload.conditions }
+      : {}),
+    ...(payload.timingPolicy !== undefined
+      ? { timing_policy: payload.timingPolicy }
+      : {}),
+    ...(payload.cooldownValue !== undefined
+      ? { cooldown_value: payload.cooldownValue }
+      : {}),
+    ...(payload.cooldownUnit !== undefined
+      ? { cooldown_unit: payload.cooldownUnit }
+      : {}),
+    ...(payload.maxOccurrences !== undefined
+      ? { max_occurrences: payload.maxOccurrences }
+      : {}),
+    ...(payload.expiresAfterHours !== undefined
+      ? { expires_after_hours: payload.expiresAfterHours }
+      : {}),
+    ...(payload.stopConditions !== undefined
+      ? { stop_conditions: payload.stopConditions }
+      : {}),
   };
 }
 
-export async function createRecommendationRule(payload: RecommendationRulePayload, options: RequestOptions = {}): Promise<NbaRecommendationRule> {
-  return normalizeRule(await callMethod(METHODS.CREATE_RULE, "POST", options, {}, ruleBody(payload)));
+export async function createRecommendationRule(
+  payload: RecommendationRulePayload,
+  options: RequestOptions = {},
+): Promise<NbaRecommendationRule> {
+  return normalizeRule(
+    await callMethod(
+      METHODS.CREATE_RULE,
+      "POST",
+      options,
+      {},
+      ruleBody(payload),
+    ),
+  );
 }
 
 export async function updateRecommendationRule(
@@ -423,7 +578,15 @@ export async function updateRecommendationRule(
   payload: RecommendationRulePayload,
   options: RequestOptions = {},
 ): Promise<NbaRecommendationRule> {
-  return normalizeRule(await callMethod(METHODS.UPDATE_RULE, "PUT", options, { name }, ruleBody(payload)));
+  return normalizeRule(
+    await callMethod(
+      METHODS.UPDATE_RULE,
+      "PUT",
+      options,
+      { name },
+      ruleBody(payload),
+    ),
+  );
 }
 
 export async function publishRecommendationRule(
@@ -431,7 +594,15 @@ export async function publishRecommendationRule(
   expectedVersion: number,
   options: RequestOptions = {},
 ): Promise<NbaRecommendationRule> {
-  return normalizeRule(await callMethod(METHODS.PUBLISH_RULE, "POST", options, {}, { name, expected_version: expectedVersion }));
+  return normalizeRule(
+    await callMethod(
+      METHODS.PUBLISH_RULE,
+      "POST",
+      options,
+      {},
+      { name, expected_version: expectedVersion },
+    ),
+  );
 }
 
 export async function archiveRecommendationRule(
@@ -439,30 +610,59 @@ export async function archiveRecommendationRule(
   reason: string,
   options: RequestOptions = {},
 ): Promise<NbaRecommendationRule> {
-  return normalizeRule(await callMethod(METHODS.ARCHIVE_RULE, "POST", options, {}, { name, reason }));
+  return normalizeRule(
+    await callMethod(
+      METHODS.ARCHIVE_RULE,
+      "POST",
+      options,
+      {},
+      { name, reason },
+    ),
+  );
 }
 
-export async function deleteRecommendationRule(name: string, options: RequestOptions = {}): Promise<void> {
+export async function deleteRecommendationRule(
+  name: string,
+  options: RequestOptions = {},
+): Promise<void> {
   await callMethod(METHODS.DELETE_RULE, "DELETE", options, { name });
 }
 
-export async function listConditionFields(options: RequestOptions = {}): Promise<ConditionFieldMetadata[]> {
-  return normalizeConditionFields(await callMethod(METHODS.LIST_CONDITION_FIELDS, "GET", options));
+export async function listConditionFields(
+  options: RequestOptions = {},
+): Promise<ConditionFieldMetadata[]> {
+  return normalizeConditionFields(
+    await callMethod(METHODS.LIST_CONDITION_FIELDS, "GET", options),
+  );
 }
 
 export async function previewRecommendationRule(
   payload: RulePreviewPayload,
   options: RequestOptions = {},
 ): Promise<RulePreviewResult> {
-  return normalizePreview(await callMethod(METHODS.PREVIEW_RULE, "POST", options, {}, {
-    rule: {
-      ...ruleBody(payload.rule),
-      conditions: payload.rule.conditions ?? ({ all: [], any: [] } satisfies RuleConditions),
-    },
-    context: {
-      student: payload.context.student,
-      ...(payload.context.studentStage ? { student_stage: payload.context.studentStage } : {}),
-      ...(payload.context.ownerStaff ? { owner_staff: payload.context.ownerStaff } : {}),
-    },
-  }));
+  return normalizePreview(
+    await callMethod(
+      METHODS.PREVIEW_RULE,
+      "POST",
+      options,
+      {},
+      {
+        rule: {
+          ...ruleBody(payload.rule),
+          conditions:
+            payload.rule.conditions ??
+            ({ all: [], any: [] } satisfies RuleConditions),
+        },
+        context: {
+          student: payload.context.student,
+          ...(payload.context.studentStage
+            ? { student_stage: payload.context.studentStage }
+            : {}),
+          ...(payload.context.ownerStaff
+            ? { owner_staff: payload.context.ownerStaff }
+            : {}),
+        },
+      },
+    ),
+  );
 }

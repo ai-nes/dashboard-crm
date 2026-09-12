@@ -1,11 +1,12 @@
 "use client";
 
 import { Search1 } from "@tailgrids/icons";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 
 import { Button } from "@/components/tailgrids/core/button";
+import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   InputGroup,
   InputGroupAddon,
@@ -34,14 +35,7 @@ const STATUS_TABS: Array<{ id: CrmRuleStatus | "all"; label: string }> = [
   { id: "active", label: "Đang hoạt động" },
   { id: "archived", label: "Đã lưu trữ" },
 ];
-
-const normalizeSearch = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
-    .toLowerCase();
+const PAGE_SIZE = 8;
 
 const formatDate = (date: string | null) => {
   if (!date) return "Chưa cập nhật";
@@ -59,28 +53,21 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<CrmRuleStatus | "all">("all");
-  const versionsQuery = useCrmRuleVersionsQuery({ start: 0, pageLength: 100 });
-  const versions = useMemo(
-    () => versionsQuery.data?.versions ?? [],
-    [versionsQuery.data?.versions],
-  );
-  const filteredVersions = useMemo(() => {
-    const query = normalizeSearch(search.trim());
-    return versions.filter(
-      (version) =>
-        (status === "all" || version.status === status) &&
-        (!query ||
-          normalizeSearch(
-            `${version.versionId} ${version.versionName} ${version.description ?? ""}`,
-          ).includes(query)),
-    );
-  }, [search, status, versions]);
+  const [page, setPage] = useState(1);
+  const versionsQuery = useCrmRuleVersionsQuery({
+    status: status === "all" ? undefined : status,
+    search: search.trim() || undefined,
+    start: (page - 1) * PAGE_SIZE,
+    pageLength: PAGE_SIZE,
+  });
+  const versions = versionsQuery.data?.versions ?? [];
+  const total = versionsQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasVersionFilter = Boolean(search.trim()) || status !== "all";
   const tabs = STATUS_TABS.map((tab) => ({
     ...tab,
     count:
-      tab.id === "all"
-        ? versions.length
-        : versions.filter((version) => version.status === tab.id).length,
+      tab.id === "all" ? total : tab.id === status ? total : null,
   }));
 
   const openVersion = (version: CrmRuleVersion) => {
@@ -96,9 +83,10 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
     >
       <Tabs
         selectedKey={status}
-        onSelectionChange={(key) =>
-          setStatus(String(key) as CrmRuleStatus | "all")
-        }
+        onSelectionChange={(key) => {
+          setStatus(String(key) as CrmRuleStatus | "all");
+          setPage(1);
+        }}
       >
         <div className="space-y-3 border-b border-card-border px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -114,12 +102,15 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
                 aria-label="Tìm Version"
                 placeholder="Tìm mã, tên Version hoặc mô tả..."
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
                 className="pl-2 text-sm"
               />
             </InputGroup>
             <span aria-live="polite" className="text-xs text-text-tertiary">
-              {filteredVersions.length} / {versions.length} Version
+              {versions.length} / {total} Version
             </span>
           </div>
           <TabList
@@ -134,7 +125,7 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
               >
                 {tab.label}
                 <span className="rounded-md bg-background-gray-secondary px-1.5 py-0.5 text-xs tabular-nums group-data-[selected]:bg-badge-primary-background group-data-[selected]:text-badge-primary-text">
-                  {tab.count}
+                  {tab.count ?? "—"}
                 </span>
               </Tab>
             ))}
@@ -169,91 +160,104 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
             </div>
           ) : null}
           {!versionsQuery.isPending && !versionsQuery.error ? (
-            <TableRoot
-              fullBleed
-              className="border-0"
-              aria-label="Danh sách Version"
-            >
-              <TableHeader className="bg-background-gray-secondary">
-                <TableRow>
-                  <TableHead scope="col" className="whitespace-nowrap">
-                    Mã Version
-                  </TableHead>
-                  <TableHead scope="col" className="whitespace-nowrap">
-                    Tên Version
-                  </TableHead>
-                  <TableHead scope="col" className="whitespace-nowrap">
-                    Số Rule
-                  </TableHead>
-                  <TableHead scope="col" className="whitespace-nowrap">
-                    Người tạo
-                  </TableHead>
-                  <TableHead scope="col" className="whitespace-nowrap">
-                    Trạng thái
-                  </TableHead>
-                  <TableHead scope="col" className="whitespace-nowrap">
-                    Cập nhật lần cuối
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredVersions.map((version) => (
-                  <TableRow
-                    key={version.name}
-                    tabIndex={0}
-                    className="cursor-pointer hover:bg-background-gray-secondary_alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
-                    onClick={() => openVersion(version)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        openVersion(version);
-                      }
-                    }}
-                  >
-                    <TableCell className="whitespace-nowrap py-5 font-mono text-xs text-text-tertiary">
-                      {version.versionId}
-                    </TableCell>
-                    <TableCell className="py-5 text-sm font-semibold text-primary-500">
-                      {version.versionName}
-                    </TableCell>
-                    <TableCell className="py-5 text-sm tabular-nums text-text-secondary">
-                      {version.rulesCount}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap py-5 text-sm text-text-secondary">
-                      {version.creator ?? "—"}
-                    </TableCell>
-                    <TableCell
-                      className="py-5 text-sm"
-                      onClick={(event) => event.stopPropagation()}
-                      onKeyDown={(event) => event.stopPropagation()}
-                    >
-                      <div className="flex items-center gap-2">
-                        <RuleVersionStatusSelect
-                          version={version}
-                          canEdit={canEdit}
-                          onChanged={() => void versionsQuery.refetch()}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap py-5 text-sm text-text-secondary">
-                      {formatDate(version.modified)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredVersions.length === 0 ? (
+            <>
+              <TableRoot
+                fullBleed
+                className="border-0"
+                aria-label="Danh sách Version"
+              >
+                <TableHeader className="bg-background-gray-secondary">
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="py-16 text-center text-sm text-text-tertiary"
-                    >
-                      {versions.length === 0
-                        ? "Chưa có Version nào. Tạo Version để bắt đầu."
-                        : "Không tìm thấy Version phù hợp."}
-                    </TableCell>
+                    <TableHead scope="col" className="whitespace-nowrap">
+                      Mã Version
+                    </TableHead>
+                    <TableHead scope="col" className="whitespace-nowrap">
+                      Tên Version
+                    </TableHead>
+                    <TableHead scope="col" className="whitespace-nowrap">
+                      Số Rule
+                    </TableHead>
+                    <TableHead scope="col" className="whitespace-nowrap">
+                      Người tạo
+                    </TableHead>
+                    <TableHead scope="col" className="whitespace-nowrap">
+                      Trạng thái
+                    </TableHead>
+                    <TableHead scope="col" className="whitespace-nowrap">
+                      Cập nhật lần cuối
+                    </TableHead>
                   </TableRow>
-                ) : null}
-              </TableBody>
-            </TableRoot>
+                </TableHeader>
+                <TableBody>
+                  {versions.map((version) => (
+                    <TableRow
+                      key={version.name}
+                      tabIndex={0}
+                      className="cursor-pointer hover:bg-background-gray-secondary_alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+                      onClick={() => openVersion(version)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openVersion(version);
+                        }
+                      }}
+                    >
+                      <TableCell className="whitespace-nowrap py-5 font-mono text-xs text-text-tertiary">
+                        {version.versionId}
+                      </TableCell>
+                      <TableCell className="py-5 text-sm font-semibold text-primary-500">
+                        {version.versionName}
+                      </TableCell>
+                      <TableCell className="py-5 text-sm tabular-nums text-text-secondary">
+                        {version.rulesCount}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap py-5 text-sm text-text-secondary">
+                        {version.creator ?? "—"}
+                      </TableCell>
+                      <TableCell
+                        className="py-5 text-sm"
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
+                        <div className="flex items-center gap-2">
+                          <RuleVersionStatusSelect
+                            version={version}
+                            canEdit={canEdit}
+                            onChanged={() => void versionsQuery.refetch()}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap py-5 text-sm text-text-secondary">
+                        {formatDate(version.modified)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {versions.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="py-16 text-center text-sm text-text-tertiary"
+                      >
+                        {!hasVersionFilter
+                          ? "Chưa có Version nào. Tạo Version để bắt đầu."
+                          : "Không tìm thấy Version phù hợp."}
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </TableBody>
+              </TableRoot>
+              {totalPages > 1 && (
+                <div className="border-t border-card-border px-5 py-3">
+                  <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    variant="compact"
+                    isDisabled={versionsQuery.isFetching}
+                  />
+                </div>
+              )}
+            </>
           ) : null}
         </TabPanel>
       </Tabs>

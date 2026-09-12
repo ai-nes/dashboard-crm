@@ -134,7 +134,10 @@ export async function listMessageTemplates(
 ): Promise<ListMessageTemplatesResponse> {
   return request<ListMessageTemplatesResponse>(METHODS.LIST, {
     ...options,
-    query: { search: params.search?.trim(), owner: params.owner?.trim() },
+    query: {
+      search: params.search?.trim(),
+      owner: params.owner?.trim(),
+    },
   });
 }
 
@@ -151,9 +154,35 @@ export async function listMessageTemplateTokens(
 }
 
 export async function listAdminMessageTemplateLibrary(
+  params: ListMessageTemplatesParams & { baseUrl?: string } = {},
   options: { baseUrl?: string } = {},
 ): Promise<ListMessageTemplatesResponse> {
-  return request<ListMessageTemplatesResponse>(METHODS.ADMIN_LIBRARY, options);
+  const requestOptions = params.baseUrl ? { baseUrl: params.baseUrl } : options;
+  const result = await request<ListMessageTemplatesResponse>(METHODS.ADMIN_LIBRARY, {
+    ...requestOptions,
+    query: {
+      search: params.search?.trim(),
+      owner: params.owner?.trim(),
+      start: params.start === undefined ? undefined : String(params.start),
+      page_length:
+        params.pageLength === undefined ? undefined : String(params.pageLength),
+    },
+  });
+  if (params.start === undefined && params.pageLength === undefined) {
+    return result;
+  }
+  return {
+    ...result,
+    total: Number(result.total ?? result.templates.length),
+    start: Number(result.start ?? params.start ?? 0),
+    pageLength: Number(
+      result.pageLength ??
+        (result as ListMessageTemplatesResponse & { page_length?: number })
+          .page_length ??
+        params.pageLength ??
+        20,
+    ),
+  };
 }
 
 export async function listMessageTemplatePreviewContacts(

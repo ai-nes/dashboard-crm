@@ -6,7 +6,7 @@ import {
 
 export { ACTION_TIME_SLOTS };
 
-export const NBA_ACTION_PAGE_SIZE = 5;
+export const NBA_ACTION_PAGE_SIZE = 8;
 
 export const ACTION_TIME_SLOT_LABELS: Record<ActionTimeSlot, string> = {
   "0-6": "00:00–06:00",

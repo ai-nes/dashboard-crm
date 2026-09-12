@@ -28,6 +28,16 @@ export interface CrmUser {
 export interface ListCrmUsersResponse {
   allUsers: CrmUser[];
   crmUsers: CrmUser[];
+  total: number;
+  start: number;
+  pageLength: number;
+}
+
+export interface ListCrmUsersParams {
+  search?: string;
+  role?: string;
+  start?: number;
+  pageLength?: number;
 }
 
 export interface UpdateUserRolePayload {

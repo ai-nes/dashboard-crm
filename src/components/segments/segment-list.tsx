@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
+import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   TableBody,
   TableCell,
@@ -45,8 +46,24 @@ export function SegmentList({
   canManage: boolean;
   compactStatus?: boolean;
 }) {
-  const { segments, isLoading, error, refetch, transitionSegment } =
-    useSegmentData();
+  const {
+    segments,
+    isLoading,
+    error,
+    refetch,
+    transitionSegment,
+    total,
+    currentPage,
+    totalPages,
+    isFetching,
+    search,
+    status,
+    setPage,
+    setSearch,
+    setStatus,
+    serverPaginated,
+  } = useSegmentData();
+  const hasSegmentFilter = Boolean(search.trim()) || status !== "ALL";
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [segmentToDelete, setSegmentToDelete] =
@@ -101,7 +118,13 @@ export function SegmentList({
         isDeleteDisabled: deleteMutation.isPending,
         compactStatus,
       }),
-    [canManage, compactStatus, deleteMutation.isPending, detailBaseHref, transitionSegment],
+    [
+      canManage,
+      compactStatus,
+      deleteMutation.isPending,
+      detailBaseHref,
+      transitionSegment,
+    ],
   );
   const table = useReactTable({
     data: segments,
@@ -114,7 +137,7 @@ export function SegmentList({
         normalizeSearch(value.trim()),
       ),
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    getFilteredRowModel: serverPaginated ? undefined : getFilteredRowModel(),
     getRowId: (row) => row.id,
   });
 
@@ -147,63 +170,94 @@ export function SegmentList({
         aria-label="Danh sách segments"
         className="overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs"
       >
-        <SegmentListToolbar table={table}>
-          <TableRoot
-            fullBleed
-            className="border-0"
-            aria-label="Danh sách segments"
-          >
-            <TableHeader className="bg-background-gray-secondary">
-              {table.getHeaderGroups().map((group) => (
-                <TableRow key={group.id}>
-                  {group.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      scope="col"
-                      className="whitespace-nowrap"
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="hover:bg-background-gray-secondary_alt"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className="py-5 text-sm font-normal text-text-secondary"
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-              {table.getRowModel().rows.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="py-16 text-center text-sm text-text-tertiary"
+        <SegmentListToolbar
+          table={table}
+          serverPagination={
+            serverPaginated
+              ? {
+                  search,
+                  status,
+                  total,
+                  onSearchChange: setSearch,
+                  onStatusChange: (value) =>
+                    setStatus(value as SegmentListItem["status"] | "ALL"),
+                }
+              : undefined
+          }
+        >
+          <>
+            <TableRoot
+              fullBleed
+              className="border-0"
+              aria-label="Danh sách segments"
+            >
+              <TableHeader className="bg-background-gray-secondary">
+                {table.getHeaderGroups().map((group) => (
+                  <TableRow key={group.id}>
+                    {group.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        scope="col"
+                        className="whitespace-nowrap"
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className="hover:bg-background-gray-secondary_alt"
                   >
-                    {segments.length === 0
-                      ? "Chưa có segment nào. Tạo segment để bắt đầu."
-                      : "Không tìm thấy segment phù hợp. Thử từ khóa hoặc trạng thái khác."}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </TableRoot>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className="py-5 text-sm font-normal text-text-secondary"
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+                {table.getRowModel().rows.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="py-16 text-center text-sm text-text-tertiary"
+                    >
+                      {!hasSegmentFilter
+                        ? "Chưa có segment nào. Tạo segment để bắt đầu."
+                        : "Không tìm thấy segment phù hợp. Thử từ khóa hoặc trạng thái khác."}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </TableRoot>
+            {serverPaginated && totalPages > 1 ? (
+              <div className="flex justify-end border-t border-card-border px-5 py-4">
+                <div className="w-fit">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    variant="compact"
+                    isDisabled={
+                      isFetching || isLoading || deleteMutation.isPending
+                    }
+                  />
+                </div>
+              </div>
+            ) : null}
+          </>
         </SegmentListToolbar>
       </section>
 

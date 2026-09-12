@@ -17,6 +17,7 @@ import {
   updateUserCapacity,
   updateUserRole,
   type CreateCrmUserPayload,
+  type ListCrmUsersParams,
   type ListCrmUsersResponse,
   type ListUserRoleLogsParams,
   type ListUserRoleLogsResponse,
@@ -28,16 +29,22 @@ import {
 
 export const userManagementKeys = {
   all: ["user-management"] as const,
-  users: ["user-management", "users"] as const,
-  logs: (params: ListUserRoleLogsParams) => ["user-management", "logs", params] as const,
+  users: (params: ListCrmUsersParams = {}) =>
+    ["user-management", "users", params] as const,
+  logs: (params: ListUserRoleLogsParams) =>
+    ["user-management", "logs", params] as const,
 };
 
 export function useCrmUsersQuery(
-  options?: Omit<UseQueryOptions<ListCrmUsersResponse, Error>, "queryKey" | "queryFn">,
+  params: ListCrmUsersParams = {},
+  options?: Omit<
+    UseQueryOptions<ListCrmUsersResponse, Error>,
+    "queryKey" | "queryFn"
+  >,
 ): UseQueryResult<ListCrmUsersResponse, Error> {
   return useQuery({
-    queryKey: userManagementKeys.users,
-    queryFn: () => listCrmUsers(),
+    queryKey: userManagementKeys.users(params),
+    queryFn: () => listCrmUsers(params),
     staleTime: 30 * 1000,
     ...options,
   });
@@ -74,7 +81,8 @@ export function useCreateCrmUserMutation() {
 export function useUpdateCrmUserProfileMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateCrmUserProfilePayload) => updateCrmUserProfile(payload),
+    mutationFn: (payload: UpdateCrmUserProfilePayload) =>
+      updateCrmUserProfile(payload),
     onSuccess: () => invalidateUsers(queryClient),
   });
 }
@@ -82,14 +90,18 @@ export function useUpdateCrmUserProfileMutation() {
 export function useUpdateUserCapacityMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateUserCapacityPayload) => updateUserCapacity(payload),
+    mutationFn: (payload: UpdateUserCapacityPayload) =>
+      updateUserCapacity(payload),
     onSuccess: () => invalidateUsers(queryClient),
   });
 }
 
 export function useUserRoleLogsQuery(
   params: ListUserRoleLogsParams = {},
-  options?: Omit<UseQueryOptions<ListUserRoleLogsResponse, Error>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<ListUserRoleLogsResponse, Error>,
+    "queryKey" | "queryFn"
+  >,
 ): UseQueryResult<ListUserRoleLogsResponse, Error> {
   return useQuery({
     queryKey: userManagementKeys.logs(params),

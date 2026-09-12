@@ -29,7 +29,7 @@ interface MessageTemplateListToolbarProps {
   mineCount: number;
   search: string;
   owner: string;
-  owners: string[];
+  owners: Array<{ id: string; name: string }>;
   resultCount: number;
   totalCount: number;
   onScopeChange: (value: "all" | "mine") => void;
@@ -53,13 +53,19 @@ export default function MessageTemplateListToolbar({
   onOwnerChange,
   onReset,
 }: MessageTemplateListToolbarProps) {
-  const hasFilter = (showOwnershipTabs && scope !== "all") || Boolean(search.trim()) || owner !== "all";
+  const hasFilter =
+    (showOwnershipTabs && scope !== "all") ||
+    Boolean(search.trim()) ||
+    owner !== "all";
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-card-border px-5 py-4">
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
         <InputGroup className="h-10 w-full sm:w-[26rem]">
-          <InputGroupAddon align="inline-start" className="pr-0 text-text-tertiary">
+          <InputGroupAddon
+            align="inline-start"
+            className="pr-0 text-text-tertiary"
+          >
             <Search1 size={18} aria-hidden="true" />
           </InputGroupAddon>
           <InputGroupInput
@@ -91,9 +97,17 @@ export default function MessageTemplateListToolbar({
                   "bg-background-white-primary font-semibold text-text-primary shadow-xs",
               )}
             >
-              <Filter size={15} className="shrink-0 text-icon-tertiary" aria-hidden="true" />
+              <Filter
+                size={15}
+                className="shrink-0 text-icon-tertiary"
+                aria-hidden="true"
+              />
               <SelectValue className="flex min-w-0 items-center gap-2">
-                <span className="max-w-40 truncate">{owner === "all" ? "Tất cả" : owner}</span>
+                <span className="max-w-40 truncate">
+                  {owner === "all"
+                    ? "Tất cả"
+                    : (owners.find((item) => item.id === owner)?.name ?? owner)}
+                </span>
                 {owner === "all" ? (
                   <Badge color="gray" size="sm" className={countBadgeClassName}>
                     {allCount}
@@ -106,9 +120,13 @@ export default function MessageTemplateListToolbar({
               <SelectItem id="all" textValue="Tất cả">
                 Tất cả
               </SelectItem>
-              {owners.map((ownerName) => (
-                <SelectItem key={ownerName} id={ownerName} textValue={ownerName}>
-                  {ownerName}
+              {owners.map((ownerOption) => (
+                <SelectItem
+                  key={ownerOption.id}
+                  id={ownerOption.id}
+                  textValue={ownerOption.name}
+                >
+                  {ownerOption.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -138,7 +156,8 @@ export default function MessageTemplateListToolbar({
 
       <div className="flex items-center justify-between gap-3">
         <p aria-live="polite" className="text-xs text-text-tertiary">
-          <span className="font-semibold text-text-primary">{resultCount}</span> / {totalCount} mẫu
+          <span className="font-semibold text-text-primary">{resultCount}</span>{" "}
+          / {totalCount} mẫu
         </p>
         {hasFilter ? (
           <Button

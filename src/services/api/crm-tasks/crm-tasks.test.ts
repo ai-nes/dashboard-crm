@@ -95,13 +95,14 @@ describe("CRM Tasks API Service", () => {
       {
         referenceDoctype: "CRM Segment",
         referenceDocname: "SEG-0001",
+        search: "rà soát",
         pageLength: 100,
       },
       { baseUrl },
     );
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      `${baseUrl}/api/method/crm.api.task.list_tasks?reference_doctype=CRM+Segment&reference_docname=SEG-0001&start=0&page_length=100`,
+      `${baseUrl}/api/method/crm.api.task.list_tasks?reference_doctype=CRM+Segment&reference_docname=SEG-0001&search=r%C3%A0+so%C3%A1t&start=0&page_length=100`,
       expect.objectContaining({ method: "GET" }),
     );
     expect(result.tasks[0]).toMatchObject({

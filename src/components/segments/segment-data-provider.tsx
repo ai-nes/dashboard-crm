@@ -1,6 +1,11 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react";
 
 import {
   useSegmentsQuery,
@@ -21,7 +26,19 @@ const SegmentDataContext = createContext<{
     status: SegmentStatus;
     expectedRevision: number;
   }) => Promise<unknown>;
+  total: number;
+  currentPage: number;
+  totalPages: number;
+  isFetching: boolean;
+  search: string;
+  status: SegmentStatus | "ALL";
+  setPage: (page: number) => void;
+  setSearch: (search: string) => void;
+  setStatus: (status: SegmentStatus | "ALL") => void;
+  serverPaginated: boolean;
 } | null>(null);
+
+const PAGE_SIZE = 8;
 
 export function SegmentDataProvider({
   children,
@@ -31,18 +48,32 @@ export function SegmentDataProvider({
   /** Hide segments whose permission-scoped student result is empty. */
   visibleStudentsOnly?: boolean;
 }) {
+  const serverPaginated = !visibleStudentsOnly;
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<SegmentStatus | "ALL">("ALL");
   const allSegmentsQuery = useSegmentsQuery(
-    {},
-    { enabled: !visibleStudentsOnly },
+    {
+      search,
+      status: status === "ALL" ? undefined : status,
+      start: (page - 1) * PAGE_SIZE,
+      pageLength: PAGE_SIZE,
+    },
+    { enabled: serverPaginated },
   );
   const visibleSegmentsQuery = useVisibleSegmentsQuery(visibleStudentsOnly);
   const transitionMutation = useTransitionSegmentMutation();
   const segmentsQuery = visibleStudentsOnly
     ? visibleSegmentsQuery
     : allSegmentsQuery;
-  const segments = (segmentsQuery.data ?? []).map((segment) =>
-    toSegmentListItem(segment),
-  );
+  const rawSegments = serverPaginated
+    ? (allSegmentsQuery.data?.segments ?? [])
+    : (visibleSegmentsQuery.data ?? []);
+  const segments = rawSegments.map((segment) => toSegmentListItem(segment));
+  const total = serverPaginated
+    ? (allSegmentsQuery.data?.total ?? 0)
+    : segments.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <SegmentDataContext.Provider
@@ -52,6 +83,22 @@ export function SegmentDataProvider({
         error: segmentsQuery.error,
         refetch: segmentsQuery.refetch,
         transitionSegment: (payload) => transitionMutation.mutateAsync(payload),
+        total,
+        currentPage: page,
+        totalPages,
+        isFetching: segmentsQuery.isFetching,
+        search,
+        status,
+        setPage,
+        setSearch: (value) => {
+          setSearch(value);
+          setPage(1);
+        },
+        setStatus: (value) => {
+          setStatus(value);
+          setPage(1);
+        },
+        serverPaginated,
       }}
     >
       {children}

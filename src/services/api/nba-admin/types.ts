@@ -3,7 +3,12 @@ import type { ActionTimeSlot } from "@/services/api/nba-actions";
 export type ActionChannel = "NONE" | "CALL" | "EMAIL" | "MESSAGE";
 export type RuleStatus = "draft" | "published" | "archived";
 export type RulePriority = "high" | "medium" | "low";
-export type RuleTriggerType = "event" | "state" | "inactivity" | "deadline" | "manual";
+export type RuleTriggerType =
+  | "event"
+  | "state"
+  | "inactivity"
+  | "deadline"
+  | "manual";
 export type TimingTriggerType = "event" | "relative" | "deadline" | "schedule";
 export type DelayUnit = "minutes" | "hours" | "days";
 export type DeadlineType = "none" | "fixed_offset" | "business_days";
@@ -85,6 +90,8 @@ export interface TimingPolicyPayload {
 }
 
 export interface ListTimingPoliciesParams {
+  search?: string;
+  triggerType?: TimingTriggerType | "all";
   start?: number;
   pageLength?: number;
 }
