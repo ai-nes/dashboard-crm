@@ -11,6 +11,7 @@ import type { DirectorSchoolDetailData } from "@/services/api/schools/types";
 
 import { toSchoolIntelligenceData } from "../_components/school-intelligence-adapter";
 import SchoolIntelligenceApiFallback from "../_components/school-intelligence-api-fallback";
+import SchoolDetailSkeleton from "../_components/school-detail-skeleton";
 import SchoolDetailPageClient from "./school-detail-page-client";
 
 interface SchoolDetailPageProps {
@@ -42,7 +43,7 @@ export default function SchoolDetailPage({ params }: SchoolDetailPageProps) {
   }, [schoolCode]);
 
   if (detail === undefined && !error) {
-    return <div className="h-[640px] animate-pulse rounded-2xl bg-card-background/60" />;
+    return <SchoolDetailSkeleton />;
   }
 
   if (!detail) {

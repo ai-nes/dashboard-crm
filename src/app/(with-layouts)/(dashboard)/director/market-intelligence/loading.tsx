@@ -1,4 +1,5 @@
-import { DashboardRouteSkeleton } from "@/components/common/loading/route-skeleton";
+import MarketIntelligenceSkeleton from "./_components/market-intelligence-skeleton";
+
 export default function Loading() {
-  return <DashboardRouteSkeleton />;
+  return <MarketIntelligenceSkeleton />;
 }

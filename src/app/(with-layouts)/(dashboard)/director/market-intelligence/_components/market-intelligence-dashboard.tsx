@@ -9,6 +9,7 @@ import AllSchoolsInspector from "./all-schools-inspector";
 import { PRIORITY_PROVINCE_CODES } from "./data";
 import MarketMap from "./market-map";
 import ProvinceInspector from "./province-inspector";
+import MarketIntelligenceSkeleton from "./market-intelligence-skeleton";
 import type {
   SchoolEngagementOption,
   SchoolMarkerFilters,
@@ -177,9 +178,7 @@ export default function MarketIntelligenceDashboard({
   };
   if (apiError || geometryError) return <MapError message={apiError} />;
   if (loading)
-    return (
-      <div className="h-[640px] animate-pulse rounded-2xl bg-card-background/60" />
-    );
+    return <MarketIntelligenceSkeleton />;
   return (
     <main className="min-w-0 px-2 py-3 lg:px-6 xl:h-[calc(100vh-112px)] xl:overflow-hidden">
       <div className="grid min-h-[640px] min-w-0 grid-cols-1 items-stretch gap-2 xl:h-full xl:min-h-0 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.75fr)]">

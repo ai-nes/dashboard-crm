@@ -36,6 +36,7 @@ import type {
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadImportDialog from "./lead-import-dialog";
 import LeadListToolbar from "./lead-list-toolbar";
+import LeadListSkeleton from "./lead-list-skeleton";
 import { type LeadResultFilter, type LeadStageStatus } from "./lead-status";
 import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 
@@ -347,12 +348,7 @@ export default function LeadsOverviewDashboard() {
               <span className="min-w-0 truncate">Ngày tạo</span>
             </div>
             {isPending && !response ? (
-              <div
-                className="px-5 py-14 text-center text-sm text-text-tertiary"
-                role="status"
-              >
-                Đang tải danh sách Lead…
-              </div>
+              <LeadListSkeleton />
             ) : (
               <LeadList canAssign={canAssignLead} leads={leads} />
             )}

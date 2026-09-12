@@ -32,6 +32,7 @@ import type {
 
 import StudentCreateDialog from "./student-create-dialog";
 import StudentList, { studentListGrid } from "./student-list";
+import StudentListSkeleton from "./student-list-skeleton";
 import StudentListToolbar from "./student-list-toolbar";
 
 export default function StudentsOverviewDashboard() {
@@ -93,7 +94,13 @@ export default function StudentsOverviewDashboard() {
   const studentsQuery = isSessionScoped
     ? sessionScopedStudentsQuery
     : allStudentsQuery;
-  const { data: response, isError, error, isPlaceholderData } = studentsQuery;
+  const {
+    data: response,
+    isError,
+    error,
+    isPending,
+    isPlaceholderData,
+  } = studentsQuery;
 
   const students = response?.data ?? [];
   const meta = response?.meta;
@@ -256,10 +263,14 @@ export default function StudentsOverviewDashboard() {
               <span className="min-w-0 truncate">Điểm tiềm năng</span>
               <span className="min-w-0 truncate">Người phụ trách</span>
             </div>
-            <StudentList
-              students={students}
-              ownerEditable={permissions.student.canAssign}
-            />
+            {isPending && !response ? (
+              <StudentListSkeleton />
+            ) : (
+              <StudentList
+                students={students}
+                ownerEditable={permissions.student.canAssign}
+              />
+            )}
           </div>
         </div>
 

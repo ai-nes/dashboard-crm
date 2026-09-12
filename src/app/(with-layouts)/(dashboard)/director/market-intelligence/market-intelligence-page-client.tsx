@@ -7,6 +7,7 @@ import {
 } from "@/services/api/market-intelligence";
 import type { DirectorMarketOverview } from "@/services/api/market-intelligence";
 import MarketIntelligenceDashboard from "./_components/market-intelligence-dashboard";
+import MarketIntelligenceSkeleton from "./_components/market-intelligence-skeleton";
 
 const REQUEST = {
   period: "30d" as const,
@@ -43,7 +44,7 @@ export default function MarketIntelligencePageClient() {
   }, []);
 
   if (loading) {
-    return <div className="h-[640px] animate-pulse rounded-2xl bg-card-background/60" />;
+    return <MarketIntelligenceSkeleton />;
   }
 
   return <MarketIntelligenceDashboard overview={overview} error={error} />;
