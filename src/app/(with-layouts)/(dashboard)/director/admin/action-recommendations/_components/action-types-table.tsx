@@ -81,7 +81,7 @@ export default function ActionTypesTable({ canEdit }: ActionTypesTableProps) {
                 <TableHead>Thứ tự</TableHead>
                 <TableHead>Cập nhật gần nhất</TableHead>
                 <TableHead>Trạng thái</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
+                <TableHead className="text-center">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -92,7 +92,7 @@ export default function ActionTypesTable({ canEdit }: ActionTypesTableProps) {
                   <TableCell className="text-sm text-text-secondary">{actionType.sortOrder}</TableCell>
                   <TableCell className="text-sm text-text-secondary">{actionType.modified ?? "—"}</TableCell>
                   <TableCell><RecordStatusBadge status={actionType.enabled ? "active" : "inactive"} /></TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-center">
                     <Button size="sm" variant="primary" appearance="outline" onPress={() => { setIsCreateOpen(false); setSelected(actionType); }} aria-label={`${canEdit ? "Chỉnh sửa" : "Xem"} nhóm ${actionType.displayName}`} className="min-w-20">
                       {canEdit ? <Pencil1 size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
                       {canEdit ? "Sửa" : "Xem"}

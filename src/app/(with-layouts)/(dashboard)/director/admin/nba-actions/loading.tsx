@@ -7,10 +7,22 @@ export default function NbaActionsLoading() {
       aria-label="Đang tải dữ liệu cấu hình NBA"
       className="min-w-0 space-y-6 px-2 py-4 pb-8 lg:px-6"
     >
-      <header className="space-y-3">
-        <Skeleton className="h-4 w-48 rounded-lg" />
-        <Skeleton className="h-8 w-64 rounded-lg" />
-        <Skeleton className="h-4 w-[min(40rem,85vw)]" />
+      <header className="shrink-0">
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-end">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-2 rounded-full" />
+              <Skeleton className="h-4 w-24 rounded-lg" />
+              <Skeleton className="h-5 w-24 rounded-full" />
+            </div>
+            <Skeleton className="h-8 w-64 rounded-lg" />
+            <Skeleton className="h-4 w-[min(40rem,85vw)]" />
+          </div>
+          <div className="flex flex-col gap-2 lg:items-end">
+            <Skeleton className="h-3 w-64" />
+            <Skeleton className="h-4 w-44" />
+          </div>
+        </div>
       </header>
 
       <section className="overflow-hidden rounded-xl border border-card-border bg-card-background" aria-hidden="true">

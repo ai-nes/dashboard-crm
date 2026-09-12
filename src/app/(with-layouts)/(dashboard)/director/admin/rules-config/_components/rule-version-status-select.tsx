@@ -2,6 +2,11 @@
 
 import { toast } from "sonner";
 
+import {
+  ADMIN_STATUS_SELECT_CONTENT_CLASS,
+  ADMIN_STATUS_SELECT_INDICATOR_CLASS,
+  ADMIN_STATUS_SELECT_TRIGGER_CLASS,
+} from "@/components/common/admin/admin-status-select-styles";
 import { Badge } from "@/components/tailgrids/core/badge";
 import {
   Select,
@@ -114,17 +119,18 @@ export function RuleVersionStatusSelect({
     >
       <SelectTrigger
         appearance="ghost"
+        size="sm"
         className={cn(
-          "h-10 w-40 justify-between rounded-xl border-0 px-3.5 py-2 text-base font-medium shadow-none outline-none data-[focused=true]:ring-4 data-[focused=true]:ring-button-outline-focus-ring",
+          ADMIN_STATUS_SELECT_TRIGGER_CLASS,
           STATUS_SELECT_STYLES[version.status],
         )}
       >
         <SelectValue className="max-w-none text-inherit">
           {STATUS_LABELS[version.status]}
         </SelectValue>
-        <SelectIndicator className="text-inherit" />
+        <SelectIndicator className={ADMIN_STATUS_SELECT_INDICATOR_CLASS} />
       </SelectTrigger>
-      <SelectContent className="min-w-40">
+      <SelectContent className={ADMIN_STATUS_SELECT_CONTENT_CLASS}>
         {options.map((option) => (
           <SelectItem
             key={option}

@@ -28,6 +28,7 @@ export interface NavigationItem {
   exact?: boolean
   icon?: ReactNode
   roles: readonly DashboardRole[]
+  requiresVisibleStudents?: boolean
   items?: NavigationItem[]
 }
 
@@ -127,6 +128,21 @@ export const NAV_DATA: NavigationSection[] = [
     ],
   },
   {
+    label: 'MẪU & NỘI DUNG',
+    items: [
+      navItem({
+        title: 'Message Template',
+        url: '/director/message-template',
+        icon: <ChatIcon />,
+      }),
+      navItem({
+        title: 'Snippest',
+        url: '/director/snippest',
+        icon: <Widget4Icon />,
+      }),
+    ],
+  },
+  {
     label: 'VẬN HÀNH TUYỂN SINH',
     items: [
       navItem({
@@ -198,6 +214,8 @@ const DIRECTOR_NAV_PATHS = new Set([
   '/director/regional-performance',
   '/director/admission-funnel',
   '/director/revenue-forecast',
+  '/director/message-template',
+  '/director/snippest',
   '/director/tasks',
   '/director/activity-campaign',
 ])
@@ -207,10 +225,28 @@ export const DIRECTOR_NAV_DATA: NavigationSection[] = NAV_DATA.map((section) => 
   items: section.items.filter((item) => item.url && DIRECTOR_NAV_PATHS.has(item.url)),
 })).filter((section) => section.items.length > 0)
 
-const ADMIN_NAV_DATA: NavigationSection[] = [
+const ADMIN_HIDDEN_NAV_PATHS = new Set([
+  '/director/data-health',
+  '/director/alerts',
+  '/director/message-template',
+  '/director/snippest',
+])
+
+function filterAdminNavigation(navigation: NavigationSection[]): NavigationSection[] {
+  return navigation.map((section) => ({
+    ...section,
+    items: section.items.filter(
+      (item) => !item.url || !ADMIN_HIDDEN_NAV_PATHS.has(item.url),
+    ),
+  })).filter((section) => section.items.length > 0)
+}
+
+const ADMIN_NAV_DATA: NavigationSection[] = filterAdminNavigation([
   ...DIRECTOR_NAV_DATA,
   NAV_DATA.find((section) => section.label === 'CẤU HÌNH')!,
-]
+])
+
+const SYSTEM_MANAGER_NAV_DATA: NavigationSection[] = filterAdminNavigation(NAV_DATA)
 
 /**
  * Dedicated, curated navigation for CTV Sale — a small, focused set of
@@ -232,6 +268,12 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
         title: 'Quản lý task',
         url: '/ctv-sale/tasks',
         icon: <TaskIcon />,
+      }),
+      navItem({
+        title: 'Quản lý segments',
+        url: '/ctv-sale/segments',
+        icon: <AlphabetIcon />,
+        requiresVisibleStudents: true,
       }),
     ],
   },
@@ -257,6 +299,21 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
         title: 'Trường THPT 360°',
         url: '/director/market-intelligence',
         icon: <Buildings11 size={18} />,
+      }),
+    ],
+  },
+  {
+    label: 'MẪU & NỘI DUNG',
+    items: [
+      navItem({
+        title: 'Message Template',
+        url: '/ctv-sale/message-template',
+        icon: <ChatIcon />,
+      }),
+      navItem({
+        title: 'Snippest',
+        url: '/ctv-sale/snippest',
+        icon: <Widget4Icon />,
       }),
     ],
   },
@@ -292,6 +349,12 @@ export const SALE_NAV_DATA: NavigationSection[] = [
         icon: <TaskIcon />,
       }),
       navItem({
+        title: 'Quản lý segments',
+        url: '/sale/next-best-action',
+        icon: <AlphabetIcon />,
+        requiresVisibleStudents: true,
+      }),
+      navItem({
         title: 'Chatbot CRM',
         url: '/crm-chatbot',
         icon: <ChatIcon />,
@@ -325,6 +388,21 @@ export const SALE_NAV_DATA: NavigationSection[] = [
         title: 'Trường THPT 360°',
         url: '/director/market-intelligence',
         icon: <Buildings11 size={18} />,
+      }),
+    ],
+  },
+  {
+    label: 'MẪU & NỘI DUNG',
+    items: [
+      navItem({
+        title: 'Message Template',
+        url: '/sale/message-template',
+        icon: <ChatIcon />,
+      }),
+      navItem({
+        title: 'Snippest',
+        url: '/sale/snippest',
+        icon: <Widget4Icon />,
       }),
     ],
   },
@@ -444,10 +522,15 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
   },
 ]
 
-export function getNavigationDataForRoles(userRoles: readonly string[]): NavigationSection[] {
+export function getNavigationDataForRoles(
+  userRoles: readonly string[],
+  options: { showRoleVisibleSegments?: boolean } = {},
+): NavigationSection[] {
   const effectiveRoles = getEffectiveDashboardRoles(userRoles)
   const navigation =
-    effectiveRoles.includes('Administrator')
+    effectiveRoles.includes('System Manager')
+      ? SYSTEM_MANAGER_NAV_DATA
+      : effectiveRoles.includes('Administrator')
       ? ADMIN_NAV_DATA
       : effectiveRoles.includes('Admissions Director')
         ? DIRECTOR_NAV_DATA
@@ -463,15 +546,21 @@ export function getNavigationDataForRoles(userRoles: readonly string[]): Navigat
 
   return navigation.map((section) => ({
     ...section,
-    items: section.items.map((item) =>
-      item.url === '/'
-        ? {
-            ...item,
-            url: workspaceRoute,
-            exact: true,
-            roles: getRolesForRoute(workspaceRoute),
-          }
-        : item
-    ),
+    items: section.items
+      .filter(
+        (item) =>
+          !item.requiresVisibleStudents ||
+          options.showRoleVisibleSegments !== false,
+      )
+      .map((item) =>
+        item.url === '/'
+          ? {
+              ...item,
+              url: workspaceRoute,
+              exact: true,
+              roles: getRolesForRoute(workspaceRoute),
+            }
+          : item,
+      ),
   }))
 }

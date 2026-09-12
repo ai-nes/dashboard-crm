@@ -96,9 +96,70 @@ describe("dashboard RBAC", () => {
     ).toBe(true);
   });
 
-  it("allows every authenticated dashboard role to manage snippets", () => {
-    for (const role of [...CRM_ROLES, "System Manager"]) {
-      expect(canAccessDashboardPath("/lead-sale/snippest", [role])).toBe(true);
+  it("exposes role-scoped segment workspaces to Sale and CTV Sale", () => {
+    const roleSegmentRoutes = {
+      Sale: "/sale/next-best-action",
+      "CTV Sale": "/ctv-sale/segments",
+    } as const;
+
+    for (const [role, route] of Object.entries(roleSegmentRoutes)) {
+      expect(
+        getNavigationUrls(
+          filterNavigationByRoles(getNavigationDataForRoles([role]), [role]),
+        ),
+      ).toContain(route);
+      expect(canAccessDashboardPath(route, [role])).toBe(true);
+      expect(
+        getNavigationUrls(
+          filterNavigationByRoles(
+            getNavigationDataForRoles([role], {
+              showRoleVisibleSegments: false,
+            }),
+            [role],
+          ),
+        ),
+      ).not.toContain(route);
+    }
+  });
+
+  it("exposes personal content workspaces to Sale and CTV Sale", () => {
+    const roleContentRoutes = {
+      Sale: ["/sale/message-template", "/sale/snippest"],
+      "CTV Sale": ["/ctv-sale/message-template", "/ctv-sale/snippest"],
+    } as const;
+
+    for (const [role, routes] of Object.entries(roleContentRoutes)) {
+      const navigation = filterNavigationByRoles(
+        getNavigationDataForRoles([role]),
+        [role],
+      );
+      const urls = getNavigationUrls(navigation);
+
+      for (const route of routes) {
+        expect(urls).toContain(route);
+        expect(canAccessDashboardPath(route, [role])).toBe(true);
+      }
+    }
+  });
+
+  it("exposes message content workspaces to every dashboard role", () => {
+    for (const role of [...CRM_ROLES, "System Manager"] as const) {
+      const navigation = filterNavigationByRoles(
+        getNavigationDataForRoles([role]),
+        [role],
+      );
+      const contentRoutes = getNavigationUrls(navigation).filter((url) =>
+        /\/(message-template|snippest)$/.test(url),
+      );
+
+      const shouldShowContentInNavigation =
+        role !== "Administrator" && role !== "System Manager";
+
+      expect(contentRoutes).toHaveLength(shouldShowContentInNavigation ? 2 : 0);
+      expect(
+        canAccessDashboardPath("/director/message-template", [role]),
+      ).toBe(true);
+      expect(canAccessDashboardPath("/director/snippest", [role])).toBe(true);
     }
   });
 
@@ -188,13 +249,15 @@ describe("dashboard RBAC", () => {
       "Hiệu suất khu vực",
       "Phễu tuyển sinh",
       "Phân tích xu hướng",
+      "Message Template",
+      "Snippest",
       "Hoạt động & chiến dịch",
     ]);
-    expect(getNavigationUrls(directorNavigation)).toHaveLength(11);
+    expect(getNavigationUrls(directorNavigation)).toHaveLength(13);
     expect(getNavigationUrls(directorNavigation)[0]).toBe("/director");
     expect(
       getNavigationUrls(filterNavigationByRoles(DIRECTOR_NAV_DATA, ["Admissions Director"])),
-      ).toHaveLength(11);
+      ).toHaveLength(13);
     expect(
       getNavigationUrls(
         filterNavigationByRoles(
@@ -217,14 +280,15 @@ describe("dashboard RBAC", () => {
 
   it("keeps System Manager on the small administration workspace", () => {
     const systemManagerItems = getNavigationUrls(
-      filterNavigationByRoles(NAV_DATA, ["System Manager"]),
+      filterNavigationByRoles(
+        getNavigationDataForRoles(["System Manager"]),
+        ["System Manager"],
+      ),
     );
 
     expect(systemManagerItems).toEqual([
-      "/",
+      "/admin",
       "/director/ai",
-      "/director/data-health",
-      "/director/alerts",
       "/admin/users",
       "/director/admin/nba-actions",
       "/director/admin/segments",
@@ -243,11 +307,17 @@ describe("dashboard RBAC", () => {
       true,
     );
     expect(
+      canAccessDashboardPath("/director/data-health", ["System Manager"]),
+    ).toBe(true);
+    expect(
       canAccessDashboardPath("/director/students", ["System Manager", "Sale"]),
     ).toBe(false);
     expect(
       getNavigationUrls(
-        filterNavigationByRoles(NAV_DATA, ["System Manager", "Sale"]),
+        filterNavigationByRoles(
+          getNavigationDataForRoles(["System Manager", "Sale"]),
+          ["System Manager", "Sale"],
+        ),
       ),
     ).toEqual(systemManagerItems);
   });

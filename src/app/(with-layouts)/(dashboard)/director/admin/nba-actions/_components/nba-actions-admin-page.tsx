@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { Badge } from "@/components/tailgrids/core/badge";
+import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
 import { useNbaActionTypesQuery, useNbaActionsQuery, useNbaTimeSlotsQuery } from "@/hooks/use-nba-actions-queries";
@@ -95,16 +95,19 @@ export default function NbaActionsAdminPage() {
 
   return (
     <main className="min-w-0 space-y-6 px-2 py-4 pb-8 lg:px-6">
-      <header className="space-y-4">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-primary-500"><span className="size-2 rounded-full bg-primary-500" aria-hidden="true" /><span>NBA</span><Badge color={canEdit ? "success" : "gray"}>{canEdit ? "Administrator" : "Chỉ xem"}</Badge></div>
-            <h1 className="mt-2 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">Quản lý cấu hình NBA</h1>
-            <p className="mt-2 text-sm leading-6 text-text-secondary">Quản lý hành động, nhóm hành động, chính sách thời gian và quy tắc đề xuất cho từng hồ sơ tuyển sinh.</p>
-          </div>
-          <div className="flex flex-col gap-2 text-sm text-text-secondary lg:items-end lg:justify-end"><span className="text-xs text-text-tertiary">Các cấu hình được đồng bộ trực tiếp với Frappe CRM</span><p><span className="font-semibold text-text-primary">{total || "—"}</span> hành động trong quy trình tuyển sinh</p></div>
-        </div>
-      </header>
+      <AdminPageHeader
+        section="NBA"
+        title="Quản lý cấu hình NBA"
+        description="Cấu hình hành động đề xuất tuyển sinh."
+        canEdit={canEdit}
+        metaLabel="Đồng bộ từ Frappe CRM"
+        metaValue={
+          <>
+            <span className="font-semibold text-text-primary">{total || "—"}</span>{" "}
+            hành động
+          </>
+        }
+      />
 
       <NbaAdminTabs
         actionCount={total}

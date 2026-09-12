@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { hasCrmRole, hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
-import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
   TabContent,
@@ -185,27 +185,26 @@ export default function UserManagementAdminPage() {
 
   return (
     <main id="main-content" className="flex h-full min-h-0 min-w-0 flex-col gap-2 overflow-hidden px-2 pt-4 lg:px-6">
-      <header className="relative isolate shrink-0 overflow-hidden rounded-2xl border border-card-border bg-card-background px-5 py-5 shadow-xs sm:px-6 lg:px-7 lg:py-6">
-        <div className="pointer-events-none absolute -top-24 -right-8 -z-10 size-72 rounded-full bg-primary-50/70 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-28 left-1/3 -z-10 size-60 rounded-full bg-badge-sky-background/50 blur-3xl" />
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Badge color="primary">QUẢN LÝ NGƯỜI DÙNG</Badge>
-            <span className="text-xs text-text-tertiary">Cấu hình tuyển sinh</span>
-          </div>
-          {canManageUsers ? (
+      <AdminPageHeader
+        section="Người dùng"
+        title="Quản lý người dùng CRM"
+        description="Quản lý quyền truy cập CRM."
+        canEdit={canManageUsers}
+        actions={
+          canManageUsers ? (
             <Button size="sm" onPress={openCreateUser}>
               Thêm người dùng
             </Button>
-          ) : null}
-        </div>
-        <h1 className="mt-4 text-balance text-[26px] leading-8 font-semibold tracking-[-0.5px] text-text-primary sm:text-[30px]">
-          Quản lý người dùng CRM
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-          Xem danh sách người dùng CRM, thay đổi vai trò hoặc gỡ quyền truy cập.
-        </p>
-      </header>
+          ) : null
+        }
+        metaLabel="Tài khoản CRM"
+        metaValue={
+          <>
+            <span className="font-semibold text-text-primary">{allUsers.length}</span>{" "}
+            người dùng
+          </>
+        }
+      />
 
       <TabRoot
         defaultValue="users"

@@ -1,7 +1,7 @@
 import { ArrowRight } from "@tailgrids/icons";
 import Link from "next/link";
 
-import { Badge } from "@/components/tailgrids/core/badge";
+import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { Card } from "@/components/tailgrids/core/card";
 
 export interface RoleWorkspaceLink {
@@ -26,15 +26,13 @@ export default function RoleWorkspacePage({
 }: RoleWorkspacePageProps) {
   return (
     <main className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6">
-      <header className="rounded-xl border border-card-border bg-card-background p-5 lg:p-6">
-        <Badge color="primary">{code} · FAIP</Badge>
-        <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
-          {title}
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
-          {description}
-        </p>
-      </header>
+      <AdminPageHeader
+        section={code}
+        title={title}
+        description={description}
+        metaLabel="Không gian dành cho quản trị viên"
+        metaValue="Cấu hình và vận hành tuyển sinh"
+      />
 
       <section
         aria-label="Lối tắt nghiệp vụ"

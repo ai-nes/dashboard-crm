@@ -129,8 +129,10 @@ export function WorkspaceRouteSkeleton() {
 
 export function ListRouteSkeleton({
   titleWidth = "w-60",
+  adminHeader = false,
 }: {
   titleWidth?: string;
+  adminHeader?: boolean;
 }) {
   return (
     <main
@@ -138,7 +140,7 @@ export function ListRouteSkeleton({
       aria-label="Đang tải danh sách"
       className="space-y-5 px-2 py-4 pb-8 lg:px-6"
     >
-      <PageHeaderSkeleton />
+      {adminHeader ? <AdminPageHeaderSkeleton /> : <PageHeaderSkeleton />}
       <section className="rounded-xl border border-card-border bg-card-background p-4">
         <div className="flex flex-wrap gap-3">
           <Skeleton className="h-10 w-72 rounded-lg" />
@@ -200,10 +202,34 @@ export function ChatRouteSkeleton() {
   );
 }
 
+function AdminPageHeaderSkeleton() {
+  return (
+    <header className="shrink-0">
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-end">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="size-2 rounded-full" />
+            <Skeleton className="h-4 w-24 rounded-lg" />
+            <Skeleton className="h-5 w-24 rounded-full" />
+          </div>
+          <Skeleton className="h-8 w-64 rounded-lg" />
+          <Skeleton className="h-4 w-[min(40rem,85vw)]" />
+        </div>
+        <div className="flex flex-col gap-2 lg:items-end">
+          <Skeleton className="h-3 w-64" />
+          <Skeleton className="h-4 w-44" />
+        </div>
+      </div>
+    </header>
+  );
+}
+
 export function DetailRouteSkeleton({
   label = "Đang tải chi tiết",
+  adminHeader = false,
 }: {
   label?: string;
+  adminHeader?: boolean;
 }) {
   return (
     <main
@@ -213,27 +239,31 @@ export function DetailRouteSkeleton({
       className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6"
     >
       <span className="sr-only">{label}…</span>
-      <header className="space-y-4 rounded-xl border border-card-border bg-card-background p-5 lg:p-6">
-        <Skeleton className="h-4 w-28 rounded-lg" />
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1 space-y-3">
-            <Skeleton className="h-7 w-[min(24rem,80vw)] rounded-lg" />
-            <Skeleton className="h-4 w-[min(36rem,90vw)]" />
-          </div>
-          <Skeleton className="h-9 w-28 rounded-lg" />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {Array.from({ length: 3 }, (_, index) => (
-            <div
-              key={index}
-              className="space-y-2 rounded-lg bg-background-soft-50 p-3"
-            >
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-5 w-28 rounded-lg" />
+      {adminHeader ? (
+        <AdminPageHeaderSkeleton />
+      ) : (
+        <header className="space-y-4 rounded-xl border border-card-border bg-card-background p-5 lg:p-6">
+          <Skeleton className="h-4 w-28 rounded-lg" />
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 flex-1 space-y-3">
+              <Skeleton className="h-7 w-[min(24rem,80vw)] rounded-lg" />
+              <Skeleton className="h-4 w-[min(36rem,90vw)]" />
             </div>
-          ))}
-        </div>
-      </header>
+            <Skeleton className="h-9 w-28 rounded-lg" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div
+                key={index}
+                className="space-y-2 rounded-lg bg-background-soft-50 p-3"
+              >
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-5 w-28 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        </header>
+      )}
       <section
         className="grid gap-5 xl:grid-cols-2"
         aria-label="Đang tải các phần chi tiết"
@@ -319,6 +349,7 @@ export function ConfigurationRouteSkeleton() {
       aria-label="Đang tải cấu hình"
       className="flex h-full min-h-0 min-w-0 flex-col gap-4 px-2 pt-4 lg:px-6"
     >
+      <AdminPageHeaderSkeleton />
       <div className="flex gap-2 overflow-hidden border-b border-card-border px-1 pb-2">
         {Array.from({ length: 5 }, (_, index) => (
           <Skeleton key={index} className="h-9 w-32 shrink-0 rounded-lg" />

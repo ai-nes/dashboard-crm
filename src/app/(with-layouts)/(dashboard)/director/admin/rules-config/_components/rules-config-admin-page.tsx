@@ -5,12 +5,12 @@ import { ArrowLeft, ChevronDown, Plus } from "@tailgrids/icons";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
+import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { hasCrmCapability } from "@/components/common/auth/permissions";
 import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { CrmRuleStatusBadge } from "@/components/rules/rule-status-badges";
-import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
   TabContent,
@@ -416,75 +416,77 @@ export default function RulesConfigAdminPage({
         id="main-content"
         className="flex h-full min-h-0 min-w-0 flex-col gap-2 overflow-hidden px-2 pt-4 lg:px-6"
       >
-        <header className="relative isolate shrink-0 overflow-hidden rounded-2xl border border-card-border bg-card-background px-5 py-5 shadow-xs sm:px-6 lg:px-7 lg:py-6">
-          <div className="pointer-events-none absolute -top-24 -right-8 -z-10 size-72 rounded-full bg-primary-50/70 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-28 left-1/3 -z-10 size-60 rounded-full bg-badge-sky-background/50 blur-3xl" />
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0">
-              <Button
-                type="button"
-                variant="ghost"
-                appearance="ghost"
-                size="sm"
-                className="-ml-2 gap-1.5 px-2 text-xs font-medium text-text-secondary hover:text-primary-500"
-                onPress={() => router.push("/director/admin/rules-config")}
-              >
-                <ArrowLeft size={14} aria-hidden="true" />
-                Quay lại quản lý Version
-              </Button>
-              <h1 className="mt-3 text-balance text-[26px] leading-9 font-semibold tracking-[-0.5px] text-text-primary sm:text-[30px]">
-                {activeVersion?.versionName ?? versionName}
-                {activeVersion?.creation
-                  ? ` · ${formatDate(activeVersion.creation, true)}`
-                  : ""}
-              </h1>
-              <p className="mt-1 font-mono text-xs font-medium tracking-wide text-text-tertiary">
-                {activeVersion?.versionId ?? versionName}
-              </p>
-              {activeVersion ? (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <CrmRuleStatusBadge status={activeVersion.status} />
-                  <span className="text-xs text-text-tertiary">
-                    {activeVersion.rulesCount} Rule
-                  </span>
-                  <span className="text-xs text-text-tertiary">
-                    Revision {activeVersion.revision}
-                  </span>
-                </div>
-              ) : null}
-              {activeVersion ? (
-                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-text-tertiary">
-                  <span>
-                    Ngày tạo:{" "}
-                    <strong className="font-medium text-text-secondary">
-                      {formatDate(activeVersion.creation)}
-                    </strong>
-                  </span>
-                  <span>
-                    Cập nhật lần cuối:{" "}
-                    <strong className="font-medium text-text-secondary">
-                      {formatDate(activeVersion.modified)}
-                    </strong>
-                  </span>
-                </div>
-              ) : null}
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <RuleVersionActions
-                key={`detail-${versionName}`}
-                version={versionQuery.data ?? currentVersion}
-                canEdit={canEdit}
-                onCreated={() => void versionsQuery.refetch()}
-                onChanged={() => {
-                  void versionsQuery.refetch();
-                  void versionQuery.refetch();
-                  void groupsQuery.refetch();
-                  void rulesQuery.refetch();
-                }}
-              />
-            </div>
-          </div>
-        </header>
+        <AdminPageHeader
+          section="Rule"
+          title={
+            <>
+              {activeVersion?.versionName ?? versionName}
+              {activeVersion?.creation
+                ? ` · ${formatDate(activeVersion.creation, true)}`
+                : ""}
+            </>
+          }
+          description={
+            activeVersion
+              ? "Các Rule trong Version này."
+              : "Đang tải Version."
+          }
+          canEdit={canEdit}
+          before={
+            <Button
+              type="button"
+              variant="ghost"
+              appearance="ghost"
+              size="sm"
+              className="-ml-2 gap-1.5 px-2 text-xs font-medium text-text-secondary hover:text-primary-500"
+              onPress={() => router.push("/director/admin/rules-config")}
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+              Quay lại quản lý Version
+            </Button>
+          }
+          details={
+            activeVersion ? (
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-text-tertiary">
+                <span className="font-mono font-medium tracking-wide">
+                  {activeVersion.versionId ?? versionName}
+                </span>
+                <CrmRuleStatusBadge status={activeVersion.status} />
+                <span>{activeVersion.rulesCount} Rule</span>
+                <span>Revision {activeVersion.revision}</span>
+                <span>
+                  Cập nhật lần cuối: {" "}
+                  <strong className="font-medium text-text-secondary">
+                    {formatDate(activeVersion.modified)}
+                  </strong>
+                </span>
+              </div>
+            ) : null
+          }
+          actions={
+            <RuleVersionActions
+              key={`detail-${versionName}`}
+              version={versionQuery.data ?? currentVersion}
+              canEdit={canEdit}
+              onCreated={() => void versionsQuery.refetch()}
+              onChanged={() => {
+                void versionsQuery.refetch();
+                void versionQuery.refetch();
+                void groupsQuery.refetch();
+                void rulesQuery.refetch();
+              }}
+            />
+          }
+          metaLabel="Đồng bộ từ Frappe CRM"
+          metaValue={
+            <>
+              <span className="font-semibold text-text-primary">
+                {activeVersion?.rulesCount ?? "—"}
+              </span>{" "}
+              Rule trong Version
+            </>
+          }
+        />
         <div className="min-h-0 flex-1 overflow-y-auto pt-5 pb-8">
           {content}
         </div>
@@ -497,44 +499,31 @@ export default function RulesConfigAdminPage({
       id="main-content"
       className="flex h-full min-h-0 min-w-0 flex-col gap-2 overflow-hidden px-2 pt-4 lg:px-6"
     >
-      <header className="relative isolate shrink-0 overflow-hidden rounded-2xl border border-card-border bg-card-background px-5 py-5 shadow-xs sm:px-6 lg:px-7 lg:py-6">
-        <div className="pointer-events-none absolute -top-24 -right-8 -z-10 size-72 rounded-full bg-primary-50/70 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-28 left-1/3 -z-10 size-60 rounded-full bg-badge-sky-background/50 blur-3xl" />
-
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Badge color="primary">QUẢN LÝ RULE</Badge>
-              <span className="text-xs text-text-tertiary">
-                Cấu hình tuyển sinh
-              </span>
-            </div>
-            <h1 className="mt-4 text-balance text-[26px] leading-8 font-semibold tracking-[-0.5px] text-text-primary sm:text-[30px]">
-              Quản lý rule
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-              Cấu hình các Rule theo từng Version để kiểm soát điều kiện, ưu
-              tiên và kết quả gate trong quy trình tuyển sinh.
-            </p>
-          </div>
-
-          {canEdit &&
-          versions.length > 0 &&
-          !isCreateVersionOpen &&
-          !routeVersionName ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="md"
-                className="shrink-0"
-                onPress={() => setIsCreateVersionOpen(true)}
-              >
-                <Plus size={16} aria-hidden="true" />
-                Tạo version
-              </Button>
-            </div>
-          ) : null}
-        </div>
-      </header>
+      <AdminPageHeader
+        section="Rule"
+        title="Quản lý rule"
+        description="Quản lý Version và Rule tuyển sinh."
+        canEdit={canEdit}
+        actions={
+          canEdit && versions.length > 0 && !isCreateVersionOpen ? (
+            <Button
+              size="md"
+              className="shrink-0"
+              onPress={() => setIsCreateVersionOpen(true)}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Tạo version
+            </Button>
+          ) : null
+        }
+        metaLabel="Đồng bộ từ Frappe CRM"
+        metaValue={
+          <>
+            <span className="font-semibold text-text-primary">{versions.length}</span>{" "}
+            Version
+          </>
+        }
+      />
 
       <TabRoot
         defaultValue="manage"

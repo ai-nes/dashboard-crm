@@ -167,11 +167,10 @@ const TEAM_MANAGEMENT_ROLES = [
   "Lead Sale",
   "System Manager",
 ] as const satisfies readonly DashboardRole[];
-const MESSAGE_CONTENT_ROLES = [
-  "Lead Sale",
-  "Admissions Director",
-  "Administrator",
-] as const satisfies readonly DashboardRole[];
+// Message templates and snippets are shared CRM utilities available to every
+// authenticated dashboard role. Record-level ownership/public-sharing rules
+// remain enforced by the backend.
+const MESSAGE_CONTENT_ROLES = DASHBOARD_ROLES;
 
 /**
  * Public workspace routes. A workspace is the stable entry point for a role;
@@ -220,17 +219,22 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/sale/students", roles: ROLE_ROUTE_ROLES.sale },
   { path: "/sale/tasks", roles: ROLE_ROUTE_ROLES.sale },
   { path: "/sale/demographics", roles: ROLE_ROUTE_ROLES.sale },
+  { path: "/sale/message-template", roles: ROLE_ROUTE_ROLES.sale },
+  { path: "/sale/snippest", roles: ROLE_ROUTE_ROLES.sale },
   { path: "/ctv-sale", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/results", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/leads", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/campaigns", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/students", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/tasks", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
+  { path: "/ctv-sale/segments", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/next-best-action", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
+  { path: "/ctv-sale/message-template", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
+  { path: "/ctv-sale/snippest", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/lead-sale", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/lead-sale/segments", roles: ROLE_ROUTE_ROLES["lead-sale"] },
   { path: "/lead-sale/message-template", roles: MESSAGE_CONTENT_ROLES },
-  { path: "/lead-sale/snippest", roles: DASHBOARD_ROLES },
+  { path: "/lead-sale/snippest", roles: MESSAGE_CONTENT_ROLES },
   {
     path: "/lead-sale/next-best-action",
     roles: ROLE_ROUTE_ROLES["lead-sale"],

@@ -2,13 +2,17 @@
 
 import { CollapsibleGroup } from "@/components/tailgrids/core/collapsible";
 import { useAuth } from "@/components/common/auth/auth-provider";
+import { useVisibleSegmentsQuery } from "@/hooks/use-segment-queries";
 import { cn } from "@/utils/cn";
 import { Logo } from "@/utils/icon";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Key } from "react-aria-components";
-import { getDefaultRouteForRoles } from "../auth/rbac";
+import {
+  getDefaultRouteForRoles,
+  getEffectiveDashboardRoles,
+} from "../auth/rbac";
 import { getNavigationDataForRoles } from "./data";
 import { CloseIcon, SidebarExpandedIcon, ThreeDots } from "./icon";
 import NavItem from "./nav-item";
@@ -30,13 +34,24 @@ export default function Sidebar({
 }) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const userRoles = useMemo(() => user?.roles ?? [], [user?.roles]);
+  const shouldLoadSegmentVisibility = getEffectiveDashboardRoles(
+    userRoles,
+  ).some((role) => role === "Sale" || role === "CTV Sale");
+  const visibleSegmentsQuery = useVisibleSegmentsQuery(
+    shouldLoadSegmentVisibility,
+  );
+  const showRoleVisibleSegments =
+    !shouldLoadSegmentVisibility ||
+    (visibleSegmentsQuery.isSuccess &&
+      (visibleSegmentsQuery.data?.length ?? 0) > 0);
   const visibleNavData = useMemo(
     () =>
       filterNavigationByRoles(
-        getNavigationDataForRoles(user?.roles ?? []),
-        user?.roles ?? [],
+        getNavigationDataForRoles(userRoles, { showRoleVisibleSegments }),
+        userRoles,
       ),
-    [user?.roles],
+    [showRoleVisibleSegments, userRoles],
   );
   const homeHref = user ? getDefaultRouteForRoles(user.roles) : "/";
 

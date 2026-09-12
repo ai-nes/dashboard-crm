@@ -1,5 +1,7 @@
 "use client";
 
+import { Eye, Pencil1 } from "@tailgrids/icons";
+
 import { Button } from "@/components/tailgrids/core/button";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
@@ -13,6 +15,7 @@ import {
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import type { ActionTimeSlot, NbaAction, NbaActionType } from "@/services/api/nba-actions";
 
+import { RecordStatusBadge } from "../../action-recommendations/_components/status-badges";
 import NbaActionConfigDialog from "./nba-action-config-dialog";
 import NbaActionsToolbar from "./nba-actions-toolbar";
 import {
@@ -118,7 +121,7 @@ export default function NbaActionsTable({
               <TableHead>Kênh</TableHead>
               <TableHead>Thời gian gợi ý</TableHead>
               <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-right"> </TableHead>
+              <TableHead className="text-center">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -220,18 +223,12 @@ function ActionTableRows({
           <TimeWindowCell action={action} />
         </TableCell>
         <TableCell>
-          <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm text-text-secondary">
-            <span
-              className={action.enabled ? "size-1.5 rounded-full bg-success-500" : "size-1.5 rounded-full bg-text-tertiary"}
-              aria-hidden="true"
-            />
-            {action.enabled ? "Đang bật" : "Đang tắt"}
-          </span>
+          <RecordStatusBadge status={action.enabled ? "active" : "inactive"} />
         </TableCell>
-        <TableCell className="text-right">
+        <TableCell className="text-center">
           <Button
             type="button"
-            size="xs"
+            size="sm"
             variant="primary"
             appearance={isSelected ? "fill" : "outline"}
             onPress={() => onSelectAction(action.name)}
@@ -240,6 +237,7 @@ function ActionTableRows({
             aria-label={isSelected ? `Đóng cấu hình ${action.displayName}` : `${canEdit ? "Chỉnh sửa" : "Xem"} ${action.displayName}`}
             className="min-w-20"
           >
+            {!isSelected && (canEdit ? <Pencil1 size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />)}
             {isSelected ? "Đóng" : canEdit ? "Sửa" : "Xem"}
           </Button>
         </TableCell>

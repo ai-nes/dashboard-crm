@@ -104,7 +104,7 @@ export default function TimingPoliciesTable({ canEdit }: TimingPoliciesTableProp
                 <TableHead>Khung giờ</TableHead>
                 <TableHead>Lặp lại</TableHead>
                 <TableHead>Cập nhật</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
+                <TableHead className="text-center">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -116,7 +116,7 @@ export default function TimingPoliciesTable({ canEdit }: TimingPoliciesTableProp
                   <TableCell className="text-sm text-text-secondary">{policy.timeSlot ?? (policy.allowedStartTime && policy.allowedEndTime ? `${policy.allowedStartTime}–${policy.allowedEndTime}` : "Không cố định")}</TableCell>
                   <TableCell className="text-sm text-text-secondary">{recurrenceLabel(policy)}</TableCell>
                   <TableCell className="text-sm text-text-secondary">{policy.modified ?? "—"}</TableCell>
-                  <TableCell className="text-right"><Button size="sm" variant="primary" appearance="outline" onPress={() => { setIsCreateOpen(false); setSelected(policy); }} aria-label={`${canEdit ? "Chỉnh sửa" : "Xem"} ${policy.policyKey}`} className="min-w-20">{canEdit ? <Pencil1 size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}{canEdit ? "Sửa" : "Xem"}</Button></TableCell>
+                  <TableCell className="text-center"><Button size="sm" variant="primary" appearance="outline" onPress={() => { setIsCreateOpen(false); setSelected(policy); }} aria-label={`${canEdit ? "Chỉnh sửa" : "Xem"} ${policy.policyKey}`} className="min-w-20">{canEdit ? <Pencil1 size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}{canEdit ? "Sửa" : "Xem"}</Button></TableCell>
                 </TableRow>
               ))}
               {policies.length === 0 && <TableRow><TableCell colSpan={7} className="py-12 text-center text-sm text-text-tertiary">Không tìm thấy chính sách thời gian phù hợp.</TableCell></TableRow>}

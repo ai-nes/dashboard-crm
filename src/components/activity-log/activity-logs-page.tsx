@@ -2,6 +2,7 @@
 
 import {useState} from 'react'
 
+import AdminPageHeader from '@/components/common/admin/admin-page-header'
 import {TabContent, TabList, TabRoot, TabTrigger} from '@/components/tailgrids/core/tabs'
 import {useActivityLogsQuery} from '@/hooks/use-activity-logs-query'
 import type {ActivityLogModule} from '@/services/api/activity-log'
@@ -20,12 +21,18 @@ export default function ActivityLogsPage() {
 
   return (
     <main className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header>
-        <p className="text-sm font-medium text-text-tertiary">Quản trị hệ thống</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-text-primary">
-          Nhật ký hoạt động
-        </h1>
-      </header>
+      <AdminPageHeader
+        section="Nhật ký"
+        title="Nhật ký hoạt động"
+        description="Lịch sử hoạt động hệ thống."
+        metaLabel="Đồng bộ từ Frappe CRM"
+        metaValue={
+          <>
+            <span className="font-semibold text-text-primary">{query.data?.total ?? logs.length}</span>{" "}
+            bản ghi
+          </>
+        }
+      />
 
       <ActivityLogFilters value={filters} onChange={setFilters} />
       <TabRoot
