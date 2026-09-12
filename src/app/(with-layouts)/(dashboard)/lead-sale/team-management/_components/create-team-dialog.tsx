@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
+import { DropdownField } from "@/components/common/dropdown-field";
 import { Button } from "@/components/tailgrids/core/button";
 import {
   Dialog,
@@ -12,7 +13,6 @@ import {
 } from "@/components/tailgrids/core/dialog";
 import { Input } from "@/components/tailgrids/core/input";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
-import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
 
 import LeadPickerField from "./lead-picker-field";
 import type { TeamMember } from "./types";
@@ -129,7 +129,9 @@ export default function CreateTeamDialog({
                 <span className="text-xs font-medium text-input-label-text">
                   Cơ sở
                 </span>
-                <Combobox
+                <DropdownField
+                  ariaLabel="Chọn cơ sở"
+                  isSearchable
                   value={campusId}
                   onChange={(key) => {
                     const nextCampusId = key ? String(key) : null;
@@ -145,19 +147,9 @@ export default function CreateTeamDialog({
                       setTeamLeadId(null);
                     }
                   }}
-                  aria-label="Chọn cơ sở"
+                  options={campusOptions}
                   placeholder="Chọn cơ sở hoạt động..."
-                >
-                  {campusOptions.map((campus) => (
-                    <ComboboxItem
-                      key={campus.id}
-                      id={campus.id}
-                      textValue={campus.label}
-                    >
-                      {campus.label}
-                    </ComboboxItem>
-                  ))}
-                </Combobox>
+                />
               </label>
             )}
             {provinceOptions.length > 0 && (
@@ -165,22 +157,14 @@ export default function CreateTeamDialog({
                 <span className="text-xs font-medium text-input-label-text">
                   Tỉnh quản lý
                 </span>
-                <Combobox
+                <DropdownField
+                  ariaLabel="Chọn tỉnh quản lý"
+                  isSearchable
                   value={provinceId}
                   onChange={(key) => setProvinceId(key ? String(key) : null)}
-                  aria-label="Chọn tỉnh quản lý"
+                  options={provinceOptions}
                   placeholder="Chọn tỉnh..."
-                >
-                  {provinceOptions.map((province) => (
-                    <ComboboxItem
-                      key={province.id}
-                      id={province.id}
-                      textValue={province.label}
-                    >
-                      {province.label}
-                    </ComboboxItem>
-                  ))}
-                </Combobox>
+                />
               </label>
             )}
             {groupLeadOptions && (

@@ -36,6 +36,7 @@ import type {
 import { studentsKeys } from "@/hooks/use-students-queries";
 
 import StudentCardHeader from "./student-card-header";
+import { getSelectedAdmissionMethodCode } from "./student-admission-method";
 import StudentProfileCardActions from "./student-profile-card-actions";
 
 interface StudentAdmissionInformationProps {
@@ -54,19 +55,6 @@ function latestProfile(data: Student360Data): StudentAdmissionProfile | null {
 
 function applicationValue(data: Student360Data, label: string): string | null {
   return data.application.find((item) => item.label === label)?.value ?? null;
-}
-
-function selectedMethodCode(
-  data: Student360Data,
-  profile: StudentAdmissionProfile | null,
-): string {
-  return (
-    profile?.admissionMethodCode ||
-    data.student.admissionMethod ||
-    data.academics.find((item) => item.label === "Phương thức xét tuyển")
-      ?.value ||
-    ""
-  );
 }
 
 function selectedPreferenceCode(
@@ -99,7 +87,7 @@ export default function StudentAdmissionInformationMockup({
     data.student.studentId || data.student.id || data.student.code;
   const [isEditing, setIsEditing] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState(
-    selectedMethodCode(data, profile),
+    getSelectedAdmissionMethodCode(data),
   );
   const [selectedPreference, setSelectedPreference] = useState(
     selectedPreferenceCode(profile),
@@ -143,7 +131,7 @@ export default function StudentAdmissionInformationMockup({
   const additionalSavedSpecialProfiles =
     profile?.specialProfileOptions?.slice(1).map((option) => option.name) ?? [];
   const currentApplication = profile?.application || null;
-  const initialMethod = selectedMethodCode(data, profile);
+  const initialMethod = getSelectedAdmissionMethodCode(data);
   const initialPreference = selectedPreferenceCode(profile);
   const initialSpecialProfiles = selectedSpecialProfileCodes(profile);
   const hasExistingApplication = Boolean(currentApplication);
@@ -211,7 +199,7 @@ export default function StudentAdmissionInformationMockup({
     if (isSaving) return;
     createMutation.reset();
     updateMutation.reset();
-    setSelectedMethod(selectedMethodCode(data, profile));
+    setSelectedMethod(getSelectedAdmissionMethodCode(data));
     setSelectedPreference(selectedPreferenceCode(profile));
     setSelectedSpecialProfiles(selectedSpecialProfileCodes(profile));
     setIsEditing(true);
@@ -221,7 +209,7 @@ export default function StudentAdmissionInformationMockup({
     if (isSaving) return;
     createMutation.reset();
     updateMutation.reset();
-    setSelectedMethod(selectedMethodCode(data, profile));
+    setSelectedMethod(getSelectedAdmissionMethodCode(data));
     setSelectedPreference(selectedPreferenceCode(profile));
     setSelectedSpecialProfiles(selectedSpecialProfileCodes(profile));
     setIsEditing(false);

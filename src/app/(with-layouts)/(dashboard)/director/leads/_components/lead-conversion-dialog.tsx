@@ -184,6 +184,8 @@ export default function LeadConversionDialog({
                       label={leadConversionFieldLabels.province}
                       options={provinceOptions}
                       placeholder="Chọn tỉnh / thành phố"
+                      searchable
+                      searchPlaceholder="Tìm tỉnh / thành phố..."
                       value={form.province}
                       onChange={(value) => {
                         setField("province", value);
@@ -222,6 +224,8 @@ export default function LeadConversionDialog({
                       label={leadConversionFieldLabels.major}
                       options={majorOptions}
                       placeholder="Chọn ngành quan tâm"
+                      searchable
+                      searchPlaceholder="Tìm ngành quan tâm..."
                       value={form.major}
                       onChange={(value) => setField("major", value)}
                     />

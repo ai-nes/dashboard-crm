@@ -1,24 +1,17 @@
 "use client";
 
-import { DialogTrigger, ListBox } from "react-aria-components";
-import { Search1 } from "@tailgrids/icons";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/tailgrids/core/button";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/tailgrids/core/input-group";
-import { Popover } from "@/components/tailgrids/core/popover";
-import { SelectItem } from "@/components/tailgrids/core/select";
-import { Skeleton } from "@/components/tailgrids/core/skeleton";
+import { DropdownField } from "@/components/common/dropdown-field";
 import {
   useAssignLeadMutation,
   useLeadAssignmentTargetsQuery,
 } from "@/hooks/use-lead-sale-leads-queries";
-import type { LeadAssignmentTarget, LeadListItem } from "@/services/api/lead-sale";
+import type {
+  LeadAssignmentTarget,
+  LeadListItem,
+} from "@/services/api/lead-sale";
 
 import { isLeadAssignableStatus } from "./lead-status";
 
@@ -101,112 +94,71 @@ export default function LeadListAssigneeCell({
     return <OwnerValue owner={displayOwner} />;
   }
 
+  const currentTarget = targets.find(
+    (target) =>
+      target.id === lead.ownerStaff && target.teamId === lead.owningTeam,
+  );
+
   return (
-    <DialogTrigger
+    <DropdownField
+      ariaLabel={
+        displayOwner
+          ? `Sửa người phụ trách: ${displayOwner}`
+          : "Thêm người phụ trách"
+      }
+      appearance="ghost"
+      className="w-full"
+      contentClassName="w-72"
+      emptyMessage="Không tìm thấy Sale hoặc CTV Sale"
+      errorMessage={
+        <span className="flex items-center justify-between gap-2">
+          <span>Không tải được danh sách</span>
+          <button
+            type="button"
+            className="text-xs font-medium text-button-primary-outline-text hover:text-button-primary-outline-hover-text"
+            onClick={() => void targetsQuery.refetch()}
+          >
+            Thử lại
+          </button>
+        </span>
+      }
+      filterOptions={false}
+      isDisabled={assignMutation.isPending}
+      isError={targetsQuery.isError}
+      isLoading={targetsQuery.isFetching}
       isOpen={isEditing}
+      isSearchable
+      onChange={(nextValue) => {
+        const target = filteredTargets.find(
+          (item) => getTargetKey(item) === nextValue,
+        );
+        if (target) void handleAssign(target);
+      }}
       onOpenChange={(open) => {
         setIsEditing(open);
-        if (open) {
-          setOwnerSearch("");
-        }
+        if (open) setOwnerSearch("");
       }}
-    >
-      <Button
-        type="button"
-        variant="ghost"
-        appearance="ghost"
-        size="xs"
-        onPress={() => {
-          setOwnerSearch("");
-          setIsEditing(true);
-        }}
-        className="group/owner flex min-w-0 max-w-full truncate rounded px-1 py-0.5 text-left text-sm font-medium text-text-primary hover:bg-background-soft-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
-        aria-label={
-          displayOwner
-            ? `Sửa người phụ trách: ${displayOwner}`
-            : "Thêm người phụ trách"
-        }
-        isDisabled={assignMutation.isPending}
-      >
-        <span className="truncate">{displayOwner || "Chưa phân công"}</span>
-      </Button>
-      <Popover className="w-72 overflow-hidden rounded-lg border border-card-border bg-background-white-secondary p-0 shadow-md">
-        <div className="p-2">
-          <InputGroup className="h-8">
-            <InputGroupAddon className="px-2">
-              <Search1 size={13} aria-hidden="true" />
-            </InputGroupAddon>
-            <InputGroupInput
-              className="h-8 px-2 py-1.5 text-xs"
-              value={ownerSearch}
-              onChange={(event) => setOwnerSearch(event.target.value)}
-              placeholder="Tìm kiếm"
-              autoFocus
-              aria-label="Tìm Sale hoặc CTV Sale"
-            />
-          </InputGroup>
-          {targetsQuery.isError && (
-            <div
-              className="mt-1 flex items-center justify-between gap-2"
-              role="alert"
-            >
-              <span className="text-xs text-input-error">
-                Không tải được danh sách
-              </span>
-              <Button
-                type="button"
-                size="xs"
-                appearance="ghost"
-                onPress={() => void targetsQuery.refetch()}
-              >
-                Thử lại
-              </Button>
-            </div>
-          )}
-          {targetsQuery.isFetching ? (
-            <OwnerOptionsSkeleton />
-          ) : (
-            <ListBox
-              aria-label={`Danh sách Sale và CTV Sale có thể gán cho ${lead.name}`}
-              className="mt-1 max-h-64 overflow-auto p-1 outline-none"
-              onAction={(key) => {
-                const target = filteredTargets.find(
-                  (item) => getTargetKey(item) === String(key),
-                );
-                if (target) void handleAssign(target);
-              }}
-            >
-              {filteredTargets.length > 0 ? (
-                filteredTargets.map((target) => (
-                  <SelectItem
-                    key={getTargetKey(target)}
-                    id={getTargetKey(target)}
-                    textValue={`${target.displayName} ${target.teamName} ${target.function}`}
-                  >
-                    <span className="flex min-w-0 flex-col py-0.5">
-                      <span className="truncate text-text-primary">
-                        {target.displayName}
-                      </span>
-                      <span className="truncate text-xs text-text-tertiary">
-                        {target.function} · {target.teamName}
-                      </span>
-                    </span>
-                  </SelectItem>
-                ))
-              ) : (
-                <SelectItem
-                  id="no-assignable-targets"
-                  isDisabled
-                  textValue="Không tìm thấy Sale hoặc CTV Sale"
-                >
-                  Không tìm thấy Sale hoặc CTV Sale
-                </SelectItem>
-              )}
-            </ListBox>
-          )}
-        </div>
-      </Popover>
-    </DialogTrigger>
+      onSearchChange={setOwnerSearch}
+      options={filteredTargets.map((target) => ({
+        id: getTargetKey(target),
+        label: target.displayName,
+        description: `${target.function} · ${target.teamName}`,
+        searchText: `${target.displayName} ${target.teamName} ${target.function}`,
+      }))}
+      placeholder={displayOwner || "Chưa phân công"}
+      renderOption={(option) => (
+        <span className="flex min-w-0 flex-col py-0.5">
+          <span className="truncate text-text-primary">{option.label}</span>
+          <span className="truncate text-xs text-text-tertiary">
+            {option.description}
+          </span>
+        </span>
+      )}
+      selectedLabel={displayOwner || "Chưa phân công"}
+      searchPlaceholder="Tìm Sale hoặc CTV Sale"
+      triggerClassName="group/owner flex min-w-0 max-w-full truncate rounded px-1 py-0.5 text-left text-sm font-medium text-text-primary hover:bg-background-soft-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+      value={currentTarget ? getTargetKey(currentTarget) : undefined}
+    />
   );
 }
 
@@ -218,23 +170,6 @@ function OwnerValue({ owner }: { owner: string }) {
     >
       {owner || "Chưa phân công"}
     </p>
-  );
-}
-
-function OwnerOptionsSkeleton() {
-  return (
-    <div
-      className="mt-1 space-y-2 p-2"
-      role="status"
-      aria-label="Đang tải danh sách người phụ trách"
-    >
-      {["first", "second", "third"].map((row) => (
-        <div key={row} className="space-y-2 rounded-md px-1.5 py-1">
-          <Skeleton className="h-3 w-40 max-w-full" />
-          <Skeleton className="h-2.5 w-24" />
-        </div>
-      ))}
-    </div>
   );
 }
 

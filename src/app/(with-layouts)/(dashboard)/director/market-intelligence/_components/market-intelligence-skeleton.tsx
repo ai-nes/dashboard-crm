@@ -54,13 +54,6 @@ function MarketMapSkeleton() {
           <Skeleton className="h-3 w-14" />
           <Skeleton className="h-3 w-14" />
         </div>
-        <div className="flex h-[76%] w-[58%] max-w-[420px] items-center justify-center gap-2">
-          <Skeleton className="h-[92%] w-[58%] rounded-[42%]" />
-          <div className="flex h-full w-[30%] flex-col justify-center gap-2">
-            <Skeleton className="h-1/3 w-full rounded-[45%]" />
-            <Skeleton className="h-1/4 w-3/4 self-end rounded-[45%]" />
-          </div>
-        </div>
       </div>
     </section>
   );

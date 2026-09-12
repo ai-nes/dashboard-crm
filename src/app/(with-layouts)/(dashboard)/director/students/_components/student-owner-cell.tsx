@@ -1,15 +1,10 @@
 "use client";
 
-import { Pencil1, Search1 } from "@tailgrids/icons";
-import { DialogTrigger, ListBox } from "react-aria-components";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { DropdownField } from "@/components/common/dropdown-field";
 import { Button } from "@/components/tailgrids/core/button";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/tailgrids/core/input-group";
-import { Popover } from "@/components/tailgrids/core/popover";
-import { SelectItem } from "@/components/tailgrids/core/select";
-import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import {
   useAssignStudentToSalesMutation,
   useAssignableSalesQuery,
@@ -71,7 +66,9 @@ export default function StudentOwnerCell({
       return;
     }
     if (expectedRevision === undefined) {
-      toast.error("Thiếu phiên bản ownership; hãy tải lại danh sách trước khi phân công.");
+      toast.error(
+        "Thiếu phiên bản ownership; hãy tải lại danh sách trước khi phân công.",
+      );
       return;
     }
 
@@ -109,8 +106,36 @@ export default function StudentOwnerCell({
   }
 
   return (
-    <DialogTrigger
+    <DropdownField
+      ariaLabel={
+        owner ? `Sửa người phụ trách: ${owner}` : "Thêm người phụ trách"
+      }
+      appearance="ghost"
+      className="w-full"
+      contentClassName="w-72"
+      emptyMessage="Không tìm thấy Sale hoặc CTV Sale"
+      errorMessage={
+        <span className="flex items-center justify-between gap-2">
+          <span>Không tải được danh sách</span>
+          <Button
+            type="button"
+            size="xs"
+            appearance="ghost"
+            onPress={() => void assignableSalesQuery.refetch()}
+          >
+            Thử lại
+          </Button>
+        </span>
+      }
+      isDisabled={assignMutation.isPending}
+      isError={assignableSalesQuery.isError}
+      isLoading={assignableSalesQuery.isFetching}
       isOpen={isEditing}
+      isSearchable
+      onChange={(nextValue) => {
+        const sale = sales.find((item) => item.name === nextValue);
+        if (sale) void handleAssign(sale);
+      }}
       onOpenChange={(open) => {
         setIsEditing(open);
         if (open) {
@@ -118,104 +143,28 @@ export default function StudentOwnerCell({
           setDebouncedOwnerSearch("");
         }
       }}
-    >
-      <Button
-        type="button"
-        variant="ghost"
-        appearance="ghost"
-        size="xs"
-        onPress={() => {
-          setOwnerSearch("");
-          setDebouncedOwnerSearch("");
-          setIsEditing(true);
-        }}
-        className="group/owner flex min-w-0 max-w-full items-center gap-1.5 truncate rounded px-1 py-0.5 text-left text-sm font-medium text-text-primary hover:bg-background-soft-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
-        aria-label={owner ? `Sửa người phụ trách: ${owner}` : "Thêm người phụ trách"}
-      >
-        <span className="truncate">{owner || "Chưa có người phụ trách"}</span>
-        <Pencil1
-          size={12}
-          className="shrink-0 text-icon-tertiary opacity-0 transition group-hover/owner:opacity-100"
-          aria-hidden="true"
-        />
-      </Button>
-      <Popover className="w-72 overflow-hidden rounded-lg border border-card-border bg-background-white-secondary p-0 shadow-md">
-        <div className="p-2">
-          <InputGroup className="h-8">
-            <InputGroupAddon className="px-2">
-              <Search1 size={13} aria-hidden="true" />
-            </InputGroupAddon>
-            <InputGroupInput
-              className="h-8 px-2 py-1.5 text-xs"
-              value={ownerSearch}
-              onChange={(event) => setOwnerSearch(event.target.value)}
-              placeholder="Tìm kiếm"
-              autoFocus
-              aria-label="Tìm Sale hoặc CTV Sale"
-            />
-          </InputGroup>
-          {assignableSalesQuery.isError && (
-            <div className="mt-1 flex items-center justify-between gap-2" role="alert">
-              <span className="text-xs text-input-error">Không tải được danh sách</span>
-              <Button
-                type="button"
-                size="xs"
-                appearance="ghost"
-                onPress={() => void assignableSalesQuery.refetch()}
-              >
-                Thử lại
-              </Button>
-            </div>
-          )}
-          {assignableSalesQuery.isFetching ? (
-            <OwnerOptionsSkeleton />
-          ) : (
-            <ListBox
-              aria-label={`Danh sách Sale và CTV Sale có thể gán cho ${studentId}`}
-              className="mt-1 max-h-64 overflow-auto p-1 outline-none"
-              onAction={(key) => {
-                const sale = sales.find((item) => item.name === String(key));
-                if (sale) void handleAssign(sale);
-              }}
-            >
-              {sales.length > 0 ? (
-                sales.map((sale) => (
-                  <SelectItem key={sale.name} id={sale.name} textValue={sale.label}>
-                    <span className="flex min-w-0 flex-col py-0.5">
-                      <span className="truncate text-text-primary">{sale.label}</span>
-                      <span className="truncate text-xs text-text-tertiary">
-                        {sale.role || sale.profile}
-                        {sale.campus ? ` · ${sale.campus}` : ""}
-                      </span>
-                    </span>
-                  </SelectItem>
-                ))
-              ) : (
-                <SelectItem id="no-assignable-sales" isDisabled textValue="Không tìm thấy Sale hoặc CTV Sale">
-                  Không tìm thấy Sale hoặc CTV Sale
-                </SelectItem>
-              )}
-            </ListBox>
-          )}
-        </div>
-      </Popover>
-    </DialogTrigger>
-  );
-}
-
-function OwnerOptionsSkeleton() {
-  return (
-    <div
-      className="mt-1 space-y-2 p-2"
-      role="status"
-      aria-label="Đang tải danh sách người phụ trách"
-    >
-      {["first", "second", "third"].map((row) => (
-        <div key={row} className="space-y-2 rounded-md px-1.5 py-1">
-          <Skeleton className="h-3 w-40 max-w-full" />
-          <Skeleton className="h-2.5 w-24" />
-        </div>
-      ))}
-    </div>
+      onSearchChange={setOwnerSearch}
+      options={sales.map((sale) => ({
+        id: sale.name,
+        label: sale.label,
+        description: [sale.role || sale.profile, sale.campus]
+          .filter(Boolean)
+          .join(" · "),
+        searchText: `${sale.label} ${sale.role || ""} ${sale.profile || ""} ${sale.campus || ""}`,
+      }))}
+      placeholder={owner || "Chưa có người phụ trách"}
+      renderOption={(option) => (
+        <span className="flex min-w-0 flex-col py-0.5">
+          <span className="truncate text-text-primary">{option.label}</span>
+          <span className="truncate text-xs text-text-tertiary">
+            {option.description}
+          </span>
+        </span>
+      )}
+      selectedLabel={owner || "Chưa có người phụ trách"}
+      searchPlaceholder="Tìm Sale hoặc CTV Sale"
+      triggerClassName="group/owner flex min-w-0 max-w-full items-center gap-1.5 truncate rounded px-1 py-0.5 text-left text-sm font-medium text-text-primary hover:bg-background-soft-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+      value={currentOwnerId}
+    />
   );
 }

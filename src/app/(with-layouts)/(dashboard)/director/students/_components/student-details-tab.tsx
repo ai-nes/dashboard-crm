@@ -298,6 +298,8 @@ export default function StudentDetailsTab({
             isDisabled={
               provinceOptionsQuery.isLoading || provinceOptions.length === 0
             }
+            searchable
+            searchPlaceholder="Tìm tỉnh / thành phố..."
             onChange={(value) =>
               setPersonalForm((form) => ({
                 ...form,
@@ -316,6 +318,8 @@ export default function StudentDetailsTab({
               wardOptionsQuery.isLoading ||
               wardOptions.length === 0
             }
+            searchable
+            searchPlaceholder="Tìm phường / xã..."
             onChange={(value) =>
               setPersonalForm((form) => ({
                 ...form,
@@ -455,7 +459,11 @@ export default function StudentDetailsTab({
               setAcademicForm((form) => ({ ...form, aspiration: value }))
             }
             options={academicEditing ? aspirationOptions : undefined}
-            value={academicEditing ? academicForm.aspiration : student.aspiration || student.major}
+            value={
+              academicEditing
+                ? academicForm.aspiration
+                : student.aspiration || student.major
+            }
           />
           <EditableDetailField
             label="Cập nhật gần nhất"

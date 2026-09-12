@@ -8,24 +8,10 @@ import {
   type ReactNode,
 } from "react";
 
-import { Search1 } from "@tailgrids/icons";
-
 import { DatePickerField } from "@/components/common/date-picker-field";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/tailgrids/core/input-group";
+import { DropdownField } from "@/components/common/dropdown-field";
 import { useInfinityScroll } from "@/hooks/use-infinity-scroll";
 import { Input } from "@/components/tailgrids/core/input";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
 import { cn } from "@/utils/cn";
 
 export interface EditableDetailOption {
@@ -85,9 +71,7 @@ export function EditableDetailField({
     if (!query) return optionItems;
 
     return optionItems.filter((option) =>
-      `${option.label} ${option.id}`
-        .toLocaleLowerCase("vi-VN")
-        .includes(query),
+      `${option.label} ${option.id}`.toLocaleLowerCase("vi-VN").includes(query),
     );
   }, [deferredOptionsQuery, optionItems]);
   const { visibleItems, hasMore, sentinelRef } = useInfinityScroll(
@@ -111,66 +95,44 @@ export function EditableDetailField({
       <dt className="text-xs text-text-tertiary">{label}</dt>
       {isEditing && !readOnly && onChange ? (
         options ? (
-          <Select
-            aria-label={label}
-            className="mt-1.5 gap-0"
+          <DropdownField
+            options={renderedOptions}
+            ariaLabel={label}
+            className="mt-1.5"
+            contentClassName={cn("max-h-36", dropdownClassName)}
+            filterOptions={false}
             isDisabled={isDisabled}
-            onOpenChange={(open) => {
-              if (!open) setOptionsQuery("");
-            }}
-            onChange={(key) => onChange(String(key ?? ""))}
-            value={value || undefined}
-          >
-            <SelectTrigger className="h-9 min-w-0 w-full px-3 py-2 text-sm">
-              <SelectValue>
-                {options.find((option) => option.id === value)?.label ??
-                  placeholder ??
-                  "Chọn giá trị"}
-              </SelectValue>
-              <SelectIndicator />
-            </SelectTrigger>
-            <SelectContent
-              className={cn("max-h-36", dropdownClassName)}
-              header={
-                searchable ? (
-                  <div className="sticky top-0 z-10 border-b border-card-border bg-background-white-secondary p-1.5">
-                    <InputGroup className="h-8 rounded-md">
-                      <InputGroupAddon className="px-2 text-text-tertiary">
-                        <Search1 size={14} aria-hidden="true" />
-                      </InputGroupAddon>
-                      <InputGroupInput
-                        autoFocus
-                        aria-label={`Tìm ${label.toLocaleLowerCase("vi-VN")}`}
-                        className="h-8 py-1 text-xs"
-                        placeholder={searchPlaceholder}
-                        value={optionsQuery}
-                        onChange={(event) => setOptionsQuery(event.target.value)}
-                      />
-                    </InputGroup>
-                  </div>
-                ) : undefined
-              }
-            >
-              {renderedOptions.map((option, index) => (
-                <SelectItem
-                  key={option.id}
-                  id={option.id}
-                  textValue={option.label}
+            isSearchable={searchable}
+            onChange={(nextValue) => onChange(nextValue ?? "")}
+            onSearchChange={setOptionsQuery}
+            placeholder={placeholder ?? "Chọn giá trị"}
+            searchPlaceholder={searchPlaceholder}
+            renderOption={(option, { isSelected }) => {
+              const index = renderedOptions.findIndex(
+                (item) => item.id === option.id,
+              );
+              return (
+                <span
+                  ref={
+                    hasMore && index === renderedOptions.length - 1
+                      ? sentinelRef
+                      : undefined
+                  }
+                  className={cn(
+                    "block min-w-0 truncate",
+                    isSelected && "font-medium text-text-primary",
+                  )}
                 >
-                  <span
-                    ref={
-                      hasMore && index === renderedOptions.length - 1
-                        ? sentinelRef
-                        : undefined
-                    }
-                    className="block truncate"
-                  >
-                    {option.label}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                  {option.label}
+                </span>
+              );
+            }}
+            selectedLabel={
+              optionItems.find((option) => option.id === value)?.label
+            }
+            triggerClassName="h-9 min-w-0 px-3 py-2 text-sm"
+            value={value || undefined}
+          />
         ) : type === "date" ? (
           <DatePickerField
             ariaLabel={label}

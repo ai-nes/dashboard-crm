@@ -1,21 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { DropdownField } from "@/components/common/dropdown-field";
 
-import { ChevronDown, Search1 } from "@tailgrids/icons";
-import {
-  DialogTrigger,
-  ListBox,
-  ListBoxItem,
-  Popover,
-} from "react-aria-components";
-
-import { Button } from "@/components/tailgrids/core/button";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/tailgrids/core/input-group";
 import {
   TableBody,
   TableCell,
@@ -75,7 +61,7 @@ export default function LeadImportMappingPreview({
   // Bảng gộp: mỗi cột nguồn là một cột, tiêu đề cột là dropdown chọn target CRM.
   const projectedColumns = headers.map((header) => {
     const item = mappingBySource.get(header.sourceIndex);
-    const targetField = item?.enabled ? item.targetField ?? null : null;
+    const targetField = item?.enabled ? (item.targetField ?? null) : null;
     return {
       sourceIndex: header.sourceIndex,
       sourceLabel: header.label || `Cột ${header.sourceIndex + 1}`,
@@ -111,8 +97,8 @@ export default function LeadImportMappingPreview({
             Xem trước dữ liệu theo target CRM
           </h3>
           <p className="mt-1 text-xs text-text-tertiary">
-            Chọn target CRM cho từng cột ngay trên tiêu đề bảng (có tìm kiếm). Cột
-            để trống sẽ bị bỏ qua khi nhập.
+            Chọn target CRM cho từng cột ngay trên tiêu đề bảng (có tìm kiếm).
+            Cột để trống sẽ bị bỏ qua khi nhập.
           </p>
         </div>
         <span
@@ -132,7 +118,10 @@ export default function LeadImportMappingPreview({
         </p>
       )}
 
-      <div className="rounded-lg border border-border-primary" aria-live="polite">
+      <div
+        className="rounded-lg border border-border-primary"
+        aria-live="polite"
+      >
         <TableRoot className="min-w-[640px]">
           <TableHeader>
             <TableRow>
@@ -203,98 +192,28 @@ function TargetFieldCombobox({
   ariaLabel: string;
   onChange: (key: string | null) => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState("");
-
-  const selected = fieldCatalog.find((field) => field.key === value) ?? null;
-  const normalizedQuery = query.trim().toLowerCase();
-  const options = fieldCatalog.filter(
-    (field) =>
-      !normalizedQuery || field.label.toLowerCase().includes(normalizedQuery),
-  );
-
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-    if (!open) setQuery("");
-  };
-
-  const optionClassName =
-    "flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-sm text-text-secondary outline-hidden select-none focus:bg-background-gray-secondary_alt focus:text-text-primary data-selected:font-medium data-selected:text-text-primary";
+  const options = [
+    { id: SKIP_KEY, label: "— Bỏ qua —", searchText: "bo qua" },
+    ...fieldCatalog.map((field) => ({
+      id: field.key,
+      label: `${field.label}${field.required ? " *" : ""}`,
+      searchText: field.label,
+    })),
+  ];
 
   return (
-    <DialogTrigger isOpen={isOpen} onOpenChange={handleOpenChange}>
-      <Button
-        appearance="outline"
-        aria-label={ariaLabel}
-        isDisabled={isDisabled}
-        type="button"
-        className="h-9 w-full justify-between border-card-border bg-background-white-secondary px-3 text-left text-sm font-normal shadow-xs"
-      >
-        <span
-          className={cn("min-w-0 truncate", !selected && "text-text-tertiary")}
-        >
-          {selected
-            ? `${selected.label}${selected.required ? " *" : ""}`
-            : "— Bỏ qua —"}
-        </span>
-        <ChevronDown className="size-4 shrink-0 text-text-tertiary" />
-      </Button>
-      <Popover
-        placement="bottom start"
-        className="w-(--trigger-width) overflow-hidden rounded-xl border border-card-border bg-background-white-secondary shadow-lg"
-      >
-        <div className="border-b border-card-border p-1.5">
-          <InputGroup className="h-8 rounded-md">
-            <InputGroupAddon className="px-2 text-text-tertiary">
-              <Search1 size={14} aria-hidden="true" />
-            </InputGroupAddon>
-            <InputGroupInput
-              autoFocus
-              aria-label="Tìm target CRM"
-              className="h-8 py-1 text-xs"
-              placeholder="Tìm target CRM…"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </InputGroup>
-        </div>
-        <ListBox
-          aria-label={ariaLabel}
-          className="max-h-56 overflow-y-auto p-1.5 outline-none"
-          selectionMode="single"
-          selectedKeys={new Set([value ?? SKIP_KEY])}
-          onSelectionChange={(keys) => {
-            if (keys === "all") return;
-            const key = Array.from(keys)[0];
-            onChange(!key || key === SKIP_KEY ? null : String(key));
-            handleOpenChange(false);
-          }}
-        >
-          <ListBoxItem
-            id={SKIP_KEY}
-            textValue="Bỏ qua"
-            className={optionClassName}
-          >
-            <span className="text-text-tertiary">— Bỏ qua —</span>
-          </ListBoxItem>
-          {options.map((field) => (
-            <ListBoxItem
-              key={field.key}
-              id={field.key}
-              textValue={field.label}
-              className={optionClassName}
-            >
-              {field.label}
-              {field.required ? " *" : ""}
-            </ListBoxItem>
-          ))}
-        </ListBox>
-        {options.length === 0 && (
-          <p className="px-3 py-4 text-center text-xs text-text-tertiary">
-            Không tìm thấy target phù hợp.
-          </p>
-        )}
-      </Popover>
-    </DialogTrigger>
+    <DropdownField
+      ariaLabel={ariaLabel}
+      contentClassName="max-h-56"
+      emptyMessage="Không tìm thấy target phù hợp."
+      isDisabled={isDisabled}
+      isSearchable
+      onChange={(key) => onChange(!key || key === SKIP_KEY ? null : key)}
+      options={options}
+      placeholder="— Bỏ qua —"
+      searchPlaceholder="Tìm target CRM…"
+      triggerClassName="h-9 px-3 text-sm"
+      value={value ?? SKIP_KEY}
+    />
   );
 }

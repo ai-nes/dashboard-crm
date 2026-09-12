@@ -40,6 +40,7 @@ import StudentHeader from "./student-header";
 import StudentHighSchoolMockup from "./student-high-school-mockup";
 import StudentHighSchoolScoreMockup from "./student-high-school-score-mockup";
 import StudentPersonalContactMockup from "./student-personal-contact-mockup";
+import { isHighSchoolAdmissionMethod } from "./student-admission-method";
 import { canTransitionStudentStatus } from "./student-status";
 
 interface Student360DashboardProps {
@@ -360,6 +361,7 @@ function getStudentTabs(
   canUpdateStudent: boolean,
 ): DetailTabItem[] {
   const auditStudentId = data.student.studentId || analysisTargetId;
+  const showHighSchoolScore = isHighSchoolAdmissionMethod(data);
   return [
     {
       id: "decision",
@@ -388,17 +390,25 @@ function getStudentTabs(
       content: (
         <div className="space-y-6">
           <StudentAdmissionInformationMockup data={data} />
-          <div className="grid items-stretch gap-6 lg:grid-cols-2">
+          <div
+            className={
+              showHighSchoolScore
+                ? "grid items-stretch gap-6 lg:grid-cols-2"
+                : "grid items-stretch gap-6"
+            }
+          >
             <StudentHighSchoolMockup
               canEdit={canUpdateStudent}
               data={data}
               studentId={analysisTargetId}
             />
-            <StudentHighSchoolScoreMockup
-              canEdit={canUpdateStudent}
-              data={data}
-              studentId={analysisTargetId}
-            />
+            {showHighSchoolScore && (
+              <StudentHighSchoolScoreMockup
+                canEdit={canUpdateStudent}
+                data={data}
+                studentId={analysisTargetId}
+              />
+            )}
           </div>
         </div>
       ),

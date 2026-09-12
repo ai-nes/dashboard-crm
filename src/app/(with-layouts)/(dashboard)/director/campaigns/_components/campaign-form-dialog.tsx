@@ -3,8 +3,8 @@
 import { useState, type FormEvent } from "react";
 
 import { DatePickerField } from "@/components/common/date-picker-field";
+import { DropdownField } from "@/components/common/dropdown-field";
 import { Button } from "@/components/tailgrids/core/button";
-import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
 import {
   Dialog,
   DialogBody,
@@ -348,32 +348,28 @@ export default function CampaignFormDialog({
               <span className="text-xs font-medium text-input-label-text">
                 Loại kênh
               </span>
-              <Combobox
-                value={form.channelType || null}
-                onChange={(key) =>
-                  setField("channelType", (key as ChannelTypeValue) ?? "")
-                }
-                aria-label="Loại kênh"
-                aria-describedby={
+              <DropdownField
+                ariaLabel="Loại kênh"
+                ariaDescribedBy={
                   fieldError("channelType")
                     ? "campaign-channel-type-error"
                     : undefined
                 }
+                className="w-full"
+                isDisabled={isSubmitting}
                 isInvalid={Boolean(fieldError("channelType"))}
-                placeholder="Chọn loại kênh"
-              >
-                {channelTypeOptionsForMode(channelTypes, form.mode).map(
-                  (option) => (
-                    <ComboboxItem
-                      key={option.code}
-                      id={option.code}
-                      textValue={option.displayName}
-                    >
-                      {option.displayName}
-                    </ComboboxItem>
-                  ),
+                onChange={(value) =>
+                  setField("channelType", (value as ChannelTypeValue) ?? "")
+                }
+                options={channelTypeOptionsForMode(channelTypes, form.mode).map(
+                  (option) => ({
+                    id: option.code,
+                    label: option.displayName,
+                  }),
                 )}
-              </Combobox>
+                placeholder="Chọn loại kênh"
+                value={form.channelType || null}
+              />
               <FormFieldError
                 id="campaign-channel-type-error"
                 message={fieldError("channelType")}

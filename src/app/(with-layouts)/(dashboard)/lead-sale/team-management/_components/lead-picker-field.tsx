@@ -1,6 +1,6 @@
 "use client";
 
-import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
+import { DropdownField } from "@/components/common/dropdown-field";
 
 import type { TeamMember } from "./types";
 
@@ -25,25 +25,23 @@ export default function LeadPickerField({
   className,
   isDisabled = false,
 }: LeadPickerFieldProps) {
+  const options = [
+    { id: UNASSIGNED_KEY, label: "Chưa phân công" },
+    ...candidates.map((member) => ({ id: member.id, label: member.name })),
+  ];
+
   return (
-    <Combobox
-      value={value ?? UNASSIGNED_KEY}
+    <DropdownField
+      ariaLabel={ariaLabel}
+      className={className}
+      isDisabled={isDisabled}
+      isSearchable
       onChange={(key) =>
         onChange(!key || key === UNASSIGNED_KEY ? null : String(key))
       }
-      aria-label={ariaLabel}
+      options={options}
       placeholder={placeholder}
-      className={className}
-      isDisabled={isDisabled}
-    >
-      <ComboboxItem id={UNASSIGNED_KEY} textValue="Chưa phân công">
-        <span className="text-text-tertiary">Chưa phân công</span>
-      </ComboboxItem>
-      {candidates.map((member) => (
-        <ComboboxItem key={member.id} id={member.id} textValue={member.name}>
-          {member.name}
-        </ComboboxItem>
-      ))}
-    </Combobox>
+      value={value ?? UNASSIGNED_KEY}
+    />
   );
 }

@@ -2,15 +2,8 @@
 
 import type { ReactNode } from "react";
 
+import { DropdownField } from "@/components/common/dropdown-field";
 import { Input } from "@/components/tailgrids/core/input";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
 import { TextArea } from "@/components/tailgrids/core/text-area";
 import { cn } from "@/utils/cn";
 
@@ -87,6 +80,8 @@ interface CreateDialogSelectProps {
   options: { id: string; label: string }[];
   placeholder?: string;
   isDisabled?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
 }
 
 export function CreateDialogSelect({
@@ -96,28 +91,21 @@ export function CreateDialogSelect({
   options,
   placeholder = "Chọn campaign",
   isDisabled = false,
+  searchable = false,
+  searchPlaceholder,
 }: CreateDialogSelectProps) {
   return (
-    <Select
-      aria-label={label}
-      className="gap-0"
+    <DropdownField
+      ariaLabel={label}
+      className="w-full"
+      options={options}
       isDisabled={isDisabled}
-      onChange={(key) => onChange(String(key ?? ""))}
+      isSearchable={searchable}
+      onChange={(nextValue) => onChange(nextValue ?? "")}
+      placeholder={placeholder}
+      searchPlaceholder={searchPlaceholder}
+      triggerClassName="h-10 px-3 py-2.5 text-sm"
       value={value || undefined}
-    >
-      <SelectTrigger className="h-10 w-full px-3 py-2.5 text-sm">
-        <SelectValue>
-          {options.find((option) => option.id === value)?.label ?? placeholder}
-        </SelectValue>
-        <SelectIndicator />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.id} id={option.id}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    />
   );
 }
