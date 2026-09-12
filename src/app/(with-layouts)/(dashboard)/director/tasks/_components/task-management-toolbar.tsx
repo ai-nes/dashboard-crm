@@ -22,6 +22,7 @@ import {
   DropdownMenuSection,
   DropdownMenuTrigger,
 } from "@/components/tailgrids/core/dropdown";
+import { taskStatusLabel } from "../../students/_components/student-task-badges";
 import type { TaskLayout, TaskStatusFilter, TaskView } from "./types";
 
 interface TaskManagementToolbarProps {
@@ -46,10 +47,10 @@ const filters: { id: TaskView; label: string }[] = [
 
 const statusFilters: { id: TaskStatusFilter; label: string }[] = [
   { id: "all", label: "Tất cả trạng thái" },
-  { id: "todo", label: "Cần làm" },
-  { id: "in-progress", label: "Đang xử lý" },
-  { id: "done", label: "Hoàn thành" },
-  { id: "canceled", label: "Đã hủy" },
+  { id: "todo", label: taskStatusLabel.todo },
+  { id: "in-progress", label: taskStatusLabel["in-progress"] },
+  { id: "done", label: taskStatusLabel.done },
+  { id: "canceled", label: taskStatusLabel.canceled },
 ];
 
 const toolbarActionClass =

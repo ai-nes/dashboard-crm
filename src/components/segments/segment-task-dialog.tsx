@@ -27,6 +27,7 @@ import type {
   CRMTaskPriority,
   CRMTaskStatus,
 } from "@/services/api/crm-tasks";
+import { CRM_TASK_STATUS_LABEL } from "@/services/api/crm-tasks";
 import type { SessionUser } from "@/services/api/auth";
 
 export interface SegmentTaskFormValues {
@@ -53,11 +54,11 @@ interface SegmentTaskDialogProps {
 const UNASSIGNED_ID = "__unassigned__";
 
 const STATUS_OPTIONS: Array<{ value: CRMTaskStatus; label: string }> = [
-  { value: "Todo", label: "Cần xử lý" },
-  { value: "Backlog", label: "Chưa bắt đầu" },
-  { value: "In Progress", label: "Đang thực hiện" },
-  { value: "Done", label: "Đã hoàn tất" },
-  { value: "Canceled", label: "Đã hủy" },
+  { value: "Todo", label: CRM_TASK_STATUS_LABEL.Todo },
+  { value: "Backlog", label: CRM_TASK_STATUS_LABEL.Backlog },
+  { value: "In Progress", label: CRM_TASK_STATUS_LABEL["In Progress"] },
+  { value: "Done", label: CRM_TASK_STATUS_LABEL.Done },
+  { value: "Canceled", label: CRM_TASK_STATUS_LABEL.Canceled },
 ];
 
 const PRIORITY_OPTIONS: Array<{

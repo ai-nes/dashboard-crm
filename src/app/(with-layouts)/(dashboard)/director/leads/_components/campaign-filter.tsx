@@ -3,6 +3,7 @@
 import { Search1 } from "@tailgrids/icons";
 import { useMemo, useState } from "react";
 
+import { CAMPAIGN_STATUS_LABEL } from "@/services/api/campaigns";
 import { Button } from "@/components/tailgrids/core/button";
 import {
   InputGroup,
@@ -27,17 +28,12 @@ interface CampaignFilterProps {
   onChange: (value: string) => void;
 }
 
-const campaignStatusLabels: Record<string, string> = {
-  ACTIVE: "Đang diễn ra",
-  CLOSED: "Đã kết thúc",
-  DRAFT: "Bản nháp",
-  UPCOMING: "Sắp diễn ra",
-};
-
 function campaignStatusLabel(status: string) {
   const fallback = status.trim();
   return (
-    campaignStatusLabels[status.trim().toUpperCase()] ??
+    CAMPAIGN_STATUS_LABEL[
+      status.trim().toUpperCase() as keyof typeof CAMPAIGN_STATUS_LABEL
+    ] ??
     (fallback || "Chưa cập nhật")
   );
 }
