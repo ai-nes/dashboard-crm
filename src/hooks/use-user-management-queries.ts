@@ -14,6 +14,7 @@ import {
   listUserRoleLogs,
   removeUser,
   updateCrmUserProfile,
+  updateUserCapacity,
   updateUserRole,
   type CreateCrmUserPayload,
   type ListCrmUsersResponse,
@@ -21,6 +22,7 @@ import {
   type ListUserRoleLogsResponse,
   type RemoveUserPayload,
   type UpdateCrmUserProfilePayload,
+  type UpdateUserCapacityPayload,
   type UpdateUserRolePayload,
 } from "@/services/api/user-management";
 
@@ -73,6 +75,14 @@ export function useUpdateCrmUserProfileMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateCrmUserProfilePayload) => updateCrmUserProfile(payload),
+    onSuccess: () => invalidateUsers(queryClient),
+  });
+}
+
+export function useUpdateUserCapacityMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateUserCapacityPayload) => updateUserCapacity(payload),
     onSuccess: () => invalidateUsers(queryClient),
   });
 }

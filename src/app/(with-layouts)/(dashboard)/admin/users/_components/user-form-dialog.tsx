@@ -19,6 +19,7 @@ import { Backdrop } from "@/components/tailgrids/core/overlay";
 import type { CrmUser } from "@/services/api/user-management";
 
 import { ASSIGNABLE_CRM_ROLES } from "./role-select-dropdown";
+import { LEAD_RECIPIENT_ROLES } from "./users-table";
 
 const roleOptions = ASSIGNABLE_CRM_ROLES.map((role) => ({ id: role, label: role }));
 
@@ -27,6 +28,7 @@ interface UserFormValues {
   email: string;
   role: string;
   password: string;
+  capacity: string;
 }
 
 interface UserFormDialogProps {
@@ -36,10 +38,16 @@ interface UserFormDialogProps {
   isSubmitting?: boolean;
   onOpenChange: (open: boolean) => void;
   onCreate: (fields: { email: string; fullName: string; password: string; role: string }) => Promise<void>;
-  onUpdate: (fields: { fullName: string; newPassword: string }) => Promise<void>;
+  onUpdate: (fields: { fullName: string; newPassword: string; capacity: number | null }) => Promise<void>;
 }
 
-const emptyForm: UserFormValues = { fullName: "", email: "", role: ASSIGNABLE_CRM_ROLES[0] ?? "", password: "" };
+const emptyForm: UserFormValues = {
+  fullName: "",
+  email: "",
+  role: ASSIGNABLE_CRM_ROLES[0] ?? "",
+  password: "",
+  capacity: "",
+};
 
 export default function UserFormDialog({
   isOpen,
@@ -51,9 +59,20 @@ export default function UserFormDialog({
 }: UserFormDialogProps) {
   const isEdit = Boolean(user);
   const [form, setForm] = useState<UserFormValues>(() =>
-    user ? { fullName: user.fullName, email: user.email, role: user.role ?? "", password: "" } : emptyForm,
+    user
+      ? {
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role ?? "",
+          password: "",
+          capacity: user.capacity?.limit != null ? String(user.capacity.limit) : "",
+        }
+      : emptyForm,
   );
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const showCapacityField = isEdit && LEAD_RECIPIENT_ROLES.has(user?.role ?? "");
+  const hasStaffRecord = Boolean(user?.capacity);
 
   const setField = <TField extends keyof UserFormValues>(field: TField, value: UserFormValues[TField]) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -79,9 +98,19 @@ export default function UserFormDialog({
       }
     }
 
+    let capacity: number | null = null;
+    if (showCapacityField && form.capacity.trim()) {
+      const parsed = Number(form.capacity.trim());
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        setSubmitError("Capacity phải là số nguyên lớn hơn 0.");
+        return;
+      }
+      capacity = parsed;
+    }
+
     try {
       if (isEdit) {
-        await onUpdate({ fullName: form.fullName.trim(), newPassword: form.password });
+        await onUpdate({ fullName: form.fullName.trim(), newPassword: form.password, capacity });
       } else {
         await onCreate({
           email: form.email.trim(),
@@ -165,6 +194,30 @@ export default function UserFormDialog({
                     onChange={(event) => setField("password", event.target.value)}
                   />
                 </CreateDialogField>
+                {showCapacityField && (
+                  <CreateDialogField
+                    className="sm:col-span-2"
+                    label="Số Lead tối đa được nhận cùng lúc"
+                  >
+                    <CreateDialogInput
+                      label="Capacity"
+                      type="number"
+                      min={1}
+                      step={1}
+                      disabled={!hasStaffRecord}
+                      placeholder={hasStaffRecord ? "Để trống nếu không đổi" : "Chưa vào Team"}
+                      value={form.capacity}
+                      onChange={(event) => setField("capacity", event.target.value)}
+                    />
+                    <p className="mt-1 text-xs text-text-tertiary">
+                      {hasStaffRecord
+                        ? user?.capacity?.configured
+                          ? `Đang nhận ${user.capacity.active} Lead / giới hạn ${user.capacity.limit}. Để trống nếu không muốn đổi giới hạn.`
+                          : "Chưa được thiết lập capacity nên hiện KHÔNG nhận Lead nào. Nhập số để bắt đầu nhận Lead."
+                        : "Người dùng chưa thuộc Team Sales nào nên chưa thể đặt capacity. Hãy thêm vào Team trước."}
+                    </p>
+                  </CreateDialogField>
+                )}
               </div>
 
               {submitError && (

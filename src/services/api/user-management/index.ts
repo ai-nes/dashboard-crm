@@ -7,6 +7,7 @@ import type {
   RemoveUserPayload,
   RequestOptions,
   UpdateCrmUserProfilePayload,
+  UpdateUserCapacityPayload,
   UpdateUserRolePayload,
 } from "./types";
 
@@ -19,7 +20,11 @@ const METHODS = {
   LIST_LOGS: "crm.api.user.list_user_role_logs",
   CREATE_USER: "crm.api.user.create_crm_user",
   UPDATE_PROFILE: "crm.api.user.update_crm_user_profile",
+  LIST_USER_CAPACITY: "crm.api.assignment_control.list_user_capacity",
+  UPDATE_USER_CAPACITY: "crm.api.assignment_control.upsert_user_capacity",
 } as const;
+
+const DEFAULT_CAPACITY_UPDATE_REASON = "Cập nhật capacity từ trang Quản lý người dùng CRM.";
 
 export class UserManagementApiError extends Error {
   constructor(public status: number, public code: string, message: string) {
@@ -139,11 +144,32 @@ async function call<T>(
 }
 
 export async function listCrmUsers(options: RequestOptions = {}): Promise<ListCrmUsersResponse> {
-  const raw = await call<unknown>(METHODS.LIST_USERS, "GET", options);
+  const [raw, capacitySettled] = await Promise.all([
+    call<unknown>(METHODS.LIST_USERS, "GET", options),
+    // Capacity requires system.configure; a non-admin viewer of this page must
+    // still see the user list, just without capacity data. A real failure
+    // (not that expected permission gap) still shouldn't take down the whole
+    // user list, but it must not look identical to "you're not an admin" —
+    // log it so it doesn't disappear silently for a caller who does qualify.
+    call<unknown>(METHODS.LIST_USER_CAPACITY, "GET", options).catch((error: unknown) => {
+      const isPermissionDenied =
+        error instanceof UserManagementApiError &&
+        (error.status === 403 || /permission/i.test(error.code));
+      if (!isPermissionDenied) {
+        console.error("Không tải được dữ liệu capacity người dùng.", error);
+      }
+      return null;
+    }),
+  ]);
+  const capacityByUser = asRecord(capacitySettled) ?? {};
   const [allUsers, crmUsers] = Array.isArray(raw) ? raw : [[], []];
   return {
-    allUsers: Array.isArray(allUsers) ? allUsers.flatMap((user) => normalizeCrmUser(user) ?? []) : [],
-    crmUsers: Array.isArray(crmUsers) ? crmUsers.flatMap((user) => normalizeCrmUser(user) ?? []) : [],
+    allUsers: Array.isArray(allUsers)
+      ? allUsers.flatMap((user) => normalizeCrmUser(user, capacityByUser) ?? [])
+      : [],
+    crmUsers: Array.isArray(crmUsers)
+      ? crmUsers.flatMap((user) => normalizeCrmUser(user, capacityByUser) ?? [])
+      : [],
   };
 }
 
@@ -178,6 +204,17 @@ export async function updateCrmUserProfile(
     user: payload.user,
     full_name: payload.fullName,
     new_password: payload.newPassword,
+  });
+}
+
+export async function updateUserCapacity(
+  payload: UpdateUserCapacityPayload,
+  options: RequestOptions = {},
+): Promise<void> {
+  await call(METHODS.UPDATE_USER_CAPACITY, "POST", options, {}, {
+    user: payload.user,
+    max_active_students: payload.maxActiveStudents,
+    reason: payload.reason?.trim() || DEFAULT_CAPACITY_UPDATE_REASON,
   });
 }
 

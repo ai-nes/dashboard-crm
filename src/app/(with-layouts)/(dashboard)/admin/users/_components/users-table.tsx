@@ -22,6 +22,17 @@ export function isUserSelectable(user: CrmUser): boolean {
   return user.role !== "System Manager" && !user.sessionUser;
 }
 
+/** Only Sale/CTV Sale receive Leads, so only they have a meaningful capacity. */
+export const LEAD_RECIPIENT_ROLES = new Set(["Sale", "CTV Sale"]);
+
+export function capacityDisplay(user: CrmUser): string {
+  if (!LEAD_RECIPIENT_ROLES.has(user.role ?? "")) return "—";
+  if (!user.capacity) return "Chưa vào Team";
+  const { active, limit, configured } = user.capacity;
+  if (!configured) return "Chưa thiết lập";
+  return limit ? `${active}/${limit}` : `${active}`;
+}
+
 interface UsersTableProps {
   users: CrmUser[];
   total: number;
@@ -55,7 +66,7 @@ export default function UsersTable({
   onEdit,
   onRemove,
 }: UsersTableProps) {
-  const columnCount = 3 + (canManageUsers ? 2 : 0);
+  const columnCount = 4 + (canManageUsers ? 2 : 0);
   const selectableUsers = users.filter(isUserSelectable);
   const isAllSelected = selectableUsers.length > 0 && selectableUsers.every((u) => selectedUserIds.has(u.name));
 
@@ -81,6 +92,9 @@ export default function UsersTable({
           </TableHead>
           <TableHead scope="col" className="whitespace-nowrap">
             Vai trò
+          </TableHead>
+          <TableHead scope="col" className="whitespace-nowrap">
+            Capacity
           </TableHead>
           {canManageUsers ? (
             <TableHead scope="col" className="whitespace-nowrap">
@@ -151,6 +165,9 @@ export default function UsersTable({
                     ) : (
                       <Badge color={isSystemManager ? "primary" : "gray"}>{user.role ?? "Chưa có vai trò"}</Badge>
                     )}
+                  </TableCell>
+                  <TableCell className="py-4 text-sm whitespace-nowrap text-text-secondary">
+                    {capacityDisplay(user)}
                   </TableCell>
                   {canManageUsers ? (
                     <TableCell className="py-4">

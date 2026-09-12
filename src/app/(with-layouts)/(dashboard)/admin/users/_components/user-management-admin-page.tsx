@@ -18,6 +18,7 @@ import {
   useCrmUsersQuery,
   useRemoveUserMutation,
   useUpdateCrmUserProfileMutation,
+  useUpdateUserCapacityMutation,
   useUpdateUserRoleMutation,
 } from "@/hooks/use-user-management-queries";
 import type { CrmUser } from "@/services/api/user-management";
@@ -67,6 +68,7 @@ export default function UserManagementAdminPage() {
   const removeUserMutation = useRemoveUserMutation();
   const createUserMutation = useCreateCrmUserMutation();
   const updateUserProfileMutation = useUpdateCrmUserProfileMutation();
+  const updateUserCapacityMutation = useUpdateUserCapacityMutation();
 
   const allUsers = useMemo(
     () => usersQuery.data?.crmUsers.filter((u) => u.name !== "Administrator") ?? [],
@@ -164,13 +166,19 @@ export default function UserManagementAdminPage() {
     setIsUserFormOpen(false);
   };
 
-  const handleUpdateUser = async (fields: { fullName: string; newPassword: string }) => {
+  const handleUpdateUser = async (fields: { fullName: string; newPassword: string; capacity: number | null }) => {
     if (!userFormTarget) return;
     await updateUserProfileMutation.mutateAsync({
       user: userFormTarget.name,
       fullName: fields.fullName,
       newPassword: fields.newPassword || undefined,
     });
+    if (fields.capacity != null && fields.capacity !== userFormTarget.capacity?.limit) {
+      await updateUserCapacityMutation.mutateAsync({
+        user: userFormTarget.name,
+        maxActiveStudents: fields.capacity,
+      });
+    }
     toast.success(`Đã cập nhật ${fields.fullName}.`);
     setIsUserFormOpen(false);
   };
@@ -284,7 +292,11 @@ export default function UserManagementAdminPage() {
         key={userFormTarget?.name ?? "create"}
         isOpen={isUserFormOpen}
         user={userFormTarget}
-        isSubmitting={createUserMutation.isPending || updateUserProfileMutation.isPending}
+        isSubmitting={
+          createUserMutation.isPending ||
+          updateUserProfileMutation.isPending ||
+          updateUserCapacityMutation.isPending
+        }
         onOpenChange={setIsUserFormOpen}
         onCreate={handleCreateUser}
         onUpdate={handleUpdateUser}
