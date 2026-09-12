@@ -13,6 +13,8 @@ import StudentZaloTab from "./student-zalo-tab";
 interface StudentInteractionsTabsProps {
   calls: StudentCallRecord[];
   messages: StudentZaloMessage[];
+  isCallsLoading?: boolean;
+  isZaloLoading?: boolean;
 }
 
 export function getDefaultInteractionTab(
@@ -24,18 +26,20 @@ export function getDefaultInteractionTab(
 export default function StudentInteractionsTabs({
   calls,
   messages,
+  isCallsLoading = false,
+  isZaloLoading = false,
 }: StudentInteractionsTabsProps) {
   const defaultSelectedKey = getDefaultInteractionTab(calls);
   const interactionTabs: DetailTabItem[] = [
     {
       id: "zalo",
       label: "Zalo",
-      content: <StudentZaloTab messages={messages} />,
+      content: <StudentZaloTab messages={messages} isLoading={isZaloLoading} />,
     },
     {
       id: "calls",
       label: "Cuộc gọi",
-      content: <StudentCallsTab calls={calls} />,
+      content: <StudentCallsTab calls={calls} isLoading={isCallsLoading} />,
     },
   ];
 

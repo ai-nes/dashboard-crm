@@ -16,6 +16,7 @@ import {
   matchesActivityTimeFilter,
   parseStudentActivityDate,
 } from "./student-activity-utils";
+import { StudentTaskListSkeleton } from "./student-activity-skeleton";
 
 interface StudentTasksTabProps {
   studentName: string;
@@ -194,7 +195,7 @@ export default function StudentTasksTab({
       />
 
       {isLoading ? (
-        <p className="py-2 text-xs text-text-tertiary">Đang tải task...</p>
+        <StudentTaskListSkeleton />
       ) : filteredTasks.length === 0 ? (
         <p className="py-2 text-xs text-text-tertiary">
           Chưa có task nào phù hợp.

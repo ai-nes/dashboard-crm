@@ -155,8 +155,6 @@ export async function getLeadCallLogs(
     throw new Error("Không thể kết nối đến máy chủ lịch sử cuộc gọi.");
   }
 
-  if (response.status === 404) return null;
-
   const raw = await response.json().catch(() => ({}));
   if (!response.ok) {
     const root = asRecord(raw);

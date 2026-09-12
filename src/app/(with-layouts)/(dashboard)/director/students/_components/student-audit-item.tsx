@@ -9,6 +9,7 @@ import { formatDateTime } from "@/utils/format-date";
 import {
   formatStudentAuditRelativeTime,
   formatStudentAuditContent,
+  formatStudentAuditSubject,
   formatStudentAuditValue,
   getStudentAuditActor,
   getStudentAuditCategoryLabel,
@@ -33,11 +34,14 @@ export default function StudentAuditItem({
   const role = getStudentAuditActorRole(event);
   const tone = getStudentAuditTone(event);
   const status = getStudentAuditStatus(event);
+  const categoryLabel = getStudentAuditCategoryLabel(event.category);
   const isFieldChange = isStudentAuditFieldChange(event);
   const fileUrl =
     typeof event.metadata?.file_url === "string"
       ? event.metadata.file_url
       : null;
+  const content = formatStudentAuditContent(event.content);
+  const subject = formatStudentAuditSubject(event.subject);
 
   const dotColorClass =
     tone === "success"
@@ -65,16 +69,18 @@ export default function StudentAuditItem({
             {actor}
             {role ? (
               <span className="ml-2 font-normal text-text-tertiary">
-                {role}
+                · {role}
               </span>
             ) : null}
           </p>
-          <p className="mt-0.5 text-xs text-text-tertiary">
-            Nguồn cập nhật: {getStudentAuditSourceLabel(event.source)}
-            {event.doctype
-              ? ` (${getStudentAuditDoctypeLabel(event.doctype)})`
-              : ""}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-tertiary">
+            <span className="font-medium text-text-secondary">
+              {getStudentAuditSourceLabel(event.source)}
+            </span>
+            {event.doctype ? (
+              <span>· {getStudentAuditDoctypeLabel(event.doctype)}</span>
+            ) : null}
+          </div>
         </div>
         <time
           className="shrink-0 text-xs text-text-tertiary"
@@ -86,7 +92,7 @@ export default function StudentAuditItem({
       </div>
 
       {/* Content Bubble Box */}
-      <div className="mt-3 w-fit max-w-2xl rounded-2xl rounded-bl-md bg-background-gray-secondary px-4 py-3">
+      <div className="mt-3 w-full max-w-3xl rounded-xl border border-card-border/60 bg-background-gray-secondary/40 px-4 py-4 sm:px-5">
         {isFieldChange ? (
           <div className="space-y-2">
             <p className="text-sm leading-6 text-text-primary">
@@ -111,14 +117,12 @@ export default function StudentAuditItem({
             <p className="text-sm font-semibold leading-6 text-text-primary">
               {getAuditRecordTitle(event, recordLabel)}
             </p>
-            {event.subject && (
-              <p className="text-xs font-medium text-text-primary">
-                {event.subject}
-              </p>
+            {subject && (
+              <p className="text-xs font-medium text-text-primary">{subject}</p>
             )}
-            {event.content && (
+            {content && (
               <p className="whitespace-pre-wrap break-words text-xs leading-5 text-text-secondary">
-                {formatStudentAuditContent(event.content)}
+                {content}
               </p>
             )}
             {fileUrl && (
@@ -138,17 +142,14 @@ export default function StudentAuditItem({
 
       {/* Badges / Meta Pills */}
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
-        <Badge color={tone} size="sm">
-          {status}
-        </Badge>
-        {getStudentAuditCategoryLabel(event.category) && (
-          <Badge color="sky" size="sm">
-            {getStudentAuditCategoryLabel(event.category)}
+        {(!event.eventType || !categoryLabel) && (
+          <Badge color={tone} size="sm">
+            {status}
           </Badge>
         )}
-        {event.source && (
-          <Badge color="gray" size="sm">
-            {getStudentAuditSourceLabel(event.source)}
+        {categoryLabel && (
+          <Badge color="sky" size="sm">
+            {categoryLabel}
           </Badge>
         )}
       </div>
@@ -204,9 +205,14 @@ function getAuditRecordTitle(
   return `Đã cập nhật thông tin ${recordLabel}.`;
 }
 
-function getStudentAuditActorRole(event: StudentAuditLog): string {
+function getStudentAuditActorRole(event: StudentAuditLog): string | null {
   const actor = (event.ownerFullName || event.owner || "").toLowerCase();
   if (actor.includes("admin")) return "Quản trị viên";
   if (actor.includes("system")) return "Hệ thống";
+  if (actor.includes("trưởng nhóm") || actor.includes("tư vấn viên")) {
+    return null;
+  }
+  if (actor.includes("ctv")) return "CTV Sale";
+  if (actor.includes("sale")) return "Nhân viên Sale";
   return "Tư vấn viên";
 }

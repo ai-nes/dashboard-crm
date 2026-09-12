@@ -39,6 +39,10 @@ The Lead detail page loads activity tabs lazily with these permission-scoped
 endpoints:
 
 - Calls: `GET /api/method/crm.api.director_students.get_lead_call_logs?lead_id=<id>`
+  The endpoint resolves the Lead directly, so it also works before conversion to
+  `CRM Student`. It accepts the internal Lead name or public `lead_id`, returns
+  an empty `calls` list for an existing Lead without call history, and merges
+  Lead- and Student-referenced records after conversion with duplicate protection.
 - Notes: the dashboard uses the permission-scoped generic methods
   `crm.api.note.list_notes`, `create_note`, `update_note`, and `delete_note`
   with `reference_doctype=CRM Lead`; the Lead-specific aliases

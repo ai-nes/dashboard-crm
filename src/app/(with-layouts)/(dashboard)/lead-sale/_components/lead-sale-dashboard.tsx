@@ -1,6 +1,7 @@
 "use client";
 
 import { useLeadSaleOverviewQuery } from "@/hooks/use-lead-sale-overview-query";
+import { DashboardRouteSkeleton } from "@/components/common/loading/route-skeleton";
 
 import InterventionPanel from "./intervention-panel";
 import LeadSaleHeader from "./lead-sale-header";
@@ -20,7 +21,7 @@ export default function LeadSaleDashboard() {
   const overview = useLeadSaleOverviewQuery({ trendRange: "4w" });
 
   if (overview.isPending) {
-    return <DashboardState message="Đang tải tổng quan đội ngũ Sale…" />;
+    return <DashboardRouteSkeleton density="compact" />;
   }
 
   if (overview.isError) {

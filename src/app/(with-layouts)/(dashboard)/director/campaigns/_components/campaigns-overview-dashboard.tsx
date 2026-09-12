@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { useAuth } from "@/components/common/auth/auth-provider";
+import { ListRouteSkeleton } from "@/components/common/loading/route-skeleton";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -37,7 +38,7 @@ const pageSize = 5;
 export default function CampaignsOverviewDashboard() {
   const { user } = useAuth();
   const campaignListPath = getCampaignListPath(user?.roles);
-  const { data, error } = useLeadSaleCampaignsQuery();
+  const { data, error, isPending } = useLeadSaleCampaignsQuery();
   const {
     data: channelTypeData,
     error: channelTypeError,
@@ -236,6 +237,10 @@ export default function CampaignsOverviewDashboard() {
     toast.success("Đã xóa chiến dịch.");
     setDeletingCampaign(null);
   };
+
+  if (isPending && !data) {
+    return <ListRouteSkeleton titleWidth="w-80" />;
+  }
 
   return (
     <main id="main-content" className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6">

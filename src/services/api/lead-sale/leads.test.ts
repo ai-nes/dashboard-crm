@@ -65,6 +65,7 @@ function listFixture() {
       statusOptions: [{ value: "NEW", label: "Mới" }],
       resolution: "MATCHED",
       resolutionOptions: [{ value: "MATCHED", label: "Đã liên kết" }],
+      order: "asc",
       stats: { total: 1, inProgress: 1, closed: 0, conversionRate: 0 },
       asOf: "2026-09-07T10:00:00+07:00",
     },
@@ -88,12 +89,13 @@ describe("Lead list/detail API contract", () => {
         status: "NEW",
         resolution: "MATCHED",
         campaign: "CAM-2026-00001",
+        order: "asc",
       },
       { baseUrl: "http://frappe:8000" },
     );
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.director_leads.get_director_leads?admissionYear=2026&page=1&pageSize=10&q=Nguy%E1%BB%85n&status=NEW&resolution=MATCHED&campaign=CAM-2026-00001",
+      "http://frappe:8000/api/method/crm.api.director_leads.get_director_leads?admissionYear=2026&page=1&pageSize=10&q=Nguy%E1%BB%85n&status=NEW&resolution=MATCHED&campaign=CAM-2026-00001&order=asc",
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(result.data[0]?.name).toBe("Nguyễn Minh An");
@@ -112,6 +114,7 @@ describe("Lead list/detail API contract", () => {
     expect(result.data[0]?.createdAt).toBe("2026-09-07T10:00:00+07:00");
     expect(result.meta.statusOptions).toEqual([{ value: "NEW", label: "Mới" }]);
     expect(result.meta.resolution).toBe("MATCHED");
+    expect(result.meta.order).toBe("asc");
     expect(result.meta.resolutionOptions).toEqual([
       { value: "MATCHED", label: "Đã liên kết" },
     ]);

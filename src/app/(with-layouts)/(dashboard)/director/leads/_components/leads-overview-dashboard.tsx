@@ -59,6 +59,7 @@ export default function LeadsOverviewDashboard() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStageStatus | "all">("all");
   const [resolution, setResolution] = useState<LeadResultFilter | "all">("all");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
 
@@ -74,6 +75,7 @@ export default function LeadsOverviewDashboard() {
     status: status === "all" ? undefined : status,
     resolution: resolution === "all" ? undefined : resolution,
     campaign: campaign || undefined,
+    order,
   };
   const {
     data: response,
@@ -113,6 +115,11 @@ export default function LeadsOverviewDashboard() {
     setPage(1);
   };
 
+  const handleOrderChange = (value: "asc" | "desc") => {
+    setOrder(value);
+    setPage(1);
+  };
+
   const handleCampaignChange = (value: string) => {
     setCampaign(value);
     setPage(1);
@@ -122,6 +129,7 @@ export default function LeadsOverviewDashboard() {
     setQuery("");
     setStatus("all");
     setResolution("all");
+    setOrder("desc");
     setCampaign("");
     setPage(1);
   };
@@ -319,6 +327,7 @@ export default function LeadsOverviewDashboard() {
         query={query}
         status={status}
         resolution={resolution}
+        order={order}
         campaign={campaign}
         campaigns={availableCampaigns}
         campaignLoading={campaignsQuery.isPending}
@@ -327,6 +336,7 @@ export default function LeadsOverviewDashboard() {
         onQueryChange={handleQueryChange}
         onStatusChange={handleStatusChange}
         onResolutionChange={handleResolutionChange}
+        onOrderChange={handleOrderChange}
         onCampaignChange={handleCampaignChange}
         onReset={resetFilters}
       />

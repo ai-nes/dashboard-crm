@@ -16,6 +16,7 @@ import StudentActivityToolbar, {
   ActivityFilterSelect,
   type ActivityExpansionMode,
 } from "./student-activity-toolbar";
+import { StudentCallsSkeleton } from "./student-activity-skeleton";
 import {
   activityTimeFilterOptions,
   groupActivitiesByDate,
@@ -28,6 +29,7 @@ import StudentCanonicalCallAnalysis from "./student-canonical-call-analysis";
 
 interface StudentCallsTabProps {
   calls: StudentCallRecord[];
+  isLoading?: boolean;
 }
 
 const outcomeConfig: Record<
@@ -55,7 +57,10 @@ const directionBadgeColor: Record<
   missed: "error",
 };
 
-export default function StudentCallsTab({ calls }: StudentCallsTabProps) {
+export default function StudentCallsTab({
+  calls,
+  isLoading = false,
+}: StudentCallsTabProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<ActivityTimeFilter>("all");
   const [expansionMode, setExpansionMode] =
@@ -134,7 +139,9 @@ export default function StudentCallsTab({ calls }: StudentCallsTabProps) {
         />
       </div>
 
-      {calls.length === 0 ? (
+      {isLoading ? (
+        <StudentCallsSkeleton />
+      ) : calls.length === 0 ? (
         <p className="py-2 text-xs text-text-tertiary">
           Chưa có lịch sử cuộc gọi.
         </p>

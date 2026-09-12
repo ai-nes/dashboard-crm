@@ -10,6 +10,7 @@ import StudentActivityToolbar, {
   ActivityFilterSelect,
   type ActivityExpansionMode,
 } from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-activity-toolbar";
+import { StudentCallsSkeleton } from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-activity-skeleton";
 import {
   activityTimeFilterOptions,
   groupActivitiesByDate,
@@ -124,11 +125,6 @@ export default function LeadCallsTab({
 
   return (
     <div className="space-y-4">
-      {isLoading ? (
-        <p className="py-8 text-center text-sm text-text-secondary" role="status">
-          Đang tải lịch sử cuộc gọi…
-        </p>
-      ) : null}
       {isError ? (
         <div className="rounded-lg border border-card-border p-6 text-center">
           <p className="text-sm text-text-secondary">Không thể tải lịch sử cuộc gọi.</p>
@@ -158,6 +154,8 @@ export default function LeadCallsTab({
           onChange={(value) => setTimeFilter(value as ActivityTimeFilter)}
         />
       </div>
+
+      {isLoading ? <StudentCallsSkeleton /> : null}
 
       {!isLoading && !isError && calls.length === 0 ? (
         <p className="py-2 text-xs text-text-tertiary">Chưa có lịch sử cuộc gọi.</p>

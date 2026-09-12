@@ -30,6 +30,7 @@ import { getSouthernProvinceOptions } from "./student-province-options";
 interface StudentListToolbarProps {
   query: string;
   studentStatus: StudentStatus | "all";
+  order: "asc" | "desc";
   province: string;
   assignmentStatus: StudentAssignmentStatus | "all";
   campaign: string;
@@ -39,6 +40,7 @@ interface StudentListToolbarProps {
   resultCount: number;
   onQueryChange: (value: string) => void;
   onStatusChange: (value: StudentStatus | "all") => void;
+  onOrderChange: (value: "asc" | "desc") => void;
   onProvinceChange: (value: string) => void;
   onAssignmentStatusChange: (value: StudentAssignmentStatus | "all") => void;
   onCampaignChange: (value: string) => void;
@@ -53,6 +55,7 @@ const assignmentStatuses: (StudentAssignmentStatus | "all")[] = [
 export default function StudentListToolbar({
   query,
   studentStatus,
+  order,
   province,
   assignmentStatus,
   campaign,
@@ -62,6 +65,7 @@ export default function StudentListToolbar({
   resultCount,
   onQueryChange,
   onStatusChange,
+  onOrderChange,
   onProvinceChange,
   onAssignmentStatusChange,
   onCampaignChange,
@@ -70,6 +74,7 @@ export default function StudentListToolbar({
   const hasFilter =
     query.trim().length > 0 ||
     studentStatus !== "all" ||
+    order !== "desc" ||
     province !== "all" ||
     assignmentStatus !== "all" ||
     campaign !== "";
@@ -122,6 +127,25 @@ export default function StudentListToolbar({
                   {studentStatusLabel[item]}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select
+            className="min-w-0 sm:w-40"
+            value={order}
+            onChange={(value) => onOrderChange(value as "asc" | "desc")}
+            aria-label="Sắp xếp theo thời gian"
+          >
+            <SelectTrigger size="sm" className="w-full">
+              <SelectValue />
+              <SelectIndicator />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem id="desc" textValue="Mới nhất">
+                Mới nhất
+              </SelectItem>
+              <SelectItem id="asc" textValue="Cũ nhất">
+                Cũ nhất
+              </SelectItem>
             </SelectContent>
           </Select>
           <Select

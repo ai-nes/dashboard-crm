@@ -29,7 +29,7 @@ export function getStudentAuditSourceLabel(source?: string | null): string {
     case "call log":
       return "Nhật ký cuộc gọi";
     case "fcrm note":
-      return "FCRM Note";
+      return "Ghi chú FCRM";
     case "task":
       return "Task";
     case "crm action item":
@@ -75,9 +75,9 @@ export function getStudentAuditActionLabel(event: StudentAuditLog): string {
     case "call_logged":
       return "Ghi nhận cuộc gọi";
     case "note_added":
-      return "Thêm FCRM Note";
+      return "Thêm ghi chú FCRM";
     case "note_updated":
-      return "Cập nhật FCRM Note";
+      return "Cập nhật ghi chú FCRM";
     case "task_recorded":
       return "Ghi nhận task";
     case "interaction_recorded":
@@ -134,7 +134,7 @@ export function getStudentAuditCategoryLabel(
     case "call":
       return "Cuộc gọi";
     case "note":
-      return "FCRM Note";
+      return "Ghi chú FCRM";
     case "task":
       return "Task";
     case "interaction":
@@ -166,9 +166,9 @@ export function getStudentAuditActivityDescription(
     case "call_logged":
       return "đã ghi nhận cuộc gọi";
     case "note_added":
-      return "đã thêm FCRM Note";
+      return "đã thêm ghi chú FCRM";
     case "note_updated":
-      return "đã cập nhật FCRM Note";
+      return "đã cập nhật ghi chú FCRM";
     case "task_recorded":
       return "đã ghi nhận task";
     case "interaction_recorded":
@@ -211,9 +211,9 @@ export function getStudentAuditStatus(event: StudentAuditLog): string {
     case "call_logged":
       return "Đã ghi nhận cuộc gọi";
     case "note_added":
-      return "Đã thêm note";
+      return "Đã thêm ghi chú";
     case "note_updated":
-      return "Đã cập nhật note";
+      return "Đã cập nhật ghi chú";
     case "task_recorded":
       return "Đã ghi nhận task";
     case "interaction_recorded":
@@ -280,6 +280,20 @@ export function formatStudentAuditContent(value?: string | null): string {
     .trim();
 }
 
+const AUDIT_SUBJECT_LABELS: Record<string, string> = {
+  call: "Cuộc gọi",
+  communication: "Email / Communication",
+  note: "Ghi chú",
+  task: "Task",
+};
+
+export function formatStudentAuditSubject(value?: string | null): string {
+  const subject = value?.trim() || "";
+  if (!subject) return "";
+
+  return AUDIT_SUBJECT_LABELS[subject.toLocaleLowerCase("en-US")] || subject;
+}
+
 export function formatStudentAuditValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "string") {
@@ -291,6 +305,79 @@ export function formatStudentAuditValue(value: unknown): string {
   } catch {
     return String(value);
   }
+}
+
+const AUDIT_METADATA_VALUE_LABELS: Record<string, Record<string, string>> = {
+  state: {
+    accepted: "Đã chấp nhận",
+    canceled: "Đã hủy",
+    completed: "Đã hoàn tất",
+    pending: "Đang chờ",
+    rejected: "Đã từ chối",
+  },
+  priority: {
+    high: "Cao",
+    low: "Thấp",
+    medium: "Trung bình",
+  },
+  outcome_code: {
+    CONTACTED: "Đã liên hệ",
+    NO_RESPONSE: "Không phản hồi",
+    SUCCESS: "Thành công",
+  },
+  channel: {
+    email: "Email",
+    internal: "Nội bộ",
+    phone: "Điện thoại",
+    zalo: "Zalo",
+  },
+  direction: {
+    inbound: "Đến",
+    internal: "Nội bộ",
+    outbound: "Đi",
+  },
+};
+
+export function formatStudentAuditMetadataValue(
+  key: string,
+  value: unknown,
+): string {
+  if (typeof value === "boolean") return value ? "Có" : "Không";
+
+  const normalizedKey = key.toLocaleLowerCase("en-US");
+  if (typeof value === "string") {
+    const label =
+      AUDIT_METADATA_VALUE_LABELS[normalizedKey]?.[value] ||
+      AUDIT_METADATA_VALUE_LABELS[normalizedKey]?.[
+        value.toLocaleLowerCase("en-US")
+      ];
+    if (label) return label;
+
+    if (normalizedKey === "due_at") {
+      return formatDateTime(value, value);
+    }
+
+    if (normalizedKey === "duration_seconds") {
+      const seconds = Number(value);
+      if (Number.isFinite(seconds)) return formatAuditDuration(seconds);
+    }
+  }
+
+  if (normalizedKey === "duration_seconds" && typeof value === "number") {
+    return formatAuditDuration(value);
+  }
+
+  return formatStudentAuditValue(value);
+}
+
+function formatAuditDuration(seconds: number): string {
+  const totalSeconds = Math.max(0, Math.round(seconds));
+  if (totalSeconds === 0) return "0 giây";
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  if (minutes === 0) return `${remainingSeconds} giây`;
+  if (remainingSeconds === 0) return `${minutes} phút`;
+  return `${minutes} phút ${remainingSeconds} giây`;
 }
 
 function isStudentAuditIdentifier(value: string): boolean {
@@ -455,19 +542,18 @@ export function StudentAuditRecordContent({
   compact?: boolean;
 }) {
   const content = formatStudentAuditContent(event.content);
+  const subject = formatStudentAuditSubject(event.subject);
   const fileUrl =
     typeof event.metadata?.file_url === "string"
       ? event.metadata.file_url
       : null;
 
-  if (!content && !event.subject && !fileUrl) return null;
+  if (!content && !subject && !fileUrl) return null;
 
   return (
     <div className={compact ? "space-y-1" : "space-y-2"}>
-      {event.subject && (
-        <p className="text-xs font-semibold text-text-primary">
-          {event.subject}
-        </p>
+      {subject && (
+        <p className="text-xs font-semibold text-text-primary">{subject}</p>
       )}
       {content && (
         <p className="whitespace-pre-wrap break-words text-xs leading-5 text-text-secondary">
@@ -505,9 +591,14 @@ export function StudentAuditMetadata({ event }: { event: StudentAuditLog }) {
       {entries.map(([key, value]) => (
         <span
           key={key}
-          className="rounded-md border border-card-border/50 bg-background-gray-secondary/40 px-2 py-1"
+          className="inline-flex max-w-full flex-wrap items-baseline gap-x-1.5 gap-y-0.5 rounded-md border border-card-border/50 bg-background-gray-secondary/40 px-2.5 py-1.5"
         >
-          {formatAuditMetadataKey(key)}: {formatStudentAuditValue(value)}
+          <span className="font-medium text-text-secondary">
+            {formatAuditMetadataKey(key)}
+          </span>
+          <span className="break-words text-text-primary">
+            {formatStudentAuditMetadataValue(key, value)}
+          </span>
         </span>
       ))}
     </div>

@@ -164,10 +164,11 @@ export default function StudentActivitiesTab({
   });
 
   // Student Detail stores activity references on the canonical CRM Student.
-  const { data: crmNotesData } = useCrmNotesQuery({
+  const crmNotesQuery = useCrmNotesQuery({
     referenceDoctype: "CRM Student",
     referenceDocname: studentDocname,
   });
+  const crmNotesData = crmNotesQuery.data;
   const crmTasksQuery = useCrmTasksQuery({
     referenceDoctype: "CRM Student",
     referenceDocname: studentDocname,
@@ -523,6 +524,7 @@ export default function StudentActivitiesTab({
                 isCreating={
                   createNoteMutation.isPending || createTaskMutation.isPending
                 }
+                isLoading={crmNotesQuery.isPending && notes.length === 0}
                 canCreateFollowUpTask={canCreateTask}
                 followUpTaskDisabledReason={taskCreationDisabledReason}
               />
@@ -535,6 +537,13 @@ export default function StudentActivitiesTab({
               <StudentInteractionsTabs
                 calls={calls}
                 messages={zaloMessages}
+                isCallsLoading={
+                  studentInteractionsQuery.isPending && calls.length === 0
+                }
+                isZaloLoading={
+                  chatwootInteractionsQuery.isPending &&
+                  zaloMessages.length === 0
+                }
               />
             ),
           },

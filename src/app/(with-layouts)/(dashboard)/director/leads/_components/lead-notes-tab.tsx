@@ -28,6 +28,7 @@ import {
   type ActivityTimeFilter,
 } from "../../students/_components/student-activity-utils";
 import StudentInlineEditableRichText from "../../students/_components/student-inline-editable-rich-text";
+import { StudentNotesSkeleton } from "../../students/_components/student-activity-skeleton";
 import LeadCreateNoteDialog from "./lead-create-note-dialog";
 
 interface LeadNotesTabProps {
@@ -184,9 +185,7 @@ export default function LeadNotesTab({
       </div>
 
       {notesQuery.isPending ? (
-        <p className="py-2 text-xs text-text-tertiary" role="status">
-          Đang tải ghi chú...
-        </p>
+        <StudentNotesSkeleton />
       ) : notesQuery.isError ? (
         <div className="space-y-3 py-2">
           <p className="text-xs text-error-600">

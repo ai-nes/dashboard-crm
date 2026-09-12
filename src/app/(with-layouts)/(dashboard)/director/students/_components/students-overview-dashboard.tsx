@@ -53,6 +53,7 @@ export default function StudentsOverviewDashboard() {
   const [studentStatus, setStudentStatus] = useState<StudentStatus | "all">(
     "all",
   );
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [province, setProvince] = useState("all");
   const [assignmentStatus, setAssignmentStatus] = useState<
     StudentAssignmentStatus | "all"
@@ -75,6 +76,7 @@ export default function StudentsOverviewDashboard() {
     lifecycleStatus: studentStatus === "all" ? undefined : studentStatus,
     assignmentStatus,
     campaign: campaign || undefined,
+    order,
     // Session-scoped roles must never be able to widen the list with an owner
     // query parameter. The backend derives pool/team scope from the session.
     ownerId: isSessionScoped ? undefined : ownerId,
@@ -141,6 +143,11 @@ export default function StudentsOverviewDashboard() {
     setPage(1);
   };
 
+  const handleOrderChange = (val: "asc" | "desc") => {
+    setOrder(val);
+    setPage(1);
+  };
+
   const handleProvinceChange = (val: string) => {
     setProvince(val);
     setPage(1);
@@ -166,6 +173,7 @@ export default function StudentsOverviewDashboard() {
   const resetFilters = () => {
     setQuery("");
     setStudentStatus("all");
+    setOrder("desc");
     setProvince("all");
     setAssignmentStatus("all");
     setCampaign("");
@@ -233,6 +241,7 @@ export default function StudentsOverviewDashboard() {
       <StudentListToolbar
         query={query}
         studentStatus={studentStatus}
+        order={order}
         province={province}
         assignmentStatus={assignmentStatus}
         campaign={campaign}
@@ -242,6 +251,7 @@ export default function StudentsOverviewDashboard() {
         resultCount={totalCount}
         onQueryChange={handleQueryChange}
         onStatusChange={handleStudentStatusFilterChange}
+        onOrderChange={handleOrderChange}
         onProvinceChange={handleProvinceChange}
         onAssignmentStatusChange={handleAssignmentStatusChange}
         onCampaignChange={handleCampaignChange}

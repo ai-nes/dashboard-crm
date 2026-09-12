@@ -12,6 +12,7 @@ import StudentActivityToolbar, {
   ActivityFilterSelect,
   type ActivityExpansionMode,
 } from "./student-activity-toolbar";
+import { StudentZaloSkeleton } from "./student-activity-skeleton";
 import {
   activityTimeFilterOptions,
   getStudentZaloConversationTitle,
@@ -25,6 +26,7 @@ import StudentZaloMessageDetails, {
 
 interface StudentZaloTabProps {
   messages: StudentZaloMessage[];
+  isLoading?: boolean;
 }
 
 interface StudentZaloConversation {
@@ -34,7 +36,10 @@ interface StudentZaloConversation {
   latestMessage: StudentZaloMessage;
 }
 
-export default function StudentZaloTab({ messages }: StudentZaloTabProps) {
+export default function StudentZaloTab({
+  messages,
+  isLoading = false,
+}: StudentZaloTabProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<ActivityTimeFilter>("all");
   const [expansionMode, setExpansionMode] =
@@ -119,7 +124,9 @@ export default function StudentZaloTab({ messages }: StudentZaloTabProps) {
         />
       </div>
 
-      {messages.length === 0 ? (
+      {isLoading ? (
+        <StudentZaloSkeleton />
+      ) : messages.length === 0 ? (
         <p className="py-2 text-xs text-text-tertiary">
           Chưa có tin nhắn Zalo.
         </p>

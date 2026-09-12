@@ -129,6 +129,7 @@ export interface LeadListMeta {
   statusOptions: LeadStatusOption[];
   resolution: string | null;
   resolutionOptions: LeadStatusOption[];
+  order?: "asc" | "desc";
   stats?: LeadCampaignStats;
   asOf?: string | null;
 }
@@ -735,6 +736,7 @@ function normalizeMeta(value: unknown): LeadListMeta {
         ),
       }
     : undefined;
+  const order = meta.order === "asc" || meta.order === "desc" ? meta.order : undefined;
 
   return {
     total: count(meta.total),
@@ -765,6 +767,7 @@ function normalizeMeta(value: unknown): LeadListMeta {
         return value ? { value, label } : null;
       })
       .filter((option): option is LeadStatusOption => option !== null),
+    ...(order ? { order } : {}),
     ...(stats ? { stats } : {}),
     asOf: nullableText(meta.asOf ?? meta.as_of),
   };

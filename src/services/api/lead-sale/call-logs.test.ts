@@ -63,4 +63,17 @@ describe("lead call logs API", () => {
       getLeadCallLogs("  ", { baseUrl: "http://frappe:8000" }),
     ).resolves.toBeNull();
   });
+
+  it("does not turn an unknown Lead 404 into an empty history", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ error: { message: "Không tìm thấy Lead." } }),
+        { status: 404 },
+      ),
+    );
+
+    await expect(
+      getLeadCallLogs("LEAD-MISSING", { baseUrl: "http://frappe:8000" }),
+    ).rejects.toThrow("Không tìm thấy Lead.");
+  });
 });

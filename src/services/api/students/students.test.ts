@@ -63,12 +63,19 @@ describe("director students API contract", () => {
     );
 
     const result = await getDirectorStudents(
-      { admissionYear: 2026, page: 1, pageSize: 10, q: "nguyen", stage: "Tư vấn" },
+      {
+        admissionYear: 2026,
+        page: 1,
+        pageSize: 10,
+        q: "nguyen",
+        stage: "Tư vấn",
+        order: "asc",
+      },
       { baseUrl: "http://frappe:8000" },
     );
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.director_students.get_director_students?admissionYear=2026&page=1&pageSize=10&q=nguyen&stage=T%C6%B0+v%E1%BA%A5n",
+      "http://frappe:8000/api/method/crm.api.director_students.get_director_students?admissionYear=2026&page=1&pageSize=10&q=nguyen&stage=T%C6%B0+v%E1%BA%A5n&order=asc",
       expect.objectContaining({ cache: "no-store" }),
     );
     expect(result.data.length).toBe(mockData.data.length);

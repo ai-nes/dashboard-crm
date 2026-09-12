@@ -12,6 +12,7 @@ import StudentActivityToolbar, {
   ActivityFilterSelect,
   type ActivityExpansionMode,
 } from "./student-activity-toolbar";
+import { StudentNotesSkeleton } from "./student-activity-skeleton";
 import {
   activityTimeFilterOptions,
   groupActivitiesByDate,
@@ -33,6 +34,7 @@ interface StudentNotesTabProps {
   onUpdateNote: (id: string, content: string) => void;
   onDeleteNote?: (id: string) => void;
   isCreating?: boolean;
+  isLoading?: boolean;
   canCreateFollowUpTask: boolean;
   followUpTaskDisabledReason?: string;
 }
@@ -44,6 +46,7 @@ export default function StudentNotesTab({
   onUpdateNote,
   onDeleteNote,
   isCreating = false,
+  isLoading = false,
   canCreateFollowUpTask,
   followUpTaskDisabledReason,
 }: StudentNotesTabProps) {
@@ -120,7 +123,9 @@ export default function StudentNotesTab({
         />
       </div>
 
-      {filteredNotes.length === 0 ? (
+      {isLoading ? (
+        <StudentNotesSkeleton />
+      ) : filteredNotes.length === 0 ? (
         <p className="py-2 text-xs text-text-tertiary">
           Chưa có ghi chú nào phù hợp.
         </p>

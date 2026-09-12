@@ -17,9 +17,7 @@ import {
   SelectValue,
 } from "@/components/tailgrids/core/select";
 
-import type {
-  LeadSaleCampaign,
-} from "@/services/api/lead-sale";
+import type { LeadSaleCampaign } from "@/services/api/lead-sale";
 
 import CampaignFilter from "./campaign-filter";
 import {
@@ -35,6 +33,7 @@ interface LeadListToolbarProps {
   query: string;
   status: LeadStageStatus | "all";
   resolution: LeadResultFilter | "all";
+  order: "asc" | "desc";
   campaign: string;
   campaigns: LeadSaleCampaign[];
   campaignLoading: boolean;
@@ -43,6 +42,7 @@ interface LeadListToolbarProps {
   onQueryChange: (value: string) => void;
   onStatusChange: (value: LeadStageStatus | "all") => void;
   onResolutionChange: (value: LeadResultFilter | "all") => void;
+  onOrderChange: (value: "asc" | "desc") => void;
   onCampaignChange: (value: string) => void;
   onReset: () => void;
 }
@@ -51,6 +51,7 @@ export default function LeadListToolbar({
   query,
   status,
   resolution,
+  order,
   campaign,
   campaigns,
   campaignLoading,
@@ -59,6 +60,7 @@ export default function LeadListToolbar({
   onQueryChange,
   onStatusChange,
   onResolutionChange,
+  onOrderChange,
   onCampaignChange,
   onReset,
 }: LeadListToolbarProps) {
@@ -66,6 +68,7 @@ export default function LeadListToolbar({
     query.trim().length > 0 ||
     status !== "all" ||
     resolution !== "all" ||
+    order !== "desc" ||
     campaign !== "";
 
   return (
@@ -138,6 +141,25 @@ export default function LeadListToolbar({
                   {leadResultFilterLabel[item]}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select
+            className="min-w-0 sm:w-40"
+            value={order}
+            onChange={(value) => onOrderChange(value as "asc" | "desc")}
+            aria-label="Sắp xếp theo thời gian"
+          >
+            <SelectTrigger size="sm" className="w-full">
+              <SelectValue />
+              <SelectIndicator />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem id="desc" textValue="Mới nhất">
+                Mới nhất
+              </SelectItem>
+              <SelectItem id="asc" textValue="Cũ nhất">
+                Cũ nhất
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

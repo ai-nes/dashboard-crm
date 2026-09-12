@@ -6,6 +6,7 @@ import { DialogTrigger } from "react-aria-components";
 
 import { Button } from "@/components/tailgrids/core/button";
 import { Popover } from "@/components/tailgrids/core/popover";
+import { CallLogPopoverSkeleton } from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-activity-skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -106,12 +107,7 @@ export default function LeadContactLogCell({
 
               {isOpen &&
                 (callLogsQuery.isPending ? (
-                  <p
-                    className="mt-4 border-t border-card-border pt-3 text-xs text-text-tertiary"
-                    role="status"
-                  >
-                    Đang tải ghi âm cuộc gọi…
-                  </p>
+                  <CallLogPopoverSkeleton />
                 ) : callLogsQuery.isError ? (
                   <div className="mt-4 flex items-center justify-between gap-2 border-t border-card-border pt-3">
                     <p className="text-xs text-error-600">
