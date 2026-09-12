@@ -19,7 +19,10 @@ import {
   type RichTextEditorInstance,
 } from "@/components/tailgrids/core/rich-text-editor";
 import type { SnippetRecord } from "@/services/api/snippets";
-import type { MessageTemplateTokenDefinition } from "@/services/api/message-templates";
+import type {
+  MessageTemplateSharing,
+  MessageTemplateTokenDefinition,
+} from "@/services/api/message-templates";
 
 import type { MessageTemplateDraft } from "./message-template-create-types";
 import MessageTemplateTokenPopover from "./message-template-token-popover";
@@ -41,6 +44,7 @@ interface MessageTemplateCreateEditorProps {
   isLoadingTokens?: boolean;
   tokensError?: string | null;
   sharingLocked?: boolean;
+  lockedSharing?: MessageTemplateSharing;
   showPreviewToggle?: boolean;
   onShowPreview?: () => void;
   snippets?: SnippetRecord[];
@@ -141,6 +145,7 @@ export default function MessageTemplateCreateEditor({
   isLoadingTokens = false,
   tokensError = null,
   sharingLocked = false,
+  lockedSharing = "public",
   showPreviewToggle = false,
   onShowPreview,
   snippets = [],
@@ -258,7 +263,9 @@ export default function MessageTemplateCreateEditor({
         <div className="grid shrink-0 border-b border-button-primary-outline-stroke sm:grid-cols-[minmax(0,1fr)_auto]">
           {sharingLocked ? (
             <div className="flex h-11 items-center px-4 text-sm font-semibold text-text-primary">
-              Chia sẻ với mọi người
+              {lockedSharing === "private"
+                ? "Chỉ mình tôi"
+                : "Chia sẻ với mọi người"}
             </div>
           ) : (
             <Select

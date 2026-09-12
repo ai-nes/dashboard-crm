@@ -25,6 +25,7 @@ import type { SnippetRecord } from "@/services/api/snippets";
 interface SnippetTableProps {
   snippets: SnippetRecord[];
   totalCount: number;
+  canCreate?: boolean;
   isLoading?: boolean;
   onDuplicate: (snippet: SnippetRecord) => void;
   onDelete: (snippet: SnippetRecord) => void;
@@ -89,6 +90,7 @@ function SnippetSkeletonRow({ index }: { index: number }) {
 export default function SnippetTable({
   snippets,
   totalCount,
+  canCreate = true,
   isLoading = false,
   onDuplicate,
   onDelete,
@@ -193,21 +195,23 @@ export default function SnippetTable({
                     onClick={(event) => event.stopPropagation()}
                     onKeyDown={(event) => event.stopPropagation()}
                   >
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          iconOnly
-                          size="sm"
-                          appearance="ghost"
-                          aria-label={`Nhân bản ${snippet.internalName}`}
-                          onPress={() => onDuplicate(snippet)}
-                        >
-                          <Copy4 size={17} aria-hidden="true" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Nhân bản</TooltipContent>
-                    </Tooltip>
+                    {canCreate ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            iconOnly
+                            size="sm"
+                            appearance="ghost"
+                            aria-label={`Nhân bản ${snippet.internalName}`}
+                            onPress={() => onDuplicate(snippet)}
+                          >
+                            <Copy4 size={17} aria-hidden="true" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Nhân bản</TooltipContent>
+                      </Tooltip>
+                    ) : null}
                     {snippet.canEdit ? (
                       <Tooltip>
                         <TooltipTrigger asChild>

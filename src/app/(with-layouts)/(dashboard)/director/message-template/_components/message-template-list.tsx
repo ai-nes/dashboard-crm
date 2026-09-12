@@ -13,6 +13,8 @@ const PAGE_SIZE = 10;
 
 interface MessageTemplateListProps {
   templates: MessageTemplateRecord[];
+  canCreate?: boolean;
+  canDelete?: boolean;
   currentUserId?: string;
   isLoading?: boolean;
   onDuplicate: (template: MessageTemplateRecord) => void;
@@ -36,6 +38,8 @@ function parsePage(value: string | null) {
 
 export default function MessageTemplateList({
   templates,
+  canCreate = true,
+  canDelete = true,
   currentUserId,
   isLoading = false,
   onDuplicate,
@@ -156,21 +160,26 @@ export default function MessageTemplateList({
       <MessageTemplateTable
         templates={paginatedTemplates}
         totalCount={scopedTemplates.length}
+        canCreate={canCreate}
+        canDelete={canDelete}
         isLoading={isLoading}
         onDuplicate={onDuplicate}
         onDelete={onDelete}
         onEdit={onEdit}
       />
       {totalPages > 1 ? (
-        <div className="border-t border-card-border px-5 py-4">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={(nextPage) => {
-              updateQuery({ page: nextPage === 1 ? undefined : String(nextPage) });
-            }}
-            isDisabled={isLoading}
-          />
+        <div className="flex justify-end border-t border-card-border px-5 py-4">
+          <div className="w-fit">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(nextPage) => {
+                updateQuery({ page: nextPage === 1 ? undefined : String(nextPage) });
+              }}
+              variant="compact"
+              isDisabled={isLoading}
+            />
+          </div>
         </div>
       ) : null}
     </section>

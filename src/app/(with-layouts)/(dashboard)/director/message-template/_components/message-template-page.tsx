@@ -12,6 +12,7 @@ import {
   deleteMessageTemplate,
   listMessageTemplates,
   updateMessageTemplate,
+  type MessageTemplateSharing,
 } from "@/services/api/message-templates";
 import { listSnippets, type SnippetRecord } from "@/services/api/snippets";
 
@@ -23,29 +24,40 @@ import MessageTemplateList from "./message-template-list";
 import type { MessageTemplateRecord } from "./message-template-data";
 import type { MessageTemplateDraft } from "./message-template-create-types";
 
-const emptyDraft: MessageTemplateDraft = {
+const createEmptyDraft = (
+  sharing: MessageTemplateSharing = "public",
+): MessageTemplateDraft => ({
   name: "",
   subject: "",
   body: "",
-  sharing: "public",
+  sharing,
   customValues: {},
-};
+});
 
 function getDraftForTemplate(
   template: MessageTemplateRecord | null,
+  lockedSharing?: MessageTemplateSharing,
 ): MessageTemplateDraft {
-  if (!template) return emptyDraft;
+  if (!template) return createEmptyDraft(lockedSharing);
 
   return {
     name: template.name,
     subject: template.subject,
     body: normalizeMessageTemplateBody(template.body),
-    sharing: template.sharing,
+    sharing: lockedSharing ?? template.sharing,
     customValues: template.customValues ?? {},
   };
 }
 
-export default function MessageTemplatePage() {
+export default function MessageTemplatePage({
+  canCreate = true,
+  canDelete = true,
+  lockedSharing,
+}: {
+  canCreate?: boolean;
+  canDelete?: boolean;
+  lockedSharing?: MessageTemplateSharing;
+} = {}) {
   const [templates, setTemplates] = useState<MessageTemplateRecord[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +70,9 @@ export default function MessageTemplatePage() {
     useState<MessageTemplateRecord | null>(null);
   const [templateToDelete, setTemplateToDelete] =
     useState<MessageTemplateRecord | null>(null);
-  const [draft, setDraft] = useState<MessageTemplateDraft>(emptyDraft);
+  const [draft, setDraft] = useState<MessageTemplateDraft>(() =>
+    createEmptyDraft(lockedSharing),
+  );
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const [selectedContact, setSelectedContact] = useState("");
   const [snippets, setSnippets] = useState<SnippetRecord[]>([]);
@@ -115,7 +129,7 @@ export default function MessageTemplatePage() {
 
   const openCreateDialog = () => {
     setTemplateToEdit(null);
-    setDraft(emptyDraft);
+    setDraft(createEmptyDraft(lockedSharing));
     setIsPreviewVisible(true);
     setSelectedContact("");
     setIsCreateDialogOpen(true);
@@ -123,7 +137,7 @@ export default function MessageTemplatePage() {
 
   const openEditDialog = (template: MessageTemplateRecord) => {
     setTemplateToEdit(template);
-    setDraft(getDraftForTemplate(template));
+    setDraft(getDraftForTemplate(template, lockedSharing));
     setIsPreviewVisible(true);
     setSelectedContact("");
     setIsCreateDialogOpen(true);
@@ -134,6 +148,7 @@ export default function MessageTemplatePage() {
     setDraft({
       ...libraryDraft,
       body: normalizeMessageTemplateBody(libraryDraft.body),
+      sharing: lockedSharing ?? "public",
     });
     setIsPreviewVisible(true);
     setSelectedContact("");
@@ -157,6 +172,7 @@ export default function MessageTemplatePage() {
     const normalizedDraft = {
       ...nextDraft,
       body: normalizeMessageTemplateBody(nextDraft.body),
+      ...(lockedSharing ? { sharing: lockedSharing } : {}),
     };
     try {
       if (templateToEdit) {
@@ -187,7 +203,7 @@ export default function MessageTemplatePage() {
         name: `${template.name} (Bản sao)`,
         subject: template.subject,
         body: template.body,
-        sharing: template.sharing,
+        sharing: lockedSharing ?? template.sharing,
         customValues: template.customValues ?? {},
       });
       toast.success("Đã nhân bản mẫu email.");
@@ -238,10 +254,12 @@ export default function MessageTemplatePage() {
             sinh.
           </p>
         </div>
-        <ContentCreateMenu
-          onCreateNew={openCreateDialog}
-          onCreateFromTemplate={() => setIsLibraryOpen(true)}
-        />
+        {canCreate ? (
+          <ContentCreateMenu
+            onCreateNew={openCreateDialog}
+            onCreateFromTemplate={() => setIsLibraryOpen(true)}
+          />
+        ) : null}
       </Card>
 
       {loadError ? (
@@ -258,6 +276,8 @@ export default function MessageTemplatePage() {
       ) : (
         <MessageTemplateList
           templates={templates}
+          canCreate={canCreate}
+          canDelete={canDelete}
           currentUserId={currentUser?.user ?? currentUser?.email}
           isLoading={isLoading}
           onDuplicate={duplicateTemplate}
@@ -289,6 +309,8 @@ export default function MessageTemplatePage() {
         ownerName={templateToEdit?.owner ?? currentUser?.full_name ?? "Bạn"}
         onDraftChange={updateDraft}
         template={templateToEdit}
+        sharingLocked={lockedSharing !== undefined}
+        lockedSharing={lockedSharing}
         onSave={saveTemplate}
         isSaving={isSaving}
         isPreviewVisible={isPreviewVisible}

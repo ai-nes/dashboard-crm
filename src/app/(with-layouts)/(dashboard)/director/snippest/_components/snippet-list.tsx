@@ -18,6 +18,7 @@ interface SnippetListProps {
   snippets: SnippetRecord[];
   listResponse: ListSnippetsResponse;
   listParams: ListSnippetsParams;
+  canCreate?: boolean;
   currentUserId?: string;
   isLoading?: boolean;
   onListParamsChange: (params: ListSnippetsParams) => void;
@@ -30,6 +31,7 @@ export default function SnippetList({
   snippets,
   listResponse,
   listParams,
+  canCreate = true,
   currentUserId,
   isLoading = false,
   onListParamsChange,
@@ -125,25 +127,29 @@ export default function SnippetList({
       <SnippetTable
         snippets={snippets}
         totalCount={totalCount}
+        canCreate={canCreate}
         isLoading={isLoading}
         onDuplicate={onDuplicate}
         onDelete={onDelete}
         onEdit={onEdit}
       />
       {listResponse.totalPages > 1 ? (
-        <div className="border-t border-card-border px-5 py-4">
-          <Pagination
-            currentPage={listResponse.page}
-            totalPages={listResponse.totalPages}
-            onPageChange={(nextPage) =>
-              onListParamsChange({
-                ...listParams,
-                page: nextPage,
-                pageSize: PAGE_SIZE,
-              })
-            }
-            isDisabled={isLoading}
-          />
+        <div className="flex justify-end border-t border-card-border px-5 py-4">
+          <div className="w-fit">
+            <Pagination
+              currentPage={listResponse.page}
+              totalPages={listResponse.totalPages}
+              onPageChange={(nextPage) =>
+                onListParamsChange({
+                  ...listParams,
+                  page: nextPage,
+                  pageSize: PAGE_SIZE,
+                })
+              }
+              variant="compact"
+              isDisabled={isLoading}
+            />
+          </div>
         </div>
       ) : null}
     </section>

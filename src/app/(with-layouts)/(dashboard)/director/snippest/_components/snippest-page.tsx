@@ -18,6 +18,7 @@ import {
   type ListSnippetsParams,
   type ListSnippetsResponse,
   type SnippetRecord,
+  type SnippetSharing,
 } from "@/services/api/snippets";
 
 import SnippetCreateDialog from "./snippet-create-dialog";
@@ -42,21 +43,24 @@ const EMPTY_LIST_RESPONSE: ListSnippetsResponse = {
   hasNextPage: false,
 };
 
-const createEmptyDraft = (): SnippetDraft => ({
+const createEmptyDraft = (sharing: SnippetSharing = "public"): SnippetDraft => ({
   internalName: "",
   snippetText: "",
   shortcut: "",
-  sharing: "public",
+  sharing,
 });
 
-function getDraftForSnippet(snippet: SnippetRecord | null): SnippetDraft {
-  if (!snippet) return createEmptyDraft();
+function getDraftForSnippet(
+  snippet: SnippetRecord | null,
+  lockedSharing?: SnippetSharing,
+): SnippetDraft {
+  if (!snippet) return createEmptyDraft(lockedSharing);
 
   return {
     internalName: snippet.internalName ?? "",
     snippetText: snippet.snippetText ?? "",
     shortcut: snippet.shortcut ?? "",
-    sharing: snippet.sharing,
+    sharing: lockedSharing ?? snippet.sharing,
   };
 }
 
@@ -77,7 +81,13 @@ function getDuplicateShortcut(
   return shortcut;
 }
 
-export default function SnippestPage() {
+export default function SnippestPage({
+  canCreate = true,
+  lockedSharing,
+}: {
+  canCreate?: boolean;
+  lockedSharing?: SnippetSharing;
+} = {}) {
   const [snippets, setSnippets] = useState<SnippetRecord[]>([]);
   const [listResponse, setListResponse] =
     useState<ListSnippetsResponse>(EMPTY_LIST_RESPONSE);
@@ -138,13 +148,13 @@ export default function SnippestPage() {
 
   const openCreateDialog = () => {
     setSnippetToEdit(null);
-    setDraft(createEmptyDraft());
+    setDraft(createEmptyDraft(lockedSharing));
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (snippet: SnippetRecord) => {
     setSnippetToEdit(snippet);
-    setDraft(getDraftForSnippet(snippet));
+    setDraft(getDraftForSnippet(snippet, lockedSharing));
     setIsDialogOpen(true);
   };
 
@@ -161,16 +171,19 @@ export default function SnippestPage() {
 
   const saveSnippet = async (nextDraft: SnippetDraft) => {
     setIsSaving(true);
+    const normalizedDraft = lockedSharing
+      ? { ...nextDraft, sharing: lockedSharing }
+      : nextDraft;
     try {
       if (snippetToEdit) {
         await updateSnippet(
           snippetToEdit.id,
-          nextDraft,
+          normalizedDraft,
           snippetToEdit.modifiedAt,
         );
         toast.success("Đã lưu thay đổi snippet.");
       } else {
-        await createSnippet(nextDraft);
+        await createSnippet(normalizedDraft);
         toast.success("Đã tạo snippet.");
       }
       await loadSnippets(listParams);
@@ -190,7 +203,7 @@ export default function SnippestPage() {
         internalName: `${snippet.internalName} (Bản sao)`,
         snippetText: snippet.snippetText,
         shortcut: getDuplicateShortcut(snippet, snippets),
-        sharing: snippet.sharing,
+        sharing: lockedSharing ?? snippet.sharing,
       });
       toast.success("Đã nhân bản snippet.");
       await loadSnippets(listParams);
@@ -239,10 +252,12 @@ export default function SnippestPage() {
             sinh.
           </p>
         </div>
-        <Button size="sm" className="shrink-0" onPress={openCreateDialog}>
-          <Plus size={16} aria-hidden="true" />
-          Tạo snippet
-        </Button>
+        {canCreate ? (
+          <Button size="sm" className="shrink-0" onPress={openCreateDialog}>
+            <Plus size={16} aria-hidden="true" />
+            Tạo snippet
+          </Button>
+        ) : null}
       </Card>
 
       {loadError ? (
@@ -261,6 +276,7 @@ export default function SnippestPage() {
           snippets={snippets}
           listResponse={listResponse}
           listParams={listParams}
+          canCreate={canCreate}
           currentUserId={currentUser?.user ?? currentUser?.email}
           isLoading={isLoading}
           onListParamsChange={(nextParams) => {
@@ -294,6 +310,8 @@ export default function SnippestPage() {
         onOpenChange={handleDialogChange}
         draft={draft}
         ownerName={snippetToEdit?.owner ?? currentUser?.full_name ?? "Bạn"}
+        sharingLocked={lockedSharing !== undefined}
+        lockedSharing={lockedSharing}
         onDraftChange={updateDraft}
         snippet={snippetToEdit}
         onSave={saveSnippet}

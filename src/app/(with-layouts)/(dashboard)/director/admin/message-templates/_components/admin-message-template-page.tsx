@@ -4,6 +4,7 @@ import { Plus } from "@tailgrids/icons";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { getCurrentUser, type CurrentUser } from "@/services/api/auth";
 import {
@@ -13,9 +14,8 @@ import {
   updateMessageTemplateLibrary,
   type MessageTemplateRecord,
 } from "@/services/api/message-templates";
-import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Card, CardTitle } from "@/components/tailgrids/core/card";
+import { Card } from "@/components/tailgrids/core/card";
 
 import MessageTemplateCreateDialog from "@/app/(with-layouts)/(dashboard)/director/message-template/_components/message-template-create-dialog";
 import { normalizeMessageTemplateBody } from "@/app/(with-layouts)/(dashboard)/director/message-template/_components/message-template-body";
@@ -193,26 +193,24 @@ export default function AdminMessageTemplatePage() {
       id="main-content"
       className="flex min-h-0 min-w-0 flex-col gap-5 px-2 py-4 pb-8 lg:px-6"
     >
-      <Card className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:p-6">
-        <div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Badge color="primary">QUẢN LÝ TEMPLATE</Badge>
-            <span className="text-xs text-text-tertiary">
-              Cấu hình nội dung
-            </span>
-          </div>
-          <CardTitle level={1} className="mt-4 text-[28px] leading-8">
-            Quản lý Message Template
-          </CardTitle>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Quản lý các mẫu email dùng chung hiển thị trong thư viện tạo mẫu.
-          </p>
-        </div>
-        <Button size="md" className="shrink-0" onPress={openCreateDialog}>
-          <Plus size={16} aria-hidden="true" />
-          Tạo mẫu
-        </Button>
-      </Card>
+      <AdminPageHeader
+        section="Message Template"
+        title="Quản lý Message Template"
+        description="Thư viện mẫu email dùng chung."
+        actions={
+          <Button size="md" className="shrink-0" onPress={openCreateDialog}>
+            <Plus size={16} aria-hidden="true" />
+            Tạo mẫu
+          </Button>
+        }
+        metaLabel="Nội dung dùng chung"
+        metaValue={
+          <>
+            <span className="font-semibold text-text-primary">{templates.length}</span>{" "}
+            mẫu
+          </>
+        }
+      />
 
       {loadError ? (
         <Card className="border-button-error-outline-stroke p-6 text-sm text-button-error-outline-text">

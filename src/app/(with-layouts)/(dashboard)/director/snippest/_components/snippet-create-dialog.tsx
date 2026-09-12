@@ -26,7 +26,11 @@ import { Backdrop } from "@/components/tailgrids/core/overlay";
 import { RichTextEditor } from "@/components/tailgrids/core/rich-text-editor";
 import { cn } from "@/utils/cn";
 
-import type { SnippetDraft, SnippetRecord } from "@/services/api/snippets";
+import type {
+  SnippetDraft,
+  SnippetRecord,
+  SnippetSharing,
+} from "@/services/api/snippets";
 import {
   listMessageTemplateTokens,
   type MessageTemplateTokenDefinition,
@@ -41,6 +45,8 @@ interface SnippetCreateDialogProps {
   ownerName: string;
   onDraftChange: (field: keyof SnippetDraft, value: string) => void;
   snippet?: SnippetRecord | null;
+  sharingLocked?: boolean;
+  lockedSharing?: SnippetSharing;
   onSave?: (draft: SnippetDraft) => Promise<void> | void;
   isSaving?: boolean;
 }
@@ -56,6 +62,8 @@ export default function SnippetCreateDialog({
   ownerName,
   onDraftChange,
   snippet = null,
+  sharingLocked = false,
+  lockedSharing = "public",
   onSave,
   isSaving = false,
 }: SnippetCreateDialogProps) {
@@ -149,30 +157,36 @@ export default function SnippetCreateDialog({
                 <span className="mb-2 block text-sm font-semibold text-text-primary">
                   Chia sẻ
                 </span>
-                <Select
-                  aria-label="Quyền chia sẻ"
-                  value={draft.sharing}
-                  onChange={(value) =>
-                    onDraftChange("sharing", String(value ?? "public"))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {draft.sharing === "private" ? "Riêng tư" : "Công khai"}
-                    </SelectValue>
-                    <SelectIndicator>
-                      <ChevronDown size={14} />
-                    </SelectIndicator>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem id="public" textValue="Công khai">
-                      Công khai
-                    </SelectItem>
-                    <SelectItem id="private" textValue="Riêng tư">
-                      Riêng tư
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                {sharingLocked ? (
+                  <div className="flex h-11 items-center rounded-lg border border-card-border bg-background-gray-secondary px-3 text-sm text-text-secondary">
+                    {lockedSharing === "private" ? "Riêng tư" : "Công khai"}
+                  </div>
+                ) : (
+                  <Select
+                    aria-label="Quyền chia sẻ"
+                    value={draft.sharing}
+                    onChange={(value) =>
+                      onDraftChange("sharing", String(value ?? "public"))
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {draft.sharing === "private" ? "Riêng tư" : "Công khai"}
+                      </SelectValue>
+                      <SelectIndicator>
+                        <ChevronDown size={14} />
+                      </SelectIndicator>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem id="public" textValue="Công khai">
+                        Công khai
+                      </SelectItem>
+                      <SelectItem id="private" textValue="Riêng tư">
+                        Riêng tư
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 

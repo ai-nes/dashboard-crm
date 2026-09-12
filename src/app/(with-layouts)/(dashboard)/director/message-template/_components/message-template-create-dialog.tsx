@@ -18,6 +18,7 @@ import { cn } from "@/utils/cn";
 import {
   listMessageTemplateTokens,
   type MessageTemplateTokenDefinition,
+  type MessageTemplateSharing,
 } from "@/services/api/message-templates";
 import type { SnippetRecord } from "@/services/api/snippets";
 
@@ -38,6 +39,7 @@ interface MessageTemplateCreateDialogProps {
   ) => void;
   template?: MessageTemplateRecord | null;
   sharingLocked?: boolean;
+  lockedSharing?: MessageTemplateSharing;
   onSave?: (draft: MessageTemplateDraft) => Promise<void> | void;
   isSaving?: boolean;
   isPreviewVisible: boolean;
@@ -61,6 +63,7 @@ export default function MessageTemplateCreateDialog({
   onDraftChange,
   template = null,
   sharingLocked = false,
+  lockedSharing = "public",
   onSave,
   isSaving = false,
   isPreviewVisible,
@@ -171,6 +174,7 @@ export default function MessageTemplateCreateDialog({
                 isLoadingTokens={isLoadingTokens}
                 tokensError={tokensError}
                 sharingLocked={sharingLocked}
+                lockedSharing={lockedSharing}
                 snippets={snippets}
                 isLoadingSnippets={isLoadingSnippets}
                 snippetsError={snippetsError}

@@ -26,6 +26,8 @@ const SKELETON_ROW_COUNT = 10;
 interface MessageTemplateTableProps {
   templates: MessageTemplateRecord[];
   totalCount: number;
+  canCreate?: boolean;
+  canDelete?: boolean;
   isLoading?: boolean;
   onDuplicate: (template: MessageTemplateRecord) => void;
   onDelete: (template: MessageTemplateRecord) => void;
@@ -72,6 +74,8 @@ function MessageTemplateSkeletonRows() {
 export default function MessageTemplateTable({
   templates,
   totalCount,
+  canCreate = true,
+  canDelete = true,
   isLoading = false,
   onDuplicate,
   onDelete,
@@ -159,22 +163,24 @@ export default function MessageTemplateTable({
                   onClick={(event) => event.stopPropagation()}
                   onKeyDown={(event) => event.stopPropagation()}
                 >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        iconOnly
-                        size="sm"
-                        appearance="ghost"
-                        aria-label={`Nhân bản ${template.name}`}
-                        onPress={() => onDuplicate(template)}
-                      >
-                        <Copy4 size={17} aria-hidden="true" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Nhân bản</TooltipContent>
-                  </Tooltip>
-                  {template.canEdit ? (
+                  {canCreate ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          iconOnly
+                          size="sm"
+                          appearance="ghost"
+                          aria-label={`Nhân bản ${template.name}`}
+                          onPress={() => onDuplicate(template)}
+                        >
+                          <Copy4 size={17} aria-hidden="true" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Nhân bản</TooltipContent>
+                    </Tooltip>
+                  ) : null}
+                  {canDelete && template.canEdit ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
