@@ -132,6 +132,21 @@ async function requestHeaders(options: RequestOptions, isWrite: boolean): Promis
 
     if (csrfToken) {
       headers["X-Frappe-CSRF-Token"] = decodeURIComponent(csrfToken);
+    } else {
+      // Cross-origin deployments can't read the Frappe-domain cookie from
+      // document.cookie; fall back to fetching it from the session itself.
+      try {
+        const response = await fetch(`${resolveBaseUrl(options)}/api/method/crm.api.session.me`, {
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+        const payload = (await response.json().catch(() => null)) as { message?: { csrf_token?: unknown } } | null;
+        if (typeof payload?.message?.csrf_token === "string") {
+          headers["X-Frappe-CSRF-Token"] = payload.message.csrf_token;
+        }
+      } catch {
+        // Frappe still accepts the session cookie when CSRF is disabled.
+      }
     }
   }
 
