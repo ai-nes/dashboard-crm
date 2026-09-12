@@ -1,14 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ArrowLeft, ChevronDown, Plus } from "@tailgrids/icons";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasCrmCapability } from "@/components/common/auth/permissions";
-import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
+import { canManageCrmRules } from "@/components/common/auth/permissions";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { CrmRuleStatusBadge } from "@/components/rules/rule-status-badges";
 import { Button } from "@/components/tailgrids/core/button";
@@ -23,16 +22,23 @@ import {
   useCrmRulesQuery,
   useCrmRuleVersionQuery,
   useCrmRuleVersionsQuery,
+  useCloneCrmRuleVersionMutation,
   useDeleteCrmRuleMutation,
   useSetCrmRuleEnabledMutation,
 } from "@/hooks/use-rules-config-queries";
+import { listCrmRules } from "@/services/api/rules-config";
 import type {
   CrmRule,
   CrmRuleFeatureScope,
   CrmRuleGateOutcome,
+  CrmRuleVersion,
   CrmRuleStatus,
   CrmRuleType,
 } from "@/services/api/rules-config";
+import {
+  cloneRuleIntoDraft,
+  RuleDraftCloneLookupError,
+} from "@/services/api/rules-config/draft-clone";
 
 import { RuleListToolbar } from "./rule-list-toolbar";
 import { RuleGroupTabs } from "./rule-group-tabs";
@@ -69,9 +75,7 @@ export default function RulesConfigAdminPage({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const canEdit =
-    hasCrmCapability(user, "rule.manage") ||
-    hasFrappeTechnicalRole(user?.roles, "System Manager");
+  const canEdit = canManageCrmRules(user);
   const requestedVersion =
     routeVersionName ?? searchParams.get("version") ?? "";
   const requestedGroup = searchParams.get("group") ?? "all";
@@ -87,6 +91,9 @@ export default function RulesConfigAdminPage({
   const [isCreateVersionOpen, setIsCreateVersionOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("manage");
   const [ruleToDelete, setRuleToDelete] = useState<CrmRule | null>(null);
+  const [isRuleActionPending, setIsRuleActionPending] = useState(false);
+  const ruleActionLock = useRef(false);
+  const cloneMutation = useCloneCrmRuleVersionMutation();
   const deleteMutation = useDeleteCrmRuleMutation();
   const enabledMutation = useSetCrmRuleEnabledMutation();
 
@@ -104,6 +111,8 @@ export default function RulesConfigAdminPage({
   const versionQuery = useCrmRuleVersionQuery(versionName, {
     enabled: Boolean(versionName),
   });
+  const activeVersion = versionQuery.data ?? currentVersion;
+  const isDraft = activeVersion?.status === "draft";
   const groupsQuery = useCrmRuleGroupsQuery(versionName, {
     enabled: Boolean(versionName),
   });
@@ -156,6 +165,29 @@ export default function RulesConfigAdminPage({
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   };
 
+  const switchToDraftVersion = (draftVersionName: string, group?: string) => {
+    setStatus("all");
+    if (routeVersionName) {
+      const params = new URLSearchParams({ version: draftVersionName });
+      if (group) params.set("group", group);
+      router.push(`/director/admin/rules-config?${params.toString()}`);
+      return;
+    }
+    updateContext(draftVersionName, group);
+  };
+
+  const beginRuleAction = () => {
+    if (ruleActionLock.current) return false;
+    ruleActionLock.current = true;
+    setIsRuleActionPending(true);
+    return true;
+  };
+
+  const endRuleAction = () => {
+    ruleActionLock.current = false;
+    setIsRuleActionPending(false);
+  };
+
   const setRuleGroup = (value: string) => {
     updateContext(versionName, value === "all" ? undefined : value);
   };
@@ -166,10 +198,43 @@ export default function RulesConfigAdminPage({
     router.push(`/director/admin/rules-config/create?${params.toString()}`);
   };
 
-  const openEditRule = (rule: CrmRule) => {
-    router.push(
-      `/director/admin/rules-config/edit/${encodeURIComponent(rule.name)}?version=${encodeURIComponent(versionName)}`,
+  const draftLookupFailed = (error: unknown, rule: CrmRule) => {
+    if (!(error instanceof RuleDraftCloneLookupError)) return false;
+    switchToDraftVersion(error.draftVersion.name, rule.ruleGroup);
+    toast.error(`${error.message} Đã mở bản nháp để bạn có thể tiếp tục.`);
+    return true;
+  };
+
+  const cloneRuleToDraft = (sourceVersion: CrmRuleVersion, rule: CrmRule) =>
+    cloneRuleIntoDraft(
+      sourceVersion,
+      rule,
+      cloneMutation.mutateAsync,
+      listCrmRules,
     );
+
+  const openEditRule = async (rule: CrmRule) => {
+    if (!canEdit || !activeVersion || isDraft) {
+      router.push(
+        `/director/admin/rules-config/edit/${encodeURIComponent(rule.name)}?version=${encodeURIComponent(versionName)}`,
+      );
+      return;
+    }
+    if (cloneMutation.isPending || !beginRuleAction()) return;
+
+    try {
+      const { draftVersion, draftRule } = await cloneRuleToDraft(activeVersion, rule);
+      toast.success("Đã tạo bản nháp. Thay đổi chỉ có hiệu lực sau khi phát hành Version này.");
+      router.push(
+        `/director/admin/rules-config/edit/${encodeURIComponent(draftRule.name)}?version=${encodeURIComponent(draftVersion.name)}`,
+      );
+    } catch (error) {
+      if (!draftLookupFailed(error, rule)) {
+        toast.error(error instanceof Error ? error.message : "Không thể tạo bản nháp để sửa Rule.");
+      }
+    } finally {
+      endRuleAction();
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -195,23 +260,46 @@ export default function RulesConfigAdminPage({
   };
 
   const handleToggleRule = async (rule: CrmRule) => {
-    const expectedVersionRevision = (versionQuery.data ?? currentVersion)?.revision;
-    if (expectedVersionRevision === undefined) return;
+    if (
+      !canEdit ||
+      !activeVersion ||
+      cloneMutation.isPending ||
+      !beginRuleAction()
+    ) return;
+
+    let targetVersion = activeVersion;
+    let targetRule = rule;
+    let cloned = false;
     try {
+      if (!isDraft || rule.status !== "draft") {
+        const clone = await cloneRuleToDraft(activeVersion, rule);
+        targetVersion = clone.draftVersion;
+        targetRule = clone.draftRule;
+        cloned = true;
+      }
+
       await enabledMutation.mutateAsync({
-        name: rule.name,
-        expectedVersionRevision,
+        name: targetRule.name,
+        expectedVersionRevision: targetVersion.revision,
         enabled: !rule.enabled,
       });
-      toast.success(rule.enabled ? "Đã tắt Rule trong bản nháp." : "Đã bật Rule trong bản nháp.");
+      if (cloned) {
+        switchToDraftVersion(targetVersion.name, rule.ruleGroup);
+        toast.success("Đã tạo bản nháp và cập nhật Rule. Thay đổi chỉ có hiệu lực sau khi phát hành Version này.");
+      } else {
+        toast.success(rule.enabled ? "Đã tắt Rule trong bản nháp." : "Đã bật Rule trong bản nháp.");
+      }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể cập nhật trạng thái Rule.");
+      if (!draftLookupFailed(error, rule)) {
+        if (cloned) {
+          switchToDraftVersion(targetVersion.name, rule.ruleGroup);
+        }
+        toast.error(error instanceof Error ? error.message : "Không thể cập nhật trạng thái Rule.");
+      }
+    } finally {
+      endRuleAction();
     }
   };
-
-  const isDraft =
-    (versionQuery.data?.status ?? currentVersion?.status) === "draft";
-  const activeVersion = versionQuery.data ?? currentVersion;
 
   const versionBar = (
     <div className="flex flex-col gap-3 rounded-xl border border-card-border bg-card-background px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
@@ -302,8 +390,8 @@ export default function RulesConfigAdminPage({
             rulesQuery.isFetching
           }
           canDelete={canEdit && isDraft}
-          canToggle={canEdit && isDraft}
-          isDeleteDisabled={deleteMutation.isPending || enabledMutation.isPending}
+          canToggle={canEdit}
+          isDeleteDisabled={deleteMutation.isPending || enabledMutation.isPending || cloneMutation.isPending || isRuleActionPending}
           onSelect={openEditRule}
           onDelete={setRuleToDelete}
           onToggle={handleToggleRule}

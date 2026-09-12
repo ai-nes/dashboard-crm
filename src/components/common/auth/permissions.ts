@@ -12,6 +12,22 @@ export function hasCrmCapability(
   return user?.crm_capabilities?.includes(capability) ?? false;
 }
 
+const CRM_RULE_ADMIN_ROLES = new Set([
+  "System Manager",
+  "Admissions Director",
+  "Business Admin",
+]);
+
+/** Mirrors the Frappe Rule Engine admin gate; server authorization remains authoritative. */
+export function canManageCrmRules(
+  user: CurrentUser | null | undefined,
+): boolean {
+  return (
+    user?.user === "Administrator" ||
+    (user?.roles.some((role) => CRM_RULE_ADMIN_ROLES.has(role)) ?? false)
+  );
+}
+
 export interface CrmResourcePermissions {
   /** Scope used for mutations on an existing record. */
   scope: CrmRecordScope;

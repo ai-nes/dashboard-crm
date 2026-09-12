@@ -3,10 +3,46 @@ import { describe, expect, it } from "vitest";
 import type { CurrentUser } from "@/services/api/auth";
 
 import {
+  canManageCrmRules,
   canConvertLeadToStudent,
   canPerformStudentAction,
   getCrmPermissions,
 } from "./permissions";
+
+const makeUser = (overrides: Partial<CurrentUser> = {}): CurrentUser => ({
+  user: "staff@example.com",
+  email: "staff@example.com",
+  full_name: "CRM Staff",
+  user_image: null,
+  roles: [],
+  crm_profile: null,
+  crm_role: null,
+  crm_capabilities: [],
+  csrf_token: null,
+  ...overrides,
+});
+
+describe("CRM Rule administration permissions", () => {
+  it.each(["System Manager", "Admissions Director", "Business Admin"])(
+    "allows the backend-authorized %s role",
+    (role) => {
+      expect(canManageCrmRules(makeUser({ roles: [role] }))).toBe(true);
+    },
+  );
+
+  it("allows the Administrator identity", () => {
+    expect(canManageCrmRules(makeUser({ user: "Administrator" }))).toBe(true);
+  });
+
+  it("does not grant a capability-only or unrelated role access the API denies", () => {
+    expect(canManageCrmRules(makeUser({ roles: ["Sale"] }))).toBe(false);
+    expect(
+      canManageCrmRules(
+        makeUser({ roles: ["Sale"], crm_capabilities: ["rule.manage"] }),
+      ),
+    ).toBe(false);
+  });
+});
 
 describe("CRM sales permissions", () => {
   it("gives Lead Sale CRUD on every student", () => {

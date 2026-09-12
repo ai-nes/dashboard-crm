@@ -4,8 +4,7 @@ import { Plus } from "@tailgrids/icons";
 import { useState } from "react";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasCrmCapability } from "@/components/common/auth/permissions";
-import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
+import { canManageCrmRules } from "@/components/common/auth/permissions";
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { Button } from "@/components/tailgrids/core/button";
 import { TabContent, TabList, TabRoot, TabTrigger } from "@/components/tailgrids/core/tabs";
@@ -15,7 +14,7 @@ import { RuleVersionList } from "./rule-version-list";
 
 export function RuleVersionsPage() {
   const { user } = useAuth();
-  const canEdit = hasCrmCapability(user, "rule.manage") || hasFrappeTechnicalRole(user?.roles, "System Manager");
+  const canEdit = canManageCrmRules(user);
   const [createOpen, setCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("manage");
 

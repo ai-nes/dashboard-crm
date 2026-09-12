@@ -6,8 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasCrmCapability } from "@/components/common/auth/permissions";
-import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
+import { canManageCrmRules } from "@/components/common/auth/permissions";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Button } from "@/components/tailgrids/core/button";
 import { Input } from "@/components/tailgrids/core/input";
@@ -105,7 +104,7 @@ export default function RuleBuilderPage({
 }) {
   const router = useRouter();
   const { user } = useAuth();
-  const canEdit = hasCrmCapability(user, "rule.manage") || hasFrappeTechnicalRole(user?.roles, "System Manager");
+  const canEdit = canManageCrmRules(user);
   const isCreate = mode === "create";
   const versionQuery = useCrmRuleVersionQuery(versionName, { enabled: Boolean(versionName) });
   const detailQuery = useCrmRuleQuery(ruleName ?? "", { enabled: !isCreate && Boolean(ruleName) });
