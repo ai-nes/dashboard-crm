@@ -278,6 +278,8 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Chiến dịch"
                     options={campaignOptions}
+                    searchable
+                    searchPlaceholder="Tìm chiến dịch..."
                     value={form.campaign}
                     isDisabled={campaignOptionsQuery.isPending}
                     onChange={(value) => setField("campaign", value)}
@@ -289,6 +291,8 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Người phụ trách"
                     options={assignedToOptions}
+                    searchable
+                    searchPlaceholder="Tìm người phụ trách..."
                     value={form.assigned_to}
                     isDisabled={leadMappingOptionsQuery.isPending}
                     onChange={(value) => setField("assigned_to", value)}
@@ -300,6 +304,8 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Tỉnh / thành phố"
                     options={provinceOptions}
+                    searchable
+                    searchPlaceholder="Tìm tỉnh / thành phố..."
                     value={form.province}
                     isDisabled={provinceOptionsQuery.isPending}
                     onChange={handleProvinceChange}
@@ -311,6 +317,8 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Xã / phường"
                     options={wardOptions}
+                    searchable
+                    searchPlaceholder="Tìm xã / phường..."
                     value={form.ward}
                     isDisabled={!form.province || wardOptionsQuery.isPending}
                     onChange={(value) => setField("ward", value)}
@@ -333,6 +341,8 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Ngành quan tâm"
                     options={majorOptions}
+                    searchable
+                    searchPlaceholder="Tìm ngành quan tâm..."
                     value={form.major}
                     isDisabled={majorOptionsQuery.isPending}
                     onChange={(value) => setField("major", value)}
@@ -343,6 +353,8 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Chi nhánh"
                     options={branchOptions}
+                    searchable
+                    searchPlaceholder="Tìm chi nhánh..."
                     value={form.branch}
                     isDisabled={branchOptionsQuery.isPending}
                     onChange={(value) => setField("branch", value)}

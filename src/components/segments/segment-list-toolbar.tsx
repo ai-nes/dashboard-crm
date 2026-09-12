@@ -15,18 +15,31 @@ import { SEGMENT_STATUS_FILTER_OPTIONS } from "./segment-list-types";
 interface SegmentListToolbarProps {
   table: Table<SegmentListItem>;
   children: ReactNode;
+  serverPagination?: {
+    search: string;
+    status: string;
+    total: number;
+    onSearchChange: (value: string) => void;
+    onStatusChange: (value: string) => void;
+  };
 }
 
 export function SegmentListToolbar({
   table,
   children,
+  serverPagination,
 }: SegmentListToolbarProps) {
-  const status = String(table.getColumn("status")?.getFilterValue() ?? "ALL");
+  const status = serverPagination
+    ? serverPagination.status
+    : String(table.getColumn("status")?.getFilterValue() ?? "ALL");
   const segments = table.options.data;
   const tabs = SEGMENT_STATUS_FILTER_OPTIONS.map((option) => ({
     ...option,
-    count:
-      option.id === "ALL"
+    count: serverPagination
+      ? option.id === "ALL" || option.id === status
+        ? serverPagination.total
+        : null
+      : option.id === "ALL"
         ? segments.length
         : segments.filter((item) => item.status === option.id).length,
   }));
@@ -35,9 +48,11 @@ export function SegmentListToolbar({
     <Tabs
       selectedKey={status}
       onSelectionChange={(key) =>
-        table
-          .getColumn("status")
-          ?.setFilterValue(key === "ALL" ? undefined : key)
+        serverPagination
+          ? serverPagination.onStatusChange(String(key))
+          : table
+              .getColumn("status")
+              ?.setFilterValue(key === "ALL" ? undefined : key)
       }
     >
       <div className="space-y-3 border-b border-card-border px-5 py-4">
@@ -53,13 +68,23 @@ export function SegmentListToolbar({
               type="search"
               aria-label="Tìm segment"
               placeholder="Tìm mã, tên segment hoặc người tạo…"
-              value={String(table.getState().globalFilter ?? "")}
-              onChange={(event) => table.setGlobalFilter(event.target.value)}
+              value={
+                serverPagination
+                  ? serverPagination.search
+                  : String(table.getState().globalFilter ?? "")
+              }
+              onChange={(event) =>
+                serverPagination
+                  ? serverPagination.onSearchChange(event.target.value)
+                  : table.setGlobalFilter(event.target.value)
+              }
               className="pl-2 text-sm"
             />
           </InputGroup>
           <span aria-live="polite" className="text-xs text-text-tertiary">
-            {table.getRowModel().rows.length} / {segments.length} segments
+            {serverPagination
+              ? `${segments.length} / ${serverPagination.total} segments`
+              : `${table.getRowModel().rows.length} / ${segments.length} segments`}
           </span>
         </div>
         <TabList
@@ -74,7 +99,7 @@ export function SegmentListToolbar({
             >
               {tab.label}
               <span className="rounded-md bg-background-gray-secondary px-1.5 py-0.5 text-xs tabular-nums group-data-[selected]:bg-badge-primary-background group-data-[selected]:text-badge-primary-text">
-                {tab.count}
+                {tab.count ?? "—"}
               </span>
             </Tab>
           ))}

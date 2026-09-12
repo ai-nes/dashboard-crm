@@ -160,7 +160,11 @@ export function AdmissionProfileTemplateEditor({
   const [documentSearch, setDocumentSearch] = useState('')
   const createMutation = useCreateAdmissionProfileTemplateMutation()
   const updateMutation = useUpdateAdmissionProfileTemplateMutation()
-  const methodsQuery = useAdmissionMethodsQuery({includeDisabled: false})
+  const methodsQuery = useAdmissionMethodsQuery({
+    includeDisabled: false,
+    start: 0,
+    pageLength: 100,
+  })
   const isSaving = createMutation.isPending || updateMutation.isPending
   const admissionMethods = methodsQuery.data?.methods || []
 

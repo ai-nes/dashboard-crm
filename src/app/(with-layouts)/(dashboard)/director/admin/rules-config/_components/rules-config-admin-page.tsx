@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, ChevronDown, Plus } from "@tailgrids/icons";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -45,13 +45,7 @@ import { RuleGroupTabs } from "./rule-group-tabs";
 import RuleVersionActions from "./rule-version-actions";
 import RulesConfigTable from "./rules-config-table";
 
-const normalizeSearch = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
-    .toLowerCase();
+const RULES_PAGE_SIZE = 8;
 
 const formatDate = (date: string | null | undefined, includeTime = false) => {
   if (!date) return "Chưa có dữ liệu";
@@ -88,6 +82,7 @@ export default function RulesConfigAdminPage({
   const [gateOutcome, setGateOutcome] = useState<CrmRuleGateOutcome | "all">(
     "all",
   );
+  const [page, setPage] = useState(1);
   const [isCreateVersionOpen, setIsCreateVersionOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("manage");
   const [ruleToDelete, setRuleToDelete] = useState<CrmRule | null>(null);
@@ -99,19 +94,22 @@ export default function RulesConfigAdminPage({
 
   const versionsQuery = useCrmRuleVersionsQuery({ start: 0, pageLength: 100 });
   const versions = versionsQuery.data?.versions ?? [];
-  const currentVersion =
-    versions.find(
-      (version) =>
-        version.name === requestedVersion ||
-        version.versionId === requestedVersion,
-    ) ??
-    versions[0] ??
-    null;
-  const versionName = currentVersion?.name ?? "";
-  const versionQuery = useCrmRuleVersionQuery(versionName, {
-    enabled: Boolean(versionName),
+  const listedVersion =
+    requestedVersion && versions.length > 0
+      ? versions.find(
+          (version) =>
+            version.name === requestedVersion ||
+            version.versionId === requestedVersion,
+        ) ?? null
+      : versions[0] ?? null;
+  const versionLookup = listedVersion?.name ?? requestedVersion;
+  const versionQuery = useCrmRuleVersionQuery(versionLookup, {
+    enabled: Boolean(versionLookup),
   });
-  const activeVersion = versionQuery.data ?? currentVersion;
+  const currentVersion = versionQuery.data ?? listedVersion;
+  const versionName =
+    currentVersion?.name ?? versionLookup;
+  const activeVersion = currentVersion;
   const isDraft = activeVersion?.status === "draft";
   const groupsQuery = useCrmRuleGroupsQuery(versionName, {
     enabled: Boolean(versionName),
@@ -119,44 +117,26 @@ export default function RulesConfigAdminPage({
   const groups = groupsQuery.data ?? versionQuery.data?.groups ?? [];
   const ruleGroup = requestedGroup;
   const rulesQuery = useCrmRulesQuery(
-    { versionName, start: 0, pageLength: 200 },
+    {
+      versionName,
+      ruleGroup: ruleGroup === "all" ? undefined : ruleGroup,
+      search: search.trim() || undefined,
+      status: status === "all" ? undefined : status,
+      featureScope: featureScope === "all" ? undefined : featureScope,
+      ruleType: ruleType === "all" ? undefined : ruleType,
+      gateOutcome: gateOutcome === "all" ? undefined : gateOutcome,
+      start: (page - 1) * RULES_PAGE_SIZE,
+      pageLength: RULES_PAGE_SIZE,
+    },
     { enabled: Boolean(versionName) },
   );
 
-  const allRules = useMemo(
-    () => rulesQuery.data?.rules ?? [],
-    [rulesQuery.data?.rules],
-  );
-  const rules = useMemo(() => {
-    const query = normalizeSearch(search.trim());
-    return allRules
-      .filter((rule) => status === "all" || rule.status === status)
-      .filter(
-        (rule) => featureScope === "all" || rule.featureScope === featureScope,
-      )
-      .filter((rule) => ruleType === "all" || rule.ruleType === ruleType)
-      .filter(
-        (rule) => gateOutcome === "all" || rule.gateOutcome === gateOutcome,
-      )
-      .filter((rule) => ruleGroup === "all" || rule.ruleGroup === ruleGroup)
-      .filter(
-        (rule) =>
-          !query ||
-          normalizeSearch(
-            `${rule.ruleId} ${rule.ruleName} ${rule.action}`,
-          ).includes(query),
-      );
-  }, [
-    allRules,
-    featureScope,
-    gateOutcome,
-    ruleGroup,
-    ruleType,
-    search,
-    status,
-  ]);
+  const rules = rulesQuery.data?.rules ?? [];
+  const totalRules = rulesQuery.data?.total ?? 0;
+  const totalRulePages = Math.max(1, Math.ceil(totalRules / RULES_PAGE_SIZE));
 
   const updateContext = (nextVersion?: string, nextGroup?: string) => {
+    if (nextVersion !== versionName) setPage(1);
     const next = new URLSearchParams(searchParams.toString());
     if (nextVersion) next.set("version", nextVersion);
     else next.delete("version");
@@ -167,6 +147,7 @@ export default function RulesConfigAdminPage({
 
   const switchToDraftVersion = (draftVersionName: string, group?: string) => {
     setStatus("all");
+    setPage(1);
     if (routeVersionName) {
       const params = new URLSearchParams({ version: draftVersionName });
       if (group) params.set("group", group);
@@ -189,6 +170,7 @@ export default function RulesConfigAdminPage({
   };
 
   const setRuleGroup = (value: string) => {
+    setPage(1);
     updateContext(versionName, value === "all" ? undefined : value);
   };
 
@@ -265,7 +247,9 @@ export default function RulesConfigAdminPage({
       !activeVersion ||
       cloneMutation.isPending ||
       !beginRuleAction()
-    ) return;
+    ) {
+      return;
+    }
 
     let targetVersion = activeVersion;
     let targetRule = rule;
@@ -365,24 +349,39 @@ export default function RulesConfigAdminPage({
   const listCard = (
     <section className="overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs">
       <RuleListToolbar
-        allRules={allRules}
+        totalCount={totalRules}
         filteredCount={rules.length}
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
         status={status}
-        onStatusChange={setStatus}
+        onStatusChange={(value) => {
+          setStatus(value);
+          setPage(1);
+        }}
         featureScope={featureScope}
-        onFeatureScopeChange={setFeatureScope}
+        onFeatureScopeChange={(value) => {
+          setFeatureScope(value);
+          setPage(1);
+        }}
         ruleType={ruleType}
-        onRuleTypeChange={setRuleType}
+        onRuleTypeChange={(value) => {
+          setRuleType(value);
+          setPage(1);
+        }}
         gateOutcome={gateOutcome}
-        onGateOutcomeChange={setGateOutcome}
+        onGateOutcomeChange={(value) => {
+          setGateOutcome(value);
+          setPage(1);
+        }}
         canCreate={canEdit && isDraft}
         onCreate={() => openCreateRule(ruleGroup !== "all" ? ruleGroup : "")}
       >
         <RulesConfigTable
           rules={rules}
-          total={allRules.length}
+          total={totalRules}
           isLoading={
             groupsQuery.isPending ||
             versionQuery.isPending ||
@@ -391,10 +390,18 @@ export default function RulesConfigAdminPage({
           }
           canDelete={canEdit && isDraft}
           canToggle={canEdit}
-          isDeleteDisabled={deleteMutation.isPending || enabledMutation.isPending || cloneMutation.isPending || isRuleActionPending}
+          isDeleteDisabled={
+            deleteMutation.isPending ||
+            enabledMutation.isPending ||
+            cloneMutation.isPending ||
+            isRuleActionPending
+          }
           onSelect={openEditRule}
           onDelete={setRuleToDelete}
           onToggle={handleToggleRule}
+          currentPage={page}
+          totalPages={totalRulePages}
+          onPageChange={setPage}
         />
       </RuleListToolbar>
     </section>
@@ -444,7 +451,9 @@ export default function RulesConfigAdminPage({
           isLoading={groupsQuery.isPending || versionQuery.isPending}
           canEdit={canEdit && isDraft}
           versionName={versionName}
-          versionRevision={versionQuery.data?.revision ?? currentVersion.revision}
+          versionRevision={
+            versionQuery.data?.revision ?? currentVersion.revision
+          }
           onChanged={() => {
             void versionsQuery.refetch();
             void versionQuery.refetch();
@@ -515,9 +524,7 @@ export default function RulesConfigAdminPage({
             </>
           }
           description={
-            activeVersion
-              ? "Các Rule trong Version này."
-              : "Đang tải Version."
+            activeVersion ? "Các Rule trong Version này." : "Đang tải Version."
           }
           canEdit={canEdit}
           before={
@@ -543,7 +550,7 @@ export default function RulesConfigAdminPage({
                 <span>{activeVersion.rulesCount} Rule</span>
                 <span>Revision {activeVersion.revision}</span>
                 <span>
-                  Cập nhật lần cuối: {" "}
+                  Cập nhật lần cuối:{" "}
                   <strong className="font-medium text-text-secondary">
                     {formatDate(activeVersion.modified)}
                   </strong>
@@ -607,7 +614,9 @@ export default function RulesConfigAdminPage({
         metaLabel="Đồng bộ từ Frappe CRM"
         metaValue={
           <>
-            <span className="font-semibold text-text-primary">{versions.length}</span>{" "}
+            <span className="font-semibold text-text-primary">
+              {versionsQuery.data?.total ?? versions.length}
+            </span>{" "}
             Version
           </>
         }

@@ -149,6 +149,12 @@ export default function StudentContactAddressMockup({
                   }));
                 }}
                 options={field.options}
+                searchable={editKey === "province" || editKey === "ward"}
+                searchPlaceholder={
+                  editKey === "province"
+                    ? "Tìm tỉnh / thành phố..."
+                    : "Tìm xã / phường..."
+                }
                 type={field.type}
                 value={form[editKey]}
               />

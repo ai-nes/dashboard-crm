@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "react-aria-components";
@@ -31,6 +31,8 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+const SEGMENT_STUDENT_PAGE_SIZE = 8;
+
 export function SegmentDetailPage({
   segmentId,
   backHref,
@@ -45,9 +47,16 @@ export function SegmentDetailPage({
   const router = useRouter();
   const { user } = useAuth();
   const canManage = hasFrappeTechnicalRole(user?.roles, "System Manager");
+  const [studentSearch, setStudentSearch] = useState("");
+  const [studentPage, setStudentPage] = useState(1);
   const segmentQuery = useSegmentDetailQuery(segmentId);
   const previewQuery = useSegmentPreviewQuery(
-    { segment: segmentId, pageLength: 100 },
+    {
+      segment: segmentId,
+      search: studentSearch.trim() || undefined,
+      start: (studentPage - 1) * SEGMENT_STUDENT_PAGE_SIZE,
+      pageLength: SEGMENT_STUDENT_PAGE_SIZE,
+    },
     Boolean(segmentId),
   );
   const optionsQuery = useSegmentFilterOptionsQuery();
@@ -55,9 +64,16 @@ export function SegmentDetailPage({
   const segment = useMemo(
     () =>
       segmentQuery.data
-        ? toSegmentListItem(segmentQuery.data, previewQuery.data?.total)
+        ? toSegmentListItem(
+            segmentQuery.data,
+            previewQuery.data?.member_count ?? previewQuery.data?.total,
+          )
         : null,
-    [segmentQuery.data, previewQuery.data?.total],
+    [
+      segmentQuery.data,
+      previewQuery.data?.member_count,
+      previewQuery.data?.total,
+    ],
   );
   const filters = useMemo(
     () => fromBackendSegmentFilters(segmentQuery.data?.filters),
@@ -176,8 +192,16 @@ export function SegmentDetailPage({
             >
               <SegmentStudentTable
                 students={students}
-                isLoading={previewQuery.isLoading}
+                isLoading={previewQuery.isFetching}
                 error={previewQuery.error?.message}
+                search={studentSearch}
+                onSearchChange={(value) => {
+                  setStudentSearch(value);
+                  setStudentPage(1);
+                }}
+                currentPage={studentPage}
+                totalItems={previewQuery.data?.total ?? 0}
+                onPageChange={setStudentPage}
               />
             </section>
           </TabPanel>
@@ -185,7 +209,10 @@ export function SegmentDetailPage({
             id="tasks"
             className="scrollbar-thin min-h-0 min-w-0 overflow-y-auto pt-5 outline-none lg:h-full lg:overscroll-contain"
           >
-            <SegmentTasksTab segmentId={segment.id} segmentName={segment.name} />
+            <SegmentTasksTab
+              segmentId={segment.id}
+              segmentName={segment.name}
+            />
           </TabPanel>
           <TabPanel
             id="activity-log"

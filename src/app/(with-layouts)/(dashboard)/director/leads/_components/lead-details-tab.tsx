@@ -348,14 +348,14 @@ export default function LeadDetailsTab({
           />
           <EditableDetailField
             isEditing={contactEditing}
-            isDisabled={
-              wardOptionsQuery.isLoading || wardOptions.length === 0
-            }
+            isDisabled={wardOptionsQuery.isLoading || wardOptions.length === 0}
             label="Xã / phường"
             onChange={(value) =>
               setContactForm((form) => ({ ...form, ward: value }))
             }
             options={wardOptions}
+            searchable
+            searchPlaceholder="Tìm xã / phường..."
             value={contactEditing ? contactForm.ward : lead.ward}
           />
           <div className="min-w-0 sm:col-span-2">

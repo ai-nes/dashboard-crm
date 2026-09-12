@@ -88,6 +88,7 @@ export interface SegmentStudentRecord {
 
 export interface SegmentPreviewResponse {
   total: number;
+  member_count?: number;
   total_students: number;
   start: number;
   page_length: number;
@@ -148,6 +149,21 @@ export interface ClassificationGroupRecord {
   revision: number;
 }
 
+export interface ClassificationGroupListResponse {
+  groups: ClassificationGroupRecord[];
+  total: number;
+  start: number;
+  pageLength: number;
+}
+
+export interface ClassificationTermListResponse {
+  needs?: SegmentTermRecord[];
+  tags?: SegmentTermRecord[];
+  total: number;
+  start: number;
+  pageLength: number;
+}
+
 export interface ClassificationGroupPayload {
   code: string;
   label: string;
@@ -181,8 +197,16 @@ export interface SegmentFilterOptionsResponse {
 export interface ListSegmentsParams {
   status?: SegmentStatus;
   category?: SegmentCategory;
+  search?: string;
   start?: number;
   pageLength?: number;
+}
+
+export interface ListSegmentsResponse {
+  segments: SegmentRecord[];
+  total: number;
+  start: number;
+  pageLength: number;
 }
 
 export interface CreateSegmentPayload {
@@ -226,6 +250,7 @@ export interface DeleteSegmentPayload {
 export interface SegmentPreviewParams {
   segment?: string;
   filters?: SegmentFilterPayload;
+  search?: string;
   start?: number;
   pageLength?: number;
 }

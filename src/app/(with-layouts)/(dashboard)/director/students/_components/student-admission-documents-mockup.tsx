@@ -250,16 +250,12 @@ function AdmissionProfileChecklist({
   const methodRequirements = methodGroups
     .flatMap((group) => group.requirements)
     .sort((left, right) => left.orderDisplay - right.orderDisplay);
-  const supplementaryLeft = [
+  const supplementaryAll = [
     ...methodRequirements,
-    ...supplementaryGroups
-      .filter((group) => isLeftSupplementaryGroup(group))
-      .flatMap((group) => group.requirements),
+    ...supplementaryGroups.flatMap((group) => group.requirements),
   ].sort((left, right) => left.orderDisplay - right.orderDisplay);
-  const supplementaryRight = supplementaryGroups
-    .filter((group) => !isLeftSupplementaryGroup(group))
-    .flatMap((group) => group.requirements)
-    .sort((left, right) => left.orderDisplay - right.orderDisplay);
+  const [supplementaryLeft, supplementaryRight] =
+    splitRequirements(supplementaryAll);
   const hasSupplementary =
     supplementaryLeft.length > 0 || supplementaryRight.length > 0;
 
@@ -304,6 +300,7 @@ function AdmissionProfileChecklist({
                     group={graduationGroup}
                     isUploading={isUploading}
                     onUpload={onUpload}
+                    showTitle
                   />
                 )}
               </td>
@@ -318,6 +315,7 @@ function AdmissionProfileChecklist({
                     group={identityGroup}
                     isUploading={isUploading}
                     onUpload={onUpload}
+                    showTitle
                   />
                 )}
               </td>
@@ -354,12 +352,7 @@ function AdmissionProfileChecklist({
                 <tr>
                   <th
                     className="border border-card-border bg-background-gray-primary px-4 py-3 text-center text-base font-semibold uppercase tracking-wide text-text-primary"
-                    scope="col"
-                  >
-                    Hồ sơ bổ sung
-                  </th>
-                  <th
-                    className="border border-card-border bg-background-gray-primary px-4 py-3 text-center text-base font-semibold uppercase tracking-wide text-text-primary"
+                    colSpan={2}
                     scope="col"
                   >
                     Hồ sơ bổ sung
@@ -393,17 +386,6 @@ function AdmissionProfileChecklist({
       </div>
     </>
   );
-}
-
-function isLeftSupplementaryGroup(group: RequirementGroup): boolean {
-  const groupCode = group.id.toUpperCase();
-  return [
-    "FIRST_GENERATION",
-    "LANGUAGE_CERTIFICATE",
-    "INTERNATIONAL_PROGRAM",
-    "FPT_POLYTECHNIC",
-    "ACHIEVEMENT",
-  ].some((code) => groupCode.includes(code));
 }
 
 function AdmissionChecklistItemList({
@@ -453,7 +435,7 @@ function AdmissionChecklistItem({
       <Checkbox
         aria-label={requirement.documentLabel}
         className="items-start [&>div]:!ring-0 [&>div]:mt-1 [&>div]:size-4 [&>div]:min-w-4 [&>div]:shrink-0 [&>div]:border-text-secondary"
-        isDisabled
+        isReadOnly
         isSelected={requirement.hasDocument}
         size="sm"
       >
@@ -484,37 +466,46 @@ function AdmissionAlternativeGroup({
   group,
   isUploading,
   onUpload,
+  showTitle = false,
 }: {
   group: RequirementGroup;
   isUploading: string | null;
   onUpload: DocumentUploadHandler;
+  showTitle?: boolean;
 }) {
   const selected = group.requirements.find(
     (item) => item.hasDocument,
   )?.documentType;
 
   return (
-    <RadioGroup
-      aria-label={group.title}
-      className="space-y-3"
-      isDisabled
-      value={selected}
-    >
-      {group.requirements.map((requirement) => (
-        <div key={requirement.documentType}>
-          <AdmissionRadio value={requirement.documentType}>
-            {requirement.documentLabel}
-          </AdmissionRadio>
-          <div className="ml-7">
-            <RequirementDetails
-              isUploading={isUploading}
-              onUpload={onUpload}
-              requirement={requirement}
-            />
+    <div className={showTitle ? "mt-5 pl-2" : undefined}>
+      {showTitle && (
+        <p className="mb-3 text-sm leading-6 font-semibold text-text-primary">
+          {group.title}
+        </p>
+      )}
+      <RadioGroup
+        aria-label={group.title}
+        className="space-y-3 pl-2"
+        isReadOnly
+        value={selected}
+      >
+        {group.requirements.map((requirement) => (
+          <div key={requirement.documentType}>
+            <AdmissionRadio value={requirement.documentType}>
+              {requirement.documentLabel}
+            </AdmissionRadio>
+            <div className="ml-7">
+              <RequirementDetails
+                isUploading={isUploading}
+                onUpload={onUpload}
+                requirement={requirement}
+              />
+            </div>
           </div>
-        </div>
-      ))}
-    </RadioGroup>
+        ))}
+      </RadioGroup>
+    </div>
   );
 }
 

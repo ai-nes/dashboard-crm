@@ -284,6 +284,8 @@ export default function StudentHighSchoolMockup({
             }))
           }
           options={provinceOptions}
+          searchable
+          searchPlaceholder="Tìm tỉnh / thành phố..."
           value={isEditing ? form.province : data.student.province || ""}
         />
         <div className="min-w-0">
@@ -318,6 +320,8 @@ export default function StudentHighSchoolMockup({
             setForm((current) => ({ ...current, ward: value, high_school: "" }))
           }
           options={wardOptions}
+          searchable
+          searchPlaceholder="Tìm phường / xã..."
           value={isEditing ? form.ward : data.student.ward || ""}
         />
         <EditableDetailField

@@ -3,16 +3,9 @@
 import { Pencil1 } from "@tailgrids/icons";
 import { useState } from "react";
 
+import { DropdownField } from "@/components/common/dropdown-field";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
 
 import type { TeamMember } from "./types";
 
@@ -35,44 +28,33 @@ export default function EditableLeadPickerField({
 }: EditableLeadPickerFieldProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedLead = candidates.find((candidate) => candidate.id === value);
+  const options = [
+    { id: UNASSIGNED_KEY, label: "Chưa phân công" },
+    ...candidates.map((candidate) => ({
+      id: candidate.id,
+      label: candidate.name,
+    })),
+  ];
 
   const handleChange = (key: string | null) => {
     onChange(!key || key === UNASSIGNED_KEY ? null : key);
-    setIsOpen(false);
   };
 
   if (isOpen) {
     return (
-      <Select
-        aria-label={ariaLabel}
-        value={value ?? UNASSIGNED_KEY}
-        isOpen
-        onOpenChange={setIsOpen}
-        onChange={(key) => handleChange(key ? String(key) : null)}
-        isDisabled={isDisabled}
+      <DropdownField
+        ariaLabel={ariaLabel}
+        appearance="ghost"
         className="w-fit min-w-0 gap-0"
-      >
-        <SelectTrigger
-          autoFocus
-          appearance="ghost"
-          className="h-8 min-w-44 justify-start rounded-md border border-card-border bg-transparent px-2.5 shadow-none focus:ring-2 focus:ring-primary-500/25"
-        >
-          <SelectValue>
-            {selectedLead?.name ?? "Chưa phân công"}
-          </SelectValue>
-          <SelectIndicator />
-        </SelectTrigger>
-        <SelectContent className="min-w-52">
-          <SelectItem id={UNASSIGNED_KEY} textValue="Chưa phân công">
-            <span className="text-text-tertiary">Chưa phân công</span>
-          </SelectItem>
-          {candidates.map((candidate) => (
-            <SelectItem key={candidate.id} id={candidate.id}>
-              {candidate.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        contentClassName="min-w-52"
+        isDisabled={isDisabled}
+        isOpen
+        onChange={handleChange}
+        onOpenChange={setIsOpen}
+        options={options}
+        triggerClassName="h-8 min-w-44 justify-start rounded-md border border-card-border bg-transparent px-2.5 shadow-none focus:ring-2 focus:ring-primary-500/25"
+        value={value ?? UNASSIGNED_KEY}
+      />
     );
   }
 

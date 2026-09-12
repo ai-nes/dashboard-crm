@@ -1,13 +1,14 @@
-'use client'
+"use client";
 
-import {Pencil1, Trash1} from '@tailgrids/icons'
-import {useDeferredValue, useMemo, useState} from 'react'
-import {toast} from 'sonner'
+import { Pencil1, Trash1 } from "@tailgrids/icons";
+import { useDeferredValue, useState } from "react";
+import { toast } from "sonner";
 
-import {DeleteRecordDialog} from '@/components/common/delete-record-dialog'
-import {Badge} from '@/components/tailgrids/core/badge'
-import {Button} from '@/components/tailgrids/core/button'
-import {Input} from '@/components/tailgrids/core/input'
+import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
+import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
+import { Pagination } from "@/components/tailgrids/core/pagination";
+import { Input } from "@/components/tailgrids/core/input";
 import {
   Select,
   SelectContent,
@@ -15,88 +16,118 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/tailgrids/core/select'
-import {TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow} from '@/components/tailgrids/core/table'
+} from "@/components/tailgrids/core/select";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRoot,
+  TableRow,
+} from "@/components/tailgrids/core/table";
 import {
   useAdmissionDocumentTypesQuery,
   useDeleteAdmissionDocumentTypeMutation,
-} from '@/hooks/use-admission-catalog-queries'
-import type {AdmissionDocumentTypeOption, AdmissionDocumentTypeStatus} from '@/services/api/admission-profile-catalog'
+} from "@/hooks/use-admission-catalog-queries";
+import type {
+  AdmissionDocumentTypeOption,
+  AdmissionDocumentTypeStatus,
+} from "@/services/api/admission-profile-catalog";
 
-import {AdmissionCatalogPanel} from './admission-catalog-panel'
-import {AdmissionDocumentTypeEditorDialog} from './admission-document-type-editor-dialog'
+import { AdmissionCatalogPanel } from "./admission-catalog-panel";
+import { AdmissionDocumentTypeEditorDialog } from "./admission-document-type-editor-dialog";
 
-const EMPTY_DOCUMENT_TYPES: AdmissionDocumentTypeOption[] = []
+const EMPTY_DOCUMENT_TYPES: AdmissionDocumentTypeOption[] = [];
+const PAGE_SIZE = 8;
 const CATEGORY_LABELS: Record<string, string> = {
-  identity: 'Giấy tờ định danh',
-  education: 'Học tập',
-  photo: 'Ảnh',
-  payment: 'Thanh toán',
-  scholarship: 'Học bổng',
-  language: 'Ngoại ngữ',
-  special_program: 'Chương trình đặc biệt',
-}
+  identity: "Giấy tờ định danh",
+  education: "Học tập",
+  photo: "Ảnh",
+  payment: "Thanh toán",
+  scholarship: "Học bổng",
+  language: "Ngoại ngữ",
+  special_program: "Chương trình đặc biệt",
+};
 
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
-function statusColor(status: AdmissionDocumentTypeStatus | undefined): 'gray' | 'success' {
-  return status === 'Active' ? 'success' : 'gray'
+function statusColor(
+  status: AdmissionDocumentTypeStatus | undefined,
+): "gray" | "success" {
+  return status === "Active" ? "success" : "gray";
 }
 
-export function AdmissionDocumentTypeManagement({canManage, canDelete}: {canManage: boolean; canDelete: boolean}) {
-  const [search, setSearch] = useState('')
-  const deferredSearch = useDeferredValue(search)
-  const [statusFilter, setStatusFilter] = useState<AdmissionDocumentTypeStatus | 'all'>('all')
-  const [isEditorOpen, setIsEditorOpen] = useState(false)
-  const [editorKey, setEditorKey] = useState(0)
-  const [selected, setSelected] = useState<AdmissionDocumentTypeOption | null>(null)
-  const [toDelete, setToDelete] = useState<AdmissionDocumentTypeOption | null>(null)
+export function AdmissionDocumentTypeManagement({
+  canManage,
+  canDelete,
+}: {
+  canManage: boolean;
+  canDelete: boolean;
+}) {
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const [statusFilter, setStatusFilter] = useState<
+    AdmissionDocumentTypeStatus | "all"
+  >("all");
+  const [page, setPage] = useState(1);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
+  const [selected, setSelected] = useState<AdmissionDocumentTypeOption | null>(
+    null,
+  );
+  const [toDelete, setToDelete] = useState<AdmissionDocumentTypeOption | null>(
+    null,
+  );
   const query = useAdmissionDocumentTypesQuery({
     search: deferredSearch,
     includeArchived: true,
-  })
-  const deleteMutation = useDeleteAdmissionDocumentTypeMutation()
-  const documentTypes = query.data?.documentTypes ?? EMPTY_DOCUMENT_TYPES
+    status: statusFilter,
+    start: (page - 1) * PAGE_SIZE,
+    pageLength: PAGE_SIZE,
+  });
+  const deleteMutation = useDeleteAdmissionDocumentTypeMutation();
+  const documentTypes = query.data?.documentTypes ?? EMPTY_DOCUMENT_TYPES;
 
-  const visibleDocumentTypes = useMemo(() => {
-    if (statusFilter === 'all') return documentTypes
-    return documentTypes.filter((item) => item.status === statusFilter)
-  }, [documentTypes, statusFilter])
+  const visibleDocumentTypes = documentTypes;
+  const total = query.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasDocumentTypeFilter =
+    Boolean(deferredSearch.trim()) || statusFilter !== "all";
 
   const openCreate = () => {
-    setSelected(null)
-    setEditorKey((current) => current + 1)
-    setIsEditorOpen(true)
-  }
+    setSelected(null);
+    setEditorKey((current) => current + 1);
+    setIsEditorOpen(true);
+  };
 
   const openEdit = (record: AdmissionDocumentTypeOption) => {
-    setSelected(record)
-    setEditorKey((current) => current + 1)
-    setIsEditorOpen(true)
-  }
+    setSelected(record);
+    setEditorKey((current) => current + 1);
+    setIsEditorOpen(true);
+  };
 
   const confirmDelete = async () => {
-    if (!toDelete) return
+    if (!toDelete) return;
     try {
       await deleteMutation.mutateAsync({
         name: toDelete.id,
         expectedModified: toDelete.modified,
-      })
-      toast.success(`Đã xóa loại tài liệu ${toDelete.name}.`)
-      setToDelete(null)
+      });
+      toast.success(`Đã xóa loại tài liệu ${toDelete.name}.`);
+      setToDelete(null);
     } catch (error) {
-      toast.error(errorMessage(error, 'Không thể xóa loại tài liệu.'))
+      toast.error(errorMessage(error, "Không thể xóa loại tài liệu."));
     }
-  }
+  };
 
   return (
     <>
       <AdmissionCatalogPanel
         title="Loại tài liệu"
         description="Danh mục giấy tờ dùng để xây dựng checklist hồ sơ nhập học."
-        count={documentTypes.length}
+        count={query.data?.total ?? documentTypes.length}
         canManage={canManage}
         createLabel="Thêm loại tài liệu"
         onCreate={openCreate}
@@ -106,7 +137,10 @@ export function AdmissionDocumentTypeManagement({canManage, canDelete}: {canMana
           <CatalogLoading label="Đang tải danh mục loại tài liệu…" />
         ) : query.error ? (
           <CatalogError
-            message={errorMessage(query.error, 'Không thể tải danh mục loại tài liệu.')}
+            message={errorMessage(
+              query.error,
+              "Không thể tải danh mục loại tài liệu.",
+            )}
             onRetry={() => void query.refetch()}
           />
         ) : (
@@ -114,18 +148,29 @@ export function AdmissionDocumentTypeManagement({canManage, canDelete}: {canMana
             <div className="flex flex-col gap-3 border-b border-card-border px-4 py-3 sm:flex-row sm:items-center sm:px-5">
               <Input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
                 placeholder="Tìm theo mã hoặc tên tài liệu"
                 aria-label="Tìm loại tài liệu"
                 className="h-9 min-w-0 flex-1 sm:max-w-md"
               />
               <Select
                 value={statusFilter}
-                onChange={(value) => setStatusFilter(String(value) as AdmissionDocumentTypeStatus | 'all')}
+                onChange={(value) => {
+                  setStatusFilter(
+                    String(value) as AdmissionDocumentTypeStatus | "all",
+                  );
+                  setPage(1);
+                }}
                 aria-label="Lọc theo trạng thái loại tài liệu"
                 className="w-auto gap-0"
               >
-                <SelectTrigger size="sm" className="min-w-40 justify-between whitespace-nowrap">
+                <SelectTrigger
+                  size="sm"
+                  className="min-w-40 justify-between whitespace-nowrap"
+                >
                   <SelectValue />
                   <SelectIndicator />
                 </SelectTrigger>
@@ -144,13 +189,21 @@ export function AdmissionDocumentTypeManagement({canManage, canDelete}: {canMana
             </div>
             {visibleDocumentTypes.length === 0 ? (
               <CatalogEmpty
-                title={documentTypes.length === 0 ? 'Chưa có loại tài liệu' : 'Không tìm thấy loại tài liệu phù hợp'}
-                description={
-                  documentTypes.length === 0
-                    ? 'Tạo loại tài liệu đầu tiên để dùng trong checklist hồ sơ.'
-                    : 'Thử đổi từ khóa hoặc bộ lọc trạng thái.'
+                title={
+                  !hasDocumentTypeFilter && documentTypes.length === 0
+                    ? "Chưa có loại tài liệu"
+                    : "Không tìm thấy loại tài liệu phù hợp"
                 }
-                action={documentTypes.length === 0 && canManage ? openCreate : undefined}
+                description={
+                  !hasDocumentTypeFilter && documentTypes.length === 0
+                    ? "Tạo loại tài liệu đầu tiên để dùng trong checklist hồ sơ."
+                    : "Thử đổi từ khóa hoặc bộ lọc trạng thái."
+                }
+                action={
+                  !hasDocumentTypeFilter && documentTypes.length === 0 && canManage
+                    ? openCreate
+                    : undefined
+                }
                 actionLabel="Thêm loại tài liệu"
               />
             ) : (
@@ -167,27 +220,39 @@ export function AdmissionDocumentTypeManagement({canManage, canDelete}: {canMana
                 </TableHeader>
                 <TableBody>
                   {visibleDocumentTypes.map((documentType) => (
-                    <TableRow key={documentType.id} className="group hover:bg-background-gray-secondary/30">
+                    <TableRow
+                      key={documentType.id}
+                      className="group hover:bg-background-gray-secondary/30"
+                    >
                       <TableCell className="align-top">
                         <span className="font-mono text-xs font-bold tracking-wide text-text-secondary">
                           {documentType.code}
                         </span>
                       </TableCell>
                       <TableCell className="max-w-[22rem] align-top">
-                        <span className="block font-medium text-text-primary">{documentType.name}</span>
+                        <span className="block font-medium text-text-primary">
+                          {documentType.name}
+                        </span>
                         <span className="mt-1 block truncate text-xs text-text-tertiary">
-                          {documentType.description || 'Chưa có mô tả'}
+                          {documentType.description || "Chưa có mô tả"}
                         </span>
                       </TableCell>
                       <TableCell className="align-top text-sm text-text-secondary">
-                        {CATEGORY_LABELS[documentType.category] || documentType.category}
+                        {CATEGORY_LABELS[documentType.category] ||
+                          documentType.category}
                       </TableCell>
                       <TableCell className="align-top text-sm text-text-secondary">
-                        {documentType.conditionalKey || 'Không điều kiện'}
+                        {documentType.conditionalKey || "Không điều kiện"}
                       </TableCell>
                       <TableCell className="align-top">
-                        <Badge color={statusColor(documentType.status)} size="sm">
-                          {documentType.status === 'Active' && documentType.isActive ? 'Đang dùng' : 'Lưu trữ'}
+                        <Badge
+                          color={statusColor(documentType.status)}
+                          size="sm"
+                        >
+                          {documentType.status === "Active" &&
+                          documentType.isActive
+                            ? "Đang dùng"
+                            : "Lưu trữ"}
                         </Badge>
                       </TableCell>
                       <TableCell className="align-top">
@@ -222,60 +287,81 @@ export function AdmissionDocumentTypeManagement({canManage, canDelete}: {canMana
                 </TableBody>
               </TableRoot>
             )}
+            {totalPages > 1 && (
+              <div className="border-t border-card-border px-5 py-3">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                  variant="compact"
+                  isDisabled={query.isFetching || deleteMutation.isPending}
+                />
+              </div>
+            )}
           </>
         )}
       </AdmissionCatalogPanel>
 
       <AdmissionDocumentTypeEditorDialog
-        key={`${selected?.id ?? 'new'}-${editorKey}`}
+        key={`${selected?.id ?? "new"}-${editorKey}`}
         isOpen={isEditorOpen}
         record={selected}
         onOpenChange={(open) => {
-          setIsEditorOpen(open)
-          if (!open) setSelected(null)
+          setIsEditorOpen(open);
+          if (!open) setSelected(null);
         }}
       />
       <DeleteRecordDialog
         isOpen={Boolean(toDelete)}
         recordType="loại tài liệu"
-        recordName={toDelete?.name ?? ''}
+        recordName={toDelete?.name ?? ""}
         isDeleting={deleteMutation.isPending}
         onOpenChange={(open) => {
-          if (!open && !deleteMutation.isPending) setToDelete(null)
+          if (!open && !deleteMutation.isPending) setToDelete(null);
         }}
         onConfirm={confirmDelete}
       >
         <p className="text-sm text-text-secondary">
-          Chỉ loại tài liệu chưa được sử dụng mới có thể xóa. Nếu đang được dùng, hãy lưu trữ thay vì xóa.
+          Chỉ loại tài liệu chưa được sử dụng mới có thể xóa. Nếu đang được
+          dùng, hãy lưu trữ thay vì xóa.
         </p>
       </DeleteRecordDialog>
     </>
-  )
+  );
 }
 
-function CatalogLoading({label}: {label: string}) {
+function CatalogLoading({ label }: { label: string }) {
   return (
     <div className="space-y-3 px-5 py-8" aria-label={label}>
       <p className="text-sm text-text-tertiary">{label}</p>
-      {['one', 'two', 'three'].map((item) => (
+      {["one", "two", "three"].map((item) => (
         <div
           key={item}
           className="h-10 animate-pulse rounded-lg bg-background-gray-secondary motion-reduce:animate-none"
         />
       ))}
     </div>
-  )
+  );
 }
 
-function CatalogError({message, onRetry}: {message: string; onRetry: () => void}) {
+function CatalogError({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 px-5 py-16 text-center" role="alert">
+    <div
+      className="flex flex-col items-center justify-center gap-3 px-5 py-16 text-center"
+      role="alert"
+    >
       <p className="text-sm text-text-secondary">{message}</p>
       <Button size="sm" appearance="outline" onPress={onRetry}>
         Thử lại
       </Button>
     </div>
-  )
+  );
 }
 
 function CatalogEmpty({
@@ -284,10 +370,10 @@ function CatalogEmpty({
   action,
   actionLabel,
 }: {
-  title: string
-  description: string
-  action?: () => void
-  actionLabel: string
+  title: string;
+  description: string;
+  action?: () => void;
+  actionLabel: string;
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 px-5 py-16 text-center">
@@ -299,5 +385,5 @@ function CatalogEmpty({
         </Button>
       )}
     </div>
-  )
+  );
 }

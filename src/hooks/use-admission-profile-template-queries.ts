@@ -13,19 +13,34 @@ import {
   type AdmissionProfileTemplateMutationInput,
   type TransitionAdmissionProfileTemplateInput,
   type UpdateAdmissionProfileTemplateInput,
+  type AdmissionProfileTemplateStatus,
+  type AdmissionProfileTemplateOption,
 } from "@/services/api/admission-profile-catalog";
 
 export const admissionProfileTemplateKeys = {
   all: ["admission-profile-templates"] as const,
-  catalog: ["admission-profile-templates", "catalog"] as const,
+  catalog: (params: Record<string, unknown> = {}) =>
+    ["admission-profile-templates", "catalog", params] as const,
   documentTypes: (search: string) =>
     ["admission-profile-templates", "document-types", search] as const,
 };
 
-export function useAdmissionProfileTemplatesQuery() {
+export function useAdmissionProfileTemplatesQuery(
+  params: {
+    status?: AdmissionProfileTemplateStatus | "all";
+    templateKind?: AdmissionProfileTemplateOption["templateKind"] | "all";
+    search?: string;
+    start?: number;
+    pageLength?: number;
+  } = {},
+) {
   return useQuery({
-    queryKey: admissionProfileTemplateKeys.catalog,
-    queryFn: () => listAdmissionProfileTemplates(),
+    queryKey: admissionProfileTemplateKeys.catalog(params),
+    queryFn: () =>
+      listAdmissionProfileTemplates({
+        ...params,
+        status: params.status === "all" ? undefined : params.status,
+      }),
     staleTime: 30_000,
   });
 }
@@ -36,15 +51,25 @@ export function useAdmissionProfileDocumentTypesQuery(search: string) {
   return useQuery({
     queryKey: admissionProfileTemplateKeys.documentTypes(normalizedSearch),
     queryFn: async () =>
-      (await listAdmissionDocumentTypes({ search: normalizedSearch, includeArchived: false }))
-        .documentTypes,
+      (
+        await listAdmissionDocumentTypes({
+          search: normalizedSearch,
+          includeArchived: false,
+          start: 0,
+          pageLength: 100,
+        })
+      ).documentTypes,
     enabled: Boolean(normalizedSearch),
     staleTime: 60_000,
   });
 }
 
-function invalidateAdmissionProfileTemplates(queryClient: ReturnType<typeof useQueryClient>) {
-  return queryClient.invalidateQueries({ queryKey: admissionProfileTemplateKeys.all });
+function invalidateAdmissionProfileTemplates(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
+  return queryClient.invalidateQueries({
+    queryKey: admissionProfileTemplateKeys.all,
+  });
 }
 
 export function useCreateAdmissionProfileTemplateMutation() {

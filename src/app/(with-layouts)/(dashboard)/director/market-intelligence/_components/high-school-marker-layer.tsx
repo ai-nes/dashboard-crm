@@ -110,9 +110,10 @@ export default function HighSchoolMarkerLayer({
         const classification = school.classification ?? "Sàng lọc";
         const style = SCHOOL_CLASSIFICATION_VISUALS[classification];
         const emphasis =
-          isSelected || isHovered ? 1.35 : isInSelectedProvince ? 1.15 : 1;
+          isSelected || isHovered ? 1.2 : isInSelectedProvince ? 1.08 : 1;
         const haloRadius = style.markerRadius * emphasis;
         const coreRadius = style.markerCoreRadius * emphasis;
+        const hitRadius = Math.max(7, haloRadius * 1.4);
 
         return (
           <g
@@ -141,6 +142,12 @@ export default function HighSchoolMarkerLayer({
               {school.potentialScore ?? "-"}
               {school.potentialScore === null ? "" : "/100"}
             </title>
+            <circle
+              cx={markerX}
+              cy={markerY}
+              fill="transparent"
+              r={hitRadius}
+            />
             {classification === "Trọng điểm" && (
               <circle
                 cx={markerX}
@@ -151,7 +158,7 @@ export default function HighSchoolMarkerLayer({
               >
                 <animate
                   attributeName="r"
-                  values={`${haloRadius};${haloRadius * 1.8};${haloRadius}`}
+                  values={`${haloRadius};${haloRadius * 1.45};${haloRadius}`}
                   dur="2.4s"
                   repeatCount="indefinite"
                 />
@@ -176,7 +183,7 @@ export default function HighSchoolMarkerLayer({
               fill={style.markerColor}
               r={coreRadius}
               stroke="var(--card-background)"
-              strokeWidth={isSelected ? 2 : 1.5}
+              strokeWidth={isSelected ? 0.5 : 0.25}
             />
           </g>
         );

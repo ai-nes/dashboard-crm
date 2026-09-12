@@ -58,6 +58,8 @@ export interface ListMessageTemplatesResponse {
   templates: MessageTemplateRecord[];
   owners: MessageTemplateOwner[];
   total: number;
+  start?: number;
+  pageLength?: number;
 }
 
 export interface ListMessageTemplateTokensResponse {
@@ -68,6 +70,8 @@ export interface ListMessageTemplateTokensResponse {
 export interface ListMessageTemplatesParams {
   search?: string;
   owner?: string;
+  start?: number;
+  pageLength?: number;
 }
 
 export interface DeleteMessageTemplateResponse {

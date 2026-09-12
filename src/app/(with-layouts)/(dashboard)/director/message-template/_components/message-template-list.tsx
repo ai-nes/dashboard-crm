@@ -9,7 +9,7 @@ import MessageTemplateListToolbar from "./message-template-list-toolbar";
 import type { MessageTemplateRecord } from "./message-template-data";
 import MessageTemplateTable from "./message-template-table";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 8;
 
 interface MessageTemplateListProps {
   templates: MessageTemplateRecord[];
@@ -20,6 +20,15 @@ interface MessageTemplateListProps {
   onDuplicate: (template: MessageTemplateRecord) => void;
   onDelete: (template: MessageTemplateRecord) => void;
   onEdit: (template: MessageTemplateRecord) => void;
+  serverPagination?: {
+    total: number;
+    currentPage: number;
+    totalPages: number;
+    isDisabled?: boolean;
+    owners?: Array<{ id: string; name: string }>;
+    onPageChange: (page: number) => void;
+    onFiltersChange: (filters: { search: string; owner: string }) => void;
+  };
 }
 
 function normalizeSearch(value: string) {
@@ -45,6 +54,7 @@ export default function MessageTemplateList({
   onDuplicate,
   onDelete,
   onEdit,
+  serverPagination,
 }: MessageTemplateListProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -54,6 +64,7 @@ export default function MessageTemplateList({
   const [owner, setOwner] = useState("all");
   const requestedPage = parsePage(searchParams.get("page"));
   const searchParam = searchParams.get("search")?.trim() ?? "";
+  const onServerFiltersChange = serverPagination?.onFiltersChange;
   const updateQuery = useCallback(
     (changes: Record<string, string | undefined>) => {
       const nextParams = new URLSearchParams(searchParams.toString());
@@ -64,12 +75,15 @@ export default function MessageTemplateList({
       });
 
       const query = nextParams.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
     },
     [pathname, router, searchParams],
   );
 
   useEffect(() => {
+    if (serverPagination) return;
     const timer = window.setTimeout(() => {
       const nextSearch = search.trim();
       if (nextSearch === searchParam) return;
@@ -77,7 +91,15 @@ export default function MessageTemplateList({
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [search, searchParam, updateQuery]);
+  }, [search, searchParam, updateQuery, serverPagination]);
+
+  useEffect(() => {
+    if (!onServerFiltersChange) return;
+    const timer = window.setTimeout(() => {
+      onServerFiltersChange({ search: search.trim(), owner });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [owner, search, onServerFiltersChange]);
 
   const mineTemplates = useMemo(() => {
     const normalizedUserId = currentUserId?.trim().toLowerCase();
@@ -87,35 +109,45 @@ export default function MessageTemplateList({
     );
   }, [currentUserId, templates]);
   const scopedTemplates = scope === "mine" ? mineTemplates : templates;
-  const owners = useMemo(
-    () => [...new Set(templates.map((template) => template.owner))],
+  const localOwners = useMemo(
+    () =>
+      [...new Set(templates.map((template) => template.owner))].map((name) => ({
+        id: name,
+        name,
+      })),
     [templates],
   );
+  const owners = serverPagination?.owners ?? localOwners;
   const filteredTemplates = useMemo(() => {
+    if (serverPagination) return scopedTemplates;
     const normalizedSearch = normalizeSearch(search.trim());
 
     return scopedTemplates.filter((template: MessageTemplateRecord) => {
       const matchesSearch =
         !normalizedSearch ||
-        normalizeSearch(`${template.code} ${template.name} ${template.owner}`).includes(
-          normalizedSearch,
-        );
+        normalizeSearch(
+          `${template.code} ${template.name} ${template.owner}`,
+        ).includes(normalizedSearch);
       const matchesOwner = owner === "all" || template.owner === owner;
 
       return matchesSearch && matchesOwner;
     });
-  }, [owner, search, scopedTemplates]);
-  const totalPages = Math.max(1, Math.ceil(filteredTemplates.length / PAGE_SIZE));
-  const currentPage = Math.min(requestedPage, totalPages);
+  }, [owner, search, scopedTemplates, serverPagination]);
+  const totalPages =
+    serverPagination?.totalPages ??
+    Math.max(1, Math.ceil(filteredTemplates.length / PAGE_SIZE));
+  const currentPage =
+    serverPagination?.currentPage ?? Math.min(requestedPage, totalPages);
   const paginatedTemplates = useMemo(() => {
+    if (serverPagination) return filteredTemplates;
     const start = (currentPage - 1) * PAGE_SIZE;
     return filteredTemplates.slice(start, start + PAGE_SIZE);
-  }, [currentPage, filteredTemplates]);
+  }, [currentPage, filteredTemplates, serverPagination]);
 
   useEffect(() => {
-    if (isLoading || requestedPage <= totalPages) return;
+    if (serverPagination || isLoading || requestedPage <= totalPages) return;
     updateQuery({ page: totalPages === 1 ? undefined : String(totalPages) });
-  }, [isLoading, requestedPage, totalPages, updateQuery]);
+  }, [isLoading, requestedPage, totalPages, updateQuery, serverPagination]);
 
   const resetPage = () => {
     updateQuery({ page: undefined });
@@ -129,37 +161,42 @@ export default function MessageTemplateList({
       <MessageTemplateListToolbar
         showOwnershipTabs={Boolean(currentUserId)}
         scope={scope}
-        allCount={templates.length}
+        allCount={serverPagination?.total ?? templates.length}
         mineCount={mineTemplates.length}
         search={search}
         owner={owner}
         owners={owners}
         resultCount={filteredTemplates.length}
-        totalCount={scopedTemplates.length}
+        totalCount={serverPagination?.total ?? scopedTemplates.length}
         onScopeChange={(nextScope) => {
           setScope(nextScope);
           if (nextScope === "mine") setOwner("all");
-          resetPage();
+          if (!serverPagination) resetPage();
         }}
         onSearchChange={(value) => {
           setSearch(value);
+          if (serverPagination) return;
           if (requestedPage !== 1) updateQuery({ page: undefined });
         }}
         onOwnerChange={(nextOwner) => {
           setOwner(nextOwner);
           setScope("all");
-          resetPage();
+          if (!serverPagination) resetPage();
         }}
         onReset={() => {
           setScope("all");
           setSearch("");
           setOwner("all");
-          updateQuery({ search: undefined, page: undefined });
+          if (serverPagination) {
+            serverPagination.onFiltersChange({ search: "", owner: "all" });
+          } else {
+            updateQuery({ search: undefined, page: undefined });
+          }
         }}
       />
       <MessageTemplateTable
         templates={paginatedTemplates}
-        totalCount={scopedTemplates.length}
+        totalCount={serverPagination?.total ?? scopedTemplates.length}
         canCreate={canCreate}
         canDelete={canDelete}
         isLoading={isLoading}
@@ -174,10 +211,16 @@ export default function MessageTemplateList({
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={(nextPage) => {
-                updateQuery({ page: nextPage === 1 ? undefined : String(nextPage) });
+                if (serverPagination) {
+                  serverPagination.onPageChange(nextPage);
+                } else {
+                  updateQuery({
+                    page: nextPage === 1 ? undefined : String(nextPage),
+                  });
+                }
               }}
               variant="compact"
-              isDisabled={isLoading}
+              isDisabled={isLoading || serverPagination?.isDisabled}
             />
           </div>
         </div>

@@ -12,7 +12,12 @@ export type CrmRuleType =
   | "PREREQUISITE"
   | "MODIFIER"
   | "RESOLUTION";
-export type CrmRuleGateOutcome = "PASS" | "WAIT" | "STOP" | "DIRECT" | "ESCALATE";
+export type CrmRuleGateOutcome =
+  | "PASS"
+  | "WAIT"
+  | "STOP"
+  | "DIRECT"
+  | "ESCALATE";
 export type CrmRuleOperator =
   | "eq"
   | "neq"
@@ -134,6 +139,7 @@ export interface CrmRuleVersionDetail extends CrmRuleVersion {
 
 export interface ListCrmRuleVersionsParams {
   status?: CrmRuleStatus;
+  search?: string;
   activeOnly?: boolean;
   start?: number;
   pageLength?: number;
@@ -174,6 +180,8 @@ export interface ListCrmRulesParams {
   status?: CrmRuleStatus;
   versionName?: string;
   ruleGroup?: string;
+  ruleType?: CrmRuleType;
+  gateOutcome?: CrmRuleGateOutcome;
   search?: string;
   start?: number;
   pageLength?: number;

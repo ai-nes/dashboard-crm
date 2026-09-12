@@ -104,32 +104,38 @@ export interface AdmissionDocumentTypeOption {
   modified?: string | null;
 }
 
-export type AdmissionDocumentTypeStatus = 'Active' | 'Archived'
+export type AdmissionDocumentTypeStatus = "Active" | "Archived";
 
 export interface AdmissionDocumentTypeMutationInput {
-  code: string
-  label: string
-  category: string
-  description?: string | null
-  conditional_key?: string | null
-  status: AdmissionDocumentTypeStatus
-  is_active: boolean
+  code: string;
+  label: string;
+  category: string;
+  description?: string | null;
+  conditional_key?: string | null;
+  status: AdmissionDocumentTypeStatus;
+  is_active: boolean;
 }
 
 export interface AdmissionMethodMutationInput {
-  code: string
-  display_name: string
-  description?: string | null
-  enabled: boolean
-  sort_order: number
+  code: string;
+  display_name: string;
+  description?: string | null;
+  enabled: boolean;
+  sort_order: number;
 }
 
 export interface AdmissionDocumentTypeCatalog {
-  documentTypes: AdmissionDocumentTypeOption[]
+  documentTypes: AdmissionDocumentTypeOption[];
+  total?: number;
+  start?: number;
+  pageLength?: number;
 }
 
 export interface AdmissionMethodCatalog {
-  methods: AdmissionMethodOption[]
+  methods: AdmissionMethodOption[];
+  total?: number;
+  start?: number;
+  pageLength?: number;
 }
 
 export interface AdmissionProfileCatalog {
@@ -144,6 +150,9 @@ export interface AdmissionProfileCatalog {
 export interface AdminAdmissionProfileTemplateCatalog {
   templates: AdmissionProfileTemplateOption[];
   documentTypes: AdmissionDocumentTypeOption[];
+  total?: number;
+  start?: number;
+  pageLength?: number;
 }
 
 export interface CreateAdmissionApplicationInput {

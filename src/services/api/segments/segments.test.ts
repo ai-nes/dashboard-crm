@@ -115,7 +115,7 @@ describe("Segment API service", () => {
       ],
     };
     const result = await previewSegment(
-      { filters, pageLength: 25 },
+      { filters, search: "Classification", pageLength: 25 },
       { baseUrl },
     );
 
@@ -130,6 +130,7 @@ describe("Segment API service", () => {
     expect(JSON.parse(requestUrl.searchParams.get("filters") ?? "{}")).toEqual(
       filters,
     );
+    expect(requestUrl.searchParams.get("search")).toBe("Classification");
   });
 
   it("loads a segment directly by its immutable segment code", async () => {
@@ -229,17 +230,22 @@ describe("Segment API service", () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          exception: "frappe.exceptions.ValidationError: INVALID_INPUT: Need đang được học sinh sử dụng; hãy lưu trữ thay vì xoá.",
+          exception:
+            "frappe.exceptions.ValidationError: INVALID_INPUT: Need đang được học sinh sử dụng; hãy lưu trữ thay vì xoá.",
         }),
         { status: 417 },
       ),
     );
 
     await expect(
-      deleteClassificationTerm("need", {
-        name: "NEED_TEST",
-        expectedRevision: 1,
-      }, { baseUrl }),
+      deleteClassificationTerm(
+        "need",
+        {
+          name: "NEED_TEST",
+          expectedRevision: 1,
+        },
+        { baseUrl },
+      ),
     ).rejects.toMatchObject({
       status: 417,
       message: "Need đang được học sinh sử dụng; hãy lưu trữ thay vì xoá.",

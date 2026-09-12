@@ -11,7 +11,6 @@ import {
   InputGroupInput,
 } from "@/components/tailgrids/core/input-group";
 import type {
-  CrmRule,
   CrmRuleFeatureScope,
   CrmRuleGateOutcome,
   CrmRuleStatus,
@@ -29,7 +28,7 @@ const STATUS_TABS: Array<{ id: CrmRuleStatus | "all"; label: string }> = [
 ];
 
 interface RuleListToolbarProps {
-  allRules: CrmRule[];
+  totalCount: number;
   filteredCount: number;
   search: string;
   onSearchChange: (value: string) => void;
@@ -47,7 +46,7 @@ interface RuleListToolbarProps {
 }
 
 export function RuleListToolbar({
-  allRules,
+  totalCount,
   filteredCount,
   search,
   onSearchChange,
@@ -65,10 +64,7 @@ export function RuleListToolbar({
 }: RuleListToolbarProps) {
   const tabs = STATUS_TABS.map((tab) => ({
     ...tab,
-    count:
-      tab.id === "all"
-        ? allRules.length
-        : allRules.filter((rule) => rule.status === tab.id).length,
+    count: tab.id === "all" || tab.id === status ? totalCount : null,
   }));
 
   return (
@@ -79,7 +75,10 @@ export function RuleListToolbar({
       <div className="space-y-3 border-b border-card-border px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <InputGroup className="h-10 w-full sm:max-w-md">
-            <InputGroupAddon align="inline-start" className="pr-0 text-text-tertiary">
+            <InputGroupAddon
+              align="inline-start"
+              className="pr-0 text-text-tertiary"
+            >
               <Search1 size={18} aria-hidden="true" />
             </InputGroupAddon>
             <InputGroupInput
@@ -92,11 +91,14 @@ export function RuleListToolbar({
             />
           </InputGroup>
           <span aria-live="polite" className="text-xs text-text-tertiary">
-            {filteredCount} / {allRules.length} Rule
+            {filteredCount} / {totalCount} Rule
           </span>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <TabList aria-label="Lọc trạng thái Rule" className="flex flex-wrap gap-1.5">
+          <TabList
+            aria-label="Lọc trạng thái Rule"
+            className="flex flex-wrap gap-1.5"
+          >
             {tabs.map((tab) => (
               <Tab
                 key={tab.id}
@@ -105,7 +107,7 @@ export function RuleListToolbar({
               >
                 {tab.label}
                 <span className="rounded-md bg-background-gray-secondary px-1.5 py-0.5 text-xs tabular-nums group-data-[selected]:bg-badge-primary-background group-data-[selected]:text-badge-primary-text">
-                  {tab.count}
+                  {tab.count ?? "—"}
                 </span>
               </Tab>
             ))}

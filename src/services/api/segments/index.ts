@@ -2,6 +2,9 @@ import type {
   CreateSegmentPayload,
   DeleteSegmentPayload,
   ListSegmentsParams,
+  ListSegmentsResponse,
+  ClassificationGroupListResponse,
+  ClassificationTermListResponse,
   SegmentFieldDefinition,
   SegmentAnalysisResponse,
   SegmentFilterOptionsResponse,
@@ -28,6 +31,7 @@ export type * from "./types";
 const METHODS = {
   FIELDS: "crm.api.student_segment.get_fields",
   LIST: "crm.api.student_segment.list_segments",
+  LIST_PAGE: "crm.api.student_segment.list_segments_page",
   GET: "crm.api.student_segment.get_segment",
   GET_BY_CODE: "crm.api.student_segment.get_segment_by_code",
   ANALYSIS: "crm.api.student_segment.get_segment_analysis",
@@ -37,9 +41,13 @@ const METHODS = {
   TRANSITION: "crm.api.student_segment.transition_segment",
   DELETE: "crm.api.student_segment.delete_segment",
   NEEDS: "crm.api.student_classification.list_needs",
+  NEEDS_PAGE: "crm.api.student_classification.list_needs_page",
   TAGS: "crm.api.student_classification.list_tags",
+  TAGS_PAGE: "crm.api.student_classification.list_tags_page",
   NEED_GROUPS: "crm.api.student_classification.list_need_groups",
+  NEED_GROUPS_PAGE: "crm.api.student_classification.list_need_groups_page",
   TAG_GROUPS: "crm.api.student_classification.list_tag_group_definitions",
+  TAG_GROUPS_PAGE: "crm.api.student_classification.list_tag_groups_page",
   CREATE_NEED_GROUP: "crm.api.student_classification.create_need_group",
   UPDATE_NEED_GROUP: "crm.api.student_classification.update_need_group",
   TRANSITION_NEED_GROUP: "crm.api.student_classification.transition_need_group",
@@ -92,7 +100,9 @@ function serverErrorMessage(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   try {
     const parsed = JSON.parse(value) as unknown;
-    const first = Array.isArray(parsed) ? asRecord(parsed[0]) : asRecord(parsed);
+    const first = Array.isArray(parsed)
+      ? asRecord(parsed[0])
+      : asRecord(parsed);
     const message = first?.message;
     return typeof message === "string" ? cleanErrorMessage(message) : undefined;
   } catch {
@@ -116,7 +126,9 @@ function readableApiErrorMessage(
   if (serverMessage) return serverMessage;
 
   if (typeof root?.exception === "string") {
-    const exceptionMessage = root.exception.match(/:\s*[A-Z][A-Z0-9_]+:\s*(.+)$/)?.[1];
+    const exceptionMessage = root.exception.match(
+      /:\s*[A-Z][A-Z0-9_]+:\s*(.+)$/,
+    )?.[1];
     if (exceptionMessage) return cleanErrorMessage(exceptionMessage);
   }
 
@@ -243,7 +255,12 @@ async function callSegmentApi<T>(
       (typeof error?.code === "string" && error.code) ||
       (typeof root?.exception === "string" && root.exception) ||
       `HTTP_${response.status}`;
-    const errorMessage = readableApiErrorMessage(root, message, error, response.status);
+    const errorMessage = readableApiErrorMessage(
+      root,
+      message,
+      error,
+      response.status,
+    );
     throw new SegmentApiError(response.status, code, errorMessage);
   }
 
@@ -290,9 +307,39 @@ export async function listSegments(
   return callSegmentApi<SegmentRecord[]>(METHODS.LIST, "GET", options, {
     status: params.status,
     category: params.category,
+    search: params.search?.trim(),
     start: params.start ?? 0,
     page_length: params.pageLength ?? 20,
   });
+}
+
+export async function listSegmentsPage(
+  params: ListSegmentsParams = {},
+  options: RequestOptions = {},
+): Promise<ListSegmentsResponse> {
+  const raw = await callSegmentApi<Record<string, unknown>>(
+    METHODS.LIST_PAGE,
+    "GET",
+    options,
+    {
+      status: params.status,
+      category: params.category,
+      search: params.search?.trim(),
+      start: params.start ?? 0,
+      page_length: params.pageLength ?? 20,
+    },
+  );
+  const segments = Array.isArray(raw.segments)
+    ? (raw.segments as SegmentRecord[])
+    : [];
+  return {
+    segments,
+    total: Number(raw.total ?? segments.length),
+    start: Number(raw.start ?? params.start ?? 0),
+    pageLength: Number(
+      raw.pageLength ?? raw.page_length ?? params.pageLength ?? 20,
+    ),
+  };
 }
 
 export async function getSegment(
@@ -334,6 +381,7 @@ export async function previewSegment(
     {
       segment: params.segment,
       filters: params.filters ? JSON.stringify(params.filters) : undefined,
+      search: params.search?.trim() || undefined,
       start: params.start ?? 0,
       page_length: params.pageLength ?? 25,
     },
@@ -407,8 +455,12 @@ export async function deleteSegment(
 
 export type ClassificationGroupKind = "need" | "tag";
 
-function groupMethod(kind: ClassificationGroupKind, action: "list" | "create" | "update" | "transition" | "delete") {
-  if (action === "list") return kind === "need" ? METHODS.NEED_GROUPS : METHODS.TAG_GROUPS;
+function groupMethod(
+  kind: ClassificationGroupKind,
+  action: "list" | "create" | "update" | "transition" | "delete",
+) {
+  if (action === "list")
+    return kind === "need" ? METHODS.NEED_GROUPS : METHODS.TAG_GROUPS;
   if (kind === "need") {
     return {
       create: METHODS.CREATE_NEED_GROUP,
@@ -437,21 +489,99 @@ export async function listClassificationGroups(
   );
 }
 
-function termMethod(kind: ClassificationGroupKind, action: "list" | "create" | "update" | "transition" | "delete") {
+export async function listClassificationGroupsPage(
+  kind: ClassificationGroupKind,
+  params: { status?: string; start?: number; pageLength?: number } = {},
+  options: RequestOptions = {},
+): Promise<ClassificationGroupListResponse> {
+  const raw = await callSegmentApi<Record<string, unknown>>(
+    kind === "need" ? METHODS.NEED_GROUPS_PAGE : METHODS.TAG_GROUPS_PAGE,
+    "GET",
+    options,
+    {
+      status: params.status,
+      start: params.start ?? 0,
+      page_length: params.pageLength ?? 20,
+    },
+  );
+  const groups = Array.isArray(raw.groups)
+    ? (raw.groups as ClassificationGroupRecord[])
+    : [];
+  return {
+    groups,
+    total: Number(raw.total ?? groups.length),
+    start: Number(raw.start ?? params.start ?? 0),
+    pageLength: Number(
+      raw.pageLength ?? raw.page_length ?? params.pageLength ?? 20,
+    ),
+  };
+}
+
+function termMethod(
+  kind: ClassificationGroupKind,
+  action: "list" | "create" | "update" | "transition" | "delete",
+) {
   if (action === "list") return kind === "need" ? METHODS.NEEDS : METHODS.TAGS;
   if (kind === "need") {
-    return { create: METHODS.CREATE_NEED, update: METHODS.UPDATE_NEED, transition: METHODS.TRANSITION_NEED, delete: METHODS.DELETE_NEED }[action];
+    return {
+      create: METHODS.CREATE_NEED,
+      update: METHODS.UPDATE_NEED,
+      transition: METHODS.TRANSITION_NEED,
+      delete: METHODS.DELETE_NEED,
+    }[action];
   }
-  return { create: METHODS.CREATE_TAG, update: METHODS.UPDATE_TAG, transition: METHODS.TRANSITION_TAG, delete: METHODS.DELETE_TAG }[action];
+  return {
+    create: METHODS.CREATE_TAG,
+    update: METHODS.UPDATE_TAG,
+    transition: METHODS.TRANSITION_TAG,
+    delete: METHODS.DELETE_TAG,
+  }[action];
 }
 
 export async function listClassificationTerms(
   kind: ClassificationGroupKind,
   options: RequestOptions = {},
 ): Promise<SegmentTermRecord[]> {
-  return callSegmentApi<SegmentTermRecord[]>(termMethod(kind, "list"), "GET", options, {
-    status: "", start: 0, page_length: 100,
-  });
+  return callSegmentApi<SegmentTermRecord[]>(
+    termMethod(kind, "list"),
+    "GET",
+    options,
+    {
+      status: "",
+      start: 0,
+      page_length: 100,
+    },
+  );
+}
+
+export async function listClassificationTermsPage(
+  kind: ClassificationGroupKind,
+  params: {
+    status?: string;
+    group?: string;
+    start?: number;
+    pageLength?: number;
+  } = {},
+  options: RequestOptions = {},
+): Promise<ClassificationTermListResponse> {
+  const key = kind === "need" ? "needs" : "tags";
+  const raw = await callSegmentApi<Record<string, unknown>>(
+    kind === "need" ? METHODS.NEEDS_PAGE : METHODS.TAGS_PAGE,
+    "GET",
+    options,
+    {
+      status: params.status,
+      group: params.group,
+      start: params.start ?? 0,
+      page_length: params.pageLength ?? 20,
+    },
+  );
+  return {
+    [key]: Array.isArray(raw[key]) ? raw[key] : [],
+    total: Number(raw.total ?? 0),
+    start: Number(raw.start ?? params.start ?? 0),
+    pageLength: Number(raw.page_length ?? params.pageLength ?? 20),
+  } as ClassificationTermListResponse;
 }
 
 export async function createClassificationTerm(
@@ -459,7 +589,13 @@ export async function createClassificationTerm(
   payload: ClassificationTermPayload,
   options: RequestOptions = {},
 ): Promise<SegmentTermRecord> {
-  return callSegmentApi<SegmentTermRecord>(termMethod(kind, "create"), "POST", options, {}, { data: payload });
+  return callSegmentApi<SegmentTermRecord>(
+    termMethod(kind, "create"),
+    "POST",
+    options,
+    {},
+    { data: payload },
+  );
 }
 
 export async function updateClassificationTerm(
@@ -467,9 +603,17 @@ export async function updateClassificationTerm(
   payload: UpdateClassificationTermPayload,
   options: RequestOptions = {},
 ): Promise<SegmentTermRecord> {
-  return callSegmentApi<SegmentTermRecord>(termMethod(kind, "update"), "POST", options, {}, {
-    name: payload.name, data: payload.data, expected_revision: payload.expectedRevision,
-  });
+  return callSegmentApi<SegmentTermRecord>(
+    termMethod(kind, "update"),
+    "POST",
+    options,
+    {},
+    {
+      name: payload.name,
+      data: payload.data,
+      expected_revision: payload.expectedRevision,
+    },
+  );
 }
 
 export async function transitionClassificationTerm(
@@ -477,9 +621,17 @@ export async function transitionClassificationTerm(
   payload: TransitionClassificationTermPayload,
   options: RequestOptions = {},
 ): Promise<SegmentTermRecord> {
-  return callSegmentApi<SegmentTermRecord>(termMethod(kind, "transition"), "POST", options, {}, {
-    name: payload.name, status: payload.status, expected_revision: payload.expectedRevision,
-  });
+  return callSegmentApi<SegmentTermRecord>(
+    termMethod(kind, "transition"),
+    "POST",
+    options,
+    {},
+    {
+      name: payload.name,
+      status: payload.status,
+      expected_revision: payload.expectedRevision,
+    },
+  );
 }
 
 export async function deleteClassificationTerm(
@@ -487,9 +639,16 @@ export async function deleteClassificationTerm(
   payload: DeleteClassificationTermPayload,
   options: RequestOptions = {},
 ): Promise<{ name: string; deleted: boolean }> {
-  return callSegmentApi<{ name: string; deleted: boolean }>(termMethod(kind, "delete"), "POST", options, {}, {
-    name: payload.name, expected_revision: payload.expectedRevision,
-  });
+  return callSegmentApi<{ name: string; deleted: boolean }>(
+    termMethod(kind, "delete"),
+    "POST",
+    options,
+    {},
+    {
+      name: payload.name,
+      expected_revision: payload.expectedRevision,
+    },
+  );
 }
 
 export async function createClassificationGroup(
@@ -516,7 +675,11 @@ export async function updateClassificationGroup(
     "POST",
     options,
     {},
-    { name: payload.name, data: payload.data, expected_revision: payload.expectedRevision },
+    {
+      name: payload.name,
+      data: payload.data,
+      expected_revision: payload.expectedRevision,
+    },
   );
 }
 
@@ -530,7 +693,11 @@ export async function transitionClassificationGroup(
     "POST",
     options,
     {},
-    { name: payload.name, status: payload.status, expected_revision: payload.expectedRevision },
+    {
+      name: payload.name,
+      status: payload.status,
+      expected_revision: payload.expectedRevision,
+    },
   );
 }
 

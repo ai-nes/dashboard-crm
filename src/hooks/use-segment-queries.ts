@@ -8,18 +8,18 @@ import {
   getSegmentByCode,
   getSegmentAnalysis,
   getSegmentFilterOptions,
-  listSegments,
+  listSegmentsPage,
   previewSegment,
   transitionSegment,
   updateSegment,
   createClassificationGroup,
   deleteClassificationGroup,
-  listClassificationGroups,
+  listClassificationGroupsPage,
   transitionClassificationGroup,
   updateClassificationGroup,
   createClassificationTerm,
   deleteClassificationTerm,
-  listClassificationTerms,
+  listClassificationTermsPage,
   transitionClassificationTerm,
   updateClassificationTerm,
   type ClassificationGroupKind,
@@ -54,22 +54,39 @@ export const segmentKeys = {
   preview: (params: SegmentPreviewParams) =>
     ["segments", "preview", params] as const,
   filterOptions: ["segments", "filter-options"] as const,
-  groups: (kind: ClassificationGroupKind) => ["segments", "groups", kind] as const,
-  terms: (kind: ClassificationGroupKind) => ["segments", "terms", kind] as const,
+  groups: (
+    kind: ClassificationGroupKind,
+    params: Record<string, unknown> = {},
+  ) => ["segments", "groups", kind, params] as const,
+  terms: (
+    kind: ClassificationGroupKind,
+    params: Record<string, unknown> = {},
+  ) => ["segments", "terms", kind, params] as const,
 };
 
-export function useClassificationGroupsQuery(kind: ClassificationGroupKind) {
+export function useClassificationGroupsQuery(
+  kind: ClassificationGroupKind,
+  params: { status?: string; start?: number; pageLength?: number } = {},
+) {
   return useQuery({
-    queryKey: segmentKeys.groups(kind),
-    queryFn: () => listClassificationGroups(kind),
+    queryKey: segmentKeys.groups(kind, params),
+    queryFn: () => listClassificationGroupsPage(kind, params),
     staleTime: 30_000,
   });
 }
 
-export function useClassificationTermsQuery(kind: ClassificationGroupKind) {
+export function useClassificationTermsQuery(
+  kind: ClassificationGroupKind,
+  params: {
+    status?: string;
+    group?: string;
+    start?: number;
+    pageLength?: number;
+  } = {},
+) {
   return useQuery({
-    queryKey: segmentKeys.terms(kind),
-    queryFn: () => listClassificationTerms(kind),
+    queryKey: segmentKeys.terms(kind, params),
+    queryFn: () => listClassificationTermsPage(kind, params),
     staleTime: 30_000,
   });
 }
@@ -77,71 +94,141 @@ export function useClassificationTermsQuery(kind: ClassificationGroupKind) {
 export function useCreateClassificationTermMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ kind, payload }: { kind: ClassificationGroupKind; payload: ClassificationTermPayload }) => createClassificationTerm(kind, payload),
-    onSuccess: (_, variables) => Promise.all([
-      queryClient.invalidateQueries({ queryKey: segmentKeys.terms(variables.kind) }),
-      queryClient.invalidateQueries({ queryKey: segmentKeys.groups(variables.kind) }),
-    ]),
+    mutationFn: ({
+      kind,
+      payload,
+    }: {
+      kind: ClassificationGroupKind;
+      payload: ClassificationTermPayload;
+    }) => createClassificationTerm(kind, payload),
+    onSuccess: (_, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: segmentKeys.terms(variables.kind),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: segmentKeys.groups(variables.kind),
+        }),
+      ]),
   });
 }
 
 export function useUpdateClassificationTermMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ kind, payload }: { kind: ClassificationGroupKind; payload: UpdateClassificationTermPayload }) => updateClassificationTerm(kind, payload),
-    onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: segmentKeys.terms(variables.kind) }),
+    mutationFn: ({
+      kind,
+      payload,
+    }: {
+      kind: ClassificationGroupKind;
+      payload: UpdateClassificationTermPayload;
+    }) => updateClassificationTerm(kind, payload),
+    onSuccess: (_, variables) =>
+      queryClient.invalidateQueries({
+        queryKey: segmentKeys.terms(variables.kind),
+      }),
   });
 }
 
 export function useTransitionClassificationTermMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ kind, payload }: { kind: ClassificationGroupKind; payload: TransitionClassificationTermPayload }) => transitionClassificationTerm(kind, payload),
-    onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: segmentKeys.terms(variables.kind) }),
+    mutationFn: ({
+      kind,
+      payload,
+    }: {
+      kind: ClassificationGroupKind;
+      payload: TransitionClassificationTermPayload;
+    }) => transitionClassificationTerm(kind, payload),
+    onSuccess: (_, variables) =>
+      queryClient.invalidateQueries({
+        queryKey: segmentKeys.terms(variables.kind),
+      }),
   });
 }
 
 export function useDeleteClassificationTermMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ kind, payload }: { kind: ClassificationGroupKind; payload: DeleteClassificationTermPayload }) => deleteClassificationTerm(kind, payload),
-    onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: segmentKeys.terms(variables.kind) }),
+    mutationFn: ({
+      kind,
+      payload,
+    }: {
+      kind: ClassificationGroupKind;
+      payload: DeleteClassificationTermPayload;
+    }) => deleteClassificationTerm(kind, payload),
+    onSuccess: (_, variables) =>
+      queryClient.invalidateQueries({
+        queryKey: segmentKeys.terms(variables.kind),
+      }),
   });
 }
 
 export function useCreateClassificationGroupMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ kind, payload }: { kind: ClassificationGroupKind; payload: ClassificationGroupPayload }) =>
-      createClassificationGroup(kind, payload),
-    onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: segmentKeys.groups(variables.kind) }),
+    mutationFn: ({
+      kind,
+      payload,
+    }: {
+      kind: ClassificationGroupKind;
+      payload: ClassificationGroupPayload;
+    }) => createClassificationGroup(kind, payload),
+    onSuccess: (_, variables) =>
+      queryClient.invalidateQueries({
+        queryKey: segmentKeys.groups(variables.kind),
+      }),
   });
 }
 
 export function useUpdateClassificationGroupMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ kind, payload }: { kind: ClassificationGroupKind; payload: UpdateClassificationGroupPayload }) =>
-      updateClassificationGroup(kind, payload),
-    onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: segmentKeys.groups(variables.kind) }),
+    mutationFn: ({
+      kind,
+      payload,
+    }: {
+      kind: ClassificationGroupKind;
+      payload: UpdateClassificationGroupPayload;
+    }) => updateClassificationGroup(kind, payload),
+    onSuccess: (_, variables) =>
+      queryClient.invalidateQueries({
+        queryKey: segmentKeys.groups(variables.kind),
+      }),
   });
 }
 
 export function useTransitionClassificationGroupMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ kind, payload }: { kind: ClassificationGroupKind; payload: TransitionClassificationGroupPayload }) =>
-      transitionClassificationGroup(kind, payload),
-    onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: segmentKeys.groups(variables.kind) }),
+    mutationFn: ({
+      kind,
+      payload,
+    }: {
+      kind: ClassificationGroupKind;
+      payload: TransitionClassificationGroupPayload;
+    }) => transitionClassificationGroup(kind, payload),
+    onSuccess: (_, variables) =>
+      queryClient.invalidateQueries({
+        queryKey: segmentKeys.groups(variables.kind),
+      }),
   });
 }
 
 export function useDeleteClassificationGroupMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ kind, payload }: { kind: ClassificationGroupKind; payload: DeleteClassificationGroupPayload }) =>
-      deleteClassificationGroup(kind, payload),
-    onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: segmentKeys.groups(variables.kind) }),
+    mutationFn: ({
+      kind,
+      payload,
+    }: {
+      kind: ClassificationGroupKind;
+      payload: DeleteClassificationGroupPayload;
+    }) => deleteClassificationGroup(kind, payload),
+    onSuccess: (_, variables) =>
+      queryClient.invalidateQueries({
+        queryKey: segmentKeys.groups(variables.kind),
+      }),
   });
 }
 
@@ -151,7 +238,7 @@ export function useSegmentsQuery(
 ) {
   return useQuery({
     queryKey: segmentKeys.list(params),
-    queryFn: () => listSegments(params),
+    queryFn: () => listSegmentsPage(params),
     staleTime: 30_000,
     enabled: options.enabled ?? true,
   });

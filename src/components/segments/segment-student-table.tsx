@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search1 } from "@tailgrids/icons";
 import {
   flexRender,
+  type FilterFn,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
@@ -34,34 +35,70 @@ const normalize = (value: string) =>
     .replace(/[đĐ]/g, "d")
     .toLowerCase();
 
+const PAGE_SIZE = 8;
+
+const globalFilterFn: FilterFn<SegmentStudent> = (row, columnId, value) =>
+  normalize(String(row.getValue(columnId))).includes(normalize(value.trim()));
+
 export function SegmentStudentTable({
   students,
   isLoading = false,
   error,
+  search: serverSearch,
+  onSearchChange,
+  currentPage,
+  totalItems,
+  onPageChange,
 }: {
   students: SegmentStudent[];
   isLoading?: boolean;
   error?: string;
+  search?: string;
+  onSearchChange?: (value: string) => void;
+  currentPage?: number;
+  totalItems?: number;
+  onPageChange?: (page: number) => void;
 }) {
-  const [search, setSearch] = useState("");
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [localSearch, setLocalSearch] = useState("");
+  const [localPagination, setLocalPagination] = useState({
+    pageIndex: 0,
+    pageSize: PAGE_SIZE,
+  });
+  const isServerPaginated =
+    serverSearch !== undefined &&
+    currentPage !== undefined &&
+    totalItems !== undefined &&
+    onPageChange !== undefined;
+  const search = serverSearch ?? localSearch;
+  const page = currentPage ?? 1;
+  const pagination = isServerPaginated
+    ? { pageIndex: Math.max(0, page - 1), pageSize: PAGE_SIZE }
+    : localPagination;
   const table = useReactTable({
     data: students,
     columns: segmentStudentColumns,
-    state: { globalFilter: search, pagination },
-    onPaginationChange: setPagination,
-    globalFilterFn: (row, columnId, value: string) =>
-      normalize(String(row.getValue(columnId))).includes(
-        normalize(value.trim()),
-      ),
+    state: isServerPaginated
+      ? { pagination }
+      : { globalFilter: search, pagination },
+    onPaginationChange: isServerPaginated ? undefined : setLocalPagination,
+    ...(!isServerPaginated ? { globalFilterFn } : {}),
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    ...(!isServerPaginated
+      ? {
+          getFilteredRowModel: getFilteredRowModel(),
+          getPaginationRowModel: getPaginationRowModel(),
+        }
+      : {}),
     getRowId: (row) => row.id,
   });
-  const total = table.getFilteredRowModel().rows.length;
+  const total = isServerPaginated
+    ? (totalItems ?? 0)
+    : table.getFilteredRowModel().rows.length;
   const start = total ? pagination.pageIndex * pagination.pageSize + 1 : 0;
   const end = Math.min((pagination.pageIndex + 1) * pagination.pageSize, total);
+  const totalPages = isServerPaginated
+    ? Math.max(1, Math.ceil(total / pagination.pageSize))
+    : Math.max(1, table.getPageCount());
 
   return (
     <div>
@@ -84,8 +121,13 @@ export function SegmentStudentTable({
             placeholder="Tìm tên, trường, số điện thoại…"
             value={search}
             onChange={(event) => {
-              setSearch(event.target.value);
-              setPagination((current) => ({ ...current, pageIndex: 0 }));
+              const value = event.target.value;
+              if (isServerPaginated) {
+                onSearchChange?.(value);
+              } else {
+                setLocalSearch(value);
+                setLocalPagination((current) => ({ ...current, pageIndex: 0 }));
+              }
             }}
             className="pl-2 text-sm"
           />
@@ -141,14 +183,14 @@ export function SegmentStudentTable({
         <div className="flex flex-col items-center justify-center rounded-xl border border-card-border px-5 py-4 text-center">
           <StudentCardEmptyState
             message={
-              students.length
+              search.trim() || students.length
                 ? "Không tìm thấy học sinh phù hợp."
                 : "Segment hiện chưa có học sinh."
             }
             className="[&>div]:mb-4 [&>div]:size-36 [&>p]:text-base [&>p]:font-semibold [&>p]:text-text-primary"
           />
           <p className="text-sm text-text-tertiary">
-            {students.length
+            {search.trim() || students.length
               ? "Thử tìm kiếm với từ khóa khác."
               : "Học sinh thuộc segment sẽ hiển thị tại đây."}
           </p>
@@ -170,12 +212,19 @@ export function SegmentStudentTable({
           học sinh
         </p>
         <div className="flex shrink-0 items-center justify-end max-sm:w-full">
-          <Pagination
-            currentPage={pagination.pageIndex + 1}
-            totalPages={Math.max(1, table.getPageCount())}
-            onPageChange={(page) => table.setPageIndex(page - 1)}
-            variant="compact"
-          />
+              <Pagination
+                currentPage={pagination.pageIndex + 1}
+                totalPages={totalPages}
+            onPageChange={(page) => {
+              if (isServerPaginated) {
+                onPageChange?.(page);
+              } else {
+                table.setPageIndex(page - 1);
+              }
+                }}
+                variant="compact"
+                isDisabled={isLoading}
+              />
         </div>
       </footer>
     </div>

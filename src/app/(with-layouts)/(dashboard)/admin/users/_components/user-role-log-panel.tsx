@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
+import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   TableBody,
   TableCell,
@@ -14,7 +14,7 @@ import {
 } from "@/components/tailgrids/core/table";
 import { useUserRoleLogsQuery } from "@/hooks/use-user-management-queries";
 
-const PAGE_LENGTH = 20;
+const PAGE_LENGTH = 8;
 
 function formatDate(date: string): string {
   if (!date) return "";
@@ -33,7 +33,8 @@ export default function UserRoleLogPanel() {
   const logsQuery = useUserRoleLogsQuery({ start, pageLength: PAGE_LENGTH });
   const logs = logsQuery.data?.logs ?? [];
   const total = logsQuery.data?.total ?? 0;
-  const hasNextPage = start + PAGE_LENGTH < total;
+  const currentPage = Math.floor(start / PAGE_LENGTH) + 1;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_LENGTH));
 
   return (
     <section className="overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs">
@@ -97,23 +98,19 @@ export default function UserRoleLogPanel() {
             : null}
         </TableBody>
       </TableRoot>
-      {total > PAGE_LENGTH ? (
-        <div className="flex items-center justify-between border-t border-card-border px-4 py-3">
+      {totalPages > 1 ? (
+        <div className="flex flex-wrap items-center gap-4 border-t border-card-border px-4 py-3">
           <span className="text-xs text-text-tertiary">
             {Math.min(start + 1, total)}–{Math.min(start + PAGE_LENGTH, total)} / {total}
           </span>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              appearance="outline"
-              isDisabled={start === 0}
-              onPress={() => setStart(Math.max(0, start - PAGE_LENGTH))}
-            >
-              Trước
-            </Button>
-            <Button size="sm" appearance="outline" isDisabled={!hasNextPage} onPress={() => setStart(start + PAGE_LENGTH)}>
-              Sau
-            </Button>
+          <div className="min-w-0 flex-1">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(page) => setStart((page - 1) * PAGE_LENGTH)}
+              variant="compact"
+              isDisabled={logsQuery.isFetching}
+            />
           </div>
         </div>
       ) : null}

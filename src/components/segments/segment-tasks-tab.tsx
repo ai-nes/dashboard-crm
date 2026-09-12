@@ -10,6 +10,7 @@ import StudentActivityToolbar, {
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { getCrmPermissions } from "@/components/common/auth/permissions";
+import { Pagination } from "@/components/tailgrids/core/pagination";
 import type {
   CRMTask,
   CRMTaskPriority,
@@ -32,12 +33,7 @@ import SegmentTaskCreateDialog from "./segment-task-create-dialog";
 import { taskCreateFormValuesToSegmentPayload } from "./segment-task-form-mappers";
 import { groupSegmentTasks } from "./segment-task-utils";
 
-function taskMatchesSearch(task: CRMTask, query: string): boolean {
-  if (!query) return true;
-  return [task.title, task.description, task.actionCode, task.assignedTo].some(
-    (value) => value?.toLocaleLowerCase("vi-VN").includes(query),
-  );
-}
+const PAGE_SIZE = 8;
 
 export default function SegmentTasksTab({
   segmentId,
@@ -53,6 +49,7 @@ export default function SegmentTasksTab({
   const canUpdateTask = permissions.task.canUpdate;
   const canDeleteTask = permissions.task.canDelete;
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [expansionMode, setExpansionMode] =
     useState<ActivityExpansionMode>("collapse");
   const [expandedTaskNames, setExpandedTaskNames] = useState<Set<string>>(
@@ -91,21 +88,24 @@ export default function SegmentTasksTab({
     {
       referenceDoctype: "CRM Segment",
       referenceDocname: segmentId,
-      pageLength: 100,
+      search: search.trim() || undefined,
+      start: (page - 1) * PAGE_SIZE,
+      pageLength: PAGE_SIZE,
     },
     {
       enabled: !isAuthLoading && canReadTask,
       staleTime: 30 * 1000,
     },
   );
-  const query = search.trim().toLocaleLowerCase("vi-VN");
+  const query = search.trim();
   const tasks = useMemo(
-    () =>
-      (taskQuery.data?.tasks ?? []).filter((task) =>
-        taskMatchesSearch(task, query),
-      ),
-    [query, taskQuery.data?.tasks],
+    () => taskQuery.data?.tasks ?? [],
+    [taskQuery.data?.tasks],
   );
+  const total = taskQuery.data?.total ?? tasks.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const firstTask = total ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const lastTask = Math.min(page * PAGE_SIZE, total);
   const taskGroups = useMemo(() => groupSegmentTasks(tasks), [tasks]);
 
   const isTaskMutationPending =
@@ -200,7 +200,10 @@ export default function SegmentTasksTab({
   const taskToolbar = (
     <StudentActivityToolbar
       search={search}
-      onSearchChange={setSearch}
+      onSearchChange={(value) => {
+        setSearch(value);
+        setPage(1);
+      }}
       searchPlaceholder="Tìm task..."
       searchLabel="Tìm task của segment"
       expansionMode={expansionMode}
@@ -259,10 +262,7 @@ export default function SegmentTasksTab({
     }
   };
 
-  const handleStatusChange = async (
-    task: CRMTask,
-    status: CRMTaskStatus,
-  ) => {
+  const handleStatusChange = async (task: CRMTask, status: CRMTaskStatus) => {
     await updateTaskFields(task, { status }, "Đã cập nhật trạng thái task.");
   };
 
@@ -296,7 +296,9 @@ export default function SegmentTasksTab({
     if (!taskToDelete || !canDeleteTask) return;
 
     try {
+      const shouldMoveToPreviousPage = tasks.length === 1 && page > 1;
       await deleteTaskMutation.mutateAsync(taskToDelete.name);
+      if (shouldMoveToPreviousPage) setPage(page - 1);
       await taskQuery.refetch();
       setTaskToDelete(null);
       toast.success("Đã xóa task.");
@@ -382,6 +384,32 @@ export default function SegmentTasksTab({
               ))}
             </StudentActivityGroup>
           ))}
+          <footer className="flex flex-col gap-3 border-t border-card-border px-1 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p
+              aria-live="polite"
+              className="shrink-0 whitespace-nowrap text-xs text-text-secondary"
+            >
+              Hiển thị{" "}
+              <span className="font-semibold text-text-primary">
+                {firstTask.toLocaleString("vi-VN")}–
+                {lastTask.toLocaleString("vi-VN")}
+              </span>{" "}
+              trong tổng số{" "}
+              <span className="font-semibold text-text-primary">
+                {total.toLocaleString("vi-VN")}
+              </span>{" "}
+              task
+            </p>
+            <div className="flex shrink-0 items-center justify-end max-sm:w-full">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                variant="compact"
+                isDisabled={taskQuery.isFetching}
+              />
+            </div>
+          </footer>
         </div>
       )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "@tailgrids/icons";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
@@ -29,6 +29,7 @@ const emptyDraft: MessageTemplateDraft = {
   sharing: "public",
   customValues: {},
 };
+const PAGE_SIZE = 8;
 
 function getDraft(
   template: MessageTemplateRecord | null,
@@ -46,6 +47,8 @@ function getDraft(
 
 export default function AdminMessageTemplatePage() {
   const [templates, setTemplates] = useState<MessageTemplateRecord[]>([]);
+  const [total, setTotal] = useState(0);
+  const [owners, setOwners] = useState<Array<{ id: string; name: string }>>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,25 +62,46 @@ export default function AdminMessageTemplatePage() {
   const [draft, setDraft] = useState<MessageTemplateDraft>(emptyDraft);
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const [selectedContact, setSelectedContact] = useState("");
+  const [page, setPage] = useState(1);
+  const [serverSearch, setServerSearch] = useState("");
+  const [serverOwner, setServerOwner] = useState("all");
 
-  const loadTemplates = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const [response, user] = await Promise.all([
-        listAdminMessageTemplateLibrary(),
-        getCurrentUser(),
-      ]);
-      setTemplates(response.templates);
-      setCurrentUser(user);
-    } catch (error) {
-      setLoadError(
-        error instanceof Error ? error.message : "Không thể tải thư viện mẫu.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const loadTemplates = useCallback(
+    async (
+      nextPage = page,
+      nextSearch = serverSearch,
+      nextOwner = serverOwner,
+    ) => {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const [response, user] = await Promise.all([
+          listAdminMessageTemplateLibrary({
+            start: (nextPage - 1) * PAGE_SIZE,
+            pageLength: PAGE_SIZE,
+            search: nextSearch,
+            owner: nextOwner === "all" ? undefined : nextOwner,
+          }),
+          getCurrentUser(),
+        ]);
+        setTemplates(response.templates);
+        setTotal(response.total);
+        setOwners(response.owners);
+        setCurrentUser(user);
+        const responseTotalPages = Math.max(1, Math.ceil(response.total / PAGE_SIZE));
+        if (nextPage > responseTotalPages) setPage(responseTotalPages);
+      } catch (error) {
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Không thể tải thư viện mẫu.",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [page, serverOwner, serverSearch],
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -85,6 +109,40 @@ export default function AdminMessageTemplatePage() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [loadTemplates]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const handleServerFiltersChange = useCallback(
+    (filters: { search: string; owner: string }) => {
+      setServerSearch(filters.search);
+      setServerOwner(filters.owner);
+      setPage(1);
+    },
+    [],
+  );
+  const handleServerPageChange = useCallback(
+    (nextPage: number) => setPage(nextPage),
+    [],
+  );
+  const serverPagination = useMemo(
+    () => ({
+      total,
+      owners,
+      currentPage: page,
+      totalPages,
+      isDisabled: isLoading,
+      onPageChange: handleServerPageChange,
+      onFiltersChange: handleServerFiltersChange,
+    }),
+    [
+      handleServerFiltersChange,
+      handleServerPageChange,
+      isLoading,
+      owners,
+      page,
+      total,
+      totalPages,
+    ],
+  );
 
   const openCreateDialog = () => {
     setTemplateToEdit(null);
@@ -206,8 +264,7 @@ export default function AdminMessageTemplatePage() {
         metaLabel="Nội dung dùng chung"
         metaValue={
           <>
-            <span className="font-semibold text-text-primary">{templates.length}</span>{" "}
-            mẫu
+            <span className="font-semibold text-text-primary">{total}</span> mẫu
           </>
         }
       />
@@ -230,6 +287,7 @@ export default function AdminMessageTemplatePage() {
           onDuplicate={duplicateTemplate}
           onDelete={setTemplateToDelete}
           onEdit={openEditDialog}
+          serverPagination={serverPagination}
         />
       )}
 

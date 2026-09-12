@@ -1,6 +1,11 @@
-import { normalizeCrmUser, normalizeUserRoleLog, unwrapMethodPayload } from "./normalizers";
+import {
+  normalizeCrmUser,
+  normalizeUserRoleLog,
+  unwrapMethodPayload,
+} from "./normalizers";
 import type {
   CreateCrmUserPayload,
+  ListCrmUsersParams,
   ListCrmUsersResponse,
   ListUserRoleLogsParams,
   ListUserRoleLogsResponse,
@@ -14,7 +19,8 @@ import type {
 export type * from "./types";
 
 const METHODS = {
-  LIST_USERS: "crm.api.session.get_users",
+  LIST_USERS: "crm.api.session.list_admin_users",
+  LEGACY_LIST_USERS: "crm.api.session.get_users",
   UPDATE_ROLE: "crm.api.user.update_user_role",
   REMOVE_USER: "crm.api.user.remove_crm_roles_from_user",
   LIST_LOGS: "crm.api.user.list_user_role_logs",
@@ -24,10 +30,15 @@ const METHODS = {
   UPDATE_USER_CAPACITY: "crm.api.assignment_control.upsert_user_capacity",
 } as const;
 
-const DEFAULT_CAPACITY_UPDATE_REASON = "Cập nhật capacity từ trang Quản lý người dùng CRM.";
+const DEFAULT_CAPACITY_UPDATE_REASON =
+  "Cập nhật capacity từ trang Quản lý người dùng CRM.";
 
 export class UserManagementApiError extends Error {
-  constructor(public status: number, public code: string, message: string) {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
     super(message);
     this.name = "UserManagementApiError";
   }
@@ -42,8 +53,17 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function resolveBaseUrl(options: RequestOptions): string {
-  const baseUrl = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
-  if (!baseUrl) throw new UserManagementApiError(0, "FRAPPE_URL_MISSING", "Chưa cấu hình địa chỉ Frappe CRM API.");
+  const baseUrl = (
+    options.baseUrl ??
+    process.env.NEXT_PUBLIC_FRAPPE_URL ??
+    ""
+  ).replace(/\/+$/, "");
+  if (!baseUrl)
+    throw new UserManagementApiError(
+      0,
+      "FRAPPE_URL_MISSING",
+      "Chưa cấu hình địa chỉ Frappe CRM API.",
+    );
   return baseUrl;
 }
 
@@ -55,7 +75,10 @@ function cookieHeader(value: string): string {
     .join("; ");
 }
 
-async function headers(options: RequestOptions, write: boolean): Promise<Record<string, string>> {
+async function headers(
+  options: RequestOptions,
+  write: boolean,
+): Promise<Record<string, string>> {
   const result: Record<string, string> = {
     Accept: "application/json",
     ...(write ? { "Content-Type": "application/json" } : {}),
@@ -76,16 +99,23 @@ async function headers(options: RequestOptions, write: boolean): Promise<Record<
       .map((part) => part.trim())
       .find((part) => part.startsWith("csrf_token="));
     if (csrf) {
-      result["X-Frappe-CSRF-Token"] = decodeURIComponent(csrf.split("=").slice(1).join("="));
+      result["X-Frappe-CSRF-Token"] = decodeURIComponent(
+        csrf.split("=").slice(1).join("="),
+      );
     } else {
       // Cross-origin deployments can't read the Frappe-domain cookie from
       // document.cookie; fall back to fetching it from the session itself.
       try {
-        const response = await fetch(`${resolveBaseUrl(options)}/api/method/crm.api.session.me`, {
-          credentials: "include",
-          headers: { Accept: "application/json" },
-        });
-        const payload = (await response.json().catch(() => null)) as { message?: { csrf_token?: unknown } } | null;
+        const response = await fetch(
+          `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
+          {
+            credentials: "include",
+            headers: { Accept: "application/json" },
+          },
+        );
+        const payload = (await response.json().catch(() => null)) as {
+          message?: { csrf_token?: unknown };
+        } | null;
         if (typeof payload?.message?.csrf_token === "string") {
           result["X-Frappe-CSRF-Token"] = payload.message.csrf_token;
         }
@@ -102,12 +132,19 @@ function errorDetails(payload: unknown): { code?: string; message?: string } {
   const message = asRecord(root?.message);
   const error = asRecord(root?.error) ?? asRecord(message?.error);
   const exception = typeof root?.exception === "string" ? root.exception : "";
-  const code = typeof error?.code === "string" ? error.code : typeof root?.exc_type === "string" ? root.exc_type : undefined;
-  const extractedMessage = typeof error?.message === "string"
-    ? error.message
-    : typeof message?.message === "string"
-      ? message.message
-      : exception || (typeof root?.message === "string" ? root.message : undefined);
+  const code =
+    typeof error?.code === "string"
+      ? error.code
+      : typeof root?.exc_type === "string"
+        ? root.exc_type
+        : undefined;
+  const extractedMessage =
+    typeof error?.message === "string"
+      ? error.message
+      : typeof message?.message === "string"
+        ? message.message
+        : exception ||
+          (typeof root?.message === "string" ? root.message : undefined);
   return { code, message: extractedMessage };
 }
 
@@ -120,79 +157,186 @@ async function call<T>(
 ): Promise<T> {
   const url = new URL(`${resolveBaseUrl(options)}/api/method/${method}`);
   Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") url.searchParams.set(key, String(value));
+    if (value !== undefined && value !== "")
+      url.searchParams.set(key, String(value));
   });
   let response: Response;
   try {
     response = await fetch(url.toString(), {
       method: requestMethod,
       headers: await headers(options, requestMethod !== "GET"),
-      ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+      ...(typeof window !== "undefined"
+        ? { credentials: "include" as RequestCredentials }
+        : {}),
       ...(body ? { body: JSON.stringify(body) } : {}),
       cache: "no-store",
     });
   } catch {
-    throw new UserManagementApiError(503, "USER_MANAGEMENT_API_UNAVAILABLE", "Không thể kết nối đến máy chủ Frappe CRM.");
+    throw new UserManagementApiError(
+      503,
+      "USER_MANAGEMENT_API_UNAVAILABLE",
+      "Không thể kết nối đến máy chủ Frappe CRM.",
+    );
   }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const details = errorDetails(payload);
     const code = details.code ?? `HTTP_${response.status}`;
-    throw new UserManagementApiError(response.status, code, details.message ?? "Thao tác người dùng thất bại.");
+    throw new UserManagementApiError(
+      response.status,
+      code,
+      details.message ?? "Thao tác người dùng thất bại.",
+    );
   }
   return unwrapMethodPayload(payload) as T;
 }
 
-export async function listCrmUsers(options: RequestOptions = {}): Promise<ListCrmUsersResponse> {
+export function listCrmUsers(
+  options?: RequestOptions,
+): Promise<ListCrmUsersResponse>;
+export function listCrmUsers(
+  params?: ListCrmUsersParams,
+  options?: RequestOptions,
+): Promise<ListCrmUsersResponse>;
+export async function listCrmUsers(
+  paramsOrOptions: ListCrmUsersParams | RequestOptions = {},
+  options: RequestOptions = {},
+): Promise<ListCrmUsersResponse> {
+  const input = paramsOrOptions as ListCrmUsersParams & RequestOptions;
+  const params: ListCrmUsersParams = {
+    search: input.search,
+    role: input.role,
+    start: input.start,
+    pageLength: input.pageLength,
+  };
+  const requestOptions: RequestOptions =
+    input.baseUrl || input.headers
+      ? {
+          ...options,
+          baseUrl: input.baseUrl ?? options.baseUrl,
+          headers: input.headers ?? options.headers,
+        }
+      : options;
+  const hasServerParams = Object.values(params).some(
+    (value) => value !== undefined,
+  );
+  const listMethod = hasServerParams
+    ? METHODS.LIST_USERS
+    : METHODS.LEGACY_LIST_USERS;
   const [raw, capacitySettled] = await Promise.all([
-    call<unknown>(METHODS.LIST_USERS, "GET", options),
+    call<unknown>(
+      listMethod,
+      "GET",
+      requestOptions,
+      hasServerParams
+        ? {
+            search: params.search?.trim(),
+            role:
+              params.role && params.role !== "all" ? params.role : undefined,
+            start: params.start ?? 0,
+            page_length: params.pageLength ?? 20,
+          }
+        : {},
+    ),
     // Capacity requires system.configure; a non-admin viewer of this page must
     // still see the user list, just without capacity data. A real failure
     // (not that expected permission gap) still shouldn't take down the whole
     // user list, but it must not look identical to "you're not an admin" —
     // log it so it doesn't disappear silently for a caller who does qualify.
-    call<unknown>(METHODS.LIST_USER_CAPACITY, "GET", options).catch((error: unknown) => {
-      const isPermissionDenied =
-        error instanceof UserManagementApiError &&
-        (error.status === 403 || /permission/i.test(error.code));
-      if (!isPermissionDenied) {
-        console.error("Không tải được dữ liệu capacity người dùng.", error);
-      }
-      return null;
-    }),
+    call<unknown>(METHODS.LIST_USER_CAPACITY, "GET", requestOptions).catch(
+      (error: unknown) => {
+        const isPermissionDenied =
+          error instanceof UserManagementApiError &&
+          (error.status === 403 || /permission/i.test(error.code));
+        if (!isPermissionDenied) {
+          console.error("Không tải được dữ liệu capacity người dùng.", error);
+        }
+        return null;
+      },
+    ),
   ]);
   const capacityByUser = asRecord(capacitySettled) ?? {};
-  const [allUsers, crmUsers] = Array.isArray(raw) ? raw : [[], []];
+  const payload = asRecord(raw);
+  const legacyUsers = Array.isArray(raw) ? raw : [];
+  const pageUsers = Array.isArray(payload?.users)
+    ? payload.users
+    : (legacyUsers[1] ?? legacyUsers[0] ?? []);
+  const normalizeUserList = (value: unknown) =>
+    (Array.isArray(value) ? value : []).flatMap(
+      (user: unknown) => normalizeCrmUser(user, capacityByUser) ?? [],
+    );
+  const normalizedAllUsers = Array.isArray(raw)
+    ? normalizeUserList(legacyUsers[0])
+    : normalizeUserList(pageUsers);
+  const normalizedCrmUsers = Array.isArray(raw)
+    ? normalizeUserList(
+        Array.isArray(legacyUsers[1]) ? legacyUsers[1] : legacyUsers[0],
+      )
+    : normalizedAllUsers;
+  const total =
+    typeof payload?.total === "number"
+      ? payload.total
+      : normalizedAllUsers.length;
   return {
-    allUsers: Array.isArray(allUsers)
-      ? allUsers.flatMap((user) => normalizeCrmUser(user, capacityByUser) ?? [])
-      : [],
-    crmUsers: Array.isArray(crmUsers)
-      ? crmUsers.flatMap((user) => normalizeCrmUser(user, capacityByUser) ?? [])
-      : [],
+    allUsers: normalizedAllUsers,
+    crmUsers: normalizedCrmUsers,
+    total,
+    start:
+      typeof payload?.start === "number" ? payload.start : (params.start ?? 0),
+    pageLength:
+      typeof payload?.page_length === "number"
+        ? payload.page_length
+        : (params.pageLength ?? normalizedAllUsers.length),
   };
 }
 
-export async function updateUserRole(payload: UpdateUserRolePayload, options: RequestOptions = {}): Promise<void> {
-  await call(METHODS.UPDATE_ROLE, "POST", options, {}, {
-    user: payload.user,
-    new_role: payload.newRole,
-  });
+export async function updateUserRole(
+  payload: UpdateUserRolePayload,
+  options: RequestOptions = {},
+): Promise<void> {
+  await call(
+    METHODS.UPDATE_ROLE,
+    "POST",
+    options,
+    {},
+    {
+      user: payload.user,
+      new_role: payload.newRole,
+    },
+  );
 }
 
-export async function removeUser(payload: RemoveUserPayload, options: RequestOptions = {}): Promise<void> {
-  await call(METHODS.REMOVE_USER, "POST", options, {}, {
-    user: payload.user,
-  });
+export async function removeUser(
+  payload: RemoveUserPayload,
+  options: RequestOptions = {},
+): Promise<void> {
+  await call(
+    METHODS.REMOVE_USER,
+    "POST",
+    options,
+    {},
+    {
+      user: payload.user,
+    },
+  );
 }
 
-export async function createCrmUser(payload: CreateCrmUserPayload, options: RequestOptions = {}): Promise<string> {
-  const raw = await call<unknown>(METHODS.CREATE_USER, "POST", options, {}, {
-    email: payload.email,
-    full_name: payload.fullName,
-    password: payload.password,
-    role: payload.role,
-  });
+export async function createCrmUser(
+  payload: CreateCrmUserPayload,
+  options: RequestOptions = {},
+): Promise<string> {
+  const raw = await call<unknown>(
+    METHODS.CREATE_USER,
+    "POST",
+    options,
+    {},
+    {
+      email: payload.email,
+      full_name: payload.fullName,
+      password: payload.password,
+      role: payload.role,
+    },
+  );
   return typeof raw === "string" ? raw : payload.email;
 }
 
@@ -200,22 +344,34 @@ export async function updateCrmUserProfile(
   payload: UpdateCrmUserProfilePayload,
   options: RequestOptions = {},
 ): Promise<void> {
-  await call(METHODS.UPDATE_PROFILE, "POST", options, {}, {
-    user: payload.user,
-    full_name: payload.fullName,
-    new_password: payload.newPassword,
-  });
+  await call(
+    METHODS.UPDATE_PROFILE,
+    "POST",
+    options,
+    {},
+    {
+      user: payload.user,
+      full_name: payload.fullName,
+      new_password: payload.newPassword,
+    },
+  );
 }
 
 export async function updateUserCapacity(
   payload: UpdateUserCapacityPayload,
   options: RequestOptions = {},
 ): Promise<void> {
-  await call(METHODS.UPDATE_USER_CAPACITY, "POST", options, {}, {
-    user: payload.user,
-    max_active_students: payload.maxActiveStudents,
-    reason: payload.reason?.trim() || DEFAULT_CAPACITY_UPDATE_REASON,
-  });
+  await call(
+    METHODS.UPDATE_USER_CAPACITY,
+    "POST",
+    options,
+    {},
+    {
+      user: payload.user,
+      max_active_students: payload.maxActiveStudents,
+      reason: payload.reason?.trim() || DEFAULT_CAPACITY_UPDATE_REASON,
+    },
+  );
 }
 
 export async function listUserRoleLogs(
@@ -229,7 +385,9 @@ export async function listUserRoleLogs(
   });
   const payload = asRecord(raw);
   return {
-    logs: Array.isArray(payload?.logs) ? payload.logs.flatMap((log) => normalizeUserRoleLog(log) ?? []) : [],
+    logs: Array.isArray(payload?.logs)
+      ? payload.logs.flatMap((log) => normalizeUserRoleLog(log) ?? [])
+      : [],
     total: Number(payload?.total ?? 0),
     start: Number(payload?.start ?? params.start ?? 0),
     pageLength: Number(payload?.page_length ?? params.pageLength ?? 50),

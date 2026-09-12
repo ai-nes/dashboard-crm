@@ -428,7 +428,7 @@ export default function MarketMap({
         <div className="pointer-events-none absolute top-2.5 right-2.5 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-x-3 gap-y-1 rounded-lg bg-card-background/90 px-2.5 py-1.5 text-[10px] shadow-xs backdrop-blur-md">
           <span className="flex items-center gap-1.5 text-text-secondary">
             <span
-              className="size-2.5 animate-pulse rounded-full bg-success-500"
+              className="size-2.5 animate-pulse rounded-full bg-badge-orange-icon-color"
               aria-hidden="true"
             />
             Trọng điểm
