@@ -524,6 +524,7 @@ export async function getStudentNbaWorklist(
     }),
     nextCursor: text(root.next_cursor) ?? text(root.nextCursor),
     policyVersion: text(root.policy_version) ?? text(root.policyVersion),
+    emptyReason: text(root.empty_reason) ?? text(root.emptyReason),
   };
 }
 
