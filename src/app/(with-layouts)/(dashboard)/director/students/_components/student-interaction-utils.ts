@@ -34,13 +34,51 @@ export const interactionFamilyOptions = [
   { id: "Lifecycle", label: "Vòng đời hồ sơ" },
 ];
 
+const INTERACTION_TYPE_LABEL_OVERRIDES: Record<string, string> = {
+  APPLICATION_SUBMIT: "Nộp hồ sơ",
+  CANCEL_EVENT: "Hủy sự kiện",
+  CONSULTATION_REGISTER: "Đăng ký tư vấn",
+  MAJOR_VIEW: "Xem ngành học",
+  OPEN_DAY: "Ngày hội tuyển sinh",
+  REFUSE_CONSULTATION: "Từ chối tư vấn",
+  TRANSFER_SCHOOL: "Chuyển trường",
+  WEBINAR: "Hội thảo trực tuyến",
+  WEBSITE_VISIT: "Truy cập website",
+  ZALO_CHAT: "Tin nhắn Zalo",
+};
+
+function normalizeInteractionTypeKey(value?: string | null): string {
+  return (value ?? "")
+    .trim()
+    .toLocaleUpperCase("en-US")
+    .replace(/[\s-]+/g, "_");
+}
+
+export function getInteractionTypeLabel(
+  interactionType: Pick<InteractionCatalogItem, "code" | "display_name">,
+): string {
+  const codeLabel =
+    INTERACTION_TYPE_LABEL_OVERRIDES[
+      normalizeInteractionTypeKey(interactionType.code)
+    ];
+  if (codeLabel) return codeLabel;
+
+  const displayName = interactionType.display_name?.trim();
+  const displayNameLabel =
+    INTERACTION_TYPE_LABEL_OVERRIDES[normalizeInteractionTypeKey(displayName)];
+
+  return displayNameLabel || displayName || interactionType.code;
+}
+
 export function getInteractionLabel(
   interaction: InteractionSummary,
   catalog: Map<string, InteractionCatalogItem>,
 ): string {
+  const catalogItem = catalog.get(interaction.interaction_type);
+
   return (
     interaction.interaction_label?.trim() ||
-    catalog.get(interaction.interaction_type)?.display_name?.trim() ||
+    (catalogItem ? getInteractionTypeLabel(catalogItem) : null) ||
     interaction.interaction_type
   );
 }
@@ -50,10 +88,40 @@ export function isCallInteraction(interaction: InteractionSummary): boolean {
   const channel = interaction.channel?.trim().toLocaleLowerCase("en-US");
 
   return (
-    interactionType === "PHONE_CALL" ||
+    ["PHONE_CALL", "CONNECTED", "COUNSELING"].includes(interactionType) ||
     channel === "call" ||
     channel === "phone"
   );
+}
+
+export function isZaloInteraction(interaction: InteractionSummary): boolean {
+  const interactionType = interaction.interaction_type.trim().toUpperCase();
+  const channel = interaction.channel?.trim().toLocaleLowerCase("en-US");
+
+  return (
+    channel === "zalo" ||
+    interactionType === "ZALO" ||
+    ["MESSAGE", "MESSAGE_CHATWOOT", "TIN_NHAN_CHATWOOT"].includes(
+      interactionType,
+    )
+  );
+}
+
+export function isOtherInteraction(interaction: InteractionSummary): boolean {
+  return !isCallInteraction(interaction) && !isZaloInteraction(interaction);
+}
+
+export function isOtherInteractionType(interactionType: string): boolean {
+  return ![
+    "PHONE_CALL",
+    "CALL",
+    "CONNECTED",
+    "COUNSELING",
+    "ZALO",
+    "MESSAGE",
+    "MESSAGE_CHATWOOT",
+    "TIN_NHAN_CHATWOOT",
+  ].includes(interactionType.trim().toUpperCase());
 }
 
 export function getInteractionActivityTitle(

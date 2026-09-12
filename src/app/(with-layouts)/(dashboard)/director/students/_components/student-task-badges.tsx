@@ -1,4 +1,5 @@
 import { Badge } from "@/components/tailgrids/core/badge";
+import { CRM_TASK_STATUS_LABEL } from "@/services/api/crm-tasks";
 import { getTaskActionMetadata } from "@/services/api/tasks/action-catalog";
 import type {
   StudentTaskItem,
@@ -9,10 +10,10 @@ import { cn } from "@/utils/cn";
 type BadgeColor = "gray" | "warning" | "success" | "error";
 
 export const taskStatusLabel: Record<StudentTaskItem["status"], string> = {
-  todo: "Cần làm",
-  "in-progress": "Đang xử lý",
-  done: "Hoàn thành",
-  canceled: "Đã hủy",
+  todo: CRM_TASK_STATUS_LABEL.Todo,
+  "in-progress": CRM_TASK_STATUS_LABEL["In Progress"],
+  done: CRM_TASK_STATUS_LABEL.Done,
+  canceled: CRM_TASK_STATUS_LABEL.Canceled,
 };
 
 export const taskStatusColor: Record<StudentTaskItem["status"], BadgeColor> = {

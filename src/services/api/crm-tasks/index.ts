@@ -10,6 +10,7 @@ import type {
 } from "./types";
 
 export type * from "./types";
+export * from "./presentation";
 
 const METHODS = {
   LIST_TASKS: "crm.api.task.list_tasks",

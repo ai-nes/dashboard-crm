@@ -34,13 +34,7 @@ export default function TeamMemberToolbar({
     },
   ];
   return (
-    <Tabs
-      className="space-y-4"
-      selectedKey={role}
-      onSelectionChange={(key) =>
-        table.getColumn("role")?.setFilterValue(key === "ALL" ? undefined : key)
-      }
-    >
+    <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <label className="relative block w-full sm:max-w-md">
           <span className="sr-only">Tìm thành viên theo tên hoặc email</span>
@@ -59,29 +53,38 @@ export default function TeamMemberToolbar({
         </label>
         {leadPicker}
       </div>
-      <TabList
-        aria-label="Lọc theo vai trò"
-        className="flex flex-wrap items-center gap-1.5"
+      <Tabs
+        selectedKey={role}
+        onSelectionChange={(key) =>
+          table
+            .getColumn("role")
+            ?.setFilterValue(key === "ALL" ? undefined : key)
+        }
       >
-        {tabs.map((tab) => (
-          <Tab
-            key={tab.id}
-            id={tab.id}
-            className="group flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-text-secondary outline-none hover:bg-background-gray-secondary_alt data-[selected]:bg-badge-primary-background data-[selected]:font-semibold data-[selected]:text-badge-primary-text data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-primary-500"
-          >
-            {tab.label}
-            <span className="rounded-md bg-background-gray-secondary px-1.5 py-0.5 text-xs tabular-nums group-data-[selected]:bg-badge-primary-background group-data-[selected]:text-badge-primary-text">
-              {tab.count}
-            </span>
-          </Tab>
-        ))}
-      </TabList>
-      <TabPanel
-        id={role}
-        className="overflow-hidden rounded-2xl border border-card-border bg-card-background outline-none focus-visible:outline-2 focus-visible:outline-primary-500"
-      >
-        {children}
-      </TabPanel>
-    </Tabs>
+        <TabList
+          aria-label="Lọc theo vai trò"
+          className="flex flex-wrap items-center gap-1.5"
+        >
+          {tabs.map((tab) => (
+            <Tab
+              key={tab.id}
+              id={tab.id}
+              className="group flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-text-secondary outline-none hover:bg-background-gray-secondary_alt data-[selected]:bg-badge-primary-background data-[selected]:font-semibold data-[selected]:text-badge-primary-text data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-primary-500"
+            >
+              {tab.label}
+              <span className="rounded-md bg-background-gray-secondary px-1.5 py-0.5 text-xs tabular-nums group-data-[selected]:bg-badge-primary-background group-data-[selected]:text-badge-primary-text">
+                {tab.count}
+              </span>
+            </Tab>
+          ))}
+        </TabList>
+        <TabPanel
+          id={role}
+          className="overflow-hidden rounded-2xl border border-card-border bg-card-background outline-none focus-visible:outline-2 focus-visible:outline-primary-500"
+        >
+          {children}
+        </TabPanel>
+      </Tabs>
+    </div>
   );
 }

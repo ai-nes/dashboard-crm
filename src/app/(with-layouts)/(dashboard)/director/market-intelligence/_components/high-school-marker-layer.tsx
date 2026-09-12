@@ -153,7 +153,7 @@ export default function HighSchoolMarkerLayer({
                 cx={markerX}
                 cy={markerY}
                 fill={style.markerColor}
-                fillOpacity={0.3}
+                fillOpacity={0.34}
                 r={haloRadius}
               >
                 <animate
@@ -164,7 +164,7 @@ export default function HighSchoolMarkerLayer({
                 />
                 <animate
                   attributeName="fill-opacity"
-                  values="0.3;0;0.3"
+                  values="0.34;0;0.34"
                   dur="2.4s"
                   repeatCount="indefinite"
                 />
@@ -174,7 +174,7 @@ export default function HighSchoolMarkerLayer({
               cx={markerX}
               cy={markerY}
               fill={style.markerColor}
-              fillOpacity={isSelected || isHovered ? 0.24 : 0.14}
+              fillOpacity={isSelected || isHovered ? 0.36 : 0.26}
               r={haloRadius}
             />
             <circle

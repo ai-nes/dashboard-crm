@@ -1,4 +1,5 @@
 import type {
+  CreateInteractionInput,
   InteractionCatalog,
   InteractionCatalogItem,
   InteractionDetailResponse,
@@ -20,6 +21,7 @@ const METHODS = {
   DETAIL: "crm.api.interaction_read.get_interaction_detail",
   EVIDENCE: "crm.api.interaction_read.get_interaction_evidence",
   GET_LIST: "frappe.client.get_list",
+  INSERT: "frappe.client.insert",
 } as const;
 
 const INTERACTION_FIELDS = [
@@ -81,6 +83,7 @@ function frappeCookieHeader(cookieHeader: string): string {
 
 async function requestHeaders(
   options: InteractionRequestOptions = {},
+  includeCsrfToken = false,
 ): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -97,7 +100,40 @@ async function requestHeaders(
     }
   }
 
+  if (includeCsrfToken && typeof window !== "undefined") {
+    const csrfToken = await browserCsrfToken(options);
+    if (csrfToken) headers["X-Frappe-CSRF-Token"] = csrfToken;
+  }
+
   return headers;
+}
+
+async function browserCsrfToken(
+  options: InteractionRequestOptions,
+): Promise<string | null> {
+  const cookieToken = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("csrf_token="))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+  if (cookieToken) return decodeURIComponent(cookieToken);
+
+  try {
+    const response = await fetch(
+      `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
+      { credentials: "include", headers: { Accept: "application/json" } },
+    );
+    const payload = (await response.json().catch(() => null)) as {
+      message?: { csrf_token?: unknown };
+    } | null;
+    return typeof payload?.message?.csrf_token === "string"
+      ? payload.message.csrf_token
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function readError(
@@ -135,6 +171,50 @@ async function callFrappeRpc<T>(
   try {
     response = await fetch(`${endpoint}?${query.toString()}`, {
       headers,
+      ...(typeof window !== "undefined"
+        ? { credentials: "include" as RequestCredentials }
+        : {}),
+      cache: "no-store",
+    });
+  } catch {
+    throw new InteractionIntelligenceApiError(
+      503,
+      "INTERACTION_API_UNAVAILABLE",
+      "Không thể kết nối đến máy chủ Interaction Intelligence.",
+    );
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = readError(payload, response.status);
+    throw new InteractionIntelligenceApiError(
+      response.status,
+      error.code,
+      error.message,
+    );
+  }
+
+  return unwrapMessage(payload) as T;
+}
+
+async function callFrappeRpcPost<T>(
+  method: string,
+  body: Record<string, unknown>,
+  options: InteractionRequestOptions = {},
+): Promise<T> {
+  const baseUrl = resolveBaseUrl(options);
+  const endpoint = `${baseUrl}/api/method/${method}`;
+  const headers = {
+    ...(await requestHeaders(options, true)),
+    "Content-Type": "application/json",
+  };
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
       ...(typeof window !== "undefined"
         ? { credentials: "include" as RequestCredentials }
         : {}),
@@ -400,6 +480,50 @@ export async function getInteractionEvidence(
   }
 
   return payload as unknown as InteractionEvidence;
+}
+
+export async function createInteraction(
+  input: CreateInteractionInput,
+  options: InteractionRequestOptions = {},
+): Promise<Record<string, unknown>> {
+  const student = input.student.trim();
+  const interactionType = input.interaction_type.trim();
+  if (!student || !interactionType) {
+    throw new InteractionIntelligenceApiError(
+      400,
+      "INVALID_INTERACTION_INPUT",
+      "Cần chọn học sinh và loại tương tác.",
+    );
+  }
+
+  const doc: Record<string, unknown> = {
+    doctype: "CRM Interaction",
+    student,
+    interaction_type: interactionType,
+  };
+
+  if (input.interaction_datetime?.trim()) {
+    doc.interaction_datetime = input.interaction_datetime.trim();
+  }
+  if (input.outcome?.trim()) doc.outcome = input.outcome.trim();
+  if (input.summary?.trim()) doc.summary = input.summary.trim();
+  if (input.notes?.trim()) doc.notes = input.notes.trim();
+
+  const raw = await callFrappeRpcPost<unknown>(
+    METHODS.INSERT,
+    { doc },
+    options,
+  );
+  const created = asRecord(raw);
+  if (!created?.name || typeof created.name !== "string") {
+    throw new InteractionIntelligenceApiError(
+      502,
+      "INVALID_CREATED_INTERACTION_RESPONSE",
+      "Phản hồi tạo tương tác không hợp lệ.",
+    );
+  }
+
+  return created;
 }
 
 async function getCatalogItems<T extends InteractionCatalogItem>(

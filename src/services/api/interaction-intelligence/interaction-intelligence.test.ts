@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createInteraction,
   getInteractionCatalog,
   getInteractionDetail,
   getInteractionEvidence,
@@ -188,5 +189,97 @@ describe("interaction intelligence API contract", () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
       "doctype=CRM+Interaction+Type",
     );
+  });
+
+  it("creates a manual interaction without a reference document", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: { name: "INTX-2026-0001" } }), {
+        status: 200,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createInteraction(
+      {
+        student: "STU-1",
+        interaction_type: "NOTE",
+        interaction_datetime: "2026-09-12 10:30:00",
+        summary: "Tư vấn học phí",
+      },
+      { baseUrl: "http://frappe.test" },
+    );
+
+    const [url, request] = fetchMock.mock.calls[0] ?? [];
+    const body = JSON.parse(String((request as RequestInit)?.body));
+    expect(url).toBe("http://frappe.test/api/method/frappe.client.insert");
+    expect(request).toMatchObject({ method: "POST" });
+    expect(body.doc).toMatchObject({
+      doctype: "CRM Interaction",
+      student: "STU-1",
+      interaction_type: "NOTE",
+      interaction_datetime: "2026-09-12 10:30:00",
+      summary: "Tư vấn học phí",
+    });
+    expect(body.doc).not.toHaveProperty("reference_doctype");
+    expect(body.doc).not.toHaveProperty("reference_docname");
+  });
+
+  it("sends the browser CSRF token for manual interaction writes", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: { name: "INTX-2026-0002" } }), {
+        status: 200,
+      }),
+    );
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("document", { cookie: "csrf_token=csrf%2Ftoken" });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createInteraction(
+      { student: "STU-1", interaction_type: "NOTE" },
+      { baseUrl: "http://frappe.test" },
+    );
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      headers: expect.objectContaining({
+        "X-Frappe-CSRF-Token": "csrf/token",
+      }),
+    });
+  });
+
+  it("falls back to the session endpoint when the CSRF cookie is unavailable", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ message: { csrf_token: "session-csrf-token" } }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ message: { name: "INTX-2026-0003" } }), {
+          status: 200,
+        }),
+      );
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("document", { cookie: "" });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createInteraction(
+      { student: "STU-1", interaction_type: "NOTE" },
+      { baseUrl: "http://frappe.test" },
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://frappe.test/api/method/crm.api.session.me",
+    );
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+      method: "POST",
+      headers: expect.objectContaining({
+        "X-Frappe-CSRF-Token": "session-csrf-token",
+      }),
+    });
   });
 });

@@ -1,6 +1,8 @@
 import type { ChannelTypeValue } from "./channel-types";
 
-export type CampaignStatus = "DRAFT" | "UPCOMING" | "ACTIVE" | "CLOSED";
+import type { CampaignStatus as SharedCampaignStatus } from "@/services/api/campaigns";
+
+export type CampaignStatus = SharedCampaignStatus;
 
 export type CampaignMode = "ONLINE" | "OFFLINE";
 

@@ -236,3 +236,12 @@ export interface InteractionRequestOptions {
   baseUrl?: string;
   headers?: Record<string, string>;
 }
+
+export interface CreateInteractionInput {
+  student: string;
+  interaction_type: string;
+  interaction_datetime?: string;
+  outcome?: string;
+  summary?: string;
+  notes?: string;
+}

@@ -1,20 +1,25 @@
+import { CAMPAIGN_STATUS_LABEL } from "@/services/api/campaigns";
 import type { CampaignMode, CampaignStatus } from "./types";
 
-export const campaignStatusLabel: Record<CampaignStatus, string> = {
-  DRAFT: "Nháp",
-  UPCOMING: "Sắp diễn ra",
-  ACTIVE: "Đang diễn ra",
-  CLOSED: "Đã đóng",
-};
+export const campaignStatusLabel: Record<CampaignStatus, string> =
+  CAMPAIGN_STATUS_LABEL;
 
-export const campaignStatusColor: Record<CampaignStatus, "gray" | "sky" | "success" | "warning"> = {
+export const campaignStatusColor: Record<
+  CampaignStatus,
+  "gray" | "sky" | "success" | "warning"
+> = {
   DRAFT: "gray",
   UPCOMING: "sky",
   ACTIVE: "success",
   CLOSED: "warning",
 };
 
-export const campaignStatusOptions: CampaignStatus[] = ["DRAFT", "UPCOMING", "ACTIVE", "CLOSED"];
+export const campaignStatusOptions: CampaignStatus[] = [
+  "DRAFT",
+  "UPCOMING",
+  "ACTIVE",
+  "CLOSED",
+];
 
 export const campaignModeLabel: Record<CampaignMode, string> = {
   ONLINE: "Trực tuyến",

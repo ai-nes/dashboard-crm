@@ -1,4 +1,4 @@
-import type { CRMTask } from "@/services/api/crm-tasks";
+import { CRM_TASK_STATUS_LABEL, type CRMTask } from "@/services/api/crm-tasks";
 import { formatDate, formatDateTime } from "@/utils/format-date";
 
 export type SegmentTaskDeadlineTone =
@@ -24,13 +24,7 @@ export interface SegmentTaskGroup {
 export const SEGMENT_TASK_STATUS_LABEL: Record<
   NonNullable<CRMTask["status"]>,
   string
-> = {
-  Backlog: "Chưa bắt đầu",
-  Todo: "Cần xử lý",
-  "In Progress": "Đang thực hiện",
-  Done: "Đã hoàn tất",
-  Canceled: "Đã hủy",
-};
+> = CRM_TASK_STATUS_LABEL;
 
 export const SEGMENT_TASK_STATUS_COLOR: Record<
   NonNullable<CRMTask["status"]>,

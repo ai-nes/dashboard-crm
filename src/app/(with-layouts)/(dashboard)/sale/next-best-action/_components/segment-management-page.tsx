@@ -2,7 +2,6 @@
 
 import {Plus} from '@tailgrids/icons'
 import {usePathname, useRouter} from 'next/navigation'
-import {useState} from 'react'
 import {SegmentList} from '@/components/segments/segment-list'
 
 import AdminPageHeader from '@/components/common/admin/admin-page-header'
@@ -10,9 +9,6 @@ import {useAuth} from '@/components/common/auth/auth-provider'
 import {hasFrappeTechnicalRole} from '@/components/common/auth/rbac'
 import {Badge} from '@/components/tailgrids/core/badge'
 import {Button} from '@/components/tailgrids/core/button'
-import {TabContent, TabList, TabRoot, TabTrigger} from '@/components/tailgrids/core/tabs'
-
-import SegmentAnalysisEmptyState from './segment-analysis-empty-state'
 
 export default function SegmentManagementPage({
   createHref,
@@ -23,7 +19,6 @@ export default function SegmentManagementPage({
 }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [activeTab, setActiveTab] = useState('manage')
   const {user} = useAuth()
   const canManage = Boolean(
     hasFrappeTechnicalRole(user?.roles, 'System Manager') || user?.roles.includes('Administrator')
@@ -79,32 +74,13 @@ export default function SegmentManagementPage({
         </header>
       )}
 
-      <TabRoot
-        defaultValue="manage"
-        value={activeTab}
-        onValueChange={setActiveTab}
-        variant="minimal"
-        className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent"
-      >
-        <TabList className="px-1 sm:px-2">
-          <TabTrigger value="manage">Quản lý</TabTrigger>
-          <TabTrigger value="analyze">Phân tích</TabTrigger>
-        </TabList>
-
-        <TabContent value="manage" className="min-h-0 flex-1 overflow-hidden px-0 pt-5">
-          <SegmentList
-            detailBaseHref={pathname}
-            canManage={canManage}
-            compactStatus={isAdmin}
-          />
-        </TabContent>
-        <TabContent value="analyze" className="min-h-0 flex-1 overflow-hidden px-0 pt-5">
-          <SegmentAnalysisEmptyState
-            enabled={activeTab === 'analyze'}
-            onViewSegments={() => setActiveTab('manage')}
-          />
-        </TabContent>
-      </TabRoot>
+      <div className="min-h-0 flex-1 overflow-hidden pt-5">
+        <SegmentList
+          detailBaseHref={pathname}
+          canManage={canManage}
+          compactStatus={isAdmin}
+        />
+      </div>
     </main>
   )
 }

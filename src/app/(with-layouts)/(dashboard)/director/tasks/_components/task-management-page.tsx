@@ -558,7 +558,6 @@ export default function TaskManagementPage({
             onOpenTask={(task) => setSelectedTaskId(task.id)}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={canDeleteTask ? handleRequestDeleteTask : undefined}
-            lanePagination={lanePagination}
             isLoading={apiTasksPending && shouldUseCrmApi}
           />
         )}

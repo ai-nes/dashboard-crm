@@ -193,10 +193,25 @@ export function getOpportunityBadgeVariant(score: number | null): "success" | "p
 export function getHeatColor(value: number | null, isHovered: boolean = false): string {
   if (value === null) return isHovered ? "var(--text-200)" : "var(--background-gray-tertiary)";
 
+  // Keep only a light 20% background blend so province colors stay readable,
+  // while preserving stronger feedback for hover states.
+  const tint = (color: string, strength: number) =>
+    `color-mix(in oklch, ${color} ${strength}%, var(--background-soft-50))`;
+
   // Heat score is normalized to 0..100 before it reaches this function.
-  if (value >= 76) return isHovered ? "var(--green-600)" : "var(--success-500)";
-  if (value >= 58) return "var(--info-500)";
-  if (value >= 42) return isHovered ? "var(--brand-500)" : "var(--warning-500)";
-  return isHovered ? "var(--red-600)" : "var(--error-500)";
+  if (value >= 76) {
+    return isHovered
+      ? tint("var(--green-600)", 92)
+      : tint("var(--success-500)", 80);
+  }
+  if (value >= 58) return tint("var(--info-500)", isHovered ? 90 : 80);
+  if (value >= 42) {
+    return isHovered
+      ? tint("var(--brand-500)", 90)
+      : tint("var(--warning-500)", 80);
+  }
+  return isHovered
+    ? tint("var(--red-600)", 92)
+    : tint("var(--error-500)", 80);
 }
 

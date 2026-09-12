@@ -1,11 +1,16 @@
 "use client";
 
-import { UserMultiple1 } from "@tailgrids/icons";
+import { ChevronDown, UserMultiple1 } from "@tailgrids/icons";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { EditableDetailField } from "@/components/common/editable-detail-field";
 import { Card } from "@/components/tailgrids/core/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/tailgrids/core/collapsible";
 import type {
   StudentUpdateFields,
   StudentUpdateFieldValue,
@@ -47,6 +52,7 @@ interface ContactInformationField {
 interface ContactInformationGroup {
   title: string;
   fields: ContactInformationField[];
+  collapsible?: boolean;
 }
 
 interface StudentContactInformationMockupProps {
@@ -83,6 +89,14 @@ export default function StudentContactInformationMockup({
   const updateMutation = useStudentProfileUpdate(studentId);
   const details = data.student.profileDetails?.contact;
   const contactInformationGroups = getContactInformationGroups(data, details);
+  const primaryGroups = contactInformationGroups.filter(
+    (group) => !group.collapsible,
+  );
+  const parentGroups = contactInformationGroups.filter(
+    (group) => group.collapsible,
+  );
+  const handleFieldChange = (editKey: keyof ContactForm, value: string) =>
+    setForm((current) => ({ ...current, [editKey]: value }));
 
   const startEditing = () => {
     if (updateMutation.isPending) return;
@@ -142,17 +156,29 @@ export default function StudentContactInformationMockup({
       />
 
       <div className="space-y-4">
-        {contactInformationGroups.map((group) => (
+        {primaryGroups.map((group) => (
           <ContactInformationGroupSection
             key={group.title}
             group={group}
             isEditing={isEditing}
             form={form}
-            onChange={(editKey, value) =>
-              setForm((current) => ({ ...current, [editKey]: value }))
-            }
+            onChange={handleFieldChange}
           />
         ))}
+
+        {parentGroups.length > 0 && (
+          <div className="grid items-start gap-4 md:grid-cols-2">
+            {parentGroups.map((group) => (
+              <ContactInformationGroupSection
+                key={group.title}
+                group={group}
+                isEditing={isEditing}
+                form={form}
+                onChange={handleFieldChange}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </>
   );
@@ -175,41 +201,94 @@ function ContactInformationGroupSection({
   form: ContactForm;
   onChange: (editKey: keyof ContactForm, value: string) => void;
 }) {
-  return (
-    <section aria-label={group.title}>
-      <h3 className="border-b border-card-border pb-1 text-sm font-semibold text-text-primary">
-        {group.title}
-      </h3>
-      <dl className="mt-2 grid gap-x-8 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
-        {group.fields.map((field) => {
-          if (isEditing && field.editKey) {
-            const editKey = field.editKey;
-            return (
-              <EditableDetailField
-                key={field.label}
-                isEditing
-                label={field.label}
-                onChange={(value) => onChange(editKey, value)}
-                type={field.type}
-                value={form[editKey]}
-              />
-            );
-          }
+  if (isEditing || !group.collapsible) {
+    return (
+      <section aria-label={group.title}>
+        <h3 className="border-b border-card-border pb-2 text-sm font-semibold text-text-primary">
+          {group.title}
+        </h3>
+        <ContactInformationFields
+          columns={group.collapsible ? "two" : "three"}
+          fields={group.fields}
+          form={form}
+          isEditing={isEditing}
+          onChange={onChange}
+        />
+      </section>
+    );
+  }
 
+  return (
+    <Collapsible className="max-w-none rounded-none border-0 bg-transparent data-expanded:pb-0 sm:data-expanded:pb-0">
+      <CollapsibleTrigger className="rounded-none border-b border-card-border px-0 py-3 text-sm font-semibold text-text-primary sm:px-0 sm:py-3">
+        <span>{group.title}</span>
+        <ChevronDown
+          size={16}
+          className="shrink-0 transition-transform duration-200 group-data-expanded:rotate-180"
+          aria-hidden="true"
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="px-0 pb-4">
+        <ContactInformationFields
+          columns="two"
+          fields={group.fields}
+          form={form}
+          isEditing={false}
+          onChange={onChange}
+        />
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function ContactInformationFields({
+  columns,
+  fields,
+  isEditing,
+  form,
+  onChange,
+}: {
+  columns: "two" | "three";
+  fields: ContactInformationField[];
+  isEditing: boolean;
+  form: ContactForm;
+  onChange: (editKey: keyof ContactForm, value: string) => void;
+}) {
+  const gridClassName =
+    columns === "two"
+      ? "mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2"
+      : "mt-3 grid gap-x-8 gap-y-4 md:grid-cols-2 xl:grid-cols-3";
+
+  return (
+    <dl className={gridClassName}>
+      {fields.map((field) => {
+        if (isEditing && field.editKey) {
+          const editKey = field.editKey;
           return (
-            <div
+            <EditableDetailField
               key={field.label}
-              className="flex min-w-0 items-baseline gap-2 leading-5"
-            >
-              <dt className="shrink-0 text-xs text-text-tertiary">{field.label}</dt>
-              <dd className="min-w-0 break-words text-sm font-medium text-text-primary">
-                {field.value || "-"}
-              </dd>
-            </div>
+              isEditing
+              label={field.label}
+              onChange={(value) => onChange(editKey, value)}
+              type={field.type}
+              value={form[editKey]}
+            />
           );
-        })}
-      </dl>
-    </section>
+        }
+
+        return (
+          <div
+            key={field.label}
+            className="flex min-w-0 items-baseline gap-2 leading-5"
+          >
+            <dt className="shrink-0 text-xs text-text-tertiary">{field.label}</dt>
+            <dd className="min-w-0 break-words text-sm font-medium text-text-primary">
+              {field.value || "-"}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
   );
 }
 
@@ -290,6 +369,7 @@ function getContactInformationGroups(
     },
     {
       title: "Cha",
+      collapsible: true,
       fields: [
         {
           label: "Họ tên cha",
@@ -317,6 +397,7 @@ function getContactInformationGroups(
     },
     {
       title: "Mẹ",
+      collapsible: true,
       fields: [
         {
           label: "Họ tên mẹ",
