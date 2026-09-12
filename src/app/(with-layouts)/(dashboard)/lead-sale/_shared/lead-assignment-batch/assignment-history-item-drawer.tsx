@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { canAccessDashboardPath } from "@/components/common/auth/rbac";
 import {
   EditableDetailField,
   type EditableDetailOption,
@@ -28,7 +30,10 @@ import type {
 } from "@/services/api/lead-sale";
 
 import {
+  assignmentActionCategory,
+  assignmentActionLinks,
   assignmentReasonLabel,
+  extractUnconfiguredStaffEntries,
   itemStatusColors,
   itemStatusLabels,
 } from "./batch-assignment-mappings";
@@ -59,6 +64,7 @@ export default function AssignmentHistoryItemDrawer({
   onClose,
 }: AssignmentHistoryItemDrawerProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [province, setProvince] = useState(item.province ?? "");
   const [branch, setBranch] = useState(item.branch ?? "");
   const [phone, setPhone] = useState(item.phone ?? "");
@@ -90,6 +96,27 @@ export default function AssignmentHistoryItemDrawer({
   });
 
   const isClosed = item.status === "skipped";
+  // A Lead that IS assigned must never show a "why it wasn't assigned" panel —
+  // `item.reason` is a stale snapshot from whenever the batch last ran (e.g. an
+  // earlier manual_review reason), while `item.status` reflects the Lead's
+  // live, current outcome; once assigned, the old reason is no longer relevant.
+  const isAssigned = item.status === "assigned";
+  // What actually fixes this failure — a Team/capacity problem is never
+  // resolved by editing the Lead's own phone/province/school, so the drawer
+  // must not show that form (or imply it's the fix) for those categories.
+  const actionCategory = assignmentActionCategory(item);
+  const actionLink =
+    actionCategory === "team-config" || actionCategory === "staff-capacity"
+      ? assignmentActionLinks[actionCategory]
+      : null;
+  // Quản lý người dùng is Admin/System Manager-only — a Sale/CTV Sale viewer
+  // can never open it, so a clickable link would be a dead end. Point them
+  // at an Admin instead of a route their own role can't reach.
+  const canOpenActionLink = Boolean(
+    actionLink && canAccessDashboardPath(actionLink.href, user?.roles),
+  );
+  const unconfiguredStaff =
+    actionCategory === "staff-capacity" ? extractUnconfiguredStaffEntries(item.reason) : [];
   const isLiveReview = !item.batchId;
   const isDirty =
     phone !== (item.phone ?? "") ||
@@ -100,7 +127,7 @@ export default function AssignmentHistoryItemDrawer({
   const isBusy = step !== null;
 
   async function handleResolve() {
-    if (isClosed) return;
+    if (isClosed || isAssigned) return;
 
     try {
       if (isDirty) {
@@ -171,27 +198,59 @@ export default function AssignmentHistoryItemDrawer({
         )}
       </div>
 
-      <div className="mt-5 rounded-xl bg-badge-warning-background p-4 text-badge-warning-text">
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          <InfoTriangle size={17} aria-hidden="true" />
-          {isClosed ? "Lý do hồ sơ đã bị loại" : "Lý do chưa phân công được"}
+      {isAssigned ? (
+        <p className="mt-5 rounded-xl bg-badge-success-background p-4 text-sm leading-6 text-badge-success-text">
+          Hồ sơ đã được phân công thành công cho người phụ trách hiện tại.
         </p>
-        <p className="mt-2 text-sm leading-6">{assignmentReasonLabel(item)}</p>
-        {!isClosed && item.errorCode === "TEAM_NOT_FOUND_FOR_PROVINCE" && (
-          <p className="mt-2 text-sm leading-6">
-            Tỉnh này chưa được Team nào phụ trách. Hãy thêm tỉnh cho một Team ở{" "}
-            <Link
-              href="/lead-sale/team-management"
-              className="font-semibold underline"
-            >
-              Quản lý Team
-            </Link>
-            , rồi quay lại bấm phân công lại.
+      ) : (
+        <div className="mt-5 rounded-xl bg-badge-warning-background p-4 text-badge-warning-text">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <InfoTriangle size={17} aria-hidden="true" />
+            {isClosed ? "Lý do hồ sơ đã bị loại" : "Lý do chưa phân công được"}
           </p>
-        )}
-      </div>
+          {unconfiguredStaff.length > 0 ? (
+            <>
+              <p className="mt-2 text-sm leading-6">Chưa thiết lập capacity:</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm leading-6">
+                {unconfiguredStaff.map((entry) => (
+                  <li key={`${entry.name}-${entry.team}`}>
+                    <span className="font-semibold">{entry.name}</span> — {entry.team}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="mt-2 text-sm leading-6">{assignmentReasonLabel(item)}</p>
+          )}
+          {!isClosed && actionLink && (
+            <p className="mt-2 text-sm leading-6">
+              {canOpenActionLink ? (
+                <>
+                  Vào{" "}
+                  <Link href={actionLink.href} className="font-semibold underline">
+                    {actionLink.label}
+                  </Link>{" "}
+                  để xử lý.
+                </>
+              ) : (
+                <>Liên hệ Admin để xử lý ở {actionLink.label}.</>
+              )}
+            </p>
+          )}
+        </div>
+      )}
 
-      {!isClosed && <section className="mt-6" aria-labelledby="routing-fix-heading">
+      {!isClosed && !isAssigned && actionCategory === "system" && (
+        <p className="mt-4 text-xs leading-5 text-text-tertiary">
+          Sự cố này chỉ mang tính tạm thời, không cần chỉnh sửa gì thêm. Bấm
+          &quot;Phân công lại&quot; bên dưới để hệ thống thử lại.
+        </p>
+      )}
+
+      {!isClosed &&
+        !isAssigned &&
+        (actionCategory === "lead-data" || actionCategory === "unknown") && (
+        <section className="mt-6" aria-labelledby="routing-fix-heading">
         <h2
           id="routing-fix-heading"
           className="text-sm font-semibold text-text-primary"
@@ -256,7 +315,8 @@ export default function AssignmentHistoryItemDrawer({
             value={branch}
           />
         </dl>
-      </section>}
+      </section>
+      )}
 
       <div className="mt-8 flex items-center gap-3 border-t border-card-border pt-5">
         {/* Empty until a step starts, so the buttons keep one row to themselves. */}
@@ -275,7 +335,7 @@ export default function AssignmentHistoryItemDrawer({
           >
             Đóng
           </Button>
-          {!isClosed && (
+          {!isClosed && !isAssigned && (
             <Button isDisabled={isBusy} onPress={handleResolve} size="sm">
               {isBusy ? "Đang xử lý…" : "Lưu và phân công lại"}
             </Button>
