@@ -89,11 +89,14 @@ export function CreateDialogSelect({
   value,
   onChange,
   options,
-  placeholder = "Chọn campaign",
+  placeholder,
   isDisabled = false,
   searchable = false,
   searchPlaceholder,
 }: CreateDialogSelectProps) {
+  const resolvedPlaceholder =
+    placeholder ?? `Chọn ${label.toLocaleLowerCase("vi-VN")}`;
+
   return (
     <DropdownField
       ariaLabel={label}
@@ -102,7 +105,7 @@ export function CreateDialogSelect({
       isDisabled={isDisabled}
       isSearchable={searchable}
       onChange={(nextValue) => onChange(nextValue ?? "")}
-      placeholder={placeholder}
+      placeholder={resolvedPlaceholder}
       searchPlaceholder={searchPlaceholder}
       triggerClassName="h-10 px-3 py-2.5 text-sm"
       value={value || undefined}

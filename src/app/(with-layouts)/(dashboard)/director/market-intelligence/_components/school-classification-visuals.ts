@@ -29,7 +29,7 @@ export const SCHOOL_CLASSIFICATION_VISUALS: Record<
   },
   "Sàng lọc": {
     badgeColor: "gray",
-    markerColor: "var(--text-disable)",
+    markerColor: "var(--icon-tertiary)",
     markerRadius: 3,
     markerCoreRadius: 1.75,
   },

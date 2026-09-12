@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { ArrowLeft, ArrowRight, CalendarTime } from "@tailgrids/icons";
+import { CalendarTime } from "@tailgrids/icons";
 
+import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   TableBody,
   TableCell,
@@ -22,7 +23,6 @@ import {
   StudentTaskTypeBadge,
 } from "../../students/_components/student-task-badges";
 import TaskManagementTaskActions from "./task-management-task-actions";
-import type { TaskLanePagination } from "./types";
 
 interface TaskManagementTableProps {
   tasks: TaskManagementItem[];
@@ -32,18 +32,9 @@ interface TaskManagementTableProps {
     updates: Partial<StudentTaskItem>,
   ) => void | Promise<void>;
   onDeleteTask?: (id: string) => void;
-  lanePagination?: Partial<
-    Record<TaskManagementItem["status"], TaskLanePagination>
-  >;
   isLoading?: boolean;
 }
 
-const statuses: TaskManagementItem["status"][] = [
-  "todo",
-  "in-progress",
-  "done",
-  "canceled",
-];
 const TABLE_PAGE_SIZE = 10;
 
 function getInitials(name?: string, fallback = "--"): string {
@@ -183,19 +174,9 @@ export default function TaskManagementTable({
   onOpenTask,
   onUpdateTask,
   onDeleteTask,
-  lanePagination,
   isLoading = false,
 }: TaskManagementTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  const paginatedLanes = statuses
-    .map((status) => lanePagination?.[status])
-    .filter((pagination): pagination is TaskLanePagination =>
-      Boolean(pagination),
-    );
-  const hasMoreTasks = paginatedLanes.some((pagination) => pagination.hasMore);
-  const isLoadingMore = paginatedLanes.some(
-    (pagination) => pagination.isLoading,
-  );
   const pageCount = Math.max(1, Math.ceil(tasks.length / TABLE_PAGE_SIZE));
   const activePage = Math.min(currentPage, pageCount);
   const visibleTasks = useMemo(() => {
@@ -205,18 +186,6 @@ export default function TaskManagementTable({
   const firstVisibleIndex =
     tasks.length === 0 ? 0 : (activePage - 1) * TABLE_PAGE_SIZE + 1;
   const lastVisibleIndex = Math.min(activePage * TABLE_PAGE_SIZE, tasks.length);
-  const pageNumbers = Array.from(
-    { length: pageCount },
-    (_, index) => index + 1,
-  );
-
-  const loadMoreTasks = () => {
-    paginatedLanes.forEach((pagination) => {
-      if (pagination.hasMore && !pagination.isLoading) {
-        pagination.onLoadMore();
-      }
-    });
-  };
 
   return (
     <div className="bg-transparent px-0 pb-0 pt-1">
@@ -261,64 +230,29 @@ export default function TaskManagementTable({
             </TableBody>
           </TableRoot>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-5 py-3">
-          <span className="text-xs text-text-tertiary">
+        <footer className="flex flex-col gap-3 border-t border-card-border px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p
+            aria-live="polite"
+            className="shrink-0 whitespace-nowrap text-xs text-text-secondary"
+          >
             {tasks.length > 0
-              ? `Hiển thị ${firstVisibleIndex}–${lastVisibleIndex} / ${tasks.length} task`
+              ? `Hiển thị ${firstVisibleIndex.toLocaleString("vi-VN")}–${lastVisibleIndex.toLocaleString("vi-VN")} trong tổng số ${tasks.length.toLocaleString("vi-VN")} task`
               : "0 task"}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="Trang trước"
-              disabled={activePage === 1}
-              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-              className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-background-gray-secondary_alt disabled:cursor-not-allowed disabled:text-text-tertiary"
-            >
-              <ArrowLeft size={14} aria-hidden="true" />
-            </button>
-            {pageNumbers.map((page) => (
-              <button
-                key={page}
-                type="button"
-                aria-label={`Trang ${page}`}
-                aria-current={activePage === page ? "page" : undefined}
-                onClick={() => setCurrentPage(page)}
-                className={cn(
-                  "inline-flex size-8 items-center justify-center rounded-md text-xs font-semibold transition",
-                  activePage === page
-                    ? "bg-primary-500 text-white"
-                    : "text-text-secondary hover:bg-background-gray-secondary_alt",
-                )}
-              >
-                {page}
-              </button>
-            ))}
-            <button
-              type="button"
-              aria-label="Trang sau"
-              disabled={activePage === pageCount}
-              onClick={() =>
-                setCurrentPage((page) =>
-                  Math.min(pageCount, Math.max(activePage, page) + 1),
-                )
-              }
-              className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-background-gray-secondary_alt disabled:cursor-not-allowed disabled:text-text-tertiary"
-            >
-              <ArrowRight size={14} aria-hidden="true" />
-            </button>
+          </p>
+          <div className="flex flex-wrap items-center justify-end gap-3 max-sm:w-full">
+            {pageCount > 1 && (
+              <div className="shrink-0 max-sm:w-full">
+                <Pagination
+                  currentPage={activePage}
+                  totalPages={pageCount}
+                  onPageChange={setCurrentPage}
+                  variant="compact"
+                  isDisabled={isLoading}
+                />
+              </div>
+            )}
           </div>
-          {hasMoreTasks && (
-            <button
-              type="button"
-              disabled={isLoadingMore}
-              onClick={loadMoreTasks}
-              className="text-xs font-semibold text-primary-500 hover:text-primary-600 disabled:cursor-not-allowed disabled:text-text-tertiary"
-            >
-              {isLoadingMore ? "Đang tải..." : "Xem thêm task"}
-            </button>
-          )}
-        </div>
+        </footer>
       </div>
     </div>
   );

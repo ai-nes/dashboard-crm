@@ -46,7 +46,7 @@ export default function AddMemberDropdown({
         </span>
       )}
       searchPlaceholder="Tìm thành viên..."
-      triggerClassName="h-8.5 border-transparent bg-button-primary-background px-3 py-1.5 text-button-primary-text hover:bg-button-primary-hover-background"
+      triggerClassName="h-8.5 w-auto shrink-0 border-transparent bg-button-primary-background px-3 py-1.5 text-button-primary-text hover:bg-button-primary-hover-background"
     />
   );
 }

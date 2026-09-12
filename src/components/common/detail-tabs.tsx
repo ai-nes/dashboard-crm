@@ -27,6 +27,7 @@ interface DetailTabsProps {
   ariaLabel: string;
   defaultSelectedKey: string;
   tabs: DetailTabItem[];
+  actions?: ReactNode;
   className?: string;
   isSticky?: boolean;
   onSelectionChange?: (key: string) => void;
@@ -36,6 +37,7 @@ export default function DetailTabs({
   ariaLabel,
   defaultSelectedKey,
   tabs,
+  actions,
   className,
   isSticky = true,
   onSelectionChange,
@@ -120,63 +122,70 @@ export default function DetailTabs({
             "bg-card-surface-area",
           )}
         >
-          <TabList
-            aria-label={ariaLabel}
-            className="flex max-w-full gap-1 overflow-x-auto border-b border-card-border px-1 [scrollbar-width:thin]"
-          >
-            {tabs.map((tab) => {
-              const hasSections = Boolean(tab.sections?.length);
+          <div className="flex min-w-0 items-end border-b border-card-border">
+            <TabList
+              aria-label={ariaLabel}
+              className="flex min-w-0 flex-1 gap-1 overflow-x-auto px-1 [scrollbar-width:thin]"
+            >
+              {tabs.map((tab) => {
+                const hasSections = Boolean(tab.sections?.length);
 
-              return (
-                <Tab
-                  key={tab.id}
-                  id={tab.id}
-                  aria-haspopup={hasSections ? "dialog" : undefined}
-                  ref={hasSections ? sectionTriggerRef : undefined}
-                  onFocus={
-                    hasSections
-                      ? (event) =>
-                          showSectionPopover(
-                            tab.id,
-                            event.currentTarget as HTMLDivElement,
-                          )
-                      : undefined
-                  }
-                  onMouseEnter={
-                    hasSections
-                      ? (event) =>
-                          showSectionPopover(
-                            tab.id,
-                            event.currentTarget as HTMLDivElement,
-                          )
-                      : undefined
-                  }
-                  onBlur={hasSections ? schedulePopoverClose : undefined}
-                  onMouseLeave={hasSections ? schedulePopoverClose : undefined}
-                  className="group relative shrink-0 cursor-pointer px-3 py-3 text-sm font-medium text-text-secondary outline-none transition-colors hover:text-text-primary data-[selected=true]:text-primary-500 data-[focus-visible=true]:rounded-md data-[focus-visible=true]:ring-4 data-[focus-visible=true]:ring-button-outline-focus-ring"
-                >
-                  <span className="inline-flex items-center gap-1.5">
-                    {tab.label}
-                    {tab.badge !== undefined && tab.badge !== 0 && (
-                      <Badge color="primary" size="sm">
-                        {tab.badge}
-                      </Badge>
-                    )}
-                    {hasSections && (
-                      <ChevronDown
-                        aria-hidden="true"
-                        className="size-4 text-text-tertiary transition-transform group-data-[selected=true]:text-primary-500"
-                      />
-                    )}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className="absolute inset-x-3 bottom-0 h-0.5 scale-x-0 bg-primary-500 transition-transform duration-200 group-data-[selected=true]:scale-x-100 motion-reduce:transition-none"
-                  />
-                </Tab>
-              );
-            })}
-          </TabList>
+                return (
+                  <Tab
+                    key={tab.id}
+                    id={tab.id}
+                    aria-haspopup={hasSections ? "dialog" : undefined}
+                    ref={hasSections ? sectionTriggerRef : undefined}
+                    onFocus={
+                      hasSections
+                        ? (event) =>
+                            showSectionPopover(
+                              tab.id,
+                              event.currentTarget as HTMLDivElement,
+                            )
+                        : undefined
+                    }
+                    onMouseEnter={
+                      hasSections
+                        ? (event) =>
+                            showSectionPopover(
+                              tab.id,
+                              event.currentTarget as HTMLDivElement,
+                            )
+                        : undefined
+                    }
+                    onBlur={hasSections ? schedulePopoverClose : undefined}
+                    onMouseLeave={
+                      hasSections ? schedulePopoverClose : undefined
+                    }
+                    className="group relative shrink-0 cursor-pointer px-3 py-3 text-sm font-medium text-text-secondary outline-none transition-colors hover:text-text-primary data-[selected=true]:text-primary-500 data-[focus-visible=true]:rounded-md data-[focus-visible=true]:ring-4 data-[focus-visible=true]:ring-button-outline-focus-ring"
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      {tab.label}
+                      {tab.badge !== undefined && tab.badge !== 0 && (
+                        <Badge color="primary" size="sm">
+                          {tab.badge}
+                        </Badge>
+                      )}
+                      {hasSections && (
+                        <ChevronDown
+                          aria-hidden="true"
+                          className="size-4 text-text-tertiary transition-transform group-data-[selected=true]:text-primary-500"
+                        />
+                      )}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-x-3 bottom-0 h-0.5 scale-x-0 bg-primary-500 transition-transform duration-200 group-data-[selected=true]:scale-x-100 motion-reduce:transition-none"
+                    />
+                  </Tab>
+                );
+              })}
+            </TabList>
+            {actions ? (
+              <div className="shrink-0 px-1 pb-1 sm:px-2">{actions}</div>
+            ) : null}
+          </div>
         </div>
 
         <TabPanels className="min-w-0 pt-6">

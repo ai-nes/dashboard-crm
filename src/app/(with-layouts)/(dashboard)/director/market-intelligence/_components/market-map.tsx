@@ -626,7 +626,7 @@ export default function MarketMap({
             className="h-1.5 w-20 rounded-full"
             style={{
               backgroundImage:
-                "linear-gradient(90deg, var(--red-600) 0%, var(--warning-500) 34%, var(--info-500) 67%, var(--green-600) 100%)",
+                "linear-gradient(90deg, color-mix(in oklch, var(--red-600) 80%, var(--background-soft-50)) 0%, color-mix(in oklch, var(--warning-500) 80%, var(--background-soft-50)) 34%, color-mix(in oklch, var(--info-500) 80%, var(--background-soft-50)) 67%, color-mix(in oklch, var(--green-600) 80%, var(--background-soft-50)) 100%)",
             }}
           />
           <span className="text-[11px] text-text-tertiary">Cao</span>

@@ -535,6 +535,8 @@ export default function StudentActivitiesTab({
             label: "Tương tác",
             content: (
               <StudentInteractionsTabs
+                studentId={studentDocname}
+                studentName={data.student.name}
                 calls={calls}
                 messages={zaloMessages}
                 isCallsLoading={

@@ -4,7 +4,6 @@ import {
   BarChart2,
   Check,
   ChevronDown,
-  Funnel1,
   Layout6,
   Search1,
 } from "@tailgrids/icons";
@@ -54,7 +53,7 @@ const statusFilters: { id: TaskStatusFilter; label: string }[] = [
 ];
 
 const toolbarActionClass =
-  "inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-text-secondary transition hover:bg-background-gray-secondary_alt hover:text-text-primary";
+  "inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-text-secondary transition hover:bg-background-gray-secondary_alt hover:text-text-primary";
 
 export default function TaskManagementToolbar({
   view,
@@ -118,11 +117,12 @@ export default function TaskManagementToolbar({
 
       {layout === "table" && (
         <div className="mt-2 flex w-full flex-wrap items-center justify-start gap-2">
-          <InputGroup className="w-full sm:w-[420px]">
+          <InputGroup className="h-10 w-full sm:w-[360px]">
             <InputGroupAddon className="pr-0 text-text-tertiary">
               <Search1 size={16} aria-hidden="true" />
             </InputGroupAddon>
             <InputGroupInput
+              className="py-2"
               aria-label="Tìm task"
               placeholder="Tìm theo tên task, học sinh hoặc người phụ trách"
               value={searchQuery}
@@ -132,12 +132,9 @@ export default function TaskManagementToolbar({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={`Lọc theo khoảng thời gian: ${activeFilter?.label ?? "Tất cả task"}`}
-              className={`${toolbarActionClass} w-full justify-between border border-card-border px-2.5 sm:w-auto sm:min-w-40`}
+              className={`${toolbarActionClass} w-full justify-between border border-card-border sm:w-44 sm:min-w-44`}
             >
-              <span className="flex min-w-0 items-center gap-1.5">
-                <Funnel1 size={16} aria-hidden="true" />
-                <span className="truncate">{activeFilter?.label}</span>
-              </span>
+              <span className="min-w-0 truncate">{activeFilter?.label}</span>
               <ChevronDown size={14} aria-hidden="true" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
