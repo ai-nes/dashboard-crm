@@ -236,6 +236,8 @@ export default function QuickCreateLeadDialog({
                 <CreateDialogSelect
                   label="Chiến dịch"
                   options={campaignOptions}
+                  searchable
+                  searchPlaceholder="Tìm chiến dịch..."
                   value={form.campaign}
                   isDisabled={campaignOptionsQuery.isPending}
                   onChange={(value) => setField("campaign", value)}
@@ -247,6 +249,8 @@ export default function QuickCreateLeadDialog({
                 <CreateDialogSelect
                   label="Tỉnh / thành phố"
                   options={provinceOptions}
+                  searchable
+                  searchPlaceholder="Tìm tỉnh / thành phố..."
                   value={form.province}
                   isDisabled={provinceOptionsQuery.isPending}
                   onChange={handleProvinceChange}
@@ -257,6 +261,8 @@ export default function QuickCreateLeadDialog({
                 <CreateDialogSelect
                   label="Xã / phường"
                   options={wardOptions}
+                  searchable
+                  searchPlaceholder="Tìm xã / phường..."
                   value={form.ward}
                   isDisabled={!form.province || wardOptionsQuery.isPending}
                   onChange={(value) => setField("ward", value)}
