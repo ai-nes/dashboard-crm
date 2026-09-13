@@ -4,18 +4,25 @@ import {
   BatchAssignmentProvider,
   useBatchAssignment,
 } from "../../_shared/lead-assignment-batch/batch-assignment-context";
-import AssignmentBatchHeader from "./assignment-batch-header";
-import AssignmentBatchWorkflow from "./assignment-batch-workflow";
+import AssignmentBatchTabs from "./assignment-batch-tabs";
 
-export default function AssignmentBatchWorkspace() {
+export default function AssignmentBatchWorkspace({
+  activeTab,
+}: {
+  activeTab: "assignment" | "history";
+}) {
   return (
     <BatchAssignmentProvider>
-      <AssignmentBatchWorkspaceContent />
+      <AssignmentBatchWorkspaceContent activeTab={activeTab} />
     </BatchAssignmentProvider>
   );
 }
 
-function AssignmentBatchWorkspaceContent() {
+function AssignmentBatchWorkspaceContent({
+  activeTab,
+}: {
+  activeTab: "assignment" | "history";
+}) {
   const { error } = useBatchAssignment();
 
   return (
@@ -28,8 +35,7 @@ function AssignmentBatchWorkspaceContent() {
           Không thể tải dữ liệu đợt phân công: {error.message}
         </div>
       )}
-      <AssignmentBatchHeader />
-      <AssignmentBatchWorkflow />
+      <AssignmentBatchTabs activeTab={activeTab} />
     </main>
   );
 }

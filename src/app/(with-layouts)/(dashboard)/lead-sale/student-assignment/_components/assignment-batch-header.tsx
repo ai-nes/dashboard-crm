@@ -1,9 +1,7 @@
 "use client";
 
-import { ArrowRight, Play } from "@tailgrids/icons";
-import Link from "next/link";
-import { Button, buttonStyles } from "@/components/tailgrids/core/button";
-import { cn } from "@/utils/cn";
+import { Play } from "@tailgrids/icons";
+import { Button } from "@/components/tailgrids/core/button";
 import { useLeadSaleLeadsQuery } from "@/hooks/use-lead-sale-leads-queries";
 import { useBatchAssignment } from "../../_shared/lead-assignment-batch/batch-assignment-context";
 
@@ -52,7 +50,7 @@ export default function AssignmentBatchHeader() {
             phân công theo cấu hình hiện tại.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           <Button
             size="md"
             onPress={() =>
@@ -71,19 +69,6 @@ export default function AssignmentBatchHeader() {
                   ? `Xử lý Lead (${pendingNewCount})`
                   : "Phân công Lead"}
           </Button>
-          <Link
-            href="/lead-sale/assignment-history"
-            className={cn(
-              buttonStyles({
-                variant: "primary",
-                appearance: "outline",
-                size: "md",
-              }),
-              "border-card-border text-text-secondary",
-            )}
-          >
-            Lịch sử chạy <ArrowRight size={16} aria-hidden="true" />
-          </Link>
         </div>
       </div>
     </header>

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-
-import AssignmentHistoryWorkspace from "./_components/assignment-history-workspace";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Lịch sử phân công",
@@ -8,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function LeadSaleAssignmentHistoryPage() {
-  return <AssignmentHistoryWorkspace />;
+  redirect("/lead-sale/student-assignment?tab=history");
 }

@@ -140,9 +140,13 @@ export default function AssignmentBatchWorkflow() {
 
   function openReviewQueue() {
     if (!reviewTotal) return;
-    const query = new URLSearchParams({ status: "all", open: "1" });
+    const query = new URLSearchParams({
+      tab: "history",
+      status: "all",
+      open: "1",
+    });
     setSelectedStep(null);
-    router.push(`/lead-sale/assignment-history?${query.toString()}`);
+    router.push(`/lead-sale/student-assignment?${query.toString()}`);
   }
 
   const phaseBadgeLabel = isWorkflowProcessing

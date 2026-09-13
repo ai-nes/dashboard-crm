@@ -96,6 +96,62 @@ describe("dashboard RBAC", () => {
     ).toBe(true);
   });
 
+  it("keeps Lead Sale navigation in workflow order", () => {
+    const leadSaleNavigation = filterNavigationByRoles(
+      getNavigationDataForRoles(["Lead Sale"]),
+      ["Lead Sale"],
+    );
+
+    expect(leadSaleNavigation.map((section) => section.label)).toEqual([
+      "TỔNG QUAN",
+      "HỌC SINH & NGƯỜI HỌC",
+      "VẬN HÀNH TUYỂN SINH",
+      "MẪU & NỘI DUNG",
+    ]);
+    expect(
+      leadSaleNavigation.map((section) =>
+        section.items.map((item) => item.title),
+      ),
+    ).toEqual([
+      ["Tổng quan tuyển sinh", "Quản lý task", "Chatbot CRM"],
+      [
+        "Quản lý segments",
+        "Danh sách Leads",
+        "Chiến dịch tuyển sinh",
+        "Danh sách Học sinh",
+        "Danh sách Trường",
+      ],
+      ["Phân công Lead", "Quản lý Team"],
+      ["Message Template", "Snippest"],
+    ]);
+  });
+
+  it("keeps Sale and CTV Sale navigation aligned with Lead Sale", () => {
+    const roles = ["Sale", "CTV Sale"] as const;
+
+    for (const role of roles) {
+      const navigation = filterNavigationByRoles(
+        getNavigationDataForRoles([role]),
+        [role],
+      );
+
+      expect(navigation.map((section) => section.label)).toEqual([
+        "TỔNG QUAN",
+        "HỌC SINH & NGƯỜI HỌC",
+        "ĐỘI NGŨ",
+        "MẪU & NỘI DUNG",
+      ]);
+      expect(navigation[1].items[0].title).toBe("Quản lý segments");
+      expect(navigation[2].items.map((item) => item.title)).toEqual([
+        "Quản lý Team",
+      ]);
+      expect(navigation[3].items.map((item) => item.title)).toEqual([
+        "Message Template",
+        "Snippest",
+      ]);
+    }
+  });
+
   it("exposes role-scoped segment workspaces to Sale and CTV Sale", () => {
     const roleSegmentRoutes = {
       Sale: "/sale/next-best-action",
@@ -249,9 +305,9 @@ describe("dashboard RBAC", () => {
       "Hiệu suất khu vực",
       "Phễu tuyển sinh",
       "Phân tích xu hướng",
+      "Hoạt động & chiến dịch",
       "Message Template",
       "Snippest",
-      "Hoạt động & chiến dịch",
     ]);
     expect(getNavigationUrls(directorNavigation)).toHaveLength(13);
     expect(getNavigationUrls(directorNavigation)[0]).toBe("/director");
@@ -276,6 +332,27 @@ describe("dashboard RBAC", () => {
         directorNavigation,
       ),
     ).toBeNull();
+  });
+
+  it("hides the AI center and removes campaign performance from Marketing", () => {
+    const marketingNavigation = filterNavigationByRoles(
+      getNavigationDataForRoles(["Marketing"]),
+      ["Marketing"],
+    );
+    const marketingItems = marketingNavigation.flatMap((section) =>
+      section.items.map((item) => item.title),
+    );
+
+    expect(marketingItems).not.toContain("Trung tâm AI & dữ liệu");
+    expect(marketingItems).not.toContain("Hiệu quả chiến dịch");
+    expect(marketingItems).toContain("Hoạt động & chiến dịch");
+    expect(getNavigationUrls(marketingNavigation)).not.toContain("/director/ai");
+    expect(getNavigationUrls(marketingNavigation)).not.toContain(
+      "/director/campaign-intelligence",
+    );
+    expect(getNavigationUrls(marketingNavigation)).toContain(
+      "/director/activity-campaign",
+    );
   });
 
   it("keeps System Manager on the small administration workspace", () => {
@@ -340,16 +417,23 @@ describe("dashboard RBAC", () => {
     ).toBe(true);
   });
 
-  it("shows the school 360 workspace to Sale, CTV Sale, and Lead Sale", () => {
+  it("uses the school list label in every sales workspace", () => {
     const school360Url = "/director/market-intelligence";
     const roles = ["Sale", "CTV Sale", "Lead Sale"] as const;
 
     for (const role of roles) {
+      const navigation = filterNavigationByRoles(
+        getNavigationDataForRoles([role]),
+        [role],
+      );
       expect(
-        getNavigationUrls(
-          filterNavigationByRoles(getNavigationDataForRoles([role]), [role]),
-        ),
+        getNavigationUrls(navigation),
       ).toContain(school360Url);
+      expect(
+        navigation
+          .flatMap((section) => section.items)
+          .find((item) => item.url === school360Url)?.title,
+      ).toBe("Danh sách Trường");
       expect(canAccessDashboardPath(school360Url, [role])).toBe(true);
     }
   });

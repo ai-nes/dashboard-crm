@@ -121,9 +121,9 @@ export const NAV_DATA: NavigationSection[] = [
         icon: <InvoiceIcon />,
       }),
       navItem({
-        title: 'Thông minh chiến dịch',
-        url: '/director/campaign-intelligence',
-        icon: <Target3 size={18} />,
+        title: 'Hoạt động & chiến dịch',
+        url: '/director/activity-campaign',
+        icon: <CalendarIcon />,
       }),
     ],
   },
@@ -145,11 +145,6 @@ export const NAV_DATA: NavigationSection[] = [
   {
     label: 'VẬN HÀNH TUYỂN SINH',
     items: [
-      navItem({
-        title: 'Hoạt động & chiến dịch',
-        url: '/director/activity-campaign',
-        icon: <CalendarIcon />,
-      }),
       navItem({
         title: 'Hiệu suất SLA',
         url: '/director/sla',
@@ -225,6 +220,11 @@ export const DIRECTOR_NAV_DATA: NavigationSection[] = NAV_DATA.map((section) => 
   items: section.items.filter((item) => item.url && DIRECTOR_NAV_PATHS.has(item.url)),
 })).filter((section) => section.items.length > 0)
 
+const MARKETING_NAV_DATA: NavigationSection[] = NAV_DATA.map((section) => ({
+  ...section,
+  items: section.items.filter((item) => item.url !== '/director/ai'),
+})).filter((section) => section.items.length > 0)
+
 const ADMIN_HIDDEN_NAV_PATHS = new Set([
   '/director/data-health',
   '/director/alerts',
@@ -269,17 +269,17 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
         url: '/ctv-sale/tasks',
         icon: <TaskIcon />,
       }),
+    ],
+  },
+  {
+    label: 'HỌC SINH & NGƯỜI HỌC',
+    items: [
       navItem({
         title: 'Quản lý segments',
         url: '/ctv-sale/segments',
         icon: <AlphabetIcon />,
         requiresVisibleStudents: true,
       }),
-    ],
-  },
-  {
-    label: 'HỒ SƠ HỌC SINH',
-    items: [
       navItem({
         title: 'Danh sách Leads',
         url: '/ctv-sale/leads',
@@ -296,9 +296,19 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
         icon: <UserGroupIcon />,
       }),
       navItem({
-        title: 'Trường THPT 360°',
+        title: 'Danh sách Trường',
         url: '/director/market-intelligence',
         icon: <Buildings11 size={18} />,
+      }),
+    ],
+  },
+  {
+    label: 'ĐỘI NGŨ',
+    items: [
+      navItem({
+        title: 'Quản lý Team',
+        url: '/lead-sale/team-management',
+        icon: <UserMultiple4 size={18} />,
       }),
     ],
   },
@@ -314,16 +324,6 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
         title: 'Snippest',
         url: '/ctv-sale/snippest',
         icon: <Widget4Icon />,
-      }),
-    ],
-  },
-  {
-    label: 'ĐỘI NGŨ',
-    items: [
-      navItem({
-        title: 'Quản lý Team',
-        url: '/lead-sale/team-management',
-        icon: <UserMultiple4 size={18} />,
       }),
     ],
   },
@@ -349,12 +349,6 @@ export const SALE_NAV_DATA: NavigationSection[] = [
         icon: <TaskIcon />,
       }),
       navItem({
-        title: 'Quản lý segments',
-        url: '/sale/next-best-action',
-        icon: <AlphabetIcon />,
-        requiresVisibleStudents: true,
-      }),
-      navItem({
         title: 'Chatbot CRM',
         url: '/crm-chatbot',
         icon: <ChatIcon />,
@@ -369,6 +363,12 @@ export const SALE_NAV_DATA: NavigationSection[] = [
       //   url: "/sale/demographics",
       //   icon: <AlphabetIcon />,
       // }),
+      navItem({
+        title: 'Quản lý segments',
+        url: '/sale/next-best-action',
+        icon: <AlphabetIcon />,
+        requiresVisibleStudents: true,
+      }),
       navItem({
         title: 'Danh sách Leads',
         url: '/sale/leads',
@@ -385,9 +385,19 @@ export const SALE_NAV_DATA: NavigationSection[] = [
         icon: <UserGroupIcon />,
       }),
       navItem({
-        title: 'Trường THPT 360°',
+        title: 'Danh sách Trường',
         url: '/director/market-intelligence',
         icon: <Buildings11 size={18} />,
+      }),
+    ],
+  },
+  {
+    label: 'ĐỘI NGŨ',
+    items: [
+      navItem({
+        title: 'Quản lý Team',
+        url: '/lead-sale/team-management',
+        icon: <UserMultiple4 size={18} />,
       }),
     ],
   },
@@ -403,16 +413,6 @@ export const SALE_NAV_DATA: NavigationSection[] = [
         title: 'Snippest',
         url: '/sale/snippest',
         icon: <Widget4Icon />,
-      }),
-    ],
-  },
-  {
-    label: 'ĐỘI NGŨ',
-    items: [
-      navItem({
-        title: 'Quản lý Team',
-        url: '/lead-sale/team-management',
-        icon: <UserMultiple4 size={18} />,
       }),
     ],
   },
@@ -439,11 +439,6 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         icon: <TaskIcon />,
       }),
       navItem({
-        title: 'Quản lý segments',
-        url: '/lead-sale/segments',
-        icon: <AlphabetIcon />,
-      }),
-      navItem({
         title: 'Chatbot CRM',
         url: '/crm-chatbot',
         icon: <ChatIcon />,
@@ -458,6 +453,11 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
       //   url: "/lead-sale/demographics",
       //   icon: <AlphabetIcon />,
       // }),
+      navItem({
+        title: 'Quản lý segments',
+        url: '/lead-sale/segments',
+        icon: <AlphabetIcon />,
+      }),
       navItem({
         title: 'Danh sách Leads',
         url: '/lead-sale/leads',
@@ -481,7 +481,22 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
     ],
   },
   {
-    label: 'Mẫu & Nội dung',
+    label: 'VẬN HÀNH TUYỂN SINH',
+    items: [
+      navItem({
+        title: 'Phân công Lead',
+        url: '/lead-sale/student-assignment',
+        icon: <UserPencil size={18} />,
+      }),
+      navItem({
+        title: 'Quản lý Team',
+        url: '/lead-sale/team-management',
+        icon: <UserMultiple4 size={18} />,
+      }),
+    ],
+  },
+  {
+    label: 'MẪU & NỘI DUNG',
     items: [
       navItem({
         title: 'Message Template',
@@ -495,31 +510,6 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
       }),
     ],
   },
-  {
-    label: 'VẬN HÀNH TUYỂN SINH',
-    items: [
-      navItem({
-        title: 'Phân công Lead',
-        url: '/lead-sale/student-assignment',
-        icon: <UserPencil size={18} />,
-      }),
-      navItem({
-        title: 'Lịch sử phân công',
-        url: '/lead-sale/assignment-history',
-        icon: <ClockThree size={18} />,
-      }),
-    ],
-  },
-  {
-    label: 'ĐỘI NGŨ',
-    items: [
-      navItem({
-        title: 'Quản lý Team',
-        url: '/lead-sale/team-management',
-        icon: <UserMultiple4 size={18} />,
-      }),
-    ],
-  },
 ]
 
 export function getNavigationDataForRoles(
@@ -527,6 +517,9 @@ export function getNavigationDataForRoles(
   options: { showRoleVisibleSegments?: boolean } = {},
 ): NavigationSection[] {
   const effectiveRoles = getEffectiveDashboardRoles(userRoles)
+  const isMarketingWorkspace =
+    effectiveRoles.includes('Marketing') ||
+    effectiveRoles.includes('Lead Marketing')
   const navigation =
     effectiveRoles.includes('System Manager')
       ? SYSTEM_MANAGER_NAV_DATA
@@ -536,10 +529,12 @@ export function getNavigationDataForRoles(
         ? DIRECTOR_NAV_DATA
       : effectiveRoles.includes('CTV Sale')
         ? CTV_SALE_NAV_DATA
-        : effectiveRoles.includes('Lead Sale')
+      : effectiveRoles.includes('Lead Sale')
           ? LEAD_SALE_NAV_DATA
           : effectiveRoles.includes('Sale')
             ? SALE_NAV_DATA
+            : isMarketingWorkspace
+              ? MARKETING_NAV_DATA
             : NAV_DATA
 
   const workspaceRoute = getDefaultRouteForRoles(userRoles)
