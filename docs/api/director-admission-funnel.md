@@ -39,12 +39,12 @@ Accept: application/json
 
 Frappe bọc response thành công trong `message`.
 
-Endpoint chỉ đọc và không trả PII. Backend phải kiểm tra quyền Director trước khi áp dụng `scope`; không được để client tự quyết định phạm vi dữ liệu.
+Endpoint chỉ đọc và không trả PII. Backend phải kiểm tra quyền Director hoặc Marketing (chỉ aggregate) trước khi áp dụng `scope`; không được để client tự quyết định phạm vi dữ liệu.
 
 Quyền tối thiểu:
 
 - `Administrator` hoặc `System Manager` có quyền phù hợp;
-- profile nghiệp vụ `Admissions Director`;
+- profile nghiệp vụ `Admissions Director` hoặc `Marketing` cho snapshot aggregate;
 - scope được yêu cầu phải nằm trong phạm vi user được cấp.
 
 ## 4. Request
@@ -336,7 +336,7 @@ Action phải được tạo từ snapshot hiện tại và sắp xếp theo ưu
 |---:|---|---|
 | `400` | `INVALID_QUERY` | `scope` hoặc query sai format |
 | `401` | `UNAUTHENTICATED` | Thiếu hoặc hết hạn session |
-| `403` | `FORBIDDEN` | User không có quyền Director hoặc scope không hợp lệ |
+| `403` | `FORBIDDEN` | User không có quyền endpoint hoặc scope không hợp lệ |
 | `422` | `INVALID_ADMISSION_YEAR` | Kỳ tuyển sinh không hợp lệ hoặc không xác định được kỳ active |
 | `404` | `ADMISSION_YEAR_NOT_FOUND` | Không tồn tại dữ liệu cho kỳ yêu cầu |
 | `409` | `SNAPSHOT_NOT_READY` | Snapshot đang được tổng hợp |
