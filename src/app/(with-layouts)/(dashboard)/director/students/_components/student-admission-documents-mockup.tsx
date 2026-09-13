@@ -1,13 +1,20 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Fragment, useState, type ChangeEvent } from "react";
+import {
+  Fragment,
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 
 import { FileText, UploadCloud } from "@tailgrids/icons";
 import { Radio, RadioGroup } from "react-aria-components";
 import { toast } from "sonner";
 
 import { DatePickerField } from "@/components/common/date-picker-field";
+import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Input } from "@/components/tailgrids/core/input";
@@ -605,10 +612,8 @@ function AdmissionDocumentUpload({
   isUploading: string | null;
   onUpload: DocumentUploadHandler;
 }) {
-  const inputId = `admission-document-upload-${requirement.documentType.replace(
-    /[^a-zA-Z0-9_-]/g,
-    "-",
-  )}`;
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const currentUpload = isUploading === requirement.documentType;
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -619,13 +624,14 @@ function AdmissionDocumentUpload({
 
   return (
     <div className="mt-2">
-      <label
-        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${
-          isUploading
-            ? "pointer-events-none border-button-outline-disabled-border text-button-outline-disabled-text"
-            : "border-primary-200 text-primary-600 hover:bg-primary-50"
-        }`}
-        htmlFor={inputId}
+      <Button
+        appearance="outline"
+        aria-controls={inputId}
+        className="h-auto rounded-md border-primary-200 px-2.5 py-1.5 text-xs text-primary-600 hover:bg-primary-50 [&>svg]:size-3.5"
+        isDisabled={Boolean(isUploading)}
+        onPress={() => inputRef.current?.click()}
+        size="xs"
+        type="button"
       >
         <UploadCloud size={14} aria-hidden="true" />
         {currentUpload
@@ -633,13 +639,14 @@ function AdmissionDocumentUpload({
           : requirement.hasDocument
             ? "Tải bản mới"
             : "Tải tài liệu"}
-      </label>
+      </Button>
       <input
         accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
         className="sr-only"
         disabled={Boolean(isUploading)}
         id={inputId}
         onChange={handleChange}
+        ref={inputRef}
         type="file"
       />
     </div>
@@ -651,15 +658,16 @@ function AdmissionDocumentLink({
 }: {
   document: StudentAdmissionDocument;
 }) {
-  const fileName = document.file?.split("/").pop() || document.documentType;
-  if (!document.file) {
+  const filePath = document.file?.trim();
+  const fileName = filePath?.split("/").pop() || document.documentType;
+  if (!filePath) {
     return <p className="text-xs text-text-tertiary">Chưa có tài liệu</p>;
   }
 
   return (
     <a
       className="inline-flex items-center gap-1.5 text-xs text-primary-500 underline-offset-2 hover:underline"
-      href={document.file}
+      href={resolveAdmissionDocumentUrl(filePath)}
       rel="noreferrer"
       target="_blank"
     >
@@ -667,6 +675,23 @@ function AdmissionDocumentLink({
       {fileName}
     </a>
   );
+}
+
+function resolveAdmissionDocumentUrl(file: string): string {
+  const normalizedFile = file.trim();
+  if (!normalizedFile) return "";
+
+  if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(normalizedFile)) {
+    return normalizedFile;
+  }
+
+  const frappeBaseUrl = (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
+    /\/+$/,
+    "",
+  );
+  return frappeBaseUrl
+    ? `${frappeBaseUrl}/${normalizedFile.replace(/^\/+/, "")}`
+    : normalizedFile;
 }
 
 function AdmissionRadio({

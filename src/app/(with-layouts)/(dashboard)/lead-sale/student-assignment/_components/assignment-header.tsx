@@ -50,7 +50,7 @@ export default function AssignmentHeader() {
           </p>
         </div>
         <Link
-          href="/lead-sale/assignment-history"
+          href="/lead-sale/student-assignment?tab=history"
           className={cn(
             buttonStyles({ variant: "primary", appearance: "outline", size: "md" }),
             "shrink-0 border-card-border text-text-secondary",

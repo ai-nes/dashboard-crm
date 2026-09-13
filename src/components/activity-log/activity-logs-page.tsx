@@ -10,8 +10,12 @@ import {
   TabTrigger,
 } from "@/components/tailgrids/core/tabs";
 import { useActivityLogsQuery } from "@/hooks/use-activity-logs-query";
-import type { ActivityLogModule } from "@/services/api/activity-log";
+import type {
+  ActivityLogEntry,
+  ActivityLogModule,
+} from "@/services/api/activity-log";
 
+import ActivityLogDetailSheet from "./activity-log-detail-sheet";
 import ActivityLogFilters, {
   type ActivityLogFilterState,
 } from "./activity-log-filters";
@@ -25,6 +29,7 @@ export default function ActivityLogsPage() {
   const [activeModule, setActiveModule] = useState<ActivityLogModule>("all");
   const [filters, setFilters] = useState<ActivityLogFilterState>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
+  const [selectedLog, setSelectedLog] = useState<ActivityLogEntry | null>(null);
   const query = useActivityLogsQuery({
     module: activeModule,
     ...filters,
@@ -64,6 +69,7 @@ export default function ActivityLogsPage() {
         onValueChange={(value) => {
           setActiveModule(value as ActivityLogModule);
           setPage(1);
+          setSelectedLog(null);
         }}
         defaultValue="all"
         variant="minimal"
@@ -86,10 +92,19 @@ export default function ActivityLogsPage() {
               totalPages={totalPages}
               onPageChange={setPage}
               isDisabled={query.isFetching}
+              onSelectLog={setSelectedLog}
             />
           </TabContent>
         ))}
       </TabRoot>
+
+      <ActivityLogDetailSheet
+        log={selectedLog}
+        isOpen={Boolean(selectedLog)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedLog(null);
+        }}
+      />
     </main>
   );
 }

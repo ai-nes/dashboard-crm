@@ -43,7 +43,7 @@ Accept: application/json
 
 Frappe bọc response thành công trong `message`. Endpoint chỉ trả aggregate tài chính/tuyển sinh và giao dịch đã được phép hiển thị; không trả PII của học sinh.
 
-Quyền tối thiểu: profile `Admissions Director`, Finance Director hoặc role revenue được cấp; `Administrator`/`System Manager` có quyền phù hợp. `scope` và `campus` phải nằm trong phạm vi user được cấp; backend không được tin query string của client.
+Quyền tối thiểu: profile `Admissions Director`, `Marketing` (chỉ aggregate), Finance Director hoặc role revenue được cấp; `Administrator`/`System Manager` có quyền phù hợp. `scope` và `campus` phải nằm trong phạm vi user được cấp; backend không được tin query string của client.
 
 ## 4. Request
 
