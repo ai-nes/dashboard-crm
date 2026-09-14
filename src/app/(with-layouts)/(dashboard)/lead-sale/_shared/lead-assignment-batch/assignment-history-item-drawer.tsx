@@ -12,6 +12,10 @@ import {
   EditableDetailField,
   type EditableDetailOption,
 } from "@/components/common/editable-detail-field";
+import {
+  MajorSelector,
+  toMajorSelectorOptions,
+} from "@/components/common/major-selector";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -94,6 +98,7 @@ export default function AssignmentHistoryItemDrawer({
     doctype: "CRM Lead",
     fieldname: "major",
   });
+  const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
 
   const isClosed = item.status === "skipped";
   // A Lead that IS assigned must never show a "why it wasn't assigned" panel —
@@ -116,7 +121,9 @@ export default function AssignmentHistoryItemDrawer({
     actionLink && canAccessDashboardPath(actionLink.href, user?.roles),
   );
   const unconfiguredStaff =
-    actionCategory === "staff-capacity" ? extractUnconfiguredStaffEntries(item.reason) : [];
+    actionCategory === "staff-capacity"
+      ? extractUnconfiguredStaffEntries(item.reason)
+      : [];
   const isLiveReview = !item.batchId;
   const isDirty =
     phone !== (item.phone ?? "") ||
@@ -214,20 +221,26 @@ export default function AssignmentHistoryItemDrawer({
               <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm leading-6">
                 {unconfiguredStaff.map((entry) => (
                   <li key={`${entry.name}-${entry.team}`}>
-                    <span className="font-semibold">{entry.name}</span> — {entry.team}
+                    <span className="font-semibold">{entry.name}</span> —{" "}
+                    {entry.team}
                   </li>
                 ))}
               </ul>
             </>
           ) : (
-            <p className="mt-2 text-sm leading-6">{assignmentReasonLabel(item)}</p>
+            <p className="mt-2 text-sm leading-6">
+              {assignmentReasonLabel(item)}
+            </p>
           )}
           {!isClosed && actionLink && (
             <p className="mt-2 text-sm leading-6">
               {canOpenActionLink ? (
                 <>
                   Vào{" "}
-                  <Link href={actionLink.href} className="font-semibold underline">
+                  <Link
+                    href={actionLink.href}
+                    className="font-semibold underline"
+                  >
                     {actionLink.label}
                   </Link>{" "}
                   để xử lý.
@@ -250,73 +263,81 @@ export default function AssignmentHistoryItemDrawer({
       {!isClosed &&
         !isAssigned &&
         (actionCategory === "lead-data" || actionCategory === "unknown") && (
-        <section className="mt-6" aria-labelledby="routing-fix-heading">
-        <h2
-          id="routing-fix-heading"
-          className="text-sm font-semibold text-text-primary"
-        >
-          Bổ sung thông tin định tuyến
-        </h2>
-        <p className="mt-1 text-xs leading-5 text-text-tertiary">
-          Bổ sung đủ họ tên, số điện thoại và tỉnh/thành phố. Sau đó
-          hệ thống sẽ tìm Team theo tỉnh và phân công lại.
-        </p>
-        <dl className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-          <EditableDetailField
-            isEditing
-            isDisabled={isBusy}
-            label="Số điện thoại"
-            onChange={setPhone}
-            type="tel"
-            value={phone}
-          />
-          <EditableDetailField
-            isEditing
-            isDisabled={isBusy}
-            label="Tỉnh/Thành phố"
-            onChange={setProvince}
-            options={toOptions(provinceOptionsQuery.data?.options, province)}
-            searchable
-            searchPlaceholder="Tìm tỉnh/thành phố…"
-            value={province}
-          />
-          <EditableDetailField
-            isEditing
-            isDisabled={isBusy}
-            label="Trường THPT"
-            onChange={setHighSchool}
-            options={toOptions(
-              highSchoolOptionsQuery.data?.options,
-              highSchool,
-              item.highSchoolLabel ?? highSchool,
-            )}
-            searchable
-            searchPlaceholder="Tìm trường THPT…"
-            value={highSchool}
-          />
-          <EditableDetailField
-            isEditing
-            isDisabled={isBusy}
-            label="Ngành quan tâm"
-            onChange={setMajor}
-            options={toOptions(majorOptionsQuery.data?.options, major)}
-            searchable
-            searchPlaceholder="Tìm ngành…"
-            value={major}
-          />
-          <EditableDetailField
-            isEditing
-            isDisabled={isBusy}
-            label="Campus"
-            onChange={setBranch}
-            options={toOptions(branchOptionsQuery.data?.options, branch)}
-            searchable
-            searchPlaceholder="Tìm campus…"
-            value={branch}
-          />
-        </dl>
-      </section>
-      )}
+          <section className="mt-6" aria-labelledby="routing-fix-heading">
+            <h2
+              id="routing-fix-heading"
+              className="text-sm font-semibold text-text-primary"
+            >
+              Bổ sung thông tin định tuyến
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-text-tertiary">
+              Bổ sung đủ họ tên, số điện thoại và tỉnh/thành phố. Sau đó hệ
+              thống sẽ tìm Team theo tỉnh và phân công lại.
+            </p>
+            <dl className="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+              <EditableDetailField
+                isEditing
+                isDisabled={isBusy}
+                label="Số điện thoại"
+                onChange={setPhone}
+                type="tel"
+                value={phone}
+              />
+              <EditableDetailField
+                isEditing
+                isDisabled={isBusy}
+                label="Tỉnh/Thành phố"
+                onChange={setProvince}
+                options={toOptions(
+                  provinceOptionsQuery.data?.options,
+                  province,
+                )}
+                searchable
+                searchPlaceholder="Tìm tỉnh/thành phố…"
+                value={province}
+              />
+              <EditableDetailField
+                isEditing
+                isDisabled={isBusy}
+                label="Trường THPT"
+                onChange={setHighSchool}
+                options={toOptions(
+                  highSchoolOptionsQuery.data?.options,
+                  highSchool,
+                  item.highSchoolLabel ?? highSchool,
+                )}
+                searchable
+                searchPlaceholder="Tìm trường THPT…"
+                value={highSchool}
+              />
+              <div className="min-w-0">
+                <dt className="text-xs text-text-tertiary">Ngành quan tâm</dt>
+                <MajorSelector
+                  ariaLabel="Ngành quan tâm"
+                  className="mt-1.5"
+                  isDisabled={isBusy || majorOptionsQuery.isLoading}
+                  isError={majorOptionsQuery.isError}
+                  isLoading={majorOptionsQuery.isLoading}
+                  options={majorOptions}
+                  allowClear
+                  searchPlaceholder="Tìm ngành…"
+                  value={major}
+                  onChange={setMajor}
+                />
+              </div>
+              <EditableDetailField
+                isEditing
+                isDisabled={isBusy}
+                label="Campus"
+                onChange={setBranch}
+                options={toOptions(branchOptionsQuery.data?.options, branch)}
+                searchable
+                searchPlaceholder="Tìm campus…"
+                value={branch}
+              />
+            </dl>
+          </section>
+        )}
 
       <div className="mt-8 flex items-center gap-3 border-t border-card-border pt-5">
         {/* Empty until a step starts, so the buttons keep one row to themselves. */}

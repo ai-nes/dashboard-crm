@@ -181,6 +181,8 @@ export interface GetSchoolsResponse {
 export interface FieldOption {
   value: string;
   label: string;
+  groupName?: string | null;
+  groupLabel?: string | null;
 }
 
 export interface GetFieldOptionsResponse {

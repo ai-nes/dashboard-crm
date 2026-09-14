@@ -41,7 +41,9 @@ export default function AssignmentBatchItemDrawer() {
           {item.highSchoolLabel ?? item.highSchool ?? "—"}
         </dd>
         <dt className="text-text-tertiary">Ngành quan tâm</dt>
-        <dd className="text-text-primary">{item.major ?? "—"}</dd>
+        <dd className="text-text-primary">
+          {item.major || "Chưa có ngành quan tâm"}
+        </dd>
         <dt className="text-text-tertiary">Nguồn Lead</dt>
         <dd className="text-text-primary">{item.source ?? "—"}</dd>
       </dl>

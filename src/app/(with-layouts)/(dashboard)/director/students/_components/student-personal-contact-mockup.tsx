@@ -9,6 +9,11 @@ import {
   EditableDetailField,
   type EditableDetailOption,
 } from "@/components/common/editable-detail-field";
+import {
+  MajorSelector,
+  toMajorSelectorOptions,
+  type MajorSelectorOption,
+} from "@/components/common/major-selector";
 import { Card } from "@/components/tailgrids/core/card";
 import { useStudentSchoolFieldOptions } from "@/hooks/use-student-school-field-options";
 import type { StudentUpdateFields } from "@/services/api/student-school-update";
@@ -53,6 +58,7 @@ interface PersonalContactField {
   options?: EditableDetailOption[];
   searchable?: boolean;
   searchPlaceholder?: string;
+  majorOptions?: MajorSelectorOption[];
 }
 
 interface StudentPersonalContactMockupProps {
@@ -97,7 +103,7 @@ export default function StudentPersonalContactMockup({
       birthPlaceOptionsQuery.data?.options,
       form.birth_place,
     ),
-    major: toEditableOptions(majorOptionsQuery.data?.options),
+    major: toMajorSelectorOptions(majorOptionsQuery.data?.options),
     admissionYear: toEditableOptions(admissionYearOptionsQuery.data?.options),
     branch: toEditableOptions(branchOptionsQuery.data?.options),
   });
@@ -194,6 +200,27 @@ export default function StudentPersonalContactMockup({
         {personalContactFields.map((field) => {
           if (isEditing && field.editKey) {
             const editKey = field.editKey;
+            if (editKey === "major") {
+              return (
+                <div key={field.label} className="min-w-0">
+                  <dt className="text-xs text-text-tertiary">{field.label}</dt>
+                  <MajorSelector
+                    ariaLabel={field.label}
+                    className="mt-1.5"
+                    isDisabled={majorOptionsQuery.isLoading}
+                    isError={majorOptionsQuery.isError}
+                    isLoading={majorOptionsQuery.isLoading}
+                    options={field.majorOptions ?? []}
+                    allowClear
+                    searchPlaceholder="Tìm ngành…"
+                    value={form.major}
+                    onChange={(value) =>
+                      setForm((current) => ({ ...current, major: value }))
+                    }
+                  />
+                </div>
+              );
+            }
             return (
               <EditableDetailField
                 key={field.label}
@@ -291,7 +318,7 @@ function getPersonalContactFields(
   details?: StudentProfilePersonalDetails | null,
   options?: {
     birthPlace: EditableDetailOption[];
-    major: EditableDetailOption[];
+    major: MajorSelectorOption[];
     admissionYear: EditableDetailOption[];
     branch: EditableDetailOption[];
   },
@@ -400,8 +427,7 @@ function getPersonalContactFields(
       label: "Ngành học quan tâm",
       value: details?.major || data.student.major,
       editKey: "major",
-      options: fieldOptions.major,
-      searchable: true,
+      majorOptions: fieldOptions.major,
     },
     {
       label: "Năm tuyển sinh",
@@ -432,8 +458,7 @@ function toBirthPlaceOptions(
   options: Array<{ value: string; label: string }> | undefined,
   currentValue: string,
 ): EditableDetailOption[] {
-  const mapped =
-    options?.map(({ label }) => ({ id: label, label })) ?? [];
+  const mapped = options?.map(({ label }) => ({ id: label, label })) ?? [];
   if (currentValue && !mapped.some((option) => option.id === currentValue)) {
     mapped.unshift({ id: currentValue, label: currentValue });
   }

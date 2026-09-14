@@ -4,6 +4,10 @@ import { useState, type FormEvent } from "react";
 
 import { SchoolCombobox } from "@/components/common/school-combobox";
 import {
+  MajorSelector,
+  toMajorSelectorOptions,
+} from "@/components/common/major-selector";
+import {
   CreateDialogField,
   CreateDialogInput,
   CreateDialogSelect,
@@ -109,7 +113,7 @@ export default function StudentCreateDialog({
   const provinceOptions = toSelectOptions(provinceOptionsQuery.data?.options);
   const wardOptions = toSelectOptions(wardOptionsQuery.data?.options);
   const campaignOptions = toSelectOptions(campaignOptionsQuery.data?.options);
-  const majorOptions = toSelectOptions(majorOptionsQuery.data?.options);
+  const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
   const branchOptions = toSelectOptions(branchOptionsQuery.data?.options);
   const assignedToOptions =
     leadMappingOptionsQuery.data?.staff
@@ -338,10 +342,11 @@ export default function StudentCreateDialog({
                 </CreateDialogField>
 
                 <CreateDialogField label="Ngành quan tâm">
-                  <CreateDialogSelect
-                    label="Ngành quan tâm"
+                  <MajorSelector
+                    ariaLabel="Ngành quan tâm"
+                    isError={majorOptionsQuery.isError}
+                    isLoading={majorOptionsQuery.isPending}
                     options={majorOptions}
-                    searchable
                     searchPlaceholder="Tìm ngành quan tâm..."
                     value={form.major}
                     isDisabled={majorOptionsQuery.isPending}

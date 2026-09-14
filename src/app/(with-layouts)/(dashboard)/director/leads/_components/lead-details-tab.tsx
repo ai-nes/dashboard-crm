@@ -15,6 +15,10 @@ import {
   EditableDetailField,
   type EditableDetailOption,
 } from "@/components/common/editable-detail-field";
+import {
+  MajorSelector,
+  toMajorSelectorOptions,
+} from "@/components/common/major-selector";
 import { SchoolCombobox } from "@/components/common/school-combobox";
 import { TextArea } from "@/components/tailgrids/core/text-area";
 import { useStudentSchoolFieldOptions } from "@/hooks/use-student-school-field-options";
@@ -137,10 +141,7 @@ export default function LeadDetailsTab({
     sourceOptionsQuery.data?.options,
     sourceForm.source,
   );
-  const majorOptions = toEditableOptions(
-    majorOptionsQuery.data?.options,
-    admissionForm.major,
-  );
+  const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
   const aspirationOptions = toEditableOptions(
     aspirationOptionsQuery.data?.options,
     admissionForm.aspiration,
@@ -401,20 +402,29 @@ export default function LeadDetailsTab({
         description="Nhu cầu học tập và tiến độ tư vấn"
       >
         <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-          <EditableDetailField
-            isEditing={admissionEditing}
-            isDisabled={
-              majorOptionsQuery.isLoading || majorOptions.length === 0
-            }
-            label="Ngành quan tâm"
-            onChange={(value) =>
-              setAdmissionForm((form) => ({ ...form, major: value }))
-            }
-            options={majorOptions}
-            value={
-              admissionEditing ? admissionForm.major : lead.interestedMajor
-            }
-          />
+          <div className="min-w-0">
+            <dt className="text-xs text-text-tertiary">Ngành quan tâm</dt>
+            {admissionEditing ? (
+              <MajorSelector
+                ariaLabel="Ngành quan tâm"
+                className="mt-1.5"
+                isDisabled={majorOptionsQuery.isLoading}
+                isError={majorOptionsQuery.isError}
+                isLoading={majorOptionsQuery.isLoading}
+                options={majorOptions}
+                allowClear
+                placeholder="Chưa có ngành quan tâm"
+                value={admissionForm.major}
+                onChange={(value) =>
+                  setAdmissionForm((form) => ({ ...form, major: value }))
+                }
+              />
+            ) : (
+              <dd className="mt-1 text-sm font-medium text-text-primary">
+                {lead.interestedMajor || "Chưa có ngành quan tâm"}
+              </dd>
+            )}
+          </div>
           <EditableDetailField
             isEditing={admissionEditing}
             isDisabled={

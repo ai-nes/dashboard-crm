@@ -12,6 +12,10 @@ import {
   CreateDialogInput,
   CreateDialogSelect,
 } from "@/components/common/create-dialog-field";
+import {
+  MajorSelector,
+  toMajorSelectorOptions,
+} from "@/components/common/major-selector";
 import { SchoolCombobox } from "@/components/common/school-combobox";
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -66,7 +70,7 @@ export default function LeadConversionDialog({
   );
 
   const provinceOptions = toOptions(provinceOptionsQuery.data?.options);
-  const majorOptions = toOptions(majorOptionsQuery.data?.options);
+  const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
 
   const setField = (field: LeadConversionField, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -219,12 +223,12 @@ export default function LeadConversionDialog({
                     error={errors.major}
                     label={leadConversionFieldLabels.major}
                   >
-                    <CreateDialogSelect
+                    <MajorSelector
+                      ariaLabel={leadConversionFieldLabels.major}
                       isDisabled={majorOptionsQuery.isPending}
-                      label={leadConversionFieldLabels.major}
+                      isError={majorOptionsQuery.isError}
+                      isLoading={majorOptionsQuery.isPending}
                       options={majorOptions}
-                      placeholder="Chọn ngành quan tâm"
-                      searchable
                       searchPlaceholder="Tìm ngành quan tâm..."
                       value={form.major}
                       onChange={(value) => setField("major", value)}
