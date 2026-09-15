@@ -505,7 +505,11 @@ function ValidationPreview({
         <TableRoot className="min-w-[980px]">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-14 align-top">Dòng</TableHead>
+              <TableHead
+                className={cn("sticky left-0 z-20 w-14 bg-background-white-secondary align-top")}
+              >
+                Dòng
+              </TableHead>
               {orderedPreviewFieldKeys.map((field) => {
                 const stickyIndex = stickyFields.indexOf(field);
                 return (
@@ -562,10 +566,19 @@ function ValidationPreview({
             Đã tạo {result.created}/{result.total} Lead.
           </p>
           {result.errors.length > 0 && (
-            <p className="text-xs text-error-600">
-              {result.errors.length} dòng chưa được nhập; kiểm tra lại dấu trạng
-              thái trên từng dòng.
-            </p>
+            <div className="space-y-1 text-xs text-error-600">
+              <p>
+                {result.errors.length} dòng chưa được nhập; kiểm tra lỗi trên
+                từng dòng.
+              </p>
+              <ul className="list-disc space-y-1 pl-5">
+                {result.errors.map((error) => (
+                  <li key={`${error.row}-${error.code}-${error.message}`}>
+                    Dòng {error.row || "?"}: {humanizeImportMessage(error.message)}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       )}
@@ -587,7 +600,11 @@ function ImportPreviewTableRow({
   const status = getImportPreviewStatus(row);
   return (
     <TableRow className={status.rowClassName}>
-      <TableCell className="text-text-tertiary">{row.row}</TableCell>
+      <TableCell
+        className="sticky left-0 z-10 w-14 bg-background-white-secondary text-text-tertiary"
+      >
+        {row.row}
+      </TableCell>
       {fieldKeys.map((field) => (
         <TableCell
           key={field}
