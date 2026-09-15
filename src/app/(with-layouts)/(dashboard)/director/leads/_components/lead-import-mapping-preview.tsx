@@ -193,7 +193,11 @@ export default function LeadImportMappingPreview({
         <TableRoot className="min-w-[640px]">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-14 align-top">Dòng</TableHead>
+              <TableHead
+                className={cn("sticky left-0 z-20 w-14 bg-background-white-secondary align-top")}
+              >
+                Dòng
+              </TableHead>
               {orderedColumns.map((column) => {
                 const isSticky = Boolean(
                   column.targetField && stickyFields.includes(column.targetField),
@@ -233,7 +237,11 @@ export default function LeadImportMappingPreview({
           <TableBody>
             {sampleRows.map((sample) => (
               <TableRow key={sample.row}>
-                <TableCell className="text-text-tertiary">
+                <TableCell
+                  className={cn(
+                    "sticky left-0 z-10 w-14 bg-background-white-secondary text-text-tertiary",
+                  )}
+                >
                   {sample.row}
                 </TableCell>
                 {orderedColumns.map((column) => (
