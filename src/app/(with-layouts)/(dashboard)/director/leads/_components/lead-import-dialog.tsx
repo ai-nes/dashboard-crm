@@ -25,7 +25,7 @@ interface LeadImportDialogProps {
   ) => Promise<LeadImportResponse>;
 }
 
-const STEPS = ["File & campaign", "Cột & xem trước", "Xác nhận nhập"];
+const STEPS = ["Tệp & chiến dịch", "Cột & xem trước", "Xác nhận nhập"];
 
 export default function LeadImportDialog({
   isOpen,
@@ -114,7 +114,7 @@ export default function LeadImportDialog({
       <div className="space-y-4">
         {campaignsQuery.isPending && (
           <p className="text-sm text-text-secondary" role="status">
-            Đang tải danh sách campaign…
+            Đang tải danh sách chiến dịch…
           </p>
         )}
         {campaignsQuery.isError && (
@@ -123,7 +123,8 @@ export default function LeadImportDialog({
             role="alert"
           >
             <p className="text-xs text-error-600">
-              {campaignsQuery.error.message || "Chưa thể tải danh sách campaign."}
+              {campaignsQuery.error.message ||
+                "Chưa thể tải danh sách chiến dịch."}
             </p>
             <Button
               type="button"
@@ -139,7 +140,7 @@ export default function LeadImportDialog({
           !campaignsQuery.isError &&
           campaignOptions.length === 0 && (
             <p className="text-sm text-text-secondary" role="alert">
-              Chưa có campaign ACTIVE hoặc CLOSED để import Lead.
+              Chưa có chiến dịch đang hoạt động hoặc đã đóng để nhập Lead.
             </p>
           )}
         <QuickCreateLeadImportPanel

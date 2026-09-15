@@ -24,6 +24,7 @@ import {
   useCreateLeadMutation,
   useImportLeadFileMutation,
   useLeadSaleLeadsQuery,
+  usePreviewNewLeadsMutation,
   useProcessNewLeadsMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 import type {
@@ -31,12 +32,14 @@ import type {
   LeadImportMapping,
   LeadImportResponse,
   LeadListParams,
+  LeadProcessingPreviewResponse,
 } from "@/services/api/lead-sale";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadImportDialog from "./lead-import-dialog";
 import LeadListToolbar from "./lead-list-toolbar";
 import LeadListSkeleton from "./lead-list-skeleton";
+import LeadProcessingPreviewDialog from "./lead-processing-preview-dialog";
 import { type LeadResultFilter, type LeadStageStatus } from "./lead-status";
 import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 
@@ -56,6 +59,10 @@ export default function LeadsOverviewDashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const processNewLeadsMutation = useProcessNewLeadsMutation();
+  const previewNewLeadsMutation = usePreviewNewLeadsMutation();
+  const [processingPreviewOpen, setProcessingPreviewOpen] = useState(false);
+  const [processingPreview, setProcessingPreview] =
+    useState<LeadProcessingPreviewResponse | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStageStatus | "all">("all");
   const [resolution, setResolution] = useState<LeadResultFilter | "all">("all");
@@ -167,24 +174,42 @@ export default function LeadsOverviewDashboard() {
 
   const runLeadProcessing = async () => {
     try {
+      const preview = await previewNewLeadsMutation.mutateAsync({
+        admissionYear: listParams.admissionYear,
+      });
+
+      if (!preview.summary.scanned) {
+        toast.info("Không có Lead mới cần xử lý");
+        return;
+      }
+      setProcessingPreview(preview);
+      setProcessingPreviewOpen(true);
+    } catch (mutationError) {
+      toast.error("Không thể xem trước xử lý Lead", {
+        description:
+          mutationError instanceof Error
+            ? mutationError.message
+            : "Vui lòng thử lại.",
+      });
+    }
+  };
+
+  const confirmLeadProcessing = async () => {
+    if (!processingPreview) return;
+    try {
       const { summary } = await processNewLeadsMutation.mutateAsync({
         admissionYear: listParams.admissionYear,
       });
+      setProcessingPreviewOpen(false);
+      setProcessingPreview(null);
 
       if (!summary.scanned) {
         toast.info("Không có Lead mới cần xử lý");
         return;
       }
 
-      const outcome = [
-        `${summary.processed} Lead sẵn sàng phân công`,
-        `${summary.closed} Lead đóng do thiếu số điện thoại, tỉnh, trường THPT hoặc ngành`,
-      ];
-      if (summary.skipped) outcome.push(`${summary.skipped} Lead bỏ qua`);
-      if (summary.failed) outcome.push(`${summary.failed} Lead lỗi`);
-
       toast.success(`Đã xử lý ${summary.scanned} Lead`, {
-        description: `${outcome.join("; ")}.`,
+        description: `${summary.processed} Lead sẵn sàng phân công; ${summary.closed} Lead cần xem lại; ${summary.skipped} Lead bỏ qua.`,
       });
     } catch (mutationError) {
       toast.error("Không thể xử lý Lead", {
@@ -290,13 +315,18 @@ export default function LeadsOverviewDashboard() {
                     variant="primary"
                     appearance="fill"
                     onPress={runLeadProcessing}
-                    isDisabled={processNewLeadsMutation.isPending}
-                    aria-label="Xử lý các Lead mới trước khi phân công"
+                    isDisabled={
+                      processNewLeadsMutation.isPending ||
+                      previewNewLeadsMutation.isPending
+                    }
+                    aria-label="Xem trước các Lead mới trước khi xử lý"
                   >
                     <Play size={18} aria-hidden="true" />
-                    {processNewLeadsMutation.isPending
-                      ? "Đang xử lý…"
-                      : `Xử lý Lead (${pendingNewCount})`}
+                    {previewNewLeadsMutation.isPending
+                      ? "Đang xem trước…"
+                      : processNewLeadsMutation.isPending
+                        ? "Đang xử lý…"
+                        : `Xem trước xử lý (${pendingNewCount})`}
                   </Button>
                 ) : (
                   <Button
@@ -415,6 +445,19 @@ export default function LeadsOverviewDashboard() {
           isSubmitting={importMutation.isPending}
           onOpenChange={setImportDialogOpen}
           onImport={handleImportLeads}
+        />
+      )}
+      {canManageLeadIntake && (
+        <LeadProcessingPreviewDialog
+          isOpen={processingPreviewOpen}
+          isConfirming={processNewLeadsMutation.isPending}
+          preview={processingPreview}
+          onClose={() => {
+            if (processNewLeadsMutation.isPending) return;
+            setProcessingPreviewOpen(false);
+            setProcessingPreview(null);
+          }}
+          onConfirm={() => void confirmLeadProcessing()}
         />
       )}
     </main>

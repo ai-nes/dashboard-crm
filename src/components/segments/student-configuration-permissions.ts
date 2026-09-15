@@ -1,25 +1,44 @@
-import {hasFrappeTechnicalRole} from '@/components/common/auth/rbac'
+import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
 
-export function canManageStudentConfiguration(roles?: readonly string[] | null): boolean {
+export function canManageStudentConfiguration(
+  roles?: readonly string[] | null,
+): boolean {
   return Boolean(
-    hasFrappeTechnicalRole(roles, 'System Manager') ||
-      roles?.includes('Administrator') ||
-      roles?.includes('Admissions Director'),
-  )
+    hasFrappeTechnicalRole(roles, "System Manager") ||
+    roles?.includes("Administrator") ||
+    roles?.includes("Admissions Director"),
+  );
 }
 
-export function canManageAdmissionDocumentTypes(roles?: readonly string[] | null): boolean {
-  return hasFrappeTechnicalRole(roles, 'System Manager')
+export function canManageMajorCatalog(
+  roles?: readonly string[] | null,
+): boolean {
+  return Boolean(
+    hasFrappeTechnicalRole(roles, "System Manager") ||
+    roles?.includes("Administrator"),
+  );
 }
 
-export function canDeleteAdmissionDocumentTypes(roles?: readonly string[] | null): boolean {
-  return hasFrappeTechnicalRole(roles, 'System Manager')
+export function canManageAdmissionDocumentTypes(
+  roles?: readonly string[] | null,
+): boolean {
+  return hasFrappeTechnicalRole(roles, "System Manager");
 }
 
-export function canManageAdmissionMethods(roles?: readonly string[] | null): boolean {
-  return hasFrappeTechnicalRole(roles, 'System Manager')
+export function canDeleteAdmissionDocumentTypes(
+  roles?: readonly string[] | null,
+): boolean {
+  return hasFrappeTechnicalRole(roles, "System Manager");
 }
 
-export function canDeleteAdmissionMethods(roles?: readonly string[] | null): boolean {
-  return canManageAdmissionMethods(roles)
+export function canManageAdmissionMethods(
+  roles?: readonly string[] | null,
+): boolean {
+  return hasFrappeTechnicalRole(roles, "System Manager");
+}
+
+export function canDeleteAdmissionMethods(
+  roles?: readonly string[] | null,
+): boolean {
+  return canManageAdmissionMethods(roles);
 }

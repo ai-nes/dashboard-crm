@@ -35,10 +35,14 @@ describe("message template snippet suggestions", () => {
     expect(filterSnippetSuggestions(snippets, "hoc")).toEqual([snippets[1]]);
   });
 
-  it("also finds a snippet by its internal name and shows all on #", () => {
-    expect(filterSnippetSuggestions(snippets, "học phí")).toEqual([
-      snippets[1],
+  it("returns exact shortcut matches as suggestions", () => {
+    expect(filterSnippetSuggestions(snippets, "xinchao")).toEqual([
+      snippets[0],
     ]);
+  });
+
+  it("does not match internal names, and shows all on #", () => {
+    expect(filterSnippetSuggestions(snippets, "học phí")).toEqual([]);
     expect(filterSnippetSuggestions(snippets, "")).toEqual(snippets);
   });
 });

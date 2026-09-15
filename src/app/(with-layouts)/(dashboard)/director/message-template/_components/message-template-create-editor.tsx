@@ -52,8 +52,6 @@ interface MessageTemplateCreateEditorProps {
   snippetsError?: string | null;
 }
 
-const SNIPPET_REFERENCE_PATTERN =
-  /#\(\s*([^()\r\n]+?)\s*\)|#([A-Za-z0-9][A-Za-z0-9_.-]*)/g;
 const SNIPPET_TRIGGER_PATTERN = /(?:^|\s)#([A-Za-z0-9_.-]*)$/;
 
 interface ActiveSnippetSuggestion extends SnippetSuggestionPosition {
@@ -87,56 +85,6 @@ function getActiveSnippetSuggestion(editor: RichTextEditorInstance) {
   };
 }
 
-function expandSnippetReferences(
-  editor: RichTextEditorInstance,
-  snippets: SnippetRecord[],
-  isExpanding: { current: boolean },
-) {
-  if (!snippets.length || isExpanding.current) return;
-
-  const snippetsByReference = new Map<string, SnippetRecord>();
-  snippets.forEach((snippet) => {
-    [snippet.shortcut].forEach((reference) => {
-      const normalized = String(reference ?? "")
-        .trim()
-        .toLocaleLowerCase();
-      if (normalized) snippetsByReference.set(normalized, snippet);
-    });
-  });
-
-  const replacements: Array<{ from: number; to: number; content: string }> = [];
-  editor.state.doc.descendants((node, position) => {
-    if (!node.isText || !node.text) return;
-
-    for (const match of node.text.matchAll(SNIPPET_REFERENCE_PATTERN)) {
-      const reference = (match[1] ?? match[2] ?? "").trim().toLocaleLowerCase();
-      const snippet = snippetsByReference.get(reference);
-      if (!snippet) continue;
-
-      replacements.push({
-        from: position + match.index,
-        to: position + match.index + match[0].length,
-        content: snippet.snippetText ?? "",
-      });
-    }
-  });
-
-  if (!replacements.length) return;
-
-  isExpanding.current = true;
-  try {
-    const chain = editor.chain().focus();
-    replacements
-      .sort((left, right) => right.from - left.from)
-      .forEach(({ from, to, content }) => {
-        chain.insertContentAt({ from, to }, content);
-      });
-    chain.run();
-  } finally {
-    isExpanding.current = false;
-  }
-}
-
 export default function MessageTemplateCreateEditor({
   draft,
   ownerName,
@@ -152,12 +100,10 @@ export default function MessageTemplateCreateEditor({
   isLoadingSnippets = false,
   snippetsError = null,
 }: MessageTemplateCreateEditorProps) {
-  const isExpandingSnippet = useRef(false);
   const editorRef = useRef<RichTextEditorInstance | null>(null);
   const [activeSnippetSuggestion, setActiveSnippetSuggestion] =
     useState<ActiveSnippetSuggestion | null>(null);
   const [selectedSnippetIndex, setSelectedSnippetIndex] = useState(0);
-  const hasSnippets = snippets.length > 0;
   const filteredSnippetSuggestions = useMemo(
     () =>
       filterSnippetSuggestions(snippets, activeSnippetSuggestion?.query ?? ""),
@@ -230,7 +176,7 @@ export default function MessageTemplateCreateEditor({
       return true;
     }
 
-    if (event.key === "Enter" || event.key === "Tab") {
+    if (event.key === "Enter") {
       event.preventDefault();
       const selectedSnippet = filteredSnippetSuggestions[selectedSnippetIndex];
       if (selectedSnippet) insertSuggestedSnippet(selectedSnippet, editor);
@@ -341,7 +287,7 @@ export default function MessageTemplateCreateEditor({
           onChange={(value) => onChange("body", value)}
           scrollable
           placeholder="Nhập nội dung mẫu email..."
-          toolbarPlacement="top"
+          toolbarPlacement="bottom"
           toolbarEndContent={
             <Button appearance="ghost" size="xs" onPress={() => undefined}>
               Tạo bằng AI
@@ -375,9 +321,6 @@ export default function MessageTemplateCreateEditor({
               .run();
           }}
           onEditorUpdate={(editor) => {
-            if (hasSnippets) {
-              expandSnippetReferences(editor, snippets, isExpandingSnippet);
-            }
             updateSnippetSuggestion(editor);
           }}
           onEditorSelectionUpdate={updateSnippetSuggestion}
@@ -390,7 +333,6 @@ export default function MessageTemplateCreateEditor({
       {activeSnippetSuggestion ? (
         <MessageTemplateSnippetSuggestion
           snippets={filteredSnippetSuggestions}
-          query={activeSnippetSuggestion.query}
           position={activeSnippetSuggestion}
           selectedIndex={selectedSnippetIndex}
           isLoading={isLoadingSnippets}

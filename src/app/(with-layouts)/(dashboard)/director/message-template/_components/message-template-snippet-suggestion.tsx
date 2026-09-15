@@ -18,17 +18,12 @@ export function filterSnippetSuggestions(
 
   return snippets.filter((snippet) => {
     const shortcut = (snippet.shortcut ?? "").toLocaleLowerCase();
-    const internalName = (snippet.internalName ?? "").toLocaleLowerCase();
-    return (
-      shortcut.startsWith(normalizedQuery) ||
-      internalName.includes(normalizedQuery)
-    );
+    return shortcut.startsWith(normalizedQuery);
   });
 }
 
 interface MessageTemplateSnippetSuggestionProps {
   snippets: SnippetRecord[];
-  query: string;
   position: SnippetSuggestionPosition;
   selectedIndex: number;
   isLoading: boolean;
@@ -39,7 +34,6 @@ interface MessageTemplateSnippetSuggestionProps {
 
 export default function MessageTemplateSnippetSuggestion({
   snippets,
-  query,
   position,
   selectedIndex,
   isLoading,
@@ -59,11 +53,6 @@ export default function MessageTemplateSnippetSuggestion({
       role="listbox"
       aria-label="Gợi ý snippet"
     >
-      <div className="border-b border-card-border px-3 py-2 text-xs font-semibold text-text-secondary">
-        Snippet
-        {query ? <span className="ml-1 font-normal">#{query}</span> : null}
-      </div>
-
       {isLoading ? (
         <div className="px-3 py-3 text-sm text-text-secondary">
           Đang tải snippet...
@@ -92,13 +81,8 @@ export default function MessageTemplateSnippetSuggestion({
                 onMouseEnter={() => onActiveChange(index)}
                 onClick={() => onSelect(snippet)}
               >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-text-primary">
-                    {snippet.internalName || "Snippet không tên"}
-                  </span>
-                  <span className="mt-0.5 block truncate text-xs text-text-secondary">
-                    #{snippet.shortcut}
-                  </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
+                  #{snippet.shortcut}
                 </span>
               </button>
             );

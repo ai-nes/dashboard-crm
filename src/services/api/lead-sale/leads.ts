@@ -247,6 +247,38 @@ export interface LeadProcessScanResponse {
   admissionYear: string | null;
 }
 
+export interface LeadProcessingPreviewItem {
+  lead: string;
+  leadCode: string | null;
+  studentName: string;
+  phone: string;
+  province: string;
+  highSchool: string;
+  status: LeadProcessStatus | null;
+  resolution: LeadProcessResolution | null;
+  processingOutcome: LeadResolution | null;
+  targetStudent: string | null;
+  duplicateOf: string | null;
+  duplicateType: string | null;
+  reason: string | null;
+  errorCode: string | null;
+}
+
+export interface LeadProcessingPreviewSummary {
+  scanned: number;
+  readyToAssign: number;
+  matchedStudent: number;
+  duplicates: number;
+  invalid: number;
+  needsReview: number;
+}
+
+export interface LeadProcessingPreviewResponse {
+  summary: LeadProcessingPreviewSummary;
+  items: LeadProcessingPreviewItem[];
+  admissionYear: string | null;
+}
+
 export interface LeadApiRequestOptions {
   baseUrl?: string;
 }
@@ -327,6 +359,12 @@ export interface LeadImportPreviewRow {
   row: number;
   fields: Record<string, unknown>;
   errors: LeadImportRowError[];
+  processingOutcome: LeadResolution | null;
+  targetStudent: string | null;
+  duplicateOf: string | null;
+  duplicateType: string | null;
+  reason: string | null;
+  errorCode: string | null;
 }
 
 export interface LeadImportPreviewResponse {
@@ -378,6 +416,7 @@ const ASSIGNMENT_TARGETS_METHOD =
 const ASSIGN_METHOD = "crm.api.lead_processing.assign_lead";
 const PROCESS_METHOD = "crm.api.lead_processing.process_lead";
 const PROCESS_SCAN_METHOD = "crm.api.lead_processing.process_new_leads";
+const PREVIEW_SCAN_METHOD = "crm.api.lead_processing.preview_new_leads";
 const STATUS_UPDATE_METHOD = "crm.api.lead_processing.update_processing_status";
 const REOPEN_METHOD = "crm.api.lead_processing.reopen_lead";
 const LEAD_PROCESS_STATUSES = new Set<LeadProcessStatus>([
@@ -525,7 +564,10 @@ function normalizeAssignmentTarget(
   const capacity = asRecord(row.capacity) ?? {};
   return {
     id,
-    displayName: firstText([row.displayName, row.staffName, row.staff_name], id),
+    displayName: firstText(
+      [row.displayName, row.staffName, row.staff_name],
+      id,
+    ),
     teamId,
     teamName: firstText([row.teamName, row.team_name], teamId),
     function: firstText([row.function], "Sale"),
@@ -694,10 +736,13 @@ function normalizeListItem(value: unknown): LeadListItem {
     source: firstText([row.source]),
     owner,
     ownerStaff:
-      firstText([row.ownerStaff, row.owner_staff, row.assignedTo, row.assigned_to]) ||
-      null,
-    owningTeam:
-      firstText([row.owningTeam, row.owning_team]) || null,
+      firstText([
+        row.ownerStaff,
+        row.owner_staff,
+        row.assignedTo,
+        row.assigned_to,
+      ]) || null,
+    owningTeam: firstText([row.owningTeam, row.owning_team]) || null,
     ownershipRevision: integerOrNull(
       row.ownershipRevision ?? row.ownership_revision,
     ),
@@ -736,7 +781,8 @@ function normalizeMeta(value: unknown): LeadListMeta {
         ),
       }
     : undefined;
-  const order = meta.order === "asc" || meta.order === "desc" ? meta.order : undefined;
+  const order =
+    meta.order === "asc" || meta.order === "desc" ? meta.order : undefined;
 
   return {
     total: count(meta.total),
@@ -974,24 +1020,92 @@ function errorDetails(
   const message = asRecord(root?.message);
   const error = asRecord(root?.error) ?? asRecord(message?.error);
   const serverMessage = parseFrappeServerMessage(root?._server_messages);
-  const serverCode = serverMessage.match(/^([A-Z][A-Z0-9_]+):\s/)?.[1];
+  const rawMessage =
+    [
+      text(error?.message),
+      text(message?.message),
+      serverMessage,
+      text(root?.message),
+      text(root?.exception),
+    ].find(Boolean) ?? "";
+  const serverCode = extractErrorCode([
+    text(error?.code),
+    serverMessage,
+    text(root?.message),
+    text(root?.exception),
+  ]);
+  const code =
+    text(error?.code) ||
+    serverCode ||
+    (status === 401
+      ? "UNAUTHENTICATED"
+      : status === 403
+        ? "FORBIDDEN"
+        : `HTTP_${status}`);
   return {
-    code:
-      text(error?.code) ||
-      serverCode ||
-      (status === 401
-        ? "UNAUTHENTICATED"
-        : status === 403
-          ? "FORBIDDEN"
-          : `HTTP_${status}`),
-    message:
-      text(error?.message) ||
-      text(message?.message) ||
-      serverMessage ||
-      text(root?.message) ||
-      text(root?.exception) ||
-      `Không thể tải dữ liệu Lead (${status}).`,
+    code,
+    message: humanizeLeadApiErrorMessage(
+      code,
+      rawMessage || `Không thể tải dữ liệu Lead (${status}).`,
+    ),
   };
+}
+
+const LEAD_IMPORT_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_SOURCE_INDEX:
+    "Cấu hình mapping không khớp với file. Vui lòng chọn lại file và map lại các cột.",
+  CAMPAIGN_REQUIRED:
+    "Vui lòng chọn chiến dịch trước khi kiểm tra hoặc nhập Lead.",
+  CAMPAIGN_PERMISSION_DENIED: "Bạn không có quyền sử dụng chiến dịch này.",
+  CAMPAIGN_STATUS_NOT_ALLOWED:
+    "Chiến dịch phải ở trạng thái đang hoạt động hoặc đã đóng mới được dùng để nhập Lead.",
+  INVALID_COLUMN_MAPPING:
+    "Cấu hình mapping cột không hợp lệ. Vui lòng kiểm tra lại.",
+  MAPPING_TARGET_REQUIRED: "Mỗi cột đang bật phải được chọn trường CRM.",
+  DUPLICATE_SOURCE_INDEX:
+    "Một cột trong file đang bị chọn trùng. Vui lòng map lại.",
+  DUPLICATE_TARGET_FIELD: "Mỗi trường CRM chỉ được map một lần.",
+  UNKNOWN_FIELD: "Trường CRM được chọn không được hỗ trợ.",
+  SERVER_MANAGED_FIELD: "Trường này do hệ thống tự quản lý và không cần map.",
+  MISSING_REQUIRED_MAPPING: "Vui lòng map đầy đủ các trường bắt buộc.",
+};
+
+function extractErrorCode(values: unknown[]): string {
+  for (const value of values) {
+    const candidate = text(value);
+    const match = candidate.match(/\b([A-Z][A-Z0-9_]+):\s/);
+    if (match?.[1]) return match[1];
+  }
+  return "";
+}
+
+function cleanFrappeErrorMessage(value: string, code: string): string {
+  let message = value.replace(/<[^>]*>/g, "").trim();
+  message = message.replace(
+    /^(?:[A-Za-z_][A-Za-z0-9_]*\.)+[A-Za-z_][A-Za-z0-9_]*:\s*/,
+    "",
+  );
+  if (code && message.toUpperCase().startsWith(`${code}:`)) {
+    message = message.slice(code.length + 1).trim();
+  }
+  return message.replace(/^[A-Z][A-Z0-9_]*:\s*/, "").trim();
+}
+
+function humanizeLeadApiErrorMessage(code: string, value: string): string {
+  const message = cleanFrappeErrorMessage(value, code);
+  if (LEAD_IMPORT_ERROR_MESSAGES[code]) return LEAD_IMPORT_ERROR_MESSAGES[code];
+  if (code === "INVALID_CAMPAIGN_CODE") {
+    if (/không tìm thấy campaign/i.test(message)) {
+      return message
+        .replace(/\bCampaign\b/g, "chiến dịch")
+        .replace(/\bcode\b/gi, "mã");
+    }
+    return "Mã chiến dịch không hợp lệ. Vui lòng chọn lại chiến dịch.";
+  }
+  if (code === "REQUIRED_FIELD" && /campaign_code/i.test(message)) {
+    return "Vui lòng chọn chiến dịch trước khi kiểm tra hoặc nhập Lead.";
+  }
+  return message || "Không thể xử lý yêu cầu Lead.";
 }
 
 function parseFrappeServerMessage(value: unknown): string {
@@ -1151,9 +1265,7 @@ function normalizeImportError(
   };
 }
 
-function normalizeLeadImportInspect(
-  value: unknown,
-): LeadImportInspectResponse {
+function normalizeLeadImportInspect(value: unknown): LeadImportInspectResponse {
   const payload = asRecord(unwrapMessage(value));
   const fieldCatalog = Array.isArray(payload?.fieldCatalog)
     ? payload.fieldCatalog
@@ -1202,9 +1314,7 @@ function normalizeLeadImportInspect(
             value === null || value === undefined ? null : String(value),
           )
         : [];
-      return row.row
-        ? { row: count(row.row), values }
-        : null;
+      return row.row ? { row: count(row.row), values } : null;
     })
     .filter((item): item is LeadImportSampleRow => item !== null);
   const rawRequiredFields: unknown[] = Array.isArray(payload?.requiredFields)
@@ -1220,12 +1330,19 @@ function normalizeLeadImportInspect(
     typeof payload.filename !== "string" ||
     fieldCatalog.length === 0 ||
     headers.length === 0 ||
-    !Array.isArray(payload.sampleRows) && !Array.isArray(payload.sample_rows) ||
+    (!Array.isArray(payload.sampleRows) &&
+      !Array.isArray(payload.sample_rows)) ||
     requiredFields.length === 0
   ) {
     throw new Error("Invalid Lead import inspect response");
   }
-  return { filename: payload.filename, fieldCatalog, headers, sampleRows, requiredFields };
+  return {
+    filename: payload.filename,
+    fieldCatalog,
+    headers,
+    sampleRows,
+    requiredFields,
+  };
 }
 
 function normalizeLeadImportPreview(value: unknown): LeadImportPreviewResponse {
@@ -1236,10 +1353,23 @@ function normalizeLeadImportPreview(value: unknown): LeadImportPreviewResponse {
     const rowNumber = count(row.row);
     const fields = asRecord(row.fields) ?? {};
     const rawErrors = Array.isArray(row.errors) ? row.errors : [];
+    const errors = rawErrors.map((error) => normalizeImportError(error, rowNumber));
+    const duplicateError = errors.find((error) =>
+      error.code.toUpperCase().startsWith("DUPLICATE"),
+    );
+    const processingOutcome =
+      normalizeResolution(row.processingOutcome ?? row.processing_outcome) ||
+      (duplicateError ? "DUPLICATE" : "");
     return {
       row: rowNumber,
       fields,
-      errors: rawErrors.map((error) => normalizeImportError(error, rowNumber)),
+      errors,
+      processingOutcome: processingOutcome || null,
+      targetStudent: firstText([row.targetStudent, row.target_student]) || null,
+      duplicateOf: firstText([row.duplicateOf, row.duplicate_of]) || null,
+      duplicateType: firstText([row.duplicateType, row.duplicate_type]) || null,
+      reason: firstText([row.reason, duplicateError?.message]) || null,
+      errorCode: firstText([row.errorCode, row.error_code]) || null,
     };
   });
   const rawErrors = Array.isArray(payload?.errors) ? payload.errors : [];
@@ -1437,7 +1567,11 @@ export async function inspectLeadImport(
 
   const body = new FormData();
   body.append("file", file, file.name);
-  const payload = await fileMutationRequest(INSPECT_IMPORT_METHOD, body, options);
+  const payload = await fileMutationRequest(
+    INSPECT_IMPORT_METHOD,
+    body,
+    options,
+  );
   try {
     return normalizeLeadImportInspect(payload);
   } catch {
@@ -1465,7 +1599,9 @@ export async function previewLeadImport(
   if (normalizedCampaignCode) {
     body.append("campaign_code", normalizedCampaignCode);
   }
-  const mapping = Array.isArray(mappingOrOptions) ? mappingOrOptions : undefined;
+  const mapping = Array.isArray(mappingOrOptions)
+    ? mappingOrOptions
+    : undefined;
   const requestOptions = Array.isArray(mappingOrOptions)
     ? options
     : mappingOrOptions;
@@ -1634,7 +1770,10 @@ export async function assignLeadToStaff(
       "Vui lòng chọn Sale/CTV và Team để phân công Lead.",
     );
   }
-  if (!Number.isSafeInteger(request.expectedRevision) || request.expectedRevision < 0) {
+  if (
+    !Number.isSafeInteger(request.expectedRevision) ||
+    request.expectedRevision < 0
+  ) {
     throw new LeadApiError(
       400,
       "INVALID_OWNERSHIP_REVISION",
@@ -1754,6 +1893,110 @@ function normalizeProcessScanResponse(value: unknown): LeadProcessScanResponse {
       payload.admissionYear ?? payload.admission_year,
     ),
   };
+}
+
+function normalizeProcessingPreviewItem(
+  value: unknown,
+): LeadProcessingPreviewItem {
+  const row = asRecord(value) ?? {};
+  const statusValue = text(row.status).toUpperCase();
+  const resolutionValue = text(row.resolution).toUpperCase();
+  const outcomeValue = text(
+    row.processingOutcome ?? row.processing_outcome,
+  ).toUpperCase();
+  const status = LEAD_PROCESS_STATUSES.has(statusValue as LeadProcessStatus)
+    ? (statusValue as LeadProcessStatus)
+    : null;
+  const resolution = LEAD_PROCESS_RESOLUTIONS.has(
+    resolutionValue as LeadProcessResolution,
+  )
+    ? (resolutionValue as LeadProcessResolution)
+    : null;
+  const processingOutcome = LEAD_RESOLUTION_CODES.has(
+    outcomeValue as LeadResolution,
+  )
+    ? (outcomeValue as LeadResolution)
+    : null;
+
+  return {
+    lead: firstText([row.lead, row.name, row.id]),
+    leadCode: nullableText(row.leadCode ?? row.lead_code),
+    studentName: firstText(
+      [row.studentName, row.student_name],
+      "Chưa có họ tên",
+    ),
+    phone: firstText([row.phone]),
+    province: firstText([row.province]),
+    highSchool: firstText([row.highSchool, row.high_school]),
+    status,
+    resolution,
+    processingOutcome,
+    targetStudent: firstText([row.targetStudent, row.target_student]) || null,
+    duplicateOf: firstText([row.duplicateOf, row.duplicate_of]) || null,
+    duplicateType: firstText([row.duplicateType, row.duplicate_type]) || null,
+    reason: firstText([row.reason]) || null,
+    errorCode: firstText([row.errorCode, row.error_code]) || null,
+  };
+}
+
+function normalizeProcessingPreview(
+  value: unknown,
+): LeadProcessingPreviewResponse {
+  const payload = asRecord(unwrapMessage(value));
+  const summary = asRecord(payload?.summary);
+  const rawItems = Array.isArray(payload?.items) ? payload.items : [];
+  if (!payload || !summary || !Array.isArray(payload.items)) {
+    throw new Error("Invalid Lead processing preview response");
+  }
+
+  return {
+    summary: {
+      scanned: count(summary.scanned),
+      readyToAssign: count(summary.readyToAssign ?? summary.ready_to_assign),
+      matchedStudent: count(summary.matchedStudent ?? summary.matched_student),
+      duplicates: count(summary.duplicates),
+      invalid: count(summary.invalid),
+      needsReview: count(summary.needsReview ?? summary.needs_review),
+    },
+    items: rawItems.map(normalizeProcessingPreviewItem),
+    admissionYear: nullableText(
+      payload.admissionYear ?? payload.admission_year,
+    ),
+  };
+}
+
+export async function previewNewLeads(
+  request: LeadProcessScanRequest = {},
+  options: LeadApiRequestOptions = {},
+): Promise<LeadProcessingPreviewResponse> {
+  const admissionYear = String(request.admissionYear ?? "").trim();
+  if (admissionYear && !/^\d{4}$/.test(admissionYear)) {
+    throw new LeadApiError(
+      400,
+      "INVALID_ADMISSION_YEAR",
+      "Kỳ tuyển sinh phải là năm gồm bốn chữ số.",
+    );
+  }
+
+  const body: Record<string, unknown> = {};
+  if (admissionYear) body.admission_year = admissionYear;
+  if (typeof request.limit === "number") body.limit = request.limit;
+
+  const payload = await mutationRequest(
+    PREVIEW_SCAN_METHOD,
+    "POST",
+    body,
+    options,
+  );
+  try {
+    return normalizeProcessingPreview(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_PROCESSING_PREVIEW_RESPONSE",
+      "Phản hồi xem trước xử lý Lead không hợp lệ.",
+    );
+  }
 }
 
 export async function processNewLeads(

@@ -141,6 +141,11 @@ const SEGMENTS_ADMIN_ROLES = [
   "System Manager",
 ] as const satisfies readonly DashboardRole[];
 
+const MAJOR_CATALOG_ADMIN_ROLES = [
+  "System Manager",
+  "Administrator",
+] as const satisfies readonly DashboardRole[];
+
 const ACTIVITY_LOG_ADMIN_ROLES = [
   "System Manager",
   "Administrator",
@@ -280,9 +285,13 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
     roles: NBA_ACTIONS_READ_ROLES,
   },
   { path: "/director/admin/rules-config", roles: CRM_RULES_ADMIN_ROLES },
-  { path: "/director/admin/message-templates", roles: MESSAGE_TEMPLATE_ADMIN_ROLES },
+  {
+    path: "/director/admin/message-templates",
+    roles: MESSAGE_TEMPLATE_ADMIN_ROLES,
+  },
   { path: "/director/admin/segments", roles: SEGMENTS_ADMIN_ROLES },
   { path: "/director/admin/student-config", roles: SEGMENTS_ADMIN_ROLES },
+  { path: "/director/admin/majors", roles: MAJOR_CATALOG_ADMIN_ROLES },
   {
     path: "/director/admin/activity-logs",
     roles: ACTIVITY_LOG_ADMIN_ROLES,
