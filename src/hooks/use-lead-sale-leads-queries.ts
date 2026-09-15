@@ -18,6 +18,7 @@ import {
   getLeadList,
   importLeadFile,
   importLeadRows,
+  previewNewLeads,
   processLead,
   processNewLeads,
   type LeadImportResponse,
@@ -35,6 +36,7 @@ import {
   type LeadListParams,
   type LeadListResponse,
   type LeadProcessRequest,
+  type LeadProcessingPreviewResponse,
   type LeadProcessResponse,
   type LeadProcessScanRequest,
   type LeadProcessScanResponse,
@@ -169,6 +171,16 @@ export function useProcessNewLeadsMutation() {
     mutationFn: (request) => processNewLeads(request),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+  });
+}
+
+export function usePreviewNewLeadsMutation() {
+  return useMutation<
+    LeadProcessingPreviewResponse,
+    Error,
+    LeadProcessScanRequest
+  >({
+    mutationFn: (request) => previewNewLeads(request),
   });
 }
 

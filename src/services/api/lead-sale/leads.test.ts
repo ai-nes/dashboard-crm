@@ -14,6 +14,7 @@ import {
   LeadApiError,
   normalizeLeadDetail,
   normalizeLeadList,
+  previewNewLeads,
   previewLeadImport,
   processLead,
   processNewLeads,
@@ -481,6 +482,9 @@ describe("Lead list/detail API contract", () => {
                 row: 2,
                 fields: { student_name: "Nguyễn Văn An" },
                 errors: [],
+                processingOutcome: "MATCHED",
+                targetStudent: "STU-1",
+                reason: "Đã khớp hồ sơ học sinh.",
               },
               {
                 row: 3,
@@ -535,6 +539,10 @@ describe("Lead list/detail API contract", () => {
       valid: 1,
       failed: 1,
     });
+    expect(result.rows[0]).toMatchObject({
+      processingOutcome: "MATCHED",
+      targetStudent: "STU-1",
+    });
     expect(result.errors[0]?.code).toBe("INVALID_PHONE");
   });
 
@@ -561,7 +569,54 @@ describe("Lead list/detail API contract", () => {
     ).rejects.toMatchObject({
       code: "CAMPAIGN_STATUS_NOT_ALLOWED",
       message:
-        "CAMPAIGN_STATUS_NOT_ALLOWED: Chỉ Campaign ACTIVE hoặc CLOSED mới được dùng.",
+        "Chiến dịch phải ở trạng thái đang hoạt động hoặc đã đóng mới được dùng để nhập Lead.",
+    });
+  });
+
+  it("translates technical mapping errors into a Vietnamese recovery message", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          exception:
+            "crm.api.lead_mapping.LeadMappingError: INVALID_SOURCE_INDEX: Không tìm thấy sourceIndex: 10.",
+        }),
+        { status: 417 },
+      ),
+    );
+
+    const file = new File(["data"], "leads.csv", { type: "text/csv" });
+
+    await expect(
+      previewLeadImport(file, "CAM-2026-00001", {
+        baseUrl: "http://frappe:8000",
+      }),
+    ).rejects.toMatchObject({
+      code: "INVALID_SOURCE_INDEX",
+      message:
+        "Cấu hình mapping không khớp với file. Vui lòng chọn lại file và map lại các cột.",
+    });
+  });
+
+  it("shows when the selected Campaign cannot be found", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          exception:
+            "crm.api.lead_mapping.LeadMappingError: INVALID_CAMPAIGN_CODE: Không tìm thấy Campaign với mã: CAM-2026-00001.",
+        }),
+        { status: 417 },
+      ),
+    );
+
+    const file = new File(["data"], "leads.csv", { type: "text/csv" });
+
+    await expect(
+      previewLeadImport(file, "CAM-2026-00001", {
+        baseUrl: "http://frappe:8000",
+      }),
+    ).rejects.toMatchObject({
+      code: "INVALID_CAMPAIGN_CODE",
+      message: "Không tìm thấy chiến dịch với mã: CAM-2026-00001.",
     });
   });
 
@@ -572,11 +627,26 @@ describe("Lead list/detail API contract", () => {
           message: {
             filename: "arbitrary.csv",
             fieldCatalog: [
-              { key: "student_name", label: "Họ và tên", required: true, valueType: "text" },
+              {
+                key: "student_name",
+                label: "Họ và tên",
+                required: true,
+                valueType: "text",
+              },
             ],
             headers: [
-              { sourceIndex: 0, label: "Name", inferredField: "student_name", enabled: true },
-              { sourceIndex: 1, label: "Unknown", inferredField: null, enabled: false },
+              {
+                sourceIndex: 0,
+                label: "Name",
+                inferredField: "student_name",
+                enabled: true,
+              },
+              {
+                sourceIndex: 1,
+                label: "Unknown",
+                inferredField: null,
+                enabled: false,
+              },
             ],
             sampleRows: [{ row: 3, values: ["An", null] }],
             requiredFields: ["student_name"],
@@ -623,9 +693,13 @@ describe("Lead list/detail API contract", () => {
         { status: 200 },
       ),
     );
-    const file = new File(["\nName,Phone,Ignore\nAn,0900000000,x"], "leads.csv", {
-      type: "text/csv",
-    });
+    const file = new File(
+      ["\nName,Phone,Ignore\nAn,0900000000,x"],
+      "leads.csv",
+      {
+        type: "text/csv",
+      },
+    );
     const mapping = [
       { sourceIndex: 0, targetField: "student_name", enabled: true },
       { sourceIndex: 1, targetField: "phone", enabled: true },
@@ -639,9 +713,13 @@ describe("Lead list/detail API contract", () => {
     const requestBody = fetchSpy.mock.calls[0]?.[1]?.body as FormData;
     expect(requestBody.get("file")).toBeInstanceOf(File);
     expect(requestBody.getAll("campaign_code")).toEqual(["CAM-2026-00001"]);
-    expect(JSON.parse(String(requestBody.get("column_mapping")))).toEqual(mapping);
+    expect(JSON.parse(String(requestBody.get("column_mapping")))).toEqual(
+      mapping,
+    );
     expect(result.mappedFields).toEqual(["student_name", "phone"]);
-    expect(result.ignoredColumns).toEqual([{ sourceIndex: 2, label: "Ignore" }]);
+    expect(result.ignoredColumns).toEqual([
+      { sourceIndex: 2, label: "Ignore" },
+    ]);
   });
 
   it("commits the original file and mapping instead of browser-normalized rows", async () => {
@@ -676,7 +754,9 @@ describe("Lead list/detail API contract", () => {
     expect(requestBody.get("file")).toBeInstanceOf(File);
     expect(requestBody.getAll("campaign_code")).toEqual(["CAM-2026-00001"]);
     expect(requestBody.getAll("import_mode")).toEqual(["quick_create"]);
-    expect(JSON.parse(String(requestBody.get("column_mapping")))).toEqual(mapping);
+    expect(JSON.parse(String(requestBody.get("column_mapping")))).toEqual(
+      mapping,
+    );
     expect(requestBody.get("rows")).toBeNull();
     expect(result.created).toBe(1);
   });
@@ -922,6 +1002,75 @@ describe("Lead list/detail API contract", () => {
       closed: 1,
       skipped: 1,
       failed: 0,
+    });
+  });
+
+  it("loads a read-only processing preview with duplicate outcomes", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            summary: {
+              scanned: 2,
+              readyToAssign: 1,
+              matchedStudent: 0,
+              duplicates: 1,
+              invalid: 0,
+              needsReview: 0,
+            },
+            items: [
+              {
+                lead: "LEAD-2026-00001",
+                leadCode: "LD-2026-00001",
+                studentName: "Nguyễn Minh An",
+                phone: "0900000000",
+                province: "Hồ Chí Minh",
+                highSchool: "THPT Châu Văn Liêm",
+                status: "PROCESSED",
+                resolution: "PENDING",
+                processingOutcome: "CREATED",
+                reason: "Chưa phát hiện hồ sơ trùng.",
+              },
+              {
+                lead: "LEAD-2026-00002",
+                leadCode: "LD-2026-00002",
+                studentName: "Trần Minh An",
+                phone: "0900000000",
+                province: "Hồ Chí Minh",
+                highSchool: "THPT Châu Văn Liêm",
+                status: "CLOSED",
+                resolution: "DUPLICATE",
+                processingOutcome: "DUPLICATE",
+                duplicateOf: "LEAD-2026-00001",
+                duplicateType: "PHONE_PROVINCE",
+                reason: "Trùng số điện thoại và tỉnh/thành phố.",
+              },
+            ],
+            admissionYear: "2026",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await previewNewLeads(
+      { admissionYear: 2026 },
+      { baseUrl: "http://frappe:8000" },
+    );
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://frappe:8000/api/method/crm.api.lead_processing.preview_new_leads",
+      expect.objectContaining({
+        method: "POST",
+        cache: "no-store",
+        body: JSON.stringify({ admission_year: "2026" }),
+      }),
+    );
+    expect(result.summary.duplicates).toBe(1);
+    expect(result.items[1]).toMatchObject({
+      studentName: "Trần Minh An",
+      processingOutcome: "DUPLICATE",
+      duplicateOf: "LEAD-2026-00001",
     });
   });
 

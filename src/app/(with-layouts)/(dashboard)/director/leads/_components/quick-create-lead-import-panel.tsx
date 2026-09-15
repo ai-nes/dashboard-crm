@@ -1,30 +1,42 @@
 "use client";
 
 import { UploadCloud } from "@tailgrids/icons";
-import {
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
 import {
   CreateDialogField,
   CreateDialogSelect,
 } from "@/components/common/create-dialog-field";
+import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRoot,
+  TableRow,
+} from "@/components/tailgrids/core/table";
 import { cn } from "@/utils/cn";
 import {
   inspectLeadImport,
   previewLeadImport,
+  type LeadImportFieldDefinition,
   type LeadImportInspectResponse,
   type LeadImportMapping,
+  type LeadImportPreviewRow,
   type LeadImportPreviewResponse,
   type LeadImportResponse,
 } from "@/services/api/lead-sale";
 import { DropZone, FileTrigger, Text } from "react-aria-components";
 
 import LeadImportMappingPreview from "./lead-import-mapping-preview";
+import {
+  StickyColumnPicker,
+  reorderStickyColumns,
+  stickyColumnClass,
+  stickyColumnStyle,
+} from "./sticky-column-picker";
 
 export interface QuickCreateLeadImportPanelHandle {
   submit: () => Promise<void>;
@@ -46,20 +58,15 @@ const QuickCreateLeadImportPanel = forwardRef<
   QuickCreateLeadImportPanelHandle,
   QuickCreateLeadImportPanelProps
 >(function QuickCreateLeadImportPanel(
-  {
-    campaignOptions,
-    isSubmitting = false,
-    onStepChange,
-    onImport,
-  },
+  { campaignOptions, isSubmitting = false, onStepChange, onImport },
   ref,
 ) {
   const [file, setFile] = useState<File | null>(null);
   const [filename, setFilename] = useState("");
-  const [inspection, setInspection] = useState<LeadImportInspectResponse | null>(
-    null,
-  );
+  const [inspection, setInspection] =
+    useState<LeadImportInspectResponse | null>(null);
   const [mapping, setMapping] = useState<LeadImportMapping[]>([]);
+  const [stickyFields, setStickyFields] = useState<string[]>(["student_name"]);
   const [preview, setPreview] = useState<LeadImportPreviewResponse | null>(
     null,
   );
@@ -150,7 +157,7 @@ const QuickCreateLeadImportPanel = forwardRef<
     }
     if (step === 1) {
       if (!campaignCode.trim()) {
-        setError("Vui lòng chọn campaign trước khi kiểm tra dữ liệu.");
+        setError("Vui lòng chọn chiến dịch trước khi kiểm tra dữ liệu.");
         return;
       }
       if (!hasCompleteMapping()) {
@@ -226,9 +233,9 @@ const QuickCreateLeadImportPanel = forwardRef<
   return (
     <div className="space-y-4">
       {step <= 1 && (
-        <CreateDialogField label="Campaign" required>
+        <CreateDialogField label="Chiến dịch" required>
           <CreateDialogSelect
-            label="Campaign"
+            label="Chiến dịch"
             options={campaignOptions}
             value={campaignCode}
             isDisabled={
@@ -266,6 +273,8 @@ const QuickCreateLeadImportPanel = forwardRef<
           fieldCatalog={inspection.fieldCatalog}
           requiredFields={inspection.requiredFields}
           mapping={mapping}
+          stickyFields={stickyFields}
+          onStickyFieldsChange={setStickyFields}
           onMappingChange={(nextMapping) => {
             setMapping(nextMapping);
             setPreview(null);
@@ -277,9 +286,12 @@ const QuickCreateLeadImportPanel = forwardRef<
 
       {step === 2 && preview && (
         <ValidationPreview
+          fieldCatalog={inspection?.fieldCatalog ?? []}
           filename={filename}
           preview={preview}
           result={result}
+          stickyFields={stickyFields}
+          onStickyFieldsChange={setStickyFields}
         />
       )}
 
@@ -325,7 +337,11 @@ function FileDropZone({
           const fileItem = event.items.find((item) => item.kind === "file");
           if (fileItem) await onSelect(await fileItem.getFile());
         }}
-        className={({ isDropTarget, isFocusVisible, isDisabled: zoneDisabled }) =>
+        className={({
+          isDropTarget,
+          isFocusVisible,
+          isDisabled: zoneDisabled,
+        }) =>
           cn(
             "flex min-h-44 flex-col items-center justify-center gap-3 rounded-xl border border-dashed px-5 py-6 text-center outline-none transition",
             isDropTarget
@@ -376,16 +392,73 @@ function FileDropZone({
 }
 
 function ValidationPreview({
+  fieldCatalog,
   filename,
   preview,
   result,
+  stickyFields,
+  onStickyFieldsChange,
 }: {
+  fieldCatalog: LeadImportFieldDefinition[];
   filename: string;
   preview: LeadImportPreviewResponse;
   result: LeadImportResponse | null;
+  stickyFields: string[];
+  onStickyFieldsChange: (fields: string[]) => void;
 }) {
+  const fieldLabels = new Map(
+    fieldCatalog.map((field) => [field.key, field.label]),
+  );
+  const mappedFieldLabels = preview.mappedFields.map(
+    (field) => fieldLabels.get(field) ?? IMPORT_FIELD_LABELS[field] ?? field,
+  );
+  const requiredFieldSet = new Set(
+    fieldCatalog.filter((field) => field.required).map((field) => field.key),
+  );
+  const mappedFieldOrder = new Map(
+    preview.mappedFields.map((field, index) => [field, index]),
+  );
+  const previewFieldKeys = [
+    ...new Set(
+      (preview.mappedFields.length > 0
+        ? preview.mappedFields
+        : fieldCatalog.map((field) => field.key)
+      ).filter((field) => field !== "campaign"),
+    ),
+  ].sort(
+    (left, right) =>
+      Number(!requiredFieldSet.has(left)) -
+        Number(!requiredFieldSet.has(right)) ||
+      (mappedFieldOrder.get(left) ?? Number.MAX_SAFE_INTEGER) -
+        (mappedFieldOrder.get(right) ?? Number.MAX_SAFE_INTEGER),
+  );
+  const orderedPreviewFieldKeys = reorderStickyColumns(
+    previewFieldKeys.map((id) => ({ id })),
+    stickyFields,
+  ).map((column) => column.id);
+  const stickyOptions = orderedPreviewFieldKeys.map((field) => ({
+    id: field,
+    label: fieldLabels.get(field) ?? IMPORT_FIELD_LABELS[field] ?? field,
+  }));
+  const outcomeCounts = preview.rows.reduce(
+    (counts, row) => {
+      const outcome = row.processingOutcome;
+      if (outcome === "DUPLICATE") counts.duplicates += 1;
+      else if (outcome === "MATCHED") counts.matched += 1;
+      else if (outcome === "CREATED") counts.created += 1;
+      else if (outcome === "INVALID" || row.errors.length > 0) {
+        counts.invalid += 1;
+      }
+      return counts;
+    },
+    { created: 0, matched: 0, duplicates: 0, invalid: 0 },
+  );
+
   return (
-    <section aria-labelledby="lead-import-validation-title" className="space-y-3">
+    <section
+      aria-labelledby="lead-import-validation-title"
+      className="space-y-3"
+    >
       <div>
         <h2
           id="lead-import-validation-title"
@@ -395,36 +468,240 @@ function ValidationPreview({
         </h2>
         <p className="mt-1 truncate text-xs text-text-tertiary">{filename}</p>
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <ResultStat label="Tổng dòng" value={preview.total} />
-        <ResultStat label="Hợp lệ" value={preview.valid} />
-        <ResultStat label="Lỗi" value={preview.failed} />
+        <ResultStat label="Có thể nhập" value={outcomeCounts.created} />
+        <ResultStat label="Đã có hồ sơ" value={outcomeCounts.matched} />
+        <ResultStat
+          label="Trùng"
+          value={outcomeCounts.duplicates}
+          tone="error"
+        />
       </div>
       {preview.mappedFields.length > 0 && (
         <p className="text-xs text-text-secondary">
-          Đã map: {preview.mappedFields.join(", ")}.
+          Đã map: {mappedFieldLabels.join(", ")}.
         </p>
       )}
-      {preview.errors.length > 0 && !result && (
-        <ImportErrors errors={preview.errors} />
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-text-tertiary">
+          Mỗi dòng đã được đối chiếu trước khi nhập. Dấu{" "}
+          <span className="font-semibold text-error-600">Trùng</span> màu đỏ là
+          hồ sơ cần xem lại; không có dữ liệu nào được tạo ở bước này.
+        </p>
+        <StickyColumnPicker
+          options={stickyOptions}
+          selected={stickyFields}
+          onChange={onStickyFieldsChange}
+        />
+      </div>
+      {outcomeCounts.invalid > 0 && (
+        <Badge color="warning">Cần bổ sung: {outcomeCounts.invalid}</Badge>
       )}
+      <div
+        className="overflow-x-auto rounded-lg border border-border-primary"
+        aria-live="polite"
+      >
+        <TableRoot className="min-w-[980px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-14 align-top">Dòng</TableHead>
+              {orderedPreviewFieldKeys.map((field) => {
+                const stickyIndex = stickyFields.indexOf(field);
+                return (
+                <TableHead
+                  key={field}
+                  className={cn(
+                    "min-w-[170px] align-top",
+                    stickyColumnClass(stickyIndex >= 0),
+                  )}
+                  style={stickyColumnStyle(stickyIndex, 170)}
+                >
+                  {fieldLabels.get(field) ??
+                    IMPORT_FIELD_LABELS[field] ??
+                    field}
+                  {requiredFieldSet.has(field) && (
+                    <span aria-hidden="true" className="ml-1 text-error-500">
+                      *
+                    </span>
+                  )}
+                </TableHead>
+                );
+              })}
+              <TableHead className="min-w-[230px] align-top">
+                Đối chiếu hồ sơ
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {preview.rows.length > 0 ? (
+              preview.rows.map((row) => (
+                <ImportPreviewTableRow
+                  key={row.row}
+                  fieldKeys={orderedPreviewFieldKeys}
+                  stickyFields={stickyFields}
+                  row={row}
+                />
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={previewFieldKeys.length + 2}
+                  className="py-8 text-center text-sm text-text-tertiary"
+                >
+                  Chưa có dòng dữ liệu để hiển thị.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </TableRoot>
+      </div>
       {result && (
         <div className="space-y-3" aria-live="polite">
           <p className="text-sm font-medium text-text-primary">
             Đã tạo {result.created}/{result.total} Lead.
           </p>
-          {result.errors.length > 0 && <ImportErrors errors={result.errors} />}
+          {result.errors.length > 0 && (
+            <p className="text-xs text-error-600">
+              {result.errors.length} dòng chưa được nhập; kiểm tra lại dấu trạng
+              thái trên từng dòng.
+            </p>
+          )}
         </div>
       )}
     </section>
   );
 }
 
-function ResultStat({ label, value }: { label: string; value: number }) {
+type ImportPreviewBadgeColor = "gray" | "warning" | "success" | "error";
+
+function ImportPreviewTableRow({
+  fieldKeys,
+  row,
+  stickyFields,
+}: {
+  fieldKeys: string[];
+  row: LeadImportPreviewRow;
+  stickyFields: string[];
+}) {
+  const status = getImportPreviewStatus(row);
+  return (
+    <TableRow className={status.rowClassName}>
+      <TableCell className="text-text-tertiary">{row.row}</TableCell>
+      {fieldKeys.map((field) => (
+        <TableCell
+          key={field}
+          className={cn(
+            field === "student_name"
+              ? "font-medium text-text-primary"
+              : "text-text-secondary",
+            isEmptyPreviewField(row.fields, field) &&
+              "bg-badge-error-background/35",
+            stickyColumnClass(stickyFields.includes(field)),
+          )}
+          style={stickyColumnStyle(stickyFields.indexOf(field), 170)}
+        >
+          {previewField(row.fields, field)}
+        </TableCell>
+      ))}
+      <TableCell>
+        <div className="space-y-1.5">
+          <Badge color={status.color}>{status.label}</Badge>
+          <p className="text-xs leading-5 text-text-tertiary">
+            {status.detail}
+          </p>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function getImportPreviewStatus(row: LeadImportPreviewRow): {
+  label: string;
+  color: ImportPreviewBadgeColor;
+  detail: string;
+  rowClassName?: string;
+} {
+  if (row.processingOutcome === "DUPLICATE") {
+    const reference = row.duplicateOf
+      ? `Trùng với hồ sơ ${row.duplicateOf}.`
+      : row.reason || "Đã phát hiện hồ sơ trùng trong dữ liệu nhập.";
+    return {
+      label: "Trùng",
+      color: "error",
+      detail: reference,
+      rowClassName: "bg-badge-error-background/30",
+    };
+  }
+  if (row.processingOutcome === "MATCHED") {
+    return {
+      label: "Đã có hồ sơ học sinh",
+      color: "warning",
+      detail: row.targetStudent
+        ? `Khớp hồ sơ học sinh ${row.targetStudent}.`
+        : row.reason || "Đã khớp một hồ sơ học sinh.",
+      rowClassName: "bg-badge-warning-background/20",
+    };
+  }
+  if (row.processingOutcome === "CREATED") {
+    return {
+      label: "Không trùng",
+      color: "success",
+      detail: "Chưa phát hiện hồ sơ trùng.",
+    };
+  }
+  if (row.processingOutcome === "INVALID" || row.errors.length > 0) {
+    return {
+      label: "Cần bổ sung",
+      color: "warning",
+      detail: humanizeImportMessage(
+        row.reason || row.errors[0]?.message || "Thiếu thông tin bắt buộc.",
+      ),
+      rowClassName: "bg-badge-warning-background/10",
+    };
+  }
+  return {
+    label: "Cần kiểm tra",
+    color: "gray",
+    detail: row.reason || "Chưa có kết quả đối chiếu.",
+  };
+}
+
+function previewField(fields: Record<string, unknown>, key: string): string {
+  const value = fields[key];
+  return value === null || value === undefined || String(value).trim() === ""
+    ? "—"
+    : String(value);
+}
+
+function isEmptyPreviewField(
+  fields: Record<string, unknown>,
+  key: string,
+): boolean {
+  const value = fields[key];
+  return value === null || value === undefined || String(value).trim() === "";
+}
+
+function ResultStat({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: number;
+  tone?: "default" | "error";
+}) {
   return (
     <div className="rounded-lg bg-background-soft-50 px-3 py-2">
       <p className="text-xs text-text-tertiary">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-text-primary">{value}</p>
+      <p
+        className={cn(
+          "mt-1 text-lg font-semibold",
+          tone === "error" ? "text-error-600" : "text-text-primary",
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -434,25 +711,39 @@ function ResultStat({ label, value }: { label: string; value: number }) {
 function humanizeImportMessage(message: string): string {
   return message
     .replace(/<\/?[a-z][^>]*>/gi, "")
+    .replace(/^(?:[A-Za-z_][A-Za-z0-9_]*\.)+[A-Za-z_][A-Za-z0-9_]*:\s*/, "")
     .replace(/^\s*[A-Z][A-Z0-9_]*:\s*/, "")
     .trim();
 }
 
-function ImportErrors({
-  errors,
-}: {
-  errors: { row: number; code: string; message: string }[];
-}) {
-  return (
-    <div className="max-h-40 overflow-y-auto rounded-lg border border-card-border p-3">
-      <p className="text-sm font-semibold text-text-primary">Dòng cần kiểm tra</p>
-      <ul className="mt-2 space-y-1.5 text-xs text-text-secondary">
-        {errors.map((item) => (
-          <li key={`${item.row}-${item.code}`}>
-            Dòng {item.row}: {humanizeImportMessage(item.message)}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+const IMPORT_FIELD_LABELS: Record<string, string> = {
+  student_name: "Họ và tên",
+  phone: "Di động",
+  email: "Email",
+  other_email: "Email khác",
+  id_number: "CCCD",
+  gender: "Giới tính",
+  date_of_birth: "Ngày sinh",
+  religion: "Tôn giáo",
+  province: "Tỉnh/Thành phố",
+  ward: "Phường/Xã",
+  high_school: "Trường THPT",
+  major: "Ngành quan tâm",
+  current_grade: "Khối hiện tại",
+  study_stage: "Giai đoạn học tập",
+  advertising_channel: "Kênh quảng cáo",
+  segments: "Phân khúc",
+  admission_year: "Năm tuyển sinh",
+  conversion_potential: "Khả năng chuyển đổi",
+  source: "Nguồn",
+  assigned_to: "Giao cho",
+  branch: "Chi nhánh",
+  tags: "Tags",
+  aspiration: "Nguyện vọng vào FPT",
+  event_participated: "Sự kiện tham gia",
+  description: "Mô tả",
+  notes: "Ghi chú",
+  alt_name: "Tên người liên hệ khác",
+  alt_phone: "Số điện thoại khác",
+  alt_address: "Địa chỉ khác",
+};

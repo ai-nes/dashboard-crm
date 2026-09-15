@@ -243,6 +243,8 @@ Tất cả API trả dữ liệu trong `response.message` theo chuẩn Frappe.
 | `crm.api.lead_assignment_batch.list_lead_assignment_batches`       | GET  | Lấy lịch sử các đợt phân công.                                                                 |
 | `crm.api.lead_assignment_batch.list_lead_assignment_history_items` | GET  | Lấy danh sách hồ sơ theo trạng thái, gồm cả Lead `CLOSED` cần kiểm tra; hỗ trợ lọc `lead_ids`. |
 | `crm.api.lead_assignment_batch.get_lead_assignment_batch_options`  | GET  | Lấy option pool nội bộ nếu cần kiểm tra quyền; không cần hiển thị cho người dùng thường.       |
+| `crm.api.lead_processing.preview_new_leads`                      | POST | Xem trước kết quả xử lý và nhận diện trùng của Lead `NEW`; không ghi dữ liệu.                 |
+| `crm.api.lead_processing.process_new_leads`                       | POST | Xác nhận và xử lý Lead `NEW`, cập nhật trạng thái theo từng hồ sơ.                            |
 
 `get_lead_assignment_workflow` nhận tùy chọn `batch_name`. Nếu bỏ trống, backend tổng
 hợp trạng thái Lead hiện tại với item của các đợt trong phạm vi quyền và khử trùng theo
@@ -255,6 +257,13 @@ trách nhiệm layout và hiển thị. Khi đang xem một `batch_name`, workfl
 `status = manual_review` để tab Cần kiểm tra hiển thị đủ hồ sơ thực tế, kể cả khi
 Lead không còn item trong batch audit. Truyền `lead_ids` dạng chuỗi phân tách bằng dấu
 phẩy hoặc mảng để giới hạn đúng hàng đợi hồ sơ cần xử lý.
+
+Trang Leads gọi `preview_new_leads` trước khi chạy `process_new_leads`. Response preview
+trả `summary` và `items` theo từng Lead, gồm họ tên, số điện thoại, tỉnh/thành phố,
+`processingOutcome`, `duplicateOf`, `targetStudent` và lý do hiển thị. Preview chỉ đọc;
+người vận hành đóng dialog để không thay đổi dữ liệu hoặc bấm xác nhận để chạy bước
+processing thật. Các trường hợp `DUPLICATE`, `MATCHED`, `CREATED` và `INVALID` được FE
+hiển thị bằng badge trạng thái thay vì danh sách lỗi kỹ thuật.
 
 ### 5.4. Import batch
 
@@ -333,8 +342,10 @@ người dùng vẫn có thể đổi mapping theo source index.
 item có `{key, label, required, valueType}`. `requiredFields` là danh sách target bắt
 buộc do backend trả về và FE dùng để kiểm tra tiến độ/điều kiện tiếp tục. `headers` có
 `{sourceIndex, label, inferredField, enabled}` và `sampleRows` có `{row, values}`;
-`values` luôn giữ thứ tự cột nguồn. Dùng `sourceIndex` thay vì label để xử lý đúng các
-cột trùng tên.
+`values` luôn giữ thứ tự cột nguồn sau khi loại các cột server-managed. Dùng
+`sourceIndex` thay vì label để xử lý đúng các cột trùng tên. Các header trạng thái Lead
+server-managed (ví dụ `Tình trạng Lead`) không được trả về trong `headers` hoặc
+`sampleRows`.
 
 Mapped preview/quick commit dùng payload:
 
@@ -355,7 +366,7 @@ Các cột bắt buộc của `quick_create` chỉ gồm:
 | `high_school`         | Trường THPT     | Có                                                                                                |
 | `source`              | Nguồn           | Có                                                                                                |
 | `major`               | Ngành quan tâm  | Không                                                                                             |
-| —                     | Tình trạng Lead | Có thể giữ trong template; backend bỏ qua và tự đặt `processing_status=NEW`, `resolution=PENDING` |
+| —                     | Tình trạng Lead | Không xuất hiện trong danh sách mapping; nếu còn trong template, backend loại bỏ và tự đặt `processing_status=NEW`, `resolution=PENDING` |
 | `assigned_to`         | Giao cho        | Không                                                                                             |
 | `aspiration`          | Nguyện vọng     | Không                                                                                             |
 | `description`/`notes` | Mô tả/Ghi chú   | Không                                                                                             |
@@ -368,14 +379,19 @@ có. Nếu có giá trị, giá trị đó phải khớp chính xác `CRM Staff`
 
 Các giá trị tỉnh, trường, ngành, nguồn, nguyện vọng và năm tuyển sinh được resolve
 theo các bản ghi/catalog của Frappe, không phải text tự do. Cột tình trạng trong
-template chỉ mang tính hướng dẫn và không được FE/BE dùng để ghi trạng thái Lead.
+template chỉ mang tính hướng dẫn; backend loại cột này khỏi mapping và không dùng dữ
+liệu của nó để ghi trạng thái Lead.
 Ví dụ `promoter` chỉ hợp lệ nếu có nguồn tương ứng trong CRM. Nếu cùng gửi `description`
 và `notes`, backend ưu tiên `description`. Bỏ trống năm tuyển sinh sẽ dùng năm hiện
 tại nếu catalog `CRM Admission Year` có bản ghi tương ứng.
 
 Inspect trả `filename`, `fieldCatalog`, `headers`, `sampleRows` và `requiredFields`.
 Mapped preview trả `filename`, `total`, `valid`, `failed`, `mappedFields`,
-`ignoredColumns`, `rows` (gồm `row`, `fields`, `errors`) và `errors`. Lỗi mapping dùng
+`ignoredColumns`, `rows` và `errors`. Mỗi row gồm `row`, `fields`, `errors`,
+`processingOutcome`, `targetStudent`, `duplicateOf`, `duplicateType`, `reason` và
+`errorCode`; `processingOutcome` có thể là `CREATED`, `MATCHED`, `DUPLICATE` hoặc
+`INVALID`. Backend đối chiếu Lead/Student hiện có và cả các dòng trùng trong cùng file
+chỉ để hiển thị; preview không tạo dữ liệu. Lỗi mapping dùng
 các mã ổn định như `INVALID_COLUMN_MAPPING`, `MAPPING_TARGET_REQUIRED`,
 `INVALID_SOURCE_INDEX`, `DUPLICATE_SOURCE_INDEX`, `DUPLICATE_TARGET_FIELD`,
 `UNKNOWN_FIELD`, `SERVER_MANAGED_FIELD` và `MISSING_REQUIRED_MAPPING`. `row` giữ số
@@ -393,10 +409,10 @@ không rollback các dòng hợp lệ khác.
 
 Backend contract và test là bước trước: dashboard chỉ bật wizard sau khi inspect,
 mapped preview, permission/limit checks và commit re-parse đã sẵn sàng. FE gửi file gốc
-kèm `column_mapping` ở preview/commit; backend là nguồn quyết định cuối. Các plan
-duplicate-review tiếp theo tiêu thụ row shape từ mapped preview và không mở rộng
-boundary v1 (first non-empty row của worksheet đầu tiên; title-row detection và
-multi-sheet selection vẫn deferred).
+kèm `column_mapping` ở preview/commit; backend là nguồn quyết định cuối. Mapped preview
+đã trả kết quả đối chiếu để FE hiển thị badge theo từng dòng; boundary file v1 vẫn giữ
+first non-empty row của worksheet đầu tiên, còn title-row detection và multi-sheet
+selection vẫn deferred.
 
 ### 5.5. Kiểm tra và chạy toàn bộ luồng
 
@@ -538,6 +554,11 @@ Các endpoint conversion cũ cũng phải đi qua cùng điều kiện: Lead m�
 | `STALE_OWNERSHIP_REVISION`                                    | Dữ liệu đã thay đổi; tải lại batch rồi retry.                              |
 | `LEAD_NOT_ASSIGNED`                                           | Lead chưa được phân công nên chưa thể tạo Student.                         |
 | `OWNER_REQUIRED`                                              | Lead/Student chưa có người phụ trách hợp lệ.                               |
+| `INVALID_SOURCE_INDEX`                                         | Cấu hình mapping không khớp với file; chọn lại file và map lại các cột.      |
+| `CAMPAIGN_REQUIRED`                                            | Chọn chiến dịch trước khi kiểm tra hoặc nhập Lead.                         |
+| `INVALID_CAMPAIGN_CODE`                                        | Không tìm thấy hoặc mã chiến dịch không hợp lệ; chọn lại chiến dịch.        |
+| `CAMPAIGN_PERMISSION_DENIED`                                   | Tài khoản không có quyền sử dụng chiến dịch đã chọn.                       |
+| `CAMPAIGN_STATUS_NOT_ALLOWED`                                 | Chiến dịch phải đang hoạt động hoặc đã đóng để nhập Lead.                   |
 | `FORBIDDEN` / `OUT_OF_SCOPE`                                  | Tài khoản không có quyền hoặc ngoài phạm vi Team/cơ sở.                    |
 
 ## 10. Trạng thái triển khai hiện tại

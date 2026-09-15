@@ -17,9 +17,9 @@ import {
 
 /** The 3 fixed decision slots the card always shows, left to right. */
 const CARD_OPERATIONS: NbaDecisionOperation[] = [
-  "REJECT",
-  "ACCEPT_WITH_CHANGES",
   "ACCEPT",
+  "ACCEPT_WITH_CHANGES",
+  "REJECT",
 ];
 
 /** Short call-to-action wording for this card only -- other surfaces (decision

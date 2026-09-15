@@ -45,7 +45,26 @@ describe("quick create Lead import campaign contract", () => {
     expect(panelSource).toContain("requiredFields={inspection.requiredFields}");
     expect(mappingPreviewSource).toContain("Xem trước dữ liệu theo target CRM");
     expect(mappingPreviewSource).toContain("projectedColumns");
-    expect(mappingPreviewSource).toContain("aria-live=\"polite\"");
+    expect(mappingPreviewSource).toContain('aria-live="polite"');
+  });
+
+  it("renders mapped field names with Vietnamese labels", () => {
+    expect(panelSource).toContain("IMPORT_FIELD_LABELS");
+    expect(panelSource).toContain("mappedFieldLabels");
+    expect(panelSource).toContain('Đã map: {mappedFieldLabels.join(", ")}.');
+  });
+
+  it("renders step 3 as a row table with duplicate badges instead of an error list", () => {
+    expect(panelSource).toContain("ImportPreviewTableRow");
+    expect(panelSource).toContain("previewFieldKeys");
+    expect(panelSource).toContain("fieldLabels.get(field)");
+    expect(panelSource).toContain('label: "Trùng"');
+    expect(panelSource).toContain('label: "Đã có hồ sơ học sinh"');
+    expect(panelSource).toContain(
+      'rowClassName: "bg-badge-error-background/30"',
+    );
+    expect(panelSource).toContain("processingOutcome");
+    expect(panelSource).not.toContain("Dòng cần kiểm tra");
   });
 
   it("fetches all visible campaigns and allows only ACTIVE or CLOSED", () => {
@@ -105,7 +124,7 @@ describe("quick create Lead import campaign contract", () => {
     const finallyStart = panelSource.indexOf("} finally", catchStart);
     const catchSource = panelSource.slice(catchStart, finallyStart);
 
-    expect(catchSource).not.toContain('setFile(null)');
+    expect(catchSource).not.toContain("setFile(null)");
     expect(catchSource).not.toContain('setFilename("")');
     expect(catchSource).toContain("setError(");
   });
