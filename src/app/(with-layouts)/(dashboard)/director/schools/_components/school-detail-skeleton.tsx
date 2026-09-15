@@ -14,9 +14,9 @@ export default function SchoolDetailSkeleton() {
       <SchoolHeaderSkeleton />
       <div aria-hidden="true" className="mt-4 min-w-0">
         <div className="flex max-w-full gap-1 overflow-hidden border-b border-card-border px-1 py-1">
-          {tabWidths.map((width) => (
+          {tabWidths.map((width, index) => (
             <Skeleton
-              key={width}
+              key={`${width}-${index}`}
               className={`h-9 ${width} shrink-0 rounded-lg`}
             />
           ))}
