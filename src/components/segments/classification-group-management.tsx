@@ -37,6 +37,8 @@ import type {
   SegmentTermRecord,
 } from "@/services/api/segments";
 
+import { CatalogOrderingPanel } from "./catalog-ordering-panel";
+
 const STATUS_LABELS = {
   draft: "Bản nháp",
   active: "Đang dùng",
@@ -45,7 +47,7 @@ const STATUS_LABELS = {
 } as const;
 const PAGE_SIZE = 8;
 
-const EMPTY_FORM = { code: "", label: "", description: "", sort_order: "0" };
+const EMPTY_FORM = { code: "", label: "", description: "" };
 
 function GroupEditor({
   kind,
@@ -62,7 +64,6 @@ function GroupEditor({
           code: group.code,
           label: group.label,
           description: group.description ?? "",
-          sort_order: String(group.sort_order ?? 0),
         }
       : EMPTY_FORM,
   );
@@ -77,13 +78,12 @@ function GroupEditor({
   const save = async () => {
     const code = form.code.trim().toUpperCase();
     const label = form.label.trim();
-    const sortOrder = Number(form.sort_order);
     if (!code || !/^[A-Z0-9_]+$/.test(code)) {
       toast.error("Mã nhóm chỉ gồm A-Z, 0-9 và dấu gạch dưới.");
       return;
     }
-    if (!label || !Number.isInteger(sortOrder) || sortOrder < 0) {
-      toast.error("Vui lòng nhập tên nhóm và thứ tự hợp lệ.");
+    if (!label) {
+      toast.error("Vui lòng nhập tên nhóm.");
       return;
     }
     try {
@@ -96,7 +96,6 @@ function GroupEditor({
             data: {
               label,
               description: form.description.trim(),
-              sort_order: sortOrder,
             },
           },
         });
@@ -108,7 +107,6 @@ function GroupEditor({
             code,
             label,
             description: form.description.trim(),
-            sort_order: sortOrder,
           },
         });
         toast.success(`Đã tạo nhóm ${label}.`);
@@ -180,19 +178,9 @@ function GroupEditor({
               className="w-full resize-y rounded-lg border border-card-border bg-input-background px-3 py-2.5 text-sm text-title-50 outline-none placeholder:text-input-placeholder-text focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20 disabled:cursor-not-allowed"
             />
           </label>
-          <label className="block max-w-44 space-y-1.5">
-            <span className="text-sm font-medium text-input-label-text-color">
-              Thứ tự hiển thị
-            </span>
-            <Input
-              type="number"
-              min="0"
-              value={form.sort_order}
-              onChange={(event) => setField("sort_order", event.target.value)}
-              disabled={isSaving}
-              className="h-10 w-full"
-            />
-          </label>
+          <p className="text-xs text-text-tertiary">
+            Thứ tự hiển thị được điều chỉnh bằng nút <span className="font-medium text-text-secondary">Sắp xếp</span> ở danh sách group.
+          </p>
         </DialogBody>
         <DialogFooter className="border-t border-card-border px-5 py-3">
           <DialogClose appearance="outline" size="sm">
@@ -400,11 +388,17 @@ export function ClassificationGroupManagement({
 }) {
   const [groupPage, setGroupPage] = useState(1);
   const [termPage, setTermPage] = useState(1);
+  const [isOrderingGroups, setIsOrderingGroups] = useState(false);
   const [selectedGroupName, setSelectedGroupName] = useState<string>();
   const query = useClassificationGroupsQuery(kind, {
     status: "active",
     start: (groupPage - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
+  });
+  const orderingQuery = useClassificationGroupsQuery(kind, {
+    status: "active",
+    start: 0,
+    pageLength: 100,
   });
   const groups = query.data?.groups ?? [];
   const effectiveGroupName = groups.some(
@@ -421,6 +415,7 @@ export function ClassificationGroupManagement({
   const deleteMutation = useDeleteClassificationGroupMutation();
   const deleteTermMutation = useDeleteClassificationTermMutation();
   const transitionMutation = useTransitionClassificationGroupMutation();
+  const updateGroupMutation = useUpdateClassificationGroupMutation();
   const transitionTermMutation = useTransitionClassificationTermMutation();
   const [editorOpen, setEditorOpen] = useState(false);
   const [selected, setSelected] = useState<ClassificationGroupRecord | null>(
@@ -451,6 +446,38 @@ export function ClassificationGroupManagement({
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : `Không thể xóa ${title}.`,
+      );
+    }
+  };
+
+  const saveGroupOrder = async (items: readonly { id: string }[]) => {
+    const recordsById = new Map(
+      (orderingQuery.data?.groups ?? []).map((group) => [group.name, group]),
+    );
+    try {
+      await Promise.all(
+        items.map((item, index) => {
+          const group = recordsById.get(item.id);
+          if (!group) return Promise.resolve();
+          return updateGroupMutation.mutateAsync({
+            kind,
+            payload: {
+              name: group.name,
+              expectedRevision: group.revision,
+              data: {
+                label: group.label,
+                description: group.description ?? "",
+                sort_order: index + 1,
+              },
+            },
+          });
+        }),
+      );
+      toast.success(`Đã cập nhật thứ tự ${title}.`);
+      setIsOrderingGroups(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : `Không thể cập nhật thứ tự ${title}.`,
       );
     }
   };
@@ -573,16 +600,52 @@ export function ClassificationGroupManagement({
             )}
           </div>
         )}
-        {groups.length > 0 ? (
+        {isOrderingGroups ? (
+          orderingQuery.isPending ? (
+            <section className="p-5 text-sm text-text-tertiary" role="status">
+              Đang tải danh sách để sắp xếp…
+            </section>
+          ) : orderingQuery.error ? (
+            <section className="p-5 text-sm text-badge-error-text" role="alert">
+              {orderingQuery.error.message}
+            </section>
+          ) : (
+            <CatalogOrderingPanel
+              title={title}
+              items={(orderingQuery.data?.groups ?? []).map((group) => ({
+                id: group.name,
+                code: group.code,
+                label: group.label,
+                description: group.description,
+              }))}
+              isSaving={updateGroupMutation.isPending}
+              onCancel={() => setIsOrderingGroups(false)}
+              onSave={saveGroupOrder}
+            />
+          )
+        ) : groups.length > 0 ? (
           <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(260px,0.9fr)_minmax(0,2fr)]">
             <div className="min-h-0 overflow-y-auto border-b border-card-border lg:border-b-0 lg:border-r">
               <div className="sticky top-0 z-10 border-b border-card-border bg-background-gray-secondary px-5 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                  Danh sách Group
-                </p>
-                <p className="mt-1 text-xs text-text-tertiary">
-                  Chọn một group để xem các mục con.
-                </p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                      Danh sách Group
+                    </p>
+                    <p className="mt-1 text-xs text-text-tertiary">
+                      Chọn một group để xem các mục con.
+                    </p>
+                  </div>
+                  {canManage && (
+                    <Button
+                      size="sm"
+                      appearance="outline"
+                      onPress={() => setIsOrderingGroups(true)}
+                    >
+                      Sắp xếp
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="divide-y divide-card-border">
                 {groups.map((group) => {

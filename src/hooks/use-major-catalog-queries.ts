@@ -43,6 +43,7 @@ export function useMajorGroupsQuery(
     enabled?: boolean;
     start?: number;
     pageLength?: number;
+    queryEnabled?: boolean;
   } = {},
 ) {
   const search = options.search?.trim() ?? "";
@@ -63,6 +64,7 @@ export function useMajorGroupsQuery(
         start: options.start,
         pageLength: options.pageLength,
       }),
+    enabled: options.queryEnabled ?? true,
     staleTime: 30_000,
   });
 }

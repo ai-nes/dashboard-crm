@@ -17,6 +17,7 @@ interface AdmissionCatalogPanelProps {
   onCreate: () => void;
   isCreateDisabled?: boolean;
   isBusy?: boolean;
+  showHeader?: boolean;
   className?: string;
   children: ReactNode;
 }
@@ -31,6 +32,7 @@ export function AdmissionCatalogPanel({
   onCreate,
   isCreateDisabled = false,
   isBusy = false,
+  showHeader = true,
   className,
   children,
 }: AdmissionCatalogPanelProps) {
@@ -42,32 +44,34 @@ export function AdmissionCatalogPanel({
         className,
       )}
     >
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-b border-card-border px-5 py-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-background-gray-secondary text-icon-secondary">
-            <FileText size={20} aria-hidden="true" />
+      {showHeader && (
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-b border-card-border px-5 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-background-gray-secondary text-icon-secondary">
+              <FileText size={20} aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-semibold text-text-primary">
+                {title}
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm text-text-tertiary">
+                {description}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold text-text-primary">
-              {title}
-            </h2>
-            <p className="mt-1 max-w-2xl text-sm text-text-tertiary">
-              {description}
-            </p>
+          <div className="flex shrink-0 items-center gap-2">
+            <Badge color="gray" size="sm">
+              {count} {countLabel}
+            </Badge>
+            {canManage && (
+              <Button size="sm" onPress={onCreate} isDisabled={isCreateDisabled}>
+                <Plus size={16} aria-hidden="true" />
+                <span>{createLabel}</span>
+              </Button>
+            )}
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Badge color="gray" size="sm">
-            {count} {countLabel}
-          </Badge>
-          {canManage && (
-            <Button size="sm" onPress={onCreate} isDisabled={isCreateDisabled}>
-              <Plus size={16} aria-hidden="true" />
-              <span>{createLabel}</span>
-            </Button>
-          )}
-        </div>
-      </header>
+        </header>
+      )}
       <div className="min-h-0 flex-1 overflow-auto">{children}</div>
     </section>
   );

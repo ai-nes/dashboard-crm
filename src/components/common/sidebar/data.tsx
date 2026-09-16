@@ -197,7 +197,7 @@ export const NAV_DATA: NavigationSection[] = [
         icon: <Widget4Icon />,
       }),
       navItem({
-        title: "Quản lý ngành học",
+        title: "Quản lý danh mục tuyển sinh",
         url: "/director/admin/majors",
         icon: <Widget4Icon />,
       }),

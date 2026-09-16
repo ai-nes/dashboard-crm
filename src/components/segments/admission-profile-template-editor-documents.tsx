@@ -1,6 +1,7 @@
 'use client'
 
-import {Trash1} from '@tailgrids/icons'
+import {ChevronDown, ChevronUp, Trash1} from '@tailgrids/icons'
+import {useState, type DragEvent} from 'react'
 
 import {Badge} from '@/components/tailgrids/core/badge'
 import {Button} from '@/components/tailgrids/core/button'
@@ -8,6 +9,7 @@ import {Input} from '@/components/tailgrids/core/input'
 import type {AdmissionDocumentTypeOption, AdmissionMethodOption} from '@/services/api/admission-profile-catalog'
 
 import {AdmissionProfileTemplateDocumentDetailPage} from './admission-profile-template-document-detail-page'
+import {moveCatalogOrderItem} from './catalog-ordering-panel'
 import {
   documentTypeLabel,
   requirementModeLabel,
@@ -52,6 +54,8 @@ export function AdmissionProfileTemplateDocuments({
   const showGroupFilter = requirementGroups.length > 1
   const showSearch = requirements.length > 3
   const normalizedSearch = documentSearch.trim().toLowerCase()
+  const canReorder = !normalizedSearch && selectedGroup === 'all'
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const visibleRequirements = requirements
     .map((requirement, index) => ({requirement, index}))
     .filter(({requirement}) => {
@@ -60,6 +64,22 @@ export function AdmissionProfileTemplateDocuments({
       const matchesSearch = !normalizedSearch || `${documentTypeLabel(requirement.document_type, documentTypes)} ${requirement.document_type} ${requirement.section_code} ${requirement.requirement_group}`.toLowerCase().includes(normalizedSearch)
       return matchesGroup && matchesSearch
     })
+
+  const moveRequirement = (fromIndex: number, toIndex: number) => {
+    if (!canReorder) return
+    onRequirementsChange(
+      moveCatalogOrderItem(requirements, fromIndex, toIndex).map((requirement, index) => ({
+        ...requirement,
+        order_display: String(index + 1),
+      })),
+    )
+  }
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>, targetIndex: number) => {
+    event.preventDefault()
+    if (draggedIndex !== null) moveRequirement(draggedIndex, targetIndex)
+    setDraggedIndex(null)
+  }
 
   const selectedRequirement = selectedIndex === null ? null : requirements[selectedIndex]
   if (selectedRequirement && selectedIndex !== null) {
@@ -82,6 +102,9 @@ export function AdmissionProfileTemplateDocuments({
           <div>
             <h2 className="text-base font-semibold text-text-primary">Tài liệu cần nộp</h2>
             <p className="mt-1 text-sm text-text-secondary">Chỉ các tài liệu trong danh sách này mới xuất hiện trong checklist nhập học.</p>
+            <p className="mt-1 text-xs text-text-tertiary">
+              {canReorder ? 'Kéo thả hoặc dùng nút lên/xuống để thay đổi thứ tự.' : 'Bỏ tìm kiếm và bộ lọc nhóm để sắp xếp.'}
+            </p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
             {showSearch && (
@@ -114,15 +137,36 @@ export function AdmissionProfileTemplateDocuments({
         {visibleRequirements.map(({requirement, index}) => {
           const isSelected = selectedIndex === index
           return (
-            <div key={`${requirement.document_type}-${index}`} className={`flex min-w-0 items-center gap-3 px-4 py-3 sm:px-5 ${isSelected ? 'bg-badge-primary-background/40' : 'bg-card-background'}`}>
+            <div
+              key={`${requirement.document_type}-${index}`}
+              draggable={canReorder && !isSaving}
+              onDragStart={() => setDraggedIndex(index)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => handleDrop(event, index)}
+              onDragEnd={() => setDraggedIndex(null)}
+              className={`flex min-w-0 items-center gap-3 px-4 py-3 sm:px-5 ${isSelected ? 'bg-badge-primary-background/40' : 'bg-card-background'} ${draggedIndex === index ? 'opacity-70' : ''}`}
+            >
+              {canReorder && (
+                <span className="cursor-grab select-none text-lg leading-none text-text-tertiary active:cursor-grabbing" title="Kéo để sắp xếp" aria-hidden="true">⋮⋮</span>
+              )}
               <button type="button" onClick={() => onSelect(index)} aria-pressed={isSelected} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-1.5 text-left outline-none transition-colors hover:bg-background-gray-secondary/50 focus-visible:ring-2 focus-visible:ring-primary-500">
-                <span className="shrink-0 font-mono text-xs text-text-tertiary">#{requirement.order_display}</span>
+                <span className="shrink-0 font-mono text-xs text-text-tertiary">#{index + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-text-primary">{documentTypeLabel(requirement.document_type, documentTypes)}</span>
                   <span className="mt-0.5 block truncate text-xs text-text-tertiary">{requirement.requirement_group.trim() || 'Chưa phân nhóm'} · {requirementModeLabel(requirement.requirement_mode)}</span>
                 </span>
                 <Badge color={requirement.is_required ? 'primary' : 'gray'} size="sm">{requirement.is_required ? 'Bắt buộc' : 'Tùy chọn'}</Badge>
               </button>
+              {canReorder && (
+                <div className="flex shrink-0 gap-1">
+                  <Button aria-label={`Đưa tài liệu ${documentTypeLabel(requirement.document_type, documentTypes)} lên trên`} iconOnly size="sm" appearance="ghost" onPress={() => moveRequirement(index, index - 1)} isDisabled={isSaving || index === 0}>
+                    <ChevronUp size={15} aria-hidden="true" />
+                  </Button>
+                  <Button aria-label={`Đưa tài liệu ${documentTypeLabel(requirement.document_type, documentTypes)} xuống dưới`} iconOnly size="sm" appearance="ghost" onPress={() => moveRequirement(index, index + 1)} isDisabled={isSaving || index === requirements.length - 1}>
+                    <ChevronDown size={15} aria-hidden="true" />
+                  </Button>
+                </div>
+              )}
               <Button aria-label={`Xóa ${documentTypeLabel(requirement.document_type, documentTypes)}`} iconOnly size="sm" appearance="ghost" variant="danger" onPress={() => onRemove(index)} isDisabled={isSaving}>
                 <Trash1 size={15} aria-hidden="true" />
               </Button>

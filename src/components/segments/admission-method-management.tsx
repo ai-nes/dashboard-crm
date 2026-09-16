@@ -28,10 +28,12 @@ import {
 import {
   useAdmissionMethodsQuery,
   useDeleteAdmissionMethodMutation,
+  useUpdateAdmissionMethodMutation,
 } from "@/hooks/use-admission-catalog-queries";
 import type { AdmissionMethodOption } from "@/services/api/admission-profile-catalog";
 
 import { AdmissionCatalogPanel } from "./admission-catalog-panel";
+import { CatalogOrderingPanel } from "./catalog-ordering-panel";
 import { AdmissionMethodEditorDialog } from "./admission-method-editor-dialog";
 
 const EMPTY_METHODS: AdmissionMethodOption[] = [];
@@ -61,6 +63,7 @@ export function AdmissionMethodManagement({
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [statusFilter, setStatusFilter] = useState<MethodStatusFilter>("all");
+  const [isOrdering, setIsOrdering] = useState(false);
   const [page, setPage] = useState(1);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
@@ -73,8 +76,16 @@ export function AdmissionMethodManagement({
     start: (page - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
   });
+  const orderingQuery = useAdmissionMethodsQuery({
+    includeDisabled: true,
+    queryEnabled: isOrdering,
+    start: 0,
+    pageLength: 100,
+  });
   const deleteMutation = useDeleteAdmissionMethodMutation();
+  const updateMutation = useUpdateAdmissionMethodMutation();
   const methods = query.data?.methods ?? EMPTY_METHODS;
+  const orderingMethods = orderingQuery.data?.methods ?? EMPTY_METHODS;
 
   const visibleMethods = methods;
   const total = query.data?.total ?? 0;
@@ -108,6 +119,33 @@ export function AdmissionMethodManagement({
     }
   };
 
+  const saveOrder = async (items: readonly { id: string }[]) => {
+    const recordsById = new Map(orderingMethods.map((method) => [method.id, method]));
+    try {
+      await Promise.all(
+        items.map((item, index) => {
+          const method = recordsById.get(item.id);
+          if (!method) return Promise.resolve();
+          return updateMutation.mutateAsync({
+            name: method.id,
+            data: {
+              code: method.code,
+              display_name: method.name,
+              description: method.description,
+              enabled: method.enabled ?? true,
+              sort_order: index + 1,
+            },
+            expectedModified: method.modified,
+          });
+        }),
+      );
+      toast.success("Đã cập nhật thứ tự phương thức xét tuyển.");
+      setIsOrdering(false);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  };
+
   return (
     <>
       <AdmissionCatalogPanel
@@ -117,7 +155,7 @@ export function AdmissionMethodManagement({
         canManage={canManage}
         createLabel="Thêm phương thức"
         onCreate={openCreate}
-        isBusy={query.isPending || deleteMutation.isPending}
+        isBusy={query.isPending || deleteMutation.isPending || updateMutation.isPending}
       >
         {query.isPending ? (
           <CatalogLoading />
@@ -167,8 +205,40 @@ export function AdmissionMethodManagement({
                   ))}
                 </SelectContent>
               </Select>
+              {canManage && (
+                <Button
+                  size="sm"
+                  appearance="outline"
+                  isDisabled={Boolean(search.trim()) || statusFilter !== "all"}
+                  onPress={() => setIsOrdering(true)}
+                >
+                  Sắp xếp
+                </Button>
+              )}
             </div>
-            {visibleMethods.length === 0 ? (
+            {isOrdering ? (
+              orderingQuery.isPending ? (
+                <CatalogLoading />
+              ) : orderingQuery.error ? (
+                <CatalogError
+                  message={errorMessage(orderingQuery.error)}
+                  onRetry={() => void orderingQuery.refetch()}
+                />
+              ) : (
+                <CatalogOrderingPanel
+                  title="phương thức xét tuyển"
+                  items={orderingMethods.map((method) => ({
+                    id: method.id,
+                    code: method.code,
+                    label: method.name,
+                    description: method.description,
+                  }))}
+                  isSaving={updateMutation.isPending}
+                  onCancel={() => setIsOrdering(false)}
+                  onSave={saveOrder}
+                />
+              )
+            ) : visibleMethods.length === 0 ? (
               <CatalogEmpty
                 title={
                   !hasMethodFilter && methods.length === 0
@@ -192,7 +262,6 @@ export function AdmissionMethodManagement({
                   <TableRow>
                     <TableHead className="w-52">Mã</TableHead>
                     <TableHead>Tên phương thức</TableHead>
-                    <TableHead className="w-28 text-center">Thứ tự</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead className="w-24 text-right">Thao tác</TableHead>
                   </TableRow>
@@ -215,9 +284,6 @@ export function AdmissionMethodManagement({
                         <span className="mt-1 block truncate text-xs text-text-tertiary">
                           {method.description || "Chưa có mô tả"}
                         </span>
-                      </TableCell>
-                      <TableCell className="align-top text-center text-sm text-text-secondary">
-                        {method.sortOrder}
                       </TableCell>
                       <TableCell className="align-top">
                         <Badge
@@ -259,7 +325,7 @@ export function AdmissionMethodManagement({
                 </TableBody>
               </TableRoot>
             )}
-            {totalPages > 1 && (
+            {!isOrdering && totalPages > 1 && (
               <div className="border-t border-card-border px-5 py-3">
                 <Pagination
                   currentPage={page}

@@ -4,7 +4,7 @@ import { getNavigationDataForRoles } from "./data";
 import { filterNavigationByRoles } from "./utils";
 
 describe("sidebar navigation", () => {
-  it("exposes Major management as a direct admin entry", () => {
+  it("exposes admission catalog management as a direct admin entry", () => {
     const adminNavigation = filterNavigationByRoles(
       getNavigationDataForRoles(["Administrator"]),
       ["Administrator"],
@@ -13,7 +13,7 @@ describe("sidebar navigation", () => {
       (section) => section.label === "CẤU HÌNH",
     );
     const majorEntry = configurationSection?.items.find(
-      (item) => item.title === "Quản lý ngành học",
+      (item) => item.title === "Quản lý danh mục tuyển sinh",
     );
 
     expect(majorEntry).toMatchObject({

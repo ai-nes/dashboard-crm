@@ -56,7 +56,10 @@ function initialForm(template: AdmissionProfileTemplateOption | null): TemplateF
       template?.requirements
         ?.slice()
         .sort((left, right) => left.orderDisplay - right.orderDisplay)
-        .map(toRequirementForm) || [],
+        .map((requirement, index) => ({
+          ...toRequirementForm(requirement),
+          order_display: String(index + 1),
+        })) || [],
   }
 }
 
@@ -79,7 +82,7 @@ function toMutationInput(form: TemplateForm, version: number): AdmissionProfileT
       is_required: requirement.is_required,
       min_required: Number(requirement.min_required),
       quantity: Number(requirement.quantity),
-      order_display: Number(requirement.order_display),
+      order_display: form.requirements.indexOf(requirement) + 1,
       condition_key: requirement.condition_key.trim() || null,
       instruction: requirement.instruction.trim() || null,
     })),
@@ -191,7 +194,15 @@ export function AdmissionProfileTemplateEditor({
   }
 
   const removeRequirement = (index: number) => {
-    setField('requirements', form.requirements.filter((_, itemIndex) => itemIndex !== index))
+    setField(
+      'requirements',
+      form.requirements
+        .filter((_, itemIndex) => itemIndex !== index)
+        .map((requirement, itemIndex) => ({
+          ...requirement,
+          order_display: String(itemIndex + 1),
+        })),
+    )
     setSelectedRequirementIndex((current) => {
       if (current === null || current === index) return null
       return current > index ? current - 1 : current
@@ -240,14 +251,8 @@ export function AdmissionProfileTemplateEditor({
       return
     }
     const documentIds = input.requirements.map((requirement) => requirement.document_type)
-    const orderValues = input.requirements.map((requirement) => requirement.order_display)
     if (new Set(documentIds).size !== documentIds.length) {
       toast.error('Mỗi loại giấy tờ chỉ được xuất hiện một lần trong loại hồ sơ.')
-      setActiveSection('documents')
-      return
-    }
-    if (new Set(orderValues).size !== orderValues.length || orderValues.some((value) => value < 1)) {
-      toast.error('Thứ tự hiển thị phải là số dương và không được trùng nhau.')
       setActiveSection('documents')
       return
     }

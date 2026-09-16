@@ -3,10 +3,24 @@ import { describe, expect, it } from "vitest";
 import type { AnalysisRunSnapshot } from "@/services/api/analysis-runs";
 
 import {
+  analysisStageState,
   getDeepAnalysisNotice,
   getHighestConfidenceReportItem,
   getRichReport,
 } from "./analysis-run-meta";
+
+describe("analysisStageState", () => {
+  it.each([
+    ["queued", "pending"],
+    ["running", "active"],
+    ["completed", "complete"],
+    ["abstained", "warning"],
+    ["failed", "error"],
+    ["dead_lettered", "error"],
+  ] as const)("maps %s to %s", (status, expected) => {
+    expect(analysisStageState(status)).toBe(expected);
+  });
+});
 
 function stage(
   overrides: Partial<AnalysisRunSnapshot["stages"][number]>,

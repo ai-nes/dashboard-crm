@@ -1,14 +1,24 @@
 "use client";
 
+import { useState } from "react";
+
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { canManageMajorCatalog } from "@/components/segments/student-configuration-permissions";
+import {
+  TabContent,
+  TabList,
+  TabRoot,
+  TabTrigger,
+} from "@/components/tailgrids/core/tabs";
 
+import { GeographyCatalogManagement } from "./geography-catalog-management";
 import { MajorCatalogManagement } from "./major-catalog-management";
 
 export function MajorManagementPage() {
   const { user } = useAuth();
   const canManage = canManageMajorCatalog(user?.roles);
+  const [activeTab, setActiveTab] = useState<"majors" | "geography">("majors");
 
   return (
     <main
@@ -16,14 +26,31 @@ export function MajorManagementPage() {
       className="flex h-full min-h-0 min-w-0 flex-col gap-2 overflow-hidden px-2 pt-4 lg:px-6"
     >
       <AdminPageHeader
-        section="Học sinh"
-        title="Quản lý ngành học"
-        description="Quản lý các Major Group. Chọn một group để xem và quản lý các ngành học bên trong."
+        section="Học sinh & địa bàn"
+        title="Quản lý danh mục tuyển sinh"
+        description="Quản lý ngành học, địa bàn và danh bạ trường dùng chung trong CRM."
         canEdit={canManage}
         metaLabel="Danh mục CRM"
-        metaValue="Danh mục Major Group"
+        metaValue="Ngành, địa bàn, trường"
       />
-      <MajorCatalogManagement canManage={canManage} />
+      <TabRoot
+        defaultValue="majors"
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as "majors" | "geography")}
+        variant="minimal"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden border-0"
+      >
+        <TabList className="gap-2 px-2 sm:px-3">
+          <TabTrigger value="majors">Ngành học</TabTrigger>
+          <TabTrigger value="geography">Địa bàn & trường</TabTrigger>
+        </TabList>
+        <TabContent value="majors" className="min-h-0 flex-1 overflow-hidden p-0">
+          <MajorCatalogManagement canManage={canManage} enabled={activeTab === "majors"} />
+        </TabContent>
+        <TabContent value="geography" className="min-h-0 flex-1 overflow-hidden p-0">
+          <GeographyCatalogManagement canManage={canManage} enabled={activeTab === "geography"} />
+        </TabContent>
+      </TabRoot>
     </main>
   );
 }
