@@ -118,7 +118,7 @@ API import batch yêu cầu các cột sau:
 | `major`        | Ngành quan tâm | Có                                                          |
 | `source`       | Nguồn Lead     | Có                                                          |
 | `email`        | Email          | Không                                                       |
-| `branch`       | Cơ sở          | Không nếu tài khoản chỉ có một cơ sở hoặc có cơ sở mặc định |
+| `branch`       | Cơ sở          | Không; nếu có thì dùng để thu hẹp phạm vi Team              |
 
 FE không hardcode danh sách tỉnh, trường, ngành và nguồn.
 
@@ -148,7 +148,8 @@ GET crm.api.lead_assignment_batch.get_lead_assignment_catalogs?province=<provinc
 ```
 
 Nguồn có trạng thái `Retired` không được trả về. Nếu tài khoản phụ trách nhiều cơ sở,
-FE phải cho chọn `branch`; nếu không xác định được cơ sở, BE trả lỗi validation.
+FE có thể cho chọn `branch` để thu hẹp phạm vi. Nếu Lead không có cơ sở, BE vẫn phân
+giải Team theo tỉnh; chỉ trả lỗi khi thiếu tỉnh hoặc không có Team phù hợp.
 
 ## 4. Luồng xử lý chuẩn
 
@@ -223,9 +224,15 @@ Không được FE tự quyết định `MATCHED` hay `CREATED`.
 | `failed`         | Lỗi xử lý item.                                             |
 | `skipped`        | Lead đã converted hoặc đã có owner từ trước.                |
 
-Đợt không chạy bằng worker nền. Người dùng bấm một lần để hệ thống kiểm tra điều kiện,
-phân tuyến và ghi nhận người phụ trách; chạy lại chỉ dành cho hồ sơ `deferred`,
-`manual_review` hoặc `failed`.
+Phân công có hai cách kích hoạt nhưng dùng chung một luồng backend:
+
+- Người dùng bấm **Phân công Lead** để chạy ngay.
+- Frappe scheduler tự quét mỗi 5 phút bằng worker cho các Lead đã `PROCESSED` nhưng
+  chưa có người phụ trách.
+
+Hai cách chạy dùng khóa phân tán chung nên không tạo hai batch đồng thời cho cùng Lead.
+Khi không có việc, worker không tạo batch audit mới. Endpoint trả `busy` nếu đang có
+lượt khác chạy và `no_work` nếu không còn Lead chờ phân công.
 
 ### 5.3. API chính
 
@@ -236,7 +243,8 @@ Tất cả API trả dữ liệu trong `response.message` theo chuẩn Frappe.
 | `crm.api.lead_assignment_batch.import_leads_to_assignment_batch`   | POST | Tạo Lead mới từ rows/CSV và đưa vào đợt `draft`; chưa phân công.                               |
 | `crm.api.lead_assignment_batch.create_lead_assignment_batch`       | POST | Tạo đợt từ các Lead đã có bằng `lead_ids`; chưa phân công.                                     |
 | `crm.api.lead_assignment_batch.preview_lead_assignment_batch`      | POST | Kiểm tra điều kiện và thông tin tuyến, chuyển đợt sang `ready`.                                |
-| `crm.api.lead_assignment_batch.run_lead_assignment_batch`          | POST | Tự kiểm tra, phân công và chuyển Lead hợp lệ thành Student trong một lần bấm.                  |
+| `crm.api.lead_assignment_batch.run_lead_assignment_batch`          | POST | Tự kiểm tra và phân công Lead trong một lần bấm; không tạo hồ sơ Student.                      |
+| `crm.api.lead_assignment_batch.run_unassigned_lead_assignment`     | POST | Nút chạy ngay: quét và phân công Lead đã xử lý nhưng chưa có người phụ trách.                  |
 | `crm.api.lead_assignment_batch.retry_lead_assignment_batch`        | POST | Chạy lại hồ sơ tạm hoãn, cần kiểm tra hoặc gặp lỗi.                                            |
 | `crm.api.lead_assignment_batch.get_lead_assignment_batch`          | GET  | Lấy chi tiết một đợt và các hồ sơ trong đợt.                                                   |
 | `crm.api.lead_assignment_batch.get_lead_assignment_workflow`       | GET  | Lấy snapshot workflow, trạng thái và metrics từ đợt được chọn hoặc đợt gần nhất trong DB.      |
@@ -443,7 +451,8 @@ Mỗi item thành công phải được ghi bền vững là `assigned` cùng Te
 được tính lại từ các item đã lưu; không được trả `assigned_count = 0` hoặc item
 `pending` khi Lead tương ứng đã ở `ASSIGNED`.
 
-FE không hiển thị nút “chạy ngầm”, không polling worker và không tự đổi status.
+FE không tự gọi worker nền hoặc tự đổi status. Màn hình phân công polling snapshot
+workflow và số Lead chờ mỗi 30 giây để phản ánh kết quả do worker cập nhật.
 
 ## 6. Thứ tự phân công
 
@@ -452,7 +461,8 @@ Engine hiện tại dùng context địa bàn/trường và capacity của Frapp
 1. Nhân sự gán trực tiếp cho trường (`CRM High School Assignment`).
 2. Nếu không có, Team phụ trách Zone (`CRM Team Zone Assignment`) và policy active.
 3. Nếu không xác định được Zone, đưa vào nhánh province/manual review theo routing context.
-4. Sale được chọn phải là nhân sự active, thuộc Team active, đúng cơ sở và còn capacity.
+4. Sale được chọn phải là nhân sự active, thuộc Team active và còn capacity; nếu Lead
+   có cơ sở thì Team/Sale phải đúng cơ sở đó.
 
 Các kết quả routing được trả ở item:
 
@@ -534,9 +544,10 @@ Các endpoint conversion cũ cũng phải đi qua cùng điều kiện: Lead m�
 
 - Không tự ghi `processing_status`, `resolution`, `owner_staff`, `owning_team`.
 - Không tự tính hoặc tự chọn Sale/Team/Zone.
-- Không tạo CRM Student ở bước nhập Lead. Khi phân công thành công, BE tự handoff;
-  FE không cần gọi thêm API conversion.
-- Không gọi worker hoặc endpoint routing cũ thay cho batch API.
+- Không tạo CRM Student ở bước nhập hoặc phân công Lead. FE không gọi thêm API
+  conversion trong luồng này.
+- Không tự gọi worker nền; worker được Frappe scheduler kích hoạt phía server.
+  Khi người dùng bấm nút, FE gọi `run_unassigned_lead_assignment`.
 - Không dùng `lead_status` để thay thế `processing_status`.
 - Không hardcode dữ liệu tỉnh, trường, ngành, nguồn.
 
@@ -547,7 +558,7 @@ Các endpoint conversion cũ cũng phải đi qua cùng điều kiện: Lead m�
 | `IDENTIFIER_GATE_FAILED`                                      | Lead thiếu số điện thoại, tỉnh/thành phố, trường THPT hoặc ngành quan tâm. |
 | `INVALID_ID_NUMBER`                                           | CCCD phải gồm 9 hoặc 12 chữ số.                                            |
 | `INVALID_LOOKUP` / `INVALID_PROVINCE` / `INVALID_HIGH_SCHOOL` | Chọn lại dữ liệu từ danh sách Frappe.                                      |
-| `MISSING_CAMPUS`                                              | Bổ sung cơ sở cho Lead hoặc cấu hình cơ sở mặc định.                       |
+| `MISSING_CAMPUS`                                              | Chỉ áp dụng cho luồng yêu cầu campus cụ thể; Lead province-scope không bị chặn. |
 | `MISSING_INPUT_QUEUE` / `MULTIPLE_INPUT_QUEUES`               | Quản trị viên cần hoàn tất cấu hình Team/Zone.                             |
 | `CAPACITY_BLOCKED`                                            | Sale/Team đã đủ giới hạn nhận Lead.                                        |
 | `NO_ACTIVE_POLICY`                                            | Chưa có cách chia Lead đang hiệu lực cho Team.                             |
