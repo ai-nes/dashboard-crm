@@ -16,11 +16,14 @@ export default function AssignmentBatchHeader() {
     processNewLeads,
     runUnassignedLeads,
   } = useBatchAssignment();
-  const leadIntakeQuery = useLeadSaleLeadsQuery({
-    admissionYear: currentAdmissionYear,
-    page: 1,
-    pageSize: 1,
-  });
+  const leadIntakeQuery = useLeadSaleLeadsQuery(
+    {
+      admissionYear: currentAdmissionYear,
+      page: 1,
+      pageSize: 1,
+    },
+    { refetchInterval: 30_000 },
+  );
   const hasPendingLeads = (workflow?.pendingCount ?? 0) > 0;
   const pendingNewCount = leadIntakeQuery.data?.meta.pendingNew ?? 0;
   const hasPendingNewLeads = pendingNewCount > 0;
@@ -46,8 +49,8 @@ export default function AssignmentBatchHeader() {
             Phân công Lead
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Hệ thống sẽ quét các Lead đã xử lý mà chưa có người phụ trách và
-            phân công theo cấu hình hiện tại.
+            Hệ thống tự quét Lead đã xử lý chưa có người phụ trách sau 5 phút;
+            bạn có thể bấm để phân công ngay theo cấu hình hiện tại.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">

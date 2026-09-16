@@ -99,6 +99,7 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
   );
   const workflowQuery = useLeadAssignmentWorkflowQuery(
     effectiveSelectedBatchId,
+    { refetchInterval: 30_000 },
   );
   const previewMutation = usePreviewLeadAssignmentBatchMutation();
   const runMutation = useRunLeadAssignmentBatchMutation();
@@ -251,8 +252,16 @@ export function BatchAssignmentProvider({ children }: { children: ReactNode }) {
   const runUnassignedLeads = async () => {
     try {
       const result = await runUnassignedMutation.mutateAsync({});
+      if (result.status === "busy") {
+        toast.info("Phân công Lead đang chạy", {
+          description:
+            result.message ?? "Hệ thống đang xử lý lượt phân công khác.",
+        });
+        return;
+      }
+
       if (!result.batch) {
-        toast.success("Không có Lead mới cần phân công", {
+        toast.success("Không có Lead đang chờ phân công", {
           description:
             result.message ??
             "Mọi Lead hiện tại đã có người phụ trách hoặc đã được xử lý.",

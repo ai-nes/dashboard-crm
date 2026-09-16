@@ -152,8 +152,7 @@ export default function LeadAssigneeField({
         !targetsQuery.isError &&
         targets.length === 0 && (
           <p className="mt-1 text-xs text-text-tertiary">
-            Lead cần có tỉnh và cơ sở, đồng thời Team phải đang sẵn sàng nhận
-            Lead.
+            Lead cần có tỉnh; Team trong tỉnh phải đang sẵn sàng nhận Lead.
           </p>
         )}
     </div>
