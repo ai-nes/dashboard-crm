@@ -41,6 +41,7 @@ import StudentHighSchoolMockup from "./student-high-school-mockup";
 import StudentHighSchoolScoreMockup from "./student-high-school-score-mockup";
 import StudentPersonalContactMockup from "./student-personal-contact-mockup";
 import { isHighSchoolAdmissionMethod } from "./student-admission-method";
+import { getInitialStudentDetailTab } from "./student-detail-tab-state";
 import { canTransitionStudentStatus } from "./student-status";
 
 interface Student360DashboardProps {
@@ -335,7 +336,10 @@ export default function Student360Dashboard({
       <div className="px-2 pt-4 lg:px-6">
         <StudentActivitiesTab
           data={data}
-          defaultSelectedKey={getInitialTab(initialTab, initialTaskId)}
+          defaultSelectedKey={getInitialStudentDetailTab(
+            initialTab,
+            initialTaskId,
+          )}
           detailTabs={getStudentTabs(data, targetId, canUpdateStudent)}
           initialChatwootInteractions={initialChatwootInteractions}
           initialStudentInteractions={initialStudentInteractions}
@@ -424,38 +428,4 @@ function getStudentTabs(
       content: <StudentAuditTab studentId={auditStudentId} />,
     },
   ];
-}
-
-function getInitialTab(initialTab?: string, initialTaskId?: string): string {
-  if (initialTaskId) return "tasks";
-
-  if (initialTab === "activities") return "calls";
-
-  const supportedTabs = new Set([
-    "decision",
-    "student-profile",
-    "academic-admission",
-    "admission",
-    "notes",
-    "tasks",
-    "interactions",
-    "profile",
-    "audit",
-  ]);
-
-  const legacyTabAliases: Record<string, string> = {
-    family: "student-profile",
-    profile: "student-profile",
-    records: "admission",
-    zalo: "interactions",
-    calls: "interactions",
-    log: "audit",
-  };
-  const normalizedTab = initialTab
-    ? legacyTabAliases[initialTab] || initialTab
-    : undefined;
-
-  return normalizedTab && supportedTabs.has(normalizedTab)
-    ? normalizedTab
-    : "decision";
 }
