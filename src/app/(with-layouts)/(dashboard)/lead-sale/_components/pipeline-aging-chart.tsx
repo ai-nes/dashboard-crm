@@ -10,11 +10,11 @@ import PipelineAgingTooltip from "./pipeline-aging-tooltip";
 
 interface PipelineAgingChartProps {
   buckets: LeadSaleAgingBucket[];
-  slaBreachCount: number;
+  actionRequiredCount: number;
   onOpenDetail: (detailId: LeadSaleDetailId) => void;
 }
 
-export default function PipelineAgingChart({ buckets, slaBreachCount, onOpenDetail }: PipelineAgingChartProps) {
+export default function PipelineAgingChart({ buckets, actionRequiredCount, onOpenDetail }: PipelineAgingChartProps) {
   const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
   const criticalCount = buckets
     .filter((bucket) => bucket.id === "6-10-days" || bucket.id === "over-10-days")
@@ -34,17 +34,17 @@ export default function PipelineAgingChart({ buckets, slaBreachCount, onOpenDeta
         <div>
           <CardTitle>Thời gian ở giai đoạn hiện tại</CardTitle>
           <p className="mt-1 max-w-3xl text-xs leading-5 text-text-tertiary">
-            {total} cơ hội đang mở, phân theo số ngày ở giai đoạn hiện tại. Trạng thái SLA lấy từ CRM Student.
+            {total} hồ sơ đang xử lý, phân theo số ngày ở giai đoạn hiện tại để ưu tiên việc cần xử lý.
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-background-soft-50 px-3 py-1.5 text-xs font-semibold text-text-secondary">
-          {total} cơ hội mở
+          {total} hồ sơ đang xử lý
         </span>
       </CardHeader>
 
       <div
         className="mt-5 h-[250px] w-full"
-        aria-label="Phân bổ số cơ hội theo thời gian nằm ở giai đoạn hiện tại"
+        aria-label="Phân bổ hồ sơ theo thời gian nằm ở giai đoạn hiện tại"
       >
         <ChartContainer
           className="h-full w-full"
@@ -84,7 +84,7 @@ export default function PipelineAgingChart({ buckets, slaBreachCount, onOpenDeta
             />
             <Bar
               dataKey="count"
-              name="Cơ hội"
+              name="Hồ sơ"
               barSize={28}
               radius={[0, 8, 8, 0]}
               isAnimationActive={false}
@@ -114,13 +114,13 @@ export default function PipelineAgingChart({ buckets, slaBreachCount, onOpenDeta
         appearance="ghost"
         onPress={() => onOpenDetail("aging")}
         className="mt-4 h-auto w-full justify-between gap-4 rounded-xl bg-badge-warning-background/50 px-4 py-3 text-left text-xs hover:bg-badge-warning-background/70 sm:flex-row sm:items-center"
-        aria-label="Xem các cơ hội có thời gian ở giai đoạn kéo dài hoặc vượt SLA"
+        aria-label="Xem các hồ sơ cần xử lý"
       >
         <span className="text-text-secondary">
-          <strong className="font-semibold text-warning-700">{criticalCount}</strong> cơ hội đã nằm ở giai đoạn từ 6 ngày trở lên.
+          <strong className="font-semibold text-warning-700">{criticalCount}</strong> hồ sơ đã nằm ở giai đoạn từ 6 ngày trở lên.
         </span>
         <span className="shrink-0 font-semibold text-badge-error-text">
-          {slaBreachCount} hồ sơ vượt SLA · Xem hồ sơ →
+          {actionRequiredCount} hồ sơ cần xử lý · Xem hồ sơ →
         </span>
       </Button>
     </Card>

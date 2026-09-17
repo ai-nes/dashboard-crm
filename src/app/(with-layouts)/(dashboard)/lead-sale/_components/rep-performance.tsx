@@ -69,11 +69,11 @@ export default function RepPerformance({ reps, onOpenDetail }: RepPerformancePro
               <SortHeader label="Mức đạt" sortKey="achievement" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Còn thiếu" sortKey="remaining" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Dự kiến" sortKey="expected" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <SortHeader label="Cơ hội mở" sortKey="openOpportunities" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortHeader label="Hồ sơ đang xử lý" sortKey="openOpportunities" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Độ phủ chỉ tiêu" sortKey="coverage" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Tỷ lệ nhập học" sortKey="winRate" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Quá hạn" sortKey="overdue" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <SortHeader label="Thời gian TB / vi phạm SLA" sortKey="avgStageAgeDays" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortHeader label="Thời gian TB / Việc cần xử lý" sortKey="avgStageAgeDays" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <th scope="col" className="w-16 px-2 pb-3 text-center font-medium">Chi tiết</th>
             </tr>
           </thead>
@@ -104,7 +104,7 @@ export default function RepPerformance({ reps, onOpenDetail }: RepPerformancePro
                   </td>
                   <td className="px-2 py-3 text-right text-text-primary">{rep.winRate}%</td>
                   <td className={`px-2 py-3 text-right font-semibold ${rep.overdue > 0 ? "text-badge-error-text" : "text-text-primary"}`}>{rep.overdue}</td>
-                  <td className="px-2 py-3 text-right" title={`${rep.agingOverSlaCount} hồ sơ vượt SLA`}><span className={isRisk ? "font-semibold text-warning-500" : "text-text-secondary"}>{rep.avgStageAgeDays} ngày · {rep.agingOverSlaCount} SLA</span></td>
+                  <td className="px-2 py-3 text-right" title={`${rep.actionItemCount} việc cần xử lý`}><span className={isRisk ? "font-semibold text-warning-500" : "text-text-secondary"}>{rep.avgStageAgeDays} ngày · {rep.actionItemCount} việc</span></td>
                   <td className="px-2 py-3 text-center">
                     <Button
                       type="button"

@@ -50,7 +50,7 @@ export default function LeadSaleDashboard() {
       <section aria-label="Thời gian ở giai đoạn hiện tại" className="min-w-0">
         <PipelineAgingChart
           buckets={data.agingBuckets}
-          slaBreachCount={data.summary.agingOverSla}
+          actionRequiredCount={data.summary.actionRequired}
           onOpenDetail={setSelectedDetailId}
         />
       </section>

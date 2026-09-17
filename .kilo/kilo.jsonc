@@ -1,0 +1,6 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "commit_message": {
+    "prompt": "Based on the current git diff, generate a concise commit message following this format:\n\n<type>(<scope>): <short description>\n\nRules:\n- Use Conventional Commits: feat, fix, refactor, chore, docs, style, test\n- Infer the scope from the changed module/feature\n- Keep the message short, ideally one line\n- Use lowercase\n- Use imperative style\n- Do not add a period at the end\n- Only use 2–3 lines if the changes cannot be summarized clearly in one line\n- Output only the commit message, no explanation"
+  }
+}

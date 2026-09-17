@@ -39,7 +39,7 @@ const response: LeadSaleOverviewResponse = {
       winRate: 32,
       followUpDue: 2,
       overdue: 1,
-      agingOverSla: 4,
+      actionRequired: 4,
     },
     actions: [
       { id: "overdue", value: 1, longestAgeDays: 2 },
@@ -52,8 +52,8 @@ const response: LeadSaleOverviewResponse = {
         id: "student-1",
         name: "Nguyễn Minh Khôi",
         owner: "Nguyễn Minh Anh",
-        stageId: "opportunity",
-        stageLabel: "Cơ hội",
+        stageId: "connected",
+        stageLabel: "Đã kết nối",
         issueCode: "overdue",
         ageDays: 11,
         nextAction: "Xử lý công việc quá hạn",
@@ -62,13 +62,12 @@ const response: LeadSaleOverviewResponse = {
     ],
     stages: [
       {
-        id: "opportunity",
-        label: "Cơ hội",
+        id: "connected",
+        label: "Đã kết nối",
         volume: 12,
         nextStepConversion: 50,
         averageDays: 4,
-        slaDays: 5,
-        stalledCount: 2,
+        actionItemCount: 2,
       },
     ],
     reps: [
@@ -87,18 +86,23 @@ const response: LeadSaleOverviewResponse = {
         openOpportunities: 12,
         overdue: 1,
         avgStageAgeDays: 4,
-        agingOverSlaCount: 2,
+        actionItemCount: 2,
         pipeline: {
           newOpportunities: 3,
           followUpDue: 2,
           stageVolumes: { opportunity: 12 },
-          stageStalledCounts: { opportunity: 2 },
+          stageActionItemCounts: { opportunity: 2 },
           agingBuckets: { "over-10-days": 2 },
           trend: [],
         },
       },
     ],
-    trend: [{ period: "Tuần 1", enrollment: 2, target: 3, newOpportunities: 1 }],
+    trend: [
+      {
+        period: "Tuần 1",
+        stageCounts: { new: 2, attempting: 1, connected: 0, qualified: 1 },
+      },
+    ],
     agingBuckets: [
       { id: "0-2-days", count: 3 },
       { id: "3-5-days", count: 2 },
@@ -120,7 +124,7 @@ describe("Lead Sale dashboard adapter", () => {
       issue: "Quá hạn xử lý",
       detailId: "record-minh-khoi",
     });
-    expect(data.stages[0].detailId).toBe("stage-opportunity");
+    expect(data.stages[0].detailId).toBe("stage-connected");
     expect(data.agingBuckets).toHaveLength(4);
     expect(data.details.enrollment.metrics[0]).toEqual({
       label: "Đã nhập học",
@@ -147,7 +151,12 @@ describe("Lead Sale dashboard adapter", () => {
           remaining: null,
           coverage: null,
         })),
-        trend: [{ period: "Tuần 1", enrollment: 2, target: null, newOpportunities: 1 }],
+        trend: [
+          {
+            period: "Tuần 1",
+            stageCounts: { new: 2, attempting: 0, connected: 0, qualified: 0 },
+          },
+        ],
       },
     });
 
@@ -163,6 +172,6 @@ describe("Lead Sale dashboard adapter", () => {
       label: "Độ phủ",
       value: "N/A",
     });
-    expect(data.trend[0].target).toBeNull();
+    expect(data.trend[0].stageCounts.qualified).toBe(0);
   });
 });

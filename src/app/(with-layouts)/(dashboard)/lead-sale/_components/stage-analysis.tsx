@@ -14,7 +14,13 @@ interface StageAnalysisProps {
 export default function StageAnalysis({ stages, onOpenDetail }: StageAnalysisProps) {
   const conversionStages = stages.filter((stage) => stage.nextStepConversion !== null);
   const lowestConversion = conversionStages.reduce<LeadSaleStageAnalysis | undefined>(
-    (lowest, stage) => (!lowest || stage.nextStepConversion! < lowest.nextStepConversion!) ? stage : lowest,
+    (lowest, stage) => {
+      if (!lowest || stage.nextStepConversion! < lowest.nextStepConversion!) return stage;
+      if (stage.nextStepConversion === lowest.nextStepConversion && stage.volume > lowest.volume) {
+        return stage;
+      }
+      return lowest;
+    },
     undefined,
   );
   const maxVolume = Math.max(...stages.map((stage) => stage.volume), 0);

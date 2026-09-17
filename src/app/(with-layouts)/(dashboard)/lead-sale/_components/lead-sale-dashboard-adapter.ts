@@ -22,12 +22,10 @@ import {
 } from "./lead-sale-dashboard.types";
 
 const STAGE_DETAIL_IDS: Record<LeadSaleDashboardStage["id"], LeadSaleDetailId> = {
-  lead: "stage-lead",
-  contacted: "stage-contacted",
+  new: "stage-new",
+  attempting: "stage-attempting",
+  connected: "stage-connected",
   qualified: "stage-qualified",
-  opportunity: "stage-opportunity",
-  application: "stage-application",
-  enrollment: "stage-enrollment",
 };
 
 const REP_DETAIL_IDS: LeadSaleDetailId[] = [
@@ -59,12 +57,10 @@ const ACTION_DETAIL_IDS: Record<string, LeadSaleDetailId> = {
 };
 
 const STAGE_TONES: Record<LeadSaleDashboardStage["id"], LeadSaleTone> = {
-  lead: "primary",
-  contacted: "primary",
-  qualified: "warning",
-  opportunity: "danger",
-  application: "success",
-  enrollment: "success",
+  new: "primary",
+  attempting: "warning",
+  connected: "violet",
+  qualified: "success",
 };
 
 const ISSUE_TONES: Record<string, LeadSaleTone> = {
@@ -81,12 +77,10 @@ const DETAIL_IDS: LeadSaleDetailId[] = [
   "unassigned",
   "due-today",
   "aging",
-  "stage-opportunity",
-  "stage-lead",
-  "stage-contacted",
+  "stage-new",
+  "stage-attempting",
+  "stage-connected",
   "stage-qualified",
-  "stage-application",
-  "stage-enrollment",
   "aging-0-2",
   "aging-3-5",
   "aging-6-10",
@@ -129,8 +123,8 @@ function issueLabel(code: string): string {
   return {
     overdue: "Quá hạn xử lý",
     "missing-documents": "Thiếu giấy tờ",
-    uncontacted: "Chưa có lần liên hệ đầu",
-    aging: "Vi phạm SLA",
+    uncontacted: "Chưa có tương tác",
+    aging: "Tồn lâu, cần cập nhật",
   }[code] ?? "Cần rà soát";
 }
 
@@ -212,7 +206,7 @@ function createDetails(
       detailId: stage.detailId,
     })),
     kind: "stage-breakdown",
-    recommendedAction: "Ưu tiên các giai đoạn có độ phủ thấp hoặc đang vượt SLA.",
+    recommendedAction: "Ưu tiên các giai đoạn có độ phủ thấp hoặc nhiều hồ sơ cần xử lý.",
   });
 
   for (const action of actions) {
@@ -240,10 +234,12 @@ function createDetails(
       metrics: [
         { label: "Hồ sơ", value: String(stage.volume) },
         { label: "Tỷ lệ chuyển đổi", value: stage.nextStepConversion === null ? "—" : `${stage.nextStepConversion}%` },
-        { label: "Vượt SLA", value: String(stage.stalledCount) },
+        { label: "Cần xử lý", value: String(stage.actionItemCount) },
       ],
       records,
-      recommendedAction: stage.stalledCount ? "Rà soát các hồ sơ đã vi phạm SLA." : "Tiếp tục theo dõi trạng thái SLA.",
+      recommendedAction: stage.actionItemCount
+        ? "Rà soát và cập nhật bước tiếp theo cho các hồ sơ này."
+        : "Tiếp tục theo dõi và cập nhật bước tiếp theo.",
     });
   }
 
@@ -268,10 +264,12 @@ function createDetails(
       metrics: [
         { label: "Đã nhập học", value: String(rep.enrollment) },
         { label: "Độ phủ", value: formatCoverage(rep.coverage) },
-        { label: "Quá hạn / SLA", value: `${rep.overdue} / ${rep.agingOverSlaCount}` },
+        { label: "Quá hạn / Cần xử lý", value: `${rep.overdue} / ${rep.actionItemCount}` },
       ],
       records: records.filter((record) => record.owner === rep.name),
-      recommendedAction: rep.overdue || rep.agingOverSlaCount ? "Cùng nhân viên tư vấn dọn các hồ sơ quá hạn trước khi nhận thêm." : "Tiếp tục duy trì nhịp xử lý và cập nhật pipeline.",
+      recommendedAction: rep.overdue || rep.actionItemCount
+        ? "Cùng nhân viên tư vấn xử lý các hồ sơ quá hạn và việc cần xử lý trước khi nhận thêm."
+        : "Tiếp tục duy trì nhịp xử lý và cập nhật pipeline.",
     });
   });
 
@@ -307,16 +305,16 @@ export function toLeadSaleDashboardData(
       overdue: "Công việc quá hạn",
       unassigned: "Lead chưa phân công",
       "due-today": "Liên hệ hôm nay",
-      aging: "Hồ sơ vượt SLA",
+      aging: "Hồ sơ tồn lâu",
     }[action.id],
     value: action.value,
     description: {
       overdue: "Hồ sơ đang chờ xử lý nhưng đã quá hạn.",
-      unassigned: "Lead mới chưa có người phụ trách.",
+      unassigned: "Hồ sơ mới chưa có người phụ trách.",
       "due-today": "Hồ sơ có lịch gọi lại hoặc tư vấn trong ngày.",
-      aging: "Hồ sơ đã vi phạm SLA của CRM Student.",
+      aging: "Hồ sơ đã ở giai đoạn hiện tại lâu, cần cập nhật bước tiếp theo.",
     }[action.id],
-    subtext: action.longestAgeDays ? `Lâu nhất: ${action.longestAgeDays} ngày` : "Cần theo dõi theo SLA",
+    subtext: action.longestAgeDays ? `Hồ sơ lâu nhất: ${action.longestAgeDays} ngày` : "Không có hồ sơ trong nhóm này",
     tone: action.id === "overdue" ? "danger" : action.id === "unassigned" ? "violet" : action.id === "aging" ? "warning" : "primary",
     detailId: ACTION_DETAIL_IDS[action.id],
   }));
@@ -334,7 +332,9 @@ export function toLeadSaleDashboardData(
   }));
   const stages: LeadSaleStageAnalysis[] = payload.stages.map((stage) => ({
     ...stage,
-    note: stage.stalledCount ? "Có hồ sơ vi phạm SLA" : "Chưa ghi nhận hồ sơ vi phạm SLA",
+    note: stage.actionItemCount
+      ? `${stage.actionItemCount} hồ sơ cần xử lý`
+      : "Chưa có việc cần xử lý",
     tone: STAGE_TONES[stage.id],
     detailId: STAGE_DETAIL_IDS[stage.id],
   }));
