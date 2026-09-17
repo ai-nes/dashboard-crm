@@ -278,7 +278,6 @@ export default function AdminOverviewPage({
     ruleVersionsQuery,
     nbaActionsQuery,
     nbaPoliciesQuery,
-    nbaRulesQuery,
     messageTemplatesQuery,
     segmentsQuery,
     majorGroupsQuery,
