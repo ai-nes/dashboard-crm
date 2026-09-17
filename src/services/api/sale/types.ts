@@ -1,3 +1,9 @@
+import type { NbaRecommendationPriority } from "@/services/api/nba/types";
+import type {
+  StudentLifecycleStatus,
+  StudentStage,
+} from "@/services/api/students/types";
+
 export type SaleTrendRange = "4w" | "12w";
 export type SaleOverviewStatus = "available" | "partial" | "unavailable";
 export type SaleKpiId =
@@ -114,6 +120,40 @@ export interface SaleStudentStatus {
   items: SaleStudentStatusItem[];
 }
 
+export interface SaleStudentStageItem {
+  stage: StudentStage;
+  count: number;
+  share: number | null;
+}
+
+export interface SaleStudentStages {
+  total: number;
+  items: SaleStudentStageItem[];
+}
+
+export interface SaleStudentActionNba {
+  actionCode: string;
+  title: string;
+  priority: NbaRecommendationPriority;
+  channel: string | null;
+  reason: string | null;
+  whyNow: string | null;
+  salesNextStep: string | null;
+  scheduledAt: string | null;
+}
+
+export interface SaleStudentAction {
+  studentId: string;
+  studentCode: string;
+  studentName: string;
+  studentStage: StudentStage;
+  lifecycleStatus?: StudentLifecycleStatus | null;
+  stageAgeDays?: number | null;
+  lastActivityAt?: string | null;
+  attentionReason?: string | null;
+  nba?: SaleStudentActionNba | null;
+}
+
 export type SaleOperationId = "overdue-tasks" | "missing-documents";
 
 export interface SaleOperations {
@@ -124,6 +164,7 @@ export interface SaleOperations {
 export interface SalePerformance {
   target: number | null;
   enrollment: number;
+  lostOpportunities: number | null;
   achievement: number | null;
   remaining: number | null;
   expectedEnrollment: number | null;
@@ -154,6 +195,8 @@ export interface SaleOverviewResponse {
   attention: { items: SaleAttentionItem[] };
   conversionTrend: SaleConversionTrend;
   studentStatus: SaleStudentStatus;
+  studentStages?: SaleStudentStages;
+  studentActions?: SaleStudentAction[];
   operations: SaleOperations;
   performance?: SalePerformance;
   health?: SalePipelineHealth;

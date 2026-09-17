@@ -26,8 +26,8 @@ export default function ConversionTrendChart({ data }: ConversionTrendChartProps
     <Card className="min-w-0 p-5 sm:p-6">
       <CardHeader className="items-start gap-3">
         <div>
-          <CardTitle>Tư vấn &amp; nhập học theo thời gian</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Số học sinh hoàn tất tư vấn và nhập học theo thời gian.</p>
+          <CardTitle>Xu hướng tư vấn và nhập học</CardTitle>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Số học sinh hoàn tất tư vấn và nhập học theo tuần.</p>
         </div>
         <Select
           value={range}
@@ -51,18 +51,24 @@ export default function ConversionTrendChart({ data }: ConversionTrendChartProps
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-success-500" />Nhập học</span>
       </div>
 
-      <div className="mt-1 h-56 w-full" role="img" aria-label={`Biểu đồ tư vấn và nhập học trong ${range === "4w" ? "4 tuần" : "12 tuần"}`}>
-        <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
-          <LineChart data={chartData} margin={{ top: 12, right: 8, left: -22, bottom: 0 }}>
-            <CartesianGrid vertical={false} stroke="var(--border-color-base-100)" strokeDasharray="4 4" />
-            <XAxis dataKey="period" interval={range === "12w" ? 1 : 0} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} width={34} />
-            <Tooltip cursor={{ stroke: "var(--border-color-base-300)", strokeDasharray: "4 4" }} content={<ConversionTrendTooltip />} />
-            <Line type="monotone" dataKey="consulted" name="Tư vấn hoàn tất" stroke="var(--primary-500)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--primary-500)", stroke: "var(--card-background)", strokeWidth: 2 }} activeDot={{ r: 5 }} isAnimationActive animationDuration={700} />
-            <Line type="monotone" dataKey="admitted" name="Nhập học" stroke="var(--success-500)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--success-500)", stroke: "var(--card-background)", strokeWidth: 2 }} activeDot={{ r: 5 }} isAnimationActive animationDuration={700} />
-          </LineChart>
-        </ChartContainer>
-      </div>
+      {chartData.length > 0 ? (
+        <div className="mt-1 h-56 w-full" role="img" aria-label={`Biểu đồ tư vấn và nhập học trong ${range === "4w" ? "4 tuần" : "12 tuần"}`}>
+          <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
+            <LineChart data={chartData} margin={{ top: 12, right: 8, left: -22, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke="var(--border-color-base-100)" strokeDasharray="4 4" />
+              <XAxis dataKey="period" interval={range === "12w" ? 1 : 0} axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--text-tertiary)", fontSize: 11 }} width={34} />
+              <Tooltip cursor={{ stroke: "var(--border-color-base-300)", strokeDasharray: "4 4" }} content={<ConversionTrendTooltip />} />
+              <Line type="monotone" dataKey="consulted" name="Tư vấn hoàn tất" stroke="var(--primary-500)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--primary-500)", stroke: "var(--card-background)", strokeWidth: 2 }} activeDot={{ r: 5 }} isAnimationActive animationDuration={700} />
+              <Line type="monotone" dataKey="admitted" name="Nhập học" stroke="var(--success-500)" strokeWidth={2.5} dot={{ r: 3, fill: "var(--success-500)", stroke: "var(--card-background)", strokeWidth: 2 }} activeDot={{ r: 5 }} isAnimationActive animationDuration={700} />
+            </LineChart>
+          </ChartContainer>
+        </div>
+      ) : (
+        <div className="mt-1 flex h-56 items-center justify-center text-xs text-text-tertiary" role="status">
+          Chưa có dữ liệu xu hướng trong khoảng thời gian này.
+        </div>
+      )}
     </Card>
   );
 }

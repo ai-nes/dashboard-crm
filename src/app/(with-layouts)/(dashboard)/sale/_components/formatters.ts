@@ -20,3 +20,34 @@ export function formatDueTime(value: string | null, timezone: string): string {
     timeZone: timezone,
   }).format(date);
 }
+
+export function formatTaskDeadline(
+  value: string | null,
+  timezone: string,
+  referenceDate: string,
+): string {
+  if (!value) return "Chưa đặt hạn";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const dueDateKey = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: timezone,
+  }).format(date);
+  const dateLabel = dueDateKey === referenceDate
+    ? "Hôm nay"
+    : new Intl.DateTimeFormat("vi-VN", {
+        day: "numeric",
+        month: "short",
+        timeZone: timezone,
+      }).format(date);
+  const timeLabel = new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: timezone,
+  }).format(date);
+
+  return `${dateLabel} · ${timeLabel}`;
+}

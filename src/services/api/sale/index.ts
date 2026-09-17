@@ -13,11 +13,18 @@ import type {
   SalePipelineHealth,
   SalePipelineAgingBucket,
   SalePipelineStage,
+  SaleStudentAction,
+  SaleStudentActionNba,
+  SaleStudentStages,
   SaleStudentStatus,
   SaleStudentStatusItem,
   SaleTask,
   SaleTasks,
 } from "./types";
+import type {
+  StudentLifecycleStatus,
+  StudentStage,
+} from "@/services/api/students/types";
 
 export type * from "./types";
 
@@ -40,6 +47,9 @@ const PIPELINE_IDS = [
 ] as const;
 const ATTENTION_IDS = ["at-risk", "high-intent", "blocked"] as const;
 const STATUS_IDS = ["new", "consulting", "waiting", "documents", "admission"] as const;
+const STUDENT_STAGE_IDS = ["New", "Attempting", "Connected", "Qualified", "Disqualified"] as const;
+const STUDENT_LIFECYCLE_IDS = ["Lead", "MQL", "Applicant", "Enrolled", "Lost"] as const;
+const NBA_PRIORITIES = ["high", "medium", "low"] as const;
 const OPERATION_IDS = ["overdue-tasks", "missing-documents"] as const;
 
 export type RequestOptions = {
@@ -255,6 +265,114 @@ function normalizeStudentStatus(value: unknown): SaleStudentStatus {
   };
 }
 
+function normalizeStudentStages(value: unknown): SaleStudentStages | undefined {
+  const source = asRecord(value);
+  if (!source || !Array.isArray(source.items)) return undefined;
+
+  const items = source.items.flatMap((item) => {
+    const row = asRecord(item) ?? {};
+    const stageValue = row.stage ?? row.id;
+    if (!STUDENT_STAGE_IDS.includes(stageValue as (typeof STUDENT_STAGE_IDS)[number])) {
+      return [];
+    }
+
+    return [{
+      stage: stageValue as StudentStage,
+      count: count(row.count),
+      share: null,
+    }];
+  });
+  const total = items.reduce((sum, item) => sum + item.count, 0);
+
+  return {
+    total,
+    items: items.map((item) => ({
+      ...item,
+      share: total > 0 ? (item.count / total) * 100 : null,
+    })),
+  };
+}
+
+function normalizeStudentActionNba(value: unknown): SaleStudentActionNba | undefined {
+  const source = asRecord(value);
+  if (!source) return undefined;
+
+  const action = asRecord(source.action) ?? {};
+  const recommendation = asRecord(source.recommendation) ?? {};
+  const recommendationAction = asRecord(recommendation.action) ?? {};
+  const explanation = asRecord(source.explanation) ?? asRecord(recommendation.explanation) ?? {};
+  const timing = asRecord(source.timing) ?? asRecord(recommendation.timing) ?? {};
+  const priority = source.priority ?? recommendation.priority;
+  const title = text(source.title ?? action.title ?? recommendationAction.title);
+  const actionCode = text(
+    source.actionCode ?? source.action_code ?? source.actionId ?? source.action_id ??
+      action.code ?? recommendation.actionId ?? recommendation.action_id,
+  );
+
+  if (
+    !title ||
+    !actionCode ||
+    !NBA_PRIORITIES.includes(priority as (typeof NBA_PRIORITIES)[number])
+  ) {
+    return undefined;
+  }
+
+  return {
+    actionCode,
+    title,
+    priority: priority as SaleStudentActionNba["priority"],
+    channel: nullableText(source.channel ?? recommendation.channel),
+    reason: nullableText(source.reason ?? recommendation.reason),
+    whyNow: nullableText(source.whyNow ?? source.why_now ?? explanation.whyNow ?? explanation.why_now),
+    salesNextStep: nullableText(
+      source.salesNextStep ?? source.sales_next_step ?? explanation.salesNextStep ?? explanation.sales_next_step,
+    ),
+    scheduledAt: nullableText(
+      source.scheduledAt ?? source.scheduled_at ?? timing.scheduledAt ?? timing.scheduled_at,
+    ),
+  };
+}
+
+function normalizeStudentAction(value: unknown): SaleStudentAction | null {
+  const source = asRecord(value) ?? {};
+  const stageValue = source.studentStage ?? source.student_stage ?? source.stage;
+  if (!STUDENT_STAGE_IDS.includes(stageValue as (typeof STUDENT_STAGE_IDS)[number])) {
+    return null;
+  }
+
+  const studentId = text(source.studentId ?? source.student_id);
+  const studentCode = text(source.studentCode ?? source.student_code ?? source.code);
+  const studentName = text(source.studentName ?? source.student_name ?? source.name);
+  if (!studentId || !studentCode || !studentName) return null;
+
+  const lifecycleValue = source.lifecycleStatus ?? source.lifecycle_status;
+  const lifecycleStatus = STUDENT_LIFECYCLE_IDS.includes(
+    lifecycleValue as (typeof STUDENT_LIFECYCLE_IDS)[number],
+  )
+    ? (lifecycleValue as StudentLifecycleStatus)
+    : null;
+  const nba = normalizeStudentActionNba(source.nba);
+
+  return {
+    studentId,
+    studentCode,
+    studentName,
+    studentStage: stageValue as StudentStage,
+    ...(lifecycleValue !== undefined ? { lifecycleStatus } : {}),
+    stageAgeDays: nullableCount(source.stageAgeDays ?? source.stage_age_days),
+    lastActivityAt: nullableText(source.lastActivityAt ?? source.last_activity_at),
+    attentionReason: nullableText(source.attentionReason ?? source.attention_reason),
+    ...(nba ? { nba } : {}),
+  };
+}
+
+function normalizeStudentActions(value: unknown): SaleStudentAction[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value
+    .map(normalizeStudentAction)
+    .filter((item): item is SaleStudentAction => item !== null);
+}
+
 function normalizeOperations(value: unknown): SaleOperations {
   const source = asRecord(value) ?? {};
   return {
@@ -286,6 +404,7 @@ function normalizePerformance(value: unknown): SalePerformance | undefined {
   return {
     target: nullableCount(source.target),
     enrollment: count(source.enrollment),
+    lostOpportunities: nullableCount(source.lostOpportunities ?? source.lost_opportunities),
     achievement: nullableNumber(source.achievement),
     remaining: nullableCount(source.remaining),
     expectedEnrollment: nullableCount(source.expectedEnrollment ?? source.expected_enrollment),
@@ -329,6 +448,8 @@ export function normalizeSaleOverview(value: unknown): SaleOverviewResponse {
   const conversionTrend = asRecord(payload?.conversionTrend ?? payload?.conversion_trend);
   const trendRanges = asRecord(conversionTrend?.ranges);
   const studentStatus = asRecord(payload?.studentStatus ?? payload?.student_status);
+  const studentStages = normalizeStudentStages(payload?.studentStages ?? payload?.student_stages);
+  const studentActions = normalizeStudentActions(payload?.studentActions ?? payload?.student_actions);
   const operations = asRecord(payload?.operations);
   const performance = normalizePerformance(payload?.performance);
   const health = normalizeHealth(payload?.health);
@@ -365,6 +486,8 @@ export function normalizeSaleOverview(value: unknown): SaleOverviewResponse {
     attention: normalizeAttention(attention),
     conversionTrend: normalizeTrend(conversionTrend),
     studentStatus: normalizeStudentStatus(studentStatus),
+    ...(studentStages ? { studentStages } : {}),
+    ...(studentActions ? { studentActions } : {}),
     operations: normalizeOperations(operations),
     ...(performance ? { performance } : {}),
     ...(health ? { health } : {}),

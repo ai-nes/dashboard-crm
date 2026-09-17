@@ -1,85 +1,150 @@
-import { ArrowRight, ClockThree, FileTextMultiple, Message1, Phone } from "@tailgrids/icons";
-import Link from "next/link";
+"use client";
 
-import { Badge } from "@/components/tailgrids/core/badge";
+import { ArrowRight } from "@tailgrids/icons";
+import Link from "next/link";
+import { useState } from "react";
+import { Tab, TabList, TabPanel, Tabs } from "react-aria-components";
+
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import type { SaleTask } from "@/services/api/sale";
 
-import { formatDueTime } from "./formatters";
-
-const taskToneStyles: Record<SaleTask["type"], { icon: string; badge: "primary" | "warning" | "sky" }> = {
-  call: { icon: "bg-primary-50 text-primary-500", badge: "primary" },
-  document: { icon: "bg-badge-warning-background text-warning-500", badge: "warning" },
-  message: { icon: "bg-badge-sky-background text-info-500", badge: "sky" },
-  other: { icon: "bg-background-soft-100 text-text-secondary", badge: "sky" },
-};
-
-function TaskIcon({ task }: { task: SaleTask }) {
-  if (task.type === "call") return <Phone size={17} aria-hidden="true" />;
-  if (task.type === "document") return <FileTextMultiple size={17} aria-hidden="true" />;
-  return <Message1 size={17} aria-hidden="true" />;
-}
+import PriorityTaskList from "./priority-task-list";
 
 interface PriorityTasksProps {
   tasks: SaleTask[];
+  onOpenTask: (task: SaleTask) => void;
+  dueTodayCount: number;
   overdueCount: number;
   timezone: string;
+  referenceDate: string;
 }
 
-export default function PriorityTasks({ tasks, overdueCount, timezone }: PriorityTasksProps) {
+const priorityOrder: Record<SaleTask["priority"], number> = {
+  High: 0,
+  Medium: 1,
+  Low: 2,
+};
+
+function isTaskDueOnDate(
+  task: SaleTask,
+  timezone: string,
+  referenceDate: string,
+): boolean {
+  if (!task.dueAt) return false;
+  const dueDate = new Date(task.dueAt);
+  if (Number.isNaN(dueDate.getTime())) return false;
+
+  const dueDateKey = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: timezone,
+  }).format(dueDate);
+
+  return dueDateKey === referenceDate;
+}
+
+export default function PriorityTasks({
+  tasks,
+  onOpenTask,
+  dueTodayCount,
+  overdueCount,
+  timezone,
+  referenceDate,
+}: PriorityTasksProps) {
+  const [selectedTab, setSelectedTab] = useState("today");
+  const sortedTasks = tasks
+    .filter((task) => task.status === "Todo" || task.status === "In Progress")
+    .sort((left, right) => {
+      if (left.isOverdue !== right.isOverdue) return left.isOverdue ? -1 : 1;
+      const leftDue = left.dueAt
+        ? Date.parse(left.dueAt)
+        : Number.POSITIVE_INFINITY;
+      const rightDue = right.dueAt
+        ? Date.parse(right.dueAt)
+        : Number.POSITIVE_INFINITY;
+      if (left.isOverdue && leftDue !== rightDue) return leftDue - rightDue;
+      if (priorityOrder[left.priority] !== priorityOrder[right.priority]) {
+        return priorityOrder[left.priority] - priorityOrder[right.priority];
+      }
+      return leftDue - rightDue;
+    });
+  const overdueTodayCount = sortedTasks.filter(
+    (task) => task.isOverdue && isTaskDueOnDate(task, timezone, referenceDate),
+  ).length;
+  const actionableTodayCount = Math.max(0, dueTodayCount - overdueTodayCount);
+  const todayTasks = sortedTasks
+    .filter(
+      (task) =>
+        !task.isOverdue && isTaskDueOnDate(task, timezone, referenceDate),
+    )
+    .slice(0, 4);
+  const overdueTasks = sortedTasks.filter((task) => task.isOverdue).slice(0, 4);
+
+  const tabClassName =
+    "group inline-flex min-h-9 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent px-3 py-1.5 text-xs font-semibold text-text-secondary outline-none transition-colors hover:bg-card-background hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 data-[selected]:border-card-border data-[selected]:bg-card-background data-[selected]:text-text-primary data-[selected]:shadow-xs sm:flex-none";
+
   return (
-    <Card className="min-w-0 p-0">
-      <CardHeader className="border-b border-card-border px-5 py-4 sm:px-6">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Việc ưu tiên</CardTitle>
-            {overdueCount > 0 ? <Badge color="error" size="sm">{overdueCount} quá hạn</Badge> : null}
-          </div>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Các việc được sắp theo hạn xử lý và mức độ ưu tiên.</p>
+    <Card className="min-w-0 overflow-hidden p-0">
+      <CardHeader className="items-start gap-4 border-b border-card-border px-5 py-4 sm:px-6">
+        <div className="min-w-0 flex-1">
+          <CardTitle>Việc cần xử lý</CardTitle>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">
+            Danh sách ưu tiên theo hạn xử lý và mức độ quan trọng.
+          </p>
         </div>
         <Link
           href="/sale/tasks"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 transition-colors hover:text-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+          className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary-600 transition-colors hover:text-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
         >
-          Xem tất cả
+          Tất cả công việc
           <ArrowRight size={14} aria-hidden="true" />
         </Link>
       </CardHeader>
-
-      <div className="divide-y divide-card-border">
-        {tasks.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-text-tertiary sm:px-6">Không có việc ưu tiên cần xử lý.</p>
-        ) : tasks.map((task) => {
-          const styles = taskToneStyles[task.type];
-
-          return (
-            <div key={task.id} className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-background-soft-50 sm:px-6">
-              <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${styles.icon}`}>
-                <TaskIcon task={task} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <p className="truncate text-sm font-semibold text-text-primary">{task.studentName}</p>
-                  <Badge color={styles.badge} size="sm">{task.title}</Badge>
-                </div>
-                <p className="mt-1 truncate text-xs text-text-tertiary">{task.context ?? "Không có mô tả thêm"}</p>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-text-primary">
-                  <ClockThree size={13} aria-hidden="true" />
-                  {task.isOverdue ? "Quá hạn" : formatDueTime(task.dueAt, timezone)}
-                </span>
-                <Link
-                  href={`/sale/tasks?task=${encodeURIComponent(task.id)}`}
-                  className="inline-flex h-7 items-center justify-center rounded-lg bg-button-primary-background px-2.5 text-[11px] font-semibold text-button-primary-text transition-colors hover:bg-button-primary-hover-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
-                  aria-label={`Thực hiện việc ${task.title} cho ${task.studentName}`}
-                >
-                  Thực hiện
-                </Link>
-              </div>
-            </div>
-          );
-        })}
+      <div className="px-5 py-3 sm:px-6">
+        <Tabs
+          selectedKey={selectedTab}
+          onSelectionChange={(key) => setSelectedTab(String(key))}
+          className="w-full min-w-0"
+        >
+          <TabList
+            aria-label="Lọc công việc cần ưu tiên"
+            className="flex w-full max-w-full items-center gap-1 rounded-xl bg-background-soft-50 p-1 sm:w-fit"
+          >
+            <Tab id="today" className={tabClassName}>
+              Cần xử lý
+              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-background-soft-100 px-1.5 py-0.5 text-[10px] font-semibold text-text-secondary group-data-[selected]:bg-primary-50 group-data-[selected]:text-primary-700">
+                {actionableTodayCount}
+              </span>
+            </Tab>
+            <Tab id="overdue" className={tabClassName}>
+              Quá hạn
+              <span
+                className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${overdueCount > 0 ? "bg-badge-error-background text-badge-error-text" : "bg-background-soft-100 text-text-secondary"}`}
+              >
+                {overdueCount}
+              </span>
+            </Tab>
+          </TabList>
+          <TabPanel id="today" className="w-full pt-3 outline-none">
+            <PriorityTaskList
+              tasks={todayTasks}
+              onOpenTask={onOpenTask}
+              timezone={timezone}
+              referenceDate={referenceDate}
+              emptyMessage="Hôm nay không có công việc cần xử lý."
+            />
+          </TabPanel>
+          <TabPanel id="overdue" className="w-full pt-3 outline-none">
+            <PriorityTaskList
+              tasks={overdueTasks}
+              onOpenTask={onOpenTask}
+              timezone={timezone}
+              referenceDate={referenceDate}
+              emptyMessage="Không có công việc quá hạn."
+            />
+          </TabPanel>
+        </Tabs>
       </div>
     </Card>
   );

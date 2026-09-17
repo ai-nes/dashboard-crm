@@ -2,8 +2,6 @@ import type {
   SaleAttentionId,
   SaleKpiId,
   SaleOperationId,
-  SalePipelineStageId,
-  SaleStudentStatusId,
 } from "@/services/api/sale";
 
 export type SaleDashboardTone = "primary" | "sky" | "warning" | "violet" | "success";
@@ -39,16 +37,6 @@ export const KPI_PRESENTATION: Record<
   },
 };
 
-export const FUNNEL_STAGE_COLORS: Record<SalePipelineStageId, string> = {
-  assigned: "var(--primary-300)",
-  contacted: "var(--primary-400)",
-  consulted: "var(--primary-500)",
-  interested: "var(--info-500)",
-  documents: "var(--info-500)",
-  confirmed: "var(--success-500)",
-  admitted: "var(--success-500)",
-};
-
 export const ATTENTION_PRESENTATION: Record<
   SaleAttentionId,
   { label: string; note: string; tone: "error" | "success" | "warning" }
@@ -68,14 +56,6 @@ export const ATTENTION_PRESENTATION: Record<
     note: "Thiếu giấy tờ hoặc chưa có lịch xử lý",
     tone: "warning",
   },
-};
-
-export const STATUS_COLORS: Record<SaleStudentStatusId, string> = {
-  new: "var(--primary-200)",
-  consulting: "var(--primary-500)",
-  waiting: "var(--info-500)",
-  documents: "var(--warning-500)",
-  admission: "var(--success-500)",
 };
 
 export const OPERATION_PRESENTATION: Record<

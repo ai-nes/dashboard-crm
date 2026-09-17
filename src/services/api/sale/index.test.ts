@@ -5,7 +5,7 @@ import {
   getSaleOverview,
   normalizeSaleOverview,
 } from "./index";
-import { MOCK_SALE_OVERVIEW } from "./mock";
+import { getSaleOverviewMock, MOCK_SALE_OVERVIEW } from "./mock";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -80,6 +80,7 @@ function overviewFixture() {
     performance: {
       target: 20,
       enrollment: 13,
+      lostOpportunities: 15,
       achievement: 65,
       remaining: 7,
       expectedEnrollment: 9,
@@ -137,6 +138,7 @@ describe("Sale overview API contract", () => {
         performance: {
           ...fixture.performance,
           target: null,
+          lostOpportunities: null,
           achievement: null,
           remaining: null,
           expectedEnrollment: null,
@@ -147,6 +149,7 @@ describe("Sale overview API contract", () => {
 
     expect(result.performance).toMatchObject({
       target: null,
+      lostOpportunities: null,
       achievement: null,
       remaining: null,
       expectedEnrollment: null,
@@ -154,9 +157,125 @@ describe("Sale overview API contract", () => {
     });
   });
 
+  it("normalizes the lost-opportunity count from the API snake_case field", () => {
+    const fixture = overviewFixture();
+    const result = normalizeSaleOverview({
+      ...fixture,
+      performance: {
+        ...fixture.performance,
+        lostOpportunities: undefined,
+        lost_opportunities: 15,
+      },
+    });
+
+    expect(result.performance?.lostOpportunities).toBe(15);
+  });
+
+  it("normalizes canonical CRM stages and a compact NBA student projection", () => {
+    const fixture = overviewFixture();
+    const result = normalizeSaleOverview({
+      ...fixture,
+      studentStages: {
+        total: 3,
+        items: [
+          { stage: "New", count: 1, share: 33.3 },
+          { stage: "Attempting", count: 1, share: 33.3 },
+          { stage: "Unknown", count: 1, share: 33.3 },
+        ],
+      },
+      studentActions: [
+        {
+          student_id: "STU-001",
+          student_code: "AI26-0001",
+          student_name: "Học sinh thử nghiệm",
+          student_stage: "Connected",
+          lifecycle_status: "MQL",
+          stage_age_days: 4,
+          last_activity_at: "2026-09-04T09:00:00+07:00",
+          attention_reason: "Đang cân nhắc chương trình.",
+          nba: {
+            action: { code: "CALL_PARENT", title: "Gọi trao đổi thêm" },
+            priority: "high",
+            channel: "CALL",
+            reason: "Đã hỏi về học phí.",
+            explanation: {
+              why_now: "Đang chọn giữa hai chương trình.",
+              sales_next_step: "Xác nhận ngân sách và gửi phương án phù hợp.",
+            },
+            timing: { scheduled_at: "2026-09-05T10:00:00+07:00" },
+          },
+        },
+        {
+          student_id: "STU-002",
+          student_code: "AI26-0002",
+          student_name: "Trạng thái chưa biết",
+          student_stage: "Consulting",
+        },
+      ],
+    });
+
+    expect(result.studentStages?.items).toEqual([
+      { stage: "New", count: 1, share: 50 },
+      { stage: "Attempting", count: 1, share: 50 },
+    ]);
+    expect(result.studentStages?.total).toBe(2);
+    expect(result.studentActions).toHaveLength(1);
+    expect(result.studentActions?.[0]).toMatchObject({
+      studentId: "STU-001",
+      studentCode: "AI26-0001",
+      studentName: "Học sinh thử nghiệm",
+      studentStage: "Connected",
+      lifecycleStatus: "MQL",
+      stageAgeDays: 4,
+      nba: {
+        actionCode: "CALL_PARENT",
+        title: "Gọi trao đổi thêm",
+        priority: "high",
+        channel: "CALL",
+        whyNow: "Đang chọn giữa hai chương trình.",
+        salesNextStep: "Xác nhận ngân sách và gửi phương án phù hợp.",
+        scheduledAt: "2026-09-05T10:00:00+07:00",
+      },
+    });
+  });
+
+  it("keeps the new student dashboard projections optional for older API responses", () => {
+    const result = normalizeSaleOverview(overviewFixture());
+
+    expect(result.studentStages).toBeUndefined();
+    expect(result.studentActions).toBeUndefined();
+  });
+
+  it("limits mock priority tasks to the requested dashboard count", async () => {
+    const result = await getSaleOverviewMock({ priorityLimit: 4 });
+
+    expect(result.tasks.priority.items.map((task) => task.id)).toEqual([
+      "TASK-2026-0005",
+      "TASK-2026-0004",
+      "TASK-2026-0002",
+      "TASK-2026-0001",
+    ]);
+    expect(result.tasks.priority.overdueCount).toBe(3);
+    expect(MOCK_SALE_OVERVIEW.tasks.priority.items).toHaveLength(6);
+  });
+
+  it("shows six mock priority tasks in deterministic overdue-first order", async () => {
+    const result = await getSaleOverviewMock({ priorityLimit: 6 });
+
+    expect(result.tasks.priority.items.map((task) => task.id)).toEqual([
+      "TASK-2026-0005",
+      "TASK-2026-0004",
+      "TASK-2026-0002",
+      "TASK-2026-0001",
+      "TASK-2026-0003",
+      "TASK-2026-0006",
+    ]);
+  });
+
   it("keeps the dev fixture internally consistent", () => {
     const stages = MOCK_SALE_OVERVIEW.pipeline.stages;
     const statusTotal = MOCK_SALE_OVERVIEW.studentStatus.items.reduce((sum, item) => sum + item.count, 0);
+    const crmStageTotal = MOCK_SALE_OVERVIEW.studentStages?.items.reduce((sum, item) => sum + item.count, 0);
 
     expect(MOCK_SALE_OVERVIEW.performance?.achievement).toBe(
       (MOCK_SALE_OVERVIEW.performance?.enrollment ?? 0) /
@@ -169,10 +288,45 @@ describe("Sale overview API contract", () => {
         0,
       ),
     );
+    expect(MOCK_SALE_OVERVIEW.performance?.pipelineCoverage).toBeCloseTo(
+      (MOCK_SALE_OVERVIEW.performance?.expectedEnrollment ?? 0) /
+        (MOCK_SALE_OVERVIEW.performance?.remaining ?? 1),
+    );
+    expect(MOCK_SALE_OVERVIEW.pipeline.stages.at(-1)?.count).toBe(
+      MOCK_SALE_OVERVIEW.performance?.enrollment,
+    );
     expect(stages.every((stage, index) => index === 0 || stage.count <= stages[index - 1].count)).toBe(true);
     expect(statusTotal).toBe(MOCK_SALE_OVERVIEW.studentStatus.total);
+    expect(crmStageTotal).toBe(MOCK_SALE_OVERVIEW.studentStages?.total);
+    expect(
+      MOCK_SALE_OVERVIEW.studentStages?.items.reduce((sum, item) => sum + (item.share ?? 0), 0),
+    ).toBeCloseTo(100, 5);
+    expect(
+      MOCK_SALE_OVERVIEW.studentStages?.items.find((item) => item.stage === "Disqualified")?.count,
+    ).toBe(5);
+    expect(MOCK_SALE_OVERVIEW.studentActions).toHaveLength(6);
+    expect(MOCK_SALE_OVERVIEW.studentActions?.every((item) => [
+      "New",
+      "Attempting",
+      "Connected",
+      "Qualified",
+      "Disqualified",
+    ].includes(item.studentStage))).toBe(true);
+    expect(MOCK_SALE_OVERVIEW.performance?.enrollment).toBe(13);
+    expect(MOCK_SALE_OVERVIEW.performance?.lostOpportunities).toBe(15);
+    expect(
+      (MOCK_SALE_OVERVIEW.performance?.enrollment ?? 0) /
+        ((MOCK_SALE_OVERVIEW.performance?.enrollment ?? 0) +
+          (MOCK_SALE_OVERVIEW.performance?.lostOpportunities ?? 0)) * 100,
+    ).toBeCloseTo(46.4, 1);
     expect(MOCK_SALE_OVERVIEW.tasks.summary.today.pending + MOCK_SALE_OVERVIEW.tasks.summary.today.completed).toBe(
       MOCK_SALE_OVERVIEW.tasks.summary.today.total,
+    );
+    expect(MOCK_SALE_OVERVIEW.health?.followUpDue).toBe(
+      MOCK_SALE_OVERVIEW.tasks.summary.today.pending,
+    );
+    expect(MOCK_SALE_OVERVIEW.tasks.priority.items.filter((task) => task.isOverdue)).toHaveLength(
+      MOCK_SALE_OVERVIEW.tasks.priority.overdueCount,
     );
   });
 
