@@ -7,6 +7,7 @@ import {
   getDeepAnalysisNotice,
   getHighestConfidenceReportItem,
   getRichReport,
+  formatTerminalReason,
 } from "./analysis-run-meta";
 
 describe("analysisStageState", () => {
@@ -43,6 +44,14 @@ const report = {
   risks: [],
   recommendations: [],
 };
+
+describe("formatTerminalReason", () => {
+  it("formats the Student 360 evidence contract error", () => {
+    expect(formatTerminalReason("student_evidence_not_allowlisted")).toBe(
+      "contract dữ liệu Student 360 chưa đồng bộ",
+    );
+  });
+});
 
 describe("getDeepAnalysisNotice", () => {
   it("returns a notice when the 360 stage completed but NBA abstained", () => {

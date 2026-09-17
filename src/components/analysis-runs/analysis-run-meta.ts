@@ -46,6 +46,7 @@ const TERMINAL_REASON_LABELS: Record<string, string> = {
   student_analysis_model_timeout: "mô hình phân tích học sinh quá thời gian",
   school_analysis_model_timeout: "mô hình phân tích trường quá thời gian",
   evidence_access_denied: "quyền truy cập dữ liệu nguồn bị từ chối",
+  student_evidence_not_allowlisted: "contract dữ liệu Student 360 chưa đồng bộ",
   source_revision_superseded: "dữ liệu hồ sơ đã thay đổi giữa chừng",
   source_digest_mismatch: "dữ liệu hồ sơ đã thay đổi giữa chừng",
   stage_timeout: "quá thời gian xử lý",
