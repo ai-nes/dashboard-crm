@@ -21,10 +21,13 @@ interface PerformanceTrendProps {
 
 export default function PerformanceTrend({ data }: PerformanceTrendProps) {
   const currentPoint = data.at(-1);
-  const onPlanWeeks = data.filter((point) => point.enrollment >= point.target).length;
+  const configuredTargetPoints = data.filter((point) => point.target !== null);
+  const onPlanWeeks = configuredTargetPoints.filter((point) => point.enrollment >= point.target!).length;
   const currentGap = currentPoint
-    ? currentPoint.target - currentPoint.enrollment
-    : 0;
+    ? currentPoint.target === null
+      ? null
+      : currentPoint.target - currentPoint.enrollment
+    : null;
 
   return (
     <Card className="min-w-0 overflow-hidden p-5 sm:p-6">
@@ -36,7 +39,7 @@ export default function PerformanceTrend({ data }: PerformanceTrendProps) {
           </p>
         </div>
         <span className="rounded-full bg-background-soft-50 px-3 py-1.5 text-xs font-semibold text-text-secondary">
-          8 tuần gần nhất
+          {data.length} tuần gần nhất
         </span>
       </CardHeader>
 
@@ -174,11 +177,16 @@ export default function PerformanceTrend({ data }: PerformanceTrendProps) {
       </div>
 
       <div className="mt-4 grid gap-3 border-t border-card-border pt-4 md:grid-cols-3">
-        <TrendFact label="Số tuần đạt kế hoạch" value={`${onPlanWeeks}/${data.length}`} />
+        <TrendFact
+          label="Số tuần đạt kế hoạch"
+          value={configuredTargetPoints.length ? `${onPlanWeeks}/${configuredTargetPoints.length}` : "N/A"}
+        />
         <TrendFact
           label="Chênh lệch hiện tại"
           value={
-            currentGap > 0
+            currentGap === null
+              ? "N/A"
+              : currentGap > 0
               ? `Thiếu ${currentGap}`
               : currentGap < 0
                 ? `Vượt ${Math.abs(currentGap)}`

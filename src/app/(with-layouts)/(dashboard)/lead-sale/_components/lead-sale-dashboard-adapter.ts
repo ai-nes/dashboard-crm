@@ -110,6 +110,14 @@ function formatAge(days: number): string {
   return days === 1 ? "1 ngày" : `${days} ngày`;
 }
 
+function formatMetric(value: number | null, suffix = ""): string {
+  return value === null ? "N/A" : `${value}${suffix}`;
+}
+
+function formatCoverage(value: number | null): string {
+  return value === null ? "N/A" : `${value.toFixed(2).replace(".", ",")}x`;
+}
+
 function formatActivity(value: string): string {
   if (!value) return "Chưa ghi nhận hoạt động";
   const date = new Date(value.replace(" ", "T"));
@@ -122,7 +130,7 @@ function issueLabel(code: string): string {
     overdue: "Quá hạn xử lý",
     "missing-documents": "Thiếu giấy tờ",
     uncontacted: "Chưa có lần liên hệ đầu",
-    aging: "Đứng quá mốc SLA",
+    aging: "Vi phạm SLA",
   }[code] ?? "Cần rà soát";
 }
 
@@ -181,8 +189,8 @@ function createDetails(
     tone: "success",
     metrics: [
       { label: "Đã nhập học", value: String(payload.summary.enrollment) },
-      { label: "Chỉ tiêu", value: String(payload.summary.target) },
-      { label: "Mức đạt", value: `${payload.summary.achievement}%` },
+      { label: "Chỉ tiêu", value: formatMetric(payload.summary.target) },
+      { label: "Mức đạt", value: formatMetric(payload.summary.achievement, "%") },
     ],
     records,
     recommendedAction: "Theo dõi nhóm hồ sơ đã hoàn tất và tập trung phần chỉ tiêu còn thiếu.",
@@ -193,8 +201,8 @@ function createDetails(
     tone: "violet",
     metrics: [
       { label: "Dự kiến", value: String(payload.summary.expected) },
-      { label: "Còn thiếu", value: String(payload.summary.remaining) },
-      { label: "Độ phủ", value: `${payload.summary.coverage.toFixed(2).replace(".", ",")}x` },
+      { label: "Còn thiếu", value: formatMetric(payload.summary.remaining) },
+      { label: "Độ phủ", value: formatCoverage(payload.summary.coverage) },
     ],
     breakdown: stages.map((stage) => ({
       id: `forecast-${stage.id}`,
@@ -235,7 +243,7 @@ function createDetails(
         { label: "Vượt SLA", value: String(stage.stalledCount) },
       ],
       records,
-      recommendedAction: stage.stalledCount ? "Rà soát các hồ sơ đang đứng quá mốc xử lý." : "Tiếp tục theo dõi theo SLA hiện tại.",
+      recommendedAction: stage.stalledCount ? "Rà soát các hồ sơ đã vi phạm SLA." : "Tiếp tục theo dõi trạng thái SLA.",
     });
   }
 
@@ -256,10 +264,10 @@ function createDetails(
     set(detailId, {
       eyebrow: "CHI TIẾT THEO SALE",
       title: rep.name,
-      tone: rep.coverage < 1 || rep.overdue > 0 ? "warning" : "success",
+      tone: (rep.coverage !== null && rep.coverage < 1) || rep.overdue > 0 ? "warning" : "success",
       metrics: [
         { label: "Đã nhập học", value: String(rep.enrollment) },
-        { label: "Độ phủ", value: `${rep.coverage.toFixed(2).replace(".", ",")}x` },
+        { label: "Độ phủ", value: formatCoverage(rep.coverage) },
         { label: "Quá hạn / SLA", value: `${rep.overdue} / ${rep.agingOverSlaCount}` },
       ],
       records: records.filter((record) => record.owner === rep.name),
@@ -306,7 +314,7 @@ export function toLeadSaleDashboardData(
       overdue: "Hồ sơ đang chờ xử lý nhưng đã quá hạn.",
       unassigned: "Lead mới chưa có người phụ trách.",
       "due-today": "Hồ sơ có lịch gọi lại hoặc tư vấn trong ngày.",
-      aging: "Hồ sơ đã vượt mốc xử lý của giai đoạn hiện tại.",
+      aging: "Hồ sơ đã vi phạm SLA của CRM Student.",
     }[action.id],
     subtext: action.longestAgeDays ? `Lâu nhất: ${action.longestAgeDays} ngày` : "Cần theo dõi theo SLA",
     tone: action.id === "overdue" ? "danger" : action.id === "unassigned" ? "violet" : action.id === "aging" ? "warning" : "primary",
@@ -326,7 +334,7 @@ export function toLeadSaleDashboardData(
   }));
   const stages: LeadSaleStageAnalysis[] = payload.stages.map((stage) => ({
     ...stage,
-    note: stage.stalledCount ? "Có hồ sơ đang vượt mốc xử lý" : "Đang trong mốc xử lý",
+    note: stage.stalledCount ? "Có hồ sơ vi phạm SLA" : "Chưa ghi nhận hồ sơ vi phạm SLA",
     tone: STAGE_TONES[stage.id],
     detailId: STAGE_DETAIL_IDS[stage.id],
   }));

@@ -1,6 +1,6 @@
 interface TrendTooltipProps {
   active?: boolean;
-  payload?: Array<{ name?: string; value?: number; color?: string }>;
+  payload?: Array<{ name?: string; value?: number | null; color?: string }>;
   label?: string;
 }
 
@@ -17,7 +17,7 @@ export default function TrendTooltip({ active, payload, label }: TrendTooltipPro
               <span className="size-2 rounded-full" style={{ backgroundColor: item.color }} aria-hidden="true" />
               {item.name}
             </span>
-            <span className="font-semibold text-text-primary">{item.value}</span>
+            <span className="font-semibold text-text-primary">{item.value ?? "N/A"}</span>
           </div>
         ))}
       </div>

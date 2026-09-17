@@ -34,7 +34,7 @@ export default function PipelineAgingChart({ buckets, slaBreachCount, onOpenDeta
         <div>
           <CardTitle>Thời gian ở giai đoạn hiện tại</CardTitle>
           <p className="mt-1 max-w-3xl text-xs leading-5 text-text-tertiary">
-            {total} cơ hội đang mở, phân theo số ngày ở giai đoạn hiện tại. SLA được đánh giá riêng cho từng giai đoạn.
+            {total} cơ hội đang mở, phân theo số ngày ở giai đoạn hiện tại. Trạng thái SLA lấy từ CRM Student.
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-background-soft-50 px-3 py-1.5 text-xs font-semibold text-text-secondary">

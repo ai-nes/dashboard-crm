@@ -15,7 +15,6 @@ import PriorityQueue from "./priority-queue";
 import RepPerformance from "./rep-performance";
 import type { LeadSaleDetailId } from "./lead-sale-dashboard.types";
 import StageAnalysis from "./stage-analysis";
-import SummaryCards from "./summary-cards";
 import { toLeadSaleDashboardData } from "./lead-sale-dashboard-adapter";
 
 export default function LeadSaleDashboard() {
@@ -37,8 +36,6 @@ export default function LeadSaleDashboard() {
   return (
     <main id="main-content" className="min-w-0 space-y-6 overflow-x-hidden px-2 py-4 pb-8 lg:px-6">
       <DashboardHeader data={data} />
-
-      <SummaryCards summary={data.summary} onOpenDetail={setSelectedDetailId} />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-stretch">
         <section aria-label="Công việc ưu tiên" className="min-w-0">
@@ -122,19 +119,6 @@ function OverviewSkeleton() {
         <div className="flex shrink-0 gap-2">
           <Skeleton className="h-10 w-32 rounded-lg" />
           <Skeleton className="h-10 w-40 rounded-lg" />
-        </div>
-      </section>
-
-      <section aria-hidden="true" className="space-y-3">
-        <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-3">
-          {Array.from({ length: 3 }, (_, index) => (
-            <Skeleton key={index} className="h-40 rounded-2xl" />
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {Array.from({ length: 4 }, (_, index) => (
-            <Skeleton key={index} className="h-28 rounded-xl" />
-          ))}
         </div>
       </section>
 

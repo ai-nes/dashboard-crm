@@ -2269,3 +2269,10 @@ Program
 Region
 Stage
 ```
+## 37. Phạm vi triển khai theo core hiện tại
+
+- Cụm KPI tổng hợp trên UI chưa hiển thị vì core chưa có đầy đủ nguồn chuẩn cho các chỉ tiêu này.
+- Target team chỉ được lấy từ CRM Target và CRM Planning Scope đã được duyệt và đang hiệu lực. Không có cấu hình thì trả null để UI hiển thị N/A.
+- Target theo từng Sale chưa có DocType/scope canonical nên không suy diễn từ target team; các trường liên quan trả null.
+- Stage Qualified của CRM Student được quy về lifecycle Applicant/Application, không tạo thêm một stage nghiệp vụ song song.
+- SLA lấy từ CRM Student.sla_status do module SLA của Frappe quản lý. Tuổi hồ sơ ở stage chỉ dùng cho aging, không được coi là SLA breach.

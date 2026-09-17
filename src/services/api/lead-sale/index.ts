@@ -97,6 +97,15 @@ function count(value: unknown): number {
   return Math.max(0, Math.floor(number(value)));
 }
 
+function nullableNumber(value: unknown): number | null {
+  return value === null || value === undefined ? null : number(value);
+}
+
+function nullableCount(value: unknown): number | null {
+  const normalized = nullableNumber(value);
+  return normalized === null ? null : Math.max(0, Math.floor(normalized));
+}
+
 function unwrapMessage(value: unknown): unknown {
   const root = asRecord(value);
   return root?.message !== undefined ? root.message : value;
@@ -261,7 +270,7 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
               ? null
               : number(row.nextStepConversion),
           averageDays: number(row.averageDays),
-          slaDays: count(row.slaDays),
+          slaDays: nullableCount(row.slaDays),
           stalledCount: count(row.stalledCount),
         };
       })
@@ -272,7 +281,7 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
         return {
           period: text(row.period),
           enrollment: count(row.enrollment),
-          target: count(row.target),
+          target: nullableCount(row.target),
           newOpportunities: count(row.newOpportunities),
         };
       })
@@ -293,7 +302,7 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
               return {
                 period: text(trendPoint.period),
                 enrollment: count(trendPoint.enrollment),
-                target: count(trendPoint.target),
+                target: nullableCount(trendPoint.target),
                 newOpportunities: count(trendPoint.newOpportunities),
               };
             })
@@ -301,12 +310,12 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
         return {
           id: text(row.id),
           displayName: text(row.displayName ?? row.display_name),
-          target: count(row.target),
+          target: nullableCount(row.target),
           enrollment: count(row.enrollment),
-          achievement: count(row.achievement),
-          remaining: count(row.remaining),
+          achievement: nullableCount(row.achievement),
+          remaining: nullableCount(row.remaining),
           expected: count(row.expected),
-          coverage: number(row.coverage),
+          coverage: nullableNumber(row.coverage),
           winRate: count(row.winRate ?? row.win_rate),
           closedOpportunities: count(
             row.closedOpportunities ?? row.closed_opportunities,
@@ -392,11 +401,11 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
   return {
     summary: {
       enrollment: count(summary.enrollment),
-      target: count(summary.target),
-      achievement: count(summary.achievement),
-      remaining: count(summary.remaining),
+      target: nullableCount(summary.target),
+      achievement: nullableCount(summary.achievement),
+      remaining: nullableCount(summary.remaining),
       expected: count(summary.expected),
-      coverage: number(summary.coverage),
+      coverage: nullableNumber(summary.coverage),
       openOpportunities: count(
         summary.openOpportunities ?? summary.open_opportunities,
       ),

@@ -77,7 +77,7 @@ function PipelineStage({
   isLowestConversion: boolean;
   onOpenDetail: (detailId: LeadSaleDetailId) => void;
 }) {
-  const slaDelta = stage.slaDays > 0 ? stage.averageDays - stage.slaDays : null;
+  const slaDelta = stage.slaDays === null ? null : stage.averageDays - stage.slaDays;
   const isOverSla = slaDelta !== null && slaDelta > 0;
   const volumeWidth = maxVolume ? Math.max((stage.volume / maxVolume) * 100, 4) : 0;
   const status = getStageStatus(stage, isOverSla);
@@ -171,9 +171,12 @@ function getStageStatus(
   stage: LeadSaleStageAnalysis,
   isOverSla: boolean,
 ): { label: string; color: "gray" | "warning" | "error" | "success" } {
-  if (isOverSla) return { label: `SLA +${formatDays(stage.averageDays - stage.slaDays)}`, color: "error" };
+  if (isOverSla && stage.slaDays !== null) {
+    return { label: `SLA +${formatDays(stage.averageDays - stage.slaDays)}`, color: "error" };
+  }
+  if (stage.stalledCount > 0) return { label: "Vượt SLA", color: "error" };
   if (stage.nextStepConversion === null) return { label: "Kết quả", color: "success" };
-  if (stage.stalledCount > 0) return { label: "Theo dõi", color: "warning" };
+  if (stage.slaDays === null) return { label: "Đang xử lý", color: "gray" };
   return { label: "Trong SLA", color: "gray" };
 }
 

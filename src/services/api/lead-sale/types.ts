@@ -105,11 +105,11 @@ export type LeadSaleDashboardStageId =
 
 export interface LeadSaleDashboardSummary {
   enrollment: number;
-  target: number;
-  achievement: number;
-  remaining: number;
+  target: number | null;
+  achievement: number | null;
+  remaining: number | null;
   expected: number;
-  coverage: number;
+  coverage: number | null;
   openOpportunities: number;
   newOpportunities: number;
   winRate: number;
@@ -142,19 +142,19 @@ export interface LeadSaleDashboardStage {
   volume: number;
   nextStepConversion: number | null;
   averageDays: number;
-  slaDays: number;
+  slaDays: number | null;
   stalledCount: number;
 }
 
 export interface LeadSaleDashboardRep {
   id: string;
   displayName: string;
-  target: number;
+  target: number | null;
   enrollment: number;
-  achievement: number;
-  remaining: number;
+  achievement: number | null;
+  remaining: number | null;
   expected: number;
-  coverage: number;
+  coverage: number | null;
   winRate: number;
   closedOpportunities: number;
   wonOpportunities: number;
@@ -175,7 +175,7 @@ export interface LeadSaleDashboardRep {
 export interface LeadSaleDashboardTrendPoint {
   period: string;
   enrollment: number;
-  target: number;
+  target: number | null;
   newOpportunities: number;
 }
 

@@ -13,6 +13,14 @@ import {
   type LeadSaleRepPerformance,
 } from "./lead-sale-dashboard.types";
 
+function formatMetric(value: number | null, suffix = ""): string {
+  return value === null ? "N/A" : `${value}${suffix}`;
+}
+
+function formatCoverage(value: number | null): string {
+  return value === null ? "N/A" : `${value.toFixed(2).replace(".", ",")}x`;
+}
+
 interface RepPerformanceProps {
   reps: LeadSaleRepPerformance[];
   onOpenDetail: (detailId: LeadSaleDetailId) => void;
@@ -65,13 +73,13 @@ export default function RepPerformance({ reps, onOpenDetail }: RepPerformancePro
               <SortHeader label="Độ phủ chỉ tiêu" sortKey="coverage" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Tỷ lệ nhập học" sortKey="winRate" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Quá hạn" sortKey="overdue" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <SortHeader label="Thời gian TB / SLA" sortKey="avgStageAgeDays" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortHeader label="Thời gian TB / vi phạm SLA" sortKey="avgStageAgeDays" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <th scope="col" className="w-16 px-2 pb-3 text-center font-medium">Chi tiết</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-card-border">
             {sortedReps.map((rep) => {
-              const isRisk = rep.coverage < LEAD_SALE_HEALTH_THRESHOLDS.minCoverage
+              const isRisk = (rep.coverage !== null && rep.coverage < LEAD_SALE_HEALTH_THRESHOLDS.minCoverage)
                 || rep.overdue > LEAD_SALE_HEALTH_THRESHOLDS.maxOverdue
                 || rep.avgStageAgeDays > LEAD_SALE_HEALTH_THRESHOLDS.maxAvgStageAgeDays;
 
@@ -83,13 +91,17 @@ export default function RepPerformance({ reps, onOpenDetail }: RepPerformancePro
                       <span className="whitespace-nowrap font-semibold text-text-primary">{rep.name}</span>
                     </div>
                   </td>
-                  <td className="px-2 py-3 text-right text-text-secondary">{rep.target}</td>
+                  <td className="px-2 py-3 text-right text-text-secondary">{formatMetric(rep.target)}</td>
                   <td className="px-2 py-3 text-right font-semibold text-success-500">{rep.enrollment}</td>
-                  <td className="px-2 py-3 text-right font-semibold text-text-primary">{rep.achievement}%</td>
-                  <td className="px-2 py-3 text-right font-semibold text-warning-500">{rep.remaining}</td>
+                  <td className="px-2 py-3 text-right font-semibold text-text-primary">{formatMetric(rep.achievement, "%")}</td>
+                  <td className="px-2 py-3 text-right font-semibold text-warning-500">{formatMetric(rep.remaining)}</td>
                   <td className="px-2 py-3 text-right text-text-primary">{rep.expected}</td>
                   <td className="px-2 py-3 text-right text-text-primary">{rep.openOpportunities}</td>
-                  <td className="px-2 py-3 text-right"><Badge color={rep.coverage >= 1 ? "success" : "error"} size="sm">{rep.coverage.toFixed(2).replace(".", ",")}x</Badge></td>
+                  <td className="px-2 py-3 text-right">
+                    {rep.coverage === null
+                      ? "N/A"
+                      : <Badge color={rep.coverage >= 1 ? "success" : "error"} size="sm">{formatCoverage(rep.coverage)}</Badge>}
+                  </td>
                   <td className="px-2 py-3 text-right text-text-primary">{rep.winRate}%</td>
                   <td className={`px-2 py-3 text-right font-semibold ${rep.overdue > 0 ? "text-badge-error-text" : "text-text-primary"}`}>{rep.overdue}</td>
                   <td className="px-2 py-3 text-right" title={`${rep.agingOverSlaCount} hồ sơ vượt SLA`}><span className={isRisk ? "font-semibold text-warning-500" : "text-text-secondary"}>{rep.avgStageAgeDays} ngày · {rep.agingOverSlaCount} SLA</span></td>
@@ -120,7 +132,7 @@ type SortKey = "target" | "enrollment" | "achievement" | "remaining" | "expected
 type SortDirection = "asc" | "desc";
 
 function sortValue(rep: LeadSaleRepPerformance, key: SortKey) {
-  return rep[key];
+  return rep[key] === null ? Number.NEGATIVE_INFINITY : rep[key];
 }
 
 function SortHeader({

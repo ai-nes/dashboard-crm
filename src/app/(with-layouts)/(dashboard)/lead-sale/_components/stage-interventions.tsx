@@ -94,8 +94,8 @@ function getInterventions(
 ): StageIntervention[] {
   return stages
     .map((stage, index) => {
-      const slaDelta = stage.slaDays > 0 ? stage.averageDays - stage.slaDays : 0;
-      const isOverSla = slaDelta > 0;
+      const slaDelta = stage.slaDays === null ? 0 : stage.averageDays - stage.slaDays;
+      const isOverSla = stage.slaDays !== null && slaDelta > 0;
       const isLowestConversion = stage.id === lowestConversionId;
       const hasStalledRecords = stage.stalledCount > 0;
 
@@ -103,14 +103,14 @@ function getInterventions(
 
       const nextStageLabel = stages[index + 1]?.label;
       const detail = isLowestConversion
-        ? `Chỉ ${stage.nextStepConversion}% sang ${nextStageLabel ?? "bước tiếp theo"}${isOverSla ? ` · vượt SLA ${formatDays(slaDelta)}` : ""}${hasStalledRecords ? ` · ${stage.stalledCount} hồ sơ tồn` : ""}.`
+        ? `Chỉ ${stage.nextStepConversion}% sang ${nextStageLabel ?? "bước tiếp theo"}${isOverSla ? ` · vượt SLA ${formatDays(slaDelta)}` : ""}${hasStalledRecords ? ` · ${stage.stalledCount} hồ sơ vi phạm SLA` : ""}.`
         : isOverSla
           ? `Vượt SLA ${formatDays(slaDelta)} · ${stage.stalledCount} hồ sơ tồn cần được xử lý trước.`
-          : `${stage.stalledCount} hồ sơ đang chờ bước tiếp theo · cần rà lại trong ngày.`;
+          : `${stage.stalledCount} hồ sơ đã vi phạm SLA · cần rà lại trong ngày.`;
 
       return {
         stage,
-        reason: isLowestConversion ? "Chuyển bước thấp" : isOverSla ? "Vượt SLA" : "Hồ sơ tồn",
+        reason: isLowestConversion ? "Chuyển bước thấp" : "Vượt SLA",
         detail,
         tone: isOverSla ? "error" : "warning",
         priority: (isLowestConversion ? 4 : 0) + (isOverSla ? 3 : 0) + (hasStalledRecords ? 1 : 0),

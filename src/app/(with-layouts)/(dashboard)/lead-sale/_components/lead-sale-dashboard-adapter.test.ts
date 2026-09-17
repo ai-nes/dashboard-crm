@@ -127,4 +127,42 @@ describe("Lead Sale dashboard adapter", () => {
       value: "8",
     });
   });
+
+  it("keeps unavailable target metrics as N/A instead of fabricating zeroes", () => {
+    const data = toLeadSaleDashboardData({
+      ...response,
+      dashboard: {
+        ...response.dashboard,
+        summary: {
+          ...response.dashboard.summary,
+          target: null,
+          achievement: null,
+          remaining: null,
+          coverage: null,
+        },
+        reps: response.dashboard.reps.map((rep) => ({
+          ...rep,
+          target: null,
+          achievement: null,
+          remaining: null,
+          coverage: null,
+        })),
+        trend: [{ period: "Tuần 1", enrollment: 2, target: null, newOpportunities: 1 }],
+      },
+    });
+
+    expect(data.details.enrollment.metrics).toContainEqual({
+      label: "Chỉ tiêu",
+      value: "N/A",
+    });
+    expect(data.details.forecast.metrics).toContainEqual({
+      label: "Độ phủ",
+      value: "N/A",
+    });
+    expect(data.details["rep-a"].metrics).toContainEqual({
+      label: "Độ phủ",
+      value: "N/A",
+    });
+    expect(data.trend[0].target).toBeNull();
+  });
 });
