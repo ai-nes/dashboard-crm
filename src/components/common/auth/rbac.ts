@@ -291,6 +291,16 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   },
   { path: "/director/admin/segments", roles: SEGMENTS_ADMIN_ROLES },
   { path: "/director/admin/student-config", roles: SEGMENTS_ADMIN_ROLES },
+  {
+    path: "/director/admin/catalogs",
+    roles: [
+      "System Manager",
+      "Administrator",
+      "Admissions Director",
+      "Marketing",
+      "Lead Marketing",
+    ],
+  },
   { path: "/director/admin/majors", roles: MAJOR_CATALOG_ADMIN_ROLES },
   {
     path: "/director/admin/activity-logs",

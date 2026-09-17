@@ -69,6 +69,7 @@ const METHODS = {
   DETAIL: "crm.api.campaign.get_campaign",
   CREATE: "crm.api.campaign.create_campaign",
   UPDATE: "crm.api.campaign.update_campaign",
+  DELETE: "crm.api.campaign.delete_campaign",
 } as const;
 const DEFAULT_PAGE_LENGTH = 100;
 
@@ -516,6 +517,38 @@ export async function updateCampaign(
       502,
       "INVALID_CAMPAIGN_RESPONSE",
       "Phản hồi campaign vừa cập nhật không hợp lệ.",
+    );
+  }
+}
+
+export async function deleteCampaign(
+  name: string,
+  options: CampaignApiRequestOptions = {},
+): Promise<{ deleted: string }> {
+  if (!name.trim()) {
+    throw new CampaignApiError(
+      400,
+      "INVALID_CAMPAIGN_NAME",
+      "Mã campaign không được để trống.",
+    );
+  }
+  try {
+    const raw = await callCampaignApi<unknown>(
+      METHODS.DELETE,
+      "POST",
+      options,
+      { name },
+    );
+    const record = asRecord(raw);
+    const deleted = text(record?.deleted);
+    if (!deleted) throw new Error("Invalid delete response");
+    return { deleted };
+  } catch (error) {
+    if (error instanceof CampaignApiError) throw error;
+    throw new CampaignApiError(
+      502,
+      "INVALID_CAMPAIGN_DELETE_RESPONSE",
+      "Phản hồi xóa campaign không hợp lệ.",
     );
   }
 }

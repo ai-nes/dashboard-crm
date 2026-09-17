@@ -12,6 +12,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import {
   useLeadSaleCampaignChannelTypesQuery,
   useCreateLeadSaleCampaignMutation,
+  useDeleteLeadSaleCampaignMutation,
   useLeadSaleCampaignsQuery,
   useUpdateLeadSaleCampaignMutation,
 } from "@/hooks/use-lead-sale-campaign-queries";
@@ -20,7 +21,10 @@ import CampaignFormDialog from "./campaign-form-dialog";
 import CampaignList from "./campaign-list";
 import CampaignStats from "./campaign-stats";
 import CampaignToolbar from "./campaign-toolbar";
-import { isChannelTypeValidForMode, type ChannelTypeValue } from "./channel-types";
+import {
+  isChannelTypeValidForMode,
+  type ChannelTypeValue,
+} from "./channel-types";
 import { toCampaignListItem } from "./campaign-mappers";
 import { getCampaignListPath } from "./campaign-routes";
 import type {
@@ -31,7 +35,10 @@ import type {
   CampaignStatusFilter,
 } from "./types";
 
-type FormDialogState = { mode: "create" } | { mode: "edit"; campaign: CampaignListItem } | null;
+type FormDialogState =
+  | { mode: "create" }
+  | { mode: "edit"; campaign: CampaignListItem }
+  | null;
 
 const pageSize = 5;
 
@@ -39,37 +46,42 @@ export default function CampaignsOverviewDashboard() {
   const { user } = useAuth();
   const campaignListPath = getCampaignListPath(user?.roles);
   const { data, error, isPending } = useLeadSaleCampaignsQuery();
-  const {
-    data: channelTypeData,
-    error: channelTypeError,
-  } = useLeadSaleCampaignChannelTypesQuery();
+  const { data: channelTypeData, error: channelTypeError } =
+    useLeadSaleCampaignChannelTypesQuery();
   const channelTypes = channelTypeData?.channelTypes ?? [];
   const createCampaignMutation = useCreateLeadSaleCampaignMutation();
+  const deleteCampaignMutation = useDeleteLeadSaleCampaignMutation();
   const updateCampaignMutation = useUpdateLeadSaleCampaignMutation();
-  const [campaignChanges, setCampaignChanges] = useState<Record<string, Partial<CampaignListItem>>>({});
-  const [deletedCampaignIds, setDeletedCampaignIds] = useState<Set<string>>(() => new Set());
+  const [campaignChanges, setCampaignChanges] = useState<
+    Record<string, Partial<CampaignListItem>>
+  >({});
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<CampaignStatusFilter>("all");
   const [page, setPage] = useState(1);
   const [formDialog, setFormDialog] = useState<FormDialogState>(null);
-  const [deletingCampaign, setDeletingCampaign] = useState<CampaignListItem | null>(null);
+  const [deletingCampaign, setDeletingCampaign] =
+    useState<CampaignListItem | null>(null);
 
   useEffect(() => {
-    if (error) toast.error(error.message || "Không thể tải danh sách chiến dịch.");
+    if (error)
+      toast.error(error.message || "Không thể tải danh sách chiến dịch.");
   }, [error]);
 
   useEffect(() => {
     if (channelTypeError) {
-      toast.error(channelTypeError.message || "Không thể tải danh sách loại kênh.");
+      toast.error(
+        channelTypeError.message || "Không thể tải danh sách loại kênh.",
+      );
     }
   }, [channelTypeError]);
 
   const campaigns = useMemo(() => {
     const liveCampaigns = (data?.campaigns ?? []).map(toCampaignListItem);
-    return liveCampaigns
-      .filter((campaign) => !deletedCampaignIds.has(campaign.id))
-      .map((campaign) => ({ ...campaign, ...campaignChanges[campaign.id] }));
-  }, [campaignChanges, data, deletedCampaignIds]);
+    return liveCampaigns.map((campaign) => ({
+      ...campaign,
+      ...campaignChanges[campaign.id],
+    }));
+  }, [campaignChanges, data]);
 
   const filteredCampaigns = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -83,9 +95,15 @@ export default function CampaignsOverviewDashboard() {
     });
   }, [campaigns, query, status]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredCampaigns.length / pageSize));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCampaigns.length / pageSize),
+  );
   const currentPage = Math.min(page, totalPages);
-  const pageCampaigns = filteredCampaigns.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pageCampaigns = filteredCampaigns.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
@@ -135,7 +153,9 @@ export default function CampaignsOverviewDashboard() {
           else delete next[id];
           return next;
         });
-        toast.error(updateError instanceof Error ? updateError.message : errorMessage);
+        toast.error(
+          updateError instanceof Error ? updateError.message : errorMessage,
+        );
       });
   };
 
@@ -157,7 +177,11 @@ export default function CampaignsOverviewDashboard() {
     if (!campaign) return;
 
     const channelType = campaign.channelType;
-    const nextChannelType = isChannelTypeValidForMode(channelType, nextMode, channelTypes)
+    const nextChannelType = isChannelTypeValidForMode(
+      channelType,
+      nextMode,
+      channelTypes,
+    )
       ? channelType
       : "";
     persistCampaignChange(
@@ -214,7 +238,9 @@ export default function CampaignsOverviewDashboard() {
     } else {
       const campus = data?.campaigns.find((item) => item.campus)?.campus;
       if (!campus) {
-        throw new Error("Không thể tạo chiến dịch vì chưa xác định được cơ sở.");
+        throw new Error(
+          "Không thể tạo chiến dịch vì chưa xác định được cơ sở.",
+        );
       }
       await createCampaignMutation.mutateAsync({
         title: fields.name.trim(),
@@ -231,11 +257,17 @@ export default function CampaignsOverviewDashboard() {
     setFormDialog(null);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deletingCampaign) return;
-    setDeletedCampaignIds((current) => new Set(current).add(deletingCampaign.id));
-    toast.success("Đã xóa chiến dịch.");
-    setDeletingCampaign(null);
+    try {
+      await deleteCampaignMutation.mutateAsync(deletingCampaign.id);
+      toast.success("Đã xóa chiến dịch.");
+      setDeletingCampaign(null);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể xóa chiến dịch.",
+      );
+    }
   };
 
   if (isPending && !data) {
@@ -243,7 +275,10 @@ export default function CampaignsOverviewDashboard() {
   }
 
   return (
-    <main id="main-content" className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6">
+    <main
+      id="main-content"
+      className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6"
+    >
       <header className="flex flex-col gap-5 rounded-xl border border-card-border bg-card-background p-5 lg:flex-row lg:items-end lg:justify-between lg:p-6">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -253,10 +288,14 @@ export default function CampaignsOverviewDashboard() {
             Quản lý chiến dịch tuyển sinh
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
-            Theo dõi các kỳ tuyển sinh, thời gian mở/đóng và trạng thái vận hành.
+            Theo dõi các kỳ tuyển sinh, thời gian mở/đóng và trạng thái vận
+            hành.
           </p>
         </div>
-        <Button className="shrink-0 self-start lg:self-auto" onPress={() => setFormDialog({ mode: "create" })}>
+        <Button
+          className="shrink-0 self-start lg:self-auto"
+          onPress={() => setFormDialog({ mode: "create" })}
+        >
           <Plus size={16} aria-hidden="true" />
           Tạo chiến dịch
         </Button>
@@ -282,8 +321,15 @@ export default function CampaignsOverviewDashboard() {
             counts={counts}
           />
         }
-        pagination={{ page: currentPage, totalPages, total: filteredCampaigns.length, pageSize }}
-        onPageChange={(nextPage) => setPage(Math.min(Math.max(1, nextPage), totalPages))}
+        pagination={{
+          page: currentPage,
+          totalPages,
+          total: filteredCampaigns.length,
+          pageSize,
+        }}
+        onPageChange={(nextPage) =>
+          setPage(Math.min(Math.max(1, nextPage), totalPages))
+        }
       />
 
       {formDialog && (
@@ -299,6 +345,7 @@ export default function CampaignsOverviewDashboard() {
         isOpen={Boolean(deletingCampaign)}
         recordType="chiến dịch"
         recordName={deletingCampaign?.name ?? ""}
+        isDeleting={deleteCampaignMutation.isPending}
         onOpenChange={(open) => !open && setDeletingCampaign(null)}
         onConfirm={handleDeleteConfirm}
       />

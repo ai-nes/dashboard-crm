@@ -32,9 +32,9 @@ export default function SegmentManagementPage({
     >
       {isAdmin ? (
         <AdminPageHeader
-          section="Phân khúc học sinh"
-          title="Phân khúc học sinh"
-          description="Quản lý các nhóm học sinh."
+          section="Quản lý segment"
+          title="Quản lý segment"
+          description="Quản lý các nhóm học sinh dùng chung."
           canEdit={canManage}
           actions={
             canManage && createHref ? (
@@ -44,7 +44,7 @@ export default function SegmentManagementPage({
                 onPress={() => router.push(createHref)}
               >
                 <Plus size={16} aria-hidden="true" />
-                Tạo phân khúc
+                Tạo segment
               </Button>
             ) : null
           }

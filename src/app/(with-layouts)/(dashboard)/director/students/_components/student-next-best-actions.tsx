@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorCircle1, InfoTriangle } from "@tailgrids/icons";
+import { InfoTriangle } from "@tailgrids/icons";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -60,9 +60,6 @@ export default function StudentNextBestActions({
   const [postRecommendations, setPostRecommendations] = useState<
     NbaRecommendation[] | null
   >(null);
-  const [evaluationFailure, setEvaluationFailure] = useState<string | null>(
-    null,
-  );
   const [idempotencyKeys, setIdempotencyKeys] = useState<
     Record<string, string>
   >({});
@@ -71,6 +68,14 @@ export default function StudentNextBestActions({
   });
   const decisionMutation = useDecideNbaRecommendation();
   const runMutation = useRunStudentNbaEvaluation();
+
+  useEffect(() => {
+    if (!query.error) return;
+
+    toast.error("Chưa thể đồng bộ đề xuất NBA", {
+      description: nbaErrorMessage(query.error),
+    });
+  }, [query.error]);
 
   const worklistActions = useMemo(
     // The Frappe endpoint applies the student filter and resolves legacy Lead
@@ -124,12 +129,10 @@ export default function StudentNextBestActions({
 			const normalizedStatus = result.status.trim().toLowerCase();
 			if (normalizedStatus === "failed" || normalizedStatus === "dead_lettered") {
 				const message = formatNbaEvaluationFailure(result.terminalReason);
-				setEvaluationFailure(message);
 				setPostRecommendations(null);
-				toast.error(message);
+				toast.error("Không thể tạo đề xuất NBA", { description: message });
 				return;
 			}
-			setEvaluationFailure(null);
 			const refreshed = await query.refetch();
 			// The run endpoint is already scoped to this one requested student. Its
 			// recommendation target uses the canonical CRM Student id, which may
@@ -269,57 +272,7 @@ export default function StudentNextBestActions({
 
         {query.isLoading && <NbaPanelSkeleton />}
 
-        {!query.isLoading && query.isError && (
-          <div
-            className="mt-5 flex items-start gap-2.5 rounded-lg border border-card-border bg-badge-error-background p-3"
-            role="alert"
-          >
-            <ErrorCircle1
-              size={16}
-              className="mt-0.5 shrink-0 text-error-600"
-              aria-hidden="true"
-            />
-            <div>
-              <p className="text-sm font-semibold text-text-primary">
-                Chưa thể đồng bộ đề xuất NBA
-              </p>
-              <p className="mt-1 text-xs leading-5 text-text-secondary">
-                {nbaErrorMessage(query.error)}
-              </p>
-              <Button
-                appearance="outline"
-                size="xs"
-                className="mt-3"
-                onPress={() => void query.refetch()}
-              >
-                Thử lại
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {!query.isLoading && !query.isError && evaluationFailure && (
-          <div
-            className="mt-5 flex items-start gap-2.5 rounded-lg border border-error-200 bg-badge-error-background p-3"
-            role="alert"
-          >
-            <ErrorCircle1
-              size={16}
-              className="mt-0.5 shrink-0 text-error-600"
-              aria-hidden="true"
-            />
-            <div>
-              <p className="text-sm font-semibold text-text-primary">
-                Không thể tạo đề xuất NBA
-              </p>
-              <p className="mt-1 text-xs leading-5 text-text-secondary">
-                {evaluationFailure}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {!query.isLoading && !query.isError && !evaluationFailure && actions.length === 0 && (
+        {!query.isLoading && !query.isError && actions.length === 0 && (
           <div
             className="mt-8 flex flex-col items-center px-4 py-8 text-center"
             role="status"

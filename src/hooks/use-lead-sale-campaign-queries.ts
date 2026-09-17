@@ -10,6 +10,7 @@ import {
 
 import {
   createCampaign,
+  deleteCampaign,
   getCampaign,
   getCampaignChannelTypes,
   getCampaignList,
@@ -110,6 +111,19 @@ export function useUpdateLeadSaleCampaignMutation() {
 
   return useMutation<LeadSaleCampaign, Error, UpdateCampaignPayload>({
     mutationFn: (payload) => updateCampaign(payload),
+    onSuccess: () => {
+      return queryClient.invalidateQueries({
+        queryKey: leadSaleCampaignKeys.list(),
+      });
+    },
+  });
+}
+
+export function useDeleteLeadSaleCampaignMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ deleted: string }, Error, string>({
+    mutationFn: (name) => deleteCampaign(name),
     onSuccess: () => {
       return queryClient.invalidateQueries({
         queryKey: leadSaleCampaignKeys.list(),
