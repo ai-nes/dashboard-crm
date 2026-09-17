@@ -1,14 +1,8 @@
 import { ACTION_TIME_SLOTS, type ActionTimeSlot } from "@/services/api/nba-actions";
 
 import type {
-  ActionChannel,
-  ConditionFieldMetadata,
   NbaAdminActionType,
-  NbaRecommendationRule,
   NbaTimingPolicy,
-  RuleCondition,
-  RuleConditions,
-  RulePreviewResult,
 } from "./types";
 
 type RecordValue = Record<string, unknown>;
@@ -18,7 +12,6 @@ function asRecord(value: unknown): RecordValue | null {
     ? (value as RecordValue)
     : null;
 }
-
 function stringValue(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
@@ -43,43 +36,8 @@ function enumValue<T extends string>(value: unknown, options: readonly T[], fall
   return typeof value === "string" && options.includes(value as T) ? (value as T) : fallback;
 }
 
-function jsonValue(value: unknown, fallback: unknown): unknown {
-  if (typeof value !== "string") return value ?? fallback;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-}
-
-function stringArray(value: unknown): string[] {
-  const parsed = jsonValue(value, []);
-  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
-}
-
 function timeSlot(value: unknown): ActionTimeSlot | null {
   return enumValue(value, ACTION_TIME_SLOTS, "" as ActionTimeSlot) || null;
-}
-
-function conditions(value: unknown): RuleConditions {
-  const object = asRecord(jsonValue(value, {}));
-  const read = (key: "all" | "any"): RuleCondition[] => {
-    const rows = object?.[key];
-    if (!Array.isArray(rows)) return [];
-    return rows.flatMap((row) => {
-      const condition = asRecord(row);
-      if (!condition || typeof condition.field !== "string" || typeof condition.operator !== "string") {
-        return [];
-      }
-      return [{
-        field: condition.field,
-        operator: condition.operator,
-        value: condition.value as RuleCondition["value"],
-      }];
-    });
-  };
-
-  return { all: read("all"), any: read("any") };
 }
 
 export function unwrapMethodPayload(value: unknown): unknown {
@@ -127,95 +85,5 @@ export function normalizeTimingPolicy(value: unknown): NbaTimingPolicy {
     optimizationEnabled: booleanValue(object.optimization_enabled ?? object.optimizationEnabled),
     optimizationObjective: nullableString(object.optimization_objective ?? object.optimizationObjective),
     modified: nullableString(object.modified),
-  };
-}
-
-export function normalizeRule(value: unknown): NbaRecommendationRule {
-  const object = asRecord(value);
-  if (!object) throw new Error("recommendation rule must be an object");
-  const ruleKey = stringValue(object.rule_key ?? object.ruleKey ?? object.name);
-  if (!ruleKey) throw new Error("recommendation rule key is missing");
-
-  return {
-    name: stringValue(object.name, ruleKey),
-    ruleKey,
-    displayName: stringValue(object.display_name ?? object.displayName, ruleKey),
-    description: nullableString(object.description),
-    status: enumValue(object.status, ["draft", "published", "archived"], "draft"),
-    enabled: booleanValue(object.enabled),
-    version: numberValue(object.version, 1),
-    actionCode: stringValue(object.action_code ?? object.action ?? object.actionCode),
-    priority: enumValue(object.priority, ["high", "medium", "low"], "medium"),
-    triggerType: enumValue(object.trigger_type ?? object.triggerType, ["event", "state", "inactivity", "deadline", "manual"], "event"),
-    triggerEvent: nullableString(object.trigger_event ?? object.triggerEvent),
-    conditions: conditions(object.conditions),
-    timingPolicy: nullableString(object.timing_policy ?? object.timingPolicy),
-    cooldownValue: numberValue(object.cooldown_value ?? object.cooldownValue),
-    cooldownUnit: enumValue(object.cooldown_unit ?? object.cooldownUnit, ["minutes", "hours", "days"], "days"),
-    maxOccurrences: numberValue(object.max_occurrences ?? object.maxOccurrences, 1),
-    expiresAfterHours:
-      object.expires_after_hours === null || object.expires_after_hours === undefined
-        ? null
-        : numberValue(object.expires_after_hours ?? object.expiresAfterHours),
-    stopConditions: stringArray(object.stop_conditions ?? object.stopConditions),
-    publishedAt: nullableString(object.published_at ?? object.publishedAt),
-    publishedBy: nullableString(object.published_by ?? object.publishedBy),
-    archiveReason: nullableString(object.archive_reason ?? object.archiveReason),
-    modified: nullableString(object.modified),
-  };
-}
-
-export function normalizeConditionFields(value: unknown): ConditionFieldMetadata[] {
-  const payload = asRecord(unwrapMethodPayload(value));
-  const rows = Array.isArray(payload?.fields) ? payload.fields : [];
-  return rows.flatMap((row) => {
-    const object = asRecord(row);
-    if (!object || typeof object.field !== "string") return [];
-    return [{
-      field: object.field,
-      label: stringValue(object.label, object.field),
-      type: stringValue(object.type, "text"),
-      operators: Array.isArray(object.operators)
-        ? object.operators.filter((item): item is string => typeof item === "string")
-        : [],
-      options: Array.isArray(object.options)
-        ? object.options.filter((item): item is string => typeof item === "string")
-        : undefined,
-      optionsDoctype: nullableString(object.options_doctype ?? object.optionsDoctype),
-    }];
-  });
-}
-
-export function normalizePreview(value: unknown): RulePreviewResult {
-  const object = asRecord(unwrapMethodPayload(value));
-  const action = asRecord(object?.action);
-  const timing = asRecord(object?.timing);
-  const rawWarnings = Array.isArray(object?.warnings) ? object.warnings : [];
-
-  return {
-    eligible: booleanValue(object?.eligible),
-    reasonCode: nullableString(object?.reason_code ?? object?.reasonCode) ?? undefined,
-    reason: nullableString(object?.reason) ?? undefined,
-    action: action
-      ? {
-          code: stringValue(action.code),
-          displayName: stringValue(action.display_name ?? action.displayName, stringValue(action.code)),
-          channel: enumValue(action.channel, ["NONE", "CALL", "EMAIL", "MESSAGE"], "NONE") as ActionChannel,
-          executionType: stringValue(action.execution_type ?? action.executionType, "MANUAL"),
-          available: booleanValue(action.available),
-        }
-      : undefined,
-    timing: timing
-      ? {
-          policy: nullableString(timing.policy),
-          nextAt: nullableString(timing.next_at ?? timing.nextAt),
-          expiresAt: nullableString(timing.expires_at ?? timing.expiresAt),
-        }
-      : undefined,
-    priority: enumValue(object?.priority, ["high", "medium", "low"], "medium") as RulePreviewResult["priority"],
-    warnings: rawWarnings.flatMap((warning) => {
-      const item = asRecord(warning);
-      return item ? [{ code: stringValue(item.code, "WARNING"), message: stringValue(item.message) }] : [];
-    }),
   };
 }

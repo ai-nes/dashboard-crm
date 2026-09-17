@@ -5,7 +5,8 @@ import {
   RefreshCircle1Clockwise,
   Sparkle,
 } from "@tailgrids/icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
 import { formatTerminalReason } from "@/components/analysis-runs/analysis-run-meta";
@@ -51,6 +52,22 @@ export default function StudentClassificationCockpit({
     run?.stages.find((stage) => stage.terminalReason)?.terminalReason;
   const terminalReasonLabel = formatTerminalReason(terminalReason);
 
+  useEffect(() => {
+    if (!analysisError) return;
+
+    toast.error("Chưa thể hoàn tất phân tích 360", {
+      description: "Vui lòng thử lại sau.",
+    });
+  }, [analysisError]);
+
+  useEffect(() => {
+    if (!terminalReasonLabel) return;
+
+    toast.warning("Phân tích 360 chưa hoàn tất", {
+      description: `${terminalReasonLabel}. Bạn có thể chọn “Phân tích” để thử lại.`,
+    });
+  }, [terminalReasonLabel]);
+
   const handleAnalysisRequest = () => {
     if (
       !analysisTargetId.trim() ||
@@ -80,23 +97,6 @@ export default function StudentClassificationCockpit({
 
   return (
     <div className="mt-0 space-y-6">
-      {analysisError && !isAnalysisActive && (
-        <p className="text-xs text-error-600" role="alert">
-          Chưa thể hoàn tất phân tích. Bạn có thể thử lại.
-        </p>
-      )}
-      {terminalReasonLabel && !isAnalysisActive && (
-        <div
-          className="rounded-xl border border-warning-200 bg-badge-warning-background px-4 py-3 text-xs leading-5 text-warning-800 dark:border-warning-800 dark:text-warning-200"
-          role="status"
-        >
-          <p className="font-semibold">Phân tích chưa hoàn tất</p>
-          <p className="mt-0.5">
-            {terminalReasonLabel}. Bạn có thể chọn “Phân tích” để thử lại.
-          </p>
-        </div>
-      )}
-
       <DetailTabs
         ariaLabel="Các phần trong tổng quan"
         defaultSelectedKey="next-actions"

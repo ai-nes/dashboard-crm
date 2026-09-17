@@ -13,11 +13,16 @@ describe("sidebar navigation", () => {
       (section) => section.label === "CẤU HÌNH",
     );
     const majorEntry = configurationSection?.items.find(
-      (item) => item.title === "Quản lý danh mục tuyển sinh",
+      (item) => item.title === "Danh mục tuyển sinh",
     );
 
     expect(majorEntry).toMatchObject({
       url: "/director/admin/majors",
     });
+    expect(
+      configurationSection?.items.find(
+        (item) => item.title === "Danh mục & chính sách",
+      ),
+    ).toMatchObject({ url: "/director/admin/catalogs" });
   });
 });

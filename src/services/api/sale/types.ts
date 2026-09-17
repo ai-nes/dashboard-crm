@@ -121,6 +121,31 @@ export interface SaleOperations {
   items: Array<{ id: SaleOperationId; count: number }>;
 }
 
+export interface SalePerformance {
+  target: number | null;
+  enrollment: number;
+  achievement: number | null;
+  remaining: number | null;
+  expectedEnrollment: number | null;
+  pipelineCoverage: number | null;
+  openOpportunities: number;
+  newOpportunities: number;
+}
+
+export interface SalePipelineAgingBucket {
+  id: string;
+  label: string;
+  count: number;
+}
+
+export interface SalePipelineHealth {
+  followUpDue: number;
+  overdue: number;
+  slaBreach: number;
+  noActivity: number;
+  agingBuckets: SalePipelineAgingBucket[];
+}
+
 export interface SaleOverviewResponse {
   meta: SaleOverviewMeta;
   kpis: SaleKpi[];
@@ -130,6 +155,8 @@ export interface SaleOverviewResponse {
   conversionTrend: SaleConversionTrend;
   studentStatus: SaleStudentStatus;
   operations: SaleOperations;
+  performance?: SalePerformance;
+  health?: SalePipelineHealth;
 }
 
 export interface SaleOverviewParams {

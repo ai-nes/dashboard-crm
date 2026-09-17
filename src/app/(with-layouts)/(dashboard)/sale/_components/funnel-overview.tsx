@@ -19,7 +19,7 @@ export default function FunnelOverview({ stages }: FunnelOverviewProps) {
       <CardHeader className="items-start">
         <div>
           <CardTitle className="text-base">Phễu tuyển sinh</CardTitle>
-          <p className="mt-1 text-[11px] leading-4 text-text-tertiary">Luồng chuyển đổi trong thời gian gần đây.</p>
+          <p className="mt-1 text-[11px] leading-4 text-text-tertiary">Tiến trình từ phân công đến nhập học trong kỳ tuyển sinh.</p>
         </div>
       </CardHeader>
 

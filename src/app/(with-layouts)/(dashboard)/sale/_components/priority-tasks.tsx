@@ -32,10 +32,10 @@ export default function PriorityTasks({ tasks, overdueCount, timezone }: Priorit
       <CardHeader className="border-b border-card-border px-5 py-4 sm:px-6">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Việc cần xử lý hôm nay</CardTitle>
+            <CardTitle>Việc ưu tiên</CardTitle>
             {overdueCount > 0 ? <Badge color="error" size="sm">{overdueCount} quá hạn</Badge> : null}
           </div>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Các task được sắp theo hạn xử lý và mức độ ưu tiên.</p>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Các việc được sắp theo hạn xử lý và mức độ ưu tiên.</p>
         </div>
         <Link
           href="/sale/tasks"
@@ -48,7 +48,7 @@ export default function PriorityTasks({ tasks, overdueCount, timezone }: Priorit
 
       <div className="divide-y divide-card-border">
         {tasks.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-text-tertiary sm:px-6">Không có task ưu tiên cần xử lý.</p>
+          <p className="px-5 py-8 text-sm text-text-tertiary sm:px-6">Không có việc ưu tiên cần xử lý.</p>
         ) : tasks.map((task) => {
           const styles = taskToneStyles[task.type];
 
@@ -72,7 +72,7 @@ export default function PriorityTasks({ tasks, overdueCount, timezone }: Priorit
                 <Link
                   href={`/sale/tasks?task=${encodeURIComponent(task.id)}`}
                   className="inline-flex h-7 items-center justify-center rounded-lg bg-button-primary-background px-2.5 text-[11px] font-semibold text-button-primary-text transition-colors hover:bg-button-primary-hover-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
-                  aria-label={`Thực hiện task ${task.title} cho ${task.studentName}`}
+                  aria-label={`Thực hiện việc ${task.title} cho ${task.studentName}`}
                 >
                   Thực hiện
                 </Link>

@@ -2,7 +2,9 @@
 
 Tài liệu này mô tả contract backend cần để hiển thị dashboard **Sale · Tổng quan** tại route `/sale`.
 
-> Trạng thái: **đã triển khai**. Backend cung cấp snapshot tại `crm.api.sale.get_sale_overview`; route `/sale` tải dữ liệu qua service/query hook và không còn đọc fixture số liệu.
+> Trạng thái: **Phase 1 đã triển khai**. Backend cung cấp snapshot tại `crm.api.sale.get_sale_overview`; route `/sale` tải dữ liệu qua service/query hook và không còn đọc fixture số liệu. `performance` và `health` là phần mở rộng Phase 2, chỉ hiển thị khi backend trả về.
+
+Để review UI Phase 2 trước khi backend hoàn tất, có thể bật mock rõ ràng trong môi trường phát triển bằng `NEXT_PUBLIC_SALE_DASHBOARD_MODE=mock`. Mock chỉ được dùng khi `NODE_ENV` không phải `production`; production luôn gọi API thật.
 
 ## 1. Phạm vi màn hình
 
@@ -11,19 +13,23 @@ Dashboard `/sale` cần một snapshot thống nhất cho các vùng sau:
 | Vùng UI | Dữ liệu API | Ghi chú |
 |---|---|---|
 | Header chào buổi sáng | `meta.viewer`, `meta.date`, `tasks.summary.today.total` | Tên, ngày và số task không hard-code |
-| 5 KPI pipeline | `kpis[]` | `assigned`, `consulting`, `qualified`, `documents`, `admission` |
+| Snapshot stage legacy | `kpis[]` | Giữ cho tương thích API; không còn hiển thị như KPI top-level trên dashboard chính |
 | Task ưu tiên | `tasks.priority` | Danh sách task mở, sắp theo hạn và mức ưu tiên |
 | Phễu tuyển sinh | `pipeline.stages[]` | 7 bước từ phân công đến nhập học |
 | Học sinh cần chú ý | `attention.items[]` | Hồ sơ có nguy cơ, ý định cao hoặc bị kẹt |
 | Xu hướng chuyển đổi | `conversionTrend` | Hai range `4w` và `12w`; series tư vấn hoàn tất và nhập học |
 | Trạng thái học sinh | `studentStatus` | Phân bổ độc quyền trên tập hồ sơ đang phụ trách |
 | Việc & hồ sơ cần xử lý | `operations` | Task quá hạn và hồ sơ thiếu giấy tờ |
+| Tiến độ tuyển sinh | `performance` | Chỉ tiêu, kết quả, dự báo và độ phủ pipeline; có thể chưa sẵn sàng |
+| Sức khỏe pipeline | `health` | Follow-up, quá hạn, SLA và tuổi hồ sơ; có thể chưa sẵn sàng |
 
 Nguồn tham chiếu trong frontend:
 
 - [sale/page.tsx](<../../src/app/(with-layouts)/(dashboard)/sale/page.tsx>)
 - [sale-dashboard.tsx](<../../src/app/(with-layouts)/(dashboard)/sale/_components/sale-dashboard.tsx>)
 - [data.ts](<../../src/app/(with-layouts)/(dashboard)/sale/_components/data.ts>)
+- [performance-summary.tsx](<../../src/app/(with-layouts)/(dashboard)/sale/_components/performance-summary.tsx>)
+- [pipeline-health.tsx](<../../src/app/(with-layouts)/(dashboard)/sale/_components/pipeline-health.tsx>)
 - [stat-cards.tsx](<../../src/app/(with-layouts)/(dashboard)/sale/_components/stat-cards.tsx>)
 - [priority-tasks.tsx](<../../src/app/(with-layouts)/(dashboard)/sale/_components/priority-tasks.tsx>)
 - [funnel-overview.tsx](<../../src/app/(with-layouts)/(dashboard)/sale/_components/funnel-overview.tsx>)
@@ -318,6 +324,25 @@ type SaleOperations = {
   }>;
 };
 
+type SalePerformance = {
+  target: number | null;
+  enrollment: number;
+  achievement: number | null;
+  remaining: number | null;
+  expectedEnrollment: number | null;
+  pipelineCoverage: number | null;
+  openOpportunities: number;
+  newOpportunities: number;
+};
+
+type SalePipelineHealth = {
+  followUpDue: number;
+  overdue: number;
+  slaBreach: number;
+  noActivity: number;
+  agingBuckets: Array<{ id: string; label: string; count: number }>;
+};
+
 type SaleOverviewResponse = {
   meta: SaleOverviewMeta;
   kpis: SaleKpi[];
@@ -327,8 +352,26 @@ type SaleOverviewResponse = {
   conversionTrend: SaleConversionTrend;
   studentStatus: SaleStudentStatus;
   operations: SaleOperations;
+  performance?: SalePerformance;
+  health?: SalePipelineHealth;
 };
 ```
+
+### 5.3. Ý nghĩa của `performance` và `health`
+
+Hai khối này là phần mở rộng của contract. Khi backend chưa có nguồn dữ liệu
+canonical, có thể bỏ hẳn khối tương ứng khỏi response để frontend không hiển thị
+số trình diễn. Không dùng `0` để biểu diễn dữ liệu chưa cấu hình:
+
+- `target`, `achievement`, `remaining`, `expectedEnrollment` và `pipelineCoverage`
+  nhận `null` khi chưa thể tính.
+- `performance.enrollment`, `openOpportunities` và `newOpportunities` là số đã
+  ghi nhận, nên dùng `0` khi không có bản ghi.
+- `health.agingBuckets` có thể rỗng nhưng không trả `null`.
+- `pipelineCoverage` được tính bằng `expectedEnrollment / remaining` khi
+  `remaining > 0`; nếu không đủ dữ liệu thì trả `null`.
+- Các nhóm `health` là các tín hiệu có thể chồng lấp, không cộng chúng thành một
+  tổng số hồ sơ duy nhất.
 
 `label`, `context` và nội dung mô tả là dữ liệu hiển thị; `tone`, màu, icon, Tailwind class và href không thuộc response API. Frontend tự map `id` sang presentation phù hợp.
 

@@ -1,14 +1,5 @@
 import type { ActionTimeSlot } from "@/services/api/nba-actions";
 
-export type ActionChannel = "NONE" | "CALL" | "EMAIL" | "MESSAGE";
-export type RuleStatus = "draft" | "published" | "archived";
-export type RulePriority = "high" | "medium" | "low";
-export type RuleTriggerType =
-  | "event"
-  | "state"
-  | "inactivity"
-  | "deadline"
-  | "manual";
 export type TimingTriggerType = "event" | "relative" | "deadline" | "schedule";
 export type DelayUnit = "minutes" | "hours" | "days";
 export type DeadlineType = "none" | "fixed_offset" | "business_days";
@@ -101,114 +92,6 @@ export interface ListTimingPoliciesResponse {
   start: number;
   pageLength: number;
   policies: NbaTimingPolicy[];
-}
-
-export interface RuleCondition {
-  field: string;
-  operator: string;
-  value?: string | number | boolean | string[] | null;
-}
-
-export interface RuleConditions {
-  all: RuleCondition[];
-  any: RuleCondition[];
-}
-
-export interface NbaRecommendationRule {
-  name: string;
-  ruleKey: string;
-  displayName: string;
-  description: string | null;
-  status: RuleStatus;
-  enabled: boolean;
-  version: number;
-  actionCode: string;
-  priority: RulePriority;
-  triggerType: RuleTriggerType;
-  triggerEvent: string | null;
-  conditions: RuleConditions;
-  timingPolicy: string | null;
-  cooldownValue: number;
-  cooldownUnit: DelayUnit;
-  maxOccurrences: number;
-  expiresAfterHours: number | null;
-  stopConditions: string[];
-  publishedAt: string | null;
-  publishedBy: string | null;
-  archiveReason: string | null;
-  modified: string | null;
-}
-
-export interface ListRulesParams {
-  status?: RuleStatus;
-  enabled?: boolean;
-  actionCode?: string;
-  triggerType?: RuleTriggerType;
-  search?: string;
-  start?: number;
-  pageLength?: number;
-}
-
-export interface ListRulesResponse {
-  total: number;
-  start: number;
-  pageLength: number;
-  rules: NbaRecommendationRule[];
-}
-
-export interface RecommendationRulePayload {
-  ruleKey?: string;
-  displayName?: string;
-  description?: string;
-  actionCode?: string;
-  priority?: RulePriority;
-  triggerType?: RuleTriggerType;
-  triggerEvent?: string;
-  conditions?: RuleConditions;
-  timingPolicy?: string | null;
-  cooldownValue?: number;
-  cooldownUnit?: DelayUnit;
-  maxOccurrences?: number;
-  expiresAfterHours?: number | null;
-  stopConditions?: string[];
-}
-
-export interface ConditionFieldMetadata {
-  field: string;
-  label: string;
-  type: "text" | "number" | "select" | "link" | string;
-  operators: string[];
-  options?: string[];
-  optionsDoctype?: string | null;
-}
-
-export interface RulePreviewResult {
-  eligible: boolean;
-  reasonCode?: string;
-  reason?: string;
-  action?: {
-    code: string;
-    displayName: string;
-    channel: ActionChannel;
-    executionType: string;
-    available: boolean;
-  };
-  timing?: {
-    policy: string | null;
-    nextAt: string | null;
-    expiresAt: string | null;
-  };
-  priority?: RulePriority;
-  warnings: Array<{ code: string; message: string }>;
-}
-
-export interface RulePreviewPayload {
-  rule: RecommendationRulePayload;
-  context: {
-    student: string;
-    studentStage?: string;
-    ownerStaff?: string;
-  };
 }
 
 export type RequestOptions = {

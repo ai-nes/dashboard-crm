@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createTimingPolicy, previewRecommendationRule } from "./index";
-import { normalizeRule, normalizeTimingPolicy } from "./normalizers";
+import { createTimingPolicy } from "./index";
+import { normalizeTimingPolicy } from "./normalizers";
 
 describe("NBA admin API", () => {
   it("normalizes Timing Policy fields from Frappe Resource API", () => {
@@ -24,23 +24,6 @@ describe("NBA admin API", () => {
     });
   });
 
-  it("normalizes Rule conditions and backend action alias", () => {
-    expect(normalizeRule({
-      name: "unaddressed_intent",
-      rule_key: "unaddressed_intent",
-      display_name: "Xử lý nhu cầu chưa được phản hồi",
-      action: "CALL",
-      conditions: JSON.stringify({ all: [{ field: "student.student_stage", operator: "in", value: ["New", "Connected"] }], any: [] }),
-      stop_conditions: '["student_converted"]',
-      status: "draft",
-      version: 1,
-    })).toMatchObject({
-      actionCode: "CALL",
-      conditions: { all: [{ field: "student.student_stage", operator: "in", value: ["New", "Connected"] }] },
-      stopConditions: ["student_converted"],
-    });
-  });
-
   it("sends Timing Policy as a Resource API payload", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: { name: "FOLLOW_UP_24H", policy_key: "FOLLOW_UP_24H", trigger_type: "relative" } }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -53,16 +36,5 @@ describe("NBA admin API", () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toMatchObject({ policy_key: "FOLLOW_UP_24H", delay_value: 24, time_slot: "6-12" });
   });
 
-  it("sends Rule preview with structured rule and student context", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: { eligible: false, reason_code: "ACTION_DISABLED", warnings: [] } }), { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
-    try {
-      await previewRecommendationRule({ rule: { actionCode: "CALL", priority: "high", conditions: { all: [], any: [] } }, context: { student: "STU-0001", studentStage: "New" } }, { baseUrl: "http://frappe:8000" });
-    } finally {
-      vi.unstubAllGlobals();
-    }
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
-    expect(body).toMatchObject({ rule: { action_code: "CALL", priority: "high" }, context: { student: "STU-0001", student_stage: "New" } });
-  });
 });
 

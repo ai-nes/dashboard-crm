@@ -24,10 +24,9 @@ export default function StudentStatusChart({ data }: StudentStatusChartProps) {
     <Card className="min-w-0 p-5 sm:p-6">
       <CardHeader className="items-start">
         <div>
-          <CardTitle>Trạng thái học sinh</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Phân bổ hồ sơ bạn đang phụ trách.</p>
+          <CardTitle>Phân bổ hồ sơ</CardTitle>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Phân bổ hiện tại trên tập hồ sơ phụ trách.</p>
         </div>
-        <span className="rounded-full bg-background-soft-50 px-2.5 py-1 text-[11px] font-medium text-text-secondary">Cập nhật hôm nay</span>
       </CardHeader>
 
         <div className="relative mx-auto mt-3 h-52 w-full max-w-60" role="img" aria-label={`Biểu đồ donut trạng thái ${data.total} học sinh`}>

@@ -1,28 +1,17 @@
 import {
   normalizeActionType,
-  normalizeConditionFields,
-  normalizePreview,
-  normalizeRule,
   normalizeTimingPolicy,
   unwrapMethodPayload,
 } from "./normalizers";
 import type {
-  ConditionFieldMetadata,
   CreateActionTypePayload,
   ListActionTypesParams,
   ListActionTypesResponse,
-  ListRulesParams,
-  ListRulesResponse,
   ListTimingPoliciesParams,
   ListTimingPoliciesResponse,
   NbaAdminActionType,
-  NbaRecommendationRule,
   NbaTimingPolicy,
-  RecommendationRulePayload,
   RequestOptions,
-  RuleConditions,
-  RulePreviewPayload,
-  RulePreviewResult,
   TimingPolicyPayload,
   UpdateActionTypePayload,
 } from "./types";
@@ -36,15 +25,6 @@ const METHODS = {
   CREATE_ACTION_TYPE: "crm.api.action_type.create_action_type",
   UPDATE_ACTION_TYPE: "crm.api.action_type.update_action_type",
   DELETE_ACTION_TYPE: "crm.api.action_type.delete_action_type",
-  LIST_RULES: "crm.api.recommendation_rule.list_rules",
-  GET_RULE: "crm.api.recommendation_rule.get_rule",
-  CREATE_RULE: "crm.api.recommendation_rule.create_rule",
-  UPDATE_RULE: "crm.api.recommendation_rule.update_rule",
-  PUBLISH_RULE: "crm.api.recommendation_rule.publish_rule",
-  ARCHIVE_RULE: "crm.api.recommendation_rule.archive_rule",
-  DELETE_RULE: "crm.api.recommendation_rule.delete_rule",
-  PREVIEW_RULE: "crm.api.recommendation_rule.preview_rule",
-  LIST_CONDITION_FIELDS: "crm.api.recommendation_rule.list_condition_fields",
 } as const;
 
 const TIMING_POLICY_DOCTYPE = encodeURIComponent("CRM Timing Policy");
@@ -58,7 +38,6 @@ export class NbaAdminApiError extends Error {
     this.name = "NbaAdminApiError";
   }
 }
-
 type RequestMethod = "GET" | "POST" | "PUT" | "DELETE";
 type QueryValue = string | number | boolean | undefined;
 type RecordValue = Record<string, unknown>;
@@ -480,189 +459,5 @@ export async function deleteTimingPolicy(
     `${TIMING_POLICY_DOCTYPE}/${encodeURIComponent(name)}`,
     "DELETE",
     options,
-  );
-}
-
-export async function listRecommendationRules(
-  params: ListRulesParams = {},
-  options: RequestOptions = {},
-): Promise<ListRulesResponse> {
-  const raw = await callMethod<unknown>(METHODS.LIST_RULES, "GET", options, {
-    status: params.status,
-    enabled: params.enabled === undefined ? undefined : params.enabled ? 1 : 0,
-    action_code: params.actionCode,
-    trigger_type: params.triggerType,
-    search: params.search,
-    start: params.start ?? 0,
-    page_length: params.pageLength ?? 100,
-  });
-  const payload = asRecord(raw);
-  const rules = listValue(raw, "rules").map(normalizeRule);
-  return {
-    total: numberValue(payload?.total, rules.length),
-    start: numberValue(payload?.start, params.start ?? 0),
-    pageLength: numberValue(payload?.page_length, params.pageLength ?? 100),
-    rules,
-  };
-}
-
-export async function getRecommendationRule(
-  name: string,
-  options: RequestOptions = {},
-): Promise<NbaRecommendationRule> {
-  return normalizeRule(
-    await callMethod(METHODS.GET_RULE, "GET", options, { name }),
-  );
-}
-
-function ruleBody(payload: RecommendationRulePayload): Record<string, unknown> {
-  return {
-    ...(payload.ruleKey !== undefined ? { rule_key: payload.ruleKey } : {}),
-    ...(payload.displayName !== undefined
-      ? { display_name: payload.displayName }
-      : {}),
-    ...(payload.description !== undefined
-      ? { description: payload.description }
-      : {}),
-    ...(payload.actionCode !== undefined
-      ? { action_code: payload.actionCode }
-      : {}),
-    ...(payload.priority !== undefined ? { priority: payload.priority } : {}),
-    ...(payload.triggerType !== undefined
-      ? { trigger_type: payload.triggerType }
-      : {}),
-    ...(payload.triggerEvent !== undefined
-      ? { trigger_event: payload.triggerEvent }
-      : {}),
-    ...(payload.conditions !== undefined
-      ? { conditions: payload.conditions }
-      : {}),
-    ...(payload.timingPolicy !== undefined
-      ? { timing_policy: payload.timingPolicy }
-      : {}),
-    ...(payload.cooldownValue !== undefined
-      ? { cooldown_value: payload.cooldownValue }
-      : {}),
-    ...(payload.cooldownUnit !== undefined
-      ? { cooldown_unit: payload.cooldownUnit }
-      : {}),
-    ...(payload.maxOccurrences !== undefined
-      ? { max_occurrences: payload.maxOccurrences }
-      : {}),
-    ...(payload.expiresAfterHours !== undefined
-      ? { expires_after_hours: payload.expiresAfterHours }
-      : {}),
-    ...(payload.stopConditions !== undefined
-      ? { stop_conditions: payload.stopConditions }
-      : {}),
-  };
-}
-
-export async function createRecommendationRule(
-  payload: RecommendationRulePayload,
-  options: RequestOptions = {},
-): Promise<NbaRecommendationRule> {
-  return normalizeRule(
-    await callMethod(
-      METHODS.CREATE_RULE,
-      "POST",
-      options,
-      {},
-      ruleBody(payload),
-    ),
-  );
-}
-
-export async function updateRecommendationRule(
-  name: string,
-  payload: RecommendationRulePayload,
-  options: RequestOptions = {},
-): Promise<NbaRecommendationRule> {
-  return normalizeRule(
-    await callMethod(
-      METHODS.UPDATE_RULE,
-      "PUT",
-      options,
-      { name },
-      ruleBody(payload),
-    ),
-  );
-}
-
-export async function publishRecommendationRule(
-  name: string,
-  expectedVersion: number,
-  options: RequestOptions = {},
-): Promise<NbaRecommendationRule> {
-  return normalizeRule(
-    await callMethod(
-      METHODS.PUBLISH_RULE,
-      "POST",
-      options,
-      {},
-      { name, expected_version: expectedVersion },
-    ),
-  );
-}
-
-export async function archiveRecommendationRule(
-  name: string,
-  reason: string,
-  options: RequestOptions = {},
-): Promise<NbaRecommendationRule> {
-  return normalizeRule(
-    await callMethod(
-      METHODS.ARCHIVE_RULE,
-      "POST",
-      options,
-      {},
-      { name, reason },
-    ),
-  );
-}
-
-export async function deleteRecommendationRule(
-  name: string,
-  options: RequestOptions = {},
-): Promise<void> {
-  await callMethod(METHODS.DELETE_RULE, "DELETE", options, { name });
-}
-
-export async function listConditionFields(
-  options: RequestOptions = {},
-): Promise<ConditionFieldMetadata[]> {
-  return normalizeConditionFields(
-    await callMethod(METHODS.LIST_CONDITION_FIELDS, "GET", options),
-  );
-}
-
-export async function previewRecommendationRule(
-  payload: RulePreviewPayload,
-  options: RequestOptions = {},
-): Promise<RulePreviewResult> {
-  return normalizePreview(
-    await callMethod(
-      METHODS.PREVIEW_RULE,
-      "POST",
-      options,
-      {},
-      {
-        rule: {
-          ...ruleBody(payload.rule),
-          conditions:
-            payload.rule.conditions ??
-            ({ all: [], any: [] } satisfies RuleConditions),
-        },
-        context: {
-          student: payload.context.student,
-          ...(payload.context.studentStage
-            ? { student_stage: payload.context.studentStage }
-            : {}),
-          ...(payload.context.ownerStaff
-            ? { owner_staff: payload.context.ownerStaff }
-            : {}),
-        },
-      },
-    ),
   );
 }

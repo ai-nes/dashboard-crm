@@ -28,6 +28,7 @@ interface DatePickerFieldProps {
   ariaLabel: string;
   min?: string;
   max?: string;
+  required?: boolean;
   disabled?: boolean;
   isInvalid?: boolean;
   "aria-describedby"?: string;
@@ -40,6 +41,7 @@ export function DatePickerField({
   ariaLabel,
   min,
   max,
+  required = false,
   disabled = false,
   isInvalid = false,
   "aria-describedby": ariaDescribedBy,
@@ -59,6 +61,7 @@ export function DatePickerField({
         disabled={disabled}
         maxValue={maxValue ?? undefined}
         minValue={minValue ?? undefined}
+        required={required}
         onChange={(nextValue) => onChange(nextValue?.toString() ?? "")}
         value={dateValue}
       >

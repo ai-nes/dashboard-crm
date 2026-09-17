@@ -15,7 +15,6 @@ import {
 import { useActivityLogsQuery } from "@/hooks/use-activity-logs-query";
 import {
   useNbaAdminActionTypesQuery,
-  useNbaRulesQuery,
   useNbaTimingPoliciesQuery,
 } from "@/hooks/use-nba-admin-queries";
 import { useCrmRuleVersionsQuery } from "@/hooks/use-rules-config-queries";
@@ -85,7 +84,6 @@ export default function AdminOverviewPage({
   const ruleVersionsQuery = useCrmRuleVersionsQuery({ pageLength: 50 });
   const nbaActionsQuery = useNbaAdminActionTypesQuery({ pageLength: 1 });
   const nbaPoliciesQuery = useNbaTimingPoliciesQuery({ pageLength: 1 });
-  const nbaRulesQuery = useNbaRulesQuery({ pageLength: 1 });
   const messageTemplatesQuery = useQuery({
     queryKey: ["admin-overview", "message-templates"],
     queryFn: () => listAdminMessageTemplateLibrary({ start: 0, pageLength: 1 }),
@@ -110,7 +108,7 @@ export default function AdminOverviewPage({
   const nbaCount = sumKnown([
     totalOf(nbaActionsQuery.data),
     totalOf(nbaPoliciesQuery.data),
-    totalOf(nbaRulesQuery.data),
+    ruleCount,
   ]);
   const catalogCount = sumKnown([
     totalOf(majorGroupsQuery.data),
@@ -129,7 +127,7 @@ export default function AdminOverviewPage({
     schoolsQuery,
     schoolAreasQuery,
   ];
-  const nbaQueries = [nbaActionsQuery, nbaPoliciesQuery, nbaRulesQuery];
+  const nbaQueries = [nbaActionsQuery, nbaPoliciesQuery, ruleVersionsQuery];
   const isCatalogLoading = catalogQueries.some((query) => query.isPending);
   const isCatalogError = catalogQueries.some((query) => query.isError);
   const isNbaLoading = nbaQueries.some((query) => query.isPending);
@@ -280,7 +278,6 @@ export default function AdminOverviewPage({
     ruleVersionsQuery,
     nbaActionsQuery,
     nbaPoliciesQuery,
-    nbaRulesQuery,
     messageTemplatesQuery,
     segmentsQuery,
     majorGroupsQuery,

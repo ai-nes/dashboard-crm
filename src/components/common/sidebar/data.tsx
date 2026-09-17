@@ -185,7 +185,7 @@ export const NAV_DATA: NavigationSection[] = [
         icon: <SlidersDoubleHorizontal size={18} />,
       }),
       navItem({
-        title: "Phân khúc học sinh",
+        title: "Quản lý segment",
         url: "/director/admin/segments",
         icon: <Layers2 size={18} />,
       }),
@@ -204,6 +204,12 @@ export const NAV_DATA: NavigationSection[] = [
         url: "/director/admin/student-config",
         icon: <IdCard size={18} />,
       }),
+      // Tạm ẩn mục này trong thời gian hoàn thiện UI; giữ lại route để bật lại khi cần.
+      // navItem({
+      //   title: "Danh mục & chính sách",
+      //   url: "/director/admin/catalogs",
+      //   icon: <SlidersDoubleHorizontal size={18} />,
+      // }),
       navItem({
         title: "Danh mục tuyển sinh",
         url: "/director/admin/majors",

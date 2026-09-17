@@ -44,9 +44,9 @@ describe("dashboard RBAC", () => {
       "Administrator",
     ]);
     expect(getRecognizedRoles(["Sale", "sale", " Sale "])).toEqual(["Sale"]);
-    expect(getRecognizedRoles(["Administrator", "CEO", "System Manager"])).toEqual([
-      "Administrator",
-    ]);
+    expect(
+      getRecognizedRoles(["Administrator", "CEO", "System Manager"]),
+    ).toEqual(["Administrator"]);
   });
 
   it("uses the most specific rule for nested routes", () => {
@@ -65,14 +65,22 @@ describe("dashboard RBAC", () => {
 
   it("resolves /admin/users to the /admin route rule", () => {
     expect(findRouteAccessRule("/admin/users")?.path).toBe("/admin");
-    expect(canAccessDashboardPath("/admin/users", ["System Manager"])).toBe(true);
-    expect(canAccessDashboardPath("/admin/users", ["Administrator"])).toBe(true);
+    expect(canAccessDashboardPath("/admin/users", ["System Manager"])).toBe(
+      true,
+    );
+    expect(canAccessDashboardPath("/admin/users", ["Administrator"])).toBe(
+      true,
+    );
     expect(canAccessDashboardPath("/admin/users", ["Sale"])).toBe(false);
   });
 
   it("allows the Rule Engine route from the backend capability", () => {
     expect(
-      canAccessDashboardPath("/director/admin/rules-config", ["Lead Sale"], ["rule.manage"]),
+      canAccessDashboardPath(
+        "/director/admin/rules-config",
+        ["Lead Sale"],
+        ["rule.manage"],
+      ),
     ).toBe(true);
     expect(
       canAccessDashboardPath("/director/admin/rules-config", ["Lead Sale"], []),
@@ -88,9 +96,9 @@ describe("dashboard RBAC", () => {
     expect(getNavigationUrls(leadSaleNavigation)).toContain(
       "/lead-sale/segments",
     );
-    expect(
-      findRouteAccessRule("/lead-sale/segments/SEG-001")?.path,
-    ).toBe("/lead-sale/segments");
+    expect(findRouteAccessRule("/lead-sale/segments/SEG-001")?.path).toBe(
+      "/lead-sale/segments",
+    );
     expect(
       canAccessDashboardPath("/lead-sale/segments/SEG-001", ["Lead Sale"]),
     ).toBe(true);
@@ -212,9 +220,9 @@ describe("dashboard RBAC", () => {
         role !== "Administrator" && role !== "System Manager";
 
       expect(contentRoutes).toHaveLength(shouldShowContentInNavigation ? 2 : 0);
-      expect(
-        canAccessDashboardPath("/director/message-template", [role]),
-      ).toBe(true);
+      expect(canAccessDashboardPath("/director/message-template", [role])).toBe(
+        true,
+      );
       expect(canAccessDashboardPath("/director/snippest", [role])).toBe(true);
     }
   });
@@ -259,9 +267,7 @@ describe("dashboard RBAC", () => {
     expect(getDefaultRouteForRoles(["Promoter"])).toBe(
       "/director/school-field-activity",
     );
-    expect(getDefaultRouteForRoles(["Marketing"])).toBe(
-      "/marketing",
-    );
+    expect(getDefaultRouteForRoles(["Marketing"])).toBe("/marketing");
     expect(getDefaultRouteForRoles(["Administrator"])).toBe("/director");
     expect(getDefaultRouteForRoles(["System Manager"])).toBe("/admin");
   });
@@ -312,16 +318,17 @@ describe("dashboard RBAC", () => {
     expect(getNavigationUrls(directorNavigation)).toHaveLength(13);
     expect(getNavigationUrls(directorNavigation)[0]).toBe("/director");
     expect(
-      getNavigationUrls(filterNavigationByRoles(DIRECTOR_NAV_DATA, ["Admissions Director"])),
-      ).toHaveLength(13);
+      getNavigationUrls(
+        filterNavigationByRoles(DIRECTOR_NAV_DATA, ["Admissions Director"]),
+      ),
+    ).toHaveLength(13);
     expect(
       getNavigationUrls(
-        filterNavigationByRoles(
-          getNavigationDataForRoles(["Administrator"]),
-          ["Administrator"],
-        ),
+        filterNavigationByRoles(getNavigationDataForRoles(["Administrator"]), [
+          "Administrator",
+        ]),
       ),
-       ).toHaveLength(15);
+    ).toHaveLength(17);
     expect(primaryItems).not.toContain("Cấu hình Action NBA");
     expect(
       findActiveGroupKeyInNavigation("/director/ai", directorNavigation),
@@ -346,7 +353,9 @@ describe("dashboard RBAC", () => {
     expect(marketingItems).not.toContain("Trung tâm AI & dữ liệu");
     expect(marketingItems).not.toContain("Hiệu quả chiến dịch");
     expect(marketingItems).toContain("Hoạt động & chiến dịch");
-    expect(getNavigationUrls(marketingNavigation)).not.toContain("/director/ai");
+    expect(getNavigationUrls(marketingNavigation)).not.toContain(
+      "/director/ai",
+    );
     expect(getNavigationUrls(marketingNavigation)).not.toContain(
       "/director/campaign-intelligence",
     );
@@ -357,10 +366,9 @@ describe("dashboard RBAC", () => {
 
   it("keeps System Manager on the small administration workspace", () => {
     const systemManagerItems = getNavigationUrls(
-      filterNavigationByRoles(
-        getNavigationDataForRoles(["System Manager"]),
-        ["System Manager"],
-      ),
+      filterNavigationByRoles(getNavigationDataForRoles(["System Manager"]), [
+        "System Manager",
+      ]),
     );
 
     expect(systemManagerItems).toEqual([
@@ -372,6 +380,8 @@ describe("dashboard RBAC", () => {
       "/director/admin/rules-config",
       "/director/admin/message-templates",
       "/director/admin/student-config",
+      "/director/admin/catalogs",
+      "/director/admin/majors",
       "/director/admin/activity-logs",
     ]);
     expect(
@@ -407,14 +417,13 @@ describe("dashboard RBAC", () => {
     ).not.toContain(configurationUrl);
     expect(canAccessDashboardPath(configurationUrl, ["Sale"])).toBe(false);
     expect(
-      canAccessDashboardPath(
-        "/director/admin/action-recommendations",
-        ["Admissions Director"],
-      ),
+      canAccessDashboardPath("/director/admin/action-recommendations", [
+        "Admissions Director",
+      ]),
     ).toBe(false);
-    expect(
-      canAccessDashboardPath(configurationUrl, ["System Manager"]),
-    ).toBe(true);
+    expect(canAccessDashboardPath(configurationUrl, ["System Manager"])).toBe(
+      true,
+    );
   });
 
   it("uses the school list label in every sales workspace", () => {
@@ -426,9 +435,7 @@ describe("dashboard RBAC", () => {
         getNavigationDataForRoles([role]),
         [role],
       );
-      expect(
-        getNavigationUrls(navigation),
-      ).toContain(school360Url);
+      expect(getNavigationUrls(navigation)).toContain(school360Url);
       expect(
         navigation
           .flatMap((section) => section.items)
@@ -440,17 +447,13 @@ describe("dashboard RBAC", () => {
 
   it("exposes the lead list only in each sales role's workspace", () => {
     expect(canAccessDashboardPath("/sale/leads", ["Sale"])).toBe(true);
-    expect(canAccessDashboardPath("/ctv-sale/leads", ["CTV Sale"])).toBe(
-      true,
-    );
+    expect(canAccessDashboardPath("/ctv-sale/leads", ["CTV Sale"])).toBe(true);
     expect(canAccessDashboardPath("/sale/leads", ["CTV Sale"])).toBe(false);
     expect(canAccessDashboardPath("/ctv-sale/leads", ["Sale"])).toBe(false);
 
     expect(
       getNavigationUrls(
-        filterNavigationByRoles(getNavigationDataForRoles(["Sale"]), [
-          "Sale",
-        ]),
+        filterNavigationByRoles(getNavigationDataForRoles(["Sale"]), ["Sale"]),
       ),
     ).toContain("/sale/leads");
     expect(
@@ -467,18 +470,12 @@ describe("dashboard RBAC", () => {
     expect(canAccessDashboardPath("/ctv-sale/campaigns", ["CTV Sale"])).toBe(
       true,
     );
-    expect(canAccessDashboardPath("/sale/campaigns", ["CTV Sale"])).toBe(
-      false,
-    );
-    expect(canAccessDashboardPath("/ctv-sale/campaigns", ["Sale"])).toBe(
-      false,
-    );
+    expect(canAccessDashboardPath("/sale/campaigns", ["CTV Sale"])).toBe(false);
+    expect(canAccessDashboardPath("/ctv-sale/campaigns", ["Sale"])).toBe(false);
 
     expect(
       getNavigationUrls(
-        filterNavigationByRoles(getNavigationDataForRoles(["Sale"]), [
-          "Sale",
-        ]),
+        filterNavigationByRoles(getNavigationDataForRoles(["Sale"]), ["Sale"]),
       ),
     ).toContain("/sale/campaigns");
     expect(

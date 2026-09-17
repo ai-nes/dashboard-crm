@@ -35,8 +35,8 @@ export default function AdminPage() {
           href: "/director/admin/message-templates",
         },
         {
-          label: "Phân khúc học sinh",
-          description: "Tạo và quản lý các phân khúc học sinh dùng chung.",
+          label: "Quản lý segment",
+          description: "Tạo và quản lý segment dùng chung.",
           href: "/director/admin/segments",
         },
         {
@@ -44,6 +44,12 @@ export default function AdminPage() {
           description:
             "Quản lý nhu cầu, thẻ và các danh mục dùng chung cho hồ sơ học sinh.",
           href: "/director/admin/student-config",
+        },
+        {
+          label: "Danh mục & chính sách",
+          description:
+            "Quản lý năm tuyển sinh, mẫu chấm điểm và kênh chiến dịch.",
+          href: "/director/admin/catalogs",
         },
         {
           label: "Danh mục tuyển sinh",

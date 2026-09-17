@@ -5,7 +5,8 @@ import {
   RefreshCircle1Clockwise,
   Sparkle,
 } from "@tailgrids/icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { useAnalysisRun } from "@/hooks/use-analysis-run";
 import { Button } from "@/components/tailgrids/core/button";
@@ -19,6 +20,7 @@ import { cn } from "@/utils/cn";
 import AnalysisActivityFeed from "./analysis-activity-feed";
 import AnalysisCompactCard from "./analysis-compact-card";
 import AnalysisDrawer from "./analysis-drawer";
+import { formatTerminalReason } from "./analysis-run-meta";
 
 interface AnalysisRunPanelProps {
   kind: AnalysisRunKind;
@@ -43,6 +45,23 @@ export default function AnalysisRunPanel({
     targetId,
   );
   const isActive = run?.status === "queued" || run?.status === "running";
+  const terminalReason =
+    run?.terminalReason ??
+    run?.stages.find((stage) => stage.terminalReason)?.terminalReason;
+  const terminalReasonLabel = formatTerminalReason(terminalReason);
+  const incompleteAnalysisToastId =
+    run && !isActive && terminalReasonLabel && run.status !== "completed"
+      ? `analysis-incomplete:${kind}:${targetId}:${run.runId}:${terminalReasonLabel}`
+      : null;
+
+  useEffect(() => {
+    if (!incompleteAnalysisToastId || !terminalReasonLabel) return;
+
+    toast.warning("Phân tích chưa hoàn tất", {
+      description: `${terminalReasonLabel}. Bạn có thể chọn “Phân tích lại” để thử lại.`,
+      id: incompleteAnalysisToastId,
+    });
+  }, [incompleteAnalysisToastId, terminalReasonLabel]);
 
   const handleRequest = () => {
     if (!targetId.trim() || requestMutation.isPending || isActive) return;
