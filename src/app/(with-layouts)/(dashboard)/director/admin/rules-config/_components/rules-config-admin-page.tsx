@@ -5,19 +5,20 @@ import { ArrowLeft, ChevronDown, Plus } from "@tailgrids/icons";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
+import {
+  AdminTabContent,
+  AdminTabList,
+  AdminTabRoot,
+} from "@/components/common/admin/admin-tabs";
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
+import { AdminTableFrame } from "@/components/common/admin/admin-table";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { canManageCrmRules } from "@/components/common/auth/permissions";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { canEditRulesInVersion } from "@/components/rules/rule-admin-edit-policy";
 import { CrmRuleStatusBadge } from "@/components/rules/rule-status-badges";
 import { Button } from "@/components/tailgrids/core/button";
-import {
-  TabContent,
-  TabList,
-  TabRoot,
-  TabTrigger,
-} from "@/components/tailgrids/core/tabs";
+import { TabTrigger } from "@/components/tailgrids/core/tabs";
 import {
   useCrmRuleGroupsQuery,
   useCrmRulesQuery,
@@ -89,23 +90,23 @@ export default function RulesConfigAdminPage({
   const versions = versionsQuery.data?.versions ?? [];
   const listedVersion =
     requestedVersion && versions.length > 0
-      ? versions.find(
+      ? (versions.find(
           (version) =>
             version.name === requestedVersion ||
             version.versionId === requestedVersion,
-        ) ?? null
-      : versions[0] ?? null;
+        ) ?? null)
+      : (versions[0] ?? null);
   const versionLookup = listedVersion?.name ?? requestedVersion;
   const versionQuery = useCrmRuleVersionQuery(versionLookup, {
     enabled: Boolean(versionLookup),
   });
   const currentVersion = versionQuery.data ?? listedVersion;
-  const versionName =
-    currentVersion?.name ?? versionLookup;
+  const versionName = currentVersion?.name ?? versionLookup;
   const activeVersion = currentVersion;
   const isDraft = activeVersion?.status === "draft";
   const isActive = activeVersion?.status === "active";
-  const canMutateRules = canEdit && canEditRulesInVersion(activeVersion?.status);
+  const canMutateRules =
+    canEdit && canEditRulesInVersion(activeVersion?.status);
   const groupsQuery = useCrmRuleGroupsQuery(versionName, {
     enabled: Boolean(versionName),
   });
@@ -196,18 +197,15 @@ export default function RulesConfigAdminPage({
   };
 
   const handleToggleRule = async (rule: CrmRule) => {
-    if (
-      !canMutateRules ||
-      !activeVersion ||
-      !beginRuleAction()
-    ) {
+    if (!canMutateRules || !activeVersion || !beginRuleAction()) {
       return;
     }
 
     try {
       await enabledMutation.mutateAsync({
         name: rule.name,
-        expectedVersionRevision: versionQuery.data?.revision ?? activeVersion.revision,
+        expectedVersionRevision:
+          versionQuery.data?.revision ?? activeVersion.revision,
         enabled: !rule.enabled,
       });
       toast.success(
@@ -216,7 +214,11 @@ export default function RulesConfigAdminPage({
           : `Đã ${rule.enabled ? "tắt" : "bật"} Rule trong bản nháp.`,
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể cập nhật trạng thái Rule.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể cập nhật trạng thái Rule.",
+      );
     } finally {
       endRuleAction();
     }
@@ -284,7 +286,7 @@ export default function RulesConfigAdminPage({
   );
 
   const listCard = (
-    <section className="overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs">
+    <AdminTableFrame>
       <RuleListToolbar
         totalCount={totalRules}
         filteredCount={rules.length}
@@ -340,7 +342,7 @@ export default function RulesConfigAdminPage({
           onPageChange={setPage}
         />
       </RuleListToolbar>
-    </section>
+    </AdminTableFrame>
   );
 
   const content = (
@@ -350,8 +352,9 @@ export default function RulesConfigAdminPage({
           role="alert"
           className="rounded-xl border border-card-border bg-background-gray-secondary px-4 py-3 text-sm text-text-secondary"
         >
-          Bạn đang thao tác trên Version Active. Tạo, sửa, bật/tắt hoặc xóa Rule sẽ có hiệu lực ngay; quản lý
-          nhóm Rule và thông tin Version vẫn chỉ cho phép trong Draft.
+          Bạn đang thao tác trên Version Active. Tạo, sửa, bật/tắt hoặc xóa Rule
+          sẽ có hiệu lực ngay; quản lý nhóm Rule và thông tin Version vẫn chỉ
+          cho phép trong Draft.
         </p>
       ) : null}
       {versionsQuery.error ? (
@@ -529,7 +532,7 @@ export default function RulesConfigAdminPage({
             </>
           }
         />
-        <div className="min-h-0 flex-1 overflow-y-auto pt-5 pb-8">
+        <div className="min-h-0 flex-1 overflow-y-auto pt-4 pb-8">
           {content}
         </div>
       </main>
@@ -569,28 +572,27 @@ export default function RulesConfigAdminPage({
         }
       />
 
-      <TabRoot
+      <AdminTabRoot
         defaultValue="manage"
         value={activeTab}
         onValueChange={setActiveTab}
-        variant="minimal"
-        className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <TabList className="px-1 sm:px-2">
+        <AdminTabList>
           <TabTrigger value="manage">Quản lý</TabTrigger>
           <TabTrigger value="analyze">Phân tích</TabTrigger>
-        </TabList>
-        <TabContent
+        </AdminTabList>
+        <AdminTabContent
           value="manage"
-          className="min-h-0 flex-1 overflow-y-auto px-0 pt-5 pb-8"
+          className="min-h-0 flex-1 overflow-y-auto px-0"
         >
           {content}
-        </TabContent>
-        <TabContent
+        </AdminTabContent>
+        <AdminTabContent
           value="analyze"
           className="min-h-0 flex-1 overflow-hidden px-0 pt-5"
         >
-          <section className="rounded-2xl border border-card-border bg-card-background p-10 text-center shadow-xs">
+          <section className="rounded-xl border border-card-border bg-card-background p-10 text-center">
             <h2 className="text-base font-semibold text-text-primary">
               Phân tích Rule
             </h2>
@@ -599,8 +601,8 @@ export default function RulesConfigAdminPage({
               khai sau.
             </p>
           </section>
-        </TabContent>
-      </TabRoot>
+        </AdminTabContent>
+      </AdminTabRoot>
     </main>
   );
 }

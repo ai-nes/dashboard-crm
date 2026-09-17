@@ -4,18 +4,19 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
+import {
+  AdminTabContent,
+  AdminTabList,
+  AdminTabRoot,
+} from "@/components/common/admin/admin-tabs";
+import { AdminTableFrame } from "@/components/common/admin/admin-table";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
   hasCrmRole,
   hasFrappeTechnicalRole,
 } from "@/components/common/auth/rbac";
 import { Button } from "@/components/tailgrids/core/button";
-import {
-  TabContent,
-  TabList,
-  TabRoot,
-  TabTrigger,
-} from "@/components/tailgrids/core/tabs";
+import { TabTrigger } from "@/components/tailgrids/core/tabs";
 import {
   useCreateCrmUserMutation,
   useCrmUsersQuery,
@@ -241,21 +242,20 @@ export default function UserManagementAdminPage() {
         }
       />
 
-      <TabRoot
+      <AdminTabRoot
         defaultValue="users"
         value={activeTab}
         onValueChange={setActiveTab}
-        variant="minimal"
-        className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <TabList className="px-1 sm:px-2">
+        <AdminTabList>
           <TabTrigger value="users">Người dùng</TabTrigger>
           <TabTrigger value="logs">Lịch sử thay đổi</TabTrigger>
-        </TabList>
+        </AdminTabList>
 
-        <TabContent
+        <AdminTabContent
           value="users"
-          className="min-h-0 flex-1 space-y-4 overflow-y-auto px-0 pt-5 pb-8"
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto px-0"
         >
           {usersQuery.error ? (
             <section
@@ -277,7 +277,7 @@ export default function UserManagementAdminPage() {
               </button>
             </section>
           ) : (
-            <section className="overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs">
+            <AdminTableFrame>
               <UserSearchFilterBar
                 search={search}
                 onSearchChange={(value) => {
@@ -320,17 +320,17 @@ export default function UserManagementAdminPage() {
                   setSelectedUserIds(new Set());
                 }}
               />
-            </section>
+            </AdminTableFrame>
           )}
-        </TabContent>
+        </AdminTabContent>
 
-        <TabContent
+        <AdminTabContent
           value="logs"
-          className="min-h-0 flex-1 overflow-y-auto px-0 pt-5 pb-8"
+          className="min-h-0 flex-1 overflow-y-auto px-0"
         >
           <UserRoleLogPanel />
-        </TabContent>
-      </TabRoot>
+        </AdminTabContent>
+      </AdminTabRoot>
 
       <RemoveUserConfirmDialog
         isOpen={Boolean(userToRemove)}

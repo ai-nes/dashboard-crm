@@ -291,7 +291,7 @@ function unwrap(value: unknown): Record<string, unknown> {
 }
 
 function normalizeStatus(value: unknown): AnalysisRunStatus {
-  const status = text(value);
+  const status = text(value)?.toLowerCase();
   return status && RUN_STATUSES.includes(status as AnalysisRunStatus)
     ? (status as AnalysisRunStatus)
     : "queued";

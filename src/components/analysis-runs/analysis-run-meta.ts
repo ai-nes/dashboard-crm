@@ -102,6 +102,23 @@ export const statusMeta: Record<
   dead_lettered: { label: "Không thể hoàn tất", color: "error" },
 };
 
+export type AnalysisStageDisplayState =
+  | "complete"
+  | "active"
+  | "pending"
+  | "warning"
+  | "error";
+
+export function analysisStageState(
+  status: AnalysisRunStatus,
+): AnalysisStageDisplayState {
+  if (status === "completed") return "complete";
+  if (status === "running") return "active";
+  if (status === "abstained") return "warning";
+  if (status === "failed" || status === "dead_lettered") return "error";
+  return "pending";
+}
+
 export const stageLabels: Record<AnalysisRunStage["stageKind"], string> = {
   student_360: "360 học sinh",
   next_best_action: "Hành động tiếp theo",

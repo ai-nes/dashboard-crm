@@ -114,7 +114,6 @@ const reasonLabels: Record<string, string> = {
   // Dữ liệu Lead còn thiếu
   MISSING_PROVINCE:
     "Chưa có tỉnh của Lead nên hệ thống chưa xác định được Team.",
-  MISSING_CAMPUS: "Chưa có trường/campus của Lead để kiểm tra dữ liệu.",
   NOT_PROCESSED: "Lead chưa được kiểm tra dữ liệu đầu vào.",
 
   // Chưa tìm được Team hoặc người phụ trách
@@ -125,7 +124,7 @@ const reasonLabels: Record<string, string> = {
   MISSING_INPUT_QUEUE: "Team chưa có hàng chờ hoạt động để nhận hồ sơ.",
   INPUT_QUEUE_TEAM_MISMATCH: "Hàng chờ hiện tại không thuộc Team được chọn.",
   INVALID_CURRENT_OWNERSHIP:
-    "Thông tin phân công hiện tại chưa đầy đủ Team, hàng chờ hoặc campus.",
+    "Thông tin phân công hiện tại chưa đầy đủ Team hoặc hàng chờ.",
   PROVINCE_MISMATCH: "Tỉnh của Lead không khớp với Team đang phụ trách.",
   TEAM_PROVINCE_MISMATCH: "Team được chọn không phụ trách tỉnh của Lead.",
   TEAM_SCOPE_MISMATCH: "Lead nằm ngoài phạm vi tỉnh của Team.",
@@ -213,10 +212,10 @@ function assignmentErrorCode(item: Pick<AssignmentReasonContext, "reason" | "err
   return item.errorCode || (item.reason && isInternalCode(item.reason) ? item.reason : "");
 }
 
-// Codes actually fixed by editing the Lead's own fields (province, campus, or
+// Codes actually fixed by editing the Lead's own fields (province or by
 // running the data-check step again) — the only case where the "Bổ sung
 // thông tin định tuyến" edit form in the drawer does anything useful.
-const LEAD_DATA_CODES = new Set(["MISSING_PROVINCE", "MISSING_CAMPUS", "NOT_PROCESSED"]);
+const LEAD_DATA_CODES = new Set(["MISSING_PROVINCE", "NOT_PROCESSED"]);
 
 // Codes an admin resolves in Quản lý Team (team scope, queue, or team-lead
 // setup) — editing the Lead's own fields cannot fix these.
@@ -338,11 +337,10 @@ function contextualReasonLabel(
     const missing = [
       !item.team && "Team phụ trách",
       !item.queue && "hàng chờ nhận hồ sơ",
-      !item.branch && "cơ sở/campus",
     ].filter(Boolean);
     return missing.length
       ? `Chưa thể phân công vì chưa có ${missing.join(", ")}. Vui lòng bổ sung cấu hình còn thiếu.`
-      : "Thông tin Team, hàng chờ hoặc cơ sở không khớp với cấu hình phân công hiện tại.";
+      : "Thông tin Team hoặc hàng chờ không khớp với cấu hình phân công hiện tại.";
   }
   if (code === "TEAM_NOT_FOUND_FOR_PROVINCE") {
     return item.province
@@ -405,6 +403,5 @@ export function assignmentReasonLabel(
   if (item.errorCode || item.reason) return unknownReasonLabel;
 
   if (!item.province) return reasonLabels.MISSING_PROVINCE;
-  if (!item.branch) return reasonLabels.MISSING_CAMPUS;
   return unknownReasonLabel;
 }

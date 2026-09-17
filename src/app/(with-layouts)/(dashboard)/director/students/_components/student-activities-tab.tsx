@@ -100,7 +100,14 @@ export default function StudentActivitiesTab({
 }: StudentActivitiesTabProps) {
   const { user } = useAuth();
   const permissions = getCrmPermissions(user?.roles);
-  const taskAssigneesQuery = useTaskAssigneesQuery();
+  const [selectedTab, setSelectedTab] = useState(defaultSelectedKey);
+  const shouldLoadTasks = selectedTab === "tasks";
+  const shouldLoadNotes = selectedTab === "notes";
+  const shouldLoadInteractions = selectedTab === "interactions";
+  const shouldLoadTaskData = shouldLoadTasks || shouldLoadNotes;
+  const taskAssigneesQuery = useTaskAssigneesQuery({
+    enabled: shouldLoadTaskData,
+  });
   const assignedTo = data.student.counselor || "Chưa phân công";
   const taskAssignees = useMemo(() => {
     const currentSessionUser = user
@@ -156,23 +163,35 @@ export default function StudentActivitiesTab({
   const chatwootInteractionsQuery = useStudentChatwootInteractionsQuery(
     studentDocname,
     {
+      enabled: shouldLoadInteractions,
       initialData: initialChatwootInteractions ?? undefined,
     },
   );
   const studentInteractionsQuery = useStudentInteractionsQuery(studentDocname, {
+    enabled: shouldLoadInteractions,
     initialData: initialStudentInteractions ?? undefined,
   });
 
   // Student Detail stores activity references on the canonical CRM Student.
-  const crmNotesQuery = useCrmNotesQuery({
-    referenceDoctype: "CRM Student",
-    referenceDocname: studentDocname,
-  });
+  const crmNotesQuery = useCrmNotesQuery(
+    {
+      referenceDoctype: "CRM Student",
+      referenceDocname: studentDocname,
+    },
+    {
+      enabled: shouldLoadNotes,
+    },
+  );
   const crmNotesData = crmNotesQuery.data;
-  const crmTasksQuery = useCrmTasksQuery({
-    referenceDoctype: "CRM Student",
-    referenceDocname: studentDocname,
-  });
+  const crmTasksQuery = useCrmTasksQuery(
+    {
+      referenceDoctype: "CRM Student",
+      referenceDocname: studentDocname,
+    },
+    {
+      enabled: shouldLoadTasks,
+    },
+  );
 
   const createNoteMutation = useCreateCrmNoteMutation();
   const updateNoteMutation = useUpdateCrmNoteMutation();
@@ -481,6 +500,7 @@ export default function StudentActivitiesTab({
       <DetailTabs
         ariaLabel="Các phần trong hồ sơ học sinh"
         defaultSelectedKey={defaultSelectedKey}
+        onSelectionChange={setSelectedTab}
         tabs={[
           ...detailTabs.slice(0, 1),
           ...detailTabs.filter((tab) => tab.id === "student-profile"),

@@ -5,9 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
+import { AdminTablePagination } from "@/components/common/admin/admin-table";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   Dialog,
   DialogBody,
@@ -18,6 +18,11 @@ import {
 } from "@/components/tailgrids/core/dialog";
 import { Input } from "@/components/tailgrids/core/input";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
+import {
+  ScrollArea,
+  ScrollAreaViewport,
+  ScrollBar,
+} from "@/components/tailgrids/core/scroll-area";
 import { SegmentStatusSelect } from "@/components/segments/segment-status-select";
 import {
   useClassificationTermsQuery,
@@ -37,6 +42,8 @@ import type {
   SegmentTermRecord,
 } from "@/services/api/segments";
 
+import { CatalogOrderingPanel } from "./catalog-ordering-panel";
+
 const STATUS_LABELS = {
   draft: "Bản nháp",
   active: "Đang dùng",
@@ -45,7 +52,7 @@ const STATUS_LABELS = {
 } as const;
 const PAGE_SIZE = 8;
 
-const EMPTY_FORM = { code: "", label: "", description: "", sort_order: "0" };
+const EMPTY_FORM = { code: "", label: "", description: "" };
 
 function GroupEditor({
   kind,
@@ -62,7 +69,6 @@ function GroupEditor({
           code: group.code,
           label: group.label,
           description: group.description ?? "",
-          sort_order: String(group.sort_order ?? 0),
         }
       : EMPTY_FORM,
   );
@@ -77,13 +83,12 @@ function GroupEditor({
   const save = async () => {
     const code = form.code.trim().toUpperCase();
     const label = form.label.trim();
-    const sortOrder = Number(form.sort_order);
     if (!code || !/^[A-Z0-9_]+$/.test(code)) {
       toast.error("Mã nhóm chỉ gồm A-Z, 0-9 và dấu gạch dưới.");
       return;
     }
-    if (!label || !Number.isInteger(sortOrder) || sortOrder < 0) {
-      toast.error("Vui lòng nhập tên nhóm và thứ tự hợp lệ.");
+    if (!label) {
+      toast.error("Vui lòng nhập tên nhóm.");
       return;
     }
     try {
@@ -96,7 +101,6 @@ function GroupEditor({
             data: {
               label,
               description: form.description.trim(),
-              sort_order: sortOrder,
             },
           },
         });
@@ -108,7 +112,6 @@ function GroupEditor({
             code,
             label,
             description: form.description.trim(),
-            sort_order: sortOrder,
           },
         });
         toast.success(`Đã tạo nhóm ${label}.`);
@@ -180,19 +183,11 @@ function GroupEditor({
               className="w-full resize-y rounded-lg border border-card-border bg-input-background px-3 py-2.5 text-sm text-title-50 outline-none placeholder:text-input-placeholder-text focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20 disabled:cursor-not-allowed"
             />
           </label>
-          <label className="block max-w-44 space-y-1.5">
-            <span className="text-sm font-medium text-input-label-text-color">
-              Thứ tự hiển thị
-            </span>
-            <Input
-              type="number"
-              min="0"
-              value={form.sort_order}
-              onChange={(event) => setField("sort_order", event.target.value)}
-              disabled={isSaving}
-              className="h-10 w-full"
-            />
-          </label>
+          <p className="text-xs text-text-tertiary">
+            Thứ tự hiển thị được điều chỉnh bằng nút{" "}
+            <span className="font-medium text-text-secondary">Sắp xếp</span> ở
+            danh sách nhóm.
+          </p>
         </DialogBody>
         <DialogFooter className="border-t border-card-border px-5 py-3">
           <DialogClose appearance="outline" size="sm">
@@ -229,13 +224,13 @@ function TermEditor({
   const createMutation = useCreateClassificationTermMutation();
   const updateMutation = useUpdateClassificationTermMutation();
   const isSaving = createMutation.isPending || updateMutation.isPending;
-  const childLabel = kind === "need" ? "Need" : "Tag";
+  const childLabel = kind === "need" ? "Nhu cầu" : "Tag";
 
   const save = async () => {
     const code = form.code.trim().toUpperCase();
     const label = form.label.trim();
     if (!code || !/^[A-Z0-9_]+$/.test(code) || !label || !form.group) {
-      toast.error("Vui lòng nhập mã, tên và group hợp lệ.");
+      toast.error("Vui lòng nhập mã, tên và nhóm hợp lệ.");
       return;
     }
     try {
@@ -284,8 +279,7 @@ function TermEditor({
             {term ? `Chỉnh sửa ${childLabel}` : `Tạo ${childLabel} mới`}
           </DialogTitle>
           <p className="text-sm text-text-tertiary">
-            Mỗi {childLabel} thuộc về một group để dùng trong phân loại học
-            sinh.
+            Mỗi {childLabel} thuộc về một nhóm để dùng trong phân loại học sinh.
           </p>
         </DialogHeader>
         <DialogBody className="space-y-4 overflow-y-auto px-5 py-5">
@@ -328,7 +322,7 @@ function TermEditor({
           </label>
           <label className="block space-y-1.5">
             <span className="text-sm font-medium text-input-label-text-color">
-              Group
+              Nhóm
             </span>
             <select
               value={form.group}
@@ -400,11 +394,17 @@ export function ClassificationGroupManagement({
 }) {
   const [groupPage, setGroupPage] = useState(1);
   const [termPage, setTermPage] = useState(1);
+  const [isOrderingGroups, setIsOrderingGroups] = useState(false);
   const [selectedGroupName, setSelectedGroupName] = useState<string>();
   const query = useClassificationGroupsQuery(kind, {
     status: "active",
     start: (groupPage - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
+  });
+  const orderingQuery = useClassificationGroupsQuery(kind, {
+    status: "active",
+    start: 0,
+    pageLength: 100,
   });
   const groups = query.data?.groups ?? [];
   const effectiveGroupName = groups.some(
@@ -421,6 +421,7 @@ export function ClassificationGroupManagement({
   const deleteMutation = useDeleteClassificationGroupMutation();
   const deleteTermMutation = useDeleteClassificationTermMutation();
   const transitionMutation = useTransitionClassificationGroupMutation();
+  const updateGroupMutation = useUpdateClassificationGroupMutation();
   const transitionTermMutation = useTransitionClassificationTermMutation();
   const [editorOpen, setEditorOpen] = useState(false);
   const [selected, setSelected] = useState<ClassificationGroupRecord | null>(
@@ -436,8 +437,8 @@ export function ClassificationGroupManagement({
   const [termToDelete, setTermToDelete] = useState<SegmentTermRecord | null>(
     null,
   );
-  const title = kind === "need" ? "Need Group" : "Tag Group";
-  const childLabel = kind === "need" ? "Need" : "Tag";
+  const title = kind === "need" ? "Nhóm nhu cầu" : "Nhóm tag";
+  const childLabel = kind === "need" ? "Nhu cầu" : "Tag";
 
   const confirmDelete = async () => {
     if (!toDelete) return;
@@ -451,6 +452,40 @@ export function ClassificationGroupManagement({
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : `Không thể xóa ${title}.`,
+      );
+    }
+  };
+
+  const saveGroupOrder = async (items: readonly { id: string }[]) => {
+    const recordsById = new Map(
+      (orderingQuery.data?.groups ?? []).map((group) => [group.name, group]),
+    );
+    try {
+      await Promise.all(
+        items.map((item, index) => {
+          const group = recordsById.get(item.id);
+          if (!group) return Promise.resolve();
+          return updateGroupMutation.mutateAsync({
+            kind,
+            payload: {
+              name: group.name,
+              expectedRevision: group.revision,
+              data: {
+                label: group.label,
+                description: group.description ?? "",
+                sort_order: index + 1,
+              },
+            },
+          });
+        }),
+      );
+      toast.success(`Đã cập nhật thứ tự ${title}.`);
+      setIsOrderingGroups(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : `Không thể cập nhật thứ tự ${title}.`,
       );
     }
   };
@@ -573,73 +608,95 @@ export function ClassificationGroupManagement({
             )}
           </div>
         )}
-        {groups.length > 0 ? (
-          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(260px,0.9fr)_minmax(0,2fr)]">
-            <div className="min-h-0 overflow-y-auto border-b border-card-border lg:border-b-0 lg:border-r">
-              <div className="sticky top-0 z-10 border-b border-card-border bg-background-gray-secondary px-5 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                  Danh sách Group
-                </p>
-                <p className="mt-1 text-xs text-text-tertiary">
-                  Chọn một group để xem các mục con.
-                </p>
-              </div>
-              <div className="divide-y divide-card-border">
-                {groups.map((group) => {
-                  const isSelected = selectedGroup?.name === group.name;
-                  return (
-                    <button
-                      key={group.name}
-                      type="button"
-                      className={`w-full px-5 py-4 text-left transition-colors ${isSelected ? "bg-tab-active-background shadow-[inset_3px_0_0_0] shadow-primary-500" : "hover:bg-background-gray-secondary_alt"}`}
-                      onClick={() => {
-                        setSelectedGroupName(group.name);
-                        setTermPage(1);
-                      }}
-                      aria-pressed={isSelected}
+        {isOrderingGroups ? (
+          <CatalogOrderingPanel
+            title={title}
+            items={(orderingQuery.data?.groups ?? []).map((group) => ({
+              id: group.name,
+              code: group.code,
+              label: group.label,
+              description: group.description,
+            }))}
+            isSaving={updateGroupMutation.isPending}
+            onCancel={() => setIsOrderingGroups(false)}
+            onSave={saveGroupOrder}
+          />
+        ) : groups.length > 0 ? (
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.8fr)]">
+            <div className="flex min-h-0 flex-col overflow-hidden border-b border-card-border lg:border-b-0 lg:border-r">
+              <div className="shrink-0 border-b border-card-border bg-background-gray-secondary px-5 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                      Danh sách nhóm
+                    </p>
+                  </div>
+                  {canManage && (
+                    <Button
+                      size="sm"
+                      appearance="outline"
+                      onPress={() => setIsOrderingGroups(true)}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate font-mono text-xs font-bold tracking-wide text-text-primary">
-                            {group.code}
-                          </p>
-                          <p className="mt-1 truncate font-semibold text-text-primary">
-                            {group.label}
-                          </p>
-                          <p className="mt-1 line-clamp-2 text-sm text-text-tertiary">
-                            {group.description || "Chưa có mô tả"}
-                          </p>
-                        </div>
-                        <span className="shrink-0 rounded-md bg-background-gray-secondary px-2 py-0.5 text-xs text-text-tertiary">
-                          {isSelected ? termTotal : "—"} {childLabel}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              {groupTotalPages > 1 && (
-                <div className="border-t border-card-border px-4 py-3">
-                  <Pagination
-                    currentPage={groupPage}
-                    totalPages={groupTotalPages}
-                    onPageChange={(nextPage) => {
-                      setGroupPage(nextPage);
-                      setTermPage(1);
-                    }}
-                    variant="compact"
-                    align="end"
-                    isDisabled={query.isFetching}
-                  />
+                      Sắp xếp
+                    </Button>
+                  )}
                 </div>
-              )}
+              </div>
+              <ScrollArea className="min-h-0 flex-1">
+                <ScrollAreaViewport>
+                  <div className="divide-y divide-card-border">
+                    {groups.map((group) => {
+                      const isSelected = selectedGroup?.name === group.name;
+                      return (
+                        <button
+                          key={group.name}
+                          type="button"
+                          className={`w-full px-5 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 ${isSelected ? "bg-tab-active-background shadow-[inset_3px_0_0_0] shadow-primary-500" : "hover:bg-background-gray-secondary_alt"}`}
+                          onClick={() => {
+                            setSelectedGroupName(group.name);
+                            setTermPage(1);
+                          }}
+                          aria-pressed={isSelected}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate font-semibold text-text-primary">
+                                {group.label}
+                              </p>
+                              <p className="mt-1 truncate font-mono text-xs tracking-wide text-text-secondary">
+                                {group.code}
+                              </p>
+                            </div>
+                            <span className="shrink-0 rounded-md bg-background-gray-secondary px-2 py-1 text-xs text-text-tertiary">
+                              {isSelected ? termTotal : "—"}{" "}
+                              {childLabel.toLowerCase()}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </ScrollAreaViewport>
+                <ScrollBar />
+              </ScrollArea>
+              <AdminTablePagination
+                currentPage={groupPage}
+                totalPages={groupTotalPages}
+                totalItems={groupTotal}
+                onPageChange={(nextPage) => {
+                  setGroupPage(nextPage);
+                  setTermPage(1);
+                }}
+                isDisabled={query.isFetching}
+                className="shrink-0 px-4 py-3"
+              />
             </div>
             {selectedGroup && (
               <section
                 aria-labelledby={`selected-group-${selectedGroup.name}`}
                 className="flex min-h-0 min-w-0 flex-col overflow-hidden"
               >
-                <div className="shrink-0 border-b border-card-border bg-background-gray-secondary/25 px-5 py-4">
+                <div className="shrink-0 border-b border-card-border bg-background-gray-secondary/25 px-5 py-3">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-mono text-xs font-bold tracking-wide text-text-secondary">
@@ -651,9 +708,6 @@ export function ClassificationGroupManagement({
                       >
                         {selectedGroup.label}
                       </h3>
-                      <p className="mt-1 text-sm text-text-tertiary">
-                        {selectedGroup.description || "Chưa có mô tả"}
-                      </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {canManage ? (
@@ -679,18 +733,6 @@ export function ClassificationGroupManagement({
                         >
                           {STATUS_LABELS[selectedGroup.status]}
                         </Badge>
-                      )}
-                      {canManage && (
-                        <Button
-                          size="sm"
-                          appearance="outline"
-                          onPress={() => {
-                            setTermGroup(selectedGroup.name);
-                            setTermToEdit(null);
-                          }}
-                        >
-                          <Plus size={15} aria-hidden="true" /> {childLabel}
-                        </Button>
                       )}
                       {canManage && (
                         <Button
@@ -721,110 +763,124 @@ export function ClassificationGroupManagement({
                     </div>
                   </div>
                 </div>
-                <div className="shrink-0 border-b border-card-border bg-background-gray-secondary/10 px-5 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                    Các {childLabel} thuộc group này
-                  </p>
-                  <p className="mt-1 text-xs text-text-tertiary">
-                    Mỗi dòng là một mục con được quản lý trong{" "}
-                    {selectedGroup.label}.
-                  </p>
-                </div>
-                <div className="min-h-0 flex-1 divide-y divide-card-border overflow-y-auto">
-                  {selectedGroupTerms.map((term) => (
-                    <div
-                      key={term.name}
-                      className="flex flex-wrap items-center gap-3 px-5 py-4"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="break-words font-mono text-xs text-text-secondary">
-                          {term.code || term.name}
-                        </p>
-                        <p className="mt-1 break-words font-medium text-text-primary">
-                          {term.label || term.name}
-                        </p>
-                        <p className="mt-1 break-words text-sm text-text-tertiary">
-                          {term.description || "Chưa có mô tả"}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        {canManage ? (
-                          <SegmentStatusSelect
-                            ariaLabel={`Trạng thái ${term.label || term.name}`}
-                            value={
-                              (term.status as ClassificationGroupRecord["status"]) ||
-                              "draft"
-                            }
-                            isDisabled={transitionTermMutation.isPending}
-                            labels={STATUS_LABELS}
-                            compact={compactStatus}
-                            onChange={(status) =>
-                              void changeTermStatus(term, status)
-                            }
-                          />
-                        ) : (
-                          <Badge
-                            color={
-                              term.status === "active" ? "success" : "warning"
-                            }
-                          >
-                            {
-                              STATUS_LABELS[
-                                (term.status as ClassificationGroupRecord["status"]) ||
-                                  "draft"
-                              ]
-                            }
-                          </Badge>
-                        )}
-                        {canManage && (
-                          <Button
-                            aria-label={`Sửa ${term.label || term.name}`}
-                            iconOnly
-                            size="sm"
-                            appearance="ghost"
-                            onPress={() => {
-                              setTermToEdit(term);
-                              setTermGroup(undefined);
-                            }}
-                          >
-                            <Pencil1 size={15} aria-hidden="true" />
-                          </Button>
-                        )}
-                        {canManage && (
-                          <Button
-                            aria-label={`Xóa ${term.label || term.name}`}
-                            iconOnly
-                            size="sm"
-                            appearance="ghost"
-                            variant="danger"
-                            onPress={() => setTermToDelete(term)}
-                          >
-                            <Trash1 size={15} aria-hidden="true" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {selectedGroupTerms.length === 0 && (
-                    <p className="px-5 py-10 text-center text-sm text-text-tertiary">
-                      Group này chưa có {childLabel} nào.
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-card-border bg-background-gray-secondary/10 px-5 py-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                      Danh sách {childLabel.toLowerCase()}
                     </p>
+                    <p className="mt-1 text-xs text-text-tertiary">
+                      {termTotal} {childLabel.toLowerCase()} trong nhóm này.
+                    </p>
+                  </div>
+                  {canManage && (
+                    <Button
+                      size="sm"
+                      appearance="outline"
+                      onPress={() => {
+                        setTermGroup(selectedGroup.name);
+                        setTermToEdit(null);
+                      }}
+                    >
+                      <Plus size={15} aria-hidden="true" /> Thêm{" "}
+                      {childLabel.toLowerCase()}
+                    </Button>
                   )}
                 </div>
-                {termTotalPages > 1 && (
-                  <div className="shrink-0 border-t border-card-border px-5 py-3">
-                    <Pagination
-                      currentPage={termPage}
-                      totalPages={termTotalPages}
-                      onPageChange={setTermPage}
-                      variant="compact"
-                      align="end"
-                      isDisabled={
-                        termsQuery.isFetching || deleteTermMutation.isPending
-                      }
-                    />
-                  </div>
-                )}
+                <ScrollArea className="min-h-0 flex-1">
+                  <ScrollAreaViewport>
+                    <div className="divide-y divide-card-border">
+                      {selectedGroupTerms.map((term) => (
+                        <div
+                          key={term.name}
+                          className="flex flex-wrap items-center gap-3 px-5 py-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="break-words font-medium text-text-primary">
+                              {term.label || term.name}
+                            </p>
+                            <p className="mt-1 break-words font-mono text-xs text-text-secondary">
+                              {term.code || term.name}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            {canManage ? (
+                              <SegmentStatusSelect
+                                ariaLabel={`Trạng thái ${term.label || term.name}`}
+                                value={
+                                  (term.status as ClassificationGroupRecord["status"]) ||
+                                  "draft"
+                                }
+                                isDisabled={transitionTermMutation.isPending}
+                                labels={STATUS_LABELS}
+                                compact={compactStatus}
+                                onChange={(status) =>
+                                  void changeTermStatus(term, status)
+                                }
+                              />
+                            ) : (
+                              <Badge
+                                color={
+                                  term.status === "active"
+                                    ? "success"
+                                    : "warning"
+                                }
+                              >
+                                {
+                                  STATUS_LABELS[
+                                    (term.status as ClassificationGroupRecord["status"]) ||
+                                      "draft"
+                                  ]
+                                }
+                              </Badge>
+                            )}
+                            {canManage && (
+                              <Button
+                                aria-label={`Sửa ${term.label || term.name}`}
+                                iconOnly
+                                size="sm"
+                                appearance="ghost"
+                                onPress={() => {
+                                  setTermToEdit(term);
+                                  setTermGroup(undefined);
+                                }}
+                              >
+                                <Pencil1 size={15} aria-hidden="true" />
+                              </Button>
+                            )}
+                            {canManage && (
+                              <Button
+                                aria-label={`Xóa ${term.label || term.name}`}
+                                iconOnly
+                                size="sm"
+                                appearance="ghost"
+                                variant="danger"
+                                onPress={() => setTermToDelete(term)}
+                              >
+                                <Trash1 size={15} aria-hidden="true" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {selectedGroupTerms.length === 0 && (
+                        <p className="px-5 py-10 text-center text-sm text-text-tertiary">
+                          Nhóm này chưa có {childLabel.toLowerCase()} nào.
+                        </p>
+                      )}
+                    </div>
+                  </ScrollAreaViewport>
+                  <ScrollBar />
+                </ScrollArea>
+                <AdminTablePagination
+                  currentPage={termPage}
+                  totalPages={termTotalPages}
+                  totalItems={termTotal}
+                  onPageChange={setTermPage}
+                  isDisabled={
+                    termsQuery.isFetching || deleteTermMutation.isPending
+                  }
+                  className="shrink-0"
+                />
               </section>
             )}
           </div>
@@ -977,8 +1033,8 @@ export function ClassificationGroupManagement({
         onConfirm={confirmDelete}
       >
         <p className="text-sm text-text-secondary">
-          Chỉ xóa được nhóm chưa có Need/Tag tham chiếu. Nếu nhóm đang được sử
-          dụng, hãy lưu trữ thay vì xóa.
+          Chỉ xóa được nhóm chưa có {childLabel} tham chiếu. Nếu nhóm đang được
+          sử dụng, hãy lưu trữ thay vì xóa.
         </p>
       </DeleteRecordDialog>
       <DeleteRecordDialog

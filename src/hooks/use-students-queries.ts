@@ -72,6 +72,7 @@ export function useStudent360Query<TData = Student360Data | null>(
   return useQuery({
     queryKey: studentsKeys.student360(studentId),
     queryFn: () => getStudent360(studentId),
+    staleTime: 30_000,
     ...options,
   });
 }
@@ -117,6 +118,7 @@ export function useStudentChatwootInteractionsQuery<
     queryKey: studentsKeys.studentChatwootInteractions(studentId),
     queryFn: () => getStudentChatwootInteractions(studentId),
     enabled: Boolean(studentId),
+    staleTime: 30_000,
     ...options,
   });
 }
@@ -139,6 +141,7 @@ export function useStudentInteractionsQuery<
     queryKey: studentsKeys.studentInteractions(studentId),
     queryFn: () => getStudentInteractions(studentId),
     enabled: Boolean(studentId),
+    staleTime: 30_000,
     refetchInterval: (query) =>
       query.state.data?.calls.some((call) => call.summaryStatus === "PENDING")
         ? 3_000

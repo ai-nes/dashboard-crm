@@ -10,11 +10,19 @@ import {
   Widget4Icon,
 } from "./icon";
 import {
+  Book4,
+  Brain1,
   Buildings11,
   ClockThree,
+  FileTextMultiple,
+  IdCard,
+  Layers2,
   MapMarker5,
   Megaphone1,
+  Shield1Check,
+  SlidersDoubleHorizontal,
   Target3,
+  UserMultiple1,
   UserMultiple4,
   UserPencil,
 } from "@tailgrids/icons";
@@ -74,7 +82,7 @@ export const NAV_DATA: NavigationSection[] = [
         title: "Trung tâm AI & dữ liệu",
         url: "/director/ai",
         exact: true,
-        icon: <Widget4Icon />,
+        icon: <Brain1 size={18} />,
       }),
       navItem({
         title: "Sức khỏe dữ liệu",
@@ -169,37 +177,37 @@ export const NAV_DATA: NavigationSection[] = [
       navItem({
         title: "Quản lý người dùng",
         url: "/admin/users",
-        icon: <UserPencil size={18} />,
+        icon: <UserMultiple1 size={18} />,
       }),
       navItem({
-        title: "Quản lý cấu hình NBA",
+        title: "Cấu hình gợi ý NBA",
         url: "/director/admin/nba-actions",
-        icon: <Widget4Icon />,
+        icon: <SlidersDoubleHorizontal size={18} />,
       }),
       navItem({
-        title: "Quản lý segments",
+        title: "Phân khúc học sinh",
         url: "/director/admin/segments",
-        icon: <AlphabetIcon />,
+        icon: <Layers2 size={18} />,
       }),
       navItem({
         title: "Quản lý rule",
         url: "/director/admin/rules-config",
-        icon: <Widget4Icon />,
+        icon: <Shield1Check size={18} />,
       }),
       navItem({
         title: "Quản lý Message Template",
         url: "/director/admin/message-templates",
-        icon: <ChatIcon />,
+        icon: <FileTextMultiple size={18} />,
       }),
       navItem({
-        title: "Cấu hình học sinh",
+        title: "Cấu hình hồ sơ học sinh",
         url: "/director/admin/student-config",
-        icon: <Widget4Icon />,
+        icon: <IdCard size={18} />,
       }),
       navItem({
-        title: "Quản lý ngành học",
+        title: "Danh mục tuyển sinh",
         url: "/director/admin/majors",
-        icon: <Widget4Icon />,
+        icon: <Book4 size={18} />,
       }),
       navItem({
         title: "Nhật ký hoạt động",

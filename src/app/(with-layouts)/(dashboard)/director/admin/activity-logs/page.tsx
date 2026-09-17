@@ -4,7 +4,7 @@ import ActivityLogsPage from "@/components/activity-log/activity-logs-page";
 
 export const metadata: Metadata = {
   title: "Nhật ký hoạt động",
-  description: "Theo dõi hoạt động của toàn bộ user trong hệ thống.",
+  description: "Theo dõi hoạt động của mọi người dùng trong hệ thống.",
 };
 
 export default function DirectorAdminActivityLogsPage() {

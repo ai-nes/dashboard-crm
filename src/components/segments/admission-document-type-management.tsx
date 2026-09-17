@@ -1,14 +1,19 @@
 "use client";
 
-import { Pencil1, Trash1 } from "@tailgrids/icons";
+import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
 import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 
+import { AdminTablePagination } from "@/components/common/admin/admin-table";
+import { AdminSearchInput } from "@/components/common/admin/admin-search-input";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Pagination } from "@/components/tailgrids/core/pagination";
-import { Input } from "@/components/tailgrids/core/input";
+import {
+  ScrollArea,
+  ScrollAreaViewport,
+  ScrollBar,
+} from "@/components/tailgrids/core/scroll-area";
 import {
   Select,
   SelectContent,
@@ -124,6 +129,65 @@ export function AdmissionDocumentTypeManagement({
 
   return (
     <>
+      <div className="mb-3 flex shrink-0 flex-col gap-3 rounded-xl border border-card-border bg-card-background px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+          <AdminSearchInput
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Tìm theo mã hoặc tên tài liệu"
+            aria-label="Tìm loại tài liệu"
+            className="h-9 min-w-0 flex-1 sm:max-w-md"
+          />
+          <Select
+            value={statusFilter}
+            onChange={(value) => {
+              setStatusFilter(
+                String(value) as AdmissionDocumentTypeStatus | "all",
+              );
+              setPage(1);
+            }}
+            aria-label="Lọc theo trạng thái loại tài liệu"
+            className="w-auto gap-0"
+          >
+            <SelectTrigger
+              size="sm"
+              className="min-w-40 justify-between whitespace-nowrap"
+            >
+              <SelectValue />
+              <SelectIndicator />
+            </SelectTrigger>
+            <SelectContent className="min-w-(--trigger-width)">
+              <SelectItem id="all" textValue="Tất cả trạng thái">
+                Tất cả trạng thái
+              </SelectItem>
+              <SelectItem id="Active" textValue="Đang dùng">
+                Đang dùng
+              </SelectItem>
+              <SelectItem id="Archived" textValue="Lưu trữ">
+                Lưu trữ
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+          <Badge color="gray" size="sm">
+            {total} mục
+          </Badge>
+          {canManage && (
+            <Button
+              size="sm"
+              onPress={openCreate}
+              isDisabled={query.isPending || deleteMutation.isPending}
+            >
+              <Plus size={16} aria-hidden="true" />
+              <span>Thêm loại tài liệu</span>
+            </Button>
+          )}
+        </div>
+      </div>
       <AdmissionCatalogPanel
         title="Loại tài liệu"
         description="Danh mục giấy tờ dùng để xây dựng checklist hồ sơ nhập học."
@@ -132,6 +196,8 @@ export function AdmissionDocumentTypeManagement({
         createLabel="Thêm loại tài liệu"
         onCreate={openCreate}
         isBusy={query.isPending || deleteMutation.isPending}
+        showHeader={false}
+        contentClassName="flex flex-col overflow-hidden"
       >
         {query.isPending ? (
           <CatalogLoading label="Đang tải danh mục loại tài liệu…" />
@@ -145,160 +211,126 @@ export function AdmissionDocumentTypeManagement({
           />
         ) : (
           <>
-            <div className="flex flex-col gap-3 border-b border-card-border px-4 py-3 sm:flex-row sm:items-center sm:px-5">
-              <Input
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="Tìm theo mã hoặc tên tài liệu"
-                aria-label="Tìm loại tài liệu"
-                className="h-9 min-w-0 flex-1 sm:max-w-md"
-              />
-              <Select
-                value={statusFilter}
-                onChange={(value) => {
-                  setStatusFilter(
-                    String(value) as AdmissionDocumentTypeStatus | "all",
-                  );
-                  setPage(1);
-                }}
-                aria-label="Lọc theo trạng thái loại tài liệu"
-                className="w-auto gap-0"
-              >
-                <SelectTrigger
-                  size="sm"
-                  className="min-w-40 justify-between whitespace-nowrap"
-                >
-                  <SelectValue />
-                  <SelectIndicator />
-                </SelectTrigger>
-                <SelectContent className="min-w-(--trigger-width)">
-                  <SelectItem id="all" textValue="Tất cả trạng thái">
-                    Tất cả trạng thái
-                  </SelectItem>
-                  <SelectItem id="Active" textValue="Đang dùng">
-                    Đang dùng
-                  </SelectItem>
-                  <SelectItem id="Archived" textValue="Lưu trữ">
-                    Lưu trữ
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {visibleDocumentTypes.length === 0 ? (
-              <CatalogEmpty
-                title={
-                  !hasDocumentTypeFilter && documentTypes.length === 0
-                    ? "Chưa có loại tài liệu"
-                    : "Không tìm thấy loại tài liệu phù hợp"
-                }
-                description={
-                  !hasDocumentTypeFilter && documentTypes.length === 0
-                    ? "Tạo loại tài liệu đầu tiên để dùng trong checklist hồ sơ."
-                    : "Thử đổi từ khóa hoặc bộ lọc trạng thái."
-                }
-                action={
-                  !hasDocumentTypeFilter && documentTypes.length === 0 && canManage
-                    ? openCreate
-                    : undefined
-                }
-                actionLabel="Thêm loại tài liệu"
-              />
-            ) : (
-              <TableRoot fullBleed className="w-full min-w-[760px] border-0">
-                <TableHeader className="bg-background-gray-secondary/35">
-                  <TableRow>
-                    <TableHead className="w-44">Mã</TableHead>
-                    <TableHead>Tên loại tài liệu</TableHead>
-                    <TableHead>Nhóm</TableHead>
-                    <TableHead>Điều kiện</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead className="w-24 text-right">Thao tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleDocumentTypes.map((documentType) => (
-                    <TableRow
-                      key={documentType.id}
-                      className="group hover:bg-background-gray-secondary/30"
-                    >
-                      <TableCell className="align-top">
-                        <span className="font-mono text-xs font-bold tracking-wide text-text-secondary">
-                          {documentType.code}
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-[22rem] align-top">
-                        <span className="block font-medium text-text-primary">
-                          {documentType.name}
-                        </span>
-                        <span className="mt-1 block truncate text-xs text-text-tertiary">
-                          {documentType.description || "Chưa có mô tả"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="align-top text-sm text-text-secondary">
-                        {CATEGORY_LABELS[documentType.category] ||
-                          documentType.category}
-                      </TableCell>
-                      <TableCell className="align-top text-sm text-text-secondary">
-                        {documentType.conditionalKey || "Không điều kiện"}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Badge
-                          color={statusColor(documentType.status)}
-                          size="sm"
+            <ScrollArea className="min-h-0 flex-1">
+              <ScrollAreaViewport>
+                {visibleDocumentTypes.length === 0 ? (
+                  <CatalogEmpty
+                    title={
+                      !hasDocumentTypeFilter && documentTypes.length === 0
+                        ? "Chưa có loại tài liệu"
+                        : "Không tìm thấy loại tài liệu phù hợp"
+                    }
+                    description={
+                      !hasDocumentTypeFilter && documentTypes.length === 0
+                        ? "Tạo loại tài liệu đầu tiên để dùng trong checklist hồ sơ."
+                        : "Thử đổi từ khóa hoặc bộ lọc trạng thái."
+                    }
+                    action={
+                      !hasDocumentTypeFilter &&
+                      documentTypes.length === 0 &&
+                      canManage
+                        ? openCreate
+                        : undefined
+                    }
+                    actionLabel="Thêm loại tài liệu"
+                  />
+                ) : (
+                  <TableRoot
+                    fullBleed
+                    className="w-full min-w-[760px] border-0"
+                  >
+                    <TableHeader className="bg-background-gray-secondary/35">
+                      <TableRow>
+                        <TableHead className="w-44">Mã</TableHead>
+                        <TableHead>Tên loại tài liệu</TableHead>
+                        <TableHead>Nhóm</TableHead>
+                        <TableHead>Điều kiện</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead className="w-24 text-right">
+                          Thao tác
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {visibleDocumentTypes.map((documentType) => (
+                        <TableRow
+                          key={documentType.id}
+                          className="group hover:bg-background-gray-secondary/30"
                         >
-                          {documentType.status === "Active" &&
-                          documentType.isActive
-                            ? "Đang dùng"
-                            : "Lưu trữ"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <div className="flex justify-end gap-1">
-                          {canManage && (
-                            <Button
-                              aria-label={`Sửa ${documentType.name}`}
-                              iconOnly
+                          <TableCell className="align-top">
+                            <span className="font-mono text-xs font-bold tracking-wide text-text-secondary">
+                              {documentType.code}
+                            </span>
+                          </TableCell>
+                          <TableCell className="max-w-[22rem] align-top">
+                            <span className="block font-medium text-text-primary">
+                              {documentType.name}
+                            </span>
+                            <span className="mt-1 block truncate text-xs text-text-tertiary">
+                              {documentType.description || "Chưa có mô tả"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="align-top text-sm text-text-secondary">
+                            {CATEGORY_LABELS[documentType.category] ||
+                              documentType.category}
+                          </TableCell>
+                          <TableCell className="align-top text-sm text-text-secondary">
+                            {documentType.conditionalKey || "Không điều kiện"}
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Badge
+                              color={statusColor(documentType.status)}
                               size="sm"
-                              appearance="ghost"
-                              onPress={() => openEdit(documentType)}
                             >
-                              <Pencil1 size={16} aria-hidden="true" />
-                            </Button>
-                          )}
-                          {canDelete && (
-                            <Button
-                              aria-label={`Xóa ${documentType.name}`}
-                              iconOnly
-                              size="sm"
-                              appearance="ghost"
-                              variant="danger"
-                              onPress={() => setToDelete(documentType)}
-                            >
-                              <Trash1 size={16} aria-hidden="true" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </TableRoot>
-            )}
-            {totalPages > 1 && (
-              <div className="border-t border-card-border px-5 py-3">
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  onPageChange={setPage}
-                  variant="compact"
-                  align="end"
-                  isDisabled={query.isFetching || deleteMutation.isPending}
-                />
-              </div>
-            )}
+                              {documentType.status === "Active" &&
+                              documentType.isActive
+                                ? "Đang dùng"
+                                : "Lưu trữ"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <div className="flex justify-end gap-1">
+                              {canManage && (
+                                <Button
+                                  aria-label={`Sửa ${documentType.name}`}
+                                  iconOnly
+                                  size="sm"
+                                  appearance="ghost"
+                                  onPress={() => openEdit(documentType)}
+                                >
+                                  <Pencil1 size={16} aria-hidden="true" />
+                                </Button>
+                              )}
+                              {canDelete && (
+                                <Button
+                                  aria-label={`Xóa ${documentType.name}`}
+                                  iconOnly
+                                  size="sm"
+                                  appearance="ghost"
+                                  variant="danger"
+                                  onPress={() => setToDelete(documentType)}
+                                >
+                                  <Trash1 size={16} aria-hidden="true" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </TableRoot>
+                )}
+              </ScrollAreaViewport>
+              <ScrollBar />
+            </ScrollArea>
+            <AdminTablePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              onPageChange={setPage}
+              isDisabled={query.isFetching || deleteMutation.isPending}
+              className="shrink-0"
+            />
           </>
         )}
       </AdmissionCatalogPanel>

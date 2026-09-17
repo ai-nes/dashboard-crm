@@ -11,105 +11,33 @@ import type {
   UpdateMajorInput,
 } from "./types";
 
+import {
+  ensureRoot as ensureFrappeRoot,
+  FrappeApiError,
+  getBaseUrl,
+  queryString,
+  request as frappeRequest,
+} from "../frappe-request";
+
 export type * from "./types";
 
-export class MajorCatalogApiError extends Error {
-  constructor(
-    public status: number,
-    public code: string,
-    message: string,
-  ) {
-    super(message);
+export class MajorCatalogApiError extends FrappeApiError {
+  constructor(status: number, code: string, message: string) {
+    super(status, code, message);
     this.name = "MajorCatalogApiError";
   }
 }
 
-function getBaseUrl(value?: string): string {
-  return (value ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
-    /\/+$/,
-    "",
-  );
-}
-
-function unwrapMessage(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const root = value as Record<string, unknown>;
-  return root.message &&
-    typeof root.message === "object" &&
-    !Array.isArray(root.message)
-    ? (root.message as Record<string, unknown>)
-    : root;
-}
-
-async function browserCsrfToken(baseUrl: string): Promise<string | null> {
-  if (typeof window === "undefined") return null;
-  const cookieToken = document.cookie
-    .split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith("csrf_token="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (cookieToken) return decodeURIComponent(cookieToken);
-
-  try {
-    const response = await fetch(`${baseUrl}/api/method/crm.api.session.me`, {
-      credentials: "include",
-      headers: { Accept: "application/json" },
-    });
-    const payload = (await response.json().catch(() => null)) as {
-      message?: { csrf_token?: unknown };
-    } | null;
-    return typeof payload?.message?.csrf_token === "string"
-      ? payload.message.csrf_token
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-async function request(
+function request(
   url: string,
   init: RequestInit = {},
   frappeBaseUrl?: string,
 ): Promise<Record<string, unknown>> {
-  const csrfToken = frappeBaseUrl
-    ? await browserCsrfToken(frappeBaseUrl)
-    : null;
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(init.body ? { "Content-Type": "application/json" } : {}),
-    ...(init.headers as Record<string, string> | undefined),
-  };
-  if (csrfToken) headers["X-Frappe-CSRF-Token"] = csrfToken;
-
-  const response = await fetch(url, {
-    ...init,
-    credentials: "include",
-    headers,
-    cache: "no-store",
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = payload?.error ?? {};
-    throw new MajorCatalogApiError(
-      response.status,
-      typeof error.code === "string"
-        ? error.code
-        : "MAJOR_CATALOG_REQUEST_FAILED",
-      typeof error.message === "string"
-        ? error.message
-        : typeof payload?.exception === "string"
-          ? payload.exception
-          : `Không thể gọi API danh mục ngành (${response.status}).`,
-    );
-  }
-  return unwrapMessage(payload);
+  return frappeRequest(url, init, frappeBaseUrl, MajorCatalogApiError);
 }
 
 function ensureRoot(root: string, message: string): void {
-  if (!root)
-    throw new MajorCatalogApiError(503, "MAJOR_CATALOG_UNAVAILABLE", message);
+  ensureFrappeRoot(root, message, MajorCatalogApiError);
 }
 
 function isGroupCatalog(value: unknown): value is MajorGroupCatalog {
@@ -128,11 +56,6 @@ function isMajorCatalog(value: unknown): value is MajorCatalog {
     !Array.isArray(value) &&
     Array.isArray((value as Partial<MajorCatalog>).majors),
   );
-}
-
-function queryString(params: URLSearchParams): string {
-  const value = params.toString();
-  return value ? `?${value}` : "";
 }
 
 function normalizePagination<T extends MajorGroupCatalog | MajorCatalog>(

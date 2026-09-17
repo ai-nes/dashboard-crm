@@ -3,14 +3,14 @@
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import {
+  AdminTabContent,
+  AdminTabList,
+  AdminTabRoot,
+} from "@/components/common/admin/admin-tabs";
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import {
-  TabContent,
-  TabList,
-  TabRoot,
-  TabTrigger,
-} from "@/components/tailgrids/core/tabs";
+import { TabTrigger } from "@/components/tailgrids/core/tabs";
 import { AdmissionDocumentTypeManagement } from "@/components/segments/admission-document-type-management";
 import { AdmissionMethodManagement } from "@/components/segments/admission-method-management";
 import { ClassificationGroupManagement } from "@/components/segments/classification-group-management";
@@ -70,16 +70,15 @@ export function StudentConfigurationPage() {
         metaLabel="Danh mục CRM"
         metaValue="Cấu hình nền tảng tuyển sinh"
       />
-      <TabRoot
+      <AdminTabRoot
         defaultValue="needs"
         value={activeTab}
         onValueChange={(value) => {
           if (isConfigurationTab(value)) setActiveTab(value);
         }}
-        variant="minimal"
-        className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <TabList className="px-1 sm:px-2">
+        <AdminTabList>
           <TabTrigger value="needs">Nhu cầu</TabTrigger>
           <TabTrigger value="tags">Tag</TabTrigger>
           <TabTrigger value="profile-types">Loại hồ sơ</TabTrigger>
@@ -87,52 +86,52 @@ export function StudentConfigurationPage() {
           <TabTrigger value="admission-methods">
             Phương thức xét tuyển
           </TabTrigger>
-        </TabList>
-        <TabContent
+        </AdminTabList>
+        <AdminTabContent
           value="needs"
-          className="flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-5"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden px-0"
         >
           <ClassificationGroupManagement
             kind="need"
             canManage={canManage}
             compactStatus
           />
-        </TabContent>
-        <TabContent
+        </AdminTabContent>
+        <AdminTabContent
           value="tags"
-          className="flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-5"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden px-0"
         >
           <ClassificationGroupManagement
             kind="tag"
             canManage={canManage}
             compactStatus
           />
-        </TabContent>
-        <TabContent
+        </AdminTabContent>
+        <AdminTabContent
           value="profile-types"
-          className="flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-5"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden px-0"
         >
           <AdmissionProfileTemplateManagement canManage={canManage} />
-        </TabContent>
-        <TabContent
+        </AdminTabContent>
+        <AdminTabContent
           value="document-types"
-          className="flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-5"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden px-0"
         >
           <AdmissionDocumentTypeManagement
             canManage={canManageDocumentTypes}
             canDelete={canDeleteDocumentTypes}
           />
-        </TabContent>
-        <TabContent
+        </AdminTabContent>
+        <AdminTabContent
           value="admission-methods"
-          className="flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-5"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden px-0"
         >
           <AdmissionMethodManagement
             canManage={canManageMethods}
             canDelete={canDeleteMethods}
           />
-        </TabContent>
-      </TabRoot>
+        </AdminTabContent>
+      </AdminTabRoot>
     </main>
   );
 }

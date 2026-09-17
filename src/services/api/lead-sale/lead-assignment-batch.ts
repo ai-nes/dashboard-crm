@@ -241,7 +241,7 @@ export type LeadAssignmentBatchMutationResponse = {
 };
 
 export type LeadAssignmentAutoRunResponse = {
-  status: LeadAssignmentBatchStatus | "no_work";
+  status: LeadAssignmentBatchStatus | "no_work" | "busy";
   batch: LeadAssignmentBatch | null;
   items: LeadAssignmentBatchItem[];
   scanned: number;
@@ -1045,6 +1045,16 @@ export async function runUnassignedLeadAssignment(
       "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
       "Phản hồi phân công Lead không hợp lệ.",
     );
+  }
+
+  if (source.status === "busy") {
+    return {
+      status: "busy",
+      batch: null,
+      items: [],
+      scanned: count(source.scanned),
+      message: nullableText(source.message),
+    };
   }
 
   if (source.status === "no_work" || source.batch === null) {

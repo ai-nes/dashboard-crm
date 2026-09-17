@@ -5,21 +5,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 
+import {
+  AdminTableCell,
+  AdminTableFrame,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTablePagination,
+  AdminTableRoot,
+  AdminTableRow,
+} from "@/components/common/admin/admin-table";
 import { Button } from "@/components/tailgrids/core/button";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/tailgrids/core/input-group";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
+import { TableBody } from "@/components/tailgrids/core/table";
 import { useCrmRuleVersionsQuery } from "@/hooks/use-rules-config-queries";
 import type {
   CrmRuleStatus,
@@ -66,8 +67,7 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
   const hasVersionFilter = Boolean(search.trim()) || status !== "all";
   const tabs = STATUS_TABS.map((tab) => ({
     ...tab,
-    count:
-      tab.id === "all" ? total : tab.id === status ? total : null,
+    count: tab.id === "all" ? total : tab.id === status ? total : null,
   }));
 
   const openVersion = (version: CrmRuleVersion) => {
@@ -77,10 +77,7 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
   };
 
   return (
-    <section
-      aria-label="Danh sách Version"
-      className="overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs"
-    >
+    <AdminTableFrame aria-label="Danh sách Version">
       <Tabs
         selectedKey={status}
         onSelectionChange={(key) => {
@@ -161,36 +158,22 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
           ) : null}
           {!versionsQuery.isPending && !versionsQuery.error ? (
             <>
-              <TableRoot
-                fullBleed
-                className="border-0"
-                aria-label="Danh sách Version"
-              >
-                <TableHeader className="bg-background-gray-secondary">
-                  <TableRow>
-                    <TableHead scope="col" className="whitespace-nowrap">
-                      Mã Version
-                    </TableHead>
-                    <TableHead scope="col" className="whitespace-nowrap">
-                      Tên Version
-                    </TableHead>
-                    <TableHead scope="col" className="whitespace-nowrap">
-                      Số Rule
-                    </TableHead>
-                    <TableHead scope="col" className="whitespace-nowrap">
-                      Người tạo
-                    </TableHead>
-                    <TableHead scope="col" className="whitespace-nowrap">
-                      Trạng thái
-                    </TableHead>
-                    <TableHead scope="col" className="whitespace-nowrap">
+              <AdminTableRoot aria-label="Danh sách Version">
+                <AdminTableHeader>
+                  <AdminTableRow>
+                    <AdminTableHead scope="col">Mã Version</AdminTableHead>
+                    <AdminTableHead scope="col">Tên Version</AdminTableHead>
+                    <AdminTableHead scope="col">Số Rule</AdminTableHead>
+                    <AdminTableHead scope="col">Người tạo</AdminTableHead>
+                    <AdminTableHead scope="col">Trạng thái</AdminTableHead>
+                    <AdminTableHead scope="col">
                       Cập nhật lần cuối
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
+                    </AdminTableHead>
+                  </AdminTableRow>
+                </AdminTableHeader>
                 <TableBody>
                   {versions.map((version) => (
-                    <TableRow
+                    <AdminTableRow
                       key={version.name}
                       tabIndex={0}
                       className="cursor-pointer hover:bg-background-gray-secondary_alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
@@ -202,20 +185,20 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
                         }
                       }}
                     >
-                      <TableCell className="whitespace-nowrap py-5 font-mono text-xs text-text-tertiary">
+                      <AdminTableCell className="whitespace-nowrap font-mono text-xs text-text-tertiary">
                         {version.versionId}
-                      </TableCell>
-                      <TableCell className="py-5 text-sm font-semibold text-primary-500">
+                      </AdminTableCell>
+                      <AdminTableCell className="font-semibold text-primary-500">
                         {version.versionName}
-                      </TableCell>
-                      <TableCell className="py-5 text-sm tabular-nums text-text-secondary">
+                      </AdminTableCell>
+                      <AdminTableCell className="tabular-nums text-text-secondary">
                         {version.rulesCount}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap py-5 text-sm text-text-secondary">
+                      </AdminTableCell>
+                      <AdminTableCell className="whitespace-nowrap text-text-secondary">
                         {version.creator ?? "—"}
-                      </TableCell>
-                      <TableCell
-                        className="py-5 text-sm"
+                      </AdminTableCell>
+                      <AdminTableCell
+                        className="text-sm"
                         onClick={(event) => event.stopPropagation()}
                         onKeyDown={(event) => event.stopPropagation()}
                       >
@@ -226,42 +209,37 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
                             onChanged={() => void versionsQuery.refetch()}
                           />
                         </div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap py-5 text-sm text-text-secondary">
+                      </AdminTableCell>
+                      <AdminTableCell className="whitespace-nowrap text-text-secondary">
                         {formatDate(version.modified)}
-                      </TableCell>
-                    </TableRow>
+                      </AdminTableCell>
+                    </AdminTableRow>
                   ))}
                   {versions.length === 0 ? (
-                    <TableRow>
-                      <TableCell
+                    <AdminTableRow>
+                      <AdminTableCell
                         colSpan={6}
                         className="py-16 text-center text-sm text-text-tertiary"
                       >
                         {!hasVersionFilter
                           ? "Chưa có Version nào. Tạo Version để bắt đầu."
                           : "Không tìm thấy Version phù hợp."}
-                      </TableCell>
-                    </TableRow>
+                      </AdminTableCell>
+                    </AdminTableRow>
                   ) : null}
                 </TableBody>
-              </TableRoot>
-              {totalPages > 1 && (
-                <div className="border-t border-card-border px-5 py-3">
-                  <Pagination
-                    currentPage={page}
-                    totalPages={totalPages}
-                    onPageChange={setPage}
-                    variant="compact"
-                    align="end"
-                    isDisabled={versionsQuery.isFetching}
-                  />
-                </div>
-              )}
+              </AdminTableRoot>
+              <AdminTablePagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={total}
+                onPageChange={setPage}
+                isDisabled={versionsQuery.isFetching}
+              />
             </>
           ) : null}
         </TabPanel>
       </Tabs>
-    </section>
+    </AdminTableFrame>
   );
 }

@@ -56,6 +56,10 @@ interface UseAnalysisRunResult {
   runQuery: UseQueryResult<AnalysisRunSnapshot, Error>;
 }
 
+function isActiveRun(run: AnalysisRunSnapshot | null | undefined): boolean {
+  return run?.status === "queued" || run?.status === "running";
+}
+
 export function useAnalysisRun(kind: AnalysisRunKind, targetId: string): UseAnalysisRunResult {
   const [runReference, setRunReference] = useState<AnalysisRunReference | null>(() => readRunReference(kind, targetId));
 
@@ -69,15 +73,17 @@ export function useAnalysisRun(kind: AnalysisRunKind, targetId: string): UseAnal
   const runQuery = useQuery({
     queryKey: runReference ? analysisRunKeys.run(runReference.runKind, runReference.runId) : analysisRunKeys.all,
     queryFn: () => getAnalysisRun(runReference!.runId, runReference!.runKind),
-    // The new crm-agents endpoint settles the 360 report in the POST response.
-    // A stored run is read once for history; Analyse now no longer starts a
-    // webhook/poll loop.
-    enabled: Boolean(runReference?.runId) && !requestMutation.data,
+    // Synchronous runs are settled in the POST response. Legacy or delayed
+    // runs still need a short status loop so each stage can move from queued
+    // to running/completed after the triggering event has been recorded.
+    enabled: Boolean(runReference?.runId) && (!requestMutation.data || isActiveRun(requestMutation.data)),
+    refetchInterval: (query) =>
+      isActiveRun(query.state.data ?? requestMutation.data) ? 1500 : false,
     refetchOnWindowFocus: true,
   });
 
   return {
-    run: requestMutation.data ?? runQuery.data ?? null,
+    run: runQuery.data ?? requestMutation.data ?? null,
     request: (request) => requestMutation.mutate(request),
     requestMutation,
     runQuery,

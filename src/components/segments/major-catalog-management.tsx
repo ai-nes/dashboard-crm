@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 
+import { AdminTablePagination } from "@/components/common/admin/admin-table";
+import { AdminSearchInput } from "@/components/common/admin/admin-search-input";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Input } from "@/components/tailgrids/core/input";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   Select,
   SelectContent,
@@ -31,6 +31,7 @@ import {
   useDeleteMajorMutation,
   useMajorGroupsQuery,
   useMajorsQuery,
+  useUpdateMajorGroupMutation,
 } from "@/hooks/use-major-catalog-queries";
 import type {
   MajorGroupOption,
@@ -38,6 +39,7 @@ import type {
 } from "@/services/api/major-catalog";
 
 import { AdmissionCatalogPanel } from "./admission-catalog-panel";
+import { CatalogOrderingPanel } from "./catalog-ordering-panel";
 import { MajorEditorDialog } from "./major-editor-dialog";
 import { MajorGroupEditorDialog } from "./major-group-editor-dialog";
 
@@ -60,10 +62,12 @@ export function MajorCatalogManagement({
   canManage,
   groupId,
   groupName,
+  enabled = true,
 }: {
   canManage: boolean;
   groupId?: string;
   groupName?: string;
+  enabled?: boolean;
 }) {
   const isGroupDetail = Boolean(groupId);
   const [groupSearch, setGroupSearch] = useState("");
@@ -71,6 +75,7 @@ export function MajorCatalogManagement({
   const [majorSearch, setMajorSearch] = useState("");
   const deferredMajorSearch = useDeferredValue(majorSearch);
   const [groupStatus, setGroupStatus] = useState<StatusFilter>("all");
+  const [isOrderingGroups, setIsOrderingGroups] = useState(false);
   const [majorStatus, setMajorStatus] = useState<StatusFilter>("all");
   const [majorGroupFilter, setMajorGroupFilter] = useState(
     groupId ?? GROUP_FILTER_ALL,
@@ -95,12 +100,14 @@ export function MajorCatalogManagement({
     enabled: groupStatus === "all" ? undefined : groupStatus === "enabled",
     start: (groupPage - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
+    queryEnabled: enabled,
   });
   const groups = groupsQuery.data?.groups ?? [];
   const groupOptionsQuery = useMajorGroupsQuery({
     includeDisabled: true,
     start: 0,
     pageLength: 100,
+    queryEnabled: enabled,
   });
   const groupOptions = groupOptionsQuery.data?.groups ?? groups;
   const enabledGroupCount = groupOptions.filter(
@@ -118,11 +125,12 @@ export function MajorCatalogManagement({
     isActive: majorStatus === "all" ? undefined : majorStatus === "enabled",
     start: (majorPage - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
-    enabled: isGroupDetail,
+    enabled: enabled && isGroupDetail,
   });
   const majors = majorsQuery.data?.majors ?? [];
   const deleteGroupMutation = useDeleteMajorGroupMutation();
   const deleteMajorMutation = useDeleteMajorMutation();
+  const updateGroupMutation = useUpdateMajorGroupMutation();
 
   const openCreateGroup = () => {
     setSelectedGroupRecord(null);
@@ -182,6 +190,33 @@ export function MajorCatalogManagement({
     }
   };
 
+  const saveGroupOrder = async (items: readonly { id: string }[]) => {
+    const recordsById = new Map(groupOptions.map((group) => [group.id, group]));
+    try {
+      await Promise.all(
+        items.map((item, index) => {
+          const group = recordsById.get(item.id);
+          if (!group) return Promise.resolve();
+          return updateGroupMutation.mutateAsync({
+            name: group.id,
+            data: {
+              code: group.code,
+              display_name: group.name,
+              description: group.description,
+              enabled: group.enabled,
+              sort_order: index + 1,
+            },
+            expectedModified: group.modified,
+          });
+        }),
+      );
+      toast.success("Đã cập nhật thứ tự nhóm ngành.");
+      setIsOrderingGroups(false);
+    } catch (error) {
+      toast.error(errorMessage(error, "Không thể cập nhật thứ tự nhóm ngành."));
+    }
+  };
+
   const groupTotal = groupsQuery.data?.total ?? groups.length;
   const majorTotal = majorsQuery.data?.total ?? majors.length;
   const effectiveMajorGroup =
@@ -217,12 +252,13 @@ export function MajorCatalogManagement({
             isBusy={
               groupsQuery.isPending ||
               deleteGroupMutation.isPending ||
-              groupOptionsQuery.isPending
+              groupOptionsQuery.isPending ||
+              updateGroupMutation.isPending
             }
           >
             <div className="border-b border-card-border px-4 py-3 sm:px-5">
-              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem]">
-                <Input
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
+                <AdminSearchInput
                   value={groupSearch}
                   onChange={(event) => {
                     setGroupSearch(event.target.value);
@@ -257,9 +293,46 @@ export function MajorCatalogManagement({
                     ))}
                   </SelectContent>
                 </Select>
+                {canManage && (
+                  <Button
+                    size="sm"
+                    appearance="outline"
+                    isDisabled={
+                      Boolean(groupSearch.trim()) || groupStatus !== "all"
+                    }
+                    onPress={() => setIsOrderingGroups(true)}
+                  >
+                    Sắp xếp
+                  </Button>
+                )}
               </div>
             </div>
-            {groupsQuery.isPending ? (
+            {isOrderingGroups ? (
+              groupOptionsQuery.isPending ? (
+                <CatalogLoading label="Đang tải danh sách để sắp xếp…" />
+              ) : groupOptionsQuery.error ? (
+                <CatalogError
+                  message={errorMessage(
+                    groupOptionsQuery.error,
+                    "Không thể tải danh sách sắp xếp.",
+                  )}
+                  onRetry={() => void groupOptionsQuery.refetch()}
+                />
+              ) : (
+                <CatalogOrderingPanel
+                  title="nhóm ngành"
+                  items={groupOptions.map((group) => ({
+                    id: group.id,
+                    code: group.code,
+                    label: group.name,
+                    description: group.description,
+                  }))}
+                  isSaving={updateGroupMutation.isPending}
+                  onCancel={() => setIsOrderingGroups(false)}
+                  onSave={saveGroupOrder}
+                />
+              )
+            ) : groupsQuery.isPending ? (
               <CatalogLoading label="Đang tải nhóm ngành…" />
             ) : groupsQuery.error ? (
               <CatalogError
@@ -292,7 +365,6 @@ export function MajorCatalogManagement({
                     <TableHead>Mã nhóm</TableHead>
                     <TableHead>Tên nhóm</TableHead>
                     <TableHead>Mô tả</TableHead>
-                    <TableHead>Thứ tự</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead className="w-24 text-right">Thao tác</TableHead>
                   </TableRow>
@@ -321,9 +393,6 @@ export function MajorCatalogManagement({
                         <span className="line-clamp-2">
                           {group.description || "—"}
                         </span>
-                      </TableCell>
-                      <TableCell className="align-top text-sm text-text-secondary">
-                        {group.sortOrder}
                       </TableCell>
                       <TableCell className="align-top">
                         <Badge
@@ -365,18 +434,15 @@ export function MajorCatalogManagement({
                 </TableBody>
               </TableRoot>
             )}
-            {groups.length > 0 && Math.ceil(groupTotal / PAGE_SIZE) > 1 && (
-              <div className="border-t border-card-border px-4 py-3 sm:px-5">
-                <Pagination
-                  currentPage={groupPage}
-                  totalPages={Math.ceil(groupTotal / PAGE_SIZE)}
-                  onPageChange={setGroupPage}
-                  variant="compact"
-                  align="end"
-                  isDisabled={groupsQuery.isFetching}
-                />
-              </div>
-            )}
+            {!isOrderingGroups && groups.length > 0 ? (
+              <AdminTablePagination
+                currentPage={groupPage}
+                totalPages={Math.max(1, Math.ceil(groupTotal / PAGE_SIZE))}
+                totalItems={groupTotal}
+                onPageChange={setGroupPage}
+                isDisabled={groupsQuery.isFetching}
+              />
+            ) : null}
           </AdmissionCatalogPanel>
         )}
 
@@ -405,7 +471,7 @@ export function MajorCatalogManagement({
                     : "grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.35fr)_12rem]"
                 }
               >
-                <Input
+                <AdminSearchInput
                   value={majorSearch}
                   onChange={(event) => {
                     setMajorSearch(event.target.value);
@@ -576,18 +642,15 @@ export function MajorCatalogManagement({
                 </TableBody>
               </TableRoot>
             )}
-            {majors.length > 0 && Math.ceil(majorTotal / PAGE_SIZE) > 1 && (
-              <div className="border-t border-card-border px-4 py-3 sm:px-5">
-                <Pagination
-                  currentPage={majorPage}
-                  totalPages={Math.ceil(majorTotal / PAGE_SIZE)}
-                  onPageChange={setMajorPage}
-                  variant="compact"
-                  align="end"
-                  isDisabled={majorsQuery.isFetching}
-                />
-              </div>
-            )}
+            {majors.length > 0 ? (
+              <AdminTablePagination
+                currentPage={majorPage}
+                totalPages={Math.max(1, Math.ceil(majorTotal / PAGE_SIZE))}
+                totalItems={majorTotal}
+                onPageChange={setMajorPage}
+                isDisabled={majorsQuery.isFetching}
+              />
+            ) : null}
           </AdmissionCatalogPanel>
         )}
       </div>

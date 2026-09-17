@@ -26,7 +26,6 @@ interface GroupForm {
   code: string;
   name: string;
   description: string;
-  sortOrder: string;
   enabled: boolean;
 }
 
@@ -35,7 +34,6 @@ function formFromRecord(record: MajorGroupOption | null): GroupForm {
     code: record?.code ?? "",
     name: record?.name ?? "",
     description: record?.description ?? "",
-    sortOrder: String(record?.sortOrder ?? 0),
     enabled: record?.enabled ?? true,
   };
 }
@@ -65,15 +63,14 @@ export function MajorGroupEditorDialog({
     event.preventDefault();
     const code = form.code.trim().toUpperCase();
     const name = form.name.trim();
-    const sortOrder = Number(form.sortOrder);
     if (!/^[A-Z][A-Z0-9_]{1,49}$/.test(code)) {
       toast.error(
         "Mã nhóm phải dài 2-50 ký tự, gồm A-Z, 0-9 và dấu gạch dưới.",
       );
       return;
     }
-    if (!name || !Number.isInteger(sortOrder) || sortOrder < 0) {
-      toast.error("Vui lòng nhập tên nhóm và thứ tự hiển thị hợp lệ.");
+    if (!name) {
+      toast.error("Vui lòng nhập tên nhóm.");
       return;
     }
     const data = {
@@ -81,7 +78,7 @@ export function MajorGroupEditorDialog({
       display_name: name,
       description: form.description.trim() || null,
       enabled: form.enabled,
-      sort_order: sortOrder,
+      sort_order: record?.sortOrder ?? 0,
     };
     try {
       if (record) {
@@ -169,32 +166,18 @@ export function MajorGroupEditorDialog({
                 placeholder="Mô tả ngắn về nhóm ngành"
               />
             </label>
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-end">
-              <Checkbox
-                size="sm"
-                isSelected={form.enabled}
-                onChange={(selected) => setField("enabled", selected)}
-                isDisabled={isSaving}
-                className="min-h-10 rounded-lg border border-card-border bg-background-gray-secondary_alt px-3 text-sm text-text-secondary"
-              >
-                Cho phép dùng trong danh mục
-              </Checkbox>
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-input-label-text-color">
-                  Thứ tự hiển thị
-                </span>
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.sortOrder}
-                  onChange={(event) =>
-                    setField("sortOrder", event.target.value)
-                  }
-                  disabled={isSaving}
-                  className="h-10 w-full"
-                />
-              </label>
-            </div>
+            <Checkbox
+              size="sm"
+              isSelected={form.enabled}
+              onChange={(selected) => setField("enabled", selected)}
+              isDisabled={isSaving}
+              className="min-h-10 rounded-lg border border-card-border bg-background-gray-secondary_alt px-3 text-sm text-text-secondary"
+            >
+              Cho phép dùng trong danh mục
+            </Checkbox>
+            <p className="text-xs text-text-tertiary">
+              Thứ tự hiển thị được điều chỉnh bằng nút <span className="font-medium text-text-secondary">Sắp xếp</span> ở danh sách nhóm ngành.
+            </p>
           </DialogBody>
           <DialogFooter className="border-t border-card-border px-5 py-3">
             <DialogClose appearance="outline" size="sm" isDisabled={isSaving}>

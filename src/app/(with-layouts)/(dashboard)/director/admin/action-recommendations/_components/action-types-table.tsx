@@ -3,16 +3,17 @@
 import { Eye, Pencil1, Plus } from "@tailgrids/icons";
 import { useState } from "react";
 
-import { Button } from "@/components/tailgrids/core/button";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
+  AdminTableCell,
+  AdminTableFrame,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTablePagination,
+  AdminTableRoot,
+  AdminTableRow,
+} from "@/components/common/admin/admin-table";
+import { Button } from "@/components/tailgrids/core/button";
+import { TableBody } from "@/components/tailgrids/core/table";
 import { useNbaAdminActionTypesQuery } from "@/hooks/use-nba-admin-queries";
 import type { NbaAdminActionType } from "@/services/api/nba-admin";
 
@@ -50,10 +51,7 @@ export default function ActionTypesTable({ canEdit }: ActionTypesTableProps) {
 
   return (
     <>
-      <section
-        className="overflow-hidden rounded-xl border border-card-border bg-card-background"
-        aria-labelledby="action-types-heading"
-      >
+      <AdminTableFrame aria-labelledby="action-types-heading">
         <div className="flex flex-wrap items-end justify-between gap-3 px-4 py-4">
           <div>
             <h2
@@ -131,41 +129,40 @@ export default function ActionTypesTable({ canEdit }: ActionTypesTableProps) {
           </p>
         ) : (
           <>
-            <TableRoot fullBleed className="border-0">
-              <TableHeader className="bg-background-gray-secondary">
-                <TableRow>
-                  <TableHead>Mã nhóm</TableHead>
-                  <TableHead>Tên nhóm</TableHead>
-                  <TableHead>Thứ tự</TableHead>
-                  <TableHead>Cập nhật gần nhất</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-center">Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
+            <AdminTableRoot>
+              <AdminTableHeader>
+                <AdminTableRow>
+                  <AdminTableHead>Mã nhóm</AdminTableHead>
+                  <AdminTableHead>Tên nhóm</AdminTableHead>
+                  <AdminTableHead>Thứ tự</AdminTableHead>
+                  <AdminTableHead>Cập nhật gần nhất</AdminTableHead>
+                  <AdminTableHead>Trạng thái</AdminTableHead>
+                  <AdminTableHead className="text-center">
+                    Thao tác
+                  </AdminTableHead>
+                </AdminTableRow>
+              </AdminTableHeader>
               <TableBody>
                 {actionTypes.map((actionType) => (
-                  <TableRow
-                    key={actionType.name}
-                    className="hover:bg-background-gray-secondary_alt"
-                  >
-                    <TableCell className="font-mono text-xs font-semibold tracking-[0.04em] text-primary-500">
+                  <AdminTableRow key={actionType.name}>
+                    <AdminTableCell className="font-mono text-xs font-semibold tracking-[0.04em] text-primary-500">
                       {actionType.actionType}
-                    </TableCell>
-                    <TableCell className="font-semibold text-text-primary">
+                    </AdminTableCell>
+                    <AdminTableCell className="font-semibold">
                       {actionType.displayName}
-                    </TableCell>
-                    <TableCell className="text-sm text-text-secondary">
+                    </AdminTableCell>
+                    <AdminTableCell className="text-text-secondary">
                       {actionType.sortOrder}
-                    </TableCell>
-                    <TableCell className="text-sm text-text-secondary">
+                    </AdminTableCell>
+                    <AdminTableCell className="text-text-secondary">
                       {actionType.modified ?? "—"}
-                    </TableCell>
-                    <TableCell>
+                    </AdminTableCell>
+                    <AdminTableCell>
                       <RecordStatusBadge
                         status={actionType.enabled ? "active" : "inactive"}
                       />
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </AdminTableCell>
+                    <AdminTableCell className="text-center">
                       <Button
                         size="sm"
                         variant="primary"
@@ -184,36 +181,31 @@ export default function ActionTypesTable({ canEdit }: ActionTypesTableProps) {
                         )}
                         {canEdit ? "Sửa" : "Xem"}
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </AdminTableCell>
+                  </AdminTableRow>
                 ))}
                 {actionTypes.length === 0 && (
-                  <TableRow>
-                    <TableCell
+                  <AdminTableRow>
+                    <AdminTableCell
                       colSpan={6}
                       className="py-12 text-center text-sm text-text-tertiary"
                     >
                       Không tìm thấy nhóm hành động phù hợp.
-                    </TableCell>
-                  </TableRow>
+                    </AdminTableCell>
+                  </AdminTableRow>
                 )}
               </TableBody>
-            </TableRoot>
-            {totalPages > 1 && (
-              <div className="border-t border-card-border px-5 py-3">
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  onPageChange={setPage}
-                  variant="compact"
-                  align="end"
-                  isDisabled={query.isFetching}
-                />
-              </div>
-            )}
+            </AdminTableRoot>
+            <AdminTablePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              onPageChange={setPage}
+              isDisabled={query.isFetching}
+            />
           </>
         )}
-      </section>
+      </AdminTableFrame>
 
       {(selected || isCreateOpen) && (
         <ActionTypeDetailDialog

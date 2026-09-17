@@ -76,6 +76,7 @@ export function useAdmissionMethodsQuery(
     search?: string;
     includeDisabled?: boolean;
     enabled?: boolean;
+    queryEnabled?: boolean;
     start?: number;
     pageLength?: number;
   } = {},
@@ -99,6 +100,7 @@ export function useAdmissionMethodsQuery(
         start: options.start,
         pageLength: options.pageLength,
       }),
+    enabled: options.queryEnabled ?? true,
     staleTime: 30_000,
   });
 }

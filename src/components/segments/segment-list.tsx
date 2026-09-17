@@ -10,16 +10,17 @@ import {
 } from "@tanstack/react-table";
 import { toast } from "sonner";
 
-import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
+  AdminTableBody,
+  AdminTableCell,
+  AdminTableFrame,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTablePagination,
+  AdminTableRoot,
+  AdminTableRow,
+} from "@/components/common/admin/admin-table";
+import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { useDeleteSegmentMutation } from "@/hooks/use-segment-queries";
 import { getSegmentListColumns } from "./segment-list-columns";
 import { useSegmentData } from "./segment-data-provider";
@@ -166,10 +167,7 @@ export function SegmentList({
 
   return (
     <>
-      <section
-        aria-label="Danh sách segments"
-        className="overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs"
-      >
+      <AdminTableFrame aria-label="Danh sách segments">
         <SegmentListToolbar
           table={table}
           serverPagination={
@@ -186,80 +184,64 @@ export function SegmentList({
           }
         >
           <>
-            <TableRoot
-              fullBleed
-              className="border-0"
-              aria-label="Danh sách segments"
-            >
-              <TableHeader className="bg-background-gray-secondary">
+            <AdminTableRoot aria-label="Danh sách segments">
+              <AdminTableHeader>
                 {table.getHeaderGroups().map((group) => (
-                  <TableRow key={group.id}>
+                  <AdminTableRow key={group.id}>
                     {group.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        scope="col"
-                        className="whitespace-nowrap"
-                      >
+                      <AdminTableHead key={header.id} scope="col">
                         {flexRender(
                           header.column.columnDef.header,
                           header.getContext(),
                         )}
-                      </TableHead>
+                      </AdminTableHead>
                     ))}
-                  </TableRow>
+                  </AdminTableRow>
                 ))}
-              </TableHeader>
-              <TableBody>
+              </AdminTableHeader>
+              <AdminTableBody>
                 {table.getRowModel().rows.map((row) => (
-                  <TableRow
+                  <AdminTableRow
                     key={row.id}
                     className="hover:bg-background-gray-secondary_alt"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell
+                      <AdminTableCell
                         key={cell.id}
-                        className="py-5 text-sm font-normal text-text-secondary"
+                        className="text-sm font-normal text-text-secondary"
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
                         )}
-                      </TableCell>
+                      </AdminTableCell>
                     ))}
-                  </TableRow>
+                  </AdminTableRow>
                 ))}
                 {table.getRowModel().rows.length === 0 && (
-                  <TableRow>
-                    <TableCell
+                  <AdminTableRow>
+                    <AdminTableCell
                       colSpan={columns.length}
                       className="py-16 text-center text-sm text-text-tertiary"
                     >
                       {!hasSegmentFilter
                         ? "Chưa có segment nào. Tạo segment để bắt đầu."
                         : "Không tìm thấy segment phù hợp. Thử từ khóa hoặc trạng thái khác."}
-                    </TableCell>
-                  </TableRow>
+                    </AdminTableCell>
+                  </AdminTableRow>
                 )}
-              </TableBody>
-            </TableRoot>
-            {serverPaginated && totalPages > 1 ? (
-              <div className="flex justify-end border-t border-card-border px-5 py-4">
-                <div className="w-fit">
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setPage}
-                    variant="compact"
-                    isDisabled={
-                      isFetching || isLoading || deleteMutation.isPending
-                    }
-                  />
-                </div>
-              </div>
-            ) : null}
+              </AdminTableBody>
+            </AdminTableRoot>
+            <AdminTablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={total}
+              onPageChange={setPage}
+              isDisabled={isFetching || isLoading || deleteMutation.isPending}
+            />
           </>
         </SegmentListToolbar>
-      </section>
+      </AdminTableFrame>
 
       <DeleteRecordDialog
         isOpen={Boolean(segmentToDelete)}

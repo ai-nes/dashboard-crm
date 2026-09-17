@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { Pagination } from "@/components/tailgrids/core/pagination";
+import {
+  AdminTableFrame,
+  AdminTablePagination,
+} from "@/components/common/admin/admin-table";
 
 import MessageTemplateListToolbar from "./message-template-list-toolbar";
 import type { MessageTemplateRecord } from "./message-template-data";
@@ -154,10 +157,7 @@ export default function MessageTemplateList({
   };
 
   return (
-    <section
-      aria-label="Quản lý mẫu tin nhắn"
-      className="overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs"
-    >
+    <AdminTableFrame aria-label="Quản lý mẫu tin nhắn">
       <MessageTemplateListToolbar
         showOwnershipTabs={Boolean(currentUserId)}
         scope={scope}
@@ -204,27 +204,21 @@ export default function MessageTemplateList({
         onDelete={onDelete}
         onEdit={onEdit}
       />
-      {totalPages > 1 ? (
-        <div className="flex justify-end border-t border-card-border px-5 py-4">
-          <div className="w-fit">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={(nextPage) => {
-                if (serverPagination) {
-                  serverPagination.onPageChange(nextPage);
-                } else {
-                  updateQuery({
-                    page: nextPage === 1 ? undefined : String(nextPage),
-                  });
-                }
-              }}
-              variant="compact"
-              isDisabled={isLoading || serverPagination?.isDisabled}
-            />
-          </div>
-        </div>
-      ) : null}
-    </section>
+      <AdminTablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={serverPagination?.total ?? scopedTemplates.length}
+        onPageChange={(nextPage) => {
+          if (serverPagination) {
+            serverPagination.onPageChange(nextPage);
+          } else {
+            updateQuery({
+              page: nextPage === 1 ? undefined : String(nextPage),
+            });
+          }
+        }}
+        isDisabled={isLoading || serverPagination?.isDisabled}
+      />
+    </AdminTableFrame>
   );
 }

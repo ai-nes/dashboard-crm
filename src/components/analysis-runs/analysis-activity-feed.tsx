@@ -3,6 +3,7 @@
 import {
   CheckCircle1,
   ErrorCircle1,
+  InfoTriangle,
   RefreshCircle1Clockwise,
 } from "@tailgrids/icons";
 
@@ -14,14 +15,18 @@ import type {
 } from "@/services/api/analysis-runs";
 import { cn } from "@/utils/cn";
 
-import { stageLabels } from "./analysis-run-meta";
+import {
+  analysisStageState,
+  stageLabels,
+  type AnalysisStageDisplayState,
+} from "./analysis-run-meta";
 
 interface AnalysisActivityFeedProps {
   run: AnalysisRunSnapshot;
   title: string;
 }
 
-type FeedState = "complete" | "active" | "pending" | "error";
+type FeedState = AnalysisStageDisplayState;
 
 export default function AnalysisActivityFeed({
   run,
@@ -93,9 +98,11 @@ function ProcessingStage({ stage }: { stage: AnalysisRunStage }) {
         : "Đã hoàn tất"
       : status === "active"
         ? "Đang xử lý"
-        : status === "error"
-          ? "Cần kiểm tra lại"
-          : "Chờ xử lý";
+        : status === "warning"
+          ? "Chưa đủ dữ liệu"
+          : status === "error"
+            ? "Cần kiểm tra lại"
+            : "Chờ xử lý";
 
   return (
     <li className="flex min-w-0 items-center gap-3">
@@ -141,6 +148,16 @@ function StageIcon({ status }: { status: FeedState }) {
     );
   }
 
+  if (status === "warning") {
+    return (
+      <InfoTriangle
+        size={18}
+        className="shrink-0 text-warning-500"
+        aria-hidden="true"
+      />
+    );
+  }
+
   if (status === "active") {
     return (
       <RefreshCircle1Clockwise
@@ -160,8 +177,5 @@ function StageIcon({ status }: { status: FeedState }) {
 }
 
 function stageState(status: AnalysisRunStatus): FeedState {
-  if (status === "completed") return "complete";
-  if (status === "failed" || status === "dead_lettered") return "error";
-  if (status === "running") return "active";
-  return "pending";
+  return analysisStageState(status);
 }

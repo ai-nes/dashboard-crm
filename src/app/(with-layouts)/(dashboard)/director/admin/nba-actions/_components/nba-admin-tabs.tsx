@@ -2,7 +2,12 @@
 
 import type { ReactNode } from "react";
 
-import { TabContent, TabList, TabRoot, TabTrigger } from "@/components/tailgrids/core/tabs";
+import {
+  AdminTabContent,
+  AdminTabList,
+  AdminTabRoot,
+} from "@/components/common/admin/admin-tabs";
+import { TabTrigger } from "@/components/tailgrids/core/tabs";
 
 import ActionTypesTable from "../../action-recommendations/_components/action-types-table";
 import TimingPoliciesTable from "../../action-recommendations/_components/timing-policies-table";
@@ -14,28 +19,35 @@ interface NbaAdminTabsProps {
   canEdit: boolean;
 }
 
-export default function NbaAdminTabs({ actionsPanel, actionCount, canEdit }: NbaAdminTabsProps) {
+export default function NbaAdminTabs({
+  actionsPanel,
+  actionCount,
+  canEdit,
+}: NbaAdminTabsProps) {
   return (
-    <TabRoot defaultValue="actions" variant="minimal" className="overflow-hidden bg-card-background">
-        <TabList className="px-2 sm:px-4">
-          <TabTrigger value="actions" badge={actionCount || undefined}>Hành động</TabTrigger>
-          <TabTrigger value="action-types">Nhóm hành động</TabTrigger>
-          <TabTrigger value="timing-policies">Chính sách thời gian</TabTrigger>
-          <TabTrigger value="rules-config">Quản lý Rule</TabTrigger>
-        </TabList>
+    <AdminTabRoot
+      defaultValue="actions"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
+    >
+      <AdminTabList>
+        <TabTrigger value="actions" badge={actionCount || undefined}>
+          Hành động
+        </TabTrigger>
+        <TabTrigger value="action-types">Nhóm hành động</TabTrigger>
+        <TabTrigger value="timing-policies">Chính sách thời gian</TabTrigger>
+        <TabTrigger value="rules-config">Quản lý Rule</TabTrigger>
+      </AdminTabList>
 
-        <TabContent value="actions" className="p-3 sm:p-4">
-          {actionsPanel}
-        </TabContent>
-        <TabContent value="action-types" className="p-3 sm:p-4">
-          <ActionTypesTable canEdit={canEdit} />
-        </TabContent>
-        <TabContent value="timing-policies" className="p-3 sm:p-4">
-          <TimingPoliciesTable canEdit={canEdit} />
-        </TabContent>
-        <TabContent value="rules-config" className="p-3 sm:p-4">
-          <RulesConfigAdminPage embedded />
-        </TabContent>
-      </TabRoot>
+      <AdminTabContent value="actions">{actionsPanel}</AdminTabContent>
+      <AdminTabContent value="action-types">
+        <ActionTypesTable canEdit={canEdit} />
+      </AdminTabContent>
+      <AdminTabContent value="timing-policies">
+        <TimingPoliciesTable canEdit={canEdit} />
+      </AdminTabContent>
+      <AdminTabContent value="rules-config">
+        <RulesConfigAdminPage embedded />
+      </AdminTabContent>
+    </AdminTabRoot>
   );
 }

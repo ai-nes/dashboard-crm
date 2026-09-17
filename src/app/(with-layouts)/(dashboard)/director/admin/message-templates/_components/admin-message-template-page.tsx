@@ -88,7 +88,10 @@ export default function AdminMessageTemplatePage() {
         setTotal(response.total);
         setOwners(response.owners);
         setCurrentUser(user);
-        const responseTotalPages = Math.max(1, Math.ceil(response.total / PAGE_SIZE));
+        const responseTotalPages = Math.max(
+          1,
+          Math.ceil(response.total / PAGE_SIZE),
+        );
         if (nextPage > responseTotalPages) setPage(responseTotalPages);
       } catch (error) {
         setLoadError(
@@ -249,7 +252,7 @@ export default function AdminMessageTemplatePage() {
   return (
     <main
       id="main-content"
-      className="flex min-h-0 min-w-0 flex-col gap-5 px-2 py-4 pb-8 lg:px-6"
+      className="flex h-full min-h-0 min-w-0 flex-col gap-4 overflow-y-auto px-2 pt-4 pb-8 lg:px-6"
     >
       <AdminPageHeader
         section="Message Template"

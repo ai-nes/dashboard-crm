@@ -3,15 +3,16 @@
 import { useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
+  AdminTableCell,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTablePagination,
+  AdminTableRoot,
+  AdminTableRow,
+  AdminTableFrame,
+} from "@/components/common/admin/admin-table";
+import { TableBody } from "@/components/tailgrids/core/table";
 import { useUserRoleLogsQuery } from "@/hooks/use-user-management-queries";
 
 const PAGE_LENGTH = 8;
@@ -37,84 +38,75 @@ export default function UserRoleLogPanel() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LENGTH));
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs">
-      <TableRoot fullBleed className="border-0" aria-label="Lịch sử thay đổi vai trò">
-        <TableHeader className="bg-background-gray-secondary">
-          <TableRow>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Người dùng
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Hành động
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Vai trò trước
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Vai trò mới
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Thực hiện bởi
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Thời gian
-            </TableHead>
-          </TableRow>
-        </TableHeader>
+    <AdminTableFrame>
+      <AdminTableRoot aria-label="Lịch sử thay đổi vai trò">
+        <AdminTableHeader>
+          <AdminTableRow>
+            <AdminTableHead scope="col">Người dùng</AdminTableHead>
+            <AdminTableHead scope="col">Hành động</AdminTableHead>
+            <AdminTableHead scope="col">Vai trò trước</AdminTableHead>
+            <AdminTableHead scope="col">Vai trò mới</AdminTableHead>
+            <AdminTableHead scope="col">Thực hiện bởi</AdminTableHead>
+            <AdminTableHead scope="col">Thời gian</AdminTableHead>
+          </AdminTableRow>
+        </AdminTableHeader>
         <TableBody>
           {logsQuery.isPending
             ? Array.from({ length: 4 }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell colSpan={6} className="py-5">
+                <AdminTableRow key={index}>
+                  <AdminTableCell colSpan={6} className="py-5">
                     <div className="h-4 animate-pulse rounded bg-background-gray-secondary" />
-                  </TableCell>
-                </TableRow>
+                  </AdminTableCell>
+                </AdminTableRow>
               ))
             : null}
           {!logsQuery.isPending && logs.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="py-16 text-center text-sm text-text-tertiary">
+            <AdminTableRow>
+              <AdminTableCell
+                colSpan={6}
+                className="py-16 text-center text-sm text-text-tertiary"
+              >
                 Chưa có lịch sử thay đổi vai trò nào.
-              </TableCell>
-            </TableRow>
+              </AdminTableCell>
+            </AdminTableRow>
           ) : null}
           {!logsQuery.isPending
             ? logs.map((log) => (
-                <TableRow key={log.name}>
-                  <TableCell className="py-3.5 text-sm font-medium text-text-primary">{log.user}</TableCell>
-                  <TableCell className="py-3.5 text-sm">
-                    <Badge color={log.action === "removed" ? "error" : "primary"}>
+                <AdminTableRow key={log.name}>
+                  <AdminTableCell className="py-3.5 font-medium">
+                    {log.user}
+                  </AdminTableCell>
+                  <AdminTableCell className="py-3.5">
+                    <Badge
+                      color={log.action === "removed" ? "error" : "primary"}
+                    >
                       {log.action === "removed" ? "Gỡ khỏi CRM" : "Đổi vai trò"}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="py-3.5 text-sm text-text-secondary">
+                  </AdminTableCell>
+                  <AdminTableCell className="py-3.5 text-text-secondary">
                     {log.previousRole ?? "—"}
-                  </TableCell>
-                  <TableCell className="py-3.5 text-sm text-text-secondary">{log.newRole ?? "—"}</TableCell>
-                  <TableCell className="py-3.5 text-sm text-text-secondary">{log.owner}</TableCell>
-                  <TableCell className="py-3.5 text-sm text-text-tertiary">{formatDate(log.creation)}</TableCell>
-                </TableRow>
+                  </AdminTableCell>
+                  <AdminTableCell className="py-3.5 text-text-secondary">
+                    {log.newRole ?? "—"}
+                  </AdminTableCell>
+                  <AdminTableCell className="py-3.5 text-text-secondary">
+                    {log.owner}
+                  </AdminTableCell>
+                  <AdminTableCell className="py-3.5 text-text-tertiary">
+                    {formatDate(log.creation)}
+                  </AdminTableCell>
+                </AdminTableRow>
               ))
             : null}
         </TableBody>
-      </TableRoot>
-      {totalPages > 1 ? (
-        <div className="flex flex-wrap items-center gap-4 border-t border-card-border px-4 py-3">
-          <span className="text-xs text-text-tertiary">
-            {Math.min(start + 1, total)}–{Math.min(start + PAGE_LENGTH, total)} / {total}
-          </span>
-          <div className="min-w-0 flex-1">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={(page) => setStart((page - 1) * PAGE_LENGTH)}
-              variant="compact"
-              align="end"
-              isDisabled={logsQuery.isFetching}
-            />
-          </div>
-        </div>
-      ) : null}
-    </section>
+      </AdminTableRoot>
+      <AdminTablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={total}
+        onPageChange={(page) => setStart((page - 1) * PAGE_LENGTH)}
+        isDisabled={logsQuery.isFetching}
+      />
+    </AdminTableFrame>
   );
 }

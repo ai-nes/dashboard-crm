@@ -167,10 +167,6 @@ export function AdmissionProfileTemplateDocumentDetailPage({
               </Select>
             </label>
             <label className="block space-y-1.5">
-              <FieldLabel>Thứ tự</FieldLabel>
-              <Input type="number" min="1" value={requirement.order_display} onChange={(event) => onChange({order_display: event.target.value})} disabled={isSaving} className={FIELD_CLASS} />
-            </label>
-            <label className="block space-y-1.5">
               <FieldLabel>Tối thiểu</FieldLabel>
               <Input type="number" min="1" value={requirement.min_required} onChange={(event) => onChange({min_required: event.target.value})} disabled={isSaving} className={FIELD_CLASS} />
             </label>

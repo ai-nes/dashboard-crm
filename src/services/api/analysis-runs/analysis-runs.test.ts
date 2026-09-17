@@ -46,6 +46,28 @@ describe("analysis run API contract", () => {
     ]);
   });
 
+  it("normalizes stage statuses before the UI maps them to display states", () => {
+    const result = normalizeAnalysisRun(
+      {
+        message: {
+          run_id: "run-status-case",
+          status: "RUNNING",
+          stages: [
+            {
+              stage_kind: "student_360",
+              status: "ABSTAINED",
+              claims: [],
+            },
+          ],
+        },
+      },
+      "student",
+    );
+
+    expect(result.status).toBe("running");
+    expect(result.stages[0]?.status).toBe("abstained");
+  });
+
   it("normalizes the three-block report and folds the legacy envelope", () => {
     const result = normalizeAnalysisRun(
       {

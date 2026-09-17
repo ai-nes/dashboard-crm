@@ -3,6 +3,14 @@
 import { Copy4, Trash1 } from "@tailgrids/icons";
 import type { KeyboardEvent } from "react";
 
+import {
+  AdminTableBody,
+  AdminTableCell,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTableRoot,
+  AdminTableRow,
+} from "@/components/common/admin/admin-table";
 import { Button } from "@/components/tailgrids/core/button";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import {
@@ -10,14 +18,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/tailgrids/core/tooltip";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
 
 import type { MessageTemplateRecord } from "./message-template-data";
 
@@ -45,29 +45,32 @@ function formatDate(value: string) {
 
 function MessageTemplateSkeletonRows() {
   return Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
-    <TableRow key={`message-template-skeleton-${index}`} aria-hidden="true">
-      <TableCell className="h-16">
+    <AdminTableRow
+      key={`message-template-skeleton-${index}`}
+      aria-hidden="true"
+    >
+      <AdminTableCell className="h-16">
         <Skeleton className="h-3.5 w-16" />
-      </TableCell>
-      <TableCell className="h-16 min-w-72">
+      </AdminTableCell>
+      <AdminTableCell className="h-16 min-w-72">
         <Skeleton className={index % 3 === 0 ? "h-3.5 w-56" : "h-3.5 w-44"} />
-      </TableCell>
-      <TableCell className="h-16">
+      </AdminTableCell>
+      <AdminTableCell className="h-16">
         <Skeleton className="h-3.5 w-32" />
-      </TableCell>
-      <TableCell className="h-16">
+      </AdminTableCell>
+      <AdminTableCell className="h-16">
         <Skeleton className="h-3.5 w-20" />
-      </TableCell>
-      <TableCell className="h-16">
+      </AdminTableCell>
+      <AdminTableCell className="h-16">
         <Skeleton className="h-3.5 w-20" />
-      </TableCell>
-      <TableCell className="h-16">
+      </AdminTableCell>
+      <AdminTableCell className="h-16">
         <div className="flex justify-end gap-1">
           <Skeleton className="size-8 rounded-md" />
           <Skeleton className="size-8 rounded-md" />
         </div>
-      </TableCell>
-    </TableRow>
+      </AdminTableCell>
+    </AdminTableRow>
   ));
 }
 
@@ -92,43 +95,36 @@ export default function MessageTemplateTable({
   };
 
   return (
-    <TableRoot
-      fullBleed
-      className="w-full min-w-[54rem] border-0"
+    <AdminTableRoot
+      className="min-w-[54rem]"
       aria-label="Danh sách mẫu tin nhắn"
       aria-busy={isLoading || undefined}
     >
       {isLoading ? (
         <caption className="sr-only">Đang tải danh sách mẫu email</caption>
       ) : null}
-      <TableHeader className="bg-background-gray-secondary">
-        <TableRow>
-          <TableHead scope="col" className="w-36 whitespace-nowrap">
+      <AdminTableHeader>
+        <AdminTableRow>
+          <AdminTableHead scope="col" className="w-36">
             Mã mẫu
-          </TableHead>
-          <TableHead scope="col" className="min-w-72 whitespace-nowrap">
+          </AdminTableHead>
+          <AdminTableHead scope="col" className="min-w-72">
             Tên mẫu
-          </TableHead>
-          <TableHead scope="col" className="whitespace-nowrap">
-            Người sở hữu
-          </TableHead>
-          <TableHead scope="col" className="whitespace-nowrap">
-            Ngày tạo
-          </TableHead>
-          <TableHead scope="col" className="whitespace-nowrap">
-            Ngày chỉnh sửa
-          </TableHead>
-          <TableHead scope="col" className="w-28 whitespace-nowrap text-right">
+          </AdminTableHead>
+          <AdminTableHead scope="col">Người sở hữu</AdminTableHead>
+          <AdminTableHead scope="col">Ngày tạo</AdminTableHead>
+          <AdminTableHead scope="col">Ngày chỉnh sửa</AdminTableHead>
+          <AdminTableHead scope="col" className="w-28 text-right">
             Thao tác
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+          </AdminTableHead>
+        </AdminTableRow>
+      </AdminTableHeader>
+      <AdminTableBody>
         {isLoading ? (
           <MessageTemplateSkeletonRows />
         ) : (
           templates.map((template) => (
-            <TableRow
+            <AdminTableRow
               key={template.id}
               tabIndex={template.canEdit ? 0 : -1}
               aria-label={
@@ -142,22 +138,22 @@ export default function MessageTemplateTable({
                   : "outline-none"
               }
             >
-              <TableCell className="whitespace-nowrap font-mono text-xs text-text-tertiary">
+              <AdminTableCell className="whitespace-nowrap font-mono text-xs text-text-tertiary">
                 {template.code}
-              </TableCell>
-              <TableCell className="min-w-72 text-sm font-semibold text-text-primary">
+              </AdminTableCell>
+              <AdminTableCell className="min-w-72 text-sm font-semibold text-text-primary">
                 {template.name}
-              </TableCell>
-              <TableCell className="whitespace-nowrap text-sm text-text-secondary">
+              </AdminTableCell>
+              <AdminTableCell className="whitespace-nowrap text-sm text-text-secondary">
                 {template.owner}
-              </TableCell>
-              <TableCell className="whitespace-nowrap text-sm text-text-secondary">
+              </AdminTableCell>
+              <AdminTableCell className="whitespace-nowrap text-sm text-text-secondary">
                 {formatDate(template.createdAt)}
-              </TableCell>
-              <TableCell className="whitespace-nowrap text-sm text-text-secondary">
+              </AdminTableCell>
+              <AdminTableCell className="whitespace-nowrap text-sm text-text-secondary">
                 {formatDate(template.modifiedAt)}
-              </TableCell>
-              <TableCell className="text-right">
+              </AdminTableCell>
+              <AdminTableCell className="text-right">
                 <div
                   className="flex justify-end gap-1"
                   onClick={(event) => event.stopPropagation()}
@@ -199,23 +195,23 @@ export default function MessageTemplateTable({
                     </Tooltip>
                   ) : null}
                 </div>
-              </TableCell>
-            </TableRow>
+              </AdminTableCell>
+            </AdminTableRow>
           ))
         )}
         {!isLoading && templates.length === 0 ? (
-          <TableRow>
-            <TableCell
+          <AdminTableRow>
+            <AdminTableCell
               colSpan={6}
               className="py-16 text-center text-sm text-text-tertiary"
             >
               {totalCount === 0
                 ? "Chưa có mẫu tin nhắn nào. Tạo mẫu để bắt đầu."
                 : "Không tìm thấy mẫu tin nhắn phù hợp."}
-            </TableCell>
-          </TableRow>
+            </AdminTableCell>
+          </AdminTableRow>
         ) : null}
-      </TableBody>
-    </TableRoot>
+      </AdminTableBody>
+    </AdminTableRoot>
   );
 }

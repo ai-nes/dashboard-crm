@@ -23,7 +23,6 @@ interface MethodForm {
   code: string
   displayName: string
   description: string
-  sortOrder: string
   enabled: boolean
 }
 
@@ -32,7 +31,6 @@ function formFromRecord(record: AdmissionMethodOption | null): MethodForm {
     code: record?.code ?? '',
     displayName: record?.name ?? '',
     description: record?.description ?? '',
-    sortOrder: String(record?.sortOrder ?? 0),
     enabled: record?.enabled ?? true,
   }
 }
@@ -59,13 +57,12 @@ export function AdmissionMethodEditorDialog({
     event.preventDefault()
     const code = form.code.trim().toUpperCase()
     const displayName = form.displayName.trim()
-    const sortOrder = Number(form.sortOrder)
     if (!code || !/^[A-Z][A-Z0-9_]{1,49}$/.test(code)) {
       toast.error('Mã phương thức phải dài 2-50 ký tự, gồm A-Z, 0-9 và dấu gạch dưới.')
       return
     }
-    if (!displayName || !Number.isInteger(sortOrder) || sortOrder < 0) {
-      toast.error('Vui lòng nhập tên phương thức và thứ tự hiển thị hợp lệ.')
+    if (!displayName) {
+      toast.error('Vui lòng nhập tên phương thức.')
       return
     }
 
@@ -74,7 +71,7 @@ export function AdmissionMethodEditorDialog({
       display_name: displayName,
       description: form.description.trim() || null,
       enabled: form.enabled,
-      sort_order: sortOrder,
+      sort_order: record?.sortOrder ?? 0,
     }
 
     try {
@@ -135,29 +132,19 @@ export function AdmissionMethodEditorDialog({
                 className="h-10 w-full"
               />
             </label>
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-end">
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-input-label-text-color">Mô tả</span>
-                <TextArea
-                  value={form.description}
-                  onChange={(event) => setField('description', event.target.value)}
-                  disabled={isSaving}
-                  rows={3}
-                  placeholder="Mô tả ngắn về phương thức xét tuyển"
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-input-label-text-color">Thứ tự hiển thị</span>
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.sortOrder}
-                  onChange={(event) => setField('sortOrder', event.target.value)}
-                  disabled={isSaving}
-                  className="h-10 w-full"
-                />
-              </label>
-            </div>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium text-input-label-text-color">Mô tả</span>
+              <TextArea
+                value={form.description}
+                onChange={(event) => setField('description', event.target.value)}
+                disabled={isSaving}
+                rows={3}
+                placeholder="Mô tả ngắn về phương thức xét tuyển"
+              />
+            </label>
+            <p className="text-xs text-text-tertiary">
+              Thứ tự hiển thị được điều chỉnh bằng nút <span className="font-medium text-text-secondary">Sắp xếp</span> ở danh sách phương thức.
+            </p>
             <Checkbox
               size="sm"
               isSelected={form.enabled}

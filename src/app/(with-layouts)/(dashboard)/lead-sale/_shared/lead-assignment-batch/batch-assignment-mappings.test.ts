@@ -49,7 +49,7 @@ describe("assignmentReasonLabel", () => {
     } as LeadAssignmentBatchItem;
 
     expect(assignmentReasonLabel(item)).toBe(
-      "Chưa thể phân công vì chưa có hàng chờ nhận hồ sơ, cơ sở/campus. Vui lòng bổ sung cấu hình còn thiếu.",
+      "Chưa thể phân công vì chưa có hàng chờ nhận hồ sơ. Vui lòng bổ sung cấu hình còn thiếu.",
     );
   });
 
@@ -191,13 +191,13 @@ describe("assignmentActionCategory", () => {
     expect(assignmentActionCategory(item)).toBe("team-config");
   });
 
-  it("keeps the Lead-data edit form for missing province/campus", () => {
+  it("keeps the Lead-data edit form for missing province, not campus", () => {
     expect(
       assignmentActionCategory({ errorCode: "MISSING_PROVINCE" } as LeadAssignmentBatchItem),
     ).toBe("lead-data");
     expect(
       assignmentActionCategory({ errorCode: "MISSING_CAMPUS" } as LeadAssignmentBatchItem),
-    ).toBe("lead-data");
+    ).toBe("unknown");
   });
 
   it("treats a stale/transient routing code as system-level, not a data or admin fix", () => {

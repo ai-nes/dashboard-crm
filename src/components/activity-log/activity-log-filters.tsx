@@ -6,6 +6,7 @@ import { Close, Filter, Search1 } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
+import { AdminTableFrame } from "@/components/common/admin/admin-table";
 import {
   CRM_ROLES,
   FRAPPE_TECHNICAL_ROLES,
@@ -58,10 +59,7 @@ export default function ActivityLogFilters({
   };
 
   return (
-    <section
-      className="rounded-xl border border-card-border bg-card-background p-4 sm:p-5"
-      aria-label="Bộ lọc nhật ký"
-    >
+    <AdminTableFrame className="p-4 sm:p-5" aria-label="Bộ lọc nhật ký">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">Người thực hiện</span>
@@ -120,10 +118,10 @@ export default function ActivityLogFilters({
           </label>
           <label className="space-y-1.5 text-sm font-medium text-text-primary">
             <span className="flex items-center gap-1">
-              Role hiện tại
+              Vai trò hiện tại
               <span
-                title="Lọc theo role hiện tại của user, không phải role tại thời điểm thực hiện hành động."
-                aria-label="Lọc theo role hiện tại của user, không phải role tại thời điểm thực hiện hành động."
+                title="Lọc theo vai trò hiện tại của người dùng, không phải vai trò tại thời điểm thực hiện hành động."
+                aria-label="Lọc theo vai trò hiện tại của người dùng, không phải vai trò tại thời điểm thực hiện hành động."
                 className="inline-flex size-4 cursor-help items-center justify-center rounded-full border border-card-border text-[10px] text-text-tertiary"
               >
                 i
@@ -134,7 +132,7 @@ export default function ActivityLogFilters({
               onChange={(event) => update("role", event.target.value)}
               className="h-10 w-full rounded-lg border border-input-border bg-input-background px-3 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             >
-              <option value="">Tất cả role</option>
+              <option value="">Tất cả vai trò</option>
               {roles.map((role) => (
                 <option key={role} value={role}>
                   {role}
@@ -181,6 +179,6 @@ export default function ActivityLogFilters({
           </Button>
         )}
       </div>
-    </section>
+    </AdminTableFrame>
   );
 }

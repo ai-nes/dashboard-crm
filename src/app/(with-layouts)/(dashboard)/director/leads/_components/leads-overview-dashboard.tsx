@@ -90,7 +90,10 @@ export default function LeadsOverviewDashboard() {
     error,
     isPending,
     isPlaceholderData,
-  } = useLeadSaleLeadsQuery(listParams, { placeholderData: keepPreviousData });
+  } = useLeadSaleLeadsQuery(listParams, {
+    placeholderData: keepPreviousData,
+    refetchInterval: 30_000,
+  });
 
   const leads = response?.data ?? [];
   const meta = response?.meta;
@@ -228,6 +231,14 @@ export default function LeadsOverviewDashboard() {
       await queryClient.invalidateQueries({
         queryKey: leadAssignmentBatchKeys.all,
       });
+
+      if (result.status === "busy") {
+        toast.info("Phân công Lead đang chạy", {
+          description:
+            result.message ?? "Hệ thống đang xử lý lượt phân công khác.",
+        });
+        return;
+      }
 
       if (!result.batch) {
         toast.info("Không có Lead chưa phân công", {

@@ -2,18 +2,18 @@
 
 import { Trash1 } from "@tailgrids/icons";
 
+import {
+  AdminTableCell,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTablePagination,
+  AdminTableRoot,
+  AdminTableRow,
+} from "@/components/common/admin/admin-table";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import { Toggle } from "@/components/tailgrids/core/toggle";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
+import { TableBody } from "@/components/tailgrids/core/table";
 import {
   CrmRuleOutcomeBadge,
   CrmRuleStatusBadge,
@@ -53,64 +53,48 @@ export default function RulesConfigTable({
 
   return (
     <>
-      <TableRoot fullBleed className="border-0" aria-label="Danh sách Rule">
-        <TableHeader className="bg-background-gray-secondary">
-          <TableRow>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Mã Rule
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Tên Rule
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Nhóm
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Loại
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Trạng thái
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Gate
-            </TableHead>
+      <AdminTableRoot aria-label="Danh sách Rule">
+        <AdminTableHeader>
+          <AdminTableRow>
+            <AdminTableHead scope="col">Mã Rule</AdminTableHead>
+            <AdminTableHead scope="col">Tên Rule</AdminTableHead>
+            <AdminTableHead scope="col">Nhóm</AdminTableHead>
+            <AdminTableHead scope="col">Loại</AdminTableHead>
+            <AdminTableHead scope="col">Trạng thái</AdminTableHead>
+            <AdminTableHead scope="col">Gate</AdminTableHead>
             {canToggle ? (
-              <TableHead scope="col" className="whitespace-nowrap">
-                Bật Rule
-              </TableHead>
+              <AdminTableHead scope="col">Bật Rule</AdminTableHead>
             ) : null}
             {canDelete ? (
-              <TableHead scope="col" className="whitespace-nowrap">
-                Hành động
-              </TableHead>
+              <AdminTableHead scope="col">Hành động</AdminTableHead>
             ) : null}
-          </TableRow>
-        </TableHeader>
+          </AdminTableRow>
+        </AdminTableHeader>
         <TableBody>
           {isLoading
             ? Array.from({ length: 4 }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell colSpan={columnCount} className="py-5">
+                <AdminTableRow key={index}>
+                  <AdminTableCell colSpan={columnCount} className="py-5">
                     <div className="h-4 animate-pulse rounded bg-background-gray-secondary" />
-                  </TableCell>
-                </TableRow>
+                  </AdminTableCell>
+                </AdminTableRow>
               ))
             : null}
           {!isLoading && rules.length === 0 ? (
-            <TableRow>
-              <TableCell
+            <AdminTableRow>
+              <AdminTableCell
                 colSpan={columnCount}
                 className="py-16 text-center text-sm text-text-tertiary"
               >
                 {total === 0
                   ? "Chưa có Rule nào. Tạo Rule để bắt đầu."
                   : "Không tìm thấy Rule phù hợp. Thử từ khóa hoặc bộ lọc khác."}
-              </TableCell>
-            </TableRow>
+              </AdminTableCell>
+            </AdminTableRow>
           ) : null}
           {!isLoading
             ? rules.map((rule) => (
-                <TableRow
+                <AdminTableRow
                   key={rule.name}
                   tabIndex={0}
                   className="cursor-pointer hover:bg-background-gray-secondary_alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
@@ -122,27 +106,27 @@ export default function RulesConfigTable({
                     }
                   }}
                 >
-                  <TableCell className="whitespace-nowrap py-5 font-mono text-xs text-text-tertiary">
+                  <AdminTableCell className="whitespace-nowrap font-mono text-xs text-text-tertiary">
                     {rule.ruleId}
-                  </TableCell>
-                  <TableCell className="py-5 text-sm font-semibold text-primary-500">
+                  </AdminTableCell>
+                  <AdminTableCell className="font-semibold text-primary-500">
                     {rule.ruleName}
-                  </TableCell>
-                  <TableCell className="py-5 text-sm font-normal text-text-secondary">
+                  </AdminTableCell>
+                  <AdminTableCell className="text-text-secondary">
                     <Badge color="gray">{rule.ruleGroup}</Badge>
-                  </TableCell>
-                  <TableCell className="py-5 text-sm font-normal text-text-secondary">
+                  </AdminTableCell>
+                  <AdminTableCell className="text-text-secondary">
                     {rule.ruleType}
-                  </TableCell>
-                  <TableCell className="py-5 text-sm font-normal">
+                  </AdminTableCell>
+                  <AdminTableCell>
                     <CrmRuleStatusBadge status={rule.status} />
-                  </TableCell>
-                  <TableCell className="py-5 text-sm font-normal">
+                  </AdminTableCell>
+                  <AdminTableCell>
                     <CrmRuleOutcomeBadge outcome={rule.gateOutcome} />
-                  </TableCell>
+                  </AdminTableCell>
                   {canToggle ? (
-                    <TableCell
-                      className="py-5 text-sm"
+                    <AdminTableCell
+                      className="text-sm"
                       onClick={(event) => event.stopPropagation()}
                     >
                       <Toggle
@@ -152,10 +136,10 @@ export default function RulesConfigTable({
                         disabled={!onToggle || isDeleteDisabled}
                         onChange={() => onToggle?.(rule)}
                       />
-                    </TableCell>
+                    </AdminTableCell>
                   ) : null}
                   {canDelete ? (
-                    <TableCell className="py-5 text-sm">
+                    <AdminTableCell>
                       <div
                         className="inline-flex"
                         onClick={(event) => event.stopPropagation()}
@@ -173,25 +157,20 @@ export default function RulesConfigTable({
                           <Trash1 size={16} aria-hidden="true" />
                         </Button>
                       </div>
-                    </TableCell>
+                    </AdminTableCell>
                   ) : null}
-                </TableRow>
+                </AdminTableRow>
               ))
             : null}
         </TableBody>
-      </TableRoot>
-      {totalPages > 1 && (
-        <div className="border-t border-card-border px-5 py-3">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={onPageChange}
-            variant="compact"
-            align="end"
-            isDisabled={isLoading || isDeleteDisabled}
-          />
-        </div>
-      )}
+      </AdminTableRoot>
+      <AdminTablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={total}
+        onPageChange={onPageChange}
+        isDisabled={isLoading || isDeleteDisabled}
+      />
     </>
   );
 }
