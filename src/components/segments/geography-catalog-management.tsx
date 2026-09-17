@@ -4,9 +4,9 @@ import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
 import { useCallback, useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 
+import { AdminTablePagination } from "@/components/common/admin/admin-table";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Button } from "@/components/tailgrids/core/button";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   Select,
   SelectContent,
@@ -908,17 +908,13 @@ function CatalogPagination({
   isFetching: boolean;
   onPageChange: (page: number) => void;
 }) {
-  if (total <= PAGE_SIZE) return null;
   return (
-    <div className="border-t border-card-border px-4 py-3 sm:px-5">
-      <Pagination
-        currentPage={currentPage}
-        totalPages={Math.ceil(total / PAGE_SIZE)}
-        onPageChange={onPageChange}
-        variant="compact"
-        align="end"
-        isDisabled={isFetching}
-      />
-    </div>
+    <AdminTablePagination
+      currentPage={currentPage}
+      totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
+      totalItems={total}
+      onPageChange={onPageChange}
+      isDisabled={isFetching}
+    />
   );
 }

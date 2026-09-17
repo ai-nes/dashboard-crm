@@ -2,18 +2,23 @@
 
 import { Eye, Pencil1 } from "@tailgrids/icons";
 
-import { Button } from "@/components/tailgrids/core/button";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
+  AdminTableCell,
+  AdminTableFrame,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTablePagination,
+  AdminTableRoot,
+  AdminTableRow,
+} from "@/components/common/admin/admin-table";
+import { Button } from "@/components/tailgrids/core/button";
+import { TableBody } from "@/components/tailgrids/core/table";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
-import type { ActionTimeSlot, NbaAction, NbaActionType } from "@/services/api/nba-actions";
+import type {
+  ActionTimeSlot,
+  NbaAction,
+  NbaActionType,
+} from "@/services/api/nba-actions";
 
 import { RecordStatusBadge } from "../../action-recommendations/_components/status-badges";
 import NbaActionConfigDialog from "./nba-action-config-dialog";
@@ -87,87 +92,81 @@ export default function NbaActionsTable({
   isTimeSlotsReady,
   timeSlotsError,
 }: NbaActionsTableProps) {
-  const selectedAction = actions.find((action) => action.name === selectedActionName) ?? null;
+  const selectedAction =
+    actions.find((action) => action.name === selectedActionName) ?? null;
 
   return (
     <>
-      <section className="overflow-hidden rounded-xl border border-card-border bg-card-background" aria-label="Danh sách hành động NBA">
-      <NbaActionsToolbar
-        search={search}
-        onSearchChange={onSearchChange}
-        actionType={actionType}
-        onActionTypeChange={onActionTypeChange}
-        channel={channel}
-        onChannelChange={onChannelChange}
-        enabled={enabled}
-        onEnabledChange={onEnabledChange}
-        actionTypes={actionTypes}
-        total={total}
-        resultCount={resultCount}
-        isFetching={isFetching}
-        onReset={onReset}
-        canEdit={canEdit}
-        onCreateAction={onCreateAction}
-      />
+      <AdminTableFrame aria-label="Danh sách hành động NBA">
+        <NbaActionsToolbar
+          search={search}
+          onSearchChange={onSearchChange}
+          actionType={actionType}
+          onActionTypeChange={onActionTypeChange}
+          channel={channel}
+          onChannelChange={onChannelChange}
+          enabled={enabled}
+          onEnabledChange={onEnabledChange}
+          actionTypes={actionTypes}
+          total={total}
+          resultCount={resultCount}
+          isFetching={isFetching}
+          onReset={onReset}
+          canEdit={canEdit}
+          onCreateAction={onCreateAction}
+        />
 
-      {isLoading ? (
-        <TableSkeleton />
-      ) : actions.length > 0 ? (
-        <TableRoot className="w-full min-w-[60rem] rounded-none border-none">
-          <TableHeader>
-            <TableRow className="bg-background-gray-secondary_alt [&>th]:px-5 [&>th]:py-3">
-              <TableHead>Hành động</TableHead>
-              <TableHead>Nhóm</TableHead>
-              <TableHead>Kênh</TableHead>
-              <TableHead>Thời gian gợi ý</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-center">Thao tác</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {actions.map((action) => {
-              const isSelected = action.name === selectedActionName;
+        {isLoading ? (
+          <TableSkeleton />
+        ) : actions.length > 0 ? (
+          <AdminTableRoot className="min-w-[60rem]">
+            <AdminTableHeader>
+              <AdminTableRow>
+                <AdminTableHead>Hành động</AdminTableHead>
+                <AdminTableHead>Nhóm</AdminTableHead>
+                <AdminTableHead>Kênh</AdminTableHead>
+                <AdminTableHead>Thời gian gợi ý</AdminTableHead>
+                <AdminTableHead>Trạng thái</AdminTableHead>
+                <AdminTableHead className="text-center">
+                  Thao tác
+                </AdminTableHead>
+              </AdminTableRow>
+            </AdminTableHeader>
+            <TableBody>
+              {actions.map((action) => {
+                const isSelected = action.name === selectedActionName;
 
-              return (
-                <ActionTableRows
-                  key={action.name}
-                  action={action}
-                  isSelected={isSelected}
-                  canEdit={canEdit}
-                  onSelectAction={onSelectAction}
-                />
-              );
-            })}
-          </TableBody>
-        </TableRoot>
-      ) : (
-        <div className="px-6 py-16 text-center">
-          <p className="text-sm font-semibold text-text-primary">Không tìm thấy hành động phù hợp</p>
-          <p className="mt-1 text-sm leading-6 text-text-secondary">
-            Thử một từ khóa khác hoặc xóa bộ lọc để xem lại danh sách.
-          </p>
-        </div>
-      )}
+                return (
+                  <ActionTableRows
+                    key={action.name}
+                    action={action}
+                    isSelected={isSelected}
+                    canEdit={canEdit}
+                    onSelectAction={onSelectAction}
+                  />
+                );
+              })}
+            </TableBody>
+          </AdminTableRoot>
+        ) : (
+          <div className="px-6 py-16 text-center">
+            <p className="text-sm font-semibold text-text-primary">
+              Không tìm thấy hành động phù hợp
+            </p>
+            <p className="mt-1 text-sm leading-6 text-text-secondary">
+              Thử một từ khóa khác hoặc xóa bộ lọc để xem lại danh sách.
+            </p>
+          </div>
+        )}
 
-      <div className="flex flex-col gap-3 border-t border-card-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-text-tertiary">
-          {actions.length > 0
-            ? `Hiển thị ${(currentPage - 1) * NBA_ACTION_PAGE_SIZE + 1} đến ${(currentPage - 1) * NBA_ACTION_PAGE_SIZE + actions.length} trong ${total}`
-            : "Không có hành động nào để hiển thị"}
-        </p>
-        <div className="sm:w-auto">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={onPageChange}
-            isDisabled={isLoading || isFetching || actions.length === 0}
-            variant="compact"
-            align="end"
-            sideLayout="icon"
-          />
-        </div>
-      </div>
-      </section>
+        <AdminTablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={total}
+          onPageChange={onPageChange}
+          isDisabled={isLoading || isFetching || actions.length === 0}
+        />
+      </AdminTableFrame>
 
       {(selectedAction || isCreateOpen) && (
         <NbaActionConfigDialog
@@ -177,7 +176,10 @@ export default function NbaActionsTable({
           canEdit={canEdit}
           isTimeSlotsReady={isTimeSlotsReady}
           timeSlotsError={timeSlotsError}
-          onClose={() => { onSelectAction(null); onCloseCreate(); }}
+          onClose={() => {
+            onSelectAction(null);
+            onCloseCreate();
+          }}
         />
       )}
     </>
@@ -197,11 +199,15 @@ function ActionTableRows({
 }) {
   return (
     <>
-      <TableRow
+      <AdminTableRow
         aria-selected={isSelected}
-        className={isSelected ? "bg-badge-primary-background" : "transition-colors hover:bg-background-gray-primary"}
+        className={
+          isSelected
+            ? "bg-badge-primary-background hover:bg-badge-primary-background"
+            : undefined
+        }
       >
-        <TableCell className="min-w-64">
+        <AdminTableCell className="min-w-64">
           <div className="min-w-0">
             <p className="truncate font-mono text-xs font-semibold tracking-[0.04em] text-primary-500">
               {action.code}
@@ -209,24 +215,27 @@ function ActionTableRows({
             <p className="mt-1 truncate text-sm font-semibold text-text-primary">
               {action.displayName}
             </p>
-            <p className="mt-1 max-w-80 truncate text-xs text-text-tertiary" title={getActionPurpose(action)}>
+            <p
+              className="mt-1 max-w-80 truncate text-xs text-text-tertiary"
+              title={getActionPurpose(action)}
+            >
               {getActionPurpose(action)}
             </p>
           </div>
-        </TableCell>
-        <TableCell className="whitespace-nowrap text-sm text-text-secondary">
+        </AdminTableCell>
+        <AdminTableCell className="whitespace-nowrap text-text-secondary">
           {action.actionType ?? "Chưa phân loại"}
-        </TableCell>
-        <TableCell className="whitespace-nowrap text-sm text-text-secondary">
+        </AdminTableCell>
+        <AdminTableCell className="whitespace-nowrap text-text-secondary">
           {action.defaultChannel ?? "Chưa thiết lập"}
-        </TableCell>
-        <TableCell className="min-w-52">
+        </AdminTableCell>
+        <AdminTableCell className="min-w-52">
           <TimeWindowCell action={action} />
-        </TableCell>
-        <TableCell>
+        </AdminTableCell>
+        <AdminTableCell>
           <RecordStatusBadge status={action.enabled ? "active" : "inactive"} />
-        </TableCell>
-        <TableCell className="text-center">
+        </AdminTableCell>
+        <AdminTableCell className="text-center">
           <Button
             type="button"
             size="sm"
@@ -235,14 +244,23 @@ function ActionTableRows({
             onPress={() => onSelectAction(action.name)}
             aria-expanded={isSelected}
             aria-haspopup="dialog"
-            aria-label={isSelected ? `Đóng cấu hình ${action.displayName}` : `${canEdit ? "Chỉnh sửa" : "Xem"} ${action.displayName}`}
+            aria-label={
+              isSelected
+                ? `Đóng cấu hình ${action.displayName}`
+                : `${canEdit ? "Chỉnh sửa" : "Xem"} ${action.displayName}`
+            }
             className="min-w-20"
           >
-            {!isSelected && (canEdit ? <Pencil1 size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />)}
+            {!isSelected &&
+              (canEdit ? (
+                <Pencil1 size={16} aria-hidden="true" />
+              ) : (
+                <Eye size={16} aria-hidden="true" />
+              ))}
             {isSelected ? "Đóng" : canEdit ? "Sửa" : "Xem"}
           </Button>
-        </TableCell>
-      </TableRow>
+        </AdminTableCell>
+      </AdminTableRow>
     </>
   );
 }
@@ -275,34 +293,41 @@ function TimeWindowCell({ action }: { action: NbaAction }) {
         ))}
       </div>
       <p className="mt-1 text-xs font-medium text-text-primary">{summary}</p>
-      <p className="max-w-56 truncate text-[11px] text-text-tertiary">{detail}</p>
+      <p className="max-w-56 truncate text-[11px] text-text-tertiary">
+        {detail}
+      </p>
     </div>
   );
 }
 
 function TableSkeleton() {
   return (
-    <TableRoot className="w-full min-w-[60rem] rounded-none border-none" aria-label="Đang tải danh sách hành động">
-      <TableHeader>
-        <TableRow className="bg-background-gray-secondary_alt [&>th]:px-5 [&>th]:py-3">
+    <AdminTableRoot
+      className="min-w-[60rem]"
+      aria-label="Đang tải danh sách hành động"
+    >
+      <AdminTableHeader>
+        <AdminTableRow>
           {Array.from({ length: 6 }, (_, index) => (
-            <TableHead key={index}>
+            <AdminTableHead key={index}>
               <Skeleton className="h-3 w-20" />
-            </TableHead>
+            </AdminTableHead>
           ))}
-        </TableRow>
-      </TableHeader>
+        </AdminTableRow>
+      </AdminTableHeader>
       <TableBody>
         {Array.from({ length: NBA_ACTION_PAGE_SIZE }, (_, index) => (
-          <TableRow key={index}>
+          <AdminTableRow key={index}>
             {Array.from({ length: 6 }, (_, cellIndex) => (
-              <TableCell key={cellIndex} className="h-20">
-                <Skeleton className={cellIndex === 0 ? "h-4 w-48" : "h-4 w-24"} />
-              </TableCell>
+              <AdminTableCell key={cellIndex} className="h-20">
+                <Skeleton
+                  className={cellIndex === 0 ? "h-4 w-48" : "h-4 w-24"}
+                />
+              </AdminTableCell>
             ))}
-          </TableRow>
+          </AdminTableRow>
         ))}
       </TableBody>
-    </TableRoot>
+    </AdminTableRoot>
   );
 }

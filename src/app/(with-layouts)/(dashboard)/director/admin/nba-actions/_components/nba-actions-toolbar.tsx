@@ -69,7 +69,9 @@ export default function NbaActionsToolbar({
   canEdit,
   onCreateAction,
 }: NbaActionsToolbarProps) {
-  const hasFilters = Boolean(search || actionType !== "all" || channel !== "all" || enabled !== "all");
+  const hasFilters = Boolean(
+    search || actionType !== "all" || channel !== "all" || enabled !== "all",
+  );
 
   return (
     <div className="space-y-4 border-b border-card-border p-4 lg:p-5">
@@ -83,8 +85,18 @@ export default function NbaActionsToolbar({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <span className="text-xs text-text-tertiary" aria-live="polite" aria-busy={isFetching || undefined}>{isFetching ? "Đang cập nhật…" : `${resultCount} hành động`}</span>
-          {canEdit && <Button type="button" size="sm" onPress={onCreateAction}>Tạo Action</Button>}
+          <span
+            className="text-xs text-text-tertiary"
+            aria-live="polite"
+            aria-busy={isFetching || undefined}
+          >
+            {isFetching ? "Đang cập nhật…" : `${resultCount} hành động`}
+          </span>
+          {canEdit && (
+            <Button type="button" size="sm" onPress={onCreateAction}>
+              Tạo hành động
+            </Button>
+          )}
         </div>
       </div>
 
@@ -130,7 +142,9 @@ export default function NbaActionsToolbar({
 
           <Select
             value={channel}
-            onChange={(value) => onChannelChange(String(value) as ChannelFilter)}
+            onChange={(value) =>
+              onChannelChange(String(value) as ChannelFilter)
+            }
             aria-label="Lọc theo kênh hành động"
             className="min-w-0 sm:w-40"
           >
@@ -140,7 +154,11 @@ export default function NbaActionsToolbar({
             </SelectTrigger>
             <SelectContent>
               {channelOptions.map((option) => (
-                <SelectItem key={option.id} id={option.id} textValue={option.label}>
+                <SelectItem
+                  key={option.id}
+                  id={option.id}
+                  textValue={option.label}
+                >
                   {option.label}
                 </SelectItem>
               ))}
@@ -149,7 +167,9 @@ export default function NbaActionsToolbar({
 
           <Select
             value={enabled}
-            onChange={(value) => onEnabledChange(String(value) as EnabledFilter)}
+            onChange={(value) =>
+              onEnabledChange(String(value) as EnabledFilter)
+            }
             aria-label="Lọc theo trạng thái hành động"
             className="min-w-0 sm:w-48"
           >
@@ -159,7 +179,11 @@ export default function NbaActionsToolbar({
             </SelectTrigger>
             <SelectContent>
               {enabledOptions.map((option) => (
-                <SelectItem key={option.id} id={option.id} textValue={option.label}>
+                <SelectItem
+                  key={option.id}
+                  id={option.id}
+                  textValue={option.label}
+                >
                   {option.label}
                 </SelectItem>
               ))}

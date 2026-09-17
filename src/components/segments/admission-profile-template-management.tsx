@@ -1,15 +1,20 @@
 "use client";
 
-import { FileText, Pencil1, Plus, Trash1 } from "@tailgrids/icons";
+import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { AdminTablePagination } from "@/components/common/admin/admin-table";
+import { AdminSearchInput } from "@/components/common/admin/admin-search-input";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { AdmissionProfileTemplateEditorDialog } from "@/components/segments/admission-profile-template-editor-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Pagination } from "@/components/tailgrids/core/pagination";
-import { Input } from "@/components/tailgrids/core/input";
+import {
+  ScrollArea,
+  ScrollAreaViewport,
+  ScrollBar,
+} from "@/components/tailgrids/core/scroll-area";
 import {
   Select,
   SelectContent,
@@ -38,6 +43,8 @@ import type {
   AdmissionProfileTemplateOption,
   AdmissionProfileTemplateStatus,
 } from "@/services/api/admission-profile-catalog";
+
+import { AdmissionCatalogPanel } from "./admission-catalog-panel";
 
 const STATUS_LABELS: Record<AdmissionProfileTemplateStatus, string> = {
   Draft: "Bản nháp",
@@ -212,52 +219,78 @@ export function AdmissionProfileTemplateManagement({
 
   return (
     <>
-      <section
-        aria-busy={
+      <div className="mb-3 flex shrink-0 flex-col gap-3 rounded-xl border border-card-border bg-card-background px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+          <AdminSearchInput
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Tìm theo mã hoặc tên loại hồ sơ"
+            aria-label="Tìm loại hồ sơ"
+            className="h-9 min-w-0 flex-1 sm:max-w-md"
+          />
+          <div className="flex flex-wrap gap-2">
+            <FilterSelect
+              value={statusFilter}
+              options={STATUS_FILTERS}
+              ariaLabel="Lọc theo trạng thái"
+              onChange={(value) => {
+                setStatusFilter(
+                  value as AdmissionProfileTemplateStatus | "all",
+                );
+                setPage(1);
+              }}
+            />
+            <FilterSelect
+              value={kindFilter}
+              options={KIND_FILTERS}
+              ariaLabel="Lọc theo nhóm hồ sơ"
+              onChange={(value) => {
+                setKindFilter(value as typeof kindFilter);
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+          <Badge color="gray" size="sm">
+            {total} mục
+          </Badge>
+          {canManage && (
+            <AdmissionProfileTemplateEditorDialog
+              template={null}
+              documentTypes={query.data?.documentTypes ?? []}
+            >
+              {(open) => (
+                <Button
+                  size="sm"
+                  onPress={open}
+                  isDisabled={query.isPending || query.isError}
+                >
+                  <Plus size={16} aria-hidden="true" />
+                  <span>Thêm loại hồ sơ</span>
+                </Button>
+              )}
+            </AdmissionProfileTemplateEditorDialog>
+          )}
+        </div>
+      </div>
+      <AdmissionCatalogPanel
+        title="Loại hồ sơ"
+        description="Cấu hình checklist tài liệu theo từng nhóm hồ sơ nhập học."
+        count={total}
+        canManage={canManage}
+        createLabel="Thêm loại hồ sơ"
+        isBusy={
           query.isPending ||
           transitionMutation.isPending ||
-          deleteMutation.isPending ||
-          undefined
+          deleteMutation.isPending
         }
-        className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs"
+        showHeader={false}
+        contentClassName="flex flex-col overflow-hidden"
       >
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-b border-card-border px-5 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-background-gray-secondary text-icon-secondary">
-              <FileText size={20} aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="truncate text-base font-semibold text-text-primary">
-                Loại hồ sơ
-              </h2>
-              <p className="mt-1 max-w-2xl text-sm text-text-tertiary">
-                Cấu hình checklist tài liệu theo từng nhóm hồ sơ nhập học.
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <Badge color="gray" size="sm">
-              {total} mục
-            </Badge>
-            {canManage && (
-              <AdmissionProfileTemplateEditorDialog
-                template={null}
-                documentTypes={query.data?.documentTypes ?? []}
-              >
-                {(open) => (
-                  <Button
-                    size="sm"
-                    onPress={open}
-                    isDisabled={query.isPending || query.isError}
-                  >
-                    <Plus size={16} aria-hidden="true" />
-                    <span>Thêm loại hồ sơ</span>
-                  </Button>
-                )}
-              </AdmissionProfileTemplateEditorDialog>
-            )}
-          </div>
-        </header>
         {query.isPending ? (
           <div className="flex flex-1 items-center justify-center gap-2 px-5 py-16 text-sm text-text-tertiary">
             <Spinner size="sm" />
@@ -278,201 +311,169 @@ export function AdmissionProfileTemplateManagement({
           </div>
         ) : (
           <>
-            <div className="flex shrink-0 flex-col gap-3 border-b border-card-border px-4 py-3 sm:flex-row sm:items-center sm:px-5">
-              <Input
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="Tìm theo mã hoặc tên loại hồ sơ"
-                aria-label="Tìm loại hồ sơ"
-                className="h-9 min-w-0 flex-1 sm:max-w-md"
-              />
-              <div className="flex flex-wrap gap-2">
-                <FilterSelect
-                  value={statusFilter}
-                  options={STATUS_FILTERS}
-                  ariaLabel="Lọc theo trạng thái"
-                  onChange={(value) => {
-                    setStatusFilter(
-                      value as AdmissionProfileTemplateStatus | "all",
-                    );
-                    setPage(1);
-                  }}
-                />
-                <FilterSelect
-                  value={kindFilter}
-                  options={KIND_FILTERS}
-                  ariaLabel="Lọc theo nhóm hồ sơ"
-                  onChange={(value) => {
-                    setKindFilter(value as typeof kindFilter);
-                    setPage(1);
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {templates.length === 0 ? (
-                <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
-                  <p className="text-sm font-medium text-text-primary">
-                    {hasTemplateFilter
-                      ? "Không tìm thấy loại hồ sơ phù hợp"
-                      : "Chưa có loại hồ sơ nào được cấu hình"}
-                  </p>
-                  <p className="mt-1 text-sm text-text-tertiary">
-                    {hasTemplateFilter
-                      ? "Thử đổi từ khóa hoặc bộ lọc."
-                      : "Tạo loại hồ sơ đầu tiên để bắt đầu cấu hình."}
-                  </p>
-                  {hasTemplateFilter ? (
-                    <Button
-                      size="sm"
-                      appearance="ghost"
-                      className="mt-3"
-                      onPress={() => {
-                        setSearch("");
-                        setStatusFilter("all");
-                        setKindFilter("all");
-                        setPage(1);
-                      }}
-                    >
-                      Xóa bộ lọc
-                    </Button>
-                  ) : null}
-                </div>
-              ) : (
-                <TableRoot fullBleed className="w-full min-w-[760px] border-0">
-                  <TableHeader className="bg-background-gray-secondary/35">
-                    <TableRow>
-                      <TableHead className="w-32">Mã</TableHead>
-                      <TableHead>Tên loại hồ sơ</TableHead>
-                      <TableHead>Nhóm</TableHead>
-                      <TableHead className="text-center">Tài liệu</TableHead>
-                      <TableHead>Phương thức</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead className="w-28 text-right">
-                        Thao tác
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {templates.map((template) => {
-                      const canOpen =
-                        canManage && template.status !== "Archived";
-                      return (
-                        <TableRow
-                          key={template.id}
-                          className="group hover:bg-background-gray-secondary/30"
-                        >
-                          <TableCell className="align-top">
-                            <span className="font-mono text-xs font-bold tracking-wide text-text-secondary">
-                              {template.code}
-                            </span>
-                          </TableCell>
-                          <TableCell className="max-w-[20rem] align-top">
-                            <span className="block font-medium text-text-primary">
-                              {template.name}
-                            </span>
-                            <span className="mt-1 block truncate text-xs text-text-tertiary">
-                              {template.description || "Chưa có mô tả"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="align-top text-sm text-text-secondary">
-                            {templateKindLabel(template.templateKind)}
-                          </TableCell>
-                          <TableCell className="align-top text-center text-sm text-text-secondary">
-                            {template.requirements.length}
-                          </TableCell>
-                          <TableCell className="align-top text-sm text-text-secondary">
-                            {template.admissionMethod
-                              ? methodLabels.get(template.admissionMethod) ||
-                                template.admissionMethod
-                              : "Tất cả phương thức"}
-                          </TableCell>
-                          <TableCell className="align-top">
-                            {canManage ? (
-                              <AdmissionProfileTemplateStatusSelect
-                                value={template.status}
-                                options={statusOptions(template.status)}
-                                ariaLabel={`Trạng thái ${template.name}`}
-                                isDisabled={transitionMutation.isPending}
-                                onChange={(status) =>
-                                  void changeStatus(template, status)
-                                }
-                              />
-                            ) : (
-                              <Badge
-                                color={statusColor(template.status)}
-                                size="sm"
-                              >
-                                {STATUS_LABELS[template.status]}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <div className="flex justify-end gap-1">
-                              {canOpen && (
-                                <AdmissionProfileTemplateEditorDialog
-                                  template={template}
-                                  documentTypes={
-                                    query.data?.documentTypes ?? []
+            <ScrollArea className="min-h-0 flex-1">
+              <ScrollAreaViewport>
+                {templates.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
+                    <p className="text-sm font-medium text-text-primary">
+                      {hasTemplateFilter
+                        ? "Không tìm thấy loại hồ sơ phù hợp"
+                        : "Chưa có loại hồ sơ nào được cấu hình"}
+                    </p>
+                    <p className="mt-1 text-sm text-text-tertiary">
+                      {hasTemplateFilter
+                        ? "Thử đổi từ khóa hoặc bộ lọc."
+                        : "Tạo loại hồ sơ đầu tiên để bắt đầu cấu hình."}
+                    </p>
+                    {hasTemplateFilter ? (
+                      <Button
+                        size="sm"
+                        appearance="ghost"
+                        className="mt-3"
+                        onPress={() => {
+                          setSearch("");
+                          setStatusFilter("all");
+                          setKindFilter("all");
+                          setPage(1);
+                        }}
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : (
+                  <TableRoot
+                    fullBleed
+                    className="w-full min-w-[760px] border-0"
+                  >
+                    <TableHeader className="bg-background-gray-secondary/35">
+                      <TableRow>
+                        <TableHead className="w-32">Mã</TableHead>
+                        <TableHead>Tên loại hồ sơ</TableHead>
+                        <TableHead>Nhóm</TableHead>
+                        <TableHead className="text-center">Tài liệu</TableHead>
+                        <TableHead>Phương thức</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead className="w-28 text-right">
+                          Thao tác
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {templates.map((template) => {
+                        const canOpen =
+                          canManage && template.status !== "Archived";
+                        return (
+                          <TableRow
+                            key={template.id}
+                            className="group hover:bg-background-gray-secondary/30"
+                          >
+                            <TableCell className="align-top">
+                              <span className="font-mono text-xs font-bold tracking-wide text-text-secondary">
+                                {template.code}
+                              </span>
+                            </TableCell>
+                            <TableCell className="max-w-[20rem] align-top">
+                              <span className="block font-medium text-text-primary">
+                                {template.name}
+                              </span>
+                              <span className="mt-1 block truncate text-xs text-text-tertiary">
+                                {template.description || "Chưa có mô tả"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="align-top text-sm text-text-secondary">
+                              {templateKindLabel(template.templateKind)}
+                            </TableCell>
+                            <TableCell className="align-top text-center text-sm text-text-secondary">
+                              {template.requirements.length}
+                            </TableCell>
+                            <TableCell className="align-top text-sm text-text-secondary">
+                              {template.admissionMethod
+                                ? methodLabels.get(template.admissionMethod) ||
+                                  template.admissionMethod
+                                : "Tất cả phương thức"}
+                            </TableCell>
+                            <TableCell className="align-top">
+                              {canManage ? (
+                                <AdmissionProfileTemplateStatusSelect
+                                  value={template.status}
+                                  options={statusOptions(template.status)}
+                                  ariaLabel={`Trạng thái ${template.name}`}
+                                  isDisabled={transitionMutation.isPending}
+                                  onChange={(status) =>
+                                    void changeStatus(template, status)
                                   }
-                                >
-                                  {(open) => (
-                                    <Button
-                                      aria-label={`Sửa ${template.name}`}
-                                      iconOnly
-                                      size="sm"
-                                      appearance="ghost"
-                                      onPress={open}
-                                    >
-                                      <Pencil1 size={16} aria-hidden="true" />
-                                    </Button>
-                                  )}
-                                </AdmissionProfileTemplateEditorDialog>
-                              )}
-                              {canManage && template.status === "Draft" && (
-                                <Button
-                                  aria-label={`Xóa ${template.name}`}
-                                  iconOnly
+                                />
+                              ) : (
+                                <Badge
+                                  color={statusColor(template.status)}
                                   size="sm"
-                                  appearance="ghost"
-                                  variant="danger"
-                                  onPress={() => setTemplateToDelete(template)}
                                 >
-                                  <Trash1 size={16} aria-hidden="true" />
-                                </Button>
+                                  {STATUS_LABELS[template.status]}
+                                </Badge>
                               )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </TableRoot>
-              )}
-            </div>
-            {totalPages > 1 && (
-              <div className="shrink-0 border-t border-card-border px-5 py-3">
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  onPageChange={setPage}
-                  variant="compact"
-                  align="end"
-                  isDisabled={
-                    query.isFetching ||
-                    transitionMutation.isPending ||
-                    deleteMutation.isPending
-                  }
-                />
-              </div>
-            )}
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <div className="flex justify-end gap-1">
+                                {canOpen && (
+                                  <AdmissionProfileTemplateEditorDialog
+                                    template={template}
+                                    documentTypes={
+                                      query.data?.documentTypes ?? []
+                                    }
+                                  >
+                                    {(open) => (
+                                      <Button
+                                        aria-label={`Sửa ${template.name}`}
+                                        iconOnly
+                                        size="sm"
+                                        appearance="ghost"
+                                        onPress={open}
+                                      >
+                                        <Pencil1 size={16} aria-hidden="true" />
+                                      </Button>
+                                    )}
+                                  </AdmissionProfileTemplateEditorDialog>
+                                )}
+                                {canManage && template.status === "Draft" && (
+                                  <Button
+                                    aria-label={`Xóa ${template.name}`}
+                                    iconOnly
+                                    size="sm"
+                                    appearance="ghost"
+                                    variant="danger"
+                                    onPress={() =>
+                                      setTemplateToDelete(template)
+                                    }
+                                  >
+                                    <Trash1 size={16} aria-hidden="true" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </TableRoot>
+                )}
+              </ScrollAreaViewport>
+              <ScrollBar />
+            </ScrollArea>
+            <AdminTablePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              onPageChange={setPage}
+              isDisabled={
+                query.isFetching ||
+                transitionMutation.isPending ||
+                deleteMutation.isPending
+              }
+            />
           </>
         )}
-      </section>
+      </AdmissionCatalogPanel>
 
       <DeleteRecordDialog
         isOpen={Boolean(templateToDelete)}

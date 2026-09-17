@@ -14,11 +14,13 @@ interface AdmissionCatalogPanelProps {
   countLabel?: string;
   canManage: boolean;
   createLabel: string;
-  onCreate: () => void;
+  onCreate?: () => void;
   isCreateDisabled?: boolean;
   isBusy?: boolean;
   showHeader?: boolean;
+  showDescription?: boolean;
   className?: string;
+  contentClassName?: string;
   children: ReactNode;
 }
 
@@ -33,7 +35,9 @@ export function AdmissionCatalogPanel({
   isCreateDisabled = false,
   isBusy = false,
   showHeader = true,
+  showDescription = true,
   className,
+  contentClassName,
   children,
 }: AdmissionCatalogPanelProps) {
   return (
@@ -54,17 +58,23 @@ export function AdmissionCatalogPanel({
               <h2 className="truncate text-base font-semibold text-text-primary">
                 {title}
               </h2>
-              <p className="mt-1 max-w-2xl text-sm text-text-tertiary">
-                {description}
-              </p>
+              {showDescription && (
+                <p className="mt-1 max-w-2xl text-sm text-text-tertiary">
+                  {description}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Badge color="gray" size="sm">
               {count} {countLabel}
             </Badge>
-            {canManage && (
-              <Button size="sm" onPress={onCreate} isDisabled={isCreateDisabled}>
+            {canManage && onCreate && (
+              <Button
+                size="sm"
+                onPress={onCreate}
+                isDisabled={isCreateDisabled}
+              >
                 <Plus size={16} aria-hidden="true" />
                 <span>{createLabel}</span>
               </Button>
@@ -72,7 +82,9 @@ export function AdmissionCatalogPanel({
           </div>
         </header>
       )}
-      <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+      <div className={cn("min-h-0 flex-1 overflow-auto", contentClassName)}>
+        {children}
+      </div>
     </section>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
+import { AdminSearchInput } from "@/components/common/admin/admin-search-input";
 import { Button } from "@/components/tailgrids/core/button";
-import { Input } from "@/components/tailgrids/core/input";
 import {
   Select,
   SelectContent,
@@ -44,7 +44,7 @@ export function CatalogToolbar({
   return (
     <div className="border-b border-card-border px-4 py-3 sm:px-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Input
+        <AdminSearchInput
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={searchPlaceholder}
@@ -65,7 +65,11 @@ export function CatalogToolbar({
             </SelectTrigger>
             <SelectContent className="min-w-(--trigger-width)">
               {STATUS_FILTERS.map((value) => (
-                <SelectItem key={value} id={value} textValue={statusLabel(value)}>
+                <SelectItem
+                  key={value}
+                  id={value}
+                  textValue={statusLabel(value)}
+                >
                   {statusLabel(value)}
                 </SelectItem>
               ))}
@@ -100,7 +104,10 @@ export function CatalogError({
   onRetry: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 px-5 py-16 text-center" role="alert">
+    <div
+      className="flex flex-col items-center justify-center gap-3 px-5 py-16 text-center"
+      role="alert"
+    >
       <p className="text-sm text-text-secondary">{message}</p>
       <Button size="sm" appearance="outline" onPress={onRetry}>
         Thử lại

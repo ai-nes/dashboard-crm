@@ -1,5 +1,12 @@
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Pagination } from "@/components/tailgrids/core/pagination";
+import {
+  AdminTableCell,
+  AdminTableFrame,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTablePagination,
+  AdminTableRow,
+} from "@/components/common/admin/admin-table";
 import type { ActivityLogEntry } from "@/services/api/activity-log";
 import { formatDateTime } from "@/utils/format-date";
 
@@ -19,6 +26,7 @@ interface ActivityLogListProps {
   tracked: boolean;
   currentPage: number;
   totalPages: number;
+  totalItems: number;
   onPageChange: (page: number) => void;
   isDisabled: boolean;
   onSelectLog: (log: ActivityLogEntry) => void;
@@ -31,6 +39,7 @@ export default function ActivityLogList({
   tracked,
   currentPage,
   totalPages,
+  totalItems,
   onPageChange,
   isDisabled,
   onSelectLog,
@@ -74,7 +83,7 @@ export default function ActivityLogList({
 
   return (
     <>
-      <div className="hidden overflow-hidden rounded-xl border border-card-border bg-card-background lg:block">
+      <AdminTableFrame className="hidden lg:block">
         <div className="flex items-center justify-between gap-4 border-b border-card-border px-4 py-3 sm:px-5">
           <div>
             <p className="text-sm font-semibold text-text-primary">
@@ -91,18 +100,20 @@ export default function ActivityLogList({
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1020px] text-left text-sm">
-            <thead className="border-b border-card-border bg-background-gray-secondary text-xs font-semibold text-text-tertiary">
-              <tr>
-                <th className="w-40 px-4 py-3">Thời điểm</th>
-                <th className="w-56 px-4 py-3">Người thực hiện</th>
-                <th className="min-w-72 px-4 py-3">Sự kiện</th>
-                <th className="min-w-80 px-4 py-3">Thay đổi</th>
-                <th className="w-32 px-4 py-3">Mức độ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-card-border">
+            <AdminTableHeader>
+              <AdminTableRow>
+                <AdminTableHead className="w-40">Thời điểm</AdminTableHead>
+                <AdminTableHead className="w-56">
+                  Người thực hiện
+                </AdminTableHead>
+                <AdminTableHead className="min-w-72">Sự kiện</AdminTableHead>
+                <AdminTableHead className="min-w-80">Thay đổi</AdminTableHead>
+                <AdminTableHead className="w-32">Mức độ</AdminTableHead>
+              </AdminTableRow>
+            </AdminTableHeader>
+            <tbody>
               {logs.map((log) => (
-                <tr
+                <AdminTableRow
                   key={log.eventId}
                   role="button"
                   tabIndex={0}
@@ -116,12 +127,12 @@ export default function ActivityLogList({
                   }}
                   className="cursor-pointer align-top outline-none transition-colors hover:bg-background-gray-secondary/60 focus-visible:bg-background-gray-secondary/60"
                 >
-                  <td className="whitespace-nowrap px-4 py-4 text-text-secondary">
+                  <AdminTableCell className="whitespace-nowrap py-4 text-text-secondary">
                     <time dateTime={log.occurredAt}>
                       {formatDateTime(log.occurredAt)}
                     </time>
-                  </td>
-                  <td className="px-4 py-4">
+                  </AdminTableCell>
+                  <AdminTableCell className="py-4">
                     <div className="flex items-start gap-2.5">
                       <span
                         className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background-gray-secondary text-[11px] font-semibold text-text-secondary"
@@ -138,8 +149,8 @@ export default function ActivityLogList({
                         </div>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-4 py-4">
+                  </AdminTableCell>
+                  <AdminTableCell className="py-4">
                     <div className="font-semibold text-text-primary">
                       {getActivityTitle(log)}
                     </div>
@@ -153,8 +164,8 @@ export default function ActivityLogList({
                     <div className="mt-1 font-mono text-[11px] text-text-tertiary">
                       {getEventTechnicalLabel(log)}
                     </div>
-                  </td>
-                  <td className="max-w-96 px-4 py-4">
+                  </AdminTableCell>
+                  <AdminTableCell className="max-w-96 py-4">
                     <div className="mb-2 text-xs font-medium text-text-secondary">
                       {getFieldLabel(log)}
                     </div>
@@ -163,8 +174,8 @@ export default function ActivityLogList({
                       newValue={log.newValue}
                       compact
                     />
-                  </td>
-                  <td className="px-4 py-4">
+                  </AdminTableCell>
+                  <AdminTableCell className="py-4">
                     <Badge
                       color={log.severity === "critical" ? "warning" : "gray"}
                       prefixIcon={
@@ -176,13 +187,13 @@ export default function ActivityLogList({
                     >
                       {log.severity === "critical" ? "Cần chú ý" : "Thông tin"}
                     </Badge>
-                  </td>
-                </tr>
+                  </AdminTableCell>
+                </AdminTableRow>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </AdminTableFrame>
 
       <div
         className="space-y-3 lg:hidden"
@@ -272,19 +283,14 @@ export default function ActivityLogList({
         ))}
       </div>
 
-      {totalPages > 1 ? (
-        <div className="flex justify-end border-t border-card-border px-5 py-4">
-          <div className="w-fit">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={onPageChange}
-              variant="compact"
-              isDisabled={isDisabled}
-            />
-          </div>
-        </div>
-      ) : null}
+      <AdminTablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        onPageChange={onPageChange}
+        isDisabled={isDisabled}
+        className="mt-3 lg:mt-0"
+      />
     </>
   );
 }

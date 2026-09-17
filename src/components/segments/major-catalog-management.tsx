@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 
+import { AdminTablePagination } from "@/components/common/admin/admin-table";
+import { AdminSearchInput } from "@/components/common/admin/admin-search-input";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Input } from "@/components/tailgrids/core/input";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
   Select,
   SelectContent,
@@ -258,7 +258,7 @@ export function MajorCatalogManagement({
           >
             <div className="border-b border-card-border px-4 py-3 sm:px-5">
               <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
-                <Input
+                <AdminSearchInput
                   value={groupSearch}
                   onChange={(event) => {
                     setGroupSearch(event.target.value);
@@ -297,7 +297,9 @@ export function MajorCatalogManagement({
                   <Button
                     size="sm"
                     appearance="outline"
-                    isDisabled={Boolean(groupSearch.trim()) || groupStatus !== "all"}
+                    isDisabled={
+                      Boolean(groupSearch.trim()) || groupStatus !== "all"
+                    }
                     onPress={() => setIsOrderingGroups(true)}
                   >
                     Sắp xếp
@@ -310,7 +312,10 @@ export function MajorCatalogManagement({
                 <CatalogLoading label="Đang tải danh sách để sắp xếp…" />
               ) : groupOptionsQuery.error ? (
                 <CatalogError
-                  message={errorMessage(groupOptionsQuery.error, "Không thể tải danh sách sắp xếp.")}
+                  message={errorMessage(
+                    groupOptionsQuery.error,
+                    "Không thể tải danh sách sắp xếp.",
+                  )}
                   onRetry={() => void groupOptionsQuery.refetch()}
                 />
               ) : (
@@ -429,18 +434,15 @@ export function MajorCatalogManagement({
                 </TableBody>
               </TableRoot>
             )}
-            {!isOrderingGroups && groups.length > 0 && Math.ceil(groupTotal / PAGE_SIZE) > 1 && (
-              <div className="border-t border-card-border px-4 py-3 sm:px-5">
-                <Pagination
-                  currentPage={groupPage}
-                  totalPages={Math.ceil(groupTotal / PAGE_SIZE)}
-                  onPageChange={setGroupPage}
-                  variant="compact"
-                  align="end"
-                  isDisabled={groupsQuery.isFetching}
-                />
-              </div>
-            )}
+            {!isOrderingGroups && groups.length > 0 ? (
+              <AdminTablePagination
+                currentPage={groupPage}
+                totalPages={Math.max(1, Math.ceil(groupTotal / PAGE_SIZE))}
+                totalItems={groupTotal}
+                onPageChange={setGroupPage}
+                isDisabled={groupsQuery.isFetching}
+              />
+            ) : null}
           </AdmissionCatalogPanel>
         )}
 
@@ -469,7 +471,7 @@ export function MajorCatalogManagement({
                     : "grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.35fr)_12rem]"
                 }
               >
-                <Input
+                <AdminSearchInput
                   value={majorSearch}
                   onChange={(event) => {
                     setMajorSearch(event.target.value);
@@ -640,18 +642,15 @@ export function MajorCatalogManagement({
                 </TableBody>
               </TableRoot>
             )}
-            {majors.length > 0 && Math.ceil(majorTotal / PAGE_SIZE) > 1 && (
-              <div className="border-t border-card-border px-4 py-3 sm:px-5">
-                <Pagination
-                  currentPage={majorPage}
-                  totalPages={Math.ceil(majorTotal / PAGE_SIZE)}
-                  onPageChange={setMajorPage}
-                  variant="compact"
-                  align="end"
-                  isDisabled={majorsQuery.isFetching}
-                />
-              </div>
-            )}
+            {majors.length > 0 ? (
+              <AdminTablePagination
+                currentPage={majorPage}
+                totalPages={Math.max(1, Math.ceil(majorTotal / PAGE_SIZE))}
+                totalItems={majorTotal}
+                onPageChange={setMajorPage}
+                isDisabled={majorsQuery.isFetching}
+              />
+            ) : null}
           </AdmissionCatalogPanel>
         )}
       </div>

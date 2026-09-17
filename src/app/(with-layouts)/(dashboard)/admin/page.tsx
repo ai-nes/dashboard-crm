@@ -18,9 +18,8 @@ export default function AdminPage() {
           href: "/admin/users",
         },
         {
-          label: "Cấu hình hành động NBA",
-          description:
-            "Thiết lập nhóm hành động, khung thời gian và quy tắc đề xuất.",
+          label: "Cấu hình gợi ý NBA",
+          description: "Thiết lập hành động, khung giờ và quy tắc gợi ý.",
           href: "/director/admin/nba-actions",
         },
         {
@@ -36,19 +35,18 @@ export default function AdminPage() {
           href: "/director/admin/message-templates",
         },
         {
-          label: "Quản lý segments",
-          description:
-            "Tạo và quản lý các nhóm học sinh dùng chung cho toàn bộ đội tuyển sinh.",
+          label: "Phân khúc học sinh",
+          description: "Tạo và quản lý các phân khúc học sinh dùng chung.",
           href: "/director/admin/segments",
         },
         {
-          label: "Cấu hình học sinh",
+          label: "Cấu hình hồ sơ học sinh",
           description:
-            "Quản lý Need, Tag và các danh mục dùng chung cho hồ sơ học sinh.",
+            "Quản lý nhu cầu, thẻ và các danh mục dùng chung cho hồ sơ học sinh.",
           href: "/director/admin/student-config",
         },
         {
-          label: "Quản lý danh mục tuyển sinh",
+          label: "Danh mục tuyển sinh",
           description:
             "Quản lý ngành học, tỉnh thành, xã phường, trường và khu vực tuyển sinh.",
           href: "/director/admin/majors",
@@ -56,7 +54,7 @@ export default function AdminPage() {
         {
           label: "Nhật ký hoạt động",
           description:
-            "Xem lịch sử hành động của toàn bộ user trong hệ thống, theo module.",
+            "Xem lịch sử hoạt động của mọi người dùng theo từng nhóm chức năng.",
           href: "/director/admin/activity-logs",
         },
         {

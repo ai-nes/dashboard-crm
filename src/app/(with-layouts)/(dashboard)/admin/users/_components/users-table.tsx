@@ -3,18 +3,18 @@
 import { Pencil1, Trash1 } from "@tailgrids/icons";
 
 import { Avatar, AvatarFallback } from "@/components/tailgrids/core/avatar";
+import {
+  AdminTableCell,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTablePagination,
+  AdminTableRoot,
+  AdminTableRow,
+} from "@/components/common/admin/admin-table";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
-import { Pagination } from "@/components/tailgrids/core/pagination";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
+import { TableBody } from "@/components/tailgrids/core/table";
 import type { CrmUser } from "@/services/api/user-management";
 
 import RoleSelectDropdown from "./role-select-dropdown";
@@ -81,80 +81,66 @@ export default function UsersTable({
 
   return (
     <>
-      <TableRoot
-        fullBleed
-        className="border-0"
-        aria-label="Danh sách người dùng CRM"
-      >
-        <TableHeader className="bg-background-gray-secondary">
-          <TableRow>
+      <AdminTableRoot aria-label="Danh sách người dùng CRM">
+        <AdminTableHeader>
+          <AdminTableRow>
             {canManageUsers ? (
-              <TableHead scope="col" className="w-10 px-4">
+              <AdminTableHead scope="col" className="w-10">
                 <Checkbox
                   aria-label="Chọn tất cả người dùng"
                   isSelected={isAllSelected}
                   isDisabled={selectableUsers.length === 0}
                   onChange={onToggleAll}
                 />
-              </TableHead>
+              </AdminTableHead>
             ) : null}
-            <TableHead scope="col" className="whitespace-nowrap">
-              Người dùng
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Email
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Vai trò
-            </TableHead>
-            <TableHead scope="col" className="whitespace-nowrap">
-              Capacity
-            </TableHead>
+            <AdminTableHead scope="col">Người dùng</AdminTableHead>
+            <AdminTableHead scope="col">Email</AdminTableHead>
+            <AdminTableHead scope="col">Vai trò</AdminTableHead>
+            <AdminTableHead scope="col">Capacity</AdminTableHead>
             {canManageUsers ? (
-              <TableHead scope="col" className="whitespace-nowrap">
-                Hành động
-              </TableHead>
+              <AdminTableHead scope="col">Hành động</AdminTableHead>
             ) : null}
-          </TableRow>
-        </TableHeader>
+          </AdminTableRow>
+        </AdminTableHeader>
         <TableBody>
           {isLoading
             ? Array.from({ length: 4 }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell colSpan={columnCount} className="py-5">
+                <AdminTableRow key={index}>
+                  <AdminTableCell colSpan={columnCount} className="py-5">
                     <div className="h-4 animate-pulse rounded bg-background-gray-secondary" />
-                  </TableCell>
-                </TableRow>
+                  </AdminTableCell>
+                </AdminTableRow>
               ))
             : null}
           {!isLoading && users.length === 0 ? (
-            <TableRow>
-              <TableCell
+            <AdminTableRow>
+              <AdminTableCell
                 colSpan={columnCount}
                 className="py-16 text-center text-sm text-text-tertiary"
               >
                 {total === 0
                   ? "Chưa có người dùng CRM nào."
                   : "Không tìm thấy người dùng phù hợp. Thử từ khóa hoặc bộ lọc khác."}
-              </TableCell>
-            </TableRow>
+              </AdminTableCell>
+            </AdminTableRow>
           ) : null}
           {!isLoading
             ? users.map((user) => {
                 const isSystemManager = user.role === "System Manager";
                 return (
-                  <TableRow key={user.name}>
+                  <AdminTableRow key={user.name}>
                     {canManageUsers ? (
-                      <TableCell className="px-4 py-4">
+                      <AdminTableCell className="py-3.5">
                         <Checkbox
                           aria-label={`Chọn ${user.fullName}`}
                           isSelected={selectedUserIds.has(user.name)}
                           isDisabled={!isUserSelectable(user) || isMutating}
                           onChange={(checked) => onToggleUser(user, checked)}
                         />
-                      </TableCell>
+                      </AdminTableCell>
                     ) : null}
-                    <TableCell className="py-4">
+                    <AdminTableCell className="py-3.5">
                       <div className="flex min-w-0 items-center gap-2.5">
                         <Avatar size="sm">
                           <AvatarFallback className="bg-badge-primary-background text-badge-primary-text">
@@ -175,11 +161,11 @@ export default function UsersTable({
                           </p>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="py-4 text-sm text-text-secondary">
+                    </AdminTableCell>
+                    <AdminTableCell className="py-3.5 text-text-secondary">
                       {user.email}
-                    </TableCell>
-                    <TableCell className="py-4 text-sm">
+                    </AdminTableCell>
+                    <AdminTableCell className="py-3.5">
                       {canManageUsers && !isSystemManager ? (
                         <RoleSelectDropdown
                           value={user.role ?? ""}
@@ -191,12 +177,12 @@ export default function UsersTable({
                           {user.role ?? "Chưa có vai trò"}
                         </Badge>
                       )}
-                    </TableCell>
-                    <TableCell className="py-4 text-sm whitespace-nowrap text-text-secondary">
+                    </AdminTableCell>
+                    <AdminTableCell className="py-3.5 whitespace-nowrap text-text-secondary">
                       {capacityDisplay(user)}
-                    </TableCell>
+                    </AdminTableCell>
                     {canManageUsers ? (
-                      <TableCell className="py-4">
+                      <AdminTableCell className="py-3.5">
                         <div className="flex items-center gap-2">
                           <Button
                             iconOnly
@@ -225,26 +211,21 @@ export default function UsersTable({
                             <Trash1 size={16} aria-hidden="true" />
                           </Button>
                         </div>
-                      </TableCell>
+                      </AdminTableCell>
                     ) : null}
-                  </TableRow>
+                  </AdminTableRow>
                 );
               })
             : null}
         </TableBody>
-      </TableRoot>
-      {totalPages > 1 ? (
-        <div className="border-t border-card-border px-5 py-4">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={onPageChange}
-            variant="compact"
-            align="end"
-            isDisabled={isLoading || isMutating}
-          />
-        </div>
-      ) : null}
+      </AdminTableRoot>
+      <AdminTablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={total}
+        onPageChange={onPageChange}
+        isDisabled={isLoading || isMutating}
+      />
     </>
   );
 }

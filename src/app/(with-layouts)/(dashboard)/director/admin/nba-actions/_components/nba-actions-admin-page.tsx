@@ -6,12 +6,20 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
-import { useNbaActionTypesQuery, useNbaActionsQuery, useNbaTimeSlotsQuery } from "@/hooks/use-nba-actions-queries";
+import {
+  useNbaActionTypesQuery,
+  useNbaActionsQuery,
+  useNbaTimeSlotsQuery,
+} from "@/hooks/use-nba-actions-queries";
 import { ACTION_TIME_SLOTS } from "@/services/api/nba-actions";
 
 import NbaActionsTable from "./nba-actions-table";
 import NbaAdminTabs from "./nba-admin-tabs";
-import { NBA_ACTION_PAGE_SIZE, type ChannelFilter, type EnabledFilter } from "./types";
+import {
+  NBA_ACTION_PAGE_SIZE,
+  type ChannelFilter,
+  type EnabledFilter,
+} from "./types";
 
 const PAGE_SIZE = NBA_ACTION_PAGE_SIZE;
 
@@ -28,23 +36,38 @@ export default function NbaActionsAdminPage() {
   const canEdit = hasFrappeTechnicalRole(user?.roles, "System Manager");
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
-  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("search") ?? "");
-  const [actionType, setActionType] = useState(searchParams.get("action_type") ?? "all");
-  const [channel, setChannel] = useState<ChannelFilter>((searchParams.get("channel") as ChannelFilter | null) ?? "all");
-  const [enabled, setEnabled] = useState<EnabledFilter>((searchParams.get("enabled") as EnabledFilter | null) ?? "all");
+  const [debouncedSearch, setDebouncedSearch] = useState(
+    searchParams.get("search") ?? "",
+  );
+  const [actionType, setActionType] = useState(
+    searchParams.get("action_type") ?? "all",
+  );
+  const [channel, setChannel] = useState<ChannelFilter>(
+    (searchParams.get("channel") as ChannelFilter | null) ?? "all",
+  );
+  const [enabled, setEnabled] = useState<EnabledFilter>(
+    (searchParams.get("enabled") as EnabledFilter | null) ?? "all",
+  );
   const [page, setPage] = useState(parsePage(searchParams.get("page")));
-  const [selectedActionName, setSelectedActionName] = useState<string | null>(null);
+  const [selectedActionName, setSelectedActionName] = useState<string | null>(
+    null,
+  );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const updateQuery = useCallback((changes: Record<string, string | undefined>) => {
-    const nextParams = new URLSearchParams(searchParams.toString());
-    Object.entries(changes).forEach(([key, value]) => {
-      if (value === undefined || value === "") nextParams.delete(key);
-      else nextParams.set(key, value);
-    });
-    const query = nextParams.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [pathname, router, searchParams]);
+  const updateQuery = useCallback(
+    (changes: Record<string, string | undefined>) => {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value === undefined || value === "") nextParams.delete(key);
+        else nextParams.set(key, value);
+      });
+      const query = nextParams.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParams],
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -57,14 +80,17 @@ export default function NbaActionsAdminPage() {
     return () => window.clearTimeout(timer);
   }, [debouncedSearch, search, updateQuery]);
 
-  const actionsParams = useMemo(() => ({
-    search: debouncedSearch || undefined,
-    actionType: actionType === "all" ? undefined : actionType,
-    channel: channel === "all" ? undefined : channel,
-    enabled: enabled === "all" ? undefined : enabled === "enabled",
-    start: (page - 1) * PAGE_SIZE,
-    pageLength: PAGE_SIZE,
-  }), [actionType, channel, debouncedSearch, enabled, page]);
+  const actionsParams = useMemo(
+    () => ({
+      search: debouncedSearch || undefined,
+      actionType: actionType === "all" ? undefined : actionType,
+      channel: channel === "all" ? undefined : channel,
+      enabled: enabled === "all" ? undefined : enabled === "enabled",
+      start: (page - 1) * PAGE_SIZE,
+      pageLength: PAGE_SIZE,
+    }),
+    [actionType, channel, debouncedSearch, enabled, page],
+  );
 
   const actionsQuery = useNbaActionsQuery(actionsParams);
   const actionTypesQuery = useNbaActionTypesQuery();
@@ -72,17 +98,30 @@ export default function NbaActionsAdminPage() {
   const actions = actionsQuery.data?.actions ?? [];
   const total = actionsQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const availableTimeSlots = timeSlotsQuery.data?.timeSlots ?? ACTION_TIME_SLOTS.slice();
+  const availableTimeSlots =
+    timeSlotsQuery.data?.timeSlots ?? ACTION_TIME_SLOTS.slice();
   const isTimeSlotsReady = Boolean(timeSlotsQuery.data?.timeSlots.length);
 
   const handleFilterChange = (change: Record<string, string | undefined>) => {
     setPage(1);
     updateQuery({ ...change, page: "1" });
   };
-  const handleActionTypeChange = (value: string) => { setActionType(value); handleFilterChange({ action_type: value === "all" ? undefined : value }); };
-  const handleEnabledChange = (value: EnabledFilter) => { setEnabled(value); handleFilterChange({ enabled: value === "all" ? undefined : value }); };
-  const handleChannelChange = (value: ChannelFilter) => { setChannel(value); handleFilterChange({ channel: value === "all" ? undefined : value }); };
-  const handlePageChange = (nextPage: number) => { setPage(nextPage); updateQuery({ page: nextPage === 1 ? undefined : String(nextPage) }); };
+  const handleActionTypeChange = (value: string) => {
+    setActionType(value);
+    handleFilterChange({ action_type: value === "all" ? undefined : value });
+  };
+  const handleEnabledChange = (value: EnabledFilter) => {
+    setEnabled(value);
+    handleFilterChange({ enabled: value === "all" ? undefined : value });
+  };
+  const handleChannelChange = (value: ChannelFilter) => {
+    setChannel(value);
+    handleFilterChange({ channel: value === "all" ? undefined : value });
+  };
+  const handlePageChange = (nextPage: number) => {
+    setPage(nextPage);
+    updateQuery({ page: nextPage === 1 ? undefined : String(nextPage) });
+  };
   const handleReset = () => {
     setSearch("");
     setDebouncedSearch("");
@@ -90,20 +129,28 @@ export default function NbaActionsAdminPage() {
     setChannel("all");
     setEnabled("all");
     setPage(1);
-    updateQuery({ search: undefined, action_type: undefined, channel: undefined, enabled: undefined, page: undefined });
+    updateQuery({
+      search: undefined,
+      action_type: undefined,
+      channel: undefined,
+      enabled: undefined,
+      page: undefined,
+    });
   };
 
   return (
-    <main className="min-w-0 space-y-6 px-2 py-4 pb-8 lg:px-6">
+    <main className="flex h-full min-h-0 min-w-0 flex-col gap-4 overflow-hidden px-2 pt-4 pb-8 lg:px-6">
       <AdminPageHeader
         section="NBA"
-        title="Quản lý cấu hình NBA"
+        title="Cấu hình gợi ý NBA"
         description="Cấu hình hành động đề xuất tuyển sinh."
         canEdit={canEdit}
-        metaLabel="Đồng bộ từ Frappe CRM"
+        metaLabel="Dữ liệu từ Frappe CRM"
         metaValue={
           <>
-            <span className="font-semibold text-text-primary">{total || "—"}</span>{" "}
+            <span className="font-semibold text-text-primary">
+              {total || "—"}
+            </span>{" "}
             hành động
           </>
         }
@@ -114,10 +161,23 @@ export default function NbaActionsAdminPage() {
         canEdit={canEdit}
         actionsPanel={
           actionsQuery.error ? (
-            <section className="rounded-xl border border-alert-danger-border bg-alert-danger-background p-5" role="alert">
-              <p className="text-sm font-medium text-alert-danger-title">Không tải được danh sách hành động NBA.</p>
-              <p className="mt-1 text-sm leading-6 text-alert-danger-description">{actionsQuery.error.message || "Hãy thử lại sau."}</p>
-              <button type="button" onClick={() => void actionsQuery.refetch()} className="mt-3 rounded-lg border border-button-error-outline-stroke px-3 py-2 text-sm font-medium text-button-error-outline-text transition hover:bg-button-error-outline-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500">Thử lại</button>
+            <section
+              className="rounded-xl border border-alert-danger-border bg-alert-danger-background p-5"
+              role="alert"
+            >
+              <p className="text-sm font-medium text-alert-danger-title">
+                Không tải được danh sách hành động NBA.
+              </p>
+              <p className="mt-1 text-sm leading-6 text-alert-danger-description">
+                {actionsQuery.error.message || "Hãy thử lại sau."}
+              </p>
+              <button
+                type="button"
+                onClick={() => void actionsQuery.refetch()}
+                className="mt-3 rounded-lg border border-button-error-outline-stroke px-3 py-2 text-sm font-medium text-button-error-outline-text transition hover:bg-button-error-outline-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+              >
+                Thử lại
+              </button>
             </section>
           ) : (
             <NbaActionsTable
@@ -125,7 +185,10 @@ export default function NbaActionsAdminPage() {
               selectedActionName={selectedActionName}
               isCreateOpen={isCreateOpen}
               onSelectAction={(name) => setSelectedActionName(name)}
-              onCreateAction={() => { setSelectedActionName(null); setIsCreateOpen(true); }}
+              onCreateAction={() => {
+                setSelectedActionName(null);
+                setIsCreateOpen(true);
+              }}
               onCloseCreate={() => setIsCreateOpen(false)}
               search={search}
               onSearchChange={setSearch}

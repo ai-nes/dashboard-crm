@@ -1,12 +1,12 @@
-import type {Metadata} from 'next'
+import type { Metadata } from "next";
 
-import {StudentConfigurationPage} from '@/components/segments/student-configuration-page'
+import { StudentConfigurationPage } from "@/components/segments/student-configuration-page";
 
 export const metadata: Metadata = {
-  title: 'Cấu hình học sinh',
-  description: 'Quản lý các danh mục dùng chung cho hồ sơ học sinh.',
-}
+  title: "Cấu hình hồ sơ học sinh",
+  description: "Quản lý các danh mục dùng chung cho hồ sơ học sinh.",
+};
 
 export default function StudentConfigPage() {
-  return <StudentConfigurationPage />
+  return <StudentConfigurationPage />;
 }

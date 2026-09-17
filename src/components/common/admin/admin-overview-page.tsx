@@ -168,7 +168,7 @@ export default function AdminOverviewPage({
       },
       {
         label: "NBA",
-        description: "Action, timing policy và recommendation rule.",
+        description: "Hành động, khung giờ và quy tắc gợi ý.",
         value: formatNumber(nbaCount),
         detail: `${formatNumber(totalOf(nbaActionsQuery.data))} action · ${formatNumber(totalOf(nbaPoliciesQuery.data))} timing`,
         status: statusOf({
@@ -191,7 +191,7 @@ export default function AdminOverviewPage({
         icon: <Book4 size={17} aria-hidden="true" />,
       },
       {
-        label: "Segments",
+        label: "Phân khúc",
         description: "Các nhóm học sinh phục vụ phân loại và chăm sóc.",
         value: formatNumber(totalOf(segmentsQuery.data)),
         detail: "Nhóm học sinh dùng chung",
@@ -256,7 +256,7 @@ export default function AdminOverviewPage({
           color: "var(--warning-500)",
         },
         {
-          label: "Segments",
+          label: "Phân khúc",
           value: totalOf(segmentsQuery.data),
           color: "var(--primary-300)",
         },

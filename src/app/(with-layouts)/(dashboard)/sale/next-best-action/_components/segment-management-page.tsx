@@ -1,46 +1,54 @@
-'use client'
+"use client";
 
-import {Plus} from '@tailgrids/icons'
-import {usePathname, useRouter} from 'next/navigation'
-import {SegmentList} from '@/components/segments/segment-list'
+import { Plus } from "@tailgrids/icons";
+import { usePathname, useRouter } from "next/navigation";
+import { SegmentList } from "@/components/segments/segment-list";
 
-import AdminPageHeader from '@/components/common/admin/admin-page-header'
-import {useAuth} from '@/components/common/auth/auth-provider'
-import {hasFrappeTechnicalRole} from '@/components/common/auth/rbac'
-import {Badge} from '@/components/tailgrids/core/badge'
-import {Button} from '@/components/tailgrids/core/button'
+import AdminPageHeader from "@/components/common/admin/admin-page-header";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
+import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
 
 export default function SegmentManagementPage({
   createHref,
   isAdmin = false,
 }: {
-  createHref?: string
-  isAdmin?: boolean
+  createHref?: string;
+  isAdmin?: boolean;
 }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const {user} = useAuth()
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user } = useAuth();
   const canManage = Boolean(
-    hasFrappeTechnicalRole(user?.roles, 'System Manager') || user?.roles.includes('Administrator')
-  )
+    hasFrappeTechnicalRole(user?.roles, "System Manager") ||
+    user?.roles.includes("Administrator"),
+  );
 
   return (
-    <main id="main-content" className="flex h-full min-h-0 min-w-0 flex-col gap-2 overflow-hidden px-2 pt-4 lg:px-6">
+    <main
+      id="main-content"
+      className="flex h-full min-h-0 min-w-0 flex-col gap-4 overflow-hidden px-2 pt-4 pb-8 lg:px-6"
+    >
       {isAdmin ? (
         <AdminPageHeader
-          section="Segments"
-          title="Quản lý segments"
+          section="Phân khúc học sinh"
+          title="Phân khúc học sinh"
           description="Quản lý các nhóm học sinh."
           canEdit={canManage}
           actions={
             canManage && createHref ? (
-              <Button size="md" className="shrink-0" onPress={() => router.push(createHref)}>
+              <Button
+                size="md"
+                className="shrink-0"
+                onPress={() => router.push(createHref)}
+              >
                 <Plus size={16} aria-hidden="true" />
-                Tạo segment
+                Tạo phân khúc
               </Button>
             ) : null
           }
-          metaLabel="Đồng bộ từ Frappe CRM"
+          metaLabel="Dữ liệu từ Frappe CRM"
           metaValue="Nhóm dùng chung"
         />
       ) : (
@@ -52,19 +60,26 @@ export default function SegmentManagementPage({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <Badge color="primary">QUẢN LÝ SEGMENTS</Badge>
-                <span className="text-xs text-text-tertiary">Không gian tuyển sinh</span>
+                <span className="text-xs text-text-tertiary">
+                  Không gian tuyển sinh
+                </span>
               </div>
               <h1 className="mt-4 text-balance text-[26px] leading-8 font-semibold tracking-[-0.5px] text-text-primary sm:text-[30px]">
                 Quản lý segments
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-                Xây dựng, theo dõi và sử dụng các nhóm học sinh trong quy trình tuyển sinh.
+                Xây dựng, theo dõi và sử dụng các nhóm học sinh trong quy trình
+                tuyển sinh.
               </p>
             </div>
 
             {canManage && createHref && (
               <div className="flex flex-wrap items-center gap-2">
-                <Button size="md" className="shrink-0" onPress={() => router.push(createHref)}>
+                <Button
+                  size="md"
+                  className="shrink-0"
+                  onPress={() => router.push(createHref)}
+                >
                   <Plus size={16} aria-hidden="true" />
                   Tạo segment
                 </Button>
@@ -82,5 +97,5 @@ export default function SegmentManagementPage({
         />
       </div>
     </main>
-  )
+  );
 }

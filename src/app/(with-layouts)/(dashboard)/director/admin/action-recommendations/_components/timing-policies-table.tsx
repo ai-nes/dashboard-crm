@@ -3,16 +3,17 @@
 import { Eye, Pencil1, Plus } from "@tailgrids/icons";
 import { useState } from "react";
 
-import { Button } from "@/components/tailgrids/core/button";
-import { Pagination } from "@/components/tailgrids/core/pagination";
 import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
+  AdminTableCell,
+  AdminTableFrame,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTablePagination,
+  AdminTableRoot,
+  AdminTableRow,
+} from "@/components/common/admin/admin-table";
+import { Button } from "@/components/tailgrids/core/button";
+import { TableBody } from "@/components/tailgrids/core/table";
 import { useNbaTimingPoliciesQuery } from "@/hooks/use-nba-admin-queries";
 import type {
   NbaTimingPolicy,
@@ -82,10 +83,7 @@ export default function TimingPoliciesTable({
 
   return (
     <>
-      <section
-        className="overflow-hidden rounded-xl border border-card-border bg-card-background"
-        aria-labelledby="timing-policies-heading"
-      >
+      <AdminTableFrame aria-labelledby="timing-policies-heading">
         <div className="flex flex-wrap items-end justify-between gap-3 px-4 py-4">
           <div>
             <h2
@@ -163,25 +161,24 @@ export default function TimingPoliciesTable({
           </p>
         ) : (
           <>
-            <TableRoot fullBleed className="border-0">
-              <TableHeader className="bg-background-gray-secondary">
-                <TableRow>
-                  <TableHead>Chính sách</TableHead>
-                  <TableHead>Kích hoạt</TableHead>
-                  <TableHead>Thời điểm áp dụng</TableHead>
-                  <TableHead>Khung giờ</TableHead>
-                  <TableHead>Lặp lại</TableHead>
-                  <TableHead>Cập nhật</TableHead>
-                  <TableHead className="text-center">Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
+            <AdminTableRoot>
+              <AdminTableHeader>
+                <AdminTableRow>
+                  <AdminTableHead>Chính sách</AdminTableHead>
+                  <AdminTableHead>Kích hoạt</AdminTableHead>
+                  <AdminTableHead>Thời điểm áp dụng</AdminTableHead>
+                  <AdminTableHead>Khung giờ</AdminTableHead>
+                  <AdminTableHead>Lặp lại</AdminTableHead>
+                  <AdminTableHead>Cập nhật</AdminTableHead>
+                  <AdminTableHead className="text-center">
+                    Thao tác
+                  </AdminTableHead>
+                </AdminTableRow>
+              </AdminTableHeader>
               <TableBody>
                 {policies.map((policy) => (
-                  <TableRow
-                    key={policy.name}
-                    className="hover:bg-background-gray-secondary_alt"
-                  >
-                    <TableCell className="min-w-52">
+                  <AdminTableRow key={policy.name}>
+                    <AdminTableCell className="min-w-52">
                       <span className="font-mono text-[11px] font-semibold tracking-[0.04em] text-primary-500">
                         {policy.policyKey}
                       </span>
@@ -190,31 +187,31 @@ export default function TimingPoliciesTable({
                           ? "Theo sự kiện"
                           : "Chính sách thời gian"}
                       </p>
-                    </TableCell>
-                    <TableCell className="min-w-44">
+                    </AdminTableCell>
+                    <AdminTableCell className="min-w-44">
                       <p className="text-sm font-medium text-text-primary">
                         {triggerLabels[policy.triggerType]}
                       </p>
                       <p className="mt-1 text-xs text-text-tertiary">
                         {policy.triggerEvent || "Không gắn sự kiện"}
                       </p>
-                    </TableCell>
-                    <TableCell className="min-w-48 text-sm text-text-secondary">
+                    </AdminTableCell>
+                    <AdminTableCell className="min-w-48 text-text-secondary">
                       {timingLabel(policy)}
-                    </TableCell>
-                    <TableCell className="text-sm text-text-secondary">
+                    </AdminTableCell>
+                    <AdminTableCell className="text-text-secondary">
                       {policy.timeSlot ??
                         (policy.allowedStartTime && policy.allowedEndTime
                           ? `${policy.allowedStartTime}–${policy.allowedEndTime}`
                           : "Không cố định")}
-                    </TableCell>
-                    <TableCell className="text-sm text-text-secondary">
+                    </AdminTableCell>
+                    <AdminTableCell className="text-text-secondary">
                       {recurrenceLabel(policy)}
-                    </TableCell>
-                    <TableCell className="text-sm text-text-secondary">
+                    </AdminTableCell>
+                    <AdminTableCell className="text-text-secondary">
                       {policy.modified ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </AdminTableCell>
+                    <AdminTableCell className="text-center">
                       <Button
                         size="sm"
                         variant="primary"
@@ -233,36 +230,31 @@ export default function TimingPoliciesTable({
                         )}
                         {canEdit ? "Sửa" : "Xem"}
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </AdminTableCell>
+                  </AdminTableRow>
                 ))}
                 {policies.length === 0 && (
-                  <TableRow>
-                    <TableCell
+                  <AdminTableRow>
+                    <AdminTableCell
                       colSpan={7}
                       className="py-12 text-center text-sm text-text-tertiary"
                     >
                       Không tìm thấy chính sách thời gian phù hợp.
-                    </TableCell>
-                  </TableRow>
+                    </AdminTableCell>
+                  </AdminTableRow>
                 )}
               </TableBody>
-            </TableRoot>
-            {totalPages > 1 && (
-              <div className="border-t border-card-border px-5 py-3">
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  onPageChange={setPage}
-                  variant="compact"
-                  align="end"
-                  isDisabled={query.isFetching}
-                />
-              </div>
-            )}
+            </AdminTableRoot>
+            <AdminTablePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              onPageChange={setPage}
+              isDisabled={query.isFetching}
+            />
           </>
         )}
-      </section>
+      </AdminTableFrame>
 
       {(selected || isCreateOpen) && (
         <TimingPolicyEditorDialog
