@@ -92,6 +92,107 @@ export interface LeadSaleOverviewResponse {
   teamPerformance: { items: LeadSaleTeamMember[] };
   studentStatus: LeadSaleStudentStatus;
   resultTrend: LeadSaleResultTrend;
+  dashboard: LeadSaleDashboardPayload;
+}
+
+export type LeadSaleDashboardStageId =
+  | "lead"
+  | "contacted"
+  | "qualified"
+  | "opportunity"
+  | "application"
+  | "enrollment";
+
+export interface LeadSaleDashboardSummary {
+  enrollment: number;
+  target: number;
+  achievement: number;
+  remaining: number;
+  expected: number;
+  coverage: number;
+  openOpportunities: number;
+  newOpportunities: number;
+  winRate: number;
+  followUpDue: number;
+  overdue: number;
+  agingOverSla: number;
+}
+
+export interface LeadSaleDashboardAction {
+  id: "overdue" | "unassigned" | "due-today" | "aging";
+  value: number;
+  longestAgeDays: number;
+}
+
+export interface LeadSaleDashboardPriorityRecord {
+  id: string;
+  name: string;
+  owner: string;
+  stageId: LeadSaleDashboardStageId;
+  stageLabel: string;
+  issueCode: "overdue" | "missing-documents" | "uncontacted" | "aging";
+  ageDays: number;
+  nextAction: string;
+  lastActivityAt: string;
+}
+
+export interface LeadSaleDashboardStage {
+  id: LeadSaleDashboardStageId;
+  label: string;
+  volume: number;
+  nextStepConversion: number | null;
+  averageDays: number;
+  slaDays: number;
+  stalledCount: number;
+}
+
+export interface LeadSaleDashboardRep {
+  id: string;
+  displayName: string;
+  target: number;
+  enrollment: number;
+  achievement: number;
+  remaining: number;
+  expected: number;
+  coverage: number;
+  winRate: number;
+  closedOpportunities: number;
+  wonOpportunities: number;
+  openOpportunities: number;
+  overdue: number;
+  avgStageAgeDays: number;
+  agingOverSlaCount: number;
+  pipeline: {
+    newOpportunities: number;
+    followUpDue: number;
+    stageVolumes: Record<string, number>;
+    stageStalledCounts: Record<string, number>;
+    agingBuckets: Record<string, number>;
+    trend: LeadSaleDashboardTrendPoint[];
+  };
+}
+
+export interface LeadSaleDashboardTrendPoint {
+  period: string;
+  enrollment: number;
+  target: number;
+  newOpportunities: number;
+}
+
+export interface LeadSaleDashboardAgingBucket {
+  id: "0-2-days" | "3-5-days" | "6-10-days" | "over-10-days";
+  count: number;
+}
+
+export interface LeadSaleDashboardPayload {
+  summary: LeadSaleDashboardSummary;
+  actions: LeadSaleDashboardAction[];
+  priorityQueue: LeadSaleDashboardPriorityRecord[];
+  stages: LeadSaleDashboardStage[];
+  reps: LeadSaleDashboardRep[];
+  trend: LeadSaleDashboardTrendPoint[];
+  agingBuckets: LeadSaleDashboardAgingBucket[];
+  status?: LeadSaleOverviewStatus;
 }
 
 export interface LeadSaleOverviewParams {

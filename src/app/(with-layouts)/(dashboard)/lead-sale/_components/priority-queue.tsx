@@ -4,7 +4,7 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
-import type { LeadSaleDetailId, LeadSaleQueueRecord, LeadSaleTone } from "./mock-data";
+import type { LeadSaleDetailId, LeadSaleQueueRecord, LeadSaleTone } from "./lead-sale-dashboard.types";
 
 interface PriorityQueueProps {
   records: LeadSaleQueueRecord[];

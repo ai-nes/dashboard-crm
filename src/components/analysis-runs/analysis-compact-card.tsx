@@ -10,11 +10,7 @@ import type {
 } from "@/services/api/analysis-runs";
 import { cn } from "@/utils/cn";
 
-import {
-  formatTerminalReason,
-  getDeepAnalysisNotice,
-  getRichReport,
-} from "./analysis-run-meta";
+import { getDeepAnalysisNotice, getRichReport } from "./analysis-run-meta";
 import AnalysisReportCockpit from "./analysis-report-cockpit";
 
 interface AnalysisCompactCardProps {
@@ -43,10 +39,6 @@ export default function AnalysisCompactCard({
 }: AnalysisCompactCardProps) {
   const report = useMemo(() => getRichReport(run.stages), [run.stages]);
   const deepAnalysisNotice = useMemo(() => getDeepAnalysisNotice(run), [run]);
-  const terminalReason = run.terminalReason ?? run.stages.find(
-    (stage) => stage.terminalReason,
-  )?.terminalReason;
-  const terminalReasonLabel = formatTerminalReason(terminalReason);
 
   const requestLabel = isPending
     ? "Đang gửi"
@@ -71,7 +63,10 @@ export default function AnalysisCompactCard({
             <Sparkle size={16} />
           </div>
           <div className="min-w-0">
-            <h3 id={`${kind}-analysis-heading`} className="text-sm font-semibold text-text-primary">
+            <h3
+              id={`${kind}-analysis-heading`}
+              className="text-sm font-semibold text-text-primary"
+            >
               {title}
             </h3>
           </div>
@@ -109,28 +104,14 @@ export default function AnalysisCompactCard({
         </p>
       )}
 
-      {terminalReasonLabel && run.status !== "completed" && (
-        <div
-          className="mt-4 rounded-lg border border-warning-200 bg-badge-warning-background px-3 py-2 text-xs leading-5 text-warning-800 dark:border-warning-800 dark:text-warning-200"
-          role="status"
-        >
-          <p className="font-semibold">Phân tích chưa hoàn tất</p>
-          <p className="mt-0.5">
-            {terminalReasonLabel}. Đây là trạng thái có thể thử lại, không phải lỗi không thể phục hồi.
-          </p>
-        </div>
-      )}
-
       {report ? (
         <div className="mt-5">
-          <AnalysisReportCockpit
-            report={report}
-            onOpenDetails={onOpenDrawer}
-          />
+          <AnalysisReportCockpit report={report} onOpenDetails={onOpenDrawer} />
         </div>
       ) : (
         <div className="mt-5 border-t border-card-border pt-5 text-sm leading-6 text-text-secondary">
-          Lần phân tích này chưa tạo được báo cáo có cấu trúc. Mở chi tiết để kiểm tra trạng thái và tín hiệu đã ghi nhận.
+          Lần phân tích này chưa tạo được báo cáo có cấu trúc. Mở chi tiết để
+          kiểm tra trạng thái và tín hiệu đã ghi nhận.
         </div>
       )}
     </div>

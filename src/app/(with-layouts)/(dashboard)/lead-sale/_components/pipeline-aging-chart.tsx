@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Tooltip, XAxis, YAxis } from "recharts";
 
-import type { LeadSaleAgingBucket, LeadSaleDetailId, LeadSaleTone } from "./mock-data";
+import type { LeadSaleAgingBucket, LeadSaleDetailId, LeadSaleTone } from "./lead-sale-dashboard.types";
 import PipelineAgingTooltip from "./pipeline-aging-tooltip";
 
 interface PipelineAgingChartProps {

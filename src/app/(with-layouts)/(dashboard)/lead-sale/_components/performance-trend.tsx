@@ -12,7 +12,7 @@ import {
   YAxis,
 } from "recharts";
 
-import type { LeadSaleTrendPoint } from "./mock-data";
+import type { LeadSaleTrendPoint } from "./lead-sale-dashboard.types";
 import TrendTooltip from "./trend-tooltip";
 
 interface PerformanceTrendProps {

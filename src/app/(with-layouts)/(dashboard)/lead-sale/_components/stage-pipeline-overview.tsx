@@ -5,7 +5,7 @@ import { ArrowRight } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 
-import type { LeadSaleDetailId, LeadSaleStageAnalysis } from "./mock-data";
+import type { LeadSaleDetailId, LeadSaleStageAnalysis } from "./lead-sale-dashboard.types";
 
 interface StagePipelineOverviewProps {
   stages: LeadSaleStageAnalysis[];

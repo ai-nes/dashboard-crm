@@ -13,7 +13,7 @@ import {
   SheetTitle,
 } from "@/components/tailgrids/core/sheet";
 
-import type { LeadSaleDetail, LeadSaleTone } from "./mock-data";
+import type { LeadSaleDetail, LeadSaleTone } from "./lead-sale-dashboard.types";
 
 interface LeadSaleDetailSheetProps {
   detail: LeadSaleDetail | null;

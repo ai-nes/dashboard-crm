@@ -2,7 +2,7 @@
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
-import type { LeadSaleDetailId, LeadSaleStageAnalysis } from "./mock-data";
+import type { LeadSaleDetailId, LeadSaleStageAnalysis } from "./lead-sale-dashboard.types";
 import StageInterventions from "./stage-interventions";
 import StagePipelineOverview from "./stage-pipeline-overview";
 

@@ -11,7 +11,7 @@ import {
   LEAD_SALE_HEALTH_THRESHOLDS,
   type LeadSaleDetailId,
   type LeadSaleRepPerformance,
-} from "./mock-data";
+} from "./lead-sale-dashboard.types";
 
 interface RepPerformanceProps {
   reps: LeadSaleRepPerformance[];

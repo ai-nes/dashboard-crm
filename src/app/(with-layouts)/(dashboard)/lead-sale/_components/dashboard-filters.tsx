@@ -15,7 +15,7 @@ import {
   DEFAULT_LEAD_SALE_FILTERS,
   LEAD_SALE_FILTER_OPTIONS,
   type LeadSaleDashboardFilters,
-} from "./mock-data";
+} from "./lead-sale-dashboard.types";
 
 interface DashboardFiltersProps {
   filters: LeadSaleDashboardFilters;

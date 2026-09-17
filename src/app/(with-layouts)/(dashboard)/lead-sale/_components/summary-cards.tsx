@@ -3,10 +3,10 @@ import { ArrowRight, CheckCircle1, Layers2, Target3, TrendUp2 } from "@tailgrids
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 
-import type { LeadSaleDetailId, LeadSaleMockSummary } from "./mock-data";
+import type { LeadSaleDetailId, LeadSaleSummary } from "./lead-sale-dashboard.types";
 
 interface SummaryCardsProps {
-  summary: LeadSaleMockSummary;
+  summary: LeadSaleSummary;
   onOpenDetail: (detailId: LeadSaleDetailId) => void;
 }
 
@@ -27,7 +27,6 @@ export default function SummaryCards({ summary, onOpenDetail }: SummaryCardsProp
                 <CheckCircle1 size={18} aria-hidden="true" />
               </span>
               <span className="text-xs font-semibold text-text-secondary">Đã nhập học</span>
-              <Badge color="success" size="sm">+8 kỳ trước</Badge>
             </div>
             <div className="mt-5 flex items-end gap-3">
               <span className="text-4xl leading-none font-semibold tracking-[-1.4px] text-text-primary">{summary.enrollment}</span>
@@ -62,7 +61,7 @@ export default function SummaryCards({ summary, onOpenDetail }: SummaryCardsProp
           </div>
           <div className="mt-4">
             <p className="mt-1 text-3xl font-semibold tracking-[-1px] text-text-primary">{summary.expected}</p>
-            <p className="mt-2 text-xs leading-5 text-text-tertiary">Ước tính từ 160 cơ hội đang mở, không phải kết quả chắc chắn.</p>
+            <p className="mt-2 text-xs leading-5 text-text-tertiary">Ước tính từ {summary.openOpportunities} cơ hội đang mở, không phải kết quả chắc chắn.</p>
           </div>
         </Button>
 
@@ -85,7 +84,9 @@ export default function SummaryCards({ summary, onOpenDetail }: SummaryCardsProp
           <div className="mt-4">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-3xl font-semibold tracking-[-1px] text-success-500">{summary.coverage.toFixed(2).replace(".", ",")}x</p>
-              <Badge color="success" size="sm">Đủ theo dự báo</Badge>
+              <Badge color={summary.coverage >= 1 ? "success" : "warning"} size="sm">
+                {summary.coverage >= 1 ? "Đủ theo dự báo" : "Thiếu theo dự báo"}
+              </Badge>
             </div>
             <p className="mt-2 text-xs leading-5 text-text-tertiary">{summary.expected} dự kiến / {summary.remaining} chỉ tiêu còn thiếu. Bấm để xem nguồn của dự báo.</p>
           </div>

@@ -3,10 +3,10 @@ import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 
-import type { LeadSaleMockDashboardData } from "./mock-data";
+import type { LeadSaleDashboardData } from "./lead-sale-dashboard.types";
 
 interface DashboardHeaderProps {
-  data: LeadSaleMockDashboardData;
+  data: LeadSaleDashboardData;
 }
 
 export default function DashboardHeader({ data }: DashboardHeaderProps) {
@@ -26,9 +26,7 @@ export default function DashboardHeader({ data }: DashboardHeaderProps) {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
           {data.teamName} · {data.scopeLabel} · Tổng hợp chỉ tiêu, cơ hội và các hồ sơ cần hỗ trợ.
         </p>
-        <p className="mt-2 text-[11px] text-text-tertiary">
-          <span className="font-semibold text-primary-600">Dữ liệu mẫu</span> · Cập nhật lúc {data.asOf}
-        </p>
+        <p className="mt-2 text-[11px] text-text-tertiary">Cập nhật lúc {data.asOf}</p>
       </div>
 
       <div className="flex shrink-0 flex-wrap gap-2">

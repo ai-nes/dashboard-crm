@@ -293,12 +293,99 @@ type LeadSaleOverviewResponse = {
   teamPerformance: { items: LeadSaleTeamMember[] };
   studentStatus: LeadSaleStudentStatus;
   resultTrend: LeadSaleResultTrend;
+  dashboard: LeadSaleDashboardPayload;
 };
 ```
 
 `initials`, label hiển thị của team member, tone, icon và href là presentation
 của frontend. `studentStatus.items[].label` có thể do backend trả để bảo đảm
 policy hiển thị nhất quán, nhưng frontend không được dùng label làm key.
+
+### 5.3. Projection cho dashboard tuyển sinh hiện tại
+
+`dashboard` là projection giàu dữ liệu được tính từ cùng snapshot và team scope
+với các collection ở trên. Frontend chỉ dùng projection này để nạp vào các
+component UI hiện có; không gửi `teamId`, `owner` hoặc dữ liệu pipeline từ
+browser.
+
+```typescript
+type LeadSaleDashboardPayload = {
+  summary: {
+    enrollment: number;
+    target: number;
+    achievement: number;
+    remaining: number;
+    expected: number;
+    coverage: number;
+    openOpportunities: number;
+    newOpportunities: number;
+    winRate: number;
+    followUpDue: number;
+    overdue: number;
+    agingOverSla: number;
+  };
+  actions: Array<{
+    id: "overdue" | "unassigned" | "due-today" | "aging";
+    value: number;
+    longestAgeDays: number;
+  }>;
+  priorityQueue: Array<{
+    id: string;
+    name: string;
+    owner: string;
+    stageId: "lead" | "contacted" | "qualified" | "opportunity" | "application" | "enrollment";
+    stageLabel: string;
+    issueCode: "overdue" | "missing-documents" | "uncontacted" | "aging";
+    ageDays: number;
+    nextAction: string;
+    lastActivityAt: string;
+  }>;
+  stages: Array<{
+    id: string;
+    label: string;
+    volume: number;
+    nextStepConversion: number | null;
+    averageDays: number;
+    slaDays: number;
+    stalledCount: number;
+  }>;
+  reps: Array<{
+    id: string;
+    displayName: string;
+    target: number;
+    enrollment: number;
+    achievement: number;
+    remaining: number;
+    expected: number;
+    coverage: number;
+    winRate: number;
+    closedOpportunities: number;
+    wonOpportunities: number;
+    openOpportunities: number;
+    overdue: number;
+    avgStageAgeDays: number;
+    agingOverSlaCount: number;
+    pipeline: {
+      newOpportunities: number;
+      followUpDue: number;
+      stageVolumes: Record<string, number>;
+      stageStalledCounts: Record<string, number>;
+      agingBuckets: Record<string, number>;
+      trend: Array<{ period: string; enrollment: number; target: number; newOpportunities: number }>;
+    };
+  }>;
+  trend: Array<{ period: string; enrollment: number; target: number; newOpportunities: number }>;
+  agingBuckets: Array<{
+    id: "0-2-days" | "3-5-days" | "6-10-days" | "over-10-days";
+    count: number;
+  }>;
+  status?: LeadSaleOverviewStatus;
+};
+```
+
+`target` lấy từ target đã duyệt theo `CRM Planning Scope` của các team hiện
+tại; khi chưa cấu hình target, projection trả `status: "partial"` và warning
+`target.not_configured`, không tự tạo hoặc hard-code chỉ tiêu.
 
 ## 6. Định nghĩa nghiệp vụ và invariant
 
@@ -434,5 +521,5 @@ GET /api/method/crm.api.lead_sale.get_lead_sale_overview?admissionYear=2026&tren
 ```
 
 Response tối thiểu phải có `meta.viewer`, `meta.team`, `meta.date`, `meta.asOf`,
-đủ 6 KPI, 4 intervention item, `teamPerformance`, `studentStatus` và cả hai
-range trong `resultTrend`.
+đủ 6 KPI, 4 intervention item, `teamPerformance`, `studentStatus`, cả hai
+range trong `resultTrend` và projection `dashboard` đầy đủ để render dashboard.

@@ -65,6 +65,54 @@ function overviewFixture() {
         "3m": { from: "2026-06-05", to: "2026-09-05", points: [] },
       },
     },
+    dashboard: {
+      summary: {
+        enrollment: 0,
+        target: 0,
+        achievement: 0,
+        remaining: 0,
+        expected: 0,
+        coverage: 0,
+        openOpportunities: 0,
+        newOpportunities: 0,
+        winRate: 0,
+        followUpDue: 0,
+        overdue: 0,
+        agingOverSla: 0,
+      },
+      actions: [
+        { id: "overdue", value: 0, longestAgeDays: 0 },
+        { id: "unassigned", value: 0, longestAgeDays: 0 },
+        { id: "due-today", value: 0, longestAgeDays: 0 },
+        { id: "aging", value: 0, longestAgeDays: 0 },
+      ],
+      priorityQueue: [],
+      stages: [
+        "lead",
+        "contacted",
+        "qualified",
+        "opportunity",
+        "application",
+        "enrollment",
+      ].map((id) => ({
+        id,
+        label: id,
+        volume: 0,
+        nextStepConversion: null,
+        averageDays: 0,
+        slaDays: 0,
+        stalledCount: 0,
+      })),
+      reps: [],
+      trend: [],
+      agingBuckets: [
+        { id: "0-2-days", count: 0 },
+        { id: "3-5-days", count: 0 },
+        { id: "6-10-days", count: 0 },
+        { id: "over-10-days", count: 0 },
+      ],
+      status: "available",
+    },
   };
 }
 
@@ -117,6 +165,14 @@ describe("Lead Sale overview API contract", () => {
     fixture.studentStatus.total = 1;
     expect(() => normalizeLeadSaleOverview({ message: fixture })).toThrow(
       "Incomplete Lead Sale overview response",
+    );
+  });
+
+  it("rejects a response without the dashboard projection", () => {
+    const fixture = { ...overviewFixture(), dashboard: undefined };
+
+    expect(() => normalizeLeadSaleOverview({ message: fixture })).toThrow(
+      "Invalid Lead Sale dashboard response",
     );
   });
 });

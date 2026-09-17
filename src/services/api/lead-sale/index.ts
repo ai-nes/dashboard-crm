@@ -1,4 +1,6 @@
 import type {
+  LeadSaleDashboardAgingBucket,
+  LeadSaleDashboardPayload,
   LeadSaleIntervention,
   LeadSaleInterventionId,
   LeadSaleKpi,
@@ -44,6 +46,21 @@ const STUDENT_STATUS_IDS = [
   "documents",
   "admission",
   "new",
+] as const;
+const DASHBOARD_STAGE_IDS = [
+  "lead",
+  "contacted",
+  "qualified",
+  "opportunity",
+  "application",
+  "enrollment",
+] as const;
+const DASHBOARD_ACTION_IDS = ["overdue", "unassigned", "due-today", "aging"] as const;
+const DASHBOARD_ISSUE_IDS = [
+  "overdue",
+  "missing-documents",
+  "uncontacted",
+  "aging",
 ] as const;
 
 export type RequestOptions = {
@@ -223,6 +240,187 @@ function normalizeTrend(value: unknown): LeadSaleResultTrend {
   };
 }
 
+function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
+  const source = asRecord(value);
+  if (!source) throw new Error("Invalid Lead Sale dashboard response");
+  const summary = asRecord(source.summary) ?? {};
+  const stages = Array.isArray(source.stages)
+    ? source.stages.map((item) => {
+        const row = asRecord(item) ?? {};
+        const id = DASHBOARD_STAGE_IDS.includes(
+          row.id as (typeof DASHBOARD_STAGE_IDS)[number],
+        )
+          ? (row.id as (typeof DASHBOARD_STAGE_IDS)[number])
+          : "lead";
+        return {
+          id,
+          label: text(row.label, id),
+          volume: count(row.volume),
+          nextStepConversion:
+            row.nextStepConversion === null || row.nextStepConversion === undefined
+              ? null
+              : number(row.nextStepConversion),
+          averageDays: number(row.averageDays),
+          slaDays: count(row.slaDays),
+          stalledCount: count(row.stalledCount),
+        };
+      })
+    : [];
+  const trend = Array.isArray(source.trend)
+    ? source.trend.map((item) => {
+        const row = asRecord(item) ?? {};
+        return {
+          period: text(row.period),
+          enrollment: count(row.enrollment),
+          target: count(row.target),
+          newOpportunities: count(row.newOpportunities),
+        };
+      })
+    : [];
+  const reps = Array.isArray(source.reps)
+    ? source.reps.map((item) => {
+        const row = asRecord(item) ?? {};
+        const pipeline = asRecord(row.pipeline) ?? {};
+        const numberMap = (input: unknown): Record<string, number> => {
+          const record = asRecord(input) ?? {};
+          return Object.fromEntries(
+            Object.entries(record).map(([key, value]) => [key, count(value)]),
+          );
+        };
+        const repTrend = Array.isArray(pipeline.trend)
+          ? pipeline.trend.map((point) => {
+              const trendPoint = asRecord(point) ?? {};
+              return {
+                period: text(trendPoint.period),
+                enrollment: count(trendPoint.enrollment),
+                target: count(trendPoint.target),
+                newOpportunities: count(trendPoint.newOpportunities),
+              };
+            })
+          : [];
+        return {
+          id: text(row.id),
+          displayName: text(row.displayName ?? row.display_name),
+          target: count(row.target),
+          enrollment: count(row.enrollment),
+          achievement: count(row.achievement),
+          remaining: count(row.remaining),
+          expected: count(row.expected),
+          coverage: number(row.coverage),
+          winRate: count(row.winRate ?? row.win_rate),
+          closedOpportunities: count(
+            row.closedOpportunities ?? row.closed_opportunities,
+          ),
+          wonOpportunities: count(row.wonOpportunities ?? row.won_opportunities),
+          openOpportunities: count(row.openOpportunities ?? row.open_opportunities),
+          overdue: count(row.overdue),
+          avgStageAgeDays: number(row.avgStageAgeDays ?? row.avg_stage_age_days),
+          agingOverSlaCount: count(
+            row.agingOverSlaCount ?? row.aging_over_sla_count,
+          ),
+          pipeline: {
+            newOpportunities: count(
+              pipeline.newOpportunities ?? pipeline.new_opportunities,
+            ),
+            followUpDue: count(pipeline.followUpDue ?? pipeline.follow_up_due),
+            stageVolumes: numberMap(pipeline.stageVolumes ?? pipeline.stage_volumes),
+            stageStalledCounts: numberMap(
+              pipeline.stageStalledCounts ?? pipeline.stage_stalled_counts,
+            ),
+            agingBuckets: numberMap(
+              pipeline.agingBuckets ?? pipeline.aging_buckets,
+            ),
+            trend: repTrend,
+          },
+        };
+      })
+    : [];
+  const priorityQueue = Array.isArray(source.priorityQueue)
+    ? source.priorityQueue.map((item) => {
+        const row = asRecord(item) ?? {};
+        const stageId = DASHBOARD_STAGE_IDS.includes(
+          row.stageId as (typeof DASHBOARD_STAGE_IDS)[number],
+        )
+          ? (row.stageId as (typeof DASHBOARD_STAGE_IDS)[number])
+          : "lead";
+        const issueCode = DASHBOARD_ISSUE_IDS.includes(
+          row.issueCode as (typeof DASHBOARD_ISSUE_IDS)[number],
+        )
+          ? (row.issueCode as (typeof DASHBOARD_ISSUE_IDS)[number])
+          : "aging";
+        return {
+          id: text(row.id),
+          name: text(row.name, "Hồ sơ chưa đặt tên"),
+          owner: text(row.owner, "Chưa phân công"),
+          stageId,
+          stageLabel: text(row.stageLabel, stageId),
+          issueCode,
+          ageDays: count(row.ageDays ?? row.age_days),
+          nextAction: text(row.nextAction ?? row.next_action),
+          lastActivityAt: text(row.lastActivityAt ?? row.last_activity_at),
+        };
+      })
+    : [];
+  const actions = Array.isArray(source.actions)
+    ? source.actions.map((item) => {
+        const row = asRecord(item) ?? {};
+        const id = DASHBOARD_ACTION_IDS.includes(
+          row.id as (typeof DASHBOARD_ACTION_IDS)[number],
+        )
+          ? (row.id as (typeof DASHBOARD_ACTION_IDS)[number])
+          : "aging";
+        return {
+          id,
+          value: count(row.value),
+          longestAgeDays: count(row.longestAgeDays ?? row.longest_age_days),
+        };
+      })
+    : [];
+  const agingBuckets = Array.isArray(source.agingBuckets)
+    ? source.agingBuckets.map((item) => {
+        const row = asRecord(item) ?? {};
+        const id: LeadSaleDashboardAgingBucket["id"] =
+          row.id === "3-5-days" ||
+          row.id === "6-10-days" ||
+          row.id === "over-10-days"
+            ? row.id
+            : "0-2-days";
+        return { id, count: count(row.count) };
+      })
+    : [];
+
+  return {
+    summary: {
+      enrollment: count(summary.enrollment),
+      target: count(summary.target),
+      achievement: count(summary.achievement),
+      remaining: count(summary.remaining),
+      expected: count(summary.expected),
+      coverage: number(summary.coverage),
+      openOpportunities: count(
+        summary.openOpportunities ?? summary.open_opportunities,
+      ),
+      newOpportunities: count(
+        summary.newOpportunities ?? summary.new_opportunities,
+      ),
+      winRate: count(summary.winRate ?? summary.win_rate),
+      followUpDue: count(summary.followUpDue ?? summary.follow_up_due),
+      overdue: count(summary.overdue),
+      agingOverSla: count(summary.agingOverSla ?? summary.aging_over_sla),
+    },
+    actions,
+    priorityQueue,
+    stages,
+    reps,
+    trend,
+    agingBuckets,
+    status:
+      source.status === "partial" || source.status === "unavailable"
+        ? source.status
+        : "available",
+  };
+}
+
 export function normalizeLeadSaleOverview(
   value: unknown,
 ): LeadSaleOverviewResponse {
@@ -257,6 +455,7 @@ export function normalizeLeadSaleOverview(
     throw new Error("Invalid Lead Sale overview response");
   }
 
+  const dashboard = normalizeDashboard(payload.dashboard);
   const result: LeadSaleOverviewResponse = {
     meta: normalizeMeta(meta),
     kpis: payload.kpis.map(normalizeKpi),
@@ -264,6 +463,7 @@ export function normalizeLeadSaleOverview(
     teamPerformance: normalizeTeamPerformance(teamPerformance),
     studentStatus: normalizeStudentStatus(studentStatus),
     resultTrend: normalizeTrend(resultTrend),
+    dashboard,
   };
 
   const kpiIds = new Set(result.kpis.map((item) => item.id));

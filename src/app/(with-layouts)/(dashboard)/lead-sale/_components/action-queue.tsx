@@ -4,10 +4,10 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 
-import type { LeadSaleActionSummary, LeadSaleTone, LeadSaleDetailId } from "./mock-data";
+import type { LeadSaleAction, LeadSaleDetailId, LeadSaleTone } from "./lead-sale-dashboard.types";
 
 interface ActionQueueProps {
-  items: LeadSaleActionSummary[];
+  items: LeadSaleAction[];
   onOpenDetail: (detailId: LeadSaleDetailId) => void;
 }
 
