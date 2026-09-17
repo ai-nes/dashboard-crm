@@ -9,6 +9,9 @@ import type {
   SaleOverviewParams,
   SaleOverviewResponse,
   SaleOperations,
+  SalePerformance,
+  SalePipelineHealth,
+  SalePipelineAgingBucket,
   SalePipelineStage,
   SaleStudentStatus,
   SaleStudentStatusItem,
@@ -268,6 +271,53 @@ function normalizeOperations(value: unknown): SaleOperations {
   };
 }
 
+function nullableCount(value: unknown): number | null {
+  return value === null || value === undefined ? null : count(value);
+}
+
+function nullableNumber(value: unknown): number | null {
+  return value === null || value === undefined ? null : number(value, 0);
+}
+
+function normalizePerformance(value: unknown): SalePerformance | undefined {
+  const source = asRecord(value);
+  if (!source) return undefined;
+
+  return {
+    target: nullableCount(source.target),
+    enrollment: count(source.enrollment),
+    achievement: nullableNumber(source.achievement),
+    remaining: nullableCount(source.remaining),
+    expectedEnrollment: nullableCount(source.expectedEnrollment ?? source.expected_enrollment),
+    pipelineCoverage: nullableNumber(source.pipelineCoverage ?? source.pipeline_coverage),
+    openOpportunities: count(source.openOpportunities ?? source.open_opportunities),
+    newOpportunities: count(source.newOpportunities ?? source.new_opportunities),
+  };
+}
+
+function normalizeHealth(value: unknown): SalePipelineHealth | undefined {
+  const source = asRecord(value);
+  if (!source) return undefined;
+  const agingBuckets = Array.isArray(source.agingBuckets ?? source.aging_buckets)
+    ? (source.agingBuckets ?? source.aging_buckets) as unknown[]
+    : [];
+
+  return {
+    followUpDue: count(source.followUpDue ?? source.follow_up_due),
+    overdue: count(source.overdue),
+    slaBreach: count(source.slaBreach ?? source.sla_breach),
+    noActivity: count(source.noActivity ?? source.no_activity),
+    agingBuckets: agingBuckets.map((item): SalePipelineAgingBucket => {
+      const row = asRecord(item) ?? {};
+      return {
+        id: text(row.id),
+        label: text(row.label),
+        count: count(row.count),
+      };
+    }),
+  };
+}
+
 export function normalizeSaleOverview(value: unknown): SaleOverviewResponse {
   const payload = asRecord(unwrapMessage(value));
   const meta = asRecord(payload?.meta);
@@ -280,6 +330,8 @@ export function normalizeSaleOverview(value: unknown): SaleOverviewResponse {
   const trendRanges = asRecord(conversionTrend?.ranges);
   const studentStatus = asRecord(payload?.studentStatus ?? payload?.student_status);
   const operations = asRecord(payload?.operations);
+  const performance = normalizePerformance(payload?.performance);
+  const health = normalizeHealth(payload?.health);
 
   if (
     !payload ||
@@ -314,6 +366,8 @@ export function normalizeSaleOverview(value: unknown): SaleOverviewResponse {
     conversionTrend: normalizeTrend(conversionTrend),
     studentStatus: normalizeStudentStatus(studentStatus),
     operations: normalizeOperations(operations),
+    ...(performance ? { performance } : {}),
+    ...(health ? { health } : {}),
   };
 
   const kpiIds = new Set(result.kpis.map((item) => item.id));

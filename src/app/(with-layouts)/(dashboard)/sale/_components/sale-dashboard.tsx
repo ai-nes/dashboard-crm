@@ -5,13 +5,13 @@ import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 
-import GreetingCard from "./greeting-card";
 import AttentionStudents from "./attention-students";
 import ConversionTrendChart from "./conversion-trend-chart";
 import FunnelOverview from "./funnel-overview";
-import OperationsSummary from "./operations-summary";
+import GreetingCard from "./greeting-card";
+import PerformanceSummary from "./performance-summary";
+import PipelineHealth from "./pipeline-health";
 import PriorityTasks from "./priority-tasks";
-import StatCards from "./stat-cards";
 import StudentStatusChart from "./student-status-chart";
 
 export default function SaleDashboard() {
@@ -57,29 +57,35 @@ export default function SaleDashboard() {
       ) : null}
       <GreetingCard
         meta={overview.meta}
-        todayTaskCount={overview.tasks.summary.today.total}
+        pendingTaskCount={overview.tasks.summary.today.pending}
+        overdueTaskCount={overview.tasks.summary.overdue.count}
       />
-      <StatCards stats={overview.kpis} />
 
-      <section aria-label="Các task ưu tiên hôm nay" className="min-w-0">
+      {overview.performance ? <PerformanceSummary data={overview.performance} /> : null}
+
+      <section aria-label="Công việc ưu tiên và học sinh cần chú ý" className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
         <PriorityTasks
           tasks={overview.tasks.priority.items}
           overdueCount={overview.tasks.priority.overdueCount}
           timezone={overview.meta.timezone}
         />
-      </section>
-
-      <section aria-label="Tổng quan luồng tuyển sinh và học sinh cần chú ý" className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
-        <FunnelOverview stages={overview.pipeline.stages} />
         <AttentionStudents items={overview.attention.items} />
       </section>
 
-      <section aria-label="Phân tích chuyển đổi và trạng thái học sinh" className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
+      <section aria-label="Phễu tuyển sinh cá nhân" className="min-w-0">
+        <FunnelOverview stages={overview.pipeline.stages} />
+      </section>
+
+      {overview.health ? (
+        <section aria-label="Sức khỏe pipeline" className="min-w-0">
+          <PipelineHealth data={overview.health} />
+        </section>
+      ) : null}
+
+      <section aria-label="Xu hướng kết quả và phân bổ hồ sơ" className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
         <ConversionTrendChart data={overview.conversionTrend} />
         <StudentStatusChart data={overview.studentStatus} />
       </section>
-
-      <OperationsSummary data={overview.operations} />
     </main>
   );
 }
@@ -92,16 +98,11 @@ function OverviewSkeleton() {
       aria-busy="true"
     >
       <Skeleton className="h-40 rounded-2xl" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-5">
-        {Array.from({ length: 5 }, (_, index) => (
-          <Skeleton key={index} className="h-36 rounded-xl" />
-        ))}
-      </div>
-      <Skeleton className="h-80 rounded-xl" />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Skeleton className="h-80 rounded-xl" />
         <Skeleton className="h-80 rounded-xl" />
       </div>
+      <Skeleton className="h-96 rounded-xl" />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Skeleton className="h-80 rounded-xl" />
         <Skeleton className="h-80 rounded-xl" />

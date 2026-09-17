@@ -26,7 +26,7 @@ export default function ConversionTrendChart({ data }: ConversionTrendChartProps
     <Card className="min-w-0 p-5 sm:p-6">
       <CardHeader className="items-start gap-3">
         <div>
-          <CardTitle>Xu hướng chuyển đổi</CardTitle>
+          <CardTitle>Tư vấn &amp; nhập học theo thời gian</CardTitle>
           <p className="mt-1 text-xs leading-5 text-text-tertiary">Số học sinh hoàn tất tư vấn và nhập học theo thời gian.</p>
         </div>
         <Select
@@ -51,7 +51,7 @@ export default function ConversionTrendChart({ data }: ConversionTrendChartProps
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-success-500" />Nhập học</span>
       </div>
 
-      <div className="mt-1 h-56 w-full" role="img" aria-label={`Biểu đồ xu hướng chuyển đổi trong ${range === "4w" ? "4 tuần" : "12 tuần"}`}>
+      <div className="mt-1 h-56 w-full" role="img" aria-label={`Biểu đồ tư vấn và nhập học trong ${range === "4w" ? "4 tuần" : "12 tuần"}`}>
         <ChartContainer className="h-full w-full" width="100%" height="100%" minWidth={0} minHeight={0}>
           <LineChart data={chartData} margin={{ top: 12, right: 8, left: -22, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border-color-base-100)" strokeDasharray="4 4" />

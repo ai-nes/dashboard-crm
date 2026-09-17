@@ -8,10 +8,11 @@ import { formatReportDate } from "./formatters";
 
 interface GreetingCardProps {
   meta: SaleOverviewMeta;
-  todayTaskCount: number;
+  pendingTaskCount: number;
+  overdueTaskCount: number;
 }
 
-export default function GreetingCard({ meta, todayTaskCount }: GreetingCardProps) {
+export default function GreetingCard({ meta, pendingTaskCount, overdueTaskCount }: GreetingCardProps) {
   return (
     <header className="relative isolate overflow-hidden rounded-2xl border border-card-border bg-card-background px-5 py-5 shadow-xs sm:px-6 lg:px-7 lg:py-6">
       <div className="pointer-events-none absolute -top-24 -right-8 -z-10 size-72 rounded-full bg-primary-50/80 blur-3xl" />
@@ -27,13 +28,22 @@ export default function GreetingCard({ meta, todayTaskCount }: GreetingCardProps
               <CalendarTime size={14} aria-hidden="true" />
               {formatReportDate(meta.date, meta.timezone)}
             </span>
+            <span className="text-xs text-text-tertiary">
+              Kỳ tuyển sinh {meta.admissionYear || "hiện tại"}
+            </span>
           </div>
           <h1 className="mt-4 text-balance text-[26px] leading-8 font-semibold tracking-[-0.5px] text-text-primary sm:text-[30px]">
-            Chào buổi sáng, {meta.viewer.displayName}
+            Xin chào, {meta.viewer.displayName}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Bạn có <span className="font-semibold text-primary-600">{todayTaskCount} việc</span> cần xử lý hôm nay.
-            Ưu tiên các task quá hạn và hồ sơ đang chờ bổ sung giấy tờ.
+            {pendingTaskCount > 0 ? (
+              <>Còn <span className="font-semibold text-primary-600">{pendingTaskCount} việc</span> cần xử lý hôm nay.</>
+            ) : (
+              "Hôm nay không còn việc chờ xử lý."
+            )}
+            {overdueTaskCount > 0 ? (
+              <> <span className="font-semibold text-badge-error-text">{overdueTaskCount} việc quá hạn</span> cần được ưu tiên.</>
+            ) : null}
           </p>
         </div>
 
@@ -42,7 +52,7 @@ export default function GreetingCard({ meta, todayTaskCount }: GreetingCardProps
             href="/sale/tasks"
             className="group inline-flex items-center gap-2 rounded-lg bg-button-primary-background px-3.5 py-2.5 text-sm font-semibold text-button-primary-text transition-colors hover:bg-button-primary-hover-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
           >
-            Xem việc hôm nay
+            Mở danh sách việc
             <ArrowRight size={16} aria-hidden="true" className="transition-transform group-hover:translate-x-0.5" />
           </Link>
           <Link

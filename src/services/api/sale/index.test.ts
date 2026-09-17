@@ -5,6 +5,7 @@ import {
   getSaleOverview,
   normalizeSaleOverview,
 } from "./index";
+import { MOCK_SALE_OVERVIEW } from "./mock";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -76,6 +77,27 @@ function overviewFixture() {
         { id: "missing-documents", count: 0 },
       ],
     },
+    performance: {
+      target: 20,
+      enrollment: 13,
+      achievement: 65,
+      remaining: 7,
+      expectedEnrollment: 9,
+      pipelineCoverage: 1.29,
+      openOpportunities: 18,
+      newOpportunities: 5,
+    },
+    health: {
+      followUpDue: 6,
+      overdue: 3,
+      slaBreach: 2,
+      noActivity: 4,
+      agingBuckets: [
+        { id: "0-2d", label: "0–2 ngày", count: 8 },
+        { id: "3-5d", label: "3–5 ngày", count: 4 },
+        { id: "6-10d", label: "6–10 ngày", count: 2 },
+      ],
+    },
   };
 }
 
@@ -97,6 +119,61 @@ describe("Sale overview API contract", () => {
     expect(result.meta.viewer.displayName).toBe("Sale");
     expect(result.kpis).toHaveLength(5);
     expect(result.pipeline.stages).toHaveLength(7);
+    expect(result.performance).toMatchObject({
+      target: 20,
+      enrollment: 13,
+      achievement: 65,
+      remaining: 7,
+      pipelineCoverage: 1.29,
+    });
+    expect(result.health?.agingBuckets).toHaveLength(3);
+  });
+
+  it("keeps unavailable performance values nullable instead of normalizing them to zero", () => {
+    const fixture = overviewFixture();
+    const result = normalizeSaleOverview({
+      message: {
+        ...fixture,
+        performance: {
+          ...fixture.performance,
+          target: null,
+          achievement: null,
+          remaining: null,
+          expectedEnrollment: null,
+          pipelineCoverage: null,
+        },
+      },
+    });
+
+    expect(result.performance).toMatchObject({
+      target: null,
+      achievement: null,
+      remaining: null,
+      expectedEnrollment: null,
+      pipelineCoverage: null,
+    });
+  });
+
+  it("keeps the dev fixture internally consistent", () => {
+    const stages = MOCK_SALE_OVERVIEW.pipeline.stages;
+    const statusTotal = MOCK_SALE_OVERVIEW.studentStatus.items.reduce((sum, item) => sum + item.count, 0);
+
+    expect(MOCK_SALE_OVERVIEW.performance?.achievement).toBe(
+      (MOCK_SALE_OVERVIEW.performance?.enrollment ?? 0) /
+        (MOCK_SALE_OVERVIEW.performance?.target ?? 1) * 100,
+    );
+    expect(MOCK_SALE_OVERVIEW.performance?.remaining).toBe(
+      Math.max(
+        (MOCK_SALE_OVERVIEW.performance?.target ?? 0) -
+          (MOCK_SALE_OVERVIEW.performance?.enrollment ?? 0),
+        0,
+      ),
+    );
+    expect(stages.every((stage, index) => index === 0 || stage.count <= stages[index - 1].count)).toBe(true);
+    expect(statusTotal).toBe(MOCK_SALE_OVERVIEW.studentStatus.total);
+    expect(MOCK_SALE_OVERVIEW.tasks.summary.today.pending + MOCK_SALE_OVERVIEW.tasks.summary.today.completed).toBe(
+      MOCK_SALE_OVERVIEW.tasks.summary.today.total,
+    );
   });
 
   it("maps authorization failures to a stable typed error", async () => {
