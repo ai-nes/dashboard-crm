@@ -48,11 +48,11 @@ export interface LeadSaleTeamMember {
 }
 
 export type LeadSaleStudentStatusId =
-  | "consulting"
-  | "waiting"
-  | "documents"
-  | "admission"
-  | "new";
+  | "new"
+  | "attempting"
+  | "connected"
+  | "qualified"
+  | "disqualified";
 
 export interface LeadSaleStudentStatusItem {
   id: LeadSaleStudentStatusId;
@@ -96,12 +96,10 @@ export interface LeadSaleOverviewResponse {
 }
 
 export type LeadSaleDashboardStageId =
-  | "lead"
-  | "contacted"
-  | "qualified"
-  | "opportunity"
-  | "application"
-  | "enrollment";
+  | "new"
+  | "attempting"
+  | "connected"
+  | "qualified";
 
 export interface LeadSaleDashboardSummary {
   enrollment: number;
@@ -115,7 +113,7 @@ export interface LeadSaleDashboardSummary {
   winRate: number;
   followUpDue: number;
   overdue: number;
-  agingOverSla: number;
+  actionRequired: number;
 }
 
 export interface LeadSaleDashboardAction {
@@ -142,8 +140,7 @@ export interface LeadSaleDashboardStage {
   volume: number;
   nextStepConversion: number | null;
   averageDays: number;
-  slaDays: number | null;
-  stalledCount: number;
+  actionItemCount: number;
 }
 
 export interface LeadSaleDashboardRep {
@@ -161,12 +158,12 @@ export interface LeadSaleDashboardRep {
   openOpportunities: number;
   overdue: number;
   avgStageAgeDays: number;
-  agingOverSlaCount: number;
+  actionItemCount: number;
   pipeline: {
     newOpportunities: number;
     followUpDue: number;
     stageVolumes: Record<string, number>;
-    stageStalledCounts: Record<string, number>;
+    stageActionItemCounts: Record<string, number>;
     agingBuckets: Record<string, number>;
     trend: LeadSaleDashboardTrendPoint[];
   };
@@ -174,9 +171,7 @@ export interface LeadSaleDashboardRep {
 
 export interface LeadSaleDashboardTrendPoint {
   period: string;
-  enrollment: number;
-  target: number | null;
-  newOpportunities: number;
+  stageCounts: Record<LeadSaleDashboardStageId, number>;
 }
 
 export interface LeadSaleDashboardAgingBucket {

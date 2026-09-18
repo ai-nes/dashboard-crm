@@ -25,7 +25,7 @@ export default function StagePipelineOverview({
       className="rounded-2xl border border-card-border bg-background-soft-50/50 p-3 sm:p-4"
       aria-label="Tổng quan phễu tuyển sinh theo giai đoạn"
     >
-      <div className="hidden xl:grid xl:items-stretch xl:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)_48px_minmax(0,1fr)_48px_minmax(0,1fr)_48px_minmax(0,1fr)_48px_minmax(0,1fr)]">
+	  <div className="hidden xl:grid xl:items-stretch xl:grid-cols-[minmax(0,1fr)_48px_minmax(0,1fr)_48px_minmax(0,1fr)_48px_minmax(0,1fr)]">
         {stages.map((stage, index) => (
           <div key={stage.id} className="contents">
             <PipelineStage
@@ -77,10 +77,9 @@ function PipelineStage({
   isLowestConversion: boolean;
   onOpenDetail: (detailId: LeadSaleDetailId) => void;
 }) {
-  const slaDelta = stage.slaDays === null ? null : stage.averageDays - stage.slaDays;
-  const isOverSla = slaDelta !== null && slaDelta > 0;
+  const hasActionItems = stage.actionItemCount > 0;
   const volumeWidth = maxVolume ? Math.max((stage.volume / maxVolume) * 100, 4) : 0;
-  const status = getStageStatus(stage, isOverSla);
+  const status = getStageStatus(stage, hasActionItems, isLowestConversion);
 
   return (
     <Button
@@ -89,7 +88,7 @@ function PipelineStage({
       appearance="ghost"
       onPress={() => onOpenDetail(stage.detailId)}
       aria-label={`Xem hồ sơ giai đoạn ${stage.label}, ${stage.volume} hồ sơ`}
-      className={`group h-auto min-h-0 w-full items-stretch justify-start rounded-xl border p-3 text-left transition-colors xl:min-h-[142px] xl:p-3.5 ${getStageCardClassName({ isLowestConversion, isOverSla })}`}
+      className={`group h-auto min-h-0 w-full items-stretch justify-start rounded-xl border p-3 text-left transition-colors xl:min-h-[142px] xl:p-3.5 ${getStageCardClassName({ isLowestConversion, hasActionItems })}`}
     >
       <div className="flex w-full min-w-0 flex-col">
         <p className="min-w-0 break-words text-sm font-semibold leading-5 text-text-primary">
@@ -106,7 +105,7 @@ function PipelineStage({
         <div className="mt-4 xl:mt-auto xl:pt-3">
           <div className="h-1.5 overflow-hidden rounded-full bg-background-soft-100" aria-hidden="true">
             <div
-              className={`h-full rounded-full transition-[width] ${getVolumeBarClassName({ isLowestConversion, isOverSla })}`}
+              className={`h-full rounded-full transition-[width] ${getVolumeBarClassName({ isLowestConversion, hasActionItems })}`}
               style={{ width: `${volumeWidth}%` }}
             />
           </div>
@@ -114,9 +113,9 @@ function PipelineStage({
             <Badge color={status.color} size="sm" className="whitespace-nowrap">
               {status.label}
             </Badge>
-            {stage.stalledCount > 0 && !isOverSla && (
+            {stage.actionItemCount > 0 && (
               <span className="truncate text-[10px] text-text-tertiary">
-                {stage.stalledCount} hồ sơ tồn
+                {stage.actionItemCount} việc cần xử lý
               </span>
             )}
           </div>
@@ -169,41 +168,34 @@ function PipelineTransition({
 
 function getStageStatus(
   stage: LeadSaleStageAnalysis,
-  isOverSla: boolean,
+  hasActionItems: boolean,
+  isLowestConversion: boolean,
 ): { label: string; color: "gray" | "warning" | "error" | "success" } {
-  if (isOverSla && stage.slaDays !== null) {
-    return { label: `SLA +${formatDays(stage.averageDays - stage.slaDays)}`, color: "error" };
-  }
-  if (stage.stalledCount > 0) return { label: "Vượt SLA", color: "error" };
+  if (isLowestConversion) return { label: "Chuyển bước thấp", color: "error" };
+  if (hasActionItems) return { label: "Cần xử lý", color: "warning" };
   if (stage.nextStepConversion === null) return { label: "Kết quả", color: "success" };
-  if (stage.slaDays === null) return { label: "Đang xử lý", color: "gray" };
-  return { label: "Trong SLA", color: "gray" };
+  return { label: "Đang xử lý", color: "gray" };
 }
-
 function getStageCardClassName({
   isLowestConversion,
-  isOverSla,
+  hasActionItems,
 }: {
   isLowestConversion: boolean;
-  isOverSla: boolean;
+  hasActionItems: boolean;
 }) {
-  if (isOverSla) return "border-badge-error-text/30 bg-badge-error-background/20 hover:bg-badge-error-background/35";
-  if (isLowestConversion) return "border-badge-warning-text/30 bg-badge-warning-background/20 hover:bg-badge-warning-background/35";
+  if (isLowestConversion) return "border-badge-error-text/30 bg-badge-error-background/20 hover:bg-badge-error-background/35";
+  if (hasActionItems) return "border-badge-warning-text/30 bg-badge-warning-background/20 hover:bg-badge-warning-background/35";
   return "border-card-border bg-card-background hover:border-button-primary-outline-stroke hover:bg-background-soft-50";
 }
 
 function getVolumeBarClassName({
   isLowestConversion,
-  isOverSla,
+  hasActionItems,
 }: {
   isLowestConversion: boolean;
-  isOverSla: boolean;
+  hasActionItems: boolean;
 }) {
-  if (isOverSla) return "bg-badge-error-text";
-  if (isLowestConversion) return "bg-warning-500";
+  if (isLowestConversion) return "bg-error-500";
+  if (hasActionItems) return "bg-warning-500";
   return "bg-primary-500";
-}
-
-function formatDays(value: number) {
-  return `${value.toFixed(1).replace(".", ",")} ngày`;
 }

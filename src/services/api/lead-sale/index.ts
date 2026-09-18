@@ -41,19 +41,17 @@ const INTERVENTION_IDS = [
 ] as const;
 const TEAM_STATUS_IDS = ["on-track", "needs-support"] as const;
 const STUDENT_STATUS_IDS = [
-  "consulting",
-  "waiting",
-  "documents",
-  "admission",
   "new",
+  "attempting",
+  "connected",
+  "qualified",
+  "disqualified",
 ] as const;
 const DASHBOARD_STAGE_IDS = [
-  "lead",
-  "contacted",
+  "new",
+  "attempting",
+  "connected",
   "qualified",
-  "opportunity",
-  "application",
-  "enrollment",
 ] as const;
 const DASHBOARD_ACTION_IDS = ["overdue", "unassigned", "due-today", "aging"] as const;
 const DASHBOARD_ISSUE_IDS = [
@@ -260,7 +258,7 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
           row.id as (typeof DASHBOARD_STAGE_IDS)[number],
         )
           ? (row.id as (typeof DASHBOARD_STAGE_IDS)[number])
-          : "lead";
+          : "new";
         return {
           id,
           label: text(row.label, id),
@@ -268,21 +266,21 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
           nextStepConversion:
             row.nextStepConversion === null || row.nextStepConversion === undefined
               ? null
-              : number(row.nextStepConversion),
+              : Math.min(100, Math.max(0, number(row.nextStepConversion))),
           averageDays: number(row.averageDays),
-          slaDays: nullableCount(row.slaDays),
-          stalledCount: count(row.stalledCount),
+          actionItemCount: count(row.actionItemCount ?? row.action_item_count),
         };
       })
     : [];
   const trend = Array.isArray(source.trend)
     ? source.trend.map((item) => {
         const row = asRecord(item) ?? {};
+        const stageCounts = asRecord(row.stageCounts ?? row.stage_counts) ?? {};
         return {
           period: text(row.period),
-          enrollment: count(row.enrollment),
-          target: nullableCount(row.target),
-          newOpportunities: count(row.newOpportunities),
+          stageCounts: Object.fromEntries(
+            DASHBOARD_STAGE_IDS.map((stage) => [stage, count(stageCounts[stage])]),
+          ) as Record<(typeof DASHBOARD_STAGE_IDS)[number], number>,
         };
       })
     : [];
@@ -299,11 +297,12 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
         const repTrend = Array.isArray(pipeline.trend)
           ? pipeline.trend.map((point) => {
               const trendPoint = asRecord(point) ?? {};
+              const stageCounts = asRecord(trendPoint.stageCounts ?? trendPoint.stage_counts) ?? {};
               return {
                 period: text(trendPoint.period),
-                enrollment: count(trendPoint.enrollment),
-                target: nullableCount(trendPoint.target),
-                newOpportunities: count(trendPoint.newOpportunities),
+                stageCounts: Object.fromEntries(
+                  DASHBOARD_STAGE_IDS.map((stage) => [stage, count(stageCounts[stage])]),
+                ) as Record<(typeof DASHBOARD_STAGE_IDS)[number], number>,
               };
             })
           : [];
@@ -324,17 +323,15 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
           openOpportunities: count(row.openOpportunities ?? row.open_opportunities),
           overdue: count(row.overdue),
           avgStageAgeDays: number(row.avgStageAgeDays ?? row.avg_stage_age_days),
-          agingOverSlaCount: count(
-            row.agingOverSlaCount ?? row.aging_over_sla_count,
-          ),
+          actionItemCount: count(row.actionItemCount ?? row.action_item_count),
           pipeline: {
             newOpportunities: count(
               pipeline.newOpportunities ?? pipeline.new_opportunities,
             ),
             followUpDue: count(pipeline.followUpDue ?? pipeline.follow_up_due),
             stageVolumes: numberMap(pipeline.stageVolumes ?? pipeline.stage_volumes),
-            stageStalledCounts: numberMap(
-              pipeline.stageStalledCounts ?? pipeline.stage_stalled_counts,
+            stageActionItemCounts: numberMap(
+              pipeline.stageActionItemCounts ?? pipeline.stage_action_item_counts,
             ),
             agingBuckets: numberMap(
               pipeline.agingBuckets ?? pipeline.aging_buckets,
@@ -351,7 +348,7 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
           row.stageId as (typeof DASHBOARD_STAGE_IDS)[number],
         )
           ? (row.stageId as (typeof DASHBOARD_STAGE_IDS)[number])
-          : "lead";
+          : "new";
         const issueCode = DASHBOARD_ISSUE_IDS.includes(
           row.issueCode as (typeof DASHBOARD_ISSUE_IDS)[number],
         )
@@ -415,7 +412,7 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
       winRate: count(summary.winRate ?? summary.win_rate),
       followUpDue: count(summary.followUpDue ?? summary.follow_up_due),
       overdue: count(summary.overdue),
-      agingOverSla: count(summary.agingOverSla ?? summary.aging_over_sla),
+      actionRequired: count(summary.actionRequired ?? summary.action_required),
     },
     actions,
     priorityQueue,

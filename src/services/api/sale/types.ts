@@ -1,11 +1,8 @@
+import type { NbaRecommendationPriority } from "@/services/api/nba/types";
+import type { StudentStage } from "@/services/api/students/types";
+
 export type SaleTrendRange = "4w" | "12w";
 export type SaleOverviewStatus = "available" | "partial" | "unavailable";
-export type SaleKpiId =
-  | "assigned"
-  | "consulting"
-  | "qualified"
-  | "documents"
-  | "admission";
 
 export interface SaleOverviewMeta {
   viewer: { id: string; displayName: string };
@@ -15,11 +12,6 @@ export interface SaleOverviewMeta {
   timezone: string;
   status: SaleOverviewStatus;
   warnings: string[];
-}
-
-export interface SaleKpi {
-  id: SaleKpiId;
-  value: number;
 }
 
 export type SaleTaskType = "call" | "document" | "message" | "other";
@@ -54,34 +46,11 @@ export interface SaleTasks {
   };
 }
 
-export type SalePipelineStageId =
-  | "assigned"
-  | "contacted"
-  | "consulted"
-  | "interested"
-  | "documents"
-  | "confirmed"
-  | "admitted";
-
-export interface SalePipelineStage {
-  id: SalePipelineStageId;
-  label: string;
-  count: number;
-}
-
-export type SaleAttentionId = "at-risk" | "high-intent" | "blocked";
-
-export interface SaleAttentionItem {
-  id: SaleAttentionId;
-  count: number;
-}
-
 export interface SaleConversionTrendPoint {
   label: string;
   periodStart: string;
   periodEnd: string;
   consulted: number;
-  admitted: number;
 }
 
 export interface SaleConversionTrendRange {
@@ -95,41 +64,75 @@ export interface SaleConversionTrend {
   ranges: Record<SaleTrendRange, SaleConversionTrendRange>;
 }
 
-export type SaleStudentStatusId =
-  | "new"
-  | "consulting"
-  | "waiting"
-  | "documents"
-  | "admission";
-
-export interface SaleStudentStatusItem {
-  id: SaleStudentStatusId;
-  label: string;
+export interface SaleStudentStageItem {
+  stage: StudentStage;
   count: number;
   share: number | null;
 }
 
-export interface SaleStudentStatus {
+export interface SaleStudentStages {
   total: number;
-  items: SaleStudentStatusItem[];
+  items: SaleStudentStageItem[];
 }
 
-export type SaleOperationId = "overdue-tasks" | "missing-documents";
-
-export interface SaleOperations {
-  total: number;
-  items: Array<{ id: SaleOperationId; count: number }>;
+export interface SaleStudentActionNba {
+  actionCode: string;
+  title: string;
+  priority: NbaRecommendationPriority;
+  channel: string | null;
+  reason: string | null;
+  whyNow: string | null;
+  salesNextStep: string | null;
+  scheduledAt: string | null;
 }
 
-export interface SalePerformance {
-  target: number | null;
-  enrollment: number;
-  achievement: number | null;
-  remaining: number | null;
-  expectedEnrollment: number | null;
-  pipelineCoverage: number | null;
-  openOpportunities: number;
-  newOpportunities: number;
+export interface SaleStudentAction {
+  studentId: string;
+  studentCode: string;
+  studentName: string;
+  studentStage: StudentStage;
+  stageAgeDays?: number | null;
+  lastActivityAt?: string | null;
+  attentionReason?: string | null;
+  nba?: SaleStudentActionNba | null;
+}
+
+export type SaleLeadProcessingStatus =
+  | "NEW"
+  | "PROCESSING"
+  | "PROCESSED"
+  | "ASSIGNED"
+  | "CLOSED";
+export type SaleLeadProcessingResolution =
+  | "PENDING"
+  | "MATCHED"
+  | "CREATED"
+  | "DUPLICATE"
+  | "INVALID"
+  | "SPAM"
+  | "FAILED";
+
+export interface SaleRecentLead {
+  id: string;
+  leadCode: string;
+  name: string;
+  phone: string | null;
+  school: string | null;
+  processingStatus: SaleLeadProcessingStatus;
+  resolution: SaleLeadProcessingResolution;
+  source: string;
+  createdAt: string;
+  contactNoAnswer: number;
+  contactSuccess: number;
+  nextAction: string;
+}
+
+export interface SaleRecentStudent {
+  student: SaleStudentAction;
+  school: string;
+  major: string;
+  source: string;
+  latestActivity: string;
 }
 
 export interface SalePipelineAgingBucket {
@@ -141,22 +144,19 @@ export interface SalePipelineAgingBucket {
 export interface SalePipelineHealth {
   followUpDue: number;
   overdue: number;
-  slaBreach: number;
   noActivity: number;
   agingBuckets: SalePipelineAgingBucket[];
 }
 
 export interface SaleOverviewResponse {
   meta: SaleOverviewMeta;
-  kpis: SaleKpi[];
   tasks: SaleTasks;
-  pipeline: { stages: SalePipelineStage[] };
-  attention: { items: SaleAttentionItem[] };
   conversionTrend: SaleConversionTrend;
-  studentStatus: SaleStudentStatus;
-  operations: SaleOperations;
-  performance?: SalePerformance;
-  health?: SalePipelineHealth;
+  studentStages: SaleStudentStages;
+  studentActions: SaleStudentAction[];
+  recentLeads: SaleRecentLead[];
+  recentStudents: SaleRecentStudent[];
+  health: SalePipelineHealth;
 }
 
 export interface SaleOverviewParams {

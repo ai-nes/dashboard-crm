@@ -39,24 +39,19 @@ Dashboard không chỉ để “xem số”, mà phải giúp từng vai trò tr
 Luồng nghiệp vụ dashboard nên bám theo vòng đời tuyển sinh.
 
 ```text
-Lead mới
+Mới
    ↓
-Đã liên hệ
+Đang liên hệ
    ↓
-Đủ điều kiện / Qualified
+Đã kết nối
    ↓
-Đang tư vấn
-   ↓
-Opportunity
-   ↓
-Application / Hồ sơ
-   ↓
-Confirmed / Xác nhận
-   ↓
-Enrollment / Nhập học
+Đủ điều kiện
 ```
 
-Tên stage thực tế có thể khác tùy hệ thống, nhưng khi tính KPI cần chuẩn hóa về các nhóm logic trên.
+Dashboard Lead Sale hiện dùng đúng các stage hoạt động của `CRM Student`: `New`, `Attempting`,
+`Connected`, `Qualified`. `Disqualified` là trạng thái kết thúc và được dùng trong breakdown
+trạng thái, không phải một bước tiếp theo của funnel. `Enrollment` là kết quả tuyển sinh dùng cho
+KPI/trend, không phải tên trạng thái của `CRM Student`.
 
 ---
 
@@ -2274,5 +2269,9 @@ Stage
 - Cụm KPI tổng hợp trên UI chưa hiển thị vì core chưa có đầy đủ nguồn chuẩn cho các chỉ tiêu này.
 - Target team chỉ được lấy từ CRM Target và CRM Planning Scope đã được duyệt và đang hiệu lực. Không có cấu hình thì trả null để UI hiển thị N/A.
 - Target theo từng Sale chưa có DocType/scope canonical nên không suy diễn từ target team; các trường liên quan trả null.
-- Stage Qualified của CRM Student được quy về lifecycle Applicant/Application, không tạo thêm một stage nghiệp vụ song song.
-- SLA lấy từ CRM Student.sla_status do module SLA của Frappe quản lý. Tuổi hồ sơ ở stage chỉ dùng cho aging, không được coi là SLA breach.
+- Dashboard stage dùng trực tiếp `CRM Student.student_stage`: `New`, `Attempting`, `Connected`, `Qualified`; không tự tạo các stage `Contacted`, `Opportunity`, `Application` hoặc `Enrollment`.
+- `Disqualified` được coi là trạng thái kết thúc/lost và không đưa vào pipeline hoạt động.
+- `Enrollment` chỉ dùng làm kết quả tuyển sinh khi có bằng chứng enrollment, không dùng để suy ra một stage mới.
+- Biểu đồ xu hướng theo tuần dùng `stageCounts` của bốn trạng thái core (`New`, `Attempting`, `Connected`, `Qualified`); không dùng `Enrollment` hoặc `Target` làm trạng thái.
+- Dashboard chưa hiển thị SLA. Các chỉ báo vận hành dùng việc cần xử lý/danh sách công việc: công việc quá hạn, chưa phân công, đến hạn hôm nay, thiếu giấy tờ, chưa có tương tác và hồ sơ tồn lâu.
+- Tuổi hồ sơ ở stage chỉ dùng để ưu tiên việc cần xử lý; không gắn nhãn hoặc suy diễn thành trạng thái SLA.

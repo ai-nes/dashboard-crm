@@ -62,6 +62,12 @@ function StageInterventionCard({
   onOpenDetail: (detailId: LeadSaleDetailId) => void;
 }) {
   const Icon = item.tone === "error" ? ErrorCircle : InfoTriangle;
+  const toneClasses = item.tone === "error"
+    ? "border-badge-error-text/30 bg-badge-error-background/20 hover:bg-badge-error-background/35"
+    : "border-badge-warning-text/30 bg-badge-warning-background/20 hover:bg-badge-warning-background/35";
+  const iconClasses = item.tone === "error"
+    ? "bg-badge-error-background text-badge-error-text"
+    : "bg-badge-warning-background text-badge-warning-text";
 
   return (
     <Button
@@ -70,10 +76,10 @@ function StageInterventionCard({
       appearance="ghost"
       onPress={() => onOpenDetail(item.stage.detailId)}
       aria-label={`Xem hồ sơ cần can thiệp ở giai đoạn ${item.stage.label}`}
-      className={`group h-auto w-full items-stretch justify-start rounded-xl border p-4 text-left transition-colors ${item.tone === "error" ? "border-badge-error-text/30 bg-badge-error-background/20 hover:bg-badge-error-background/35" : "border-badge-warning-text/30 bg-badge-warning-background/20 hover:bg-badge-warning-background/35"}`}
+      className={`group h-auto w-full items-stretch justify-start rounded-xl border p-4 text-left transition-colors ${toneClasses}`}
     >
       <div className="flex w-full min-w-0 items-start gap-3">
-        <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${item.tone === "error" ? "bg-badge-error-background text-badge-error-text" : "bg-badge-warning-background text-badge-warning-text"}`}>
+          <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${iconClasses}`}>
           <Icon size={18} aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">
@@ -94,33 +100,25 @@ function getInterventions(
 ): StageIntervention[] {
   return stages
     .map((stage, index) => {
-      const slaDelta = stage.slaDays === null ? 0 : stage.averageDays - stage.slaDays;
-      const isOverSla = stage.slaDays !== null && slaDelta > 0;
       const isLowestConversion = stage.id === lowestConversionId;
-      const hasStalledRecords = stage.stalledCount > 0;
+      const hasActionItems = stage.actionItemCount > 0;
 
-      if (!isOverSla && !isLowestConversion && !hasStalledRecords) return null;
+      if (!isLowestConversion && !hasActionItems) return null;
 
       const nextStageLabel = stages[index + 1]?.label;
       const detail = isLowestConversion
-        ? `Chỉ ${stage.nextStepConversion}% sang ${nextStageLabel ?? "bước tiếp theo"}${isOverSla ? ` · vượt SLA ${formatDays(slaDelta)}` : ""}${hasStalledRecords ? ` · ${stage.stalledCount} hồ sơ vi phạm SLA` : ""}.`
-        : isOverSla
-          ? `Vượt SLA ${formatDays(slaDelta)} · ${stage.stalledCount} hồ sơ tồn cần được xử lý trước.`
-          : `${stage.stalledCount} hồ sơ đã vi phạm SLA · cần rà lại trong ngày.`;
+        ? `Chỉ ${stage.nextStepConversion ?? 0}% sang ${nextStageLabel ?? "bước tiếp theo"}${hasActionItems ? ` · ${stage.actionItemCount} hồ sơ cần xử lý` : ""}.`
+        : `${stage.actionItemCount} hồ sơ cần cập nhật bước tiếp theo trong ngày.`;
 
       return {
         stage,
-        reason: isLowestConversion ? "Chuyển bước thấp" : "Vượt SLA",
+        reason: isLowestConversion ? "Chuyển bước thấp" : "Cần xử lý",
         detail,
-        tone: isOverSla ? "error" : "warning",
-        priority: (isLowestConversion ? 4 : 0) + (isOverSla ? 3 : 0) + (hasStalledRecords ? 1 : 0),
+        tone: isLowestConversion ? "error" : "warning",
+        priority: (isLowestConversion ? 4 : 0) + (hasActionItems ? 1 : 0),
       } satisfies StageIntervention;
     })
     .filter((item): item is StageIntervention => item !== null)
-    .sort((a, b) => b.priority - a.priority || b.stage.stalledCount - a.stage.stalledCount)
+    .sort((a, b) => b.priority - a.priority || b.stage.actionItemCount - a.stage.actionItemCount)
     .slice(0, 3);
-}
-
-function formatDays(value: number) {
-  return `${value.toFixed(1).replace(".", ",")} ngày`;
 }

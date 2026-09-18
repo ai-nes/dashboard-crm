@@ -20,8 +20,8 @@ export default function PipelineAgingTooltip({ active, payload }: PipelineAgingT
       <p className="text-xs font-semibold text-text-primary">{bucket.label}</p>
       <dl className="mt-2 space-y-1.5 text-xs">
         <div className="flex items-center justify-between gap-4">
-          <dt className="text-text-tertiary">Cơ hội</dt>
-          <dd className="font-semibold text-text-primary">{bucket.count} cơ hội</dd>
+          <dt className="text-text-tertiary">Hồ sơ</dt>
+          <dd className="font-semibold text-text-primary">{bucket.count} hồ sơ</dd>
         </div>
         <div className="flex items-center justify-between gap-4">
           <dt className="text-text-tertiary">Tỷ trọng pipeline mở</dt>
@@ -29,7 +29,7 @@ export default function PipelineAgingTooltip({ active, payload }: PipelineAgingT
         </div>
       </dl>
       <p className="mt-2 border-t border-card-border pt-2 text-[11px] leading-4 text-text-secondary">
-        {bucket.note}. Thời gian ở giai đoạn không đồng nghĩa đã vượt SLA.
+        {bucket.note}. Khoảng thời gian này dùng để ưu tiên hồ sơ cần cập nhật.
       </p>
     </div>
   );

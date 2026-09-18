@@ -31,7 +31,7 @@ const statPresentation: Record<
     note: "học sinh đang theo dõi",
     tone: "primary",
   },
-  new: { label: "Mới nhận", note: "trong hôm nay", tone: "sky" },
+  new: { label: "Lead mới", note: "trong hôm nay", tone: "sky" },
   unassigned: {
     label: "Chưa phân công",
     note: "cần điều phối",
@@ -154,11 +154,11 @@ export interface StudentStatusDataItem {
 }
 
 const statusColors: Record<LeadSaleStudentStatusItem["id"], string> = {
-  consulting: "var(--primary-500)",
-  waiting: "var(--info-500)",
-  documents: "var(--warning-500)",
-  admission: "var(--success-500)",
-  new: "var(--primary-200)",
+	new: "var(--primary-200)",
+	attempting: "var(--warning-500)",
+	connected: "var(--badge-violet-text)",
+	qualified: "var(--success-500)",
+	disqualified: "var(--text-tertiary)",
 };
 
 export function toStudentStatusData(
