@@ -22,6 +22,10 @@ import type { Student360Data } from "@/services/api/students/types";
 import StudentNbaRecommendationCard from "./student-nba-recommendation-card";
 import StudentNbaDecisionDialog from "./student-nba-decision-dialog";
 import {
+  isStudentStatusTerminal,
+  studentStatusOptions,
+} from "./student-status";
+import {
   NBA_OPERATION_LABELS,
   type DecisionFields,
   formatNbaEvaluationFailure,
@@ -41,15 +45,10 @@ export default function StudentNextBestActions({
 }: StudentNextBestActionsProps) {
   const router = useRouter();
   const studentStage = data.student.studentStage;
-  const studentStageKnown = [
-    "New",
-    "Attempting",
-    "Connected",
-    "Qualified",
-    "Disqualified",
-  ].includes(studentStage ?? "");
-  const terminalStage =
-    studentStage === "Qualified" || studentStage === "Disqualified";
+  const studentStageKnown = studentStage
+    ? studentStatusOptions.includes(studentStage)
+    : false;
+  const terminalStage = isStudentStatusTerminal(studentStage);
   const nbaBlocked = !studentStageKnown || terminalStage;
   const [decision, setDecision] = useState<{
     recommendation: NbaRecommendation;

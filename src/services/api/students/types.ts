@@ -3,13 +3,17 @@ export type StudentJourneyStage =
   | "Tìm hiểu"
   | "Tư vấn"
   | "Ứng tuyển"
-  | "Nhập học";
+  | "Nhập học"
+  | "Đăng ký"
+  | "New Enter";
 
 export type StudentStage =
   | "New"
   | "Attempting"
   | "Connected"
   | "Qualified"
+  | "Registration"
+  | "New Enter"
   | "Disqualified";
 
 // Kept as an alias for the existing student status controls while the NBA
@@ -39,6 +43,8 @@ export type StudentLifecycleStatus =
   | "MQL"
   | "Applicant"
   | "Enrolled"
+  | "Registration"
+  | "New Enter"
   | "Lost";
 
 export type StudentPriority = "Cao" | "Trung bình" | "Thấp";

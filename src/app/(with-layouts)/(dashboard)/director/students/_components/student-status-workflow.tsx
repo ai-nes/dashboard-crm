@@ -26,6 +26,8 @@ const primaryTransitionLabels: Partial<Record<StudentStatus, string>> = {
   New: "Đang liên hệ",
   Attempting: "Đã kết nối",
   Connected: "Đủ điều kiện",
+  Qualified: "Đăng ký",
+  Registration: "Nhập học",
 };
 
 const transitionConfirmationMessages: Record<StudentStatus, string> = {
@@ -33,6 +35,8 @@ const transitionConfirmationMessages: Record<StudentStatus, string> = {
   Attempting: "Học sinh sẽ được chuyển sang bước Đang liên hệ.",
   Connected: "Học sinh sẽ được chuyển sang bước Đã kết nối.",
   Qualified: "Hồ sơ học sinh sẽ được xác nhận Đủ điều kiện.",
+  Registration: "Hồ sơ học sinh sẽ được chuyển sang bước Đăng ký.",
+  "New Enter": "Hồ sơ học sinh sẽ được chuyển sang bước Nhập học.",
   Disqualified:
     "Hồ sơ học sinh sẽ được đánh dấu Không đủ điều kiện và dừng workflow hiện tại.",
 };
@@ -44,6 +48,10 @@ const stageActionToneClassNames: Record<StudentStatus, string> = {
   Connected:
     "bg-badge-primary-background text-badge-primary-text hover:bg-brand-100",
   Qualified:
+    "bg-badge-success-background text-badge-success-text hover:brightness-95",
+  Registration:
+    "bg-badge-primary-background text-badge-primary-text hover:bg-brand-100",
+  "New Enter":
     "bg-badge-success-background text-badge-success-text hover:brightness-95",
   Disqualified:
     "bg-badge-error-background text-badge-error-text hover:brightness-95",
@@ -242,6 +250,10 @@ function getPrimaryTransition(currentStatus: StudentStatus): StudentStatus {
       return "Connected";
     case "Connected":
       return "Qualified";
+    case "Qualified":
+      return "Registration";
+    case "Registration":
+      return "New Enter";
     default:
       return currentStatus;
   }
@@ -250,7 +262,9 @@ function getPrimaryTransition(currentStatus: StudentStatus): StudentStatus {
 function getConfirmButtonAppearance(
   nextStatus: StudentStatus,
 ): "fill" | "ghost" {
-  return nextStatus === "Qualified" || nextStatus === "Disqualified"
+  return nextStatus === "Qualified" ||
+    nextStatus === "New Enter" ||
+    nextStatus === "Disqualified"
     ? "fill"
     : "ghost";
 }
@@ -258,7 +272,9 @@ function getConfirmButtonAppearance(
 function getConfirmButtonClassName(
   nextStatus: StudentStatus,
 ): string | undefined {
-  return nextStatus === "Qualified" || nextStatus === "Disqualified"
+  return nextStatus === "Qualified" ||
+    nextStatus === "New Enter" ||
+    nextStatus === "Disqualified"
     ? undefined
     : getStageActionToneClassName(nextStatus);
 }
@@ -267,6 +283,7 @@ function getConfirmButtonVariant(
   nextStatus: StudentStatus,
 ): "primary" | "danger" | "success" {
   if (nextStatus === "Qualified") return "success";
+  if (nextStatus === "New Enter") return "success";
   if (nextStatus === "Disqualified") return "danger";
   return "primary";
 }

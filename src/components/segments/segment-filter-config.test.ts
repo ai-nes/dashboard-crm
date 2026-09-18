@@ -167,6 +167,9 @@ describe("segment filter field mapping", () => {
   it("formats student stages with Vietnamese labels and badge colors", () => {
     expect(getStudentStageLabel("Connected")).toBe("Đã kết nối");
     expect(getStudentStageBadgeColor("Connected")).toBe("violet");
+    expect(getStudentStageLabel("Registration")).toBe("Đăng ký");
+    expect(getStudentStageLabel("New Enter")).toBe("Nhập học");
+    expect(getStudentStageBadgeColor("New Enter")).toBe("success");
     expect(getStudentStageLabel("unknown")).toBe("unknown");
     expect(getStudentStageBadgeColor("unknown")).toBe("gray");
   });
