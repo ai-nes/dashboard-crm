@@ -43,7 +43,7 @@ export default function SegmentTasksTab({
   segmentName?: string;
 }) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const permissions = getCrmPermissions(user?.roles);
+  const permissions = getCrmPermissions(user);
   const canReadTask = permissions.task.canRead;
   const canCreateTask = permissions.task.canCreate;
   const canUpdateTask = permissions.task.canUpdate;

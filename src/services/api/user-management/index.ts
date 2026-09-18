@@ -1,5 +1,6 @@
 import {
   normalizeCrmUser,
+  normalizePermissionProfile,
   normalizeUserRoleLog,
   unwrapMethodPayload,
 } from "./normalizers";
@@ -7,12 +8,15 @@ import type {
   CreateCrmUserPayload,
   ListCrmUsersParams,
   ListCrmUsersResponse,
+  ListPermissionProfilesParams,
+  ListPermissionProfilesResponse,
   ListUserRoleLogsParams,
   ListUserRoleLogsResponse,
   RemoveUserPayload,
   RequestOptions,
   UpdateCrmUserProfilePayload,
   UpdateUserCapacityPayload,
+  UpdatePermissionProfilePayload,
   UpdateUserRolePayload,
 } from "./types";
 
@@ -24,6 +28,10 @@ const METHODS = {
   UPDATE_ROLE: "crm.api.user.update_user_role",
   REMOVE_USER: "crm.api.user.remove_crm_roles_from_user",
   LIST_LOGS: "crm.api.user.list_user_role_logs",
+  LIST_PERMISSION_PROFILES:
+    "crm.api.permission_profile.list_permission_profiles",
+  UPDATE_PERMISSION_PROFILE:
+    "crm.api.permission_profile.update_permission_profile",
   CREATE_USER: "crm.api.user.create_crm_user",
   UPDATE_PROFILE: "crm.api.user.update_crm_user_profile",
   LIST_USER_CAPACITY: "crm.api.assignment_control.list_user_capacity",
@@ -39,7 +47,7 @@ export class UserManagementApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(status === 403 ? "Bạn không có quyền thao tác." : message);
     this.name = "UserManagementApiError";
   }
 }
@@ -392,4 +400,92 @@ export async function listUserRoleLogs(
     start: Number(payload?.start ?? params.start ?? 0),
     pageLength: Number(payload?.page_length ?? params.pageLength ?? 50),
   };
+}
+
+export function listPermissionProfiles(
+  options?: RequestOptions,
+): Promise<ListPermissionProfilesResponse>;
+export function listPermissionProfiles(
+  params?: ListPermissionProfilesParams,
+  options?: RequestOptions,
+): Promise<ListPermissionProfilesResponse>;
+export async function listPermissionProfiles(
+  paramsOrOptions: ListPermissionProfilesParams | RequestOptions = {},
+  options: RequestOptions = {},
+): Promise<ListPermissionProfilesResponse> {
+  const input = paramsOrOptions as ListPermissionProfilesParams &
+    RequestOptions;
+  const params: ListPermissionProfilesParams = {
+    role: input.role,
+    start: input.start,
+    pageLength: input.pageLength,
+  };
+  const requestOptions: RequestOptions =
+    input.baseUrl || input.headers
+      ? {
+          ...options,
+          baseUrl: input.baseUrl ?? options.baseUrl,
+          headers: input.headers ?? options.headers,
+        }
+      : options;
+  const raw = await call<unknown>(
+    METHODS.LIST_PERMISSION_PROFILES,
+    "GET",
+    requestOptions,
+    {
+      role: params.role?.trim() || undefined,
+      start: params.start ?? 0,
+      page_length: Math.min(params.pageLength ?? 8, 100),
+    },
+  );
+  const payload = asRecord(raw);
+  return {
+    profiles: Array.isArray(payload?.profiles)
+      ? payload.profiles.flatMap(
+          (profile) => normalizePermissionProfile(profile) ?? [],
+        )
+      : [],
+    selectedRole:
+      typeof payload?.selected_role === "string" ? payload.selected_role : null,
+    total: Number(payload?.total ?? 0),
+    start: Number(payload?.start ?? params.start ?? 0),
+    pageLength: Number(payload?.page_length ?? params.pageLength ?? 8),
+  };
+}
+
+export async function updatePermissionProfile(
+  payload: UpdatePermissionProfilePayload,
+  options: RequestOptions = {},
+): Promise<NonNullable<ReturnType<typeof normalizePermissionProfile>>> {
+  const raw = await call<unknown>(
+    METHODS.UPDATE_PERMISSION_PROFILE,
+    "POST",
+    options,
+    {},
+    {
+      role: payload.role,
+      row_scope: payload.rowScope,
+      delete_requires_ownership: payload.deleteRequiresOwnership,
+      applicable_doctypes: payload.applicableDoctypes.map((row) => ({
+        document_type: row.documentType,
+        read: row.read,
+        write: row.write,
+        create: row.create,
+        delete: row.delete,
+        export: row.export,
+      })),
+      ...(payload.replaceApplicableDoctypes === undefined
+        ? {}
+        : { replace_applicable_doctypes: payload.replaceApplicableDoctypes }),
+    },
+  );
+  const profile = normalizePermissionProfile(raw);
+  if (!profile) {
+    throw new UserManagementApiError(
+      502,
+      "INVALID_PERMISSION_PROFILE_RESPONSE",
+      "Máy chủ trả về cấu hình quyền không hợp lệ.",
+    );
+  }
+  return profile;
 }

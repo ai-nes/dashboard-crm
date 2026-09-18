@@ -106,7 +106,7 @@ export default function TaskManagementPage({
   useCrmApi = true,
 }: TaskManagementPageProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const permissions = getCrmPermissions(user?.roles);
+  const permissions = getCrmPermissions(user);
   const canReadTask = permissions.task.canRead;
   const canCreateTask = permissions.task.canCreate;
   const canUpdateTask = permissions.task.canUpdate;

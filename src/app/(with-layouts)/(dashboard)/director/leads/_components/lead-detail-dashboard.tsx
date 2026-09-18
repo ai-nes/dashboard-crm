@@ -42,7 +42,7 @@ import { normalizeLeadStageStatus } from "./lead-status";
 export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
-  const permissions = getCrmPermissions(user?.roles);
+  const permissions = getCrmPermissions(user);
   const leadListHref = getLeadListHref(user?.roles);
   const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId);
   const [activeTab, setActiveTab] = useState("details");

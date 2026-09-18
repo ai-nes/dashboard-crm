@@ -1,4 +1,7 @@
-import type { CurrentUser } from "@/services/api/auth";
+import type {
+  CurrentUser,
+  CurrentUserDocTypePermission,
+} from "@/services/api/auth";
 
 import { getEffectiveDashboardRoles } from "./rbac";
 
@@ -56,62 +59,48 @@ const NO_ACCESS: CrmResourcePermissions = {
   canAssign: false,
 };
 
-const FULL_ACCESS: CrmResourcePermissions = {
-  scope: "all",
-  canCreate: true,
-  canRead: true,
-  canUpdate: true,
-  canDelete: true,
-  canAssign: true,
-};
+function toRecordScope(value: string | null | undefined): CrmRecordScope {
+  switch (value) {
+    case "all":
+      return "all";
+    case "team_and_team_pool":
+    case "team_members_and_own_team_pool":
+      return "team";
+    case "assigned":
+    case "own_assigned":
+    case "campus_assigned":
+    case "campus_assigned_contact":
+      return "assigned";
+    default:
+      return "none";
+  }
+}
 
-const LEAD_SALE_STUDENT_ACCESS: CrmResourcePermissions = {
-  scope: "all",
-  canCreate: true,
-  canRead: true,
-  canUpdate: true,
-  canDelete: true,
-  canAssign: true,
-};
+function toResourcePermissions(
+  user: CurrentUser | null | undefined,
+  documentType: string,
+  canAssign: boolean,
+): CrmResourcePermissions {
+  const permission: CurrentUserDocTypePermission | undefined =
+    user?.crm_doctype_permissions?.[documentType];
+  if (!permission) return NO_ACCESS;
 
-const SALE_STUDENT_ACCESS: CrmResourcePermissions = {
-  scope: "assigned",
-  // Sale can read the pool and team queue for assignment work, while edits
-  // remain restricted to students assigned to the current user.
-  readScope: "team",
-  canCreate: true,
-  canRead: true,
-  canUpdate: true,
-  canDelete: false,
-  canAssign: true,
-};
+  const scope = toRecordScope(permission.row_scope);
+  const readScope =
+    scope === "assigned" && hasCrmCapability(user, "student.routing.read")
+      ? "team"
+      : scope;
 
-const CTV_SALE_STUDENT_ACCESS: CrmResourcePermissions = {
-  scope: "assigned",
-  canCreate: false,
-  canRead: true,
-  canUpdate: true,
-  canDelete: false,
-  canAssign: false,
-};
-
-const SALE_TASK_ACCESS: CrmResourcePermissions = {
-  scope: "assigned",
-  canCreate: true,
-  canRead: true,
-  canUpdate: true,
-  canDelete: true,
-  canAssign: false,
-};
-
-const CTV_SALE_TASK_ACCESS: CrmResourcePermissions = {
-  scope: "assigned",
-  canCreate: false,
-  canRead: true,
-  canUpdate: true,
-  canDelete: false,
-  canAssign: false,
-};
+  return {
+    scope,
+    readScope,
+    canCreate: permission.create,
+    canRead: permission.read,
+    canUpdate: permission.write,
+    canDelete: permission.delete,
+    canAssign,
+  };
+}
 
 /**
  * Frontend capability map for the Sales workspaces.
@@ -120,43 +109,14 @@ const CTV_SALE_TASK_ACCESS: CrmResourcePermissions = {
  * only keep the UI from exposing actions that the current role cannot use.
  */
 export function getCrmPermissions(
-  roles: readonly string[] | null | undefined,
+  user: CurrentUser | null | undefined,
 ): CrmPermissions {
-  const effectiveRoles = getEffectiveDashboardRoles(roles);
-
-  if (
-    effectiveRoles.includes("System Manager") ||
-    effectiveRoles.includes("Admissions Director") ||
-    effectiveRoles.includes("Administrator")
-  ) {
-    return { lead: FULL_ACCESS, student: FULL_ACCESS, task: FULL_ACCESS };
-  }
-
-  if (effectiveRoles.includes("Lead Sale")) {
-    return {
-      lead: LEAD_SALE_STUDENT_ACCESS,
-      student: LEAD_SALE_STUDENT_ACCESS,
-      task: FULL_ACCESS,
-    };
-  }
-
-  if (effectiveRoles.includes("Sale")) {
-    return {
-      lead: SALE_STUDENT_ACCESS,
-      student: SALE_STUDENT_ACCESS,
-      task: SALE_TASK_ACCESS,
-    };
-  }
-
-  if (effectiveRoles.includes("CTV Sale")) {
-    return {
-      lead: CTV_SALE_STUDENT_ACCESS,
-      student: CTV_SALE_STUDENT_ACCESS,
-      task: CTV_SALE_TASK_ACCESS,
-    };
-  }
-
-  return { lead: NO_ACCESS, student: NO_ACCESS, task: NO_ACCESS };
+  const canAssign = hasCrmCapability(user, "student.ownership.manage");
+  return {
+    lead: toResourcePermissions(user, "CRM Lead", canAssign),
+    student: toResourcePermissions(user, "CRM Student", canAssign),
+    task: toResourcePermissions(user, "Task", false),
+  };
 }
 
 export interface StudentOwnershipInfo {

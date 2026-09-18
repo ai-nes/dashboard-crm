@@ -55,6 +55,29 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Icons: use `@tailgrids/icons` for standard controls. For feature-local icons, place them in `icons.tsx`. Never generate SVG icons — use letter placeholders if no icon is available.
 - Add `"use client"` directive when the component uses hooks, event handlers, or browser APIs.
 
+## Permission-gated actions
+
+- Every UI action that can read, create, edit, delete, export, assign, approve,
+  configure, or otherwise mutate data must be gated by the effective permission
+  before it is rendered. This includes regular buttons, icon buttons, row actions,
+  dropdown/menu items, dialog submit actions, bulk actions, and action links.
+- Derive visibility from the shared permission layer (`getCrmPermissions`, the
+  permission helpers, or the feature's equivalent centralized capability hook).
+  Do not hardcode `role === ...` or role arrays inside feature components to decide
+  whether a data action is shown. If a special role policy is required, add it to
+  the centralized permission/policy module and reuse it from the UI.
+- Hide actions the current user cannot perform; use a disabled state only when the
+  action is applicable but temporarily unavailable (for example, while saving).
+  Do not render a hidden action and rely on a later 403 response as the normal UI
+  behavior.
+- Permission-gated UI is an affordance only, not a security boundary. Keep the
+  corresponding backend authorization and handle a 403 with the shared error
+  behavior (`/access-denied` for forbidden GET queries and the common toast for
+  forbidden mutations).
+- When adding or changing an action, add or update focused tests for both permitted
+  and denied states. Verify that list, detail, toolbar, row, bulk, and dialog
+  actions use the same effective permission source.
+
 ## Data fetching & state
 
 - Always use `api-integration` skill for API integration.
