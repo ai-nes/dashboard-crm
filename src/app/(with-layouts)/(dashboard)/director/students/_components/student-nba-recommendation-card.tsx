@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/tailgrids/core/button";
-import { Badge } from "@/components/tailgrids/core/badge";
 import type {
   NbaDecisionOperation,
   NbaRecommendation,
@@ -11,8 +10,6 @@ import {
   formatNbaDateShort,
   formatNbaTimeOfDay,
   isDecisionPermitted,
-  NBA_PRIORITY_COLORS,
-  NBA_PRIORITY_LABELS,
 } from "./student-nba-ui";
 
 /** The 3 fixed decision slots the card always shows, left to right. */
@@ -50,10 +47,6 @@ export default function StudentNbaRecommendationCard({
   const timeLabel = formatNbaTimeOfDay(scheduledAt);
   const dateLabel = formatNbaDateShort(scheduledAt);
   const expiresLabel = formatNbaDateShort(recommendation.timing.expiresAt);
-  const reason =
-    recommendation.reason ||
-    recommendation.context[0] ||
-    "Chưa có căn cứ cho đề xuất này.";
   const operations = CARD_OPERATIONS.filter((operation) =>
     isDecisionPermitted(recommendation, operation),
   );
@@ -61,27 +54,23 @@ export default function StudentNbaRecommendationCard({
   return (
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-card-border bg-card-background">
       <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-5">
-        <div className="flex items-center justify-between gap-2">
-          <Badge color={NBA_PRIORITY_COLORS[recommendation.priority]}>
-            {NBA_PRIORITY_LABELS[recommendation.priority].toUpperCase()}
-          </Badge>
-          <span className="shrink-0 text-xs font-medium text-text-tertiary">
-            #{recommendation.rank}
-          </span>
-        </div>
-
-        <h3 className="mt-3 break-words text-lg leading-7 font-semibold text-text-primary">
+        <h3 className="break-words text-lg leading-7 font-semibold text-text-primary">
           {recommendation.action.title}
         </h3>
 
-        <p className="mt-3 max-w-3xl text-sm leading-5 text-text-primary">
-          {reason}
-        </p>
+        {recommendation.objective && (
+          <div className="mt-3 border-t border-card-border pt-3">
+            <p className="text-xs font-semibold text-text-tertiary">Mục tiêu</p>
+            <p className="mt-1.5 max-w-3xl text-sm leading-5 text-text-primary">
+              {recommendation.objective}
+            </p>
+          </div>
+        )}
 
         {(timeLabel || dateLabel || expiresLabel) && (
           <div className="mt-3 border-t border-card-border pt-3">
             <p className="text-xs font-semibold text-text-tertiary">
-              Nên thực hiện
+              Thời gian
             </p>
             <p className="mt-1.5 text-sm leading-5 text-text-primary">
               {[timeLabel, dateLabel].filter(Boolean).join(" · ") ||
@@ -92,37 +81,6 @@ export default function StudentNbaRecommendationCard({
                 Hết hiệu lực: {expiresLabel}
               </p>
             )}
-          </div>
-        )}
-
-        {recommendation.objective && (
-          <div className="mt-3 border-t border-card-border pt-3">
-            <p className="text-xs font-semibold text-text-tertiary">
-              Mục tiêu
-            </p>
-            <p className="mt-1.5 max-w-3xl text-sm leading-5 text-text-primary">
-              {recommendation.objective}
-            </p>
-          </div>
-        )}
-
-        {recommendation.ruleDecision?.salesNextStep || recommendation.explanation?.sales_next_step ? (
-          <div className="mt-3 rounded-lg border border-primary-500/20 bg-badge-primary-background px-3 py-2.5">
-            <p className="text-xs font-semibold text-primary-600 dark:text-primary-300">Bước tiếp theo</p>
-            <p className="mt-1 text-sm leading-5 text-text-primary">
-              {recommendation.ruleDecision?.salesNextStep ?? recommendation.explanation?.sales_next_step}
-            </p>
-          </div>
-        ) : null}
-
-        {recommendation.context.length > 0 && (
-          <div className="mt-3 border-t border-card-border pt-3">
-            <p className="text-xs font-semibold text-text-tertiary">Bối cảnh</p>
-            <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sm leading-5 text-text-primary">
-              {recommendation.context.map((fact, index) => (
-                <li key={`${recommendation.id}-context-${index}`}>{fact}</li>
-              ))}
-            </ul>
           </div>
         )}
       </div>
