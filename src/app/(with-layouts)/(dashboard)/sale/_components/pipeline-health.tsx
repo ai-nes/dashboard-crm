@@ -13,14 +13,14 @@ function formatPercent(value: number): string {
 
 export default function PipelineHealth({ data }: PipelineHealthProps) {
   const agingTotal = data.agingBuckets.reduce((sum, bucket) => sum + bucket.count, 0);
-  const hasRisk = data.slaBreach > 0 || data.noActivity > 0;
+  const hasRisk = data.overdue > 0 || data.noActivity > 0;
 
   return (
     <Card className="min-w-0 p-5 sm:p-6">
       <CardHeader className="items-start">
         <div>
           <CardTitle>Rủi ro hồ sơ</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Hồ sơ vượt SLA, thiếu hoạt động hoặc lưu lâu ở một giai đoạn.</p>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">Việc quá hạn, hồ sơ chưa có hoạt động hoặc lưu lâu ở một giai đoạn.</p>
         </div>
         <Badge color={hasRisk ? "warning" : "success"} size="sm">
           {hasRisk ? "Cần theo dõi" : "Ổn định"}
@@ -30,9 +30,9 @@ export default function PipelineHealth({ data }: PipelineHealthProps) {
       <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-1" aria-label="Tín hiệu rủi ro pipeline">
           <div className="rounded-xl border border-card-border bg-background-soft-50 px-3.5 py-3">
-            <p className="text-xs font-medium text-text-tertiary">Vượt SLA</p>
-            <p className={`mt-1 text-2xl font-semibold tracking-[-0.5px] ${data.slaBreach > 0 ? "text-badge-error-text" : "text-text-primary"}`}>
-              {data.slaBreach}<span className="ml-1 text-xs font-medium text-text-tertiary">hồ sơ</span>
+            <p className="text-xs font-medium text-text-tertiary">Việc quá hạn</p>
+            <p className={`mt-1 text-2xl font-semibold tracking-[-0.5px] ${data.overdue > 0 ? "text-badge-error-text" : "text-text-primary"}`}>
+              {data.overdue}<span className="ml-1 text-xs font-medium text-text-tertiary">việc</span>
             </p>
           </div>
           <div className="rounded-xl border border-card-border bg-background-soft-50 px-3.5 py-3">

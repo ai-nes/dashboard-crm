@@ -1,56 +1,43 @@
 import type {
-  SaleAttentionId,
-  SaleAttentionItem,
   SaleConversionTrend,
   SaleConversionTrendPoint,
   SaleConversionTrendRange,
-  SaleKpi,
   SaleOverviewMeta,
   SaleOverviewParams,
   SaleOverviewResponse,
-  SaleOperations,
-  SalePerformance,
   SalePipelineHealth,
   SalePipelineAgingBucket,
-  SalePipelineStage,
+  SaleRecentLead,
+  SaleRecentStudent,
   SaleStudentAction,
   SaleStudentActionNba,
   SaleStudentStages,
-  SaleStudentStatus,
-  SaleStudentStatusItem,
   SaleTask,
   SaleTasks,
 } from "./types";
-import type {
-  StudentLifecycleStatus,
-  StudentStage,
-} from "@/services/api/students/types";
+import type { StudentStage } from "@/services/api/students/types";
 
 export type * from "./types";
 
 const METHOD = "crm.api.sale.get_sale_overview";
-const KPI_IDS = [
-  "assigned",
-  "consulting",
-  "qualified",
-  "documents",
-  "admission",
-] as const;
-const PIPELINE_IDS = [
-  "assigned",
-  "contacted",
-  "consulted",
-  "interested",
-  "documents",
-  "confirmed",
-  "admitted",
-] as const;
-const ATTENTION_IDS = ["at-risk", "high-intent", "blocked"] as const;
-const STATUS_IDS = ["new", "consulting", "waiting", "documents", "admission"] as const;
 const STUDENT_STAGE_IDS = ["New", "Attempting", "Connected", "Qualified", "Disqualified"] as const;
-const STUDENT_LIFECYCLE_IDS = ["Lead", "MQL", "Applicant", "Enrolled", "Lost"] as const;
 const NBA_PRIORITIES = ["high", "medium", "low"] as const;
-const OPERATION_IDS = ["overdue-tasks", "missing-documents"] as const;
+const LEAD_PROCESSING_STATUSES = [
+  "NEW",
+  "PROCESSING",
+  "PROCESSED",
+  "ASSIGNED",
+  "CLOSED",
+] as const;
+const LEAD_PROCESSING_RESOLUTIONS = [
+  "PENDING",
+  "MATCHED",
+  "CREATED",
+  "DUPLICATE",
+  "INVALID",
+  "SPAM",
+  "FAILED",
+] as const;
 
 export type RequestOptions = {
   baseUrl?: string;
@@ -86,6 +73,10 @@ function count(value: unknown): number {
   return Math.max(0, Math.floor(number(value)));
 }
 
+function nullableCount(value: unknown): number | null {
+  return value === null || value === undefined ? null : count(value);
+}
+
 function nullableText(value: unknown): string | null {
   return value === null || value === undefined || value === "" ? null : text(value);
 }
@@ -114,14 +105,6 @@ function normalizeMeta(value: unknown): SaleOverviewMeta {
       ? source.warnings.filter((item): item is string => typeof item === "string")
       : [],
   };
-}
-
-function normalizeKpi(value: unknown): SaleKpi {
-  const source = asRecord(value) ?? {};
-  const id = KPI_IDS.includes(source.id as (typeof KPI_IDS)[number])
-    ? (source.id as SaleKpi["id"])
-    : "assigned";
-  return { id, value: count(source.value) };
 }
 
 function normalizeTask(value: unknown): SaleTask {
@@ -179,35 +162,6 @@ function normalizeTasks(value: unknown): SaleTasks {
   };
 }
 
-function normalizePipeline(value: unknown): { stages: SalePipelineStage[] } {
-  const source = asRecord(value) ?? {};
-  const stages = Array.isArray(source.stages) ? source.stages : [];
-  return {
-    stages: stages.map((item) => {
-      const row = asRecord(item) ?? {};
-      const id = PIPELINE_IDS.includes(row.id as (typeof PIPELINE_IDS)[number])
-        ? (row.id as SalePipelineStage["id"])
-        : "assigned";
-      return { id, label: text(row.label), count: count(row.count) };
-    }),
-  };
-}
-
-function normalizeAttention(value: unknown): { items: SaleAttentionItem[] } {
-  const source = asRecord(value) ?? {};
-  return {
-    items: Array.isArray(source.items)
-      ? source.items.map((item) => {
-          const row = asRecord(item) ?? {};
-          const id = ATTENTION_IDS.includes(row.id as SaleAttentionId)
-            ? (row.id as SaleAttentionId)
-            : "blocked";
-          return { id, count: count(row.count) };
-        })
-      : [],
-  };
-}
-
 function normalizeTrendPoint(value: unknown): SaleConversionTrendPoint {
   const source = asRecord(value) ?? {};
   return {
@@ -215,7 +169,6 @@ function normalizeTrendPoint(value: unknown): SaleConversionTrendPoint {
     periodStart: text(source.periodStart ?? source.period_start),
     periodEnd: text(source.periodEnd ?? source.period_end),
     consulted: count(source.consulted),
-    admitted: count(source.admitted),
   };
 }
 
@@ -237,31 +190,6 @@ function normalizeTrend(value: unknown): SaleConversionTrend {
       "4w": normalizeTrendRange(ranges["4w"]),
       "12w": normalizeTrendRange(ranges["12w"]),
     },
-  };
-}
-
-function normalizeStudentStatus(value: unknown): SaleStudentStatus {
-  const source = asRecord(value) ?? {};
-  return {
-    total: count(source.total),
-    items: Array.isArray(source.items)
-      ? source.items.map((item): SaleStudentStatusItem => {
-          const row = asRecord(item) ?? {};
-          const id = STATUS_IDS.includes(row.id as (typeof STATUS_IDS)[number])
-            ? (row.id as SaleStudentStatusItem["id"])
-            : "new";
-          const share = row.share;
-          return {
-            id,
-            label: text(row.label),
-            count: count(row.count),
-            share:
-              share === null || share === undefined
-                ? null
-                : number(share, 0),
-          };
-        })
-      : [],
   };
 }
 
@@ -345,12 +273,6 @@ function normalizeStudentAction(value: unknown): SaleStudentAction | null {
   const studentName = text(source.studentName ?? source.student_name ?? source.name);
   if (!studentId || !studentCode || !studentName) return null;
 
-  const lifecycleValue = source.lifecycleStatus ?? source.lifecycle_status;
-  const lifecycleStatus = STUDENT_LIFECYCLE_IDS.includes(
-    lifecycleValue as (typeof STUDENT_LIFECYCLE_IDS)[number],
-  )
-    ? (lifecycleValue as StudentLifecycleStatus)
-    : null;
   const nba = normalizeStudentActionNba(source.nba);
 
   return {
@@ -358,7 +280,6 @@ function normalizeStudentAction(value: unknown): SaleStudentAction | null {
     studentCode,
     studentName,
     studentStage: stageValue as StudentStage,
-    ...(lifecycleValue !== undefined ? { lifecycleStatus } : {}),
     stageAgeDays: nullableCount(source.stageAgeDays ?? source.stage_age_days),
     lastActivityAt: nullableText(source.lastActivityAt ?? source.last_activity_at),
     attentionReason: nullableText(source.attentionReason ?? source.attention_reason),
@@ -373,45 +294,63 @@ function normalizeStudentActions(value: unknown): SaleStudentAction[] | undefine
     .filter((item): item is SaleStudentAction => item !== null);
 }
 
-function normalizeOperations(value: unknown): SaleOperations {
-  const source = asRecord(value) ?? {};
-  return {
-    total: count(source.total),
-    items: Array.isArray(source.items)
-      ? source.items.map((item) => {
-          const row = asRecord(item) ?? {};
-          const id = OPERATION_IDS.includes(row.id as (typeof OPERATION_IDS)[number])
-            ? (row.id as SaleOperations["items"][number]["id"])
-            : "overdue-tasks";
-          return { id, count: count(row.count) };
-        })
-      : [],
-  };
-}
-
-function nullableCount(value: unknown): number | null {
-  return value === null || value === undefined ? null : count(value);
-}
-
-function nullableNumber(value: unknown): number | null {
-  return value === null || value === undefined ? null : number(value, 0);
-}
-
-function normalizePerformance(value: unknown): SalePerformance | undefined {
+function normalizeRecentLead(value: unknown): SaleRecentLead | null {
   const source = asRecord(value);
-  if (!source) return undefined;
+  if (!source) return null;
 
+  const processingStatus = source.processingStatus ?? source.processing_status;
+  const resolution = source.resolution;
   return {
-    target: nullableCount(source.target),
-    enrollment: count(source.enrollment),
-    lostOpportunities: nullableCount(source.lostOpportunities ?? source.lost_opportunities),
-    achievement: nullableNumber(source.achievement),
-    remaining: nullableCount(source.remaining),
-    expectedEnrollment: nullableCount(source.expectedEnrollment ?? source.expected_enrollment),
-    pipelineCoverage: nullableNumber(source.pipelineCoverage ?? source.pipeline_coverage),
-    openOpportunities: count(source.openOpportunities ?? source.open_opportunities),
-    newOpportunities: count(source.newOpportunities ?? source.new_opportunities),
+    id: text(source.id ?? source.name),
+    leadCode: text(source.leadCode ?? source.lead_code ?? source.id ?? source.name),
+    name: text(source.name, "Lead chưa đặt tên"),
+    phone: nullableText(source.phone),
+    school: nullableText(source.school ?? source.high_school),
+    processingStatus: LEAD_PROCESSING_STATUSES.includes(
+      processingStatus as (typeof LEAD_PROCESSING_STATUSES)[number],
+    )
+      ? (processingStatus as SaleRecentLead["processingStatus"])
+      : "NEW",
+    resolution: LEAD_PROCESSING_RESOLUTIONS.includes(
+      resolution as (typeof LEAD_PROCESSING_RESOLUTIONS)[number],
+    )
+      ? (resolution as SaleRecentLead["resolution"])
+      : "PENDING",
+    source: text(source.source, "Chưa cập nhật"),
+    createdAt: text(source.createdAt ?? source.created_at),
+    contactNoAnswer: count(source.contactNoAnswer ?? source.contact_no_answer),
+    contactSuccess: count(source.contactSuccess ?? source.contact_success),
+    nextAction: text(source.nextAction ?? source.next_action),
   };
+}
+
+function normalizeRecentLeads(value: unknown): SaleRecentLead[] {
+  return Array.isArray(value)
+    ? value
+        .map(normalizeRecentLead)
+        .filter((item): item is SaleRecentLead => item !== null)
+    : [];
+}
+
+function normalizeRecentStudent(value: unknown): SaleRecentStudent | null {
+  const source = asRecord(value) ?? {};
+  const student = normalizeStudentAction(source.student);
+  if (!student) return null;
+  return {
+    student,
+    school: text(source.school),
+    major: text(source.major),
+    source: text(source.source),
+    latestActivity: text(source.latestActivity ?? source.latest_activity),
+  };
+}
+
+function normalizeRecentStudents(value: unknown): SaleRecentStudent[] {
+  return Array.isArray(value)
+    ? value
+        .map(normalizeRecentStudent)
+        .filter((item): item is SaleRecentStudent => item !== null)
+    : [];
 }
 
 function normalizeHealth(value: unknown): SalePipelineHealth | undefined {
@@ -424,7 +363,6 @@ function normalizeHealth(value: unknown): SalePipelineHealth | undefined {
   return {
     followUpDue: count(source.followUpDue ?? source.follow_up_due),
     overdue: count(source.overdue),
-    slaBreach: count(source.slaBreach ?? source.sla_breach),
     noActivity: count(source.noActivity ?? source.no_activity),
     agingBuckets: agingBuckets.map((item): SalePipelineAgingBucket => {
       const row = asRecord(item) ?? {};
@@ -443,66 +381,44 @@ export function normalizeSaleOverview(value: unknown): SaleOverviewResponse {
   const tasks = asRecord(payload?.tasks);
   const priority = asRecord(tasks?.priority);
   const summary = asRecord(tasks?.summary);
-  const pipeline = asRecord(payload?.pipeline);
-  const attention = asRecord(payload?.attention);
   const conversionTrend = asRecord(payload?.conversionTrend ?? payload?.conversion_trend);
   const trendRanges = asRecord(conversionTrend?.ranges);
-  const studentStatus = asRecord(payload?.studentStatus ?? payload?.student_status);
+  const recentLeads = normalizeRecentLeads(payload?.recentLeads ?? payload?.recent_leads);
+  const recentStudents = normalizeRecentStudents(
+    payload?.recentStudents ?? payload?.recent_students,
+  );
   const studentStages = normalizeStudentStages(payload?.studentStages ?? payload?.student_stages);
   const studentActions = normalizeStudentActions(payload?.studentActions ?? payload?.student_actions);
-  const operations = asRecord(payload?.operations);
-  const performance = normalizePerformance(payload?.performance);
   const health = normalizeHealth(payload?.health);
 
   if (
     !payload ||
     !meta ||
-    !Array.isArray(payload.kpis) ||
     !tasks ||
     !priority ||
     !summary ||
     !Array.isArray(priority.items) ||
-    !pipeline ||
-    !Array.isArray(pipeline.stages) ||
-    !attention ||
-    !Array.isArray(attention.items) ||
     !conversionTrend ||
     !trendRanges ||
     !asRecord(trendRanges["4w"]) ||
     !asRecord(trendRanges["12w"]) ||
-    !studentStatus ||
-    !Array.isArray(studentStatus.items) ||
-    !operations ||
-    !Array.isArray(operations.items)
+    !studentStages ||
+    !studentActions ||
+    !health
   ) {
     throw new Error("Invalid Sale overview response");
   }
 
   const result: SaleOverviewResponse = {
     meta: normalizeMeta(meta),
-    kpis: payload.kpis.map(normalizeKpi),
     tasks: normalizeTasks(tasks),
-    pipeline: normalizePipeline(pipeline),
-    attention: normalizeAttention(attention),
     conversionTrend: normalizeTrend(conversionTrend),
-    studentStatus: normalizeStudentStatus(studentStatus),
-    ...(studentStages ? { studentStages } : {}),
-    ...(studentActions ? { studentActions } : {}),
-    operations: normalizeOperations(operations),
-    ...(performance ? { performance } : {}),
-    ...(health ? { health } : {}),
+    recentLeads,
+    recentStudents,
+    studentStages,
+    studentActions,
+    health,
   };
-
-  const kpiIds = new Set(result.kpis.map((item) => item.id));
-  const stageIds = new Set(result.pipeline.stages.map((item) => item.id));
-  if (
-    result.kpis.length !== KPI_IDS.length ||
-    !KPI_IDS.every((id) => kpiIds.has(id)) ||
-    result.pipeline.stages.length !== PIPELINE_IDS.length ||
-    !PIPELINE_IDS.every((id) => stageIds.has(id))
-  ) {
-    throw new Error("Incomplete Sale overview response");
-  }
   return result;
 }
 

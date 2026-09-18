@@ -5,7 +5,6 @@ import type { SaleOverviewMeta } from "@/services/api/sale";
 
 interface SalePageHeaderProps {
   meta: SaleOverviewMeta;
-  isMock: boolean;
 }
 
 function formatUpdatedAt(meta: SaleOverviewMeta): string {
@@ -21,7 +20,7 @@ function formatUpdatedAt(meta: SaleOverviewMeta): string {
   }).format(timestamp);
 }
 
-export default function SalePageHeader({ meta, isMock }: SalePageHeaderProps) {
+export default function SalePageHeader({ meta }: SalePageHeaderProps) {
   const admissionPeriod = meta.admissionYear > 0
     ? `Kỳ tuyển sinh ${meta.admissionYear}`
     : "Chưa xác định kỳ tuyển sinh";
@@ -48,7 +47,6 @@ export default function SalePageHeader({ meta, isMock }: SalePageHeaderProps) {
         <Badge color="gray" prefixIcon={<UserMultiple1 aria-hidden="true" />}>
           Cá nhân · {meta.viewer.displayName || "Sale"}
         </Badge>
-        {isMock ? <Badge color="sky">Dữ liệu mẫu</Badge> : null}
       </div>
     </header>
   );

@@ -17,14 +17,6 @@ interface StudentDetailPanelProps {
   timezone: string;
 }
 
-const lifecycleLabel = {
-  Lead: "Lead",
-  MQL: "Đã xác định nhu cầu",
-  Applicant: "Ứng tuyển",
-  Enrolled: "Đã nhập học",
-  Lost: "Không tiếp tục",
-} as const;
-
 const nbaPriorityPresentation = {
   high: { label: "Ưu tiên cao", color: "error" },
   medium: { label: "Ưu tiên vừa", color: "warning" },
@@ -63,9 +55,6 @@ export default function StudentDetailPanel({
         <Badge color={getStudentStageBadgeColor(student.studentStage)}>
           {getStudentStageLabel(student.studentStage)}
         </Badge>
-        {student.lifecycleStatus ? (
-          <Badge color="gray">{lifecycleLabel[student.lifecycleStatus]}</Badge>
-        ) : null}
         {student.stageAgeDays !== null && student.stageAgeDays !== undefined ? (
           <Badge color="gray">{student.stageAgeDays} ngày ở giai đoạn</Badge>
         ) : null}

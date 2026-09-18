@@ -11,11 +11,6 @@ import {
   type SaleOverviewParams,
   type SaleOverviewResponse,
 } from "@/services/api/sale";
-import { getSaleOverviewMock } from "@/services/api/sale/mock";
-
-export const isSaleOverviewMockEnabled =
-  process.env.NODE_ENV !== "production" &&
-  process.env.NEXT_PUBLIC_SALE_DASHBOARD_MODE !== "api";
 
 export const saleOverviewKeys = {
   all: ["sale-overview"] as const,
@@ -37,7 +32,7 @@ export function useSaleOverviewQuery<TData = SaleOverviewResponse>(
 ): UseQueryResult<TData, Error> {
   return useQuery({
     queryKey: saleOverviewKeys.overview(params),
-    queryFn: () => (isSaleOverviewMockEnabled ? getSaleOverviewMock(params) : getSaleOverview(params)),
+    queryFn: () => getSaleOverview(params),
     ...options,
   });
 }

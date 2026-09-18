@@ -2,10 +2,7 @@
 
 import { useState } from "react";
 
-import {
-  isSaleOverviewMockEnabled,
-  useSaleOverviewQuery,
-} from "@/hooks/use-sale-overview-query";
+import { useSaleOverviewQuery } from "@/hooks/use-sale-overview-query";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
@@ -13,10 +10,8 @@ import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import ConversionTrendChart from "./conversion-trend-chart";
 import SaleDetailSheet from "./sale-detail-sheet";
 import type { SaleDashboardDetail } from "./sale-dashboard-detail.types";
-import PerformanceSummary from "./performance-summary";
 import PipelineHealth from "./pipeline-health";
 import PriorityTasks from "./priority-tasks";
-import { MOCK_RECENT_SALE_LEADS, MOCK_RECENT_SALE_STUDENTS } from "./mock-data";
 import RecentRecords from "./recent-records";
 import SalePageHeader from "./sale-page-header";
 import StudentStageChart from "./student-stage-chart";
@@ -78,20 +73,7 @@ export default function SaleDashboard() {
           : {overview.meta.warnings.join(", ")}.
         </div>
       ) : null}
-      <SalePageHeader meta={overview.meta} isMock={isSaleOverviewMockEnabled} />
-
-      {overview.performance ? (
-        <PerformanceSummary
-          data={overview.performance}
-          onOpenDetail={(metric) =>
-            setActiveDetail({
-              kind: "metric",
-              metric,
-              performance: overview.performance!,
-            })
-          }
-        />
-      ) : null}
+      <SalePageHeader meta={overview.meta} />
 
       <section aria-label="Việc cần làm hôm nay" className="min-w-0">
         <PriorityTasks
@@ -105,8 +87,8 @@ export default function SaleDashboard() {
       </section>
 
       <RecentRecords
-        leads={isSaleOverviewMockEnabled ? MOCK_RECENT_SALE_LEADS : []}
-        students={isSaleOverviewMockEnabled ? MOCK_RECENT_SALE_STUDENTS : []}
+        leads={overview.recentLeads}
+        students={overview.recentStudents}
         timezone={overview.meta.timezone}
         onOpenLead={(lead) => setActiveDetail({ kind: "lead", lead })}
         onOpenStudent={(record) => setActiveDetail({ kind: "student", record })}
@@ -143,24 +125,11 @@ function OverviewSkeleton() {
       aria-busy="true"
     >
       <Skeleton className="h-24 rounded-xl" />
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        {Array.from({ length: 3 }, (_, index) => (
-          <Skeleton key={index} className="h-40 rounded-xl" />
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton key={index} className="h-28 rounded-xl" />
-        ))}
-      </div>
+      <Skeleton className="h-80 rounded-xl" />
       <Skeleton className="h-80 rounded-xl" />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Skeleton className="h-64 rounded-xl" />
         <Skeleton className="h-64 rounded-xl" />
-      </div>
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Skeleton className="h-80 rounded-xl" />
-        <Skeleton className="h-80 rounded-xl" />
       </div>
       <Skeleton className="h-80 rounded-xl" />
     </main>

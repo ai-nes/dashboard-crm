@@ -15,7 +15,6 @@ import {
 } from "@/components/tailgrids/core/sheet";
 
 import LeadDetailPanel from "./lead-detail-panel";
-import MetricDetailPanel from "./metric-detail-panel";
 import type { SaleDashboardDetail } from "./sale-dashboard-detail.types";
 import StudentDetailPanel from "./student-detail-panel";
 import TaskDetailPanel from "./task-detail-panel";
@@ -52,52 +51,6 @@ function getSheetCopy(detail: SaleDashboardDetail): {
         title: detail.record.student.studentName,
         description: "Thông tin CRM và gợi ý hành động tiếp theo",
       };
-    case "metric":
-      switch (detail.metric) {
-        case "enrollment":
-          return {
-            eyebrow: "CHỈ SỐ TUYỂN SINH",
-            title: "Đã nhập học",
-            description: "Kết quả nhập học so với chỉ tiêu kỳ này",
-          };
-        case "forecast":
-          return {
-            eyebrow: "CHỈ SỐ TUYỂN SINH",
-            title: "Dự báo nhập học",
-            description:
-              "Kết quả hiện tại, pipeline dự kiến và độ phủ chỉ tiêu",
-          };
-        case "coverage":
-          return {
-            eyebrow: "CHỈ SỐ TUYỂN SINH",
-            title: "Độ phủ chỉ tiêu",
-            description: "Số dự kiến nhập học so với chỉ tiêu còn thiếu",
-          };
-        case "remaining":
-          return {
-            eyebrow: "CHỈ SỐ TUYỂN SINH",
-            title: "Chỉ tiêu còn thiếu",
-            description: "Khoảng cách giữa chỉ tiêu và số đã nhập học",
-          };
-        case "open-opportunities":
-          return {
-            eyebrow: "CHỈ SỐ TUYỂN SINH",
-            title: "Cơ hội đang mở",
-            description: "Quy mô pipeline chưa có kết quả cuối",
-          };
-        case "enrollment-rate":
-          return {
-            eyebrow: "CHỈ SỐ TUYỂN SINH",
-            title: "Tỷ lệ nhập học",
-            description: "Tỷ lệ tính trên các cơ hội đã có kết quả cuối",
-          };
-        case "lost-opportunities":
-          return {
-            eyebrow: "CHỈ SỐ TUYỂN SINH",
-            title: "Cơ hội không chuyển đổi",
-            description: "Số cơ hội đã đóng mà chưa trở thành học sinh",
-          };
-      }
   }
 }
 
@@ -111,8 +64,6 @@ function getFullListTarget(
       return { href: "/sale/leads", label: "Mở danh sách Lead" };
     case "student":
       return { href: "/sale/students", label: "Mở danh sách học sinh" };
-    case "metric":
-      return null;
   }
 }
 
@@ -178,12 +129,6 @@ export default function SaleDetailSheet({
                 <StudentDetailPanel
                   record={detail.record}
                   timezone={timezone}
-                />
-              ) : null}
-              {detail.kind === "metric" ? (
-                <MetricDetailPanel
-                  metric={detail.metric}
-                  performance={detail.performance}
                 />
               ) : null}
             </SheetBody>

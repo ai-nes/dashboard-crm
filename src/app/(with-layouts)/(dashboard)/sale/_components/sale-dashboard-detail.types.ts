@@ -2,11 +2,7 @@ import type {
   LeadProcessResolution,
   LeadProcessStatus,
 } from "@/services/api/lead-sale/leads";
-import type {
-  SalePerformance,
-  SaleStudentAction,
-  SaleTask,
-} from "@/services/api/sale";
+import type { SaleStudentAction, SaleTask } from "@/services/api/sale";
 
 export interface SaleDashboardLeadRecord {
   id: string;
@@ -31,21 +27,7 @@ export interface SaleDashboardStudentRecord {
   latestActivity: string;
 }
 
-export type SaleDashboardMetric =
-  | "enrollment"
-  | "forecast"
-  | "coverage"
-  | "remaining"
-  | "open-opportunities"
-  | "enrollment-rate"
-  | "lost-opportunities";
-
 export type SaleDashboardDetail =
   | { kind: "task"; task: SaleTask }
   | { kind: "lead"; lead: SaleDashboardLeadRecord }
-  | { kind: "student"; record: SaleDashboardStudentRecord }
-  | {
-      kind: "metric";
-      metric: SaleDashboardMetric;
-      performance: SalePerformance;
-    };
+  | { kind: "student"; record: SaleDashboardStudentRecord };
