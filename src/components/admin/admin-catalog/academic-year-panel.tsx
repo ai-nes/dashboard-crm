@@ -7,6 +7,14 @@ import { ConfirmDialog } from "@/components/common/delete-record-dialog";
 import { DatePickerField } from "@/components/common/date-picker-field";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectIndicator,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/tailgrids/core/select";
+import {
   useAdmissionYearsQuery,
   useCreateAdmissionYearMutation,
   useDeleteAdmissionYearMutation,
@@ -31,6 +39,12 @@ import {
 } from "./admin-catalog-ui";
 
 const PAGE_SIZE = 10;
+const CUSTOM_YEAR_OPTION = "__custom_year__";
+const currentYear = new Date().getFullYear();
+const ADMISSION_YEAR_OPTIONS = Array.from(
+  { length: 12 },
+  (_, index) => String(currentYear - 1 + index),
+);
 
 type YearForm = {
   name?: string;
@@ -64,6 +78,7 @@ export default function AcademicYearPanel() {
   const updateYear = useUpdateAdmissionYearMutation();
   const deleteYear = useDeleteAdmissionYearMutation();
   const [yearForm, setYearForm] = useState<YearForm>(emptyYear);
+  const [isCustomYear, setIsCustomYear] = useState(false);
   const [isYearEditorOpen, setIsYearEditorOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
     null,
@@ -71,9 +86,15 @@ export default function AcademicYearPanel() {
 
   const saveYear = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const yearName = yearForm.year_name.trim();
+    if (!yearName) {
+      toast.error("Vui lòng chọn năm tuyển sinh.");
+      return;
+    }
+
     try {
       const data = {
-        year_name: yearForm.year_name.trim(),
+        year_name: yearName,
         start_date: yearForm.start_date || undefined,
         end_date: yearForm.end_date || undefined,
         is_active: yearForm.is_active,
@@ -91,6 +112,7 @@ export default function AcademicYearPanel() {
       }
       toast.success("Đã lưu năm tuyển sinh.");
       setYearForm(emptyYear);
+      setIsCustomYear(false);
       setIsYearEditorOpen(false);
     } catch (error) {
       toast.error(
@@ -114,9 +136,13 @@ export default function AcademicYearPanel() {
   };
 
   const isDeleting = deleteYear.isPending;
+  const yearOptions = Array.from(
+    new Set([...ADMISSION_YEAR_OPTIONS, yearForm.year_name].filter(Boolean)),
+  ).sort((first, second) => Number(first) - Number(second));
 
   const resetYear = () => {
     setYearForm(emptyYear);
+    setIsCustomYear(false);
     setIsYearEditorOpen(false);
   };
 
@@ -125,14 +151,27 @@ export default function AcademicYearPanel() {
       <Panel
         title="Năm tuyển sinh"
         description="Quản lý các mốc thời gian dùng cho tuyển sinh."
-        actions={
-          <PanelHeaderActions
-            createLabel="Thêm năm"
-            isDisabled={createYear.isPending || updateYear.isPending}
-            onCreate={() => {
-              setYearForm(emptyYear);
-              setIsYearEditorOpen(true);
+        showHeader={false}
+        toolbar={
+          <CatalogListToolbar
+            search={yearSearch}
+            onSearchChange={(value) => {
+              setYearSearch(value);
+              setYearPage(1);
             }}
+            total={yearsQuery.data?.total ?? 0}
+            placeholder="Tìm theo tên năm…"
+            actions={
+              <PanelHeaderActions
+                createLabel="Thêm năm"
+                isDisabled={createYear.isPending || updateYear.isPending}
+                onCreate={() => {
+                  setYearForm(emptyYear);
+                  setIsCustomYear(false);
+                  setIsYearEditorOpen(true);
+                }}
+              />
+            }
           />
         }
       >
@@ -150,16 +189,63 @@ export default function AcademicYearPanel() {
             }}
             onSubmit={saveYear}
           >
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-2">
               <Field label="Tên năm">
-                <TextInput
-                  required
-                  value={yearForm.year_name}
-                  onChange={(event) =>
-                    setYearForm({ ...yearForm, year_name: event.target.value })
+                <Select
+                  value={
+                    isCustomYear
+                      ? CUSTOM_YEAR_OPTION
+                      : yearForm.year_name || undefined
                   }
-                  placeholder="2026"
-                />
+                  onChange={(value) => {
+                    const selectedYear = String(value ?? "");
+                    if (selectedYear === CUSTOM_YEAR_OPTION) {
+                      setIsCustomYear(true);
+                      setYearForm({ ...yearForm, year_name: "" });
+                      return;
+                    }
+
+                    setIsCustomYear(false);
+                    setYearForm({ ...yearForm, year_name: selectedYear });
+                  }}
+                  aria-label="Tên năm tuyển sinh"
+                  placeholder="Chọn năm"
+                  isRequired
+                  isDisabled={createYear.isPending || updateYear.isPending}
+                  className="w-full gap-0"
+                >
+                  <SelectTrigger size="sm" className="h-10 w-full">
+                    <SelectValue />
+                    <SelectIndicator />
+                  </SelectTrigger>
+                  <SelectContent className="min-w-(--trigger-width)">
+                    {yearOptions.map((year) => (
+                      <SelectItem key={year} id={year} textValue={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                    <SelectItem
+                      id={CUSTOM_YEAR_OPTION}
+                      textValue="Tùy chọn"
+                    >
+                      Tùy chọn
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {isCustomYear ? (
+                  <TextInput
+                    required
+                    value={yearForm.year_name}
+                    onChange={(event) =>
+                      setYearForm({
+                        ...yearForm,
+                        year_name: event.target.value,
+                      })
+                    }
+                    placeholder="Nhập năm tuyển sinh"
+                    aria-label="Năm tuyển sinh tùy chọn"
+                  />
+                ) : null}
               </Field>
               <Field label="Bắt đầu">
                 <DatePickerField
@@ -195,15 +281,6 @@ export default function AcademicYearPanel() {
           </CatalogEditorDialog>
         ) : null}
         <div className="mt-0">
-          <CatalogListToolbar
-            search={yearSearch}
-            onSearchChange={(value) => {
-              setYearSearch(value);
-              setYearPage(1);
-            }}
-            total={yearsQuery.data?.total ?? 0}
-            placeholder="Tìm theo tên năm…"
-          />
           {yearsQuery.isPending ? (
             <LoadingState label="Đang tải năm tuyển sinh…" />
           ) : yearsQuery.error ? (
@@ -234,6 +311,7 @@ export default function AcademicYearPanel() {
                       <RowActions
                         isDisabled={isDeleting}
                         onEdit={() => {
+                          setIsCustomYear(false);
                           setYearForm({
                             name: year.name,
                             year_name: year.year_name,

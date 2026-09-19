@@ -12,7 +12,7 @@ const LINE_KINDS: AcademicYearLine["line_kind"][] = [
   "quota",
 ];
 
-const RULE_KINDS = ["positive", "negative", "time_decay"] as const;
+export const SCORE_RULE_KINDS = ["positive", "negative", "time_decay"] as const;
 
 function updateAt<T>(items: T[], index: number, value: T): T[] {
   return items.map((item, itemIndex) => (itemIndex === index ? value : item));
@@ -237,12 +237,17 @@ export function ScoreRulesEditor({
   rules,
   onChange,
   showErrors = false,
+  isDisabled = false,
+  showHeader = true,
 }: {
   rules: ScoreRule[];
   onChange: (rules: ScoreRule[]) => void;
   showErrors?: boolean;
+  isDisabled?: boolean;
+  showHeader?: boolean;
 }) {
-  const addRule = () =>
+  const addRule = () => {
+    if (isDisabled) return;
     onChange([
       ...rules,
       {
@@ -253,26 +258,44 @@ export function ScoreRulesEditor({
         is_active: true,
       },
     ]);
+  };
 
   return (
-    <div className="space-y-3 rounded-lg border border-card-border bg-background-gray-secondary/15 p-3 md:col-span-2 xl:col-span-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold text-text-primary">
-            Luật chấm điểm
-          </h3>
-          <p className="mt-1 text-xs text-text-tertiary">
-            Nhập từng luật theo các field của CRM Score Rule; policy
-            revision/hash do server quản lý.
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-card-border pb-3">
+        {showHeader ? (
+          <div>
+            <h3 className="text-sm font-semibold text-text-primary">
+              Luật chấm điểm
+            </h3>
+            <p className="mt-1 text-xs text-text-tertiary">
+              Nhập từng luật theo các field của CRM Score Rule; policy
+              revision/hash do server quản lý.
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-text-tertiary">
+            Cấu hình chi tiết từng rule của template.
           </p>
+        )}
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-background-gray-secondary px-2 py-1 text-xs font-medium tabular-nums text-text-secondary">
+            {rules.length} {rules.length === 1 ? "rule" : "rules"}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            appearance="outline"
+            onPress={addRule}
+            isDisabled={isDisabled}
+          >
+            Thêm rule
+          </Button>
         </div>
-        <Button type="button" size="sm" appearance="outline" onPress={addRule}>
-          Thêm rule
-        </Button>
       </div>
 
       {rules.length === 0 ? (
-        <p className="rounded-md border border-dashed border-card-border px-3 py-4 text-center text-xs text-text-tertiary">
+        <p className="rounded-lg border border-dashed border-card-border bg-background-gray-secondary/20 px-3 py-5 text-center text-xs text-text-tertiary">
           Chưa có rule. Thêm ít nhất một rule để template có policy chấm điểm.
         </p>
       ) : (
@@ -284,12 +307,13 @@ export function ScoreRulesEditor({
           return (
             <div
               key={`score-rule-${index}`}
-              className="grid gap-3 rounded-md border border-card-border bg-card-background p-3 md:grid-cols-2 xl:grid-cols-4"
+              className="grid gap-4 rounded-lg border border-card-border bg-background-gray-secondary/20 p-4 md:grid-cols-2 xl:grid-cols-4"
             >
               <Field label="Rule kind">
                 <SelectInput
                   value={rule.rule_kind ?? "positive"}
                   aria-label={`Rule kind ${index + 1}`}
+                  disabled={isDisabled}
                   onChange={(event) =>
                     onChange(
                       updateAt(rules, index, {
@@ -299,7 +323,7 @@ export function ScoreRulesEditor({
                     )
                   }
                 >
-                  {RULE_KINDS.map((kind) => (
+                  {SCORE_RULE_KINDS.map((kind) => (
                     <option key={kind}>{kind}</option>
                   ))}
                 </SelectInput>
@@ -313,6 +337,7 @@ export function ScoreRulesEditor({
                 <TextInput
                   value={rule.signal ?? ""}
                   aria-invalid={invalidSignal}
+                  disabled={isDisabled}
                   onChange={(event) =>
                     onChange(
                       updateAt(rules, index, {
@@ -329,6 +354,7 @@ export function ScoreRulesEditor({
                   type="number"
                   step="0.01"
                   value={rule.base_points ?? 0}
+                  disabled={isDisabled}
                   onChange={(event) =>
                     onChange(
                       updateAt(rules, index, {
@@ -344,6 +370,7 @@ export function ScoreRulesEditor({
                   type="number"
                   step="0.01"
                   value={rule.max_points ?? 0}
+                  disabled={isDisabled}
                   onChange={(event) =>
                     onChange(
                       updateAt(rules, index, {
@@ -359,6 +386,7 @@ export function ScoreRulesEditor({
                   type="number"
                   step="0.01"
                   value={rule.penalty_amount ?? 0}
+                  disabled={isDisabled}
                   onChange={(event) =>
                     onChange(
                       updateAt(rules, index, {
@@ -374,6 +402,7 @@ export function ScoreRulesEditor({
                   type="number"
                   min="0"
                   value={rule.cooldown_days ?? 0}
+                  disabled={isDisabled}
                   onChange={(event) =>
                     onChange(
                       updateAt(rules, index, {
@@ -389,6 +418,7 @@ export function ScoreRulesEditor({
                   type="number"
                   min="0"
                   value={rule.max_penalties ?? 0}
+                  disabled={isDisabled}
                   onChange={(event) =>
                     onChange(
                       updateAt(rules, index, {
@@ -405,6 +435,7 @@ export function ScoreRulesEditor({
                   min="0"
                   step="0.01"
                   value={rule.multiplier ?? 1}
+                  disabled={isDisabled}
                   onChange={(event) =>
                     onChange(
                       updateAt(rules, index, {
@@ -418,6 +449,7 @@ export function ScoreRulesEditor({
               <Field label="Tier label">
                 <TextInput
                   value={rule.tier_label ?? ""}
+                  disabled={isDisabled}
                   onChange={(event) =>
                     onChange(
                       updateAt(rules, index, {
@@ -431,6 +463,7 @@ export function ScoreRulesEditor({
               <Checkbox
                 size="sm"
                 isSelected={rule.is_active ?? true}
+                isDisabled={isDisabled}
                 onChange={(isActive) =>
                   onChange(
                     updateAt(rules, index, {
@@ -449,6 +482,7 @@ export function ScoreRulesEditor({
                   size="sm"
                   appearance="ghost"
                   variant="danger"
+                  isDisabled={isDisabled}
                   onPress={() =>
                     onChange(
                       rules.filter((_, itemIndex) => itemIndex !== index),

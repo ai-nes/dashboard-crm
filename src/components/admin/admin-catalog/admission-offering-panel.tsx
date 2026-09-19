@@ -210,14 +210,26 @@ export default function AdmissionOfferingPanel() {
     <Panel
       title="Đợt tuyển sinh"
       description="Kết hợp năm, campus, ngành và phương thức tuyển sinh."
-      actions={
-        <PanelHeaderActions
-          createLabel="Thêm đợt tuyển sinh"
-          isDisabled={isMutating}
-          onCreate={() => {
-            setForm(emptyForm);
-            setIsEditorOpen(true);
+      showHeader={false}
+      toolbar={
+        <CatalogListToolbar
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
           }}
+          total={query.data?.total ?? 0}
+          placeholder="Tìm theo đợt, campus hoặc ngành…"
+          actions={
+            <PanelHeaderActions
+              createLabel="Thêm đợt tuyển sinh"
+              isDisabled={isMutating}
+              onCreate={() => {
+                setForm(emptyForm);
+                setIsEditorOpen(true);
+              }}
+            />
+          }
         />
       }
     >
@@ -406,15 +418,6 @@ export default function AdmissionOfferingPanel() {
         </CatalogEditorDialog>
       ) : null}
       <div className="mt-0">
-        <CatalogListToolbar
-          search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          total={query.data?.total ?? 0}
-          placeholder="Tìm theo đợt, campus hoặc ngành…"
-        />
         {query.isPending ? (
           <LoadingState label="Đang tải đợt tuyển sinh…" />
         ) : query.error ? (

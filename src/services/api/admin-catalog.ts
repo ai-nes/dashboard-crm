@@ -94,7 +94,6 @@ export interface ScoreTemplate {
 }
 
 export interface CampaignChannelType {
-  name: string;
   code: string;
   display_name: string;
   is_online: boolean;
