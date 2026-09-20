@@ -5,6 +5,8 @@ import {
   getInteractionCatalog,
   getInteractionDetail,
   getInteractionEvidence,
+  getInteractionNpsPoint,
+  getNpsSaleSummary,
   listInteractions,
 } from "./index";
 
@@ -100,6 +102,36 @@ describe("interaction intelligence API contract", () => {
               interaction_type: "MESSAGE",
               summary: "Tin nhắn đến",
             },
+            analysis: {
+              state: "no_intent",
+              intelligence: {
+                summary: "Phụ huynh cần được tư vấn thêm về học phí.",
+                conversation_summary: {
+                  problem: {
+                    identified: true,
+                    description: "Cần làm rõ học phí.",
+                    evidence_refs: [
+                      {
+                        doctype: "CRM Interaction Evidence",
+                        name: "EVID-1",
+                        actor_role: "parent",
+                      },
+                    ],
+                  },
+                  resolution: {
+                    status: "partially_resolved",
+                    description: "Đã cung cấp thông tin ban đầu.",
+                    evidence_refs: [],
+                  },
+                  result: {
+                    status: "follow_up_required",
+                    description: "Cần Sale liên hệ lại.",
+                    next_action: "Gửi bảng học phí.",
+                    evidence_refs: [],
+                  },
+                },
+              },
+            },
             intents: [],
             score_effects: [],
             evidence_refs: [],
@@ -113,6 +145,9 @@ describe("interaction intelligence API contract", () => {
       baseUrl: "http://frappe.test",
     });
     expect(result.interaction.summary).toBe("Tin nhắn đến");
+    expect(result.analysis?.intelligence?.conversation_summary?.problem.evidence_refs[0]).toEqual(
+      expect.objectContaining({ actor_role: "parent" }),
+    );
     expect(result.intents).toEqual([]);
     expect(result.score_effects).toEqual([]);
   });
@@ -134,6 +169,94 @@ describe("interaction intelligence API contract", () => {
       baseUrl: "http://frappe.test",
     });
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain("include_content=1");
+  });
+
+  it("reads a scored call-quality point without requesting raw evidence", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            point: {
+              name: "NPS-1",
+              interaction: "INTX-1",
+              status: "scored",
+              satisfaction_score: 8,
+              resolution_score: 7,
+              friction_score: 9,
+              complaint_score: 10,
+              total_score: 8.5,
+              normalized_score: 83.33,
+            },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getInteractionNpsPoint("INTX-1", { baseUrl: "http://frappe.test" });
+
+    expect(result.point).toMatchObject({
+      name: "NPS-1",
+      satisfaction_score: 8,
+      normalized_score: 83.33,
+    });
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
+      "crm.api.interaction_nps.get_interaction_nps_point",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ cache: "no-store" });
+  });
+
+  it("preserves an abstained point without turning missing scores into zero", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            message: {
+              point: {
+                name: "NPS-2",
+                interaction: "INTX-2",
+                status: "abstained",
+                terminal_reason: "agent_identity_unmapped",
+              },
+            },
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+
+    await expect(getInteractionNpsPoint("INTX-2", { baseUrl: "http://frappe.test" })).resolves.toMatchObject({
+      point: {
+        status: "abstained",
+        terminal_reason: "agent_identity_unmapped",
+        total_score: null,
+        normalized_score: null,
+      },
+    });
+  });
+
+  it("normalizes a Sale aggregate response and preserves an empty state", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            message: {
+              records: [{ sale: "SALE-1", count: 2, average_score: 8.25, average_normalized_score: 80.56 }],
+              total_points: 2,
+            },
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+
+    await expect(getNpsSaleSummary({}, { baseUrl: "http://frappe.test" })).resolves.toEqual({
+      records: [{ sale: "SALE-1", sale_user: null, count: 2, average_score: 8.25, average_normalized_score: 80.56 }],
+      total_points: 2,
+    });
   });
 
   it("reads enabled catalogs through the generic Frappe list API", async () => {

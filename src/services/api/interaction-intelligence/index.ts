@@ -7,6 +7,9 @@ import type {
   InteractionFeedFilters,
   InteractionFeedResponse,
   InteractionRequestOptions,
+  InteractionNpsPoint,
+  InteractionNpsPointResponse,
+  NpsSaleSummaryResponse,
   InteractionSummary,
   InteractionTarget,
   InteractionType,
@@ -20,6 +23,8 @@ const METHODS = {
   LIST: "crm.api.interaction_read.list_interactions",
   DETAIL: "crm.api.interaction_read.get_interaction_detail",
   EVIDENCE: "crm.api.interaction_read.get_interaction_evidence",
+  NPS_POINT: "crm.api.interaction_nps.get_interaction_nps_point",
+  NPS_SUMMARY: "crm.api.interaction_nps.get_nps_sale_summary",
   GET_LIST: "frappe.client.get_list",
   INSERT: "frappe.client.insert",
 } as const;
@@ -243,6 +248,41 @@ async function callFrappeRpcPost<T>(
 
 function normalizeString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
+}
+
+function normalizeNpsPoint(value: unknown): InteractionNpsPoint | null {
+  const item = asRecord(value);
+  const name = normalizeString(item?.name);
+  const interaction = normalizeString(item?.interaction);
+  const status = normalizeString(item?.status);
+  if (!name || !interaction || !status) return null;
+  return {
+    name,
+    interaction,
+    analysis_run: normalizeString(item?.analysis_run),
+    student: normalizeString(item?.student),
+    sale: normalizeString(item?.sale),
+    sale_user: normalizeString(item?.sale_user),
+    agent_id: normalizeString(item?.agent_id),
+    interaction_datetime: normalizeString(item?.interaction_datetime),
+    source_revision: typeof item?.source_revision === "number" ? item.source_revision : null,
+    status,
+    terminal_reason: normalizeString(item?.terminal_reason),
+    satisfaction_score: typeof item?.satisfaction_score === "number" ? item.satisfaction_score : null,
+    resolution_score: typeof item?.resolution_score === "number" ? item.resolution_score : null,
+    friction_score: typeof item?.friction_score === "number" ? item.friction_score : null,
+    complaint_score: typeof item?.complaint_score === "number" ? item.complaint_score : null,
+    total_score: typeof item?.total_score === "number" ? item.total_score : null,
+    normalized_score: typeof item?.normalized_score === "number" ? item.normalized_score : null,
+    confidence: normalizeString(item?.confidence),
+    evidence_refs: asRecord(item?.evidence_refs),
+    explanation: normalizeString(item?.explanation),
+    policy_revision: normalizeString(item?.policy_revision),
+    model_revision: normalizeString(item?.model_revision),
+    contract_version: normalizeString(item?.contract_version),
+    supersedes: normalizeString(item?.supersedes),
+    superseded_by: normalizeString(item?.superseded_by),
+  };
 }
 
 function normalizeSummary(value: unknown): InteractionSummary | null {
@@ -480,6 +520,68 @@ export async function getInteractionEvidence(
   }
 
   return payload as unknown as InteractionEvidence;
+}
+
+export async function getInteractionNpsPoint(
+  interaction: string,
+  options: InteractionRequestOptions = {},
+): Promise<InteractionNpsPointResponse> {
+  const id = interaction.trim();
+  if (!id) {
+    throw new InteractionIntelligenceApiError(
+      400,
+      "INVALID_INTERACTION_ID",
+      "Thiếu mã tương tác.",
+    );
+  }
+  const raw = await callFrappeRpc<unknown>(METHODS.NPS_POINT, { interaction: id }, options);
+  const payload = asRecord(raw);
+  if (payload?.point === null || payload?.point === undefined) return { point: null };
+  const point = normalizeNpsPoint(payload?.point);
+  if (!point) {
+    throw new InteractionIntelligenceApiError(
+      502,
+      "INVALID_INTERACTION_NPS_RESPONSE",
+      "Phản hồi điểm chất lượng cuộc gọi không hợp lệ.",
+    );
+  }
+  return { point };
+}
+
+export async function getNpsSaleSummary(
+  filters: { sale?: string; from_date?: string; to_date?: string } = {},
+  options: InteractionRequestOptions = {},
+): Promise<NpsSaleSummaryResponse> {
+  const params: Record<string, string> = {};
+  for (const key of ["sale", "from_date", "to_date"] as const) {
+    const value = filters[key];
+    if (value?.trim()) params[key] = value.trim();
+  }
+  const raw = await callFrappeRpc<unknown>(METHODS.NPS_SUMMARY, params, options);
+  const payload = asRecord(raw);
+  const records = Array.isArray(payload?.records)
+    ? payload.records
+        .map((value) => {
+          const item = asRecord(value);
+          const sale = normalizeString(item?.sale);
+          if (!sale) return null;
+          return {
+            sale,
+            sale_user: normalizeString(item?.sale_user),
+            count: typeof item?.count === "number" ? item.count : 0,
+            average_score: typeof item?.average_score === "number" ? item.average_score : 0,
+            average_normalized_score:
+              typeof item?.average_normalized_score === "number"
+                ? item.average_normalized_score
+                : 0,
+          };
+        })
+        .filter((value): value is NonNullable<typeof value> => value !== null)
+    : [];
+  return {
+    records,
+    total_points: typeof payload?.total_points === "number" ? payload.total_points : 0,
+  };
 }
 
 export async function createInteraction(

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/tailgrids/core/button";
+import NpsSaleScoreCard from "@/components/common/nps-sale-score-card";
 import { useDirectorOverviewQuery } from "@/hooks/use-director-overview-queries";
 import AdmissionsFunnel from "./admissions-funnel";
 import AdmissionsTrend from "./admissions-trend";
@@ -59,6 +60,8 @@ export default function DirectorDashboard() {
 
       <div className="space-y-6 px-2 lg:px-5">
         <DirectorKpiCards kpis={data?.kpis} />
+
+        <NpsSaleScoreCard />
 
         <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(360px,0.8fr)]">
           <EnrollmentForecast forecast={data?.forecast} />
