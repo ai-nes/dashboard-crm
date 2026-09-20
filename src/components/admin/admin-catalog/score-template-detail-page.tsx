@@ -1,10 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil1 } from "@tailgrids/icons";
 import { Pie, PieChart, Cell, Label, Tooltip } from "recharts";
-import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
+import type {
+  NameType,
+  ValueType,
+} from "recharts/types/component/DefaultTooltipContent";
 import type { TooltipContentProps } from "recharts";
 import { toast } from "sonner";
 
@@ -26,6 +35,7 @@ import {
 import { cn } from "@/utils/cn";
 
 import {
+  CatalogPagination,
   DateTimePickerField,
   ErrorState,
   Field,
@@ -35,9 +45,16 @@ import {
   TextInput,
 } from "./admin-catalog-ui";
 import ScoreRuleEditDialog from "./score-rule-edit-dialog";
+import {
+  formatScoreRuleEffect,
+  getScoreRuleKindMeta,
+  getScoreRuleValidationMessage,
+  normalizeScoreRuleKind,
+} from "./score-rule-model";
 import { ScoreRulesEditor } from "./structured-editors";
 
 const SCORE_TEMPLATE_LIST_PATH = "/director/admin/catalogs";
+const SCORE_RULE_PAGE_SIZE = 5;
 
 type ScoreEditSection = "details" | "weights";
 
@@ -97,13 +114,9 @@ function toScorePayload(form: ScoreForm): Partial<ScoreTemplate> {
     status: form.status,
     start_time: form.start_time || undefined,
     end_time: form.end_time || undefined,
-    fit_weight: form.fit_weight ? Number(form.fit_weight) : undefined,
-    engagement_weight: form.engagement_weight
-      ? Number(form.engagement_weight)
-      : undefined,
-    intent_weight: form.intent_weight
-      ? Number(form.intent_weight)
-      : undefined,
+    fit_weight: parseScoreNumber(form.fit_weight),
+    engagement_weight: parseScoreNumber(form.engagement_weight),
+    intent_weight: parseScoreNumber(form.intent_weight),
     rules: form.rules,
   };
 }
@@ -111,14 +124,13 @@ function toScorePayload(form: ScoreForm): Partial<ScoreTemplate> {
 function getScoreValidationMessage(form: ScoreForm): string | null {
   if (!form.template_name.trim()) return "Tên template không được để trống.";
   if (form.rules.length === 0) {
-    return "Thêm ít nhất một rule cho template.";
+    return "Thêm ít nhất một luật cho template.";
   }
-  if (
-    form.rules.some(
-      (rule) => rule.rule_kind !== "time_decay" && !rule.signal?.trim(),
-    )
-  ) {
-    return "Bổ sung Signal cho các rule đang thiếu.";
+  const invalidRule = form.rules
+    .map(getScoreRuleValidationMessage)
+    .find((message): message is string => Boolean(message));
+  if (invalidRule) {
+    return invalidRule;
   }
   return null;
 }
@@ -148,6 +160,16 @@ function parseScoreNumber(value: string): number | undefined {
   if (!value.trim()) return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function formatWeightPercent(value?: number): string {
+  if (value === undefined) return "";
+  return formatScoreNumber(value <= 1 ? value * 100 : value);
+}
+
+function parseWeightPercent(value: string): string {
+  const parsed = parseScoreNumber(value);
+  return parsed === undefined ? "" : String(parsed / 100);
 }
 
 function FormSection({
@@ -249,37 +271,85 @@ function ScoreWeightFields({
   isDisabled: boolean;
 }) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <Field label="Fit weight" hint="Mức độ phù hợp với hồ sơ.">
-        <TextInput
-          type="number"
-          step="0.01"
-          value={form.fit_weight}
-          disabled={isDisabled}
-          onChange={(event) => updateForm({ fit_weight: event.target.value })}
-        />
-      </Field>
-      <Field label="Engagement weight" hint="Mức độ tương tác của lead.">
-        <TextInput
-          type="number"
-          step="0.01"
-          value={form.engagement_weight}
-          disabled={isDisabled}
-          onChange={(event) =>
-            updateForm({ engagement_weight: event.target.value })
-          }
-        />
-      </Field>
-      <Field label="Intent weight" hint="Mức độ thể hiện ý định đăng ký.">
-        <TextInput
-          type="number"
-          step="0.01"
-          value={form.intent_weight}
-          disabled={isDisabled}
-          onChange={(event) => updateForm({ intent_weight: event.target.value })}
-        />
-      </Field>
+    <div className="space-y-3">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Field label="Fit" hint="Mức độ phù hợp với hồ sơ.">
+          <TextInput
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            value={formatWeightPercent(parseScoreNumber(form.fit_weight))}
+            disabled={isDisabled}
+            onChange={(event) =>
+              updateForm({ fit_weight: parseWeightPercent(event.target.value) })
+            }
+          />
+        </Field>
+        <Field label="Engagement" hint="Mức độ tương tác của lead.">
+          <TextInput
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            value={formatWeightPercent(
+              parseScoreNumber(form.engagement_weight),
+            )}
+            disabled={isDisabled}
+            onChange={(event) =>
+              updateForm({
+                engagement_weight: parseWeightPercent(event.target.value),
+              })
+            }
+          />
+        </Field>
+        <Field label="Intent" hint="Mức độ thể hiện ý định đăng ký.">
+          <TextInput
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            value={formatWeightPercent(parseScoreNumber(form.intent_weight))}
+            disabled={isDisabled}
+            onChange={(event) =>
+              updateForm({
+                intent_weight: parseWeightPercent(event.target.value),
+              })
+            }
+          />
+        </Field>
+      </div>
+      <WeightTotalHint form={form} />
     </div>
+  );
+}
+
+function WeightTotalHint({ form }: { form: ScoreForm }) {
+  const values = [
+    parseScoreNumber(form.fit_weight),
+    parseScoreNumber(form.engagement_weight),
+    parseScoreNumber(form.intent_weight),
+  ];
+  const hasInput = values.some((value) => value !== undefined);
+  const total = values.reduce<number>((sum, value) => sum + (value ?? 0), 0);
+  const totalPercent = total <= 1 ? total * 100 : total;
+  const isValid = Math.abs(totalPercent - 100) < 0.01;
+
+  return (
+    <p
+      className={cn(
+        "text-xs leading-5",
+        !hasInput
+          ? "text-text-tertiary"
+          : isValid
+            ? "text-success-600 dark:text-success-400"
+            : "text-warning-600 dark:text-warning-400",
+      )}
+    >
+      {hasInput
+        ? `Tổng trọng số: ${formatScoreNumber(totalPercent)}%. ${isValid ? "Đã đủ 100%." : "Nên điều chỉnh về 100%."}`
+        : "Nhập tỷ trọng theo phần trăm; tổng hợp lệ là 100%."}
+    </p>
   );
 }
 
@@ -341,13 +411,18 @@ function WeightSummary({ form }: { form: ScoreForm }) {
       color: "var(--success-500)",
     },
   ];
-  const total = items.reduce((sum, item) => sum + Math.max(item.value ?? 0, 0), 0);
+  const total = items.reduce(
+    (sum, item) => sum + Math.max(item.value ?? 0, 0),
+    0,
+  );
   const chartData = items.map((item) => ({
     ...item,
     chartValue: Math.max(item.value ?? 0, 0),
     percentage: total > 0 ? (Math.max(item.value ?? 0, 0) / total) * 100 : 0,
   }));
   const hasWeights = total > 0;
+  const totalPercent = total <= 1 ? total * 100 : total;
+  const hasValidTotal = Math.abs(totalPercent - 100) < 0.01;
 
   return (
     <div className="grid items-center gap-5 md:grid-cols-[minmax(180px,0.9fr)_minmax(0,1.1fr)]">
@@ -395,7 +470,7 @@ function WeightSummary({ form }: { form: ScoreForm }) {
                             dy="-0.2em"
                             className="fill-text-primary text-xl font-semibold"
                           >
-                            {formatScoreNumber(total)}%
+                            {formatScoreNumber(totalPercent)}%
                           </tspan>
                           <tspan
                             x={viewBox.cx}
@@ -450,7 +525,7 @@ function WeightSummary({ form }: { form: ScoreForm }) {
             </div>
             <div className="shrink-0 text-right">
               <dd className="text-sm font-semibold tabular-nums text-text-primary">
-                {formatScoreNumber(item.value)}
+                {hasWeights ? `${formatWeightPercent(item.value)}%` : "—"}
               </dd>
               <dd className="mt-0.5 text-xs font-medium tabular-nums text-text-tertiary">
                 {hasWeights ? `${formatScoreNumber(item.percentage)}%` : "—"}
@@ -458,9 +533,19 @@ function WeightSummary({ form }: { form: ScoreForm }) {
             </div>
           </div>
         ))}
-        <p className="pt-1 text-xs leading-5 text-text-tertiary">
-          Biểu đồ hiển thị tỷ lệ tương đối giữa 3 nhóm trọng số; tổng hợp lệ là
-          100%.
+        <p
+          className={cn(
+            "pt-1 text-xs leading-5",
+            !hasWeights
+              ? "text-text-tertiary"
+              : hasValidTotal
+                ? "text-success-600 dark:text-success-400"
+                : "text-warning-600 dark:text-warning-400",
+          )}
+        >
+          {hasWeights
+            ? `Tổng trọng số: ${formatScoreNumber(totalPercent)}%. ${hasValidTotal ? "Đã đủ 100%." : "Nên điều chỉnh về 100%."}`
+            : "Chưa thiết lập trọng số."}
         </p>
       </dl>
     </div>
@@ -501,10 +586,19 @@ function ScoreRulesSummary({
   rules: ScoreRule[];
   onEditRule: (index: number) => void;
 }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(rules.length / SCORE_RULE_PAGE_SIZE),
+  );
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * SCORE_RULE_PAGE_SIZE;
+  const visibleRules = rules.slice(pageStart, pageStart + SCORE_RULE_PAGE_SIZE);
+
   if (rules.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-card-border bg-background-gray-secondary/20 px-3 py-5 text-center text-xs text-text-tertiary">
-        Chưa có rule chấm điểm.
+        Chưa có luật chấm điểm.
       </p>
     );
   }
@@ -512,130 +606,85 @@ function ScoreRulesSummary({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
-        <span>Nhấn biểu tượng bút để chỉnh sửa riêng từng rule.</span>
-        <span>Server quản lý policy revision/hash.</span>
+        <span>Nhấn biểu tượng bút để chỉnh sửa riêng từng luật.</span>
+        <span>Revision/hash do server quản lý.</span>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {rules.map((rule, index) => (
-          <article
-            key={`score-rule-summary-${index}`}
-            className="rounded-xl border border-card-border bg-background-gray-secondary/20 p-4"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="rounded-md bg-badge-primary-background px-2 py-1 text-xs font-semibold text-badge-primary-text">
-                  {rule.rule_kind || "positive"}
-                </span>
-                <span className="text-xs text-text-tertiary">
-                  {rule.is_active === false ? "Tắt" : "Đang dùng"}
-                </span>
-              </div>
-              <Button
-                type="button"
-                iconOnly
-                size="sm"
-                appearance="ghost"
-                variant="ghost"
-                aria-label={`Chỉnh sửa rule ${rule.signal || index + 1}`}
-                onPress={() => onEditRule(index)}
-              >
-                <Pencil1 size={15} aria-hidden="true" />
-              </Button>
-            </div>
-            <p
-              className="mt-3 truncate text-sm font-semibold text-text-primary"
-              title={rule.signal || "Chưa có signal"}
-            >
-              {rule.signal || "Chưa có signal"}
-            </p>
-            <ScoreRuleChart rule={rule} />
-            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-              <RuleMetric label="Penalty" value={rule.penalty_amount} />
-              <RuleMetric label="Multiplier" value={rule.multiplier} />
-              <RuleMetric label="Cooldown" value={rule.cooldown_days} />
-              <RuleMetric label="Max penalties" value={rule.max_penalties} />
-              <RuleTextMetric label="Tier" value={rule.tier_label} />
-            </dl>
-          </article>
-        ))}
+      <div className="overflow-x-auto rounded-lg border border-card-border">
+        <table className="w-full min-w-[640px] text-left">
+          <thead className="bg-background-gray-secondary/60">
+            <tr className="border-b border-card-border text-xs text-text-secondary">
+              <th className="px-4 py-3 font-semibold">Tín hiệu</th>
+              <th className="px-4 py-3 font-semibold">Loại</th>
+              <th className="px-4 py-3 font-semibold">Cách tính</th>
+              <th className="px-4 py-3 font-semibold">Trạng thái</th>
+              <th className="px-4 py-3 text-right font-semibold">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-card-border">
+            {visibleRules.map((rule, index) => {
+              const ruleIndex = pageStart + index;
+              const kind = normalizeScoreRuleKind(rule.rule_kind);
+              const kindMeta = getScoreRuleKindMeta(kind);
+              const signalLabel =
+                kind === "time_decay"
+                  ? "Theo thời gian"
+                  : rule.signal || "Chưa chọn tín hiệu";
+              return (
+                <tr key={`score-rule-summary-${ruleIndex}`}>
+                  <td className="max-w-[16rem] px-4 py-3">
+                    <p
+                      className="truncate text-sm font-medium text-text-primary"
+                      title={signalLabel}
+                    >
+                      {signalLabel}
+                    </p>
+                    {kind === "time_decay" ? (
+                      <p className="mt-0.5 text-xs text-text-tertiary">
+                        Không cần Signal
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-md bg-badge-primary-background px-2 py-1 text-xs font-semibold text-badge-primary-text">
+                      {kindMeta.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm tabular-nums text-text-secondary">
+                    {formatScoreRuleEffect(rule)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge
+                      tone={rule.is_active === false ? "gray" : "success"}
+                    >
+                      {rule.is_active === false ? "Đã tắt" : "Đang dùng"}
+                    </StatusBadge>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button
+                      type="button"
+                      iconOnly
+                      size="sm"
+                      appearance="ghost"
+                      aria-label={`Chỉnh sửa luật ${signalLabel}`}
+                      onPress={() => onEditRule(ruleIndex)}
+                    >
+                      <Pencil1 size={15} aria-hidden="true" />
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-    </div>
-  );
-}
-
-function ScoreRuleChart({ rule }: { rule: ScoreRule }) {
-  const baseValue = Math.max(rule.base_points ?? 0, 0);
-  const maxValue = Math.max(rule.max_points ?? 0, 0);
-  const chartMax = Math.max(baseValue, maxValue, 1);
-  const maxWidth = Math.min(100, (maxValue / chartMax) * 100);
-  const baseWidth = Math.min(100, (baseValue / chartMax) * 100);
-
-  return (
-    <div className="mt-4 rounded-lg border border-card-border/70 bg-card-background/70 p-3">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
-          Mức điểm
-        </span>
-        <span className="text-xs font-semibold tabular-nums text-text-primary">
-          {formatScoreNumber(rule.base_points)} / {formatScoreNumber(rule.max_points)}
-        </span>
-      </div>
-      <div
-        className="relative mt-2 h-3 overflow-hidden rounded-full bg-background-gray-secondary"
-        role="img"
-        aria-label={`Base ${formatScoreNumber(rule.base_points)} trên tối đa ${formatScoreNumber(rule.max_points)}`}
-      >
-        <span
-          className="absolute inset-y-0 left-0 rounded-full bg-primary-200"
-          style={{ width: `${maxWidth}%` }}
-          aria-hidden="true"
+      {totalPages > 1 ? (
+        <CatalogPagination
+          page={safePage}
+          total={rules.length}
+          pageSize={SCORE_RULE_PAGE_SIZE}
+          onPageChange={setPage}
         />
-        <span
-          className="absolute inset-y-0 left-0 rounded-full bg-primary-500"
-          style={{ width: `${baseWidth}%` }}
-          aria-hidden="true"
-        />
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-tertiary">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-primary-500" aria-hidden="true" />
-          Base
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-primary-200" aria-hidden="true" />
-          Max
-        </span>
-        {rule.penalty_amount !== undefined ? (
-          <span className="font-medium text-error-500">
-            Penalty −{formatScoreNumber(rule.penalty_amount)}
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function RuleMetric({ label, value }: { label: string; value?: number }) {
-  return (
-    <div>
-      <dt className="text-[11px] text-text-tertiary">{label}</dt>
-      <dd className="mt-1 text-sm font-medium tabular-nums text-text-primary">
-        {formatScoreNumber(value)}
-      </dd>
-    </div>
-  );
-}
-
-function RuleTextMetric({ label, value }: { label: string; value?: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-[11px] text-text-tertiary">{label}</dt>
-      <dd
-        className="mt-1 truncate text-sm font-medium text-text-primary"
-        title={value || "Chưa thiết lập"}
-      >
-        {value || "Chưa thiết lập"}
-      </dd>
+      ) : null}
     </div>
   );
 }
@@ -688,7 +737,7 @@ function CreateScoreTemplateForm({
             />
             {showRuleErrors && form.rules.length === 0 ? (
               <p className="mt-3 text-xs text-input-error" role="alert">
-                Thêm ít nhất một rule cho template.
+                Thêm ít nhất một luật cho template.
               </p>
             ) : null}
           </section>
@@ -723,8 +772,9 @@ export default function ScoreTemplateDetailPage({
   const initializedTemplateRef = useRef<string | null>(null);
   const savedFormRef = useRef<ScoreForm>(emptyForm);
   const [form, setForm] = useState<ScoreForm>(emptyForm);
-  const [editingSection, setEditingSection] =
-    useState<ScoreEditSection | null>(isCreate ? "details" : null);
+  const [editingSection, setEditingSection] = useState<ScoreEditSection | null>(
+    isCreate ? "details" : null,
+  );
   const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null);
   const [showRuleErrors, setShowRuleErrors] = useState(false);
 
@@ -786,11 +836,9 @@ export default function ScoreTemplateDetailPage({
       savedFormRef.current = savedForm;
       setForm(savedForm);
       setEditingRuleIndex(null);
-      toast.success("Đã cập nhật rule.");
+      toast.success("Đã cập nhật luật.");
     } catch (error) {
-      toast.error(
-        normalizeCatalogError(error, "Không thể cập nhật rule."),
-      );
+      toast.error(normalizeCatalogError(error, "Không thể cập nhật luật."));
     }
   };
 
@@ -814,7 +862,9 @@ export default function ScoreTemplateDetailPage({
       setForm(nextForm);
       setShowRuleErrors(false);
       setEditingSection(null);
-      toast.success(isCreate ? "Đã tạo Score Template." : "Đã cập nhật Score Template.");
+      toast.success(
+        isCreate ? "Đã tạo Score Template." : "Đã cập nhật Score Template.",
+      );
 
       if (isCreate && saved.name) {
         router.replace(
@@ -910,8 +960,9 @@ export default function ScoreTemplateDetailPage({
             onSubmit={submit}
           />
         ) : (
-          <div className="grid items-start gap-5 lg:grid-cols-2">
+          <div className="grid items-stretch gap-5 lg:grid-cols-2">
             <EditableCard
+              className="h-full"
               title="Thông tin template"
               editLabel="Chỉnh sửa thông tin template"
               headerContent={
@@ -968,6 +1019,7 @@ export default function ScoreTemplateDetailPage({
             </EditableCard>
 
             <EditableCard
+              className="h-full"
               title="Trọng số"
               editLabel="Chỉnh sửa trọng số"
               headerContent={
@@ -989,7 +1041,7 @@ export default function ScoreTemplateDetailPage({
                     isDisabled={save.isPending}
                   />
                   <p className="mt-4 text-xs leading-5 text-text-tertiary">
-                    Tổng điểm cuối cùng được tính từ các trọng số và rule của
+                    Tổng điểm cuối cùng được tính từ các trọng số và luật của
                     template.
                   </p>
                 </>
@@ -1002,7 +1054,7 @@ export default function ScoreTemplateDetailPage({
               <CardHeader className="mb-5">
                 <CardTitle>Luật chấm điểm</CardTitle>
                 <span className="rounded-md bg-background-gray-secondary px-2 py-1 text-xs font-medium tabular-nums text-text-secondary">
-                  {form.rules.length} {form.rules.length === 1 ? "rule" : "rules"}
+                  {form.rules.length} luật
                 </span>
               </CardHeader>
               <ScoreRulesSummary

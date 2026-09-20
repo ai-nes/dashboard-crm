@@ -65,7 +65,7 @@ export interface AdmissionOffering {
 }
 
 export interface ScoreRule {
-  rule_kind?: string;
+  rule_kind?: ScoreRuleKind;
   signal?: string;
   base_points?: number;
   max_points?: number;
@@ -76,6 +76,18 @@ export interface ScoreRule {
   max_days?: number;
   multiplier?: number;
   tier_label?: string;
+}
+
+export type ScoreRuleKind = "positive" | "negative" | "time_decay";
+
+export interface ScoreSignal {
+  name: string;
+  signal_key: string;
+  label: string;
+  category: string;
+  signal_type: string;
+  is_active: boolean;
+  description?: string;
 }
 
 export interface ScoreTemplate {
@@ -147,6 +159,11 @@ type ListParams = AdminCatalogRequestOptions & {
   start?: number;
   pageLength?: number;
 };
+
+type ScoreSignalListParams = AdminCatalogRequestOptions &
+  Pick<ListParams, "search" | "start" | "pageLength"> & {
+    activeOnly?: boolean;
+  };
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -417,6 +434,35 @@ export function getScoreTemplate(
     {},
     new URLSearchParams({ name }),
   );
+}
+
+export async function listScoreSignals(
+  params: ScoreSignalListParams = {},
+): Promise<{ signals: ScoreSignal[]; total: number }> {
+  const query = listParams(params);
+  if (params.activeOnly !== undefined) {
+    query.set("active_only", String(params.activeOnly));
+  }
+  const result = await call<Record<string, unknown>>(
+    "crm.api.admin_catalog.list_score_signals",
+    params,
+    {},
+    query,
+  );
+  const signals = normalize<unknown[]>(result.signals ?? []).map((value) => {
+    const signal = asRecord(value);
+    const name = text(signal.name) ?? "";
+    return {
+      name,
+      signal_key: text(signal.signal_key) ?? name,
+      label: text(signal.label) ?? name,
+      category: text(signal.category) ?? "",
+      signal_type: text(signal.signal_type) ?? "",
+      is_active: bool(signal.is_active),
+      description: text(signal.description),
+    };
+  });
+  return { signals, total: Number(result.total ?? 0) };
 }
 
 export function createScoreTemplate(
