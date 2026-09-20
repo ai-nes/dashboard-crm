@@ -122,6 +122,52 @@ export interface InteractionIntent {
   modified_at?: string | null;
 }
 
+export interface ConversationEvidenceReference {
+  doctype: string;
+  name: string;
+  actor_role: "student" | "parent" | (string & {});
+}
+
+export interface ConversationProblem {
+  identified: boolean;
+  description: string;
+  evidence_refs: ConversationEvidenceReference[];
+}
+
+export interface ConversationResolution {
+  status: "resolved" | "partially_resolved" | "unresolved" | "unknown" | (string & {});
+  description: string;
+  evidence_refs: ConversationEvidenceReference[];
+}
+
+export interface ConversationResult {
+  status:
+    | "completed"
+    | "follow_up_required"
+    | "no_response"
+    | "not_interested"
+    | "unknown"
+    | (string & {});
+  description: string;
+  next_action?: string;
+  evidence_refs: ConversationEvidenceReference[];
+}
+
+export interface ConversationSummary {
+  problem: ConversationProblem;
+  resolution: ConversationResolution;
+  result: ConversationResult;
+}
+
+export interface InteractionIntelligence {
+  summary?: string | null;
+  sentiment?: "positive" | "neutral" | "negative" | "mixed" | (string & {}) | null;
+  entities?: Record<string, string[]> | null;
+  readiness?: "ready" | "hesitant" | "unknown" | (string & {}) | null;
+  concerns?: string[] | null;
+  conversation_summary?: ConversationSummary | null;
+}
+
 export interface InteractionAnalysis {
   name?: string | null;
   analysis_run?: string | null;
@@ -133,6 +179,7 @@ export interface InteractionAnalysis {
   model_revision?: string | null;
   intent?: string | null;
   terminal_reason?: string | null;
+  intelligence?: InteractionIntelligence | null;
 }
 
 export interface InteractionScoreEffect {
@@ -170,6 +217,53 @@ export interface InteractionDetailResponse {
   score_effects: InteractionScoreEffect[];
   evidence_ref?: string | null;
   evidence_refs: InteractionEvidenceReference[];
+}
+
+export type InteractionNpsStatus = "scored" | "abstained" | "superseded";
+
+export interface InteractionNpsPoint {
+  name: string;
+  interaction: string;
+  analysis_run?: string | null;
+  student?: string | null;
+  sale?: string | null;
+  sale_user?: string | null;
+  agent_id?: string | null;
+  interaction_datetime?: string | null;
+  source_revision?: number | null;
+  status: InteractionNpsStatus | (string & {});
+  terminal_reason?: string | null;
+  satisfaction_score?: number | null;
+  resolution_score?: number | null;
+  friction_score?: number | null;
+  complaint_score?: number | null;
+  total_score?: number | null;
+  normalized_score?: number | null;
+  confidence?: "low" | "medium" | "high" | (string & {}) | null;
+  evidence_refs?: Record<string, unknown> | null;
+  explanation?: string | null;
+  policy_revision?: string | null;
+  model_revision?: string | null;
+  contract_version?: string | null;
+  supersedes?: string | null;
+  superseded_by?: string | null;
+}
+
+export interface InteractionNpsPointResponse {
+  point: InteractionNpsPoint | null;
+}
+
+export interface NpsSaleSummary {
+  sale: string;
+  sale_user?: string | null;
+  count: number;
+  average_score: number;
+  average_normalized_score: number;
+}
+
+export interface NpsSaleSummaryResponse {
+  records: NpsSaleSummary[];
+  total_points: number;
 }
 
 export interface InteractionEvidence {
