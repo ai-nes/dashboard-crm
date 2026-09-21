@@ -21,7 +21,7 @@ describe("sidebar navigation", () => {
     });
     expect(
       configurationSection?.items.find(
-        (item) => item.title === "Danh mục & chính sách",
+        (item) => item.title === "Cấu hình điểm tiềm năng",
       ),
     ).toMatchObject({ url: "/director/admin/catalogs" });
   });

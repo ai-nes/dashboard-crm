@@ -99,7 +99,7 @@ export default function StudentActivitiesTab({
   initialTaskId,
 }: StudentActivitiesTabProps) {
   const { user } = useAuth();
-  const permissions = getCrmPermissions(user?.roles);
+  const permissions = getCrmPermissions(user);
   const [selectedTab, setSelectedTab] = useState(defaultSelectedKey);
   const shouldLoadTasks = selectedTab === "tasks";
   const shouldLoadNotes = selectedTab === "notes";

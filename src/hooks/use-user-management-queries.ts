@@ -11,18 +11,23 @@ import {
 import {
   createCrmUser,
   listCrmUsers,
+  listPermissionProfiles,
   listUserRoleLogs,
   removeUser,
   updateCrmUserProfile,
+  updatePermissionProfile,
   updateUserCapacity,
   updateUserRole,
   type CreateCrmUserPayload,
   type ListCrmUsersParams,
   type ListCrmUsersResponse,
+  type ListPermissionProfilesParams,
+  type ListPermissionProfilesResponse,
   type ListUserRoleLogsParams,
   type ListUserRoleLogsResponse,
   type RemoveUserPayload,
   type UpdateCrmUserProfilePayload,
+  type UpdatePermissionProfilePayload,
   type UpdateUserCapacityPayload,
   type UpdateUserRolePayload,
 } from "@/services/api/user-management";
@@ -33,6 +38,8 @@ export const userManagementKeys = {
     ["user-management", "users", params] as const,
   logs: (params: ListUserRoleLogsParams) =>
     ["user-management", "logs", params] as const,
+  permissionProfiles: (params: ListPermissionProfilesParams = {}) =>
+    ["user-management", "permission-profiles", params] as const,
 };
 
 export function useCrmUsersQuery(
@@ -108,5 +115,32 @@ export function useUserRoleLogsQuery(
     queryFn: () => listUserRoleLogs(params),
     staleTime: 30 * 1000,
     ...options,
+  });
+}
+
+export function usePermissionProfilesQuery(
+  params: ListPermissionProfilesParams = {},
+  options?: Omit<
+    UseQueryOptions<ListPermissionProfilesResponse, Error>,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<ListPermissionProfilesResponse, Error> {
+  return useQuery({
+    queryKey: userManagementKeys.permissionProfiles(params),
+    queryFn: () => listPermissionProfiles(params),
+    staleTime: 30 * 1000,
+    ...options,
+  });
+}
+
+export function useUpdatePermissionProfileMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdatePermissionProfilePayload) =>
+      updatePermissionProfile(payload),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["user-management", "permission-profiles"],
+      }),
   });
 }

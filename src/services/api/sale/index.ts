@@ -20,7 +20,15 @@ import type { StudentStage } from "@/services/api/students/types";
 export type * from "./types";
 
 const METHOD = "crm.api.sale.get_sale_overview";
-const STUDENT_STAGE_IDS = ["New", "Attempting", "Connected", "Qualified", "Disqualified"] as const;
+const STUDENT_STAGE_IDS = [
+  "New",
+  "Attempting",
+  "Connected",
+  "Qualified",
+  "Registration",
+  "New Enter",
+  "Disqualified",
+] as const;
 const NBA_PRIORITIES = ["high", "medium", "low"] as const;
 const LEAD_PROCESSING_STATUSES = [
   "NEW",

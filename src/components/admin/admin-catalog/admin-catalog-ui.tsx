@@ -9,7 +9,14 @@ import type {
 } from "react";
 
 import { AdminSearchInput } from "@/components/common/admin/admin-search-input";
-import { AdminTablePagination } from "@/components/common/admin/admin-table";
+import {
+  AdminTableBody,
+  AdminTableFrame,
+  AdminTableHead,
+  AdminTableHeader,
+  AdminTablePagination,
+  AdminTableRoot,
+} from "@/components/common/admin/admin-table";
 import { DatePickerField } from "@/components/common/date-picker-field";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -23,12 +30,8 @@ import {
   DialogTitle,
 } from "@/components/tailgrids/core/dialog";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
-import {
-  ScrollArea,
-  ScrollAreaViewport,
-  ScrollBar,
-} from "@/components/tailgrids/core/scroll-area";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
+import { cn } from "@/utils/cn";
 
 export const fieldClassName =
   "w-full rounded-lg border border-card-border bg-input-background px-3 py-2.5 text-sm text-text-primary outline-none placeholder:text-input-placeholder-text focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20 disabled:cursor-not-allowed disabled:opacity-60";
@@ -116,26 +119,47 @@ export function Panel({
   title,
   description,
   actions,
+  toolbar,
+  showHeader = true,
+  contentClassName,
   children,
 }: {
   title: string;
   description: string;
   actions?: ReactNode;
+  toolbar?: ReactNode;
+  showHeader?: boolean;
+  contentClassName?: string;
   children: ReactNode;
 }) {
-  return (
-    <section className="overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs">
-      <div className="flex flex-col gap-2 border-b border-card-border px-5 py-4 sm:flex-row sm:items-start sm:justify-between lg:px-6">
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-5 text-text-secondary">
-            {description}
-          </p>
+  const panel = (
+    <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-card-border bg-card-background shadow-xs">
+      {showHeader ? (
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-b border-card-border px-5 py-4">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold text-text-primary">
+              {title}
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-text-tertiary">
+              {description}
+            </p>
+          </div>
+          {actions}
         </div>
-        {actions}
+      ) : null}
+      <div className={cn("min-h-0 overflow-hidden", contentClassName)}>
+        {children}
       </div>
-      <div className="p-4 lg:p-5">{children}</div>
     </section>
+  );
+
+  return toolbar ? (
+    <div className="flex min-h-0 flex-col gap-3">
+      {toolbar}
+      {panel}
+    </div>
+  ) : (
+    panel
   );
 }
 
@@ -149,10 +173,10 @@ export function PanelHeaderActions({
   isDisabled?: boolean;
 }) {
   return (
-    <div className="flex w-full shrink-0 justify-end sm:w-auto">
+    <div className="flex shrink-0 items-center gap-2">
       <Button size="sm" onPress={onCreate} isDisabled={isDisabled}>
         <Plus size={16} aria-hidden="true" />
-        {createLabel}
+        <span>{createLabel}</span>
       </Button>
     </div>
   );
@@ -187,31 +211,23 @@ export function CatalogEditorDialog({
     >
       <Dialog
         aria-label={title}
-        className="flex max-h-[calc(100vh-2rem)] min-h-0 max-w-3xl flex-col overflow-hidden p-0"
+        className="max-h-[calc(100vh-2rem)] max-w-2xl overflow-hidden p-0"
       >
-        <form className="flex min-h-0 flex-1 flex-col" onSubmit={onSubmit}>
-          <DialogHeader className="shrink-0 border-b border-card-border px-5 py-4 pr-12">
+        <form onSubmit={onSubmit}>
+          <DialogHeader className="border-b border-card-border px-5 py-4 pr-12">
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription className="text-text-tertiary">
               {description}
             </DialogDescription>
           </DialogHeader>
-          <DialogBody className="min-h-0 flex-1 p-0">
-            <ScrollArea className="h-full min-h-0 overflow-hidden">
-              <ScrollAreaViewport className="h-full min-w-0 overflow-x-hidden px-5 py-5">
-                {children}
-              </ScrollAreaViewport>
-              <ScrollBar />
-            </ScrollArea>
+          <DialogBody className="max-h-[min(44rem,calc(100vh-10rem))] space-y-4 overflow-y-auto px-5 py-5">
+            {children}
           </DialogBody>
-          <DialogFooter className="shrink-0 border-t border-card-border bg-card-background px-5 py-3">
+          <DialogFooter className="border-t border-card-border px-5 py-3">
             <DialogClose appearance="outline" size="sm" isDisabled={isSaving}>
               Hủy
             </DialogClose>
             <Button size="sm" type="submit" isDisabled={isSaving}>
-              {!isSaving && submitLabel.startsWith("Thêm") ? (
-                <Plus size={16} aria-hidden="true" />
-              ) : null}
               {isSaving ? "Đang lưu…" : submitLabel}
             </Button>
           </DialogFooter>
@@ -223,9 +239,9 @@ export function CatalogEditorDialog({
 
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <p className="rounded-lg border border-dashed border-card-border px-4 py-8 text-center text-sm text-text-tertiary">
+    <div className="flex flex-col items-center justify-center px-5 py-16 text-center text-sm text-text-tertiary">
       {children}
-    </p>
+    </div>
   );
 }
 
@@ -236,11 +252,11 @@ export function LoadingState({
 }) {
   return (
     <div
-      className="space-y-3 rounded-lg border border-card-border px-4 py-6"
+      className="space-y-3 px-5 py-8"
       role="status"
       aria-live="polite"
     >
-      <span className="sr-only">{label}</span>
+      <p className="text-sm text-text-tertiary">{label}</p>
       <Skeleton className="h-4 w-1/3" />
       <Skeleton className="h-10 w-full" />
       <Skeleton className="h-10 w-full" />
@@ -258,11 +274,11 @@ export function ErrorState({
 }) {
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input-error-focus-border/40 bg-input-error-focus-border/5 px-4 py-3 text-sm text-input-error"
+      className="flex flex-col items-center justify-center gap-3 px-5 py-16 text-center"
       role="alert"
       aria-live="assertive"
     >
-      <span>{message}</span>
+      <p className="text-sm text-text-secondary">{message}</p>
       {onRetry ? (
         <Button size="sm" appearance="outline" onPress={onRetry}>
           Thử lại
@@ -282,28 +298,28 @@ export function Table({
   children: ReactNode;
 }) {
   return (
-    <ScrollArea className="h-[min(32rem,calc(100vh-22rem))] max-h-[min(32rem,calc(100vh-22rem))] min-h-0 overflow-hidden rounded-xl border border-card-border">
-      <ScrollAreaViewport>
-        <table
-          className="w-full min-w-[680px] text-left text-sm"
+    <AdminTableFrame className="max-h-[min(32rem,calc(100vh-22rem))]">
+      <div className="max-h-[min(32rem,calc(100vh-22rem))] overflow-y-auto">
+        <AdminTableRoot
           aria-label={caption}
+          className="w-full min-w-[680px] border-0"
         >
           <caption className="sr-only">{caption}</caption>
-          <thead className="sticky top-0 z-10 bg-background-gray-secondary/95 text-xs text-text-tertiary">
+          <AdminTableHeader>
             <tr>
               {headers.map((header) => (
-                <th key={header} scope="col" className="px-3 py-3 font-medium">
+                <AdminTableHead key={header} scope="col">
                   {header}
-                </th>
+                </AdminTableHead>
               ))}
             </tr>
-          </thead>
-          <tbody className="divide-y divide-card-border">{children}</tbody>
-        </table>
-      </ScrollAreaViewport>
-      <ScrollBar />
-      <ScrollBar orientation="horizontal" />
-    </ScrollArea>
+          </AdminTableHeader>
+          <AdminTableBody className="[&>tr]:transition-colors [&>tr]:hover:bg-background-gray-secondary/30 [&>tr:not(:last-child)]:border-b [&>tr:not(:last-child)]:border-border-primary [&>tr>td]:px-5 [&>tr>td]:py-3.5">
+            {children}
+          </AdminTableBody>
+        </AdminTableRoot>
+      </div>
+    </AdminTableFrame>
   );
 }
 
@@ -374,24 +390,31 @@ export function CatalogListToolbar({
   onSearchChange,
   total,
   placeholder = "Tìm theo tên hoặc mã…",
+  actions,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
   total: number;
   placeholder?: string;
+  actions?: ReactNode;
 }) {
   return (
-    <div className="mb-3 flex shrink-0 flex-col gap-3 rounded-xl border border-card-border bg-card-background px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-      <AdminSearchInput
-        value={search}
-        onChange={(event) => onSearchChange(event.target.value)}
-        placeholder={placeholder}
-        aria-label={placeholder}
-        className="min-w-0 flex-1 sm:max-w-md"
-      />
-      <Badge color="gray" size="sm">
-        {total} mục
-      </Badge>
+    <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-card-border bg-card-background px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+        <AdminSearchInput
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          className="h-9 min-w-0 flex-1 sm:max-w-md"
+        />
+      </div>
+      <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+        <Badge color="gray" size="sm">
+          {total} mục
+        </Badge>
+        {actions}
+      </div>
     </div>
   );
 }
@@ -419,7 +442,7 @@ export function CatalogPagination({
       pageSize={pageSize}
       onPageChange={onPageChange}
       isDisabled={isDisabled}
-      className="mt-0 shrink-0 border-t border-card-border px-0 py-3 sm:py-4"
+      className="mt-0 shrink-0 px-5 py-4"
     />
   );
 }

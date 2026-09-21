@@ -1,0 +1,83 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
+
+import type { ScoreRule } from "@/services/api/admin-catalog";
+
+import { CatalogEditorDialog } from "./admin-catalog-ui";
+import ScoreRuleFields from "./score-rule-fields";
+import {
+  createScoreRuleDraft,
+  getScoreRuleKindMeta,
+  getScoreRuleValidationMessage,
+  normalizeScoreRuleKind,
+} from "./score-rule-model";
+
+interface ScoreRuleEditDialogProps {
+  rule: ScoreRule | null;
+  isOpen: boolean;
+  isSaving?: boolean;
+  onClose: () => void;
+  onSave: (rule: ScoreRule) => Promise<void> | void;
+}
+
+function toRuleDraft(rule: ScoreRule | null): ScoreRule {
+  return {
+    ...createScoreRuleDraft(normalizeScoreRuleKind(rule?.rule_kind)),
+    ...(rule ?? {}),
+  };
+}
+
+export default function ScoreRuleEditDialog({
+  rule,
+  isOpen,
+  isSaving = false,
+  onClose,
+  onSave,
+}: ScoreRuleEditDialogProps) {
+  const [draft, setDraft] = useState<ScoreRule>(() => toRuleDraft(rule));
+  const [showErrors, setShowErrors] = useState(false);
+
+  if (!rule) return null;
+
+  const updateDraft = (patch: Partial<ScoreRule>) => {
+    setDraft((current) => ({ ...current, ...patch }));
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setShowErrors(true);
+    const validationMessage = getScoreRuleValidationMessage(draft);
+    if (validationMessage) {
+      toast.error(validationMessage);
+      return;
+    }
+    void onSave({
+      ...draft,
+      signal: draft.signal?.trim() || undefined,
+      tier_label: draft.tier_label?.trim() || undefined,
+    });
+  };
+
+  return (
+    <CatalogEditorDialog
+      title={`Chỉnh sửa luật: ${rule.signal || getScoreRuleKindMeta(rule.rule_kind).label}`}
+      description="Chọn đúng loại tác động và chỉ cấu hình các trường liên quan."
+      isOpen={isOpen}
+      isSaving={isSaving}
+      submitLabel="Lưu luật"
+      onOpenChange={(open) => {
+        if (!open && !isSaving) onClose();
+      }}
+      onSubmit={handleSubmit}
+    >
+      <ScoreRuleFields
+        rule={draft}
+        onChange={updateDraft}
+        isDisabled={isSaving}
+        showErrors={showErrors}
+      />
+    </CatalogEditorDialog>
+  );
+}

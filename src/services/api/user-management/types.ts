@@ -92,3 +92,56 @@ export interface ListUserRoleLogsResponse {
   start: number;
   pageLength: number;
 }
+
+export type PermissionProfileRowScope =
+  | "assigned"
+  | "own_assigned"
+  | "campus_assigned"
+  | "campus_assigned_contact"
+  | "team_and_team_pool"
+  | "team_members_and_own_team_pool"
+  | "no_case_scope"
+  | "all"
+  | "deny";
+
+export type PermissionFlag = "read" | "write" | "create" | "delete" | "export";
+
+export interface PermissionProfileDoctype {
+  documentType: string;
+  read: boolean;
+  write: boolean;
+  create: boolean;
+  delete: boolean;
+  export: boolean;
+}
+
+export interface PermissionProfile {
+  name: string;
+  role: string;
+  rowScope: PermissionProfileRowScope;
+  deleteRequiresOwnership: boolean;
+  isSystemManaged: boolean;
+  applicableDoctypes: PermissionProfileDoctype[];
+}
+
+export interface ListPermissionProfilesParams {
+  role?: string;
+  start?: number;
+  pageLength?: number;
+}
+
+export interface ListPermissionProfilesResponse {
+  profiles: PermissionProfile[];
+  selectedRole: string | null;
+  total: number;
+  start: number;
+  pageLength: number;
+}
+
+export interface UpdatePermissionProfilePayload {
+  role: string;
+  rowScope: PermissionProfileRowScope;
+  deleteRequiresOwnership: boolean;
+  applicableDoctypes: PermissionProfileDoctype[];
+  replaceApplicableDoctypes?: boolean;
+}

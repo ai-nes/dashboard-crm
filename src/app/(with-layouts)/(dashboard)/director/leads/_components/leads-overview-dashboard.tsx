@@ -47,7 +47,7 @@ const pageSize = 10;
 
 export default function LeadsOverviewDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const permissions = getCrmPermissions(user?.roles);
+  const permissions = getCrmPermissions(user);
   const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
   const canManageLeadIntake = permissions.lead.canAssign && !isAuthLoading;
   const canAssignLead =

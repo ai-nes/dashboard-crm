@@ -2,17 +2,20 @@
 
 import type { AcademicYearLine, ScoreRule } from "@/services/api/admin-catalog";
 import { Button } from "@/components/tailgrids/core/button";
-import { Checkbox } from "@/components/tailgrids/core/checkbox";
 
 import { Field, SelectInput, TextInput } from "./admin-catalog-ui";
+import ScoreRuleFields from "./score-rule-fields";
+import {
+  createScoreRuleDraft,
+  getScoreRuleKindMeta,
+  isScoreRuleComplete,
+} from "./score-rule-model";
 
 const LINE_KINDS: AcademicYearLine["line_kind"][] = [
   "tuition",
   "scholarship",
   "quota",
 ];
-
-const RULE_KINDS = ["positive", "negative", "time_decay"] as const;
 
 function updateAt<T>(items: T[], index: number, value: T): T[] {
   return items.map((item, itemIndex) => (itemIndex === index ? value : item));
@@ -237,227 +240,108 @@ export function ScoreRulesEditor({
   rules,
   onChange,
   showErrors = false,
+  isDisabled = false,
+  showHeader = true,
 }: {
   rules: ScoreRule[];
   onChange: (rules: ScoreRule[]) => void;
   showErrors?: boolean;
+  isDisabled?: boolean;
+  showHeader?: boolean;
 }) {
-  const addRule = () =>
-    onChange([
-      ...rules,
-      {
-        rule_kind: "positive",
-        signal: "",
-        base_points: 0,
-        max_points: 0,
-        is_active: true,
-      },
-    ]);
+  const addRule = () => {
+    if (isDisabled) return;
+    onChange([...rules, createScoreRuleDraft()]);
+  };
 
   return (
-    <div className="space-y-3 rounded-lg border border-card-border bg-background-gray-secondary/15 p-3 md:col-span-2 xl:col-span-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold text-text-primary">
-            Luật chấm điểm
-          </h3>
-          <p className="mt-1 text-xs text-text-tertiary">
-            Nhập từng luật theo các field của CRM Score Rule; policy
-            revision/hash do server quản lý.
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-card-border pb-3">
+        {showHeader ? (
+          <div>
+            <h3 className="text-sm font-semibold text-text-primary">
+              Luật chấm điểm
+            </h3>
+            <p className="mt-1 text-xs text-text-tertiary">
+              Chọn loại tác động, sau đó chỉ nhập các thông tin cần thiết.
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-text-tertiary">
+            Cấu hình chi tiết từng luật của template.
           </p>
+        )}
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-background-gray-secondary px-2 py-1 text-xs font-medium tabular-nums text-text-secondary">
+            {rules.length} luật
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            appearance="outline"
+            onPress={addRule}
+            isDisabled={isDisabled}
+          >
+            Thêm luật
+          </Button>
         </div>
-        <Button type="button" size="sm" appearance="outline" onPress={addRule}>
-          Thêm rule
-        </Button>
       </div>
 
       {rules.length === 0 ? (
-        <p className="rounded-md border border-dashed border-card-border px-3 py-4 text-center text-xs text-text-tertiary">
-          Chưa có rule. Thêm ít nhất một rule để template có policy chấm điểm.
+        <p className="rounded-lg border border-dashed border-card-border bg-background-gray-secondary/20 px-3 py-5 text-center text-xs text-text-tertiary">
+          Chưa có luật. Thêm ít nhất một luật để template có policy chấm điểm.
         </p>
       ) : (
         rules.map((rule, index) => {
-          const invalidSignal =
-            showErrors &&
-            rule.rule_kind !== "time_decay" &&
-            !rule.signal?.trim();
+          const kindMeta = getScoreRuleKindMeta(rule.rule_kind);
+          const invalidRule = showErrors && !isScoreRuleComplete(rule);
           return (
             <div
               key={`score-rule-${index}`}
-              className="grid gap-3 rounded-md border border-card-border bg-card-background p-3 md:grid-cols-2 xl:grid-cols-4"
+              className="space-y-4 rounded-lg border border-card-border bg-background-gray-secondary/20 p-4"
             >
-              <Field label="Rule kind">
-                <SelectInput
-                  value={rule.rule_kind ?? "positive"}
-                  aria-label={`Rule kind ${index + 1}`}
-                  onChange={(event) =>
-                    onChange(
-                      updateAt(rules, index, {
-                        ...rule,
-                        rule_kind: event.target.value,
-                      }),
-                    )
-                  }
-                >
-                  {RULE_KINDS.map((kind) => (
-                    <option key={kind}>{kind}</option>
-                  ))}
-                </SelectInput>
-              </Field>
-              <Field
-                label="Signal"
-                error={
-                  invalidSignal ? "Signal là bắt buộc với rule này." : undefined
-                }
-              >
-                <TextInput
-                  value={rule.signal ?? ""}
-                  aria-invalid={invalidSignal}
-                  onChange={(event) =>
-                    onChange(
-                      updateAt(rules, index, {
-                        ...rule,
-                        signal: event.target.value,
-                      }),
-                    )
-                  }
-                  placeholder="CRM Score Signal"
-                />
-              </Field>
-              <Field label="Base points">
-                <TextInput
-                  type="number"
-                  step="0.01"
-                  value={rule.base_points ?? 0}
-                  onChange={(event) =>
-                    onChange(
-                      updateAt(rules, index, {
-                        ...rule,
-                        base_points: Number(event.target.value) || 0,
-                      }),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Max points">
-                <TextInput
-                  type="number"
-                  step="0.01"
-                  value={rule.max_points ?? 0}
-                  onChange={(event) =>
-                    onChange(
-                      updateAt(rules, index, {
-                        ...rule,
-                        max_points: Number(event.target.value) || 0,
-                      }),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Penalty points">
-                <TextInput
-                  type="number"
-                  step="0.01"
-                  value={rule.penalty_amount ?? 0}
-                  onChange={(event) =>
-                    onChange(
-                      updateAt(rules, index, {
-                        ...rule,
-                        penalty_amount: Number(event.target.value) || 0,
-                      }),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Cooldown days">
-                <TextInput
-                  type="number"
-                  min="0"
-                  value={rule.cooldown_days ?? 0}
-                  onChange={(event) =>
-                    onChange(
-                      updateAt(rules, index, {
-                        ...rule,
-                        cooldown_days: Number(event.target.value) || 0,
-                      }),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Max penalties">
-                <TextInput
-                  type="number"
-                  min="0"
-                  value={rule.max_penalties ?? 0}
-                  onChange={(event) =>
-                    onChange(
-                      updateAt(rules, index, {
-                        ...rule,
-                        max_penalties: Number(event.target.value) || 0,
-                      }),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Multiplier">
-                <TextInput
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={rule.multiplier ?? 1}
-                  onChange={(event) =>
-                    onChange(
-                      updateAt(rules, index, {
-                        ...rule,
-                        multiplier: Number(event.target.value) || 0,
-                      }),
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Tier label">
-                <TextInput
-                  value={rule.tier_label ?? ""}
-                  onChange={(event) =>
-                    onChange(
-                      updateAt(rules, index, {
-                        ...rule,
-                        tier_label: event.target.value,
-                      }),
-                    )
-                  }
-                />
-              </Field>
-              <Checkbox
-                size="sm"
-                isSelected={rule.is_active ?? true}
-                onChange={(isActive) =>
-                  onChange(
-                    updateAt(rules, index, {
-                      ...rule,
-                      is_active: isActive,
-                    }),
-                  )
-                }
-                className="min-h-9 self-end text-sm text-text-secondary"
-              >
-                Đang dùng
-              </Checkbox>
-              <div className="flex items-end justify-end md:col-span-2 xl:col-span-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-badge-primary-background px-2 py-1 text-xs font-semibold text-badge-primary-text">
+                      {kindMeta.label}
+                    </span>
+                    <span className="text-[11px] text-text-tertiary">
+                      {kindMeta.technicalLabel}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-text-tertiary">
+                    {rule.signal || kindMeta.description}
+                  </p>
+                </div>
                 <Button
                   type="button"
                   size="sm"
                   appearance="ghost"
                   variant="danger"
+                  isDisabled={isDisabled}
                   onPress={() =>
                     onChange(
                       rules.filter((_, itemIndex) => itemIndex !== index),
                     )
                   }
                 >
-                  Xóa rule
+                  Xóa luật
                 </Button>
               </div>
+              <ScoreRuleFields
+                rule={rule}
+                onChange={(patch) =>
+                  onChange(updateAt(rules, index, { ...rule, ...patch }))
+                }
+                isDisabled={isDisabled}
+                showErrors={showErrors}
+              />
+              {invalidRule ? (
+                <p className="text-xs text-input-error" role="alert">
+                  Hoàn thiện luật trước khi lưu.
+                </p>
+              ) : null}
             </div>
           );
         })

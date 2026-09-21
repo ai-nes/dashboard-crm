@@ -34,8 +34,8 @@ import BulkActionResultDialog, {
 import BulkActionsToolbar from "./bulk-actions-toolbar";
 import RemoveUserConfirmDialog from "./remove-user-confirm-dialog";
 import UserFormDialog from "./user-form-dialog";
+import UserPermissionPanel from "./user-permission-panel";
 import { isUserSelectable } from "./users-table";
-import UserRoleLogPanel from "./user-role-log-panel";
 import UserSearchFilterBar from "./user-search-filter-bar";
 import UsersTable from "./users-table";
 
@@ -250,7 +250,7 @@ export default function UserManagementAdminPage() {
       >
         <AdminTabList>
           <TabTrigger value="users">Người dùng</TabTrigger>
-          <TabTrigger value="logs">Lịch sử thay đổi</TabTrigger>
+          <TabTrigger value="permissions">Quyền hạn</TabTrigger>
         </AdminTabList>
 
         <AdminTabContent
@@ -325,10 +325,10 @@ export default function UserManagementAdminPage() {
         </AdminTabContent>
 
         <AdminTabContent
-          value="logs"
+          value="permissions"
           className="min-h-0 flex-1 overflow-y-auto px-0"
         >
-          <UserRoleLogPanel />
+          <UserPermissionPanel canEdit={canManageUsers} />
         </AdminTabContent>
       </AdminTabRoot>
 

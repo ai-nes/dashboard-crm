@@ -54,7 +54,7 @@ export default function CampaignDetailDashboard({
   campaignCode: string;
 }) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const studentPermissions = getCrmPermissions(user?.roles);
+  const studentPermissions = getCrmPermissions(user);
   const studentReadScope =
     studentPermissions.student.readScope ?? studentPermissions.student.scope;
   const isSessionScopedStudentView =

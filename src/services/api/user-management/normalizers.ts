@@ -1,4 +1,12 @@
-import type { CrmUser, CrmUserCapacity, UserRoleLog, UserRoleLogAction } from "./types";
+import type {
+  CrmUser,
+  CrmUserCapacity,
+  PermissionProfile,
+  PermissionProfileDoctype,
+  PermissionProfileRowScope,
+  UserRoleLog,
+  UserRoleLogAction,
+} from "./types";
 
 type RecordValue = Record<string, unknown>;
 
@@ -32,7 +40,9 @@ function numberOrNull(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-export function normalizeCrmUserCapacity(value: unknown): CrmUserCapacity | null {
+export function normalizeCrmUserCapacity(
+  value: unknown,
+): CrmUserCapacity | null {
   const object = asRecord(value);
   if (!object) return null;
   return {
@@ -67,7 +77,8 @@ export function normalizeUserRoleLog(value: unknown): UserRoleLog | null {
   const object = asRecord(value);
   if (!object || typeof object.name !== "string") return null;
 
-  const action: UserRoleLogAction = object.action === "removed" ? "removed" : "role_changed";
+  const action: UserRoleLogAction =
+    object.action === "removed" ? "removed" : "role_changed";
 
   return {
     name: object.name,
@@ -77,5 +88,59 @@ export function normalizeUserRoleLog(value: unknown): UserRoleLog | null {
     newRole: nullableString(object.new_role),
     owner: stringValue(object.owner),
     creation: stringValue(object.creation),
+  };
+}
+
+const ROW_SCOPES: PermissionProfileRowScope[] = [
+  "assigned",
+  "own_assigned",
+  "campus_assigned",
+  "campus_assigned_contact",
+  "team_and_team_pool",
+  "team_members_and_own_team_pool",
+  "no_case_scope",
+  "all",
+  "deny",
+];
+
+function normalizePermissionProfileDoctype(
+  value: unknown,
+): PermissionProfileDoctype | null {
+  const object = asRecord(value);
+  const documentType = stringValue(object?.document_type).trim();
+  if (!documentType) return null;
+
+  return {
+    documentType,
+    read: booleanValue(object?.read),
+    write: booleanValue(object?.write),
+    create: booleanValue(object?.create),
+    delete: booleanValue(object?.delete),
+    export: booleanValue(object?.export),
+  };
+}
+
+export function normalizePermissionProfile(
+  value: unknown,
+): PermissionProfile | null {
+  const object = asRecord(value);
+  const rowScope = stringValue(object?.row_scope) as PermissionProfileRowScope;
+  const role = stringValue(object?.role).trim();
+  const name = stringValue(object?.name).trim();
+  if (!role || !name || !ROW_SCOPES.includes(rowScope)) return null;
+
+  const applicableDoctypes = Array.isArray(object?.applicable_doctypes)
+    ? object.applicable_doctypes.flatMap(
+        (item) => normalizePermissionProfileDoctype(item) ?? [],
+      )
+    : [];
+
+  return {
+    name,
+    role,
+    rowScope,
+    deleteRequiresOwnership: booleanValue(object?.delete_requires_ownership),
+    isSystemManaged: booleanValue(object?.is_system_managed),
+    applicableDoctypes,
   };
 }

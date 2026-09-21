@@ -204,12 +204,11 @@ export const NAV_DATA: NavigationSection[] = [
         url: "/director/admin/student-config",
         icon: <IdCard size={18} />,
       }),
-      // Tạm ẩn mục này trong thời gian hoàn thiện UI; giữ lại route để bật lại khi cần.
-      // navItem({
-      //   title: "Danh mục & chính sách",
-      //   url: "/director/admin/catalogs",
-      //   icon: <SlidersDoubleHorizontal size={18} />,
-      // }),
+      navItem({
+        title: "Cấu hình điểm tiềm năng",
+        url: "/director/admin/catalogs",
+        icon: <SlidersDoubleHorizontal size={18} />,
+      }),
       navItem({
         title: "Danh mục tuyển sinh",
         url: "/director/admin/majors",

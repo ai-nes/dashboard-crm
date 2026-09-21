@@ -9,7 +9,7 @@ Chỉ hiển thị năm field nghiệp vụ:
 
 | UI                   | Frappe field    | Value source                                                  |
 | -------------------- | --------------- | ------------------------------------------------------------- |
-| Giai đoạn tuyển sinh | `student_stage` | `New`, `Attempting`, `Connected`, `Qualified`, `Disqualified` |
+| Giai đoạn tuyển sinh | `student_stage` | `New`, `Attempting`, `Connected`, `Qualified`, `Registration`, `New Enter`, `Disqualified` |
 | Tiềm năng            | `potential`     | `HIGH`, `MEDIUM`, `LOW`                                       |
 | Ý định               | `intent`        | `HIGH`, `MEDIUM`, `LOW`                                       |
 | Nhu cầu              | `need`          | active `CRM Need` names                                       |

@@ -123,15 +123,27 @@ export default function GovernedReferencePanel() {
     <Panel
       title="Danh mục dùng chung"
       description="Quản lý các giá trị dùng chung cho campus, nguồn lead và nền tảng."
-      actions={
-        <PanelHeaderActions
-          createLabel="Thêm giá trị"
-          isDisabled={createMutation.isPending}
-          onCreate={() => {
-            setValue("");
-            setLeadSource("");
-            setIsEditorOpen(true);
+      showHeader={false}
+      toolbar={
+        <CatalogListToolbar
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
           }}
+          total={recordsQuery.data?.total ?? 0}
+          placeholder={`Tìm trong ${catalog.label}…`}
+          actions={
+            <PanelHeaderActions
+              createLabel="Thêm giá trị"
+              isDisabled={createMutation.isPending}
+              onCreate={() => {
+                setValue("");
+                setLeadSource("");
+                setIsEditorOpen(true);
+              }}
+            />
+          }
         />
       }
     >
@@ -203,15 +215,6 @@ export default function GovernedReferencePanel() {
         </CatalogEditorDialog>
       ) : null}
       <div className="mt-5">
-        <CatalogListToolbar
-          search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          total={recordsQuery.data?.total ?? 0}
-          placeholder={`Tìm trong ${catalog.label}…`}
-        />
         {recordsQuery.isPending ? (
           <LoadingState label={`Đang tải ${catalog.label}…`} />
         ) : recordsQuery.error ? (

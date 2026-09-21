@@ -12,12 +12,23 @@ export interface CurrentUser {
   /** Human-readable CRM role label. */
   crm_role: string | null;
   crm_capabilities: string[];
+  /** Effective DocType CRUD flags from the authenticated Frappe session. */
+  crm_doctype_permissions?: Record<string, CurrentUserDocTypePermission>;
   /** Current Staff memberships used by organization-aware screens. */
   crm_team_memberships?: CurrentUserTeamMembership[];
   /** Members of Groups currently managed by the session user. */
   crm_managed_group_members?: CurrentUserManagedGroupMember[];
   /** Session-bound token required by Frappe for authenticated write requests. */
   csrf_token: string | null;
+}
+
+export interface CurrentUserDocTypePermission {
+  row_scope?: string | null;
+  read: boolean;
+  write: boolean;
+  create: boolean;
+  delete: boolean;
+  export: boolean;
 }
 
 export interface CurrentUserTeamMembership {

@@ -21,6 +21,8 @@ const stageOrder: StudentStage[] = [
   "Attempting",
   "Connected",
   "Qualified",
+  "Registration",
+  "New Enter",
   "Disqualified",
 ];
 
@@ -29,6 +31,8 @@ const stageColors: Record<StudentStage, string> = {
   Attempting: "var(--warning-500)",
   Connected: "var(--badge-violet-text)",
   Qualified: "var(--success-500)",
+  Registration: "var(--primary-500)",
+  "New Enter": "var(--success-500)",
   Disqualified: "var(--text-tertiary)",
 };
 
@@ -58,7 +62,7 @@ export default function StudentStageChart({ data }: StudentStageChartProps) {
       {hasData ? (
         <>
           <div
-            className="mt-4 h-64 w-full"
+            className="mt-4 h-80 w-full"
             role="img"
             aria-label={`Biểu đồ phân bổ trạng thái CRM của ${total} học sinh`}
           >

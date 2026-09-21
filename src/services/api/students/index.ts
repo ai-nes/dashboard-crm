@@ -129,6 +129,16 @@ const stageMap: Record<
     position: 5,
     description: "Đã chuyển từ cân nhắc sang hoàn thiện thủ tục ứng tuyển.",
   },
+  "Đăng ký": {
+    value: "Đã đăng ký",
+    position: 6,
+    description: "Đã hoàn tất bước đăng ký và sẵn sàng cho Nhập học.",
+  },
+  "New Enter": {
+    value: "Đã nhập học",
+    position: 7,
+    description: "Đã hoàn tất hành trình chuyển đổi của mùa tuyển sinh.",
+  },
   "Nhập học": {
     value: "Đã nhập học",
     position: 7,
@@ -585,8 +595,8 @@ function buildJourney(
 function buildApplication(
   student: StudentListItem,
 ): Student360Data["application"] {
-  const complete = student.stage === "Nhập học";
-  const inProgress = student.stage === "Ứng tuyển";
+  const complete = student.stage === "Nhập học" || student.stage === "New Enter";
+  const inProgress = student.stage === "Ứng tuyển" || student.stage === "Đăng ký";
   const documentStatus = complete
     ? "Đã hoàn tất · 5/5 tài liệu"
     : inProgress
@@ -674,7 +684,9 @@ export function computeStudent360(
   const geography = getGeographyTier(student.province);
   const sourceGroup = getSourceGroup(student.source);
   const learningStage =
-    student.stage === "Nhập học" ? "Sau kỳ thi" : "Lớp 12 · học kỳ 2";
+    student.stage === "Nhập học" || student.stage === "New Enter"
+      ? "Sau kỳ thi"
+      : "Lớp 12 · học kỳ 2";
   const parentInvolvement: Student360Data["parentProfile"]["involvement"] =
     student.priority === "Cao" ? "Cao" : "Trung bình";
   const parentProfile: Student360Data["parentProfile"] = {
@@ -1040,6 +1052,8 @@ export function computeDirectorStudents(
     "Tư vấn": "MQL",
     "Ứng tuyển": "Applicant",
     "Nhập học": "Enrolled",
+    "Đăng ký": "Registration",
+    "New Enter": "New Enter",
   };
 
   const filtered = studentListData.filter((student) => {

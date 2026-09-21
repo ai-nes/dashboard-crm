@@ -5,6 +5,8 @@ export const studentStatusOptions: StudentStatus[] = [
   "Attempting",
   "Connected",
   "Qualified",
+  "Registration",
+  "New Enter",
   "Disqualified",
 ];
 
@@ -15,6 +17,8 @@ export const studentStatusLabel: Record<StudentStatus, string> = {
   Attempting: "Đang liên hệ",
   Connected: "Đã kết nối",
   Qualified: "Đủ điều kiện",
+  Registration: "Đăng ký",
+	"New Enter": "Nhập học",
   Disqualified: "Không đủ điều kiện",
 };
 
@@ -26,6 +30,8 @@ export const studentStatusBadgeColor: Record<
   Attempting: "warning",
   Connected: "primary",
   Qualified: "success",
+  Registration: "primary",
+  "New Enter": "success",
   Disqualified: "error",
 };
 
@@ -34,11 +40,24 @@ export const studentStatusTransitions: Record<
   readonly StudentStatus[]
 > = {
   New: ["Attempting"],
-  Attempting: ["Connected", "Disqualified"],
+  Attempting: ["Connected"],
   Connected: ["Qualified", "Disqualified"],
-  Qualified: [],
+  Qualified: ["Registration"],
+  Registration: ["New Enter"],
+  "New Enter": [],
   Disqualified: [],
 };
+
+export const terminalStudentStatuses: readonly StudentStatus[] = [
+  "New Enter",
+  "Disqualified",
+];
+
+export function isStudentStatusTerminal(
+  status: StudentStatus | null | undefined,
+): boolean {
+  return status ? terminalStudentStatuses.includes(status) : false;
+}
 
 export function getStudentStatusOptions(
   currentStatus: StudentStatus,
@@ -63,6 +82,10 @@ export const studentStatusTriggerClass: Record<StudentStatus, string> = {
   Connected:
     "border-transparent bg-badge-primary-background text-badge-primary-text",
   Qualified:
+    "border-transparent bg-badge-success-background text-badge-success-text",
+  Registration:
+    "border-transparent bg-badge-primary-background text-badge-primary-text",
+  "New Enter":
     "border-transparent bg-badge-success-background text-badge-success-text",
   Disqualified:
     "border-transparent bg-badge-error-background text-badge-error-text",

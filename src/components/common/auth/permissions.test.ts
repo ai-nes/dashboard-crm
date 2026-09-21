@@ -22,6 +22,18 @@ const makeUser = (overrides: Partial<CurrentUser> = {}): CurrentUser => ({
   ...overrides,
 });
 
+const makeDoctypePermission = (
+  overrides: Partial<NonNullable<CurrentUser["crm_doctype_permissions"]>[string]> = {},
+) => ({
+  row_scope: "assigned",
+  read: true,
+  write: true,
+  create: true,
+  delete: true,
+  export: false,
+  ...overrides,
+});
+
 describe("CRM Rule administration permissions", () => {
   it.each(["System Manager", "Admissions Director", "Business Admin"])(
     "allows the backend-authorized %s role",
@@ -46,7 +58,17 @@ describe("CRM Rule administration permissions", () => {
 
 describe("CRM sales permissions", () => {
   it("gives Lead Sale CRUD on every student", () => {
-    const permissions = getCrmPermissions(["Lead Sale"]);
+    const permissions = getCrmPermissions(
+      makeUser({
+        roles: ["Lead Sale"],
+        crm_capabilities: ["student.ownership.manage"],
+        crm_doctype_permissions: {
+          "CRM Lead": makeDoctypePermission({ row_scope: "all" }),
+          "CRM Student": makeDoctypePermission({ row_scope: "all" }),
+          Task: makeDoctypePermission({ row_scope: "all" }),
+        },
+      }),
+    );
 
     expect(permissions.student).toMatchObject({
       scope: "all",
@@ -58,13 +80,23 @@ describe("CRM sales permissions", () => {
   });
 
   it("lets Sale read the pool/team but update only assigned students", () => {
-    const permissions = getCrmPermissions(["Sale"]);
-    const assignedStudent = { owner: "sale@example.com" };
-    const user = {
+    const user = makeUser({
       user: "sale@example.com",
       email: "sale@example.com",
       full_name: "Nguyễn Văn Sale",
-    } as CurrentUser;
+      roles: ["Sale"],
+      crm_capabilities: [
+        "student.ownership.manage",
+        "student.routing.read",
+      ],
+      crm_doctype_permissions: {
+        "CRM Lead": makeDoctypePermission({ delete: false }),
+        "CRM Student": makeDoctypePermission({ delete: false }),
+        Task: makeDoctypePermission(),
+      },
+    });
+    const permissions = getCrmPermissions(user);
+    const assignedStudent = { owner: "sale@example.com" };
 
     expect(permissions.student).toMatchObject({
       scope: "assigned",
@@ -106,7 +138,19 @@ describe("CRM sales permissions", () => {
   });
 
   it("gives CTV Sale RU on assigned students and no task creation", () => {
-    const permissions = getCrmPermissions(["CTV Sale"]);
+    const permissions = getCrmPermissions(
+      makeUser({
+        roles: ["CTV Sale"],
+        crm_doctype_permissions: {
+          "CRM Lead": makeDoctypePermission({ create: false, delete: false }),
+          "CRM Student": makeDoctypePermission({
+            create: false,
+            delete: false,
+          }),
+          Task: makeDoctypePermission({ create: false, delete: false }),
+        },
+      }),
+    );
 
     expect(permissions.student).toMatchObject({
       scope: "assigned",
@@ -118,6 +162,45 @@ describe("CRM sales permissions", () => {
     });
     expect(permissions.task.canCreate).toBe(false);
     expect(permissions.lead.canAssign).toBe(false);
+  });
+
+  it("uses effective DocType flags instead of the role label for CUD", () => {
+    const permissions = getCrmPermissions(
+      makeUser({
+        roles: ["Sale"],
+        crm_doctype_permissions: {
+          "CRM Lead": makeDoctypePermission({
+            create: false,
+            delete: true,
+          }),
+          "CRM Student": makeDoctypePermission({
+            create: false,
+            delete: true,
+          }),
+          Task: makeDoctypePermission(),
+        },
+      }),
+    );
+
+    expect(permissions.lead).toMatchObject({
+      canCreate: false,
+      canDelete: true,
+    });
+    expect(permissions.student).toMatchObject({
+      canCreate: false,
+      canDelete: true,
+    });
+  });
+
+  it("fails closed when the session has no effective DocType payload", () => {
+    const permissions = getCrmPermissions(makeUser({ roles: ["Lead Sale"] }));
+
+    expect(permissions.lead).toMatchObject({
+      canCreate: false,
+      canUpdate: false,
+      canDelete: false,
+    });
+    expect(permissions.student.canCreate).toBe(false);
   });
 
   it("limits Lead conversion to Sales roles and assigned records", () => {

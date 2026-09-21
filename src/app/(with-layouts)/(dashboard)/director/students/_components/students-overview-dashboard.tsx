@@ -37,7 +37,7 @@ import StudentListToolbar from "./student-list-toolbar";
 
 export default function StudentsOverviewDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const permissions = getCrmPermissions(user?.roles);
+  const permissions = getCrmPermissions(user);
   const canReadStudents = permissions.student.canRead;
   const readScope = permissions.student.readScope ?? permissions.student.scope;
   const isSessionScoped = readScope === "assigned" || readScope === "team";

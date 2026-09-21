@@ -134,6 +134,8 @@ export const STUDENT_STAGE_VALUES = [
   "Attempting",
   "Connected",
   "Qualified",
+  "Registration",
+  "New Enter",
   "Disqualified",
 ] as const;
 
@@ -145,6 +147,8 @@ export const STUDENT_STAGE_LABEL: Record<
   Attempting: "Đang liên hệ",
   Connected: "Đã kết nối",
   Qualified: "Đủ điều kiện",
+  Registration: "Đăng ký",
+	"New Enter": "Nhập học",
   Disqualified: "Không đủ điều kiện",
 };
 
@@ -153,6 +157,7 @@ export type StudentStageBadgeColor =
   | "sky"
   | "warning"
   | "violet"
+  | "primary"
   | "success"
   | "gray";
 
@@ -164,6 +169,8 @@ export const STUDENT_STAGE_BADGE_COLORS: Record<
   Attempting: "warning",
   Connected: "violet",
   Qualified: "success",
+  Registration: "primary",
+  "New Enter": "success",
   Disqualified: "gray",
 };
 

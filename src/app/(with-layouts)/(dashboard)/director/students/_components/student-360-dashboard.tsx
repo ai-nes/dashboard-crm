@@ -77,7 +77,7 @@ export default function Student360Dashboard({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, isLoading: isAuthLoading } = useAuth();
-  const permissions = getCrmPermissions(user?.roles);
+  const permissions = getCrmPermissions(user);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [studentOwnerDraft, setStudentOwnerDraft] = useState<{
     studentId: string;

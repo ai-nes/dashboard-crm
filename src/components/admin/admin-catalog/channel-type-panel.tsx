@@ -93,7 +93,7 @@ export default function ChannelTypePanel() {
   const confirmDelete = async () => {
     if (!pendingDelete) return;
     try {
-      await remove.mutateAsync(pendingDelete.name);
+      await remove.mutateAsync(pendingDelete.code);
       toast.success("Đã xóa loại kênh.");
       setPendingDelete(null);
     } catch (error) {
@@ -115,14 +115,26 @@ export default function ChannelTypePanel() {
     <Panel
       title="Kênh chiến dịch"
       description="Quản lý các kênh được phép dùng trong campaign."
-      actions={
-        <PanelHeaderActions
-          createLabel="Thêm loại kênh"
-          isDisabled={save.isPending || remove.isPending}
-          onCreate={() => {
-            setForm(emptyForm);
-            setIsEditorOpen(true);
+      showHeader={false}
+      toolbar={
+        <CatalogListToolbar
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
           }}
+          total={query.data?.total ?? 0}
+          placeholder="Tìm theo code hoặc tên loại kênh…"
+          actions={
+            <PanelHeaderActions
+              createLabel="Thêm loại kênh"
+              isDisabled={save.isPending || remove.isPending}
+              onCreate={() => {
+                setForm(emptyForm);
+                setIsEditorOpen(true);
+              }}
+            />
+          }
         />
       }
     >
@@ -215,15 +227,6 @@ export default function ChannelTypePanel() {
         </CatalogEditorDialog>
       ) : null}
       <div className="mt-0">
-        <CatalogListToolbar
-          search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          total={query.data?.total ?? 0}
-          placeholder="Tìm theo code hoặc tên loại kênh…"
-        />
         {query.isPending ? (
           <LoadingState label="Đang tải loại kênh campaign…" />
         ) : query.error ? (
@@ -238,7 +241,7 @@ export default function ChannelTypePanel() {
               headers={["Code", "Tên", "Modes", "Trạng thái", "Thao tác"]}
             >
               {query.data.channel_types.map((type) => (
-                <tr key={type.name}>
+                <tr key={type.code}>
                   <td className="px-3 py-3 font-mono text-xs font-semibold text-text-primary">
                     {type.code}
                   </td>
@@ -258,7 +261,7 @@ export default function ChannelTypePanel() {
                       isDisabled={save.isPending || remove.isPending}
                       onEdit={() => {
                         setForm({
-                          name: type.name,
+                          name: type.code,
                           code: type.code,
                           display_name: type.display_name,
                           is_online: type.is_online,

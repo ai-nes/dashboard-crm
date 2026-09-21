@@ -46,15 +46,15 @@ export default function AdminPage() {
           href: "/director/admin/student-config",
         },
         {
-          label: "Danh mục & chính sách",
+          label: "Cấu hình điểm tiềm năng",
           description:
-            "Quản lý năm tuyển sinh, mẫu chấm điểm và kênh chiến dịch.",
+            "Quản lý mẫu chấm điểm và quy tắc tính điểm tiềm năng.",
           href: "/director/admin/catalogs",
         },
         {
           label: "Danh mục tuyển sinh",
           description:
-            "Quản lý ngành học, tỉnh thành, xã phường, trường và khu vực tuyển sinh.",
+            "Quản lý ngành học, địa bàn, trường, năm tuyển sinh và kênh chiến dịch.",
           href: "/director/admin/majors",
         },
         {

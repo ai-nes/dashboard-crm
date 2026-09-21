@@ -18,6 +18,8 @@ import {
   useInteractionEvidenceQuery,
 } from "@/hooks/use-interaction-intelligence-queries";
 
+import StudentCallQualityScore from "./student-call-quality-score";
+import StudentConversationSummary from "./student-conversation-summary";
 import {
   formatScore,
   getChannelLabel,
@@ -133,6 +135,11 @@ export default function StudentInteractionDetail({
               />
             </dl>
           </section>
+
+          <StudentConversationSummary
+            interactionId={interactionId}
+            intelligence={detail.analysis?.intelligence}
+          />
 
           <section aria-labelledby={`interaction-intent-${interactionId}`}>
             <h3
@@ -322,6 +329,9 @@ export default function StudentInteractionDetail({
 
           {evidenceRequested ? <EvidenceResult query={evidenceQuery} /> : null}
         </aside>
+      </div>
+      <div className="mt-5">
+        <StudentCallQualityScore interactionId={interactionId} />
       </div>
     </div>
   );

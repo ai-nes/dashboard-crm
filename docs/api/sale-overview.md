@@ -87,6 +87,8 @@ Frappe bọc payload thành công trong `message`:
         { "stage": "Attempting", "label": "Đang liên hệ", "count": 35, "share": 27.3 },
         { "stage": "Connected", "label": "Đã kết nối", "count": 42, "share": 32.8 },
         { "stage": "Qualified", "label": "Đủ điều kiện", "count": 18, "share": 14.1 },
+        { "stage": "Registration", "label": "Đăng ký", "count": 0, "share": 0.0 },
+        { "stage": "New Enter", "label": "Nhập học", "count": 0, "share": 0.0 },
         { "stage": "Disqualified", "label": "Không đủ điều kiện", "count": 9, "share": 7.0 }
       ]
     },
@@ -138,7 +140,7 @@ type SaleOverviewResponse = {
   studentStages: {
     total: number;
     items: Array<{
-      stage: "New" | "Attempting" | "Connected" | "Qualified" | "Disqualified";
+      stage: "New" | "Attempting" | "Connected" | "Qualified" | "Registration" | "New Enter" | "Disqualified";
       count: number;
       share: number | null;
     }>;
@@ -157,7 +159,7 @@ type SaleOverviewResponse = {
 
 ## Quy tắc nghiệp vụ
 
-- `studentStages` dùng đúng năm option canonical của `CRM Student`; `share` là
+- `studentStages` dùng đúng bảy option canonical của `CRM Student`; `share` là
   `count / total * 100`, làm tròn một chữ số và là `null` khi `total = 0`.
 - `studentActions` chỉ chứa hồ sơ có `CRM Action Item` còn mở. Không có việc mở
   thì trả mảng rỗng; không suy diễn NBA từ số liệu khác.

@@ -12,12 +12,16 @@ import {
   getInteractionCatalog,
   getInteractionDetail,
   getInteractionEvidence,
+  getInteractionNpsPoint,
+  getNpsSaleSummary,
   listInteractions,
   type InteractionCatalog,
   type InteractionDetailResponse,
   type InteractionEvidence,
   type InteractionFeedFilters,
   type InteractionFeedResponse,
+  type InteractionNpsPointResponse,
+  type NpsSaleSummaryResponse,
 } from "@/services/api/interaction-intelligence";
 
 export const interactionIntelligenceKeys = {
@@ -29,6 +33,9 @@ export const interactionIntelligenceKeys = {
   evidence: (evidenceId: string) =>
     ["interaction-intelligence", "evidence", evidenceId] as const,
   catalog: () => ["interaction-intelligence", "catalog"] as const,
+  npsPoint: (interactionId: string) =>
+    ["interaction-intelligence", "nps-point", interactionId] as const,
+  npsSummary: () => ["interaction-intelligence", "nps-summary"] as const,
 };
 
 export function useInteractionFeedQuery(
@@ -83,5 +90,28 @@ export function useInteractionCatalogQuery(
     enabled,
     staleTime: Infinity,
     gcTime: 30 * 60_000,
+  });
+}
+
+export function useInteractionNpsPointQuery(
+  interactionId: string | null,
+  enabled = true,
+): UseQueryResult<InteractionNpsPointResponse, Error> {
+  return useQuery({
+    queryKey: interactionIntelligenceKeys.npsPoint(interactionId ?? ""),
+    queryFn: () => getInteractionNpsPoint(interactionId ?? ""),
+    enabled: Boolean(interactionId) && enabled,
+    staleTime: 30_000,
+  });
+}
+
+export function useNpsSaleSummaryQuery(
+  enabled = true,
+): UseQueryResult<NpsSaleSummaryResponse, Error> {
+  return useQuery({
+    queryKey: interactionIntelligenceKeys.npsSummary(),
+    queryFn: () => getNpsSaleSummary(),
+    enabled,
+    staleTime: 30_000,
   });
 }

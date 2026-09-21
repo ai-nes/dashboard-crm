@@ -22,6 +22,7 @@ import {
   listCampaignChannelTypes,
   listGovernedChanges,
   listGovernedValues,
+  listScoreSignals,
   listScoreTemplates,
   proposeGovernedChange,
   transitionAdmissionOffering,
@@ -48,6 +49,8 @@ export const adminCatalogKeys = {
     ["admin-catalog", "offerings", params] as const,
   scores: (params: Record<string, unknown>) =>
     ["admin-catalog", "scores", params] as const,
+  signals: (params: Record<string, unknown>) =>
+    ["admin-catalog", "score-signals", params] as const,
   channels: (params: Record<string, unknown>) =>
     ["admin-catalog", "channels", params] as const,
   governed: (doctype: GovernedDoctype, params: Record<string, unknown>) =>
@@ -144,6 +147,33 @@ export function useScoreTemplatesQuery(
         pageLength: options.pageLength,
       }),
     staleTime: 30_000,
+  });
+}
+
+export function useScoreSignalsQuery(
+  options: {
+    search?: string;
+    activeOnly?: boolean;
+    start?: number;
+    pageLength?: number;
+  } = {},
+) {
+  const search = options.search?.trim() ?? "";
+  return useQuery({
+    queryKey: adminCatalogKeys.signals({
+      search,
+      activeOnly: options.activeOnly,
+      start: options.start,
+      pageLength: options.pageLength,
+    }),
+    queryFn: () =>
+      listScoreSignals({
+        search,
+        activeOnly: options.activeOnly,
+        start: options.start,
+        pageLength: options.pageLength,
+      }),
+    staleTime: 60_000,
   });
 }
 

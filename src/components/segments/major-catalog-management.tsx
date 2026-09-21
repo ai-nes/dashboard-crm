@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil1, Trash1 } from "@tailgrids/icons";
+import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
 import Link from "next/link";
 import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
@@ -238,26 +238,11 @@ export function MajorCatalogManagement({
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pb-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-4">
         {!isGroupDetail && (
-          <AdmissionCatalogPanel
-            className="flex-none"
-            title="Major Group"
-            description="Danh mục nhóm ngành dùng để phân loại các ngành học con."
-            count={groupTotal}
-            countLabel="nhóm"
-            canManage={canManage}
-            createLabel="Thêm nhóm ngành"
-            onCreate={openCreateGroup}
-            isBusy={
-              groupsQuery.isPending ||
-              deleteGroupMutation.isPending ||
-              groupOptionsQuery.isPending ||
-              updateGroupMutation.isPending
-            }
-          >
-            <div className="border-b border-card-border px-4 py-3 sm:px-5">
-              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
+          <>
+            <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-card-border bg-card-background px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+              <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
                 <AdminSearchInput
                   value={groupSearch}
                   onChange={(event) => {
@@ -266,7 +251,7 @@ export function MajorCatalogManagement({
                   }}
                   placeholder="Tìm mã hoặc tên nhóm"
                   aria-label="Tìm nhóm ngành"
-                  className="h-9 w-full"
+                  className="h-9 min-w-0 flex-1 sm:max-w-md"
                 />
                 <Select
                   value={groupStatus}
@@ -275,9 +260,12 @@ export function MajorCatalogManagement({
                     setGroupPage(1);
                   }}
                   aria-label="Lọc trạng thái nhóm ngành"
-                  className="w-full gap-0"
+                  className="w-auto gap-0"
                 >
-                  <SelectTrigger size="sm" className="w-full justify-between">
+                  <SelectTrigger
+                    size="sm"
+                    className="min-w-40 justify-between whitespace-nowrap"
+                  >
                     <SelectValue />
                     <SelectIndicator />
                   </SelectTrigger>
@@ -293,20 +281,49 @@ export function MajorCatalogManagement({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+                <Badge color="gray" size="sm">
+                  {groupTotal} nhóm
+                </Badge>
                 {canManage && (
-                  <Button
-                    size="sm"
-                    appearance="outline"
-                    isDisabled={
-                      Boolean(groupSearch.trim()) || groupStatus !== "all"
-                    }
-                    onPress={() => setIsOrderingGroups(true)}
-                  >
-                    Sắp xếp
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      appearance="outline"
+                      isDisabled={
+                        Boolean(groupSearch.trim()) || groupStatus !== "all"
+                      }
+                      onPress={() => setIsOrderingGroups(true)}
+                    >
+                      Sắp xếp
+                    </Button>
+                    <Button size="sm" onPress={openCreateGroup}>
+                      <Plus size={16} aria-hidden="true" />
+                      <span>Thêm nhóm ngành</span>
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
+            <AdmissionCatalogPanel
+              className="flex-none"
+              title="Major Group"
+              description="Danh mục nhóm ngành dùng để phân loại các ngành học con."
+              showHeader={false}
+              count={groupTotal}
+              countLabel="nhóm"
+              canManage={canManage}
+              createLabel="Thêm nhóm ngành"
+              onCreate={openCreateGroup}
+              isBusy={
+                groupsQuery.isPending ||
+                deleteGroupMutation.isPending ||
+                groupOptionsQuery.isPending ||
+                updateGroupMutation.isPending
+              }
+              contentClassName="flex flex-col overflow-hidden"
+            >
             {isOrderingGroups ? (
               groupOptionsQuery.isPending ? (
                 <CatalogLoading label="Đang tải danh sách để sắp xếp…" />
@@ -443,34 +460,14 @@ export function MajorCatalogManagement({
                 isDisabled={groupsQuery.isFetching}
               />
             ) : null}
-          </AdmissionCatalogPanel>
+            </AdmissionCatalogPanel>
+          </>
         )}
 
         {isGroupDetail && (
-          <AdmissionCatalogPanel
-            className="flex-none"
-            title={`Major của ${groupName || "Major Group"}`}
-            description="Danh sách các ngành học thuộc Major Group này."
-            count={majorTotal}
-            countLabel="ngành"
-            canManage={canManage}
-            createLabel="Thêm ngành"
-            onCreate={openCreateMajor}
-            isCreateDisabled={!canCreateMajor}
-            isBusy={
-              majorsQuery.isPending ||
-              deleteMajorMutation.isPending ||
-              groupOptionsQuery.isPending
-            }
-          >
-            <div className="border-b border-card-border px-4 py-3 sm:px-5">
-              <div
-                className={
-                  isGroupDetail
-                    ? "grid gap-2 lg:grid-cols-[minmax(0,1fr)_12rem]"
-                    : "grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.35fr)_12rem]"
-                }
-              >
+          <>
+            <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-card-border bg-card-background px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+              <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
                 <AdminSearchInput
                   value={majorSearch}
                   onChange={(event) => {
@@ -479,7 +476,7 @@ export function MajorCatalogManagement({
                   }}
                   placeholder="Tìm mã hoặc tên ngành"
                   aria-label="Tìm ngành học"
-                  className="h-9 w-full"
+                  className="h-9 min-w-0 flex-1 sm:max-w-md"
                 />
                 {!isGroupDetail && (
                   <Select
@@ -489,9 +486,12 @@ export function MajorCatalogManagement({
                       setMajorPage(1);
                     }}
                     aria-label="Lọc theo nhóm ngành"
-                    className="w-full gap-0"
+                    className="w-auto gap-0"
                   >
-                    <SelectTrigger size="sm" className="w-full justify-between">
+                    <SelectTrigger
+                      size="sm"
+                      className="min-w-40 justify-between whitespace-nowrap"
+                    >
                       <SelectValue />
                       <SelectIndicator />
                     </SelectTrigger>
@@ -517,9 +517,12 @@ export function MajorCatalogManagement({
                     setMajorPage(1);
                   }}
                   aria-label="Lọc trạng thái ngành học"
-                  className="w-full gap-0"
+                  className="w-auto gap-0"
                 >
-                  <SelectTrigger size="sm" className="w-full justify-between">
+                  <SelectTrigger
+                    size="sm"
+                    className="min-w-40 justify-between whitespace-nowrap"
+                  >
                     <SelectValue />
                     <SelectIndicator />
                   </SelectTrigger>
@@ -536,7 +539,40 @@ export function MajorCatalogManagement({
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+                <Badge color="gray" size="sm">
+                  {majorTotal} ngành
+                </Badge>
+                {canManage && (
+                  <Button
+                    size="sm"
+                    onPress={openCreateMajor}
+                    isDisabled={!canCreateMajor}
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                    <span>Thêm ngành</span>
+                  </Button>
+                )}
+              </div>
             </div>
+            <AdmissionCatalogPanel
+              className="flex-none"
+              title={`Major của ${groupName || "Major Group"}`}
+              description="Danh sách các ngành học thuộc Major Group này."
+              showHeader={false}
+              count={majorTotal}
+              countLabel="ngành"
+              canManage={canManage}
+              createLabel="Thêm ngành"
+              onCreate={openCreateMajor}
+              isCreateDisabled={!canCreateMajor}
+              isBusy={
+                majorsQuery.isPending ||
+                deleteMajorMutation.isPending ||
+                groupOptionsQuery.isPending
+              }
+              contentClassName="flex flex-col overflow-hidden"
+            >
             {majorsQuery.isPending ? (
               <CatalogLoading label="Đang tải ngành học…" />
             ) : majorsQuery.error ? (
@@ -651,7 +687,8 @@ export function MajorCatalogManagement({
                 isDisabled={majorsQuery.isFetching}
               />
             ) : null}
-          </AdmissionCatalogPanel>
+            </AdmissionCatalogPanel>
+          </>
         )}
       </div>
 
