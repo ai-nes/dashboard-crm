@@ -142,7 +142,7 @@ export default function StudentCallRecordingPlayer({ call }: StudentCallRecordin
           className="mt-2 h-1.5 w-full cursor-pointer accent-primary-500 disabled:cursor-default disabled:opacity-60"
         />
         {!audioUrl ? (
-          <p className="mt-1 text-xs text-text-tertiary">Bản ghi sẽ khả dụng khi API trả về đường dẫn âm thanh.</p>
+          <p className="mt-1 text-xs text-text-tertiary">Chưa có bản ghi âm cho cuộc gọi này để phát.</p>
         ) : hasError ? (
           <p className="mt-1 text-xs text-error-600">Không thể phát tệp âm thanh từ đường dẫn.</p>
         ) : null}
