@@ -1,13 +1,10 @@
 "use client";
 
 import {
-  Eye,
-  EyeDisabled,
   InfoCircle,
-  Locked3,
   RefreshCircle1Clockwise,
 } from "@tailgrids/icons";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -15,7 +12,6 @@ import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import {
   useInteractionCatalogQuery,
   useInteractionDetailQuery,
-  useInteractionEvidenceQuery,
 } from "@/hooks/use-interaction-intelligence-queries";
 
 import StudentCallQualityScore from "./student-call-quality-score";
@@ -38,7 +34,6 @@ interface StudentInteractionDetailProps {
 export default function StudentInteractionDetail({
   interactionId,
 }: StudentInteractionDetailProps) {
-  const [evidenceRequested, setEvidenceRequested] = useState(false);
   const catalogQuery = useInteractionCatalogQuery();
   const detailQuery = useInteractionDetailQuery(interactionId);
   const intentCatalog = useMemo(
@@ -48,15 +43,6 @@ export default function StudentInteractionDetail({
       ),
     [catalogQuery.data?.intentTypes],
   );
-  const evidenceId =
-    detailQuery.data?.evidence_ref ||
-    detailQuery.data?.evidence_refs[0]?.id ||
-    null;
-  const evidenceQuery = useInteractionEvidenceQuery(
-    evidenceId,
-    evidenceRequested,
-  );
-
   if (detailQuery.isPending) return <InteractionDetailSkeleton />;
 
   if (detailQuery.isError || !detailQuery.data) {
@@ -98,8 +84,7 @@ export default function StudentInteractionDetail({
 
   return (
     <div className="border-t border-card-border bg-background-gray-secondary/30 p-4 sm:p-5">
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.8fr)]">
-        <div className="space-y-5">
+      <div className="space-y-5">
           <section aria-labelledby={`interaction-summary-${interactionId}`}>
             <div className="flex flex-wrap items-center gap-2">
               <h3
@@ -260,76 +245,6 @@ export default function StudentInteractionDetail({
             )}
           </section>
         </div>
-
-        <aside className="space-y-4 rounded-lg border border-card-border bg-card-background p-4">
-          <div>
-            <h3 className="text-sm font-semibold text-text-primary">
-              Nội dung tham chiếu
-            </h3>
-            <p className="mt-1 text-sm leading-5 text-text-secondary">
-              Nội dung trao đổi gốc chỉ hiển thị khi bạn yêu cầu và theo quyền
-              CRM.
-            </p>
-          </div>
-
-          {detail.evidence_refs.length > 0 ? (
-            <div
-              className="space-y-2"
-              aria-label="Danh sách nội dung tham chiếu"
-            >
-              {detail.evidence_refs.map((reference) => (
-                <div
-                  key={reference.id}
-                  className="flex items-center justify-between gap-3 text-xs"
-                >
-                  <span className="min-w-0 truncate text-text-secondary">
-                    {reference.id}
-                  </span>
-                  <span className="shrink-0 text-text-tertiary">
-                    {reference.speaker_role || "Không rõ vai trò"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-text-secondary">
-              Hoạt động này chưa có nội dung tham chiếu.
-            </p>
-          )}
-
-          {evidenceId ? (
-            <Button
-              type="button"
-              appearance="outline"
-              size="sm"
-              className="min-h-11 w-full"
-              onPress={() => {
-                if (evidenceQuery.isError) {
-                  void evidenceQuery.refetch();
-                  return;
-                }
-                setEvidenceRequested(true);
-              }}
-              isDisabled={evidenceRequested && evidenceQuery.isPending}
-            >
-              {evidenceQuery.isError ? (
-                <RefreshCircle1Clockwise size={16} />
-              ) : evidenceRequested ? (
-                <EyeDisabled size={16} />
-              ) : (
-                <Eye size={16} />
-              )}
-              {evidenceQuery.isError
-                ? "Thử tải nội dung tham chiếu"
-                : evidenceRequested
-                  ? "Đã yêu cầu nội dung tham chiếu"
-                  : "Xem nội dung trao đổi gốc"}
-            </Button>
-          ) : null}
-
-          {evidenceRequested ? <EvidenceResult query={evidenceQuery} /> : null}
-        </aside>
-      </div>
       <div className="mt-5">
         <StudentCallQualityScore interactionId={interactionId} />
       </div>
@@ -352,65 +267,16 @@ function DetailField({
   );
 }
 
-function EvidenceResult({
-  query,
-}: {
-  query: ReturnType<typeof useInteractionEvidenceQuery>;
-}) {
-  if (query.isPending) {
-    return <Skeleton className="h-24 w-full rounded-lg" />;
-  }
-
-  if (query.isError) {
-    return (
-      <p className="text-sm leading-5 text-error-600">
-        Không thể tải nội dung tham chiếu. {query.error.message}
-      </p>
-    );
-  }
-
-  const evidence = query.data;
-  if (!evidence) return null;
-
-  if (
-    evidence.content_redacted ||
-    evidence.content === null ||
-    evidence.content === undefined
-  ) {
-    return (
-      <div className="flex items-start gap-2 rounded-lg bg-badge-neutral-background p-3 text-sm leading-5 text-text-secondary">
-        <Locked3 size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-        Nội dung trao đổi gốc không khả dụng với quyền hiện tại. Thông tin mô tả
-        vẫn được giữ lại.
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-lg bg-background-gray-secondary p-3">
-      <p className="mb-1 flex items-center gap-1 text-xs font-medium text-text-tertiary">
-        <Eye size={14} aria-hidden="true" /> Nội dung trao đổi gốc
-      </p>
-      <p className="whitespace-pre-wrap text-sm leading-5 text-text-primary">
-        {evidence.content}
-      </p>
-    </div>
-  );
-}
-
 function InteractionDetailSkeleton() {
   return (
     <div
       className="border-t border-card-border bg-background-gray-secondary/30 p-5"
       aria-busy="true"
     >
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-3">
-          <Skeleton className="h-5 w-44" />
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
-        <Skeleton className="h-40 w-full rounded-lg" />
+      <div className="space-y-3">
+        <Skeleton className="h-5 w-44" />
+        <Skeleton className="h-14 w-full" />
+        <Skeleton className="h-24 w-full" />
       </div>
     </div>
   );

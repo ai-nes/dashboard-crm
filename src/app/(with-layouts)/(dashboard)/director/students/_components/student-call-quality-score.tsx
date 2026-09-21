@@ -10,13 +10,6 @@ interface StudentCallQualityScoreProps {
   interactionId: string;
 }
 
-const DIMENSIONS = [
-  ["Satisfaction", "satisfaction_score"],
-  ["Resolution", "resolution_score"],
-  ["Low Friction", "friction_score"],
-  ["No Complaint", "complaint_score"],
-] as const;
-
 export default function StudentCallQualityScore({ interactionId }: StudentCallQualityScoreProps) {
   const query = useInteractionNpsPointQuery(interactionId);
   const point = query.data?.point;
@@ -83,29 +76,13 @@ export default function StudentCallQualityScore({ interactionId }: StudentCallQu
       ) : null}
 
       {point?.status === "scored" ? (
-        <>
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {DIMENSIONS.map(([label, field]) => (
-              <div key={field} className="rounded-lg border border-card-border/70 bg-background-gray-secondary/40 p-3">
-                <p className="text-xs text-text-tertiary">{label}</p>
-                <p className="mt-1 text-xl font-semibold text-text-primary">
-                  {point[field] ?? "—"}
-                  <span className="text-xs font-normal text-text-tertiary">/10</span>
-                </p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2 border-t border-card-border pt-3">
-            <span className="text-sm text-text-secondary">Điểm trung bình</span>
-            <span className="text-lg font-semibold text-text-primary">
-              {point.total_score?.toFixed(2) ?? "—"}/10
-              <span className="ml-2 text-sm font-normal text-text-tertiary">
-                ({point.normalized_score?.toFixed(1) ?? "—"}/100)
-              </span>
-            </span>
-          </div>
-          {point.explanation ? <p className="mt-3 text-sm leading-5 text-text-secondary">{point.explanation}</p> : null}
-        </>
+        <div className="mt-4 flex items-baseline justify-between gap-3 rounded-lg border border-card-border/70 bg-background-gray-secondary/40 p-3">
+          <span className="text-sm text-text-secondary">Điểm NPS</span>
+          <span className="text-2xl font-semibold text-text-primary">
+            {point.total_score?.toFixed(1) ?? "—"}
+            <span className="text-sm font-normal text-text-tertiary">/10</span>
+          </span>
+        </div>
       ) : null}
     </section>
   );
@@ -113,8 +90,6 @@ export default function StudentCallQualityScore({ interactionId }: StudentCallQu
 
 function ScoreSkeleton() {
   return (
-    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-busy="true">
-      {DIMENSIONS.map((dimension) => <Skeleton key={dimension[1]} className="h-16 rounded-lg" />)}
-    </div>
+    <Skeleton className="mt-4 h-16 w-full rounded-lg" aria-busy="true" />
   );
 }
