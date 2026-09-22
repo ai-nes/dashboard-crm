@@ -1,37 +1,29 @@
 "use client";
 
-import { useState } from "react";
-
-import { Button } from "@/components/tailgrids/core/button";
-
 import StudentInteractionDetail from "./student-interaction-detail";
+import StudentConversationSummary from "./student-conversation-summary";
 
 interface CanonicalCallAnalysisProps {
   interactionId?: string | null;
+  callSummary?: string | null;
 }
 
 export default function StudentCanonicalCallAnalysis({
   interactionId,
+  callSummary,
 }: CanonicalCallAnalysisProps) {
-  const [open, setOpen] = useState(false);
   const normalizedInteractionId = interactionId?.trim();
 
-  if (!normalizedInteractionId) return null;
+  if (!normalizedInteractionId) {
+    return callSummary ? (
+      <StudentConversationSummary callSummary={callSummary} />
+    ) : null;
+  }
 
   return (
-    <div className="space-y-3 border-t border-card-border pt-4">
-      <Button
-        type="button"
-        appearance="outline"
-        size="sm"
-        aria-expanded={open}
-        onPress={() => setOpen((current) => !current)}
-      >
-        {open ? "Ẩn phân tích CRM" : "Xem phân tích CRM"}
-      </Button>
-      {open ? (
-        <StudentInteractionDetail interactionId={normalizedInteractionId} />
-      ) : null}
-    </div>
+    <StudentInteractionDetail
+      interactionId={normalizedInteractionId}
+      callSummary={callSummary}
+    />
   );
 }
