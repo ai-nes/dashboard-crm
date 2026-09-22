@@ -1,4 +1,5 @@
 import type { ChannelTypeValue } from "./channel-types";
+import type { CampaignRoutingTargetType } from "@/services/api/lead-sale";
 
 import type { CampaignStatus as SharedCampaignStatus } from "@/services/api/campaigns";
 
@@ -17,6 +18,11 @@ export interface CampaignListItem {
   mode: CampaignMode;
   channelType: ChannelTypeValue | "";
   channelUrl: string;
+  campus: string;
+  leadRoutingEnabled: boolean;
+  leadRoutingTargetType: CampaignRoutingTargetType;
+  leadRoutingTargetTeam: string;
+  leadRoutingTargetGroup: string;
 }
 
 export type CampaignFormValues = Omit<CampaignListItem, "id" | "code">;
@@ -30,6 +36,11 @@ export interface CampaignFormState {
   mode: CampaignMode;
   channelType: ChannelTypeValue | "";
   channelUrl: string;
+  campus: string;
+  leadRoutingEnabled: boolean;
+  leadRoutingTargetType: CampaignRoutingTargetType;
+  leadRoutingTargetTeam: string;
+  leadRoutingTargetGroup: string;
 }
 
 export type CampaignStatusFilter = CampaignStatus | "all";

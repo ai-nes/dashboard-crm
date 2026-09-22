@@ -80,6 +80,22 @@ export function validateCampaignForm(
   const channelUrlError = validateChannelUrl(form.channelUrl);
   if (channelUrlError) errors.channelUrl = channelUrlError;
 
+  if (form.leadRoutingEnabled) {
+    if (!form.leadRoutingTargetType) {
+      errors.leadRoutingTargetType = "Vui lòng chọn phạm vi nhận Lead của Campaign.";
+    } else if (
+      form.leadRoutingTargetType === "Team" &&
+      !form.leadRoutingTargetTeam
+    ) {
+      errors.leadRoutingTargetTeam = "Vui lòng chọn Team nhận Lead.";
+    } else if (
+      form.leadRoutingTargetType === "Team Group" &&
+      !form.leadRoutingTargetGroup
+    ) {
+      errors.leadRoutingTargetGroup = "Vui lòng chọn Team Group nhận Lead.";
+    }
+  }
+
   return errors;
 }
 

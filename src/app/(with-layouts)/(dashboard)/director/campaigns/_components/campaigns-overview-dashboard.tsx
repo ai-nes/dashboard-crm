@@ -11,6 +11,7 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
   useLeadSaleCampaignChannelTypesQuery,
+  useLeadSaleCampaignRoutingOptionsQuery,
   useCreateLeadSaleCampaignMutation,
   useDeleteLeadSaleCampaignMutation,
   useLeadSaleCampaignsQuery,
@@ -48,7 +49,10 @@ export default function CampaignsOverviewDashboard() {
   const { data, error, isPending } = useLeadSaleCampaignsQuery();
   const { data: channelTypeData, error: channelTypeError } =
     useLeadSaleCampaignChannelTypesQuery();
+  const { data: routingOptionData, error: routingOptionError } =
+    useLeadSaleCampaignRoutingOptionsQuery();
   const channelTypes = channelTypeData?.channelTypes ?? [];
+  const routingOptions = routingOptionData ?? { teams: [], groups: [] };
   const createCampaignMutation = useCreateLeadSaleCampaignMutation();
   const deleteCampaignMutation = useDeleteLeadSaleCampaignMutation();
   const updateCampaignMutation = useUpdateLeadSaleCampaignMutation();
@@ -74,6 +78,14 @@ export default function CampaignsOverviewDashboard() {
       );
     }
   }, [channelTypeError]);
+
+  useEffect(() => {
+    if (routingOptionError) {
+      toast.error(
+        routingOptionError.message || "Không thể tải cấu hình Team phân bổ Lead.",
+      );
+    }
+  }, [routingOptionError]);
 
   const campaigns = useMemo(() => {
     const liveCampaigns = (data?.campaigns ?? []).map(toCampaignListItem);
@@ -219,16 +231,20 @@ export default function CampaignsOverviewDashboard() {
   const handleFormSubmit = async (fields: CampaignFormValues) => {
     if (formDialog?.mode === "edit") {
       const { campaign } = formDialog;
-      await updateCampaignMutation.mutateAsync({
-        name: campaign.id,
+        await updateCampaignMutation.mutateAsync({
+          name: campaign.id,
         title: fields.name.trim(),
         status: fields.status,
         startDate: fields.startDate,
         endDate: fields.endDate,
         channelBoundary: fields.mode === "ONLINE" ? "Digital" : "Field",
-        channelType: fields.channelType,
-        channelUrl: fields.channelUrl.trim(),
-      });
+          channelType: fields.channelType,
+          channelUrl: fields.channelUrl.trim(),
+          leadRoutingEnabled: fields.leadRoutingEnabled,
+          leadRoutingTargetType: fields.leadRoutingTargetType,
+          leadRoutingTargetTeam: fields.leadRoutingTargetTeam,
+          leadRoutingTargetGroup: fields.leadRoutingTargetGroup,
+        });
       setCampaignChanges((current) => {
         const next = { ...current };
         delete next[campaign.id];
@@ -244,13 +260,17 @@ export default function CampaignsOverviewDashboard() {
       }
       await createCampaignMutation.mutateAsync({
         title: fields.name.trim(),
-        campus,
+        campus: fields.campus || campus,
         status: fields.status,
         startDate: fields.startDate,
         endDate: fields.endDate,
         channelBoundary: fields.mode === "ONLINE" ? "Digital" : "Field",
         channelType: fields.channelType || undefined,
         channelUrl: fields.channelUrl.trim() || undefined,
+        leadRoutingEnabled: fields.leadRoutingEnabled,
+        leadRoutingTargetType: fields.leadRoutingTargetType,
+        leadRoutingTargetTeam: fields.leadRoutingTargetTeam,
+        leadRoutingTargetGroup: fields.leadRoutingTargetGroup,
       });
       toast.success("Đã tạo chiến dịch mới.");
     }
@@ -336,6 +356,8 @@ export default function CampaignsOverviewDashboard() {
         <CampaignFormDialog
           campaign={formDialog.mode === "edit" ? formDialog.campaign : null}
           channelTypes={channelTypes}
+          routingOptions={routingOptions}
+          defaultCampus={data?.campaigns.find((item) => item.campus)?.campus}
           onClose={() => setFormDialog(null)}
           onSubmit={handleFormSubmit}
         />

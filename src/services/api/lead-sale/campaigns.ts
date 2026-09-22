@@ -9,6 +9,25 @@ export interface LeadSaleCampaign {
   channelBoundary?: string;
   channelType?: string;
   channelUrl?: string;
+  leadRoutingEnabled?: boolean;
+  leadRoutingTargetType?: CampaignRoutingTargetType;
+  leadRoutingTargetTeam?: string;
+  leadRoutingTargetGroup?: string;
+}
+
+export type CampaignRoutingTargetType = "" | "Team" | "Team Group";
+
+export interface CampaignRoutingOption {
+  id: string;
+  label: string;
+  campus?: string;
+  group?: string;
+  province?: string;
+}
+
+export interface CampaignRoutingOptions {
+  teams: CampaignRoutingOption[];
+  groups: CampaignRoutingOption[];
 }
 
 export interface CampaignListResponse {
@@ -33,6 +52,10 @@ export interface CreateCampaignPayload {
   channelBoundary?: string;
   channelType?: string;
   channelUrl?: string;
+  leadRoutingEnabled?: boolean;
+  leadRoutingTargetType?: CampaignRoutingTargetType;
+  leadRoutingTargetTeam?: string;
+  leadRoutingTargetGroup?: string;
 }
 
 export interface UpdateCampaignPayload {
@@ -46,6 +69,10 @@ export interface UpdateCampaignPayload {
   channelBoundary?: string;
   channelType?: string;
   channelUrl?: string;
+  leadRoutingEnabled?: boolean;
+  leadRoutingTargetType?: CampaignRoutingTargetType;
+  leadRoutingTargetTeam?: string;
+  leadRoutingTargetGroup?: string;
 }
 
 export interface CampaignApiRequestOptions {
@@ -70,6 +97,7 @@ const METHODS = {
   CREATE: "crm.api.campaign.create_campaign",
   UPDATE: "crm.api.campaign.update_campaign",
   DELETE: "crm.api.campaign.delete_campaign",
+  ROUTING_OPTIONS: "crm.api.campaign.get_campaign_routing_options",
 } as const;
 const DEFAULT_PAGE_LENGTH = 100;
 
@@ -103,6 +131,15 @@ function normalizeCampaign(value: unknown): LeadSaleCampaign | null {
   const channelBoundary = text(row?.channelBoundary ?? row?.channel_boundary);
   const channelType = text(row?.channelType ?? row?.channel_type);
   const channelUrl = text(row?.channelUrl ?? row?.channel_url);
+  const rawRoutingEnabled =
+    row?.leadRoutingEnabled ?? row?.lead_routing_enabled;
+  const rawTargetType =
+    row?.leadRoutingTargetType ?? row?.lead_routing_target_type;
+  const targetType = text(rawTargetType) as CampaignRoutingTargetType;
+  const rawTargetTeam =
+    row?.leadRoutingTargetTeam ?? row?.lead_routing_target_team;
+  const rawTargetGroup =
+    row?.leadRoutingTargetGroup ?? row?.lead_routing_target_group;
   return {
     name,
     stableCode: text(row?.stableCode ?? row?.stable_code),
@@ -114,6 +151,21 @@ function normalizeCampaign(value: unknown): LeadSaleCampaign | null {
     ...(channelBoundary ? { channelBoundary } : {}),
     ...(channelType ? { channelType } : {}),
     ...(channelUrl ? { channelUrl } : {}),
+    ...(rawRoutingEnabled !== undefined
+      ? { leadRoutingEnabled: Boolean(rawRoutingEnabled) }
+      : {}),
+    ...(rawTargetType !== undefined
+      ? {
+          leadRoutingTargetType:
+            targetType === "Team" || targetType === "Team Group" ? targetType : "",
+        }
+      : {}),
+    ...(text(rawTargetTeam)
+      ? { leadRoutingTargetTeam: text(rawTargetTeam) }
+      : {}),
+    ...(text(rawTargetGroup)
+      ? { leadRoutingTargetGroup: text(rawTargetGroup) }
+      : {}),
   };
 }
 
@@ -323,6 +375,18 @@ function toCreateBody(payload: CreateCampaignPayload): Record<string, unknown> {
       : {}),
     ...(payload.channelType ? { channel_type: payload.channelType } : {}),
     ...(payload.channelUrl ? { channel_url: payload.channelUrl } : {}),
+    ...(payload.leadRoutingEnabled !== undefined
+      ? { lead_routing_enabled: payload.leadRoutingEnabled }
+      : {}),
+    ...(payload.leadRoutingTargetType !== undefined
+      ? { lead_routing_target_type: payload.leadRoutingTargetType }
+      : {}),
+    ...(payload.leadRoutingTargetTeam !== undefined
+      ? { lead_routing_target_team: payload.leadRoutingTargetTeam }
+      : {}),
+    ...(payload.leadRoutingTargetGroup !== undefined
+      ? { lead_routing_target_group: payload.leadRoutingTargetGroup }
+      : {}),
   };
 }
 
@@ -347,6 +411,18 @@ function toUpdateBody(payload: UpdateCampaignPayload): Record<string, unknown> {
       : {}),
     ...(payload.channelUrl !== undefined
       ? { channel_url: payload.channelUrl }
+      : {}),
+    ...(payload.leadRoutingEnabled !== undefined
+      ? { lead_routing_enabled: payload.leadRoutingEnabled }
+      : {}),
+    ...(payload.leadRoutingTargetType !== undefined
+      ? { lead_routing_target_type: payload.leadRoutingTargetType }
+      : {}),
+    ...(payload.leadRoutingTargetTeam !== undefined
+      ? { lead_routing_target_team: payload.leadRoutingTargetTeam }
+      : {}),
+    ...(payload.leadRoutingTargetGroup !== undefined
+      ? { lead_routing_target_group: payload.leadRoutingTargetGroup }
       : {}),
   };
 }
@@ -497,6 +573,50 @@ export async function getCampaign(
       "Phản hồi chi tiết campaign không hợp lệ.",
     );
   }
+}
+
+function normalizeCampaignRoutingOption(
+  value: unknown,
+  labelField: "team_name" | "group_name",
+): CampaignRoutingOption | null {
+  const row = asRecord(value);
+  const id = text(row?.name);
+  if (!id) return null;
+  return {
+    id,
+    label: text(row?.[labelField], id),
+    ...(text(row?.campus) ? { campus: text(row?.campus) } : {}),
+    ...(text(row?.group) ? { group: text(row?.group) } : {}),
+    ...(text(row?.province) ? { province: text(row?.province) } : {}),
+  };
+}
+
+export async function getCampaignRoutingOptions(
+  options: CampaignApiRequestOptions = {},
+): Promise<CampaignRoutingOptions> {
+  const raw = await callCampaignApi<unknown>(
+    METHODS.ROUTING_OPTIONS,
+    "GET",
+    options,
+  );
+  const payload = asRecord(unwrapMessage(raw));
+  if (!payload || !Array.isArray(payload.teams) || !Array.isArray(payload.groups)) {
+    throw new CampaignApiError(
+      502,
+      "INVALID_CAMPAIGN_ROUTING_OPTIONS",
+      "Phản hồi cấu hình phân bổ Campaign không hợp lệ.",
+    );
+  }
+  return {
+    teams: payload.teams.flatMap((value) => {
+      const option = normalizeCampaignRoutingOption(value, "team_name");
+      return option ? [option] : [];
+    }),
+    groups: payload.groups.flatMap((value) => {
+      const option = normalizeCampaignRoutingOption(value, "group_name");
+      return option ? [option] : [];
+    }),
+  };
 }
 
 export async function updateCampaign(

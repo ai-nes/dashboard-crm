@@ -28,5 +28,10 @@ export function toCampaignListItem(
     mode: campaign.channelBoundary === "Digital" ? "ONLINE" : "OFFLINE",
     channelType: (campaign.channelType ?? "") as ChannelTypeValue | "",
     channelUrl: campaign.channelUrl ?? "",
+    campus: campaign.campus ?? "",
+    leadRoutingEnabled: campaign.leadRoutingEnabled ?? false,
+    leadRoutingTargetType: campaign.leadRoutingTargetType ?? "",
+    leadRoutingTargetTeam: campaign.leadRoutingTargetTeam ?? "",
+    leadRoutingTargetGroup: campaign.leadRoutingTargetGroup ?? "",
   };
 }

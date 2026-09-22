@@ -31,6 +31,11 @@ const validForm: CampaignFormState = {
   mode: "ONLINE",
   channelType: "FACEBOOK_LEAD_FORM",
   channelUrl: "https://example.com/lead-form",
+  campus: "",
+  leadRoutingEnabled: false,
+  leadRoutingTargetType: "",
+  leadRoutingTargetTeam: "",
+  leadRoutingTargetGroup: "",
 };
 
 describe("campaign form validation", () => {

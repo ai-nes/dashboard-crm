@@ -6,15 +6,19 @@ import AssignmentBatchWorkspace from "./_components/assignment-batch-workspace";
 
 export const metadata: Metadata = {
   title: "Phân công Lead",
-  description:
-    "Theo dõi các bước kiểm tra và phân công Lead theo từng đợt.",
+  description: "Theo dõi các bước kiểm tra và phân công Lead theo từng đợt.",
 };
 
 export default async function LeadSaleStudentAssignmentPage({
   searchParams,
 }: PageProps<"/lead-sale/student-assignment">) {
   const params = await searchParams;
-  const activeTab = params.tab === "history" ? "history" : "assignment";
+  const activeTab =
+    params.tab === "history"
+      ? "history"
+      : params.tab === "config"
+        ? "config"
+        : "assignment";
 
   return (
     <Suspense fallback={<WorkspaceRouteSkeleton />}>

@@ -16,6 +16,7 @@ import type {
   WorkflowStep,
 } from "../../_shared/student-assignment/types";
 import type { BatchWorkflowPhaseState } from "../../_shared/lead-assignment-batch/batch-assignment-workflow-data";
+import type { LeadAssignmentWorkflowStepSnapshot } from "@/services/api/lead-sale";
 
 export type AssignmentBatchFlowNode = Node<
   {
@@ -26,6 +27,8 @@ export type AssignmentBatchFlowNode = Node<
     processing: boolean;
     completed: boolean;
     phaseState: BatchWorkflowPhaseState;
+    configMode?: boolean;
+    configuration?: LeadAssignmentWorkflowStepSnapshot;
     onSelect: (stepId: StepId) => void;
   },
   "assignmentBatchStep"
@@ -77,27 +80,61 @@ export default function AssignmentBatchWorkflowNode({
       ))}
       <Button
         appearance="ghost"
-        aria-label={`${data.step.title}. Trạng thái: ${workflowPhaseStateLabels[data.phaseState]}. ${data.metric}. Xem chi tiết bước`}
+        aria-label={`${data.step.title}. ${
+          data.configMode
+            ? data.configuration?.canToggle
+              ? data.configuration.enabled
+                ? "Đang bật"
+                : "Đang tắt"
+              : "Bắt buộc bật"
+            : `Trạng thái: ${workflowPhaseStateLabels[data.phaseState]}`
+        }. ${data.metric}. Xem cấu hình bước`}
         aria-busy={data.processing}
         onPress={() => data.onSelect(data.step.id)}
         className={cn(
-          "block h-auto min-h-[184px] w-[234px] cursor-grab rounded-xl border border-card-border bg-card-background p-4 text-left text-text-primary shadow-xs transition-none active:cursor-grabbing hover:bg-card-background hover:text-text-primary",
+          "block h-auto min-h-[184px] w-[234px] rounded-xl border border-card-border bg-card-background p-4 text-left text-text-primary shadow-xs transition-none hover:bg-card-background hover:text-text-primary",
+          data.configMode
+            ? "cursor-pointer"
+            : "cursor-grab active:cursor-grabbing",
           data.highlighted && "border-primary-400 ring-2 ring-primary-100",
           data.active && "border-primary-500 shadow-md ring-2 ring-primary-100",
           data.processing &&
             "border-primary-500 shadow-md ring-2 ring-primary-100",
           data.completed && !data.active && "border-badge-success-text/40",
+          data.configMode &&
+            data.configuration?.canToggle &&
+            !data.configuration.enabled &&
+            "opacity-75",
         )}
       >
         <div className="mb-2 flex justify-end">
-          <Badge
-            color={workflowPhaseStateColors[data.phaseState]}
-            className="text-[10px]"
-          >
-            {data.processing
-              ? "Đang xử lý"
-              : workflowPhaseStateLabels[data.phaseState]}
-          </Badge>
+          {data.configMode ? (
+            <Badge
+              color={
+                data.configuration?.canToggle
+                  ? data.configuration.enabled
+                    ? "success"
+                    : "gray"
+                  : "primary"
+              }
+              className="text-[10px]"
+            >
+              {data.configuration?.canToggle
+                ? data.configuration.enabled
+                  ? "Đang bật"
+                  : "Đang tắt"
+                : "Bắt buộc bật"}
+            </Badge>
+          ) : (
+            <Badge
+              color={workflowPhaseStateColors[data.phaseState]}
+              className="text-[10px]"
+            >
+              {data.processing
+                ? "Đang xử lý"
+                : workflowPhaseStateLabels[data.phaseState]}
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-2.5">
           <span

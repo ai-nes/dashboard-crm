@@ -14,11 +14,13 @@ import {
   getCampaign,
   getCampaignChannelTypes,
   getCampaignList,
+  getCampaignRoutingOptions,
   updateCampaign,
   type CampaignChannelTypeListParams,
   type CampaignChannelTypeListResponse,
   type CampaignListResponse,
   type CampaignListParams,
+  type CampaignRoutingOptions,
   type CreateCampaignPayload,
   type LeadSaleCampaign,
   type UpdateCampaignPayload,
@@ -30,6 +32,7 @@ export const leadSaleCampaignKeys = {
     ["lead-sale-campaigns", "list", params] as const,
   channelTypes: (params: CampaignChannelTypeListParams = {}) =>
     ["lead-sale-campaigns", "channel-types", params] as const,
+  routingOptions: () => ["lead-sale-campaigns", "routing-options"] as const,
   detail: (code: string) => ["lead-sale-campaigns", "detail", code] as const,
 };
 
@@ -69,6 +72,25 @@ export function useLeadSaleCampaignChannelTypesQuery<
   return useQuery({
     queryKey: leadSaleCampaignKeys.channelTypes(params),
     queryFn: () => getCampaignChannelTypes(params),
+    ...options,
+  });
+}
+
+export function useLeadSaleCampaignRoutingOptionsQuery(
+  options?: Omit<
+    UseQueryOptions<
+      CampaignRoutingOptions,
+      Error,
+      CampaignRoutingOptions,
+      ReturnType<typeof leadSaleCampaignKeys.routingOptions>
+    >,
+    "queryKey" | "queryFn"
+  >,
+): UseQueryResult<CampaignRoutingOptions, Error> {
+  return useQuery({
+    queryKey: leadSaleCampaignKeys.routingOptions(),
+    queryFn: () => getCampaignRoutingOptions(),
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 }
