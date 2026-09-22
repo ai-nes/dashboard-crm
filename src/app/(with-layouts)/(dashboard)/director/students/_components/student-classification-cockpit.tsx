@@ -22,15 +22,18 @@ import StudentPositiveFeedbackCard from "./student-positive-feedback-card";
 import StudentRecentInteractionsCard from "./student-recent-interactions-card";
 import StudentSentimentGaugeCard from "./student-sentiment-gauge-card";
 import StudentNextBestActions from "./student-next-best-actions";
+import type { StudentScoreBreakdown } from "./student-score-breakdown";
 import type { Student360SectionProps } from "./types";
 
 interface StudentClassificationCockpitProps extends Student360SectionProps {
   analysisTargetId: string;
+  scoreBreakdown?: StudentScoreBreakdown | null;
 }
 
 export default function StudentClassificationCockpit({
   data,
   analysisTargetId,
+  scoreBreakdown,
 }: StudentClassificationCockpitProps) {
   const [isOverviewOpen, setIsOverviewOpen] = useState(true);
   const [isHealthOpen, setIsHealthOpen] = useState(true);
@@ -223,6 +226,7 @@ export default function StudentClassificationCockpit({
                         reportSummary={reportSummary}
                         isRefreshing={Boolean(isAnalysisActive)}
                         onRefresh={handleAnalysisRequest}
+                        scoreBreakdown={scoreBreakdown}
                       />
 
                       <div className="grid items-stretch gap-4 lg:grid-cols-2">

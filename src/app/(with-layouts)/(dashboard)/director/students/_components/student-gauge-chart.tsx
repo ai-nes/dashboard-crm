@@ -4,11 +4,15 @@ import { useMemo } from "react";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { cn } from "@/utils/cn";
 
+import StudentScoreBreakdownTooltip from "./student-score-breakdown-tooltip";
+import type { StudentScoreBreakdown } from "./student-score-breakdown";
+
 interface StudentGaugeChartProps {
   score: number; // 0 to 100
   statusText?: string;
   label?: string;
   className?: string;
+  scoreBreakdown?: StudentScoreBreakdown | null;
 }
 
 // Center & radii for 200x120 SVG viewBox
@@ -67,6 +71,7 @@ export default function StudentGaugeChart({
   statusText,
   label = "Điểm tiềm năng",
   className,
+  scoreBreakdown,
 }: StudentGaugeChartProps) {
   const clampedScore = Math.max(0, Math.min(100, score));
 
@@ -100,8 +105,13 @@ export default function StudentGaugeChart({
   const tail = polarToCartesian(CX, CY, 9, targetAngle + 180);
   const pointerPath = `M ${tail.x} ${tail.y} L ${baseLeft.x} ${baseLeft.y} L ${tip.x} ${tip.y} L ${baseRight.x} ${baseRight.y} Z`;
 
-  return (
-    <div className={cn("flex flex-col items-center justify-center select-none", className)}>
+  const chart = (
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center select-none",
+        className,
+      )}
+    >
       <div className="relative w-52 sm:w-56">
         <svg
           viewBox="0 0 200 120"
@@ -159,7 +169,9 @@ export default function StudentGaugeChart({
             className="fill-text-primary text-2xl font-bold tracking-tight"
           >
             {clampedScore}
-            <tspan className="fill-text-tertiary text-[11px] font-medium">/100</tspan>
+            <tspan className="fill-text-tertiary text-[11px] font-medium">
+              /100
+            </tspan>
           </text>
 
           {/* Precision dial pointer needle */}
@@ -186,7 +198,11 @@ export default function StudentGaugeChart({
 
       {/* High-contrast status badge & label */}
       <div className="mt-1 flex flex-col items-center">
-        <Badge color={badgeColor} size="sm" className="font-semibold tracking-wide shadow-2xs">
+        <Badge
+          color={badgeColor}
+          size="sm"
+          className="font-semibold tracking-wide shadow-2xs"
+        >
           {status}
         </Badge>
         <p className="mt-1.5 text-center text-xs font-semibold tracking-wider text-text-tertiary uppercase">
@@ -194,5 +210,13 @@ export default function StudentGaugeChart({
         </p>
       </div>
     </div>
+  );
+
+  return scoreBreakdown !== undefined ? (
+    <StudentScoreBreakdownTooltip breakdown={scoreBreakdown}>
+      {chart}
+    </StudentScoreBreakdownTooltip>
+  ) : (
+    chart
   );
 }
