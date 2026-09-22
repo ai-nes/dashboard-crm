@@ -4,40 +4,42 @@ import type { InteractionIntelligence } from "@/services/api/interaction-intelli
 
 interface StudentConversationSummaryProps {
   intelligence?: InteractionIntelligence | null;
+  callSummary?: string | null;
 }
 
 export default function StudentConversationSummary({
   intelligence,
+  callSummary,
 }: StudentConversationSummaryProps) {
   const summary = intelligence?.conversation_summary;
   const flatSummary = intelligence?.summary?.trim();
+  const resultSummary = callSummary?.trim();
+  const studentSummary = summary?.problem.description;
+  const advisorSummary = summary?.resolution.description;
+  const outcomeSummary =
+    resultSummary ||
+    summary?.result.description ||
+    summary?.result.next_action ||
+    flatSummary;
 
-  if (!summary && !flatSummary) return null;
+  if (!studentSummary && !advisorSummary && !outcomeSummary) return null;
 
   return (
     <section aria-label="Tóm tắt cuộc gọi">
-      {summary ? (
-        <div className="grid gap-3 md:grid-cols-3">
-          <ConversationSummarySection
-            title="Học sinh đã trao đổi"
-            description={summary.problem.description}
-          />
-          <ConversationSummarySection
-            title="Tư vấn viên đã tư vấn"
-            description={summary.resolution.description}
-          />
-          <ConversationSummarySection
-            title="Kết quả"
-            description={
-              summary.result.description || summary.result.next_action
-            }
-          />
-        </div>
-      ) : (
-        <p className="mt-3 rounded-lg border border-card-border bg-card-background p-3 text-sm leading-5 text-text-secondary">
-          {flatSummary}
-        </p>
-      )}
+      <div className="space-y-4">
+        <ConversationSummarySection
+          title="Học sinh đã trao đổi"
+          description={studentSummary}
+        />
+        <ConversationSummarySection
+          title="Tư vấn viên đã tư vấn"
+          description={advisorSummary}
+        />
+        <ConversationSummarySection
+          title="Kết quả"
+          description={outcomeSummary}
+        />
+      </div>
     </section>
   );
 }
@@ -50,9 +52,9 @@ function ConversationSummarySection({
   description?: string;
 }) {
   return (
-    <div className="rounded-lg border border-card-border bg-card-background p-3">
+    <div>
       <h4 className="text-sm font-medium text-text-primary">{title}</h4>
-      <p className="mt-2 min-h-10 text-sm leading-5 text-text-secondary">
+      <p className="mt-1 text-sm leading-5 text-text-secondary">
         {description || "Chưa có thông tin rõ ràng."}
       </p>
     </div>
