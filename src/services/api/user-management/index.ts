@@ -419,6 +419,7 @@ export async function listPermissionProfiles(
     role: input.role,
     start: input.start,
     pageLength: input.pageLength,
+    viewMode: input.viewMode,
   };
   const requestOptions: RequestOptions =
     input.baseUrl || input.headers
@@ -436,6 +437,7 @@ export async function listPermissionProfiles(
       role: params.role?.trim() || undefined,
       start: params.start ?? 0,
       page_length: Math.min(params.pageLength ?? 8, 100),
+      view_mode: params.viewMode === "detailed" ? "detailed" : undefined,
     },
   );
   const payload = asRecord(raw);
@@ -450,6 +452,7 @@ export async function listPermissionProfiles(
     total: Number(payload?.total ?? 0),
     start: Number(payload?.start ?? params.start ?? 0),
     pageLength: Number(payload?.page_length ?? params.pageLength ?? 8),
+    viewMode: payload?.view_mode === "detailed" ? "detailed" : "grouped",
   };
 }
 
@@ -477,6 +480,7 @@ export async function updatePermissionProfile(
       ...(payload.replaceApplicableDoctypes === undefined
         ? {}
         : { replace_applicable_doctypes: payload.replaceApplicableDoctypes }),
+      ...(payload.viewMode === "detailed" ? { view_mode: "detailed" } : {}),
     },
   );
   const profile = normalizePermissionProfile(raw);
