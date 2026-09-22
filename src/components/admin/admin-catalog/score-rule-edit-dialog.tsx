@@ -39,7 +39,7 @@ export default function ScoreRuleEditDialog({
   const [draft, setDraft] = useState<ScoreRule>(() => toRuleDraft(rule));
   const [showErrors, setShowErrors] = useState(false);
 
-  if (!rule) return null;
+  if (!isOpen) return null;
 
   const updateDraft = (patch: Partial<ScoreRule>) => {
     setDraft((current) => ({ ...current, ...patch }));
@@ -62,11 +62,15 @@ export default function ScoreRuleEditDialog({
 
   return (
     <CatalogEditorDialog
-      title={`Chỉnh sửa luật: ${rule.signal || getScoreRuleKindMeta(rule.rule_kind).label}`}
-      description="Chọn đúng loại tác động và chỉ cấu hình các trường liên quan."
+      title={
+        rule
+          ? `Chỉnh sửa rubric: ${rule.signal || getScoreRuleKindMeta(rule.rule_kind).label}`
+          : "Thêm rubric"
+      }
+      description="Chọn loại rubric và chỉ cấu hình các trường liên quan."
       isOpen={isOpen}
       isSaving={isSaving}
-      submitLabel="Lưu luật"
+      submitLabel={rule ? "Lưu rubric" : "Thêm rubric"}
       onOpenChange={(open) => {
         if (!open && !isSaving) onClose();
       }}

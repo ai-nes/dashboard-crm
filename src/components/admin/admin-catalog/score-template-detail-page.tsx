@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil1 } from "@tailgrids/icons";
+import { ArrowLeft, Pencil1, Plus } from "@tailgrids/icons";
 import { Pie, PieChart, Cell, Label, Tooltip } from "recharts";
 import type {
   NameType,
@@ -18,6 +12,7 @@ import type { TooltipContentProps } from "recharts";
 import { toast } from "sonner";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
+import { CreateDialogSelect } from "@/components/common/create-dialog-field";
 import { EditableCard } from "@/components/common/editable-card";
 import { EditableDetailField } from "@/components/common/editable-detail-field";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
@@ -37,10 +32,10 @@ import { cn } from "@/utils/cn";
 import {
   CatalogPagination,
   DateTimePickerField,
+  EmptyState,
   ErrorState,
   Field,
   LoadingState,
-  SelectInput,
   StatusBadge,
   TextInput,
 } from "./admin-catalog-ui";
@@ -51,7 +46,13 @@ import {
   getScoreRuleValidationMessage,
   normalizeScoreRuleKind,
 } from "./score-rule-model";
-import { ScoreRulesEditor } from "./structured-editors";
+import ScoreTemplateCreateDialog from "./score-template-create-dialog";
+import {
+  DEFAULT_SCORE_WEIGHT_VALUES,
+  SCORE_WEIGHT_DIMENSIONS,
+  type ScoreWeightField,
+  type ScoreWeightValues,
+} from "./score-template-weight-model";
 
 const SCORE_TEMPLATE_LIST_PATH = "/director/admin/catalogs";
 const SCORE_RULE_PAGE_SIZE = 5;
@@ -82,7 +83,7 @@ const emptyForm: ScoreForm = {
   rules: [],
 };
 
-const statusOptions = [
+const statusOptions: Array<{ id: ScoreTemplate["status"]; label: string }> = [
   { id: "Draft", label: "Nháp" },
   { id: "Active", label: "Đang dùng" },
   { id: "Inactive", label: "Ngừng dùng" },
@@ -124,7 +125,7 @@ function toScorePayload(form: ScoreForm): Partial<ScoreTemplate> {
 function getScoreValidationMessage(form: ScoreForm): string | null {
   if (!form.template_name.trim()) return "Tên template không được để trống.";
   if (form.rules.length === 0) {
-    return "Thêm ít nhất một luật cho template.";
+    return "Thêm ít nhất một rubric cho template.";
   }
   const invalidRule = form.rules
     .map(getScoreRuleValidationMessage)
@@ -167,32 +168,30 @@ function formatWeightPercent(value?: number): string {
   return formatScoreNumber(value <= 1 ? value * 100 : value);
 }
 
+function formatWeightInput(value?: number): string {
+  if (value === undefined) return "";
+  return String(value <= 1 ? value * 100 : value);
+}
+
 function parseWeightPercent(value: string): string {
   const parsed = parseScoreNumber(value);
   return parsed === undefined ? "" : String(parsed / 100);
 }
 
-function FormSection({
-  title,
-  description,
-  children,
-  className,
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={cn("px-5 py-6 sm:px-8", className)}>
-      <div className="mb-5 max-w-2xl">
-        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
-        <p className="mt-1 text-sm leading-5 text-text-secondary">
-          {description}
-        </p>
-      </div>
-      {children}
-    </section>
+function toWeightFraction(value?: number): number {
+  if (value === undefined || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(value <= 1 ? value : value / 100, 1));
+}
+
+function getScoreWeightValues(form: ScoreForm): ScoreWeightValues {
+  return SCORE_WEIGHT_DIMENSIONS.reduce(
+    (values, dimension) => {
+      values[dimension.id] = toWeightFraction(
+        parseScoreNumber(form[dimension.field]),
+      );
+      return values;
+    },
+    { ...DEFAULT_SCORE_WEIGHT_VALUES },
   );
 }
 
@@ -223,19 +222,15 @@ function ScoreTemplateIdentityFields({
         </Field>
       </div>
       <Field label="Trạng thái" hint="Chỉ template đang dùng mới được áp dụng.">
-        <SelectInput
+        <CreateDialogSelect
+          label="Trạng thái"
           value={form.status}
-          disabled={isDisabled}
-          onChange={(event) =>
-            updateForm({
-              status: event.target.value as ScoreForm["status"],
-            })
+          options={statusOptions}
+          isDisabled={isDisabled}
+          onChange={(value) =>
+            updateForm({ status: value as ScoreForm["status"] })
           }
-        >
-          <option value="Draft">Nháp</option>
-          <option value="Active">Đang dùng</option>
-          <option value="Inactive">Ngừng dùng</option>
-        </SelectInput>
+        />
       </Field>
       <div className="xl:col-span-2">
         <Field label="Bắt đầu">
@@ -270,86 +265,47 @@ function ScoreWeightFields({
   updateForm: ScoreFormUpdater;
   isDisabled: boolean;
 }) {
+  const data = getWeightChartData(form);
+  const updateWeight = (field: ScoreWeightField, value: string) => {
+    updateForm({ [field]: parseWeightPercent(value) } as Partial<ScoreForm>);
+  };
+
   return (
-    <div className="space-y-3">
-      <div className="grid gap-4 md:grid-cols-3">
-        <Field label="Fit" hint="Mức độ phù hợp với hồ sơ.">
-          <TextInput
-            type="number"
-            min="0"
-            max="100"
-            step="1"
-            value={formatWeightPercent(parseScoreNumber(form.fit_weight))}
-            disabled={isDisabled}
-            onChange={(event) =>
-              updateForm({ fit_weight: parseWeightPercent(event.target.value) })
-            }
-          />
-        </Field>
-        <Field label="Engagement" hint="Mức độ tương tác của lead.">
-          <TextInput
-            type="number"
-            min="0"
-            max="100"
-            step="1"
-            value={formatWeightPercent(
-              parseScoreNumber(form.engagement_weight),
-            )}
-            disabled={isDisabled}
-            onChange={(event) =>
-              updateForm({
-                engagement_weight: parseWeightPercent(event.target.value),
-              })
-            }
-          />
-        </Field>
-        <Field label="Intent" hint="Mức độ thể hiện ý định đăng ký.">
-          <TextInput
-            type="number"
-            min="0"
-            max="100"
-            step="1"
-            value={formatWeightPercent(parseScoreNumber(form.intent_weight))}
-            disabled={isDisabled}
-            onChange={(event) =>
-              updateForm({
-                intent_weight: parseWeightPercent(event.target.value),
-              })
-            }
-          />
-        </Field>
+    <div className="grid items-start gap-5 md:grid-cols-[minmax(180px,0.9fr)_minmax(0,1.1fr)]">
+      <WeightChart data={data} emptyHint="Nhập tỷ trọng ở các thẻ bên cạnh." />
+      <div className="space-y-3">
+        {SCORE_WEIGHT_DIMENSIONS.map((dimension) => (
+          <div
+            key={dimension.id}
+            className="rounded-lg border border-card-border bg-background-gray-secondary/20 p-3"
+          >
+            <Field label={dimension.label} hint={dimension.hint}>
+              <div className="relative">
+                <TextInput
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={formatWeightInput(
+                    parseScoreNumber(form[dimension.field]),
+                  )}
+                  disabled={isDisabled}
+                  aria-label={`${dimension.label} trọng số`}
+                  className="pr-10"
+                  onChange={(event) =>
+                    updateWeight(dimension.field, event.target.value)
+                  }
+                />
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-text-tertiary">
+                  %
+                </span>
+              </div>
+            </Field>
+          </div>
+        ))}
+        <WeightTotalHint data={data} />
       </div>
-      <WeightTotalHint form={form} />
     </div>
-  );
-}
-
-function WeightTotalHint({ form }: { form: ScoreForm }) {
-  const values = [
-    parseScoreNumber(form.fit_weight),
-    parseScoreNumber(form.engagement_weight),
-    parseScoreNumber(form.intent_weight),
-  ];
-  const hasInput = values.some((value) => value !== undefined);
-  const total = values.reduce<number>((sum, value) => sum + (value ?? 0), 0);
-  const totalPercent = total <= 1 ? total * 100 : total;
-  const isValid = Math.abs(totalPercent - 100) < 0.01;
-
-  return (
-    <p
-      className={cn(
-        "text-xs leading-5",
-        !hasInput
-          ? "text-text-tertiary"
-          : isValid
-            ? "text-success-600 dark:text-success-400"
-            : "text-warning-600 dark:text-warning-400",
-      )}
-    >
-      {hasInput
-        ? `Tổng trọng số: ${formatScoreNumber(totalPercent)}%. ${isValid ? "Đã đủ 100%." : "Nên điều chỉnh về 100%."}`
-        : "Nhập tỷ trọng theo phần trăm; tổng hợp lệ là 100%."}
-    </p>
   );
 }
 
@@ -387,30 +343,12 @@ function ScoreDateTimeField({
   );
 }
 
-function WeightSummary({ form }: { form: ScoreForm }) {
-  const items = [
-    {
-      id: "fit",
-      label: "Fit",
-      description: "Độ phù hợp",
-      value: parseScoreNumber(form.fit_weight),
-      color: "var(--primary-500)",
-    },
-    {
-      id: "engagement",
-      label: "Engagement",
-      description: "Tương tác",
-      value: parseScoreNumber(form.engagement_weight),
-      color: "var(--info-500)",
-    },
-    {
-      id: "intent",
-      label: "Intent",
-      description: "Ý định đăng ký",
-      value: parseScoreNumber(form.intent_weight),
-      color: "var(--success-500)",
-    },
-  ];
+function getWeightChartData(form: ScoreForm) {
+  const values = getScoreWeightValues(form);
+  const items = SCORE_WEIGHT_DIMENSIONS.map((dimension) => ({
+    ...dimension,
+    value: values[dimension.id],
+  }));
   const total = items.reduce(
     (sum, item) => sum + Math.max(item.value ?? 0, 0),
     0,
@@ -421,86 +359,135 @@ function WeightSummary({ form }: { form: ScoreForm }) {
     percentage: total > 0 ? (Math.max(item.value ?? 0, 0) / total) * 100 : 0,
   }));
   const hasWeights = total > 0;
-  const totalPercent = total <= 1 ? total * 100 : total;
+  const totalPercent = total * 100;
   const hasValidTotal = Math.abs(totalPercent - 100) < 0.01;
+
+  return {
+    items,
+    chartData,
+    total,
+    hasWeights,
+    totalPercent,
+    hasValidTotal,
+  };
+}
+
+type WeightChartData = ReturnType<typeof getWeightChartData>;
+
+function WeightChart({
+  data,
+  emptyHint = "Nhấn nút chỉnh sửa để nhập tỷ trọng.",
+}: {
+  data: WeightChartData;
+  emptyHint?: string;
+}) {
+  const { items, chartData, hasWeights, totalPercent } = data;
+
+  return (
+    <div
+      className="min-w-0"
+      aria-label={`Biểu đồ tỷ trọng ${items.map((item) => item.label).join(", ")}`}
+    >
+      {hasWeights ? (
+        <ChartContainer className="h-56 w-full" height={224} width="100%">
+          <PieChart>
+            <Tooltip
+              cursor={{ fill: "transparent" }}
+              content={WeightSummaryTooltip}
+            />
+            <Pie
+              data={chartData}
+              dataKey="chartValue"
+              nameKey="label"
+              cx="50%"
+              cy="50%"
+              innerRadius={62}
+              outerRadius={88}
+              paddingAngle={3}
+              startAngle={90}
+              endAngle={-270}
+              stroke="var(--card-background)"
+              strokeWidth={2}
+              isAnimationActive={false}
+            >
+              {chartData.map((item) => (
+                <Cell key={item.id} fill={item.color} />
+              ))}
+              <Label
+                content={({ viewBox }) => {
+                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                    return (
+                      <text
+                        x={viewBox.cx}
+                        y={viewBox.cy}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                      >
+                        <tspan
+                          x={viewBox.cx}
+                          dy="-0.2em"
+                          className="fill-text-primary text-xl font-semibold"
+                        >
+                          {formatScoreNumber(totalPercent)}%
+                        </tspan>
+                        <tspan
+                          x={viewBox.cx}
+                          dy="1.5em"
+                          className="fill-text-tertiary text-[11px]"
+                        >
+                          Tổng trọng số
+                        </tspan>
+                      </text>
+                    );
+                  }
+                  return null;
+                }}
+              />
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+      ) : (
+        <div className="flex h-56 items-center justify-center rounded-xl bg-background-gray-secondary/30 text-center">
+          <div>
+            <p className="text-sm font-semibold text-text-secondary">
+              Chưa thiết lập trọng số
+            </p>
+            <p className="mt-1 text-xs text-text-tertiary">{emptyHint}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WeightTotalHint({ data }: { data: WeightChartData }) {
+  const { hasWeights, totalPercent, hasValidTotal } = data;
+
+  return (
+    <p
+      className={cn(
+        "text-xs leading-5",
+        !hasWeights
+          ? "text-text-tertiary"
+          : hasValidTotal
+            ? "text-success-600 dark:text-success-400"
+            : "text-warning-600 dark:text-warning-400",
+      )}
+    >
+      {hasWeights
+        ? `Tổng trọng số: ${formatScoreNumber(totalPercent)}%. ${hasValidTotal ? "Đã đủ 100%." : "Nên điều chỉnh về 100%."}`
+        : "Nhập tỷ trọng theo phần trăm; tổng hợp lệ là 100%."}
+    </p>
+  );
+}
+
+function WeightSummary({ form }: { form: ScoreForm }) {
+  const data = getWeightChartData(form);
+  const { chartData, hasWeights, totalPercent, hasValidTotal } = data;
 
   return (
     <div className="grid items-center gap-5 md:grid-cols-[minmax(180px,0.9fr)_minmax(0,1.1fr)]">
-      <div
-        className="min-w-0"
-        aria-label="Biểu đồ tỷ trọng Fit, Engagement và Intent"
-      >
-        {hasWeights ? (
-          <ChartContainer className="h-56 w-full" height={224} width="100%">
-            <PieChart>
-              <Tooltip
-                cursor={{ fill: "transparent" }}
-                content={WeightSummaryTooltip}
-              />
-              <Pie
-                data={chartData}
-                dataKey="chartValue"
-                nameKey="label"
-                cx="50%"
-                cy="50%"
-                innerRadius={62}
-                outerRadius={88}
-                paddingAngle={3}
-                startAngle={90}
-                endAngle={-270}
-                stroke="var(--card-background)"
-                strokeWidth={2}
-                isAnimationActive={false}
-              >
-                {chartData.map((item) => (
-                  <Cell key={item.id} fill={item.color} />
-                ))}
-                <Label
-                  content={({ viewBox }) => {
-                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                      return (
-                        <text
-                          x={viewBox.cx}
-                          y={viewBox.cy}
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                        >
-                          <tspan
-                            x={viewBox.cx}
-                            dy="-0.2em"
-                            className="fill-text-primary text-xl font-semibold"
-                          >
-                            {formatScoreNumber(totalPercent)}%
-                          </tspan>
-                          <tspan
-                            x={viewBox.cx}
-                            dy="1.5em"
-                            className="fill-text-tertiary text-[11px]"
-                          >
-                            Tổng trọng số
-                          </tspan>
-                        </text>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-              </Pie>
-            </PieChart>
-          </ChartContainer>
-        ) : (
-          <div className="flex h-56 items-center justify-center rounded-xl bg-background-gray-secondary/30 text-center">
-            <div>
-              <p className="text-sm font-semibold text-text-secondary">
-                Chưa thiết lập trọng số
-              </p>
-              <p className="mt-1 text-xs text-text-tertiary">
-                Nhấn nút chỉnh sửa để nhập tỷ trọng.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+      <WeightChart data={data} />
 
       <dl className="space-y-3">
         {chartData.map((item) => (
@@ -581,9 +568,13 @@ function WeightSummaryTooltip({
 
 function ScoreRulesSummary({
   rules,
+  isDisabled,
+  onAddRule,
   onEditRule,
 }: {
   rules: ScoreRule[];
+  isDisabled: boolean;
+  onAddRule: () => void;
   onEditRule: (index: number) => void;
 }) {
   const [page, setPage] = useState(1);
@@ -597,17 +588,45 @@ function ScoreRulesSummary({
 
   if (rules.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-card-border bg-background-gray-secondary/20 px-3 py-5 text-center text-xs text-text-tertiary">
-        Chưa có luật chấm điểm.
-      </p>
+      <div className="flex flex-col items-center rounded-lg border border-dashed border-card-border bg-background-gray-secondary/20 px-4 py-6 text-center">
+        <p className="text-sm font-medium text-text-primary">
+          Chưa có rubric nào.
+        </p>
+        <p className="mt-1 max-w-md text-xs leading-5 text-text-tertiary">
+          Tạo từng thành phần điểm riêng để template bắt đầu có cấu hình.
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          appearance="outline"
+          className="mt-4"
+          isDisabled={isDisabled}
+          onPress={onAddRule}
+        >
+          <Plus size={15} aria-hidden="true" />
+          Thêm rubric
+        </Button>
+      </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
-        <span>Nhấn biểu tượng bút để chỉnh sửa riêng từng luật.</span>
-        <span>Revision/hash do server quản lý.</span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
+          <span>Chọn biểu tượng bút để chỉnh sửa từng rubric.</span>
+          <span>Revision/hash do server quản lý.</span>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          appearance="outline"
+          isDisabled={isDisabled}
+          onPress={onAddRule}
+        >
+          <Plus size={15} aria-hidden="true" />
+          Thêm rubric
+        </Button>
       </div>
       <div className="overflow-x-auto rounded-lg border border-card-border">
         <table className="w-full min-w-[640px] text-left">
@@ -665,7 +684,8 @@ function ScoreRulesSummary({
                       iconOnly
                       size="sm"
                       appearance="ghost"
-                      aria-label={`Chỉnh sửa luật ${signalLabel}`}
+                      aria-label={`Chỉnh sửa rubric ${signalLabel}`}
+                      isDisabled={isDisabled}
                       onPress={() => onEditRule(ruleIndex)}
                     >
                       <Pencil1 size={15} aria-hidden="true" />
@@ -689,77 +709,6 @@ function ScoreRulesSummary({
   );
 }
 
-function CreateScoreTemplateForm({
-  form,
-  updateForm,
-  showRuleErrors,
-  isSaving,
-  onCancel,
-  onSubmit,
-}: {
-  form: ScoreForm;
-  updateForm: ScoreFormUpdater;
-  showRuleErrors: boolean;
-  isSaving: boolean;
-  onCancel: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-}) {
-  return (
-    <section className="overflow-hidden rounded-2xl border border-card-border bg-card-background">
-      <form onSubmit={onSubmit}>
-        <div className="divide-y divide-card-border">
-          <FormSection
-            title="Thông tin template"
-            description="Đặt tên, trạng thái và khoảng thời gian áp dụng cho policy mới."
-          >
-            <ScoreTemplateIdentityFields
-              form={form}
-              updateForm={updateForm}
-              isDisabled={isSaving}
-            />
-          </FormSection>
-          <FormSection
-            title="Trọng số"
-            description="Điều chỉnh mức ảnh hưởng của từng nhóm tín hiệu trong tổng điểm."
-          >
-            <ScoreWeightFields
-              form={form}
-              updateForm={updateForm}
-              isDisabled={isSaving}
-            />
-          </FormSection>
-          <section className="px-5 py-6 sm:px-8">
-            <ScoreRulesEditor
-              rules={form.rules}
-              onChange={(rules) => updateForm({ rules })}
-              showErrors={showRuleErrors}
-              isDisabled={isSaving}
-            />
-            {showRuleErrors && form.rules.length === 0 ? (
-              <p className="mt-3 text-xs text-input-error" role="alert">
-                Thêm ít nhất một luật cho template.
-              </p>
-            ) : null}
-          </section>
-        </div>
-        <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-card-border bg-card-background px-5 py-3 sm:px-8">
-          <Button
-            type="button"
-            appearance="outline"
-            onPress={onCancel}
-            isDisabled={isSaving}
-          >
-            Hủy
-          </Button>
-          <Button type="submit" isDisabled={isSaving}>
-            {isSaving ? "Đang lưu…" : "Thêm mẫu chấm điểm"}
-          </Button>
-        </footer>
-      </form>
-    </section>
-  );
-}
-
 export default function ScoreTemplateDetailPage({
   templateName,
 }: {
@@ -773,10 +722,10 @@ export default function ScoreTemplateDetailPage({
   const savedFormRef = useRef<ScoreForm>(emptyForm);
   const [form, setForm] = useState<ScoreForm>(emptyForm);
   const [editingSection, setEditingSection] = useState<ScoreEditSection | null>(
-    isCreate ? "details" : null,
+    null,
   );
   const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null);
-  const [showRuleErrors, setShowRuleErrors] = useState(false);
+  const [showCreateErrors, setShowCreateErrors] = useState(false);
 
   useEffect(() => {
     if (!templateName || !detailQuery.data) return;
@@ -787,7 +736,6 @@ export default function ScoreTemplateDetailPage({
     setForm(nextForm);
     setEditingSection(null);
     setEditingRuleIndex(null);
-    setShowRuleErrors(false);
     initializedTemplateRef.current = templateName;
   }, [detailQuery.data, templateName]);
 
@@ -797,17 +745,48 @@ export default function ScoreTemplateDetailPage({
 
   const navigateBack = () => router.push(SCORE_TEMPLATE_LIST_PATH);
 
+  const createTemplate = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setShowCreateErrors(true);
+    const templateNameValue = form.template_name.trim();
+    if (!templateNameValue) {
+      toast.error("Tên template không được để trống.");
+      return;
+    }
+
+    try {
+      const saved = await save.mutateAsync({
+        data: {
+          template_name: templateNameValue,
+          status: form.status,
+          start_time: form.start_time || undefined,
+          end_time: form.end_time || undefined,
+        },
+      });
+      toast.success("Đã tạo Score Template.");
+      if (saved.name) {
+        router.replace(
+          `${SCORE_TEMPLATE_LIST_PATH}/${encodeURIComponent(saved.name)}`,
+        );
+      } else {
+        navigateBack();
+      }
+    } catch (error) {
+      toast.error(
+        normalizeCatalogError(error, "Không thể tạo Score Template."),
+      );
+    }
+  };
+
   const startEditing = (section: ScoreEditSection) => {
     if (save.isPending || !detailQuery.data) return;
     setForm(savedFormRef.current);
-    setShowRuleErrors(false);
     setEditingSection(section);
   };
 
   const cancelEditing = () => {
     if (save.isPending) return;
     setForm(savedFormRef.current);
-    setShowRuleErrors(false);
     setEditingSection(null);
   };
 
@@ -816,9 +795,12 @@ export default function ScoreTemplateDetailPage({
       return;
     }
 
-    const nextRules = form.rules.map((rule, index) =>
-      index === editingRuleIndex ? nextRule : rule,
-    );
+    const nextRules =
+      editingRuleIndex === -1
+        ? [...form.rules, nextRule]
+        : form.rules.map((rule, index) =>
+            index === editingRuleIndex ? nextRule : rule,
+          );
     const nextForm = { ...form, rules: nextRules };
     const validationMessage = getScoreValidationMessage(nextForm);
     if (validationMessage) {
@@ -836,15 +818,16 @@ export default function ScoreTemplateDetailPage({
       savedFormRef.current = savedForm;
       setForm(savedForm);
       setEditingRuleIndex(null);
-      toast.success("Đã cập nhật luật.");
+      toast.success(
+        editingRuleIndex === -1 ? "Đã thêm rubric." : "Đã cập nhật rubric.",
+      );
     } catch (error) {
-      toast.error(normalizeCatalogError(error, "Không thể cập nhật luật."));
+      toast.error(normalizeCatalogError(error, "Không thể lưu rubric."));
     }
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setShowRuleErrors(true);
     const validationMessage = getScoreValidationMessage(form);
     if (validationMessage) {
       toast.error(validationMessage);
@@ -860,17 +843,8 @@ export default function ScoreTemplateDetailPage({
       const nextForm = toScoreForm(saved);
       savedFormRef.current = nextForm;
       setForm(nextForm);
-      setShowRuleErrors(false);
       setEditingSection(null);
-      toast.success(
-        isCreate ? "Đã tạo Score Template." : "Đã cập nhật Score Template.",
-      );
-
-      if (isCreate && saved.name) {
-        router.replace(
-          `${SCORE_TEMPLATE_LIST_PATH}/${encodeURIComponent(saved.name)}`,
-        );
-      }
+      toast.success("Đã cập nhật Score Template.");
     } catch (error) {
       toast.error(
         normalizeCatalogError(error, "Không thể lưu Score Template."),
@@ -880,7 +854,9 @@ export default function ScoreTemplateDetailPage({
 
   const detail = detailQuery.data;
   const editingRule =
-    editingRuleIndex === null ? null : (form.rules[editingRuleIndex] ?? null);
+    editingRuleIndex === null || editingRuleIndex < 0
+      ? null
+      : (form.rules[editingRuleIndex] ?? null);
   const isLoading = !isCreate && detailQuery.isPending;
   const title = isCreate
     ? "Thêm Score Template"
@@ -896,7 +872,7 @@ export default function ScoreTemplateDetailPage({
         title={title}
         description={
           isCreate
-            ? "Thiết lập mẫu và luật chấm điểm cho lead."
+            ? "Tạo template trước, sau đó thêm từng rubric ở trang chi tiết."
             : "Xem cấu hình điểm tiềm năng và chỉnh sửa từng nhóm thông tin khi cần."
         }
         before={
@@ -951,14 +927,12 @@ export default function ScoreTemplateDetailPage({
             />
           </section>
         ) : isCreate ? (
-          <CreateScoreTemplateForm
-            form={form}
-            updateForm={updateForm}
-            showRuleErrors={showRuleErrors}
-            isSaving={save.isPending}
-            onCancel={navigateBack}
-            onSubmit={submit}
-          />
+          <section className="flex min-h-80 flex-col overflow-hidden rounded-2xl border border-card-border bg-card-background">
+            <EmptyState>
+              Dialog tạo template đang mở. Sau khi tạo, bạn có thể thêm rubric
+              từng bước trong trang chi tiết.
+            </EmptyState>
+          </section>
         ) : (
           <div className="grid items-stretch gap-5 lg:grid-cols-2">
             <EditableCard
@@ -1041,7 +1015,7 @@ export default function ScoreTemplateDetailPage({
                     isDisabled={save.isPending}
                   />
                   <p className="mt-4 text-xs leading-5 text-text-tertiary">
-                    Tổng điểm cuối cùng được tính từ các trọng số và luật của
+                    Tổng điểm cuối cùng được tính từ các trọng số và rubric của
                     template.
                   </p>
                 </>
@@ -1052,13 +1026,17 @@ export default function ScoreTemplateDetailPage({
 
             <Card className="p-5 lg:col-span-2">
               <CardHeader className="mb-5">
-                <CardTitle>Luật chấm điểm</CardTitle>
+                <CardTitle>Rubric</CardTitle>
                 <span className="rounded-md bg-background-gray-secondary px-2 py-1 text-xs font-medium tabular-nums text-text-secondary">
-                  {form.rules.length} luật
+                  {form.rules.length} rubric
                 </span>
               </CardHeader>
               <ScoreRulesSummary
                 rules={form.rules}
+                isDisabled={save.isPending}
+                onAddRule={() => {
+                  if (!save.isPending) setEditingRuleIndex(-1);
+                }}
                 onEditRule={(index) => {
                   if (!save.isPending) setEditingRuleIndex(index);
                 }}
@@ -1070,10 +1048,26 @@ export default function ScoreTemplateDetailPage({
       <ScoreRuleEditDialog
         key={editingRuleIndex ?? "closed"}
         rule={editingRule}
-        isOpen={editingRuleIndex !== null && Boolean(editingRule)}
+        isOpen={editingRuleIndex !== null}
         isSaving={save.isPending}
         onClose={() => setEditingRuleIndex(null)}
         onSave={saveRule}
+      />
+      <ScoreTemplateCreateDialog
+        isOpen={isCreate}
+        isSaving={save.isPending}
+        templateName={form.template_name}
+        status={form.status}
+        startTime={form.start_time}
+        endTime={form.end_time}
+        statusOptions={statusOptions}
+        showErrors={showCreateErrors}
+        onTemplateNameChange={(template_name) => updateForm({ template_name })}
+        onStatusChange={(status) => updateForm({ status })}
+        onStartTimeChange={(start_time) => updateForm({ start_time })}
+        onEndTimeChange={(end_time) => updateForm({ end_time })}
+        onCancel={navigateBack}
+        onSubmit={createTemplate}
       />
     </main>
   );

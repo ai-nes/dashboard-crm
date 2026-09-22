@@ -2,10 +2,11 @@
 
 import type { InputHTMLAttributes } from "react";
 
+import { CreateDialogSelect } from "@/components/common/create-dialog-field";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import type { ScoreRule, ScoreRuleKind } from "@/services/api/admin-catalog";
 
-import { Field, SelectInput, TextInput } from "./admin-catalog-ui";
+import { Field, TextInput } from "./admin-catalog-ui";
 import {
   createScoreRuleDraft,
   formatScoreRuleEffect,
@@ -18,6 +19,12 @@ import ScoreSignalPicker from "./score-signal-picker";
 
 const POSITIVE_SIGNAL_CATEGORIES = ["Fit", "Engagement", "Intent"] as const;
 const NEGATIVE_SIGNAL_CATEGORIES = ["Negative"] as const;
+const SCORE_RULE_KIND_DROPDOWN_OPTIONS = SCORE_RULE_KIND_OPTIONS.map(
+  ({ value, label, technicalLabel }) => ({
+    id: value,
+    label: `${label} (${technicalLabel})`,
+  }),
+);
 
 interface ScoreRuleFieldsProps {
   rule: ScoreRule;
@@ -86,14 +93,16 @@ export default function ScoreRuleFields({
   return (
     <div className="space-y-4">
       <Field
-        label="Loại tác động"
-        hint="Loại rule quyết định các trường cấu hình bên dưới."
+        label="Loại rubric"
+        hint="Loại rubric quyết định các trường cấu hình bên dưới."
       >
-        <SelectInput
+        <CreateDialogSelect
+          label="Loại rubric"
           value={kind}
-          disabled={isDisabled}
-          onChange={(event) => {
-            const nextKind = event.target.value as ScoreRuleKind;
+          options={SCORE_RULE_KIND_DROPDOWN_OPTIONS}
+          isDisabled={isDisabled}
+          onChange={(value) => {
+            const nextKind = value as ScoreRuleKind;
             const defaults = createScoreRuleDraft(nextKind);
             onChange({
               rule_kind: nextKind,
@@ -117,13 +126,7 @@ export default function ScoreRuleFields({
               is_active: rule.is_active ?? true,
             });
           }}
-        >
-          {SCORE_RULE_KIND_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label} ({option.technicalLabel})
-            </option>
-          ))}
-        </SelectInput>
+        />
       </Field>
 
       {kind !== "time_decay" ? (

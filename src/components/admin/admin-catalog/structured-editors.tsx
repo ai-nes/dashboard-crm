@@ -259,21 +259,19 @@ export function ScoreRulesEditor({
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-card-border pb-3">
         {showHeader ? (
           <div>
-            <h3 className="text-sm font-semibold text-text-primary">
-              Luật chấm điểm
-            </h3>
+            <h3 className="text-sm font-semibold text-text-primary">Rubric</h3>
             <p className="mt-1 text-xs text-text-tertiary">
               Chọn loại tác động, sau đó chỉ nhập các thông tin cần thiết.
             </p>
           </div>
         ) : (
           <p className="text-xs text-text-tertiary">
-            Cấu hình chi tiết từng luật của template.
+            Cấu hình từng thành phần rubric của template.
           </p>
         )}
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-background-gray-secondary px-2 py-1 text-xs font-medium tabular-nums text-text-secondary">
-            {rules.length} luật
+            {rules.length} rubric
           </span>
           <Button
             type="button"
@@ -282,14 +280,15 @@ export function ScoreRulesEditor({
             onPress={addRule}
             isDisabled={isDisabled}
           >
-            Thêm luật
+            Thêm rubric
           </Button>
         </div>
       </div>
 
       {rules.length === 0 ? (
         <p className="rounded-lg border border-dashed border-card-border bg-background-gray-secondary/20 px-3 py-5 text-center text-xs text-text-tertiary">
-          Chưa có luật. Thêm ít nhất một luật để template có policy chấm điểm.
+          Chưa có rubric. Thêm ít nhất một rubric để template có policy chấm
+          điểm.
         </p>
       ) : (
         rules.map((rule, index) => {
@@ -326,7 +325,7 @@ export function ScoreRulesEditor({
                     )
                   }
                 >
-                  Xóa luật
+                  Xóa rubric
                 </Button>
               </div>
               <ScoreRuleFields
@@ -339,7 +338,7 @@ export function ScoreRulesEditor({
               />
               {invalidRule ? (
                 <p className="text-xs text-input-error" role="alert">
-                  Hoàn thiện luật trước khi lưu.
+                  Hoàn thiện rubric trước khi lưu.
                 </p>
               ) : null}
             </div>

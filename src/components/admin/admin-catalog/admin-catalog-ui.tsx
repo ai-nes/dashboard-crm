@@ -38,18 +38,27 @@ export const fieldClassName =
 
 export function Field({
   label,
+  required = false,
   hint,
   error,
   children,
 }: {
   label: string;
+  required?: boolean;
   hint?: string;
   error?: string;
   children: ReactNode;
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
-      <span className="font-medium text-input-label-text">{label}</span>
+      <span className="font-medium text-input-label-text">
+        {label}
+        {required ? (
+          <span className="ml-1 text-error-500" aria-hidden="true">
+            *
+          </span>
+        ) : null}
+      </span>
       {children}
       {hint ? <span className="text-xs text-text-tertiary">{hint}</span> : null}
       {error ? (
@@ -251,11 +260,7 @@ export function LoadingState({
   label?: string;
 }) {
   return (
-    <div
-      className="space-y-3 px-5 py-8"
-      role="status"
-      aria-live="polite"
-    >
+    <div className="space-y-3 px-5 py-8" role="status" aria-live="polite">
       <p className="text-sm text-text-tertiary">{label}</p>
       <Skeleton className="h-4 w-1/3" />
       <Skeleton className="h-10 w-full" />

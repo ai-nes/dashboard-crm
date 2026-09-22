@@ -69,7 +69,7 @@ export default function ScoreTemplatePanel() {
   return (
     <Panel
       title="Mẫu chấm điểm"
-      description="Thiết lập các mẫu và luật chấm điểm cho lead."
+      description="Thiết lập các mẫu và rubric chấm điểm cho lead."
       showHeader={false}
       toolbar={
         <CatalogListToolbar
