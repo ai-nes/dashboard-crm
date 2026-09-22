@@ -29,6 +29,7 @@ import StudentOwnerCell from "./student-owner-cell";
 import StudentTagsCell from "./student-tags-cell";
 import { studentStatusLabel } from "./student-status";
 import StudentStatusWorkflow from "./student-status-workflow";
+import type { StudentScoreBreakdown } from "./student-score-breakdown";
 import type { Student360SectionProps } from "./types";
 
 interface StudentHeaderProps extends Student360SectionProps {
@@ -43,6 +44,7 @@ interface StudentHeaderProps extends Student360SectionProps {
   tagStudentId?: string | null;
   tagsEditable?: boolean;
   status?: StudentStatus | null;
+  scoreBreakdown?: StudentScoreBreakdown | null;
 }
 
 export default function StudentHeader({
@@ -58,6 +60,7 @@ export default function StudentHeader({
   tagStudentId,
   tagsEditable = false,
   status,
+  scoreBreakdown,
 }: StudentHeaderProps) {
   const { student } = data;
   const subtitle = student.grade || "-";
@@ -176,7 +179,11 @@ export default function StudentHeader({
                   Chưa có dữ liệu
                 </div>
               ) : (
-                <StudentGaugeChart score={score} label="Điểm tiềm năng" />
+                <StudentGaugeChart
+                  score={score}
+                  label="Điểm tiềm năng"
+                  scoreBreakdown={scoreBreakdown}
+                />
               )}
             </div>
           </div>

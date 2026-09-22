@@ -137,6 +137,16 @@ const reasonLabels: Record<string, string> = {
   OVERLAPPING_POLICY: "Có nhiều chính sách phân công bị chồng lấn.",
   INVALID_TOPOLOGY: "Sơ đồ phân công chưa hợp lệ, cần kiểm tra lại cấu hình.",
   ROUTING_DISABLED: "Tính năng phân công tự động đang tạm tắt.",
+  LEAD_ROUTING_DISABLED:
+    "Cơ chế phân bổ Lead đang tắt; hãy bật policy trước khi chạy lại.",
+  CAMPAIGN_MAPPING_INVALID:
+    "Campaign chưa có cấu hình Team/Team Group nhận Lead hợp lệ.",
+  CAMPAIGN_TARGET_UNAVAILABLE:
+    "Đích phân bổ của Campaign không còn hoạt động hoặc không cùng campus.",
+  GROUP_TARGET_UNAVAILABLE:
+    "Tỉnh của Lead chưa có Team Sales đang hoạt động để nhận Lead.",
+  NO_ROUTING_LAYER:
+    "Không có lớp phân bổ nào đang bật và phù hợp với Lead này.",
   CAPACITY_BLOCKED: "Nhân sự phù hợp đã hết sức chứa nhận hồ sơ.",
   AMBIGUOUS_POOL: "Có nhiều hàng chờ phù hợp, chưa thể chọn chính xác.",
   CTV_BATCH_UNAVAILABLE_OR_LEAD_COMPLEX:
@@ -178,6 +188,14 @@ const reasonLabels: Record<string, string> = {
 
 const unknownReasonLabel =
   "Hồ sơ chưa thể xử lý. Vui lòng kiểm tra dữ liệu và cấu hình phân công.";
+
+export const routingTierLabels: Record<string, string> = {
+  campaign: "Theo Campaign",
+  group: "Theo Team Group / tỉnh",
+  global: "Chia đều trong campus",
+  province: "Theo tỉnh (cấu hình cũ)",
+  province_fallback_lead: "Fallback Trưởng nhóm (cấu hình cũ)",
+};
 
 /** True for a bare internal token such as MISSING_PROVINCE or PROVINCE:HCM. */
 function isInternalCode(value: string): boolean {

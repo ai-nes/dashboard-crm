@@ -8,12 +8,14 @@ import type { Student360Data } from "@/services/api/students/types";
 import { cn } from "@/utils/cn";
 import StudentAICardHeader from "./student-ai-card-header";
 import StudentGaugeChart from "./student-gauge-chart";
+import type { StudentScoreBreakdown } from "./student-score-breakdown";
 
 interface StudentSentimentGaugeCardProps {
   data: Student360Data;
   reportSummary?: string | null;
   isRefreshing?: boolean;
   onRefresh?: () => void;
+  scoreBreakdown?: StudentScoreBreakdown | null;
 }
 
 export default function StudentSentimentGaugeCard({
@@ -21,6 +23,7 @@ export default function StudentSentimentGaugeCard({
   reportSummary,
   isRefreshing,
   onRefresh,
+  scoreBreakdown,
 }: StudentSentimentGaugeCardProps) {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
 
@@ -153,6 +156,7 @@ export default function StudentSentimentGaugeCard({
               score={score}
               statusText={statusText ?? undefined}
               label="Điểm tiềm năng"
+              scoreBreakdown={scoreBreakdown}
             />
           )}
         </div>

@@ -20,11 +20,18 @@ function resolveAudioUrl(url?: string): string | undefined {
   ) {
     return url;
   }
-  const frappeBase = (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
-  return frappeBase ? `${frappeBase}${url.startsWith("/") ? "" : "/"}${url}` : url;
+  const frappeBase = (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
+    /\/+$/,
+    "",
+  );
+  return frappeBase
+    ? `${frappeBase}${url.startsWith("/") ? "" : "/"}${url}`
+    : url;
 }
 
-export default function StudentCallRecordingPlayer({ call }: StudentCallRecordingPlayerProps) {
+export default function StudentCallRecordingPlayer({
+  call,
+}: StudentCallRecordingPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioUrl = resolveAudioUrl(call.recordingUrl);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -37,7 +44,8 @@ export default function StudentCallRecordingPlayer({ call }: StudentCallRecordin
     if (!audio) return;
 
     setHasError(false);
-    const handleLoadedMetadata = () => setDuration(audio.duration || call.durationSeconds || 0);
+    const handleLoadedMetadata = () =>
+      setDuration(audio.duration || call.durationSeconds || 0);
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleEnded = () => {
       setIsPlaying(false);
@@ -97,9 +105,14 @@ export default function StudentCallRecordingPlayer({ call }: StudentCallRecordin
   };
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background-gray-secondary/40 px-3 py-2.5">
+    <div className="flex items-center gap-3 rounded-xl border border-card-border bg-background-white-primary px-3 py-2.5">
       {audioUrl ? (
-        <audio ref={audioRef} src={audioUrl} preload="metadata" className="sr-only" />
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          preload="metadata"
+          className="sr-only"
+        />
       ) : null}
       <Button
         type="button"
@@ -118,12 +131,20 @@ export default function StudentCallRecordingPlayer({ call }: StudentCallRecordin
         }
         className="size-9 shrink-0 rounded-full"
       >
-        {isPlaying ? <span className="text-xs font-bold">Ⅱ</span> : <Play size={16} />}
+        {isPlaying ? (
+          <span className="text-xs font-bold">Ⅱ</span>
+        ) : (
+          <Play size={16} />
+        )}
       </Button>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 text-sm font-semibold text-text-primary">
-            <Volume1 size={15} className="text-primary-500" aria-hidden="true" />
+            <Volume1
+              size={15}
+              className="text-primary-500"
+              aria-hidden="true"
+            />
             Bản ghi âm
           </span>
           <span className="shrink-0 text-xs tabular-nums text-text-tertiary">
@@ -139,12 +160,16 @@ export default function StudentCallRecordingPlayer({ call }: StudentCallRecordin
           aria-label="Tiến trình bản ghi âm"
           disabled={!audioUrl || duration <= 0}
           onChange={handleSeek}
-          className="mt-2 h-1.5 w-full cursor-pointer accent-primary-500 disabled:cursor-default disabled:opacity-60"
+          className="mt-2 h-1.5 w-full cursor-pointer accent-primary-500 [&::-moz-range-track]:bg-background-white-primary [&::-webkit-slider-runnable-track]:bg-background-white-primary disabled:cursor-default disabled:opacity-60"
         />
         {!audioUrl ? (
-          <p className="mt-1 text-xs text-text-tertiary">Chưa có bản ghi âm cho cuộc gọi này để phát.</p>
+          <p className="mt-1 text-xs text-text-tertiary">
+            Chưa có bản ghi âm cho cuộc gọi này để phát.
+          </p>
         ) : hasError ? (
-          <p className="mt-1 text-xs text-error-600">Không thể phát tệp âm thanh từ đường dẫn.</p>
+          <p className="mt-1 text-xs text-error-600">
+            Không thể phát tệp âm thanh từ đường dẫn.
+          </p>
         ) : null}
       </div>
     </div>

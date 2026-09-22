@@ -37,6 +37,14 @@ describe("User management permission profile API", () => {
                 applicable_doctypes: [
                   {
                     document_type: "CRM Student",
+                    label: "Học sinh",
+                    description:
+                      "Bao gồm hồ sơ tuyển sinh và tài liệu của học sinh.",
+                    included_doctypes: [
+                      "CRM Student",
+                      "CRM Student Admission Profile",
+                      "CRM Student Document",
+                    ],
                     read: 1,
                     write: 1,
                     create: 0,
@@ -61,6 +69,12 @@ describe("User management permission profile API", () => {
       applicableDoctypes: [
         {
           documentType: "CRM Student",
+          label: "Học sinh",
+          includedDoctypes: [
+            "CRM Student",
+            "CRM Student Admission Profile",
+            "CRM Student Document",
+          ],
           read: true,
           write: true,
           create: false,
@@ -102,6 +116,34 @@ describe("User management permission profile API", () => {
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       `${baseUrl}/api/method/crm.api.permission_profile.list_permission_profiles?role=Sale&start=8&page_length=8`,
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("requests the detailed DocType view when selected", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            selected_role: "Sale",
+            total: 37,
+            start: 0,
+            page_length: 8,
+            view_mode: "detailed",
+            profiles: [],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await listPermissionProfiles(
+      { role: "Sale", viewMode: "detailed" },
+      { baseUrl },
+    );
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      `${baseUrl}/api/method/crm.api.permission_profile.list_permission_profiles?role=Sale&start=0&page_length=8&view_mode=detailed`,
       expect.objectContaining({ method: "GET" }),
     );
   });
@@ -148,6 +190,7 @@ describe("User management permission profile API", () => {
           },
         ],
         replaceApplicableDoctypes: false,
+        viewMode: "detailed",
       },
       { baseUrl },
     );
@@ -173,6 +216,7 @@ describe("User management permission profile API", () => {
             },
           ],
           replace_applicable_doctypes: false,
+          view_mode: "detailed",
         }),
       }),
     );

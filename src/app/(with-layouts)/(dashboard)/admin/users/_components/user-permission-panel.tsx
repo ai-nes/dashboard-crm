@@ -13,7 +13,10 @@ import {
   AdminTableFrame,
   ADMIN_TABLE_PAGE_SIZE,
 } from "@/components/common/admin/admin-table";
-import { Button } from "@/components/tailgrids/core/button";
+import {
+  AdminTabList,
+  AdminTabRoot,
+} from "@/components/common/admin/admin-tabs";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import {
   Select,
@@ -23,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/tailgrids/core/select";
+import { TabTrigger } from "@/components/tailgrids/core/tabs";
 import { TableBody } from "@/components/tailgrids/core/table";
 import {
   usePermissionProfilesQuery,
@@ -34,6 +38,7 @@ import type {
   PermissionProfile,
   PermissionProfileDoctype,
   PermissionProfileRowScope,
+  PermissionProfileViewMode,
 } from "@/services/api/user-management";
 
 const PERMISSION_COLUMNS: Array<{ key: PermissionFlag; label: string }> = [
@@ -62,6 +67,32 @@ const ROW_SCOPE_OPTIONS: Array<{
   { value: "deny", label: "Từ chối" },
 ];
 
+const DELETE_POLICY_OPTIONS = [
+  {
+    value: "owner",
+    label: "Chỉ xóa hồ sơ được phân công",
+  },
+  {
+    value: "role",
+    label: "Cho phép xóa theo quyền của vai trò",
+  },
+] as const;
+
+const FALLBACK_PERMISSION_LABELS: Record<string, string> = {
+  "CRM Lead": "Lead",
+  "CRM Student": "Học sinh",
+  "CRM Student Admission Profile": "Hồ sơ tuyển sinh",
+  "CRM Student Document": "Tài liệu tuyển sinh",
+  "CRM Major": "Danh mục tuyển sinh",
+  "CRM Campaign": "Chiến dịch tuyển sinh",
+  "CRM Event": "Sự kiện tuyển sinh",
+  "CRM Lead Source": "Nguồn Lead",
+  "CRM Campus": "Cơ sở tuyển sinh",
+  "CRM Student Payment Account": "Thông tin thanh toán",
+  "CRM Recommendation": "Đề xuất và hành động tuyển sinh",
+  "CRM Marketing Engagement": "Tương tác tuyển sinh",
+};
+
 function cloneProfile(profile: PermissionProfile): PermissionProfile {
   return {
     ...profile,
@@ -85,12 +116,15 @@ export default function UserPermissionPanel({
   const [selectedRole, setSelectedRole] = useState("");
   const [doctypePage, setDoctypePage] = useState(1);
   const [draft, setDraft] = useState<PermissionProfile | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [viewMode, setViewMode] =
+    useState<PermissionProfileViewMode>("grouped");
   const profilesQuery = usePermissionProfilesQuery(
     {
       role: selectedRole || undefined,
       start: (doctypePage - 1) * ADMIN_TABLE_PAGE_SIZE,
       pageLength: ADMIN_TABLE_PAGE_SIZE,
+      viewMode,
     },
     { enabled: canEdit },
   );
@@ -108,9 +142,9 @@ export default function UserPermissionPanel({
 
   const activeDraft = useMemo(() => {
     if (!selectedProfile) return null;
-    if (isDirty && draft?.role === selectedProfile.role) return draft;
+    if (isSaving && draft?.role === selectedProfile.role) return draft;
     return cloneProfile(selectedProfile);
-  }, [draft, isDirty, selectedProfile]);
+  }, [draft, isSaving, selectedProfile]);
 
   const totalDoctypes =
     profilesQuery.data?.total ?? activeDraft?.applicableDoctypes.length ?? 0;
@@ -119,14 +153,44 @@ export default function UserPermissionPanel({
     Math.ceil(totalDoctypes / ADMIN_TABLE_PAGE_SIZE),
   );
 
-  const updateDraft = (
+  const persistProfileChange = (
     change: (current: PermissionProfile) => PermissionProfile,
   ) => {
-    setDraft((current) => {
-      const source = current?.role === activeRole ? current : activeDraft;
-      return source ? change(source) : source;
-    });
-    setIsDirty(true);
+    if (!activeDraft || updateMutation.isPending) return;
+
+    const previousProfile = cloneProfile(activeDraft);
+    const nextProfile = change(previousProfile);
+
+    setDraft(nextProfile);
+    setIsSaving(true);
+
+    void updateMutation
+      .mutateAsync({
+        role: nextProfile.role,
+        rowScope: nextProfile.rowScope,
+        deleteRequiresOwnership: nextProfile.deleteRequiresOwnership,
+        applicableDoctypes: nextProfile.applicableDoctypes,
+        replaceApplicableDoctypes: false,
+        viewMode,
+      })
+      .then(() => {
+        setIsSaving(false);
+      })
+      .catch((error) => {
+        setDraft(previousProfile);
+        setIsSaving(false);
+        toast.error(errorMessage(error));
+      });
+  };
+
+  const handleViewModeChange = (value: string) => {
+    if (isSaving || updateMutation.isPending) return;
+    const nextViewMode = value as PermissionProfileViewMode;
+    if (nextViewMode === viewMode) return;
+    setViewMode(nextViewMode);
+    setDoctypePage(1);
+    setDraft(null);
+    setIsSaving(false);
   };
 
   const updatePermission = (
@@ -134,7 +198,7 @@ export default function UserPermissionPanel({
     permission: PermissionFlag,
     checked: boolean,
   ) => {
-    updateDraft((current) => ({
+    persistProfileChange((current) => ({
       ...current,
       applicableDoctypes: current.applicableDoctypes.map((row) =>
         row.documentType === documentType
@@ -142,24 +206,6 @@ export default function UserPermissionPanel({
           : row,
       ),
     }));
-  };
-
-  const handleSave = async () => {
-    if (!activeDraft || !isDirty || updateMutation.isPending) return;
-
-    try {
-      await updateMutation.mutateAsync({
-        role: activeDraft.role,
-        rowScope: activeDraft.rowScope,
-        deleteRequiresOwnership: activeDraft.deleteRequiresOwnership,
-        applicableDoctypes: activeDraft.applicableDoctypes,
-        replaceApplicableDoctypes: false,
-      });
-      setIsDirty(false);
-      toast.success(`Đã lưu quyền hạn cho vai trò ${activeDraft.role}.`);
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
   };
 
   if (!canEdit) {
@@ -239,9 +285,9 @@ export default function UserPermissionPanel({
                 setSelectedRole(String(value));
                 setDoctypePage(1);
                 setDraft(null);
-                setIsDirty(false);
+                setIsSaving(false);
               }}
-              isDisabled={updateMutation.isPending || isDirty}
+              isDisabled={updateMutation.isPending || isSaving}
               aria-label="Chọn vai trò để cấu hình quyền hạn"
             >
               <SelectTrigger
@@ -271,12 +317,12 @@ export default function UserPermissionPanel({
               htmlFor="permission-profile-row-scope"
               className="mb-1.5 block text-xs font-semibold text-text-secondary"
             >
-              Phạm vi dòng
+              Phạm vi dữ liệu
             </label>
             <Select
               value={activeDraft.rowScope}
               onChange={(value) =>
-                updateDraft((current) => ({
+                persistProfileChange((current) => ({
                   ...current,
                   rowScope: String(value) as PermissionProfileRowScope,
                 }))
@@ -306,49 +352,85 @@ export default function UserPermissionPanel({
             </Select>
           </div>
 
-          <div className="flex min-h-8 items-center gap-4 pb-0.5">
-            <Checkbox
-              isSelected={activeDraft.deleteRequiresOwnership}
-              isDisabled={updateMutation.isPending}
-              onChange={(checked) =>
-                updateDraft((current) => ({
+          <div className="w-full sm:w-72">
+            <label
+              htmlFor="permission-profile-delete-policy"
+              className="mb-1.5 block text-xs font-semibold text-text-secondary"
+            >
+              Quyền xóa
+            </label>
+            <Select
+              value={activeDraft.deleteRequiresOwnership ? "owner" : "role"}
+              onChange={(value) =>
+                persistProfileChange((current) => ({
                   ...current,
-                  deleteRequiresOwnership: checked,
+                  deleteRequiresOwnership: String(value) === "owner",
                 }))
               }
+              isDisabled={updateMutation.isPending}
+              aria-label="Chọn chính sách xóa"
             >
-              <span className="text-sm text-text-secondary">
-                Xóa cần đúng chủ sở hữu
-              </span>
-            </Checkbox>
-            <Checkbox isSelected={activeDraft.isSystemManaged} isDisabled>
-              <span className="text-sm text-text-tertiary">
-                Hệ thống quản lý
-              </span>
-            </Checkbox>
+              <SelectTrigger
+                id="permission-profile-delete-policy"
+                size="sm"
+                className="w-full"
+              >
+                <SelectValue />
+                <SelectIndicator />
+              </SelectTrigger>
+              <SelectContent>
+                {DELETE_POLICY_OPTIONS.map((option) => (
+                  <SelectItem
+                    key={option.value}
+                    id={option.value}
+                    textValue={option.label}
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        <Button
-          size="sm"
-          isDisabled={!isDirty || updateMutation.isPending}
-          onPress={() => void handleSave()}
+        <AdminTabRoot
+          defaultValue="grouped"
+          value={viewMode}
+          onValueChange={handleViewModeChange}
+          className="w-fit min-w-0 !rounded-lg !border !border-card-border !bg-background-gray-secondary !p-1 [&>div]:!border-0 [&>div]:!p-0 [&>div>div]:!w-auto"
         >
-          {updateMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
-        </Button>
+          <AdminTabList className="!gap-0">
+            <TabTrigger
+              value="grouped"
+              disabled={updateMutation.isPending || isSaving}
+              className="!rounded-md !px-3 !py-1.5 !text-text-secondary transition-colors duration-150 hover:bg-background-gray-secondary_alt focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-500 data-[active=true]:!border-0 data-[active=true]:!bg-card-background data-[active=true]:!text-neutral-brand-color data-[active=true]:!shadow-xs"
+            >
+              Nhóm nghiệp vụ
+            </TabTrigger>
+            <TabTrigger
+              value="detailed"
+              disabled={updateMutation.isPending || isSaving}
+              className="!rounded-md !px-3 !py-1.5 !text-text-secondary transition-colors duration-150 hover:bg-background-gray-secondary_alt focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-500 data-[active=true]:!border-0 data-[active=true]:!bg-card-background data-[active=true]:!text-neutral-brand-color data-[active=true]:!shadow-xs"
+            >
+              Chi tiết DocType
+            </TabTrigger>
+          </AdminTabList>
+        </AdminTabRoot>
       </div>
 
       <div className="overflow-x-auto">
         <AdminTableRoot
           aria-label={`Ma trận quyền hạn vai trò ${activeDraft.role}`}
-          className="min-w-[720px]"
+          className="min-w-[780px]"
         >
           <AdminTableHeader>
             <AdminTableRow>
               <AdminTableHead scope="col" className="w-12 text-center">
                 STT
               </AdminTableHead>
-              <AdminTableHead scope="col">Loại tài liệu</AdminTableHead>
+              <AdminTableHead scope="col">
+                {viewMode === "detailed" ? "DocType" : "Đối tượng"}
+              </AdminTableHead>
               {PERMISSION_COLUMNS.map((column) => (
                 <AdminTableHead
                   key={column.key}
@@ -365,6 +447,7 @@ export default function UserPermissionPanel({
               <PermissionMatrixRow
                 key={row.documentType}
                 row={row}
+                viewMode={viewMode}
                 index={index + (doctypePage - 1) * ADMIN_TABLE_PAGE_SIZE}
                 disabled={updateMutation.isPending}
                 onChange={updatePermission}
@@ -379,7 +462,7 @@ export default function UserPermissionPanel({
         totalItems={totalDoctypes}
         pageSize={ADMIN_TABLE_PAGE_SIZE}
         onPageChange={setDoctypePage}
-        isDisabled={updateMutation.isPending || isDirty}
+        isDisabled={updateMutation.isPending || isSaving}
       />
     </AdminTableFrame>
   );
@@ -387,6 +470,7 @@ export default function UserPermissionPanel({
 
 interface PermissionMatrixRowProps {
   row: PermissionProfileDoctype;
+  viewMode: PermissionProfileViewMode;
   index: number;
   disabled: boolean;
   onChange: (
@@ -398,17 +482,35 @@ interface PermissionMatrixRowProps {
 
 function PermissionMatrixRow({
   row,
+  viewMode,
   index,
   disabled,
   onChange,
 }: PermissionMatrixRowProps) {
+  const groupedLabel =
+    row.label ??
+    FALLBACK_PERMISSION_LABELS[row.documentType] ??
+    row.documentType;
+  const label = viewMode === "detailed" ? row.documentType : groupedLabel;
+  const description =
+    viewMode === "detailed" && row.groupLabel
+      ? `Nhóm: ${row.groupLabel}`
+      : row.description;
+
   return (
     <AdminTableRow>
       <AdminTableCell className="text-center text-text-tertiary">
         {index + 1}
       </AdminTableCell>
       <AdminTableCell className="font-medium">
-        {row.documentType}
+        <div className="min-w-52">
+          <p>{label}</p>
+          {description ? (
+            <p className="mt-0.5 text-xs font-normal text-text-tertiary">
+              {description}
+            </p>
+          ) : null}
+        </div>
       </AdminTableCell>
       {PERMISSION_COLUMNS.map((column) => (
         <AdminTableCell key={column.key} className="text-center">

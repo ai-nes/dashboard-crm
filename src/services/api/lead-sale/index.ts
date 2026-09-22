@@ -23,6 +23,8 @@ export * from "./campaign-channel-types";
 export * from "./student-assignment";
 export * from "./team-management";
 export * from "./lead-assignment-batch";
+export * from "./lead-routing-policy";
+export * from "./lead-assignment-workflow-config";
 
 const METHOD = "crm.api.lead_sale.get_lead_sale_overview";
 const KPI_IDS = [

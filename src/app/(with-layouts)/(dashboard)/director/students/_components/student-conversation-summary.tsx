@@ -3,12 +3,10 @@
 import type { InteractionIntelligence } from "@/services/api/interaction-intelligence/types";
 
 interface StudentConversationSummaryProps {
-  interactionId: string;
   intelligence?: InteractionIntelligence | null;
 }
 
 export default function StudentConversationSummary({
-  interactionId,
   intelligence,
 }: StudentConversationSummaryProps) {
   const summary = intelligence?.conversation_summary;
@@ -17,15 +15,9 @@ export default function StudentConversationSummary({
   if (!summary && !flatSummary) return null;
 
   return (
-    <section aria-labelledby={`conversation-summary-${interactionId}`}>
-      <h3
-        id={`conversation-summary-${interactionId}`}
-        className="text-sm font-semibold text-text-primary"
-      >
-        Tóm tắt toàn bộ cuộc trò chuyện
-      </h3>
+    <section aria-label="Tóm tắt cuộc gọi">
       {summary ? (
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3">
           <ConversationSummarySection
             title="Học sinh đã trao đổi"
             description={summary.problem.description}
@@ -36,7 +28,9 @@ export default function StudentConversationSummary({
           />
           <ConversationSummarySection
             title="Kết quả"
-            description={summary.result.description || summary.result.next_action}
+            description={
+              summary.result.description || summary.result.next_action
+            }
           />
         </div>
       ) : (

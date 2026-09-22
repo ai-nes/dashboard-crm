@@ -106,8 +106,14 @@ export type PermissionProfileRowScope =
 
 export type PermissionFlag = "read" | "write" | "create" | "delete" | "export";
 
+export type PermissionProfileViewMode = "grouped" | "detailed";
+
 export interface PermissionProfileDoctype {
   documentType: string;
+  label?: string;
+  description?: string;
+  includedDoctypes?: string[];
+  groupLabel?: string;
   read: boolean;
   write: boolean;
   create: boolean;
@@ -128,6 +134,7 @@ export interface ListPermissionProfilesParams {
   role?: string;
   start?: number;
   pageLength?: number;
+  viewMode?: PermissionProfileViewMode;
 }
 
 export interface ListPermissionProfilesResponse {
@@ -136,6 +143,7 @@ export interface ListPermissionProfilesResponse {
   total: number;
   start: number;
   pageLength: number;
+  viewMode: PermissionProfileViewMode;
 }
 
 export interface UpdatePermissionProfilePayload {
@@ -144,4 +152,5 @@ export interface UpdatePermissionProfilePayload {
   deleteRequiresOwnership: boolean;
   applicableDoctypes: PermissionProfileDoctype[];
   replaceApplicableDoctypes?: boolean;
+  viewMode?: PermissionProfileViewMode;
 }

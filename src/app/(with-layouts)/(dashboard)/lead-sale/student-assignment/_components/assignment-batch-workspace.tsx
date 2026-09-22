@@ -9,7 +9,7 @@ import AssignmentBatchTabs from "./assignment-batch-tabs";
 export default function AssignmentBatchWorkspace({
   activeTab,
 }: {
-  activeTab: "assignment" | "history";
+  activeTab: "assignment" | "history" | "config";
 }) {
   return (
     <BatchAssignmentProvider>
@@ -21,7 +21,7 @@ export default function AssignmentBatchWorkspace({
 function AssignmentBatchWorkspaceContent({
   activeTab,
 }: {
-  activeTab: "assignment" | "history";
+  activeTab: "assignment" | "history" | "config";
 }) {
   const { error } = useBatchAssignment();
 

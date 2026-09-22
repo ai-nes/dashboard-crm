@@ -112,6 +112,14 @@ function normalizePermissionProfileDoctype(
 
   return {
     documentType,
+    label: stringValue(object?.label).trim() || undefined,
+    description: stringValue(object?.description).trim() || undefined,
+    includedDoctypes: Array.isArray(object?.included_doctypes)
+      ? object.included_doctypes.filter(
+          (doctype): doctype is string => typeof doctype === "string",
+        )
+      : undefined,
+    groupLabel: stringValue(object?.group_label).trim() || undefined,
     read: booleanValue(object?.read),
     write: booleanValue(object?.write),
     create: booleanValue(object?.create),

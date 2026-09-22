@@ -20,6 +20,7 @@ import {
   useStudent360Query,
 } from "@/hooks/use-students-queries";
 import { studentAuditKeys } from "@/hooks/use-student-audit-query";
+import { useStudentScoreContextQuery } from "@/hooks/use-student-score-context-query";
 import {
   deleteStudent,
   requestStudentStageTransition,
@@ -42,6 +43,10 @@ import StudentHighSchoolScoreMockup from "./student-high-school-score-mockup";
 import StudentPersonalContactMockup from "./student-personal-contact-mockup";
 import { isHighSchoolAdmissionMethod } from "./student-admission-method";
 import { getInitialStudentDetailTab } from "./student-detail-tab-state";
+import {
+  buildStudentScoreBreakdown,
+  type StudentScoreBreakdown,
+} from "./student-score-breakdown";
 import { canTransitionStudentStatus } from "./student-status";
 
 interface Student360DashboardProps {
@@ -221,6 +226,18 @@ export default function Student360Dashboard({
     data?.student.studentStage ??
     null;
   const canonicalStudentId = data?.student.studentId;
+  const scoreContextQuery = useStudentScoreContextQuery(
+    canonicalStudentId ?? "",
+    {
+      enabled:
+        Boolean(canonicalStudentId) && !isAuthLoading && hasStudentAccess,
+    },
+  );
+  const scoreCandidate = data?.insight.signalScore ?? data?.insight.probability;
+  const scoreBreakdown = buildStudentScoreBreakdown(
+    scoreContextQuery.data,
+    scoreCandidate,
+  );
   const studentOwner =
     (studentOwnerDraft?.studentId === targetId
       ? studentOwnerDraft.owner
@@ -330,6 +347,7 @@ export default function Student360Dashboard({
           studentId={targetId}
           tagStudentId={canonicalStudentId}
           tagsEditable={canUpdateStudent && Boolean(canonicalStudentId)}
+          scoreBreakdown={scoreBreakdown}
         />
       </div>
 
@@ -340,7 +358,12 @@ export default function Student360Dashboard({
             initialTab,
             initialTaskId,
           )}
-          detailTabs={getStudentTabs(data, targetId, canUpdateStudent)}
+          detailTabs={getStudentTabs(
+            data,
+            targetId,
+            canUpdateStudent,
+            scoreBreakdown,
+          )}
           initialChatwootInteractions={initialChatwootInteractions}
           initialStudentInteractions={initialStudentInteractions}
           initialTaskId={initialTaskId}
@@ -363,6 +386,7 @@ function getStudentTabs(
   data: Student360Data,
   analysisTargetId: string,
   canUpdateStudent: boolean,
+  scoreBreakdown: StudentScoreBreakdown | null,
 ): DetailTabItem[] {
   const auditStudentId = data.student.studentId || analysisTargetId;
   const showHighSchoolScore = isHighSchoolAdmissionMethod(data);
@@ -374,6 +398,7 @@ function getStudentTabs(
         <StudentClassificationCockpit
           data={data}
           analysisTargetId={analysisTargetId}
+          scoreBreakdown={scoreBreakdown}
         />
       ),
     },

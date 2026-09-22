@@ -7,6 +7,7 @@ import {
   assignmentReasonLabel,
   itemStatusColors,
   itemStatusLabels,
+  routingTierLabels,
 } from "../../_shared/lead-assignment-batch/batch-assignment-mappings";
 import DetailDrawer from "../../_shared/student-assignment/detail-drawer";
 
@@ -75,7 +76,8 @@ export default function AssignmentBatchItemDrawer() {
         <dl className="mt-3 grid grid-cols-[126px_1fr] gap-x-3 gap-y-3 text-sm">
           <dt className="text-text-tertiary">Cách tìm Team</dt>
           <dd className="text-text-primary">
-            {item.province ? `Theo tỉnh ${item.province}` : "—"}
+            {routingTierLabels[String(item.routingTier)] ??
+              (item.province ? `Theo tỉnh ${item.province}` : "—")}
           </dd>
           <dt className="text-text-tertiary">Đội</dt>
           <dd className="text-text-primary">{item.team ?? "—"}</dd>

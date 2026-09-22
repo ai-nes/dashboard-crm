@@ -21,7 +21,11 @@ import {
 import { ExpandArrow6 } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import type { LeadAssignmentWorkflowConnection } from "@/services/api/lead-sale";
+import type {
+  LeadAssignmentWorkflowConnection,
+  LeadAssignmentWorkflowStepId,
+  LeadAssignmentWorkflowStepSnapshot,
+} from "@/services/api/lead-sale";
 import {
   getBatchWorkflowPhaseState,
   getBatchWorkflowStepMetric,
@@ -41,6 +45,11 @@ type AssignmentBatchWorkflowCanvasProps = {
   selectedStep: StepId | null;
   hasBatch: boolean;
   connections: LeadAssignmentWorkflowConnection[];
+  configMode?: boolean;
+  configuration?: Partial<
+    Record<LeadAssignmentWorkflowStepId, LeadAssignmentWorkflowStepSnapshot>
+  >;
+  metricByStep?: Partial<Record<StepId, string>>;
   onSelect: (stepId: StepId) => void;
 };
 
@@ -95,6 +104,9 @@ export default function AssignmentBatchWorkflowCanvas({
   selectedStep,
   hasBatch,
   connections,
+  configMode = false,
+  configuration,
+  metricByStep,
   onSelect,
 }: AssignmentBatchWorkflowCanvasProps) {
   const nodeTypes = useMemo(
@@ -207,14 +219,17 @@ export default function AssignmentBatchWorkflowCanvas({
         data: {
           step,
           metric:
-            step.status === "running"
+            metricByStep?.[step.id] ??
+            (step.status === "running"
               ? "Đang xử lý…"
-              : getBatchWorkflowStepMetric(step),
+              : getBatchWorkflowStepMetric(step)),
           highlighted: hasActivity && step.status !== "idle",
           active: selectedStep === step.id,
           processing: step.status === "running",
           completed: hasActivity && step.status === "success",
           phaseState: getBatchWorkflowPhaseState(step, currentPhaseId),
+          configMode,
+          configuration: configuration?.[step.id],
           onSelect: selectNode,
         },
       })),
@@ -225,6 +240,9 @@ export default function AssignmentBatchWorkflowCanvas({
       selectedStep,
       steps,
       storedLayout,
+      configMode,
+      configuration,
+      metricByStep,
     ],
   );
 
@@ -242,20 +260,33 @@ export default function AssignmentBatchWorkflowCanvas({
             ...node.data,
             step,
             metric:
-              step.status === "running"
+              metricByStep?.[step.id] ??
+              (step.status === "running"
                 ? "Đang xử lý…"
-                : getBatchWorkflowStepMetric(step),
+                : getBatchWorkflowStepMetric(step)),
             highlighted: hasActivity && step.status !== "idle",
             active: selectedStep === step.id,
             processing: step.status === "running",
             completed: hasActivity && step.status === "success",
             phaseState: getBatchWorkflowPhaseState(step, currentPhaseId),
+            configMode,
+            configuration: configuration?.[step.id],
             onSelect: selectNode,
           },
         };
       }),
     );
-  }, [currentPhaseId, hasActivity, selectNode, selectedStep, setNodes, steps]);
+  }, [
+    configMode,
+    configuration,
+    currentPhaseId,
+    hasActivity,
+    metricByStep,
+    selectNode,
+    selectedStep,
+    setNodes,
+    steps,
+  ]);
 
   const edges: Edge[] = useMemo(
     () =>
@@ -336,11 +367,11 @@ export default function AssignmentBatchWorkflowCanvas({
         }}
         onNodeClick={(_, node) => selectNode(node.data.step.id)}
         onNodesChange={onNodesChange}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
+        onNodeDrag={configMode ? undefined : onNodeDrag}
+        onNodeDragStop={configMode ? undefined : onNodeDragStop}
         minZoom={0.4}
         maxZoom={1.2}
-        nodesDraggable
+        nodesDraggable={!configMode}
         nodesConnectable={false}
         nodesFocusable={false}
         edgesFocusable={false}

@@ -5,12 +5,17 @@ import { Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import AssignmentBatchHistory from "./assignment-batch-history";
 import AssignmentBatchHeader from "./assignment-batch-header";
 import AssignmentBatchWorkflow from "./assignment-batch-workflow";
+import LeadAssignmentWorkflowConfigCard from "./lead-assignment-workflow-config-card";
 import AssignmentHistoryHeader from "../../assignment-history/_components/assignment-history-header";
 
 export const ASSIGNMENT_TAB = "assignment";
 export const HISTORY_TAB = "history";
+export const CONFIG_TAB = "config";
 
-type AssignmentTab = typeof ASSIGNMENT_TAB | typeof HISTORY_TAB;
+type AssignmentTab =
+  | typeof ASSIGNMENT_TAB
+  | typeof HISTORY_TAB
+  | typeof CONFIG_TAB;
 
 export default function AssignmentBatchTabs({
   activeTab,
@@ -22,7 +27,7 @@ export default function AssignmentBatchTabs({
 
   function changeTab(nextTab: string) {
     router.replace(
-      nextTab === HISTORY_TAB ? `${pathname}?tab=${HISTORY_TAB}` : pathname,
+      nextTab === ASSIGNMENT_TAB ? pathname : `${pathname}?tab=${nextTab}`,
       {
         scroll: false,
       },
@@ -50,6 +55,10 @@ export default function AssignmentBatchTabs({
           Lịch sử phân công
           <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary-500 opacity-0 transition-opacity group-data-[selected]:opacity-100" />
         </Tab>
+        <Tab id={CONFIG_TAB} className={tabClassName}>
+          Cấu hình phân công
+          <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary-500 opacity-0 transition-opacity group-data-[selected]:opacity-100" />
+        </Tab>
       </TabList>
 
       <TabPanel id={ASSIGNMENT_TAB} className="space-y-6 outline-none">
@@ -59,6 +68,9 @@ export default function AssignmentBatchTabs({
       <TabPanel id={HISTORY_TAB} className="space-y-6 outline-none">
         <AssignmentHistoryHeader />
         <AssignmentBatchHistory />
+      </TabPanel>
+      <TabPanel id={CONFIG_TAB} className="space-y-6 outline-none">
+        <LeadAssignmentWorkflowConfigCard />
       </TabPanel>
     </Tabs>
   );

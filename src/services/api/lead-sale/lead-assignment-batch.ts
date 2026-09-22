@@ -94,6 +94,8 @@ export type LeadAssignmentBatch = {
   updatedAt: string;
   previewedAt: string | null;
   completedAt: string | null;
+  workflowConfigVersion: string | null;
+  workflowConfigSnapshot: Record<string, unknown> | null;
 };
 
 export type LeadAssignmentRoutingContext = {
@@ -130,6 +132,7 @@ export type LeadAssignmentBatchItem = LeadAssignmentRoutingContext & {
   reason: string | null;
   errorCode: string | null;
   missingFields: string[];
+  retryCount: number;
 };
 
 export type LeadAssignmentPagination = {
@@ -298,6 +301,17 @@ function text(value: unknown, fallback = ""): string {
 
 function nullableText(value: unknown): string | null {
   return value === null || value === undefined ? null : text(value);
+}
+
+function jsonObject(value: unknown): Record<string, unknown> | null {
+  const direct = asRecord(value);
+  if (direct) return direct;
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    return asRecord(JSON.parse(value));
+  } catch {
+    return null;
+  }
 }
 
 function count(value: unknown, fallback = 0): number {
@@ -539,6 +553,12 @@ function normalizeBatch(value: unknown): LeadAssignmentBatch {
     ),
     previewedAt: nullableText(source.previewedAt ?? source.previewed_at),
     completedAt: nullableText(source.completedAt ?? source.completed_at),
+    workflowConfigVersion: nullableText(
+      source.workflowConfigVersion ?? source.workflow_config_version,
+    ),
+    workflowConfigSnapshot: jsonObject(
+      source.workflowConfigSnapshot ?? source.workflow_config_snapshot,
+    ),
   };
 }
 
@@ -646,6 +666,7 @@ function normalizeItem(value: unknown, index: number): LeadAssignmentBatchItem {
     missingFields: normalizeStringArray(
       source.missingFields ?? source.missing_fields,
     ),
+    retryCount: count(source.retryCount ?? source.retry_count),
   };
 }
 

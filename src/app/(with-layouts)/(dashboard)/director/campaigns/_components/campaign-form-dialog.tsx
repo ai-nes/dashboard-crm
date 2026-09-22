@@ -14,6 +14,7 @@ import {
 } from "@/components/tailgrids/core/dialog";
 import { Input } from "@/components/tailgrids/core/input";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
+import { Toggle } from "@/components/tailgrids/core/toggle";
 import {
   Select,
   SelectContent,
@@ -39,6 +40,10 @@ import {
   campaignStatusOptions,
 } from "./mappings";
 import type {
+  CampaignRoutingOptions,
+  CampaignRoutingTargetType,
+} from "@/services/api/lead-sale";
+import type {
   CampaignFormState,
   CampaignFormValues,
   CampaignListItem,
@@ -49,12 +54,15 @@ import type {
 interface CampaignFormDialogProps {
   campaign: CampaignListItem | null;
   channelTypes: readonly ChannelTypeOption[];
+  routingOptions: CampaignRoutingOptions;
+  defaultCampus?: string;
   onClose: () => void;
   onSubmit: (campaign: CampaignFormValues) => void | Promise<void>;
 }
 
 function formFromCampaign(
   campaign: CampaignListItem | null,
+  defaultCampus = "",
 ): CampaignFormState {
   return {
     name: campaign?.name ?? "",
@@ -65,18 +73,25 @@ function formFromCampaign(
     mode: campaign?.mode ?? "OFFLINE",
     channelType: campaign?.channelType ?? "",
     channelUrl: campaign?.channelUrl ?? "",
+    campus: campaign?.campus ?? defaultCampus,
+    leadRoutingEnabled: campaign?.leadRoutingEnabled ?? false,
+    leadRoutingTargetType: campaign?.leadRoutingTargetType ?? "",
+    leadRoutingTargetTeam: campaign?.leadRoutingTargetTeam ?? "",
+    leadRoutingTargetGroup: campaign?.leadRoutingTargetGroup ?? "",
   };
 }
 
 export default function CampaignFormDialog({
   campaign,
   channelTypes,
+  routingOptions,
+  defaultCampus,
   onClose,
   onSubmit,
 }: CampaignFormDialogProps) {
   const isEditing = Boolean(campaign);
   const [form, setForm] = useState<CampaignFormState>(() =>
-    formFromCampaign(campaign),
+    formFromCampaign(campaign, defaultCampus),
   );
   const [fieldErrors, setFieldErrors] = useState<CampaignFormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -122,6 +137,11 @@ export default function CampaignFormDialog({
         mode: form.mode,
         channelType: form.channelType,
         channelUrl: form.channelUrl.trim(),
+        campus: form.campus,
+        leadRoutingEnabled: form.leadRoutingEnabled,
+        leadRoutingTargetType: form.leadRoutingTargetType,
+        leadRoutingTargetTeam: form.leadRoutingTargetTeam,
+        leadRoutingTargetGroup: form.leadRoutingTargetGroup,
       });
     } catch (submitError) {
       setSubmitError(
@@ -156,6 +176,28 @@ export default function CampaignFormDialog({
   };
 
   const fieldError = (field: keyof CampaignFormState) => fieldErrors[field];
+  const teamOptions = routingOptions.teams.filter(
+    (option) => !form.campus || !option.campus || option.campus === form.campus,
+  );
+
+  const handleRoutingTargetTypeChange = (value: string) => {
+    const targetType = value as CampaignRoutingTargetType;
+    setForm((current) => ({
+      ...current,
+      leadRoutingTargetType: targetType,
+      leadRoutingTargetTeam: targetType === "Team" ? current.leadRoutingTargetTeam : "",
+      leadRoutingTargetGroup:
+        targetType === "Team Group" ? current.leadRoutingTargetGroup : "",
+    }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.leadRoutingTargetType;
+      delete next.leadRoutingTargetTeam;
+      delete next.leadRoutingTargetGroup;
+      return next;
+    });
+    setSubmitError(null);
+  };
 
   return (
     <Backdrop isOpen onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -401,6 +443,128 @@ export default function CampaignFormDialog({
                 message={fieldError("channelUrl")}
               />
             </label>
+
+            <section className="rounded-lg border border-card-border bg-card-background p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-text-primary">
+                    Phân bổ Lead theo Campaign
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-text-tertiary">
+                    Khi bật, Campaign được ưu tiên trước Group/tỉnh và chia đều campus.
+                  </p>
+                </div>
+                <Toggle
+                  aria-label="Bật phân bổ Lead theo Campaign"
+                  checked={form.leadRoutingEnabled}
+                  disabled={isSubmitting}
+                  onChange={(event) =>
+                    setField("leadRoutingEnabled", event.target.checked)
+                  }
+                />
+              </div>
+
+              {form.leadRoutingEnabled && (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-input-label-text">
+                      Đích phân bổ
+                    </span>
+                    <Select
+                      value={form.leadRoutingTargetType}
+                      onChange={(value) => handleRoutingTargetTypeChange(String(value))}
+                      aria-label="Đích phân bổ Campaign"
+                      isInvalid={Boolean(fieldError("leadRoutingTargetType"))}
+                    >
+                      <SelectTrigger className="h-9 w-full text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem id="" textValue="Chọn đích phân bổ">
+                          Chọn đích phân bổ
+                        </SelectItem>
+                        <SelectItem id="Team" textValue="Một Team">
+                          Một Team
+                        </SelectItem>
+                        <SelectItem id="Team Group" textValue="Team Group">
+                          Team Group
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormFieldError
+                      id="campaign-routing-target-type-error"
+                      message={fieldError("leadRoutingTargetType")}
+                    />
+                  </label>
+
+                  {form.leadRoutingTargetType === "Team" ? (
+                    <label className="space-y-1">
+                      <span className="text-xs font-medium text-input-label-text">
+                        Team nhận Lead
+                      </span>
+                      <Select
+                        value={form.leadRoutingTargetTeam}
+                        onChange={(value) =>
+                          setField("leadRoutingTargetTeam", String(value))
+                        }
+                        aria-label="Team nhận Lead của Campaign"
+                        isInvalid={Boolean(fieldError("leadRoutingTargetTeam"))}
+                      >
+                        <SelectTrigger className="h-9 w-full text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem id="" textValue="Chọn Team">
+                            Chọn Team
+                          </SelectItem>
+                          {teamOptions.map((option) => (
+                            <SelectItem key={option.id} id={option.id} textValue={option.label}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormFieldError
+                        id="campaign-routing-target-team-error"
+                        message={fieldError("leadRoutingTargetTeam")}
+                      />
+                    </label>
+                  ) : form.leadRoutingTargetType === "Team Group" ? (
+                    <label className="space-y-1">
+                      <span className="text-xs font-medium text-input-label-text">
+                        Team Group nhận Lead
+                      </span>
+                      <Select
+                        value={form.leadRoutingTargetGroup}
+                        onChange={(value) =>
+                          setField("leadRoutingTargetGroup", String(value))
+                        }
+                        aria-label="Team Group nhận Lead của Campaign"
+                        isInvalid={Boolean(fieldError("leadRoutingTargetGroup"))}
+                      >
+                        <SelectTrigger className="h-9 w-full text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem id="" textValue="Chọn Team Group">
+                            Chọn Team Group
+                          </SelectItem>
+                          {routingOptions.groups.map((option) => (
+                            <SelectItem key={option.id} id={option.id} textValue={option.label}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormFieldError
+                        id="campaign-routing-target-group-error"
+                        message={fieldError("leadRoutingTargetGroup")}
+                      />
+                    </label>
+                  ) : null}
+                </div>
+              )}
+            </section>
 
             {submitError && (
               <p className="text-xs text-badge-error-text" role="alert">
