@@ -11,10 +11,12 @@ import StudentConversationSummary from "./student-conversation-summary";
 
 interface StudentInteractionDetailProps {
   interactionId: string;
+  callSummary?: string | null;
 }
 
 export default function StudentInteractionDetail({
   interactionId,
+  callSummary,
 }: StudentInteractionDetailProps) {
   const detailQuery = useInteractionDetailQuery(interactionId);
   if (detailQuery.isPending) return <InteractionDetailSkeleton />;
@@ -53,9 +55,10 @@ export default function StudentInteractionDetail({
   const detail = detailQuery.data;
 
   return (
-    <div className="border-t border-card-border bg-background-gray-secondary/30 p-4 sm:p-5">
+    <div className="border-t border-card-border pt-4">
       <StudentConversationSummary
         intelligence={detail.analysis?.intelligence}
+        callSummary={callSummary}
       />
       <div className="mt-5">
         <StudentCallQualityScore interactionId={interactionId} />
