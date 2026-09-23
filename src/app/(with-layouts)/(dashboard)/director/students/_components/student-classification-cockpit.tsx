@@ -28,6 +28,7 @@ import type { Student360SectionProps } from "./types";
 interface StudentClassificationCockpitProps extends Student360SectionProps {
   analysisTargetId: string;
   scoreBreakdown?: StudentScoreBreakdown | null;
+  canViewVisual?: boolean;
 }
 
 export default function StudentClassificationCockpit({
@@ -253,6 +254,28 @@ export default function StudentClassificationCockpit({
               </div>
             ),
           },
+          /* Tạm ẩn tab Visual 360; giữ nguyên cấu hình để bật lại khi cần.
+          ...(canViewVisual
+            ? [
+                {
+                  id: "visual-360",
+                  label: "Visual 360",
+                  content: (
+                    <StudentVisual360
+                      canRead={canViewVisual}
+                      data={data}
+                      report={report}
+                      scoreBreakdown={scoreBreakdown}
+                      isLoading={Boolean(
+                        isAnalysisActive || runQuery.isLoading,
+                      )}
+                      hasError={Boolean(analysisError)}
+                    />
+                  ),
+                },
+              ]
+            : []),
+          */
         ]}
       />
 
