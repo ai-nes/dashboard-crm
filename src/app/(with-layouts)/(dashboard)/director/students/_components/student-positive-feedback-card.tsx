@@ -19,6 +19,7 @@ import StudentAICardHeader from "./student-ai-card-header";
 import StudentCardEmptyState from "./student-card-empty-state";
 
 interface StudentPositiveFeedbackCardProps {
+  compact?: boolean;
   data: Student360Data;
   opportunities?: AnalysisReportItem[];
   recommendations?: AnalysisReportItem[];
@@ -27,6 +28,7 @@ interface StudentPositiveFeedbackCardProps {
 }
 
 export default function StudentPositiveFeedbackCard({
+  compact = false,
   data,
   opportunities = [],
   recommendations = [],
@@ -149,6 +151,10 @@ export default function StudentPositiveFeedbackCard({
               </div>
             ))}
           </div>
+        ) : compact ? (
+          <p className="py-4 text-sm leading-6 text-text-secondary">
+            Chưa có phản hồi trực tiếp từ học sinh hoặc phụ huynh.
+          </p>
         ) : (
           <StudentCardEmptyState message="Chưa có phản hồi trực tiếp từ học sinh hoặc phụ huynh." />
         )}

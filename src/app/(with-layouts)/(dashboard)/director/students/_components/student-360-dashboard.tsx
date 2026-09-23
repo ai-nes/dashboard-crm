@@ -348,6 +348,7 @@ export default function Student360Dashboard({
           tagStudentId={canonicalStudentId}
           tagsEditable={canUpdateStudent && Boolean(canonicalStudentId)}
           scoreBreakdown={scoreBreakdown}
+          canViewStageHistory={!isAuthLoading && hasStudentAccess}
         />
       </div>
 
@@ -363,6 +364,7 @@ export default function Student360Dashboard({
             targetId,
             canUpdateStudent,
             scoreBreakdown,
+            !isAuthLoading && hasStudentAccess,
           )}
           initialChatwootInteractions={initialChatwootInteractions}
           initialStudentInteractions={initialStudentInteractions}
@@ -387,6 +389,7 @@ function getStudentTabs(
   analysisTargetId: string,
   canUpdateStudent: boolean,
   scoreBreakdown: StudentScoreBreakdown | null,
+  canReadStudent: boolean,
 ): DetailTabItem[] {
   const auditStudentId = data.student.studentId || analysisTargetId;
   const showHighSchoolScore = isHighSchoolAdmissionMethod(data);
@@ -399,6 +402,7 @@ function getStudentTabs(
           data={data}
           analysisTargetId={analysisTargetId}
           scoreBreakdown={scoreBreakdown}
+          canViewVisual={canReadStudent}
         />
       ),
     },

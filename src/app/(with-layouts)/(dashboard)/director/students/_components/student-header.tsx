@@ -29,6 +29,7 @@ import StudentOwnerCell from "./student-owner-cell";
 import StudentTagsCell from "./student-tags-cell";
 import { studentStatusLabel } from "./student-status";
 import StudentStatusWorkflow from "./student-status-workflow";
+import StudentStageBorder from "./student-stage-border";
 import type { StudentScoreBreakdown } from "./student-score-breakdown";
 import type { Student360SectionProps } from "./types";
 
@@ -45,6 +46,7 @@ interface StudentHeaderProps extends Student360SectionProps {
   tagsEditable?: boolean;
   status?: StudentStatus | null;
   scoreBreakdown?: StudentScoreBreakdown | null;
+  canViewStageHistory?: boolean;
 }
 
 export default function StudentHeader({
@@ -61,6 +63,7 @@ export default function StudentHeader({
   tagsEditable = false,
   status,
   scoreBreakdown,
+  canViewStageHistory = false,
 }: StudentHeaderProps) {
   const { student } = data;
   const subtitle = student.grade || "-";
@@ -85,6 +88,9 @@ export default function StudentHeader({
       </Link>
 
       <div className="min-w-0 overflow-hidden rounded-2xl border border-card-border bg-card-background">
+        {canViewStageHistory && tagStudentId && studentStatus && (
+          <StudentStageBorder studentId={tagStudentId} status={studentStatus} />
+        )}
         <div className="min-w-0 p-3 lg:p-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-center">
             <div className="flex min-w-0 items-start gap-3">

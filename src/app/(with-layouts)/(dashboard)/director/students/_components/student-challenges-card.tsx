@@ -19,6 +19,7 @@ import StudentAICardHeader from "./student-ai-card-header";
 import StudentCardEmptyState from "./student-card-empty-state";
 
 interface StudentChallengesCardProps {
+  compact?: boolean;
   data: Student360Data;
   risks?: AnalysisReportItem[];
   isRefreshing?: boolean;
@@ -26,6 +27,7 @@ interface StudentChallengesCardProps {
 }
 
 export default function StudentChallengesCard({
+  compact = false,
   data,
   risks = [],
   isRefreshing,
@@ -141,6 +143,10 @@ export default function StudentChallengesCard({
               </div>
             ))}
           </div>
+        ) : compact ? (
+          <p className="py-4 text-sm leading-6 text-text-secondary">
+            Chưa ghi nhận rào cản nào trên hồ sơ này.
+          </p>
         ) : (
           <StudentCardEmptyState message="Chưa ghi nhận rào cản nào trên hồ sơ này." />
         )}
