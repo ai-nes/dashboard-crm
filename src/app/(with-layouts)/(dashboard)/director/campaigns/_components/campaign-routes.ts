@@ -1,5 +1,7 @@
 const DEFAULT_CAMPAIGN_LIST_PATH = "/lead-sale/campaigns";
 
+export type CampaignDetailRecordView = "leads" | "students";
+
 export function getCampaignListPath(
   roles: readonly string[] | null | undefined,
 ): string {
@@ -13,4 +15,12 @@ export function getCampaignDetailPath(
   campaignCode: string,
 ): string {
   return `${listPath}/${encodeURIComponent(campaignCode)}`;
+}
+
+export function getCampaignDetailReturnPath(
+  listPath: string,
+  campaignCode: string,
+  recordView: CampaignDetailRecordView,
+): string {
+  return `${getCampaignDetailPath(listPath, campaignCode)}?view=${recordView}`;
 }

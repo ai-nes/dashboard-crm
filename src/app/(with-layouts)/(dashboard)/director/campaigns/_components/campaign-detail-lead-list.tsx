@@ -7,6 +7,7 @@ import {
   leadStageStatusLabel,
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
 import { leadTableGrid } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-table-grid";
+import { withReturnTo } from "@/utils/detail-navigation";
 import { formatDate } from "@/utils/format-date";
 
 import type { CampaignLeadRow } from "./campaign-detail-leads";
@@ -16,11 +17,13 @@ export const campaignLeadListGrid = leadTableGrid;
 interface CampaignDetailLeadListProps {
   leads: CampaignLeadRow[];
   isFiltered?: boolean;
+  returnTo?: string;
 }
 
 export default function CampaignDetailLeadList({
   leads,
   isFiltered = false,
+  returnTo,
 }: CampaignDetailLeadListProps) {
   if (leads.length === 0) {
     return (
@@ -58,7 +61,10 @@ export default function CampaignDetailLeadList({
 
             <div className="min-w-0">
               <Link
-                href={`/director/leads/${lead.id}`}
+                href={withReturnTo(
+                  `/director/leads/${encodeURIComponent(lead.id)}`,
+                  returnTo,
+                )}
                 className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
               >
                 {lead.name}

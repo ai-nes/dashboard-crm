@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { Bolt1, Play, Plus, UploadCloud } from "@tailgrids/icons";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -34,6 +35,7 @@ import type {
   LeadListParams,
   LeadProcessingPreviewResponse,
 } from "@/services/api/lead-sale";
+import { getCurrentPath } from "@/utils/detail-navigation";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadImportDialog from "./lead-import-dialog";
@@ -46,6 +48,8 @@ import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 const pageSize = 10;
 
 export default function LeadsOverviewDashboard() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
@@ -69,6 +73,7 @@ export default function LeadsOverviewDashboard() {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
+  const listReturnTo = getCurrentPath(pathname, searchParams);
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -401,7 +406,11 @@ export default function LeadsOverviewDashboard() {
             {isPending && !response ? (
               <LeadListSkeleton />
             ) : (
-              <LeadList canAssign={canAssignLead} leads={leads} />
+              <LeadList
+                canAssign={canAssignLead}
+                leads={leads}
+                returnTo={listReturnTo}
+              />
             )}
           </div>
         </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { formatDate } from "@/utils/format-date";
+import { withReturnTo } from "@/utils/detail-navigation";
 
 import LeadResultCell from "./lead-result-cell";
 import LeadListAssigneeCell from "./lead-list-assignee-cell";
@@ -15,16 +16,21 @@ import type { LeadListItem } from "./types";
 
 export const leadListGrid = leadTableGrid;
 
-export function getLeadDetailHref(leadId: string) {
-  return `/director/leads/${leadId}`;
+export function getLeadDetailHref(leadId: string, returnTo?: string) {
+  return withReturnTo(`/director/leads/${encodeURIComponent(leadId)}`, returnTo);
 }
 
 interface LeadListProps {
   leads: LeadListItem[];
   canAssign?: boolean;
+  returnTo?: string;
 }
 
-export default function LeadList({ leads, canAssign = false }: LeadListProps) {
+export default function LeadList({
+  leads,
+  canAssign = false,
+  returnTo,
+}: LeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
@@ -58,7 +64,7 @@ export default function LeadList({ leads, canAssign = false }: LeadListProps) {
 
               <div className="min-w-0">
                 <Link
-                  href={getLeadDetailHref(lead.id)}
+                  href={getLeadDetailHref(lead.id, returnTo)}
                   className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
                 >
                   {lead.name || "-"}

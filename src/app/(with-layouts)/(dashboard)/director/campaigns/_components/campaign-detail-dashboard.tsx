@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQueries } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
@@ -43,7 +44,10 @@ import StudentList, {
 } from "../../students/_components/student-list";
 import { studentStatusOptions } from "../../students/_components/student-status";
 import { toCampaignListItem } from "./campaign-mappers";
-import { getCampaignListPath } from "./campaign-routes";
+import {
+  getCampaignDetailReturnPath,
+  getCampaignListPath,
+} from "./campaign-routes";
 
 const leadPageSize = 5;
 const studentPageSize = 10;
@@ -53,6 +57,7 @@ export default function CampaignDetailDashboard({
 }: {
   campaignCode: string;
 }) {
+  const searchParams = useSearchParams();
   const { user, isLoading: isAuthLoading } = useAuth();
   const studentPermissions = getCrmPermissions(user);
   const studentReadScope =
@@ -77,8 +82,9 @@ export default function CampaignDetailDashboard({
   const [leadQuery, setLeadQuery] = useState("");
   const [leadStatus, setLeadStatus] = useState<CampaignLeadStatusFilter>("all");
   const [leadPage, setLeadPage] = useState(1);
-  const [recordView, setRecordView] =
-    useState<CampaignDetailRecordView>("leads");
+  const [recordView, setRecordView] = useState<CampaignDetailRecordView>(
+    () => (searchParams.get("view") === "students" ? "students" : "leads"),
+  );
   const [studentQuery, setStudentQuery] = useState("");
   const [studentStatus, setStudentStatus] =
     useState<CampaignDetailStudentStatusFilter>("all");
@@ -187,6 +193,11 @@ export default function CampaignDetailDashboard({
       Math.ceil(studentTotal / studentPageSize),
   );
   const currentStudentPage = Math.min(studentPage, studentTotalPages);
+  const campaignDetailReturnPath = getCampaignDetailReturnPath(
+    campaignListPath,
+    campaignCode,
+    recordView,
+  );
 
   const handleLeadQueryChange = (value: string) => {
     setLeadQuery(value);
@@ -326,6 +337,7 @@ export default function CampaignDetailDashboard({
               <CampaignDetailLeadList
                 leads={visibleLeads}
                 isFiltered={Boolean(leadQuery.trim()) || leadStatus !== "all"}
+                returnTo={campaignDetailReturnPath}
               />
               {totalLeads > 0 && (
                 <div className="flex flex-col gap-3 border-t border-card-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
@@ -388,6 +400,7 @@ export default function CampaignDetailDashboard({
               <StudentList
                 students={students}
                 ownerEditable={studentPermissions.student.canAssign}
+                returnTo={campaignDetailReturnPath}
               />
               {studentTotal > 0 && (
                 <div className="flex flex-col gap-3 border-t border-card-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">

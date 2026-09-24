@@ -25,6 +25,7 @@ import {
   useUpdateLeadMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 import type { LeadUpdateFields } from "@/services/api/lead-sale";
+import { resolveReturnTo, withReturnTo } from "@/utils/detail-navigation";
 
 import LeadCallsTab from "./lead-calls-tab";
 import LeadConversionDialog from "./lead-conversion-dialog";
@@ -39,11 +40,18 @@ import {
 } from "./lead-conversion-validation";
 import { normalizeLeadStageStatus } from "./lead-status";
 
-export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
+export default function LeadDetailDashboard({
+  leadId,
+  returnTo,
+}: {
+  leadId: string;
+  returnTo?: string;
+}) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const leadListHref = getLeadListHref(user?.roles);
+  const backHref = resolveReturnTo(returnTo, leadListHref);
   const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId);
   const [activeTab, setActiveTab] = useState("details");
   const callLogsQuery = useLeadCallLogsQuery(leadId, {
@@ -86,7 +94,10 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       onSuccess: (result) => {
         toast.success("Đã chuyển đổi Lead thành học sinh.");
         router.replace(
-          `/director/students/${encodeURIComponent(result.student)}`,
+          withReturnTo(
+            `/director/students/${encodeURIComponent(result.student)}`,
+            backHref,
+          ),
         );
         router.refresh();
       },
@@ -124,7 +135,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       onSuccess: () => {
         setDeleteDialogOpen(false);
         toast.success("Đã xóa Lead.");
-        router.replace(leadListHref);
+        router.replace(backHref);
         router.refresh();
       },
       onError: (deleteError) => {
@@ -245,7 +256,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     >
       <div className="px-2 pt-4 lg:px-6">
         <LeadHeader
-          backHref={leadListHref}
+          backHref={backHref}
           lead={data.lead}
           createdAt={data.lead.createdAt ?? undefined}
           isConverting={convertMutation.isPending || updateMutation.isPending}
