@@ -31,7 +31,7 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-const SEGMENT_STUDENT_PAGE_SIZE = 8;
+const SEGMENT_STUDENT_PAGE_SIZE = 5;
 
 export function SegmentDetailPage({
   segmentId,

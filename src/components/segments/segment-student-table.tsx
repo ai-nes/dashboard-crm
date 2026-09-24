@@ -35,7 +35,7 @@ const normalize = (value: string) =>
     .replace(/[đĐ]/g, "d")
     .toLowerCase();
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 5;
 
 const globalFilterFn: FilterFn<SegmentStudent> = (row, columnId, value) =>
   normalize(String(row.getValue(columnId))).includes(normalize(value.trim()));
