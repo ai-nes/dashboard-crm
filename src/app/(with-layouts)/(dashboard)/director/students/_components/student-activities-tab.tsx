@@ -556,6 +556,11 @@ export default function StudentActivitiesTab({
             content: (
               <StudentInteractionsTabs
                 studentId={studentDocname}
+                campaignStudentId={data.student.studentId}
+                primaryCampaign={data.acquisition.campaign}
+                primaryCampaignOccurredAt={
+                  data.student.profileDetails?.personal?.createdAt
+                }
                 studentName={data.student.name}
                 calls={calls}
                 messages={zaloMessages}
