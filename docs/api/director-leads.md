@@ -83,3 +83,34 @@ Successful response (inside Frappe's `message` envelope):
   "student_stage": "New"
 }
 ```
+
+## Delete Lead
+
+Endpoint: `DELETE /api/method/crm.api.lead.delete_lead`
+
+Request body:
+
+```json
+{ "name": "HS-2026-HCM-000091" }
+```
+
+An unconverted Lead may be deleted when the current user has the CRM Lead
+delete permission. Operational rows in `CRM Lead Assignment Batch Item` that
+point to the Lead are removed in the same transaction; an assignment batch is
+removed only when it becomes empty, otherwise its summary counts are rebuilt.
+
+The `deleted` field echoes the identifier sent by the caller. When the caller
+uses the public `lead_id` instead of the canonical Frappe document name, the
+response also includes `deleted_name` with that canonical name.
+
+Converted Leads are immutable and cannot be deleted. The server rejects the
+request before any related record is changed. A successful response includes
+the deleted Lead and cleanup counts:
+
+```json
+{
+  "deleted": "HS-2026-HCM-000091",
+  "removed_assignment_items": 1,
+  "removed_assignment_batches": 1
+}
+```

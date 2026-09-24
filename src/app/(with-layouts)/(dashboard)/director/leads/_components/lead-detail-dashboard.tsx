@@ -33,6 +33,7 @@ import LeadDetailsTab from "./lead-details-tab";
 import LeadHeader from "./lead-header";
 import LeadLogTab from "./lead-log-tab";
 import LeadNotesTab from "./lead-notes-tab";
+import LeadNotFoundState from "./lead-not-found-state";
 import LeadWorkflowSection from "./lead-workflow-section";
 import {
   getLeadConversionMissingFields,
@@ -77,6 +78,7 @@ export default function LeadDetailDashboard({
     canPerformStudentAction(permissions.lead, "update", leadOwnership, user);
   const canDeleteLead =
     !isAuthLoading &&
+    !data?.lead.isConverted &&
     canPerformStudentAction(permissions.lead, "delete", leadOwnership, user);
   const canAssignLead =
     !isAuthLoading && hasCrmCapability(user, "student.routing.operate");
@@ -132,9 +134,15 @@ export default function LeadDetailDashboard({
   };
   const handleDelete = () => {
     deleteMutation.mutate(leadId, {
-      onSuccess: () => {
+      onSuccess: (result) => {
         setDeleteDialogOpen(false);
-        toast.success("Đã xóa Lead.");
+        const removedItems = result.removedAssignmentItems ?? 0;
+        toast.success("Đã xóa Lead.", {
+          description:
+            removedItems > 0
+              ? `Đã gỡ ${removedItems} liên kết phân công liên quan.`
+              : undefined,
+        });
         router.replace(backHref);
         router.refresh();
       },
@@ -174,16 +182,7 @@ export default function LeadDetailDashboard({
   }
 
   if (!data) {
-    return (
-      <main id="main-content" className="min-w-0 p-6">
-        <Card className="border-error-200 bg-badge-error-background p-5 text-error-600">
-          <p className="text-base font-semibold">Không tìm thấy Lead này.</p>
-          <p className="mt-1 text-sm">
-            Lead có thể đã bị xóa hoặc mã Lead không đúng.
-          </p>
-        </Card>
-      </main>
-    );
+    return <LeadNotFoundState backHref={backHref} />;
   }
 
   if (!isAuthLoading && !hasLeadAccess) {
@@ -290,7 +289,11 @@ export default function LeadDetailDashboard({
         onOpenChange={setDeleteDialogOpen}
         recordName={data.lead.name || leadId}
         recordType="Lead"
-      />
+      >
+        <p className="text-sm leading-5 text-text-secondary">
+          Các liên kết phân công Lead liên quan sẽ được gỡ tự động.
+        </p>
+      </DeleteRecordDialog>
       <LeadConversionDialog
         key={
           leadId +

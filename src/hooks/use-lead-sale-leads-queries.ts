@@ -23,6 +23,7 @@ import {
   processNewLeads,
   type LeadImportResponse,
   type LeadImportMapping,
+  type LeadDeleteResponse,
   reopenLead,
   updateLeadProcessingStatus,
   updateLead,
@@ -250,7 +251,7 @@ export function useImportLeadFileMutation() {
 export function useDeleteLeadMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<{ deleted: string }, Error, string>({
+  return useMutation<LeadDeleteResponse, Error, string>({
     mutationFn: (leadId) => deleteLead(leadId),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),

@@ -221,6 +221,21 @@ describe("Lead list/detail API contract", () => {
     });
   });
 
+  it("keeps converted state separate from a pre-conversion Student match", () => {
+    const result = normalizeLeadDetail({
+      lead: {
+        ...listFixture().data[0],
+        matchedStudent: "STU-MATCHED",
+        convertedStudent: "STU-CONVERTED",
+      },
+      log: [],
+      meta: {},
+    });
+
+    expect(result.lead.studentId).toBe("STU-CONVERTED");
+    expect(result.lead.isConverted).toBe(true);
+  });
+
   it("loads eligible Sale/CTV targets for a Lead", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
@@ -1147,6 +1162,52 @@ describe("Lead list/detail API contract", () => {
         body: JSON.stringify({ name: "LEAD-2026-00004" }),
       }),
     );
+  });
+
+  it("normalizes assignment cleanup counts from the delete response", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            deleted: "LEAD-2026-00005",
+            removed_assignment_items: 2,
+            removed_assignment_batches: 1,
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      deleteLead("LEAD-2026-00005", { baseUrl: "http://frappe:8000" }),
+    ).resolves.toEqual({
+      deleted: "LEAD-2026-00005",
+      removedAssignmentItems: 2,
+      removedAssignmentBatches: 1,
+    });
+  });
+
+  it("preserves the canonical name when deleting through a public Lead id", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: {
+            deleted: "ae219fc0d0fd43aea63abb570b96788f",
+            deleted_name: "HS-2026-HCM-003320",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      deleteLead("ae219fc0d0fd43aea63abb570b96788f", {
+        baseUrl: "http://frappe:8000",
+      }),
+    ).resolves.toEqual({
+      deleted: "ae219fc0d0fd43aea63abb570b96788f",
+      deletedName: "HS-2026-HCM-003320",
+    });
   });
 
   it("converts an assigned Lead into a new Student", async () => {

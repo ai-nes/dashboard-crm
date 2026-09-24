@@ -2,9 +2,30 @@
 
 import { ArrowLeft } from "@tailgrids/icons";
 import Link from "next/link";
-import { SVGProps } from "react";
+import { ReactNode, SVGProps } from "react";
+
+export interface NotFoundPageProps {
+  title?: string;
+  description?: ReactNode;
+  actionHref?: string;
+  actionLabel?: string;
+}
 
 export default function Error() {
+  return <NotFoundPage />;
+}
+
+export function NotFoundPage({
+  title = "Page not found!",
+  description = (
+    <>
+      <p>The page you are looking for doesn’t exist.</p>
+      <p>Here are some helpful links:</p>
+    </>
+  ),
+  actionHref = "/",
+  actionLabel = "Back To Home",
+}: NotFoundPageProps) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-card-background">
       {/* Content Section */}
@@ -19,22 +40,21 @@ export default function Error() {
             {/* Text Info */}
             <div className="mt-20 flex flex-col items-center gap-3 text-center">
               <h2 className="text-4xl leading-10 font-semibold text-text-primary">
-                Page not found!
+                {title}
               </h2>
               <div className="text-sm leading-5 font-normal tracking-[-0.15px] text-text-tertiary">
-                <p>The page you are looking for doesn’t exist.</p>
-                <p>Here are some helpful links:</p>
+                {description}
               </div>
             </div>
 
             {/* Action Button */}
             <Link
-              href="/"
+              href={actionHref}
               className="mt-6 flex items-center justify-center gap-1.5 overflow-clip rounded-lg bg-primary-500 px-3.5 py-2.5 text-white transition-colors hover:bg-primary-500/90"
             >
               <ArrowLeft className="size-5" />
               <span className="px-0.5 text-sm leading-5 font-medium tracking-[-0.15px] whitespace-nowrap">
-                Back To Home
+                {actionLabel}
               </span>
             </Link>
           </div>
