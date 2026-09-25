@@ -1,6 +1,11 @@
 import type {
+  LeadSaleDashboardActionId,
   LeadSaleDashboardAgingBucket,
+  LeadSaleDashboardAgingBucketId,
+  LeadSaleDashboardDetailRecord,
+  LeadSaleDashboardIssueCode,
   LeadSaleDashboardPayload,
+  LeadSaleDashboardRecordType,
   LeadSaleIntervention,
   LeadSaleInterventionId,
   LeadSaleKpi,
@@ -55,12 +60,24 @@ const DASHBOARD_STAGE_IDS = [
   "connected",
   "qualified",
 ] as const;
-const DASHBOARD_ACTION_IDS = ["overdue", "unassigned", "due-today", "aging"] as const;
+const DASHBOARD_ACTION_IDS = [
+  "overdue",
+  "unassigned",
+  "due-today",
+  "aging",
+] as const;
 const DASHBOARD_ISSUE_IDS = [
   "overdue",
   "missing-documents",
   "uncontacted",
   "aging",
+] as const;
+const DASHBOARD_RECORD_TYPE_IDS = ["active", "enrolled"] as const;
+const DASHBOARD_AGING_BUCKET_IDS = [
+  "0-2-days",
+  "3-5-days",
+  "6-10-days",
+  "over-10-days",
 ] as const;
 
 export type RequestOptions = {
@@ -266,7 +283,8 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
           label: text(row.label, id),
           volume: count(row.volume),
           nextStepConversion:
-            row.nextStepConversion === null || row.nextStepConversion === undefined
+            row.nextStepConversion === null ||
+            row.nextStepConversion === undefined
               ? null
               : Math.min(100, Math.max(0, number(row.nextStepConversion))),
           averageDays: number(row.averageDays),
@@ -281,7 +299,10 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
         return {
           period: text(row.period),
           stageCounts: Object.fromEntries(
-            DASHBOARD_STAGE_IDS.map((stage) => [stage, count(stageCounts[stage])]),
+            DASHBOARD_STAGE_IDS.map((stage) => [
+              stage,
+              count(stageCounts[stage]),
+            ]),
           ) as Record<(typeof DASHBOARD_STAGE_IDS)[number], number>,
         };
       })
@@ -299,11 +320,16 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
         const repTrend = Array.isArray(pipeline.trend)
           ? pipeline.trend.map((point) => {
               const trendPoint = asRecord(point) ?? {};
-              const stageCounts = asRecord(trendPoint.stageCounts ?? trendPoint.stage_counts) ?? {};
+              const stageCounts =
+                asRecord(trendPoint.stageCounts ?? trendPoint.stage_counts) ??
+                {};
               return {
                 period: text(trendPoint.period),
                 stageCounts: Object.fromEntries(
-                  DASHBOARD_STAGE_IDS.map((stage) => [stage, count(stageCounts[stage])]),
+                  DASHBOARD_STAGE_IDS.map((stage) => [
+                    stage,
+                    count(stageCounts[stage]),
+                  ]),
                 ) as Record<(typeof DASHBOARD_STAGE_IDS)[number], number>,
               };
             })
@@ -321,19 +347,28 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
           closedOpportunities: count(
             row.closedOpportunities ?? row.closed_opportunities,
           ),
-          wonOpportunities: count(row.wonOpportunities ?? row.won_opportunities),
-          openOpportunities: count(row.openOpportunities ?? row.open_opportunities),
+          wonOpportunities: count(
+            row.wonOpportunities ?? row.won_opportunities,
+          ),
+          openOpportunities: count(
+            row.openOpportunities ?? row.open_opportunities,
+          ),
           overdue: count(row.overdue),
-          avgStageAgeDays: number(row.avgStageAgeDays ?? row.avg_stage_age_days),
+          avgStageAgeDays: number(
+            row.avgStageAgeDays ?? row.avg_stage_age_days,
+          ),
           actionItemCount: count(row.actionItemCount ?? row.action_item_count),
           pipeline: {
             newOpportunities: count(
               pipeline.newOpportunities ?? pipeline.new_opportunities,
             ),
             followUpDue: count(pipeline.followUpDue ?? pipeline.follow_up_due),
-            stageVolumes: numberMap(pipeline.stageVolumes ?? pipeline.stage_volumes),
+            stageVolumes: numberMap(
+              pipeline.stageVolumes ?? pipeline.stage_volumes,
+            ),
             stageActionItemCounts: numberMap(
-              pipeline.stageActionItemCounts ?? pipeline.stage_action_item_counts,
+              pipeline.stageActionItemCounts ??
+                pipeline.stage_action_item_counts,
             ),
             agingBuckets: numberMap(
               pipeline.agingBuckets ?? pipeline.aging_buckets,
@@ -363,6 +398,73 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
           stageId,
           stageLabel: text(row.stageLabel, stageId),
           issueCode,
+          ageDays: count(row.ageDays ?? row.age_days),
+          nextAction: text(row.nextAction ?? row.next_action),
+          lastActivityAt: text(row.lastActivityAt ?? row.last_activity_at),
+        };
+      })
+    : [];
+  const detailRecords = Array.isArray(source.detailRecords)
+    ? source.detailRecords.map((item): LeadSaleDashboardDetailRecord => {
+        const row = asRecord(item) ?? {};
+        const stageId = DASHBOARD_STAGE_IDS.includes(
+          (row.stageId ?? row.stage_id) as (typeof DASHBOARD_STAGE_IDS)[number],
+        )
+          ? ((row.stageId ??
+              row.stage_id) as (typeof DASHBOARD_STAGE_IDS)[number])
+          : "new";
+        const issueCode =
+          (row.issueCode ?? row.issue_code) === null ||
+          (row.issueCode ?? row.issue_code) === undefined
+            ? null
+            : DASHBOARD_ISSUE_IDS.includes(
+                  (row.issueCode ??
+                    row.issue_code) as (typeof DASHBOARD_ISSUE_IDS)[number],
+                )
+              ? ((row.issueCode ??
+                  row.issue_code) as LeadSaleDashboardIssueCode)
+              : null;
+        const recordType = DASHBOARD_RECORD_TYPE_IDS.includes(
+          (row.recordType ??
+            row.record_type) as (typeof DASHBOARD_RECORD_TYPE_IDS)[number],
+        )
+          ? ((row.recordType ?? row.record_type) as LeadSaleDashboardRecordType)
+          : "active";
+        const agingBucketId =
+          (row.agingBucketId ?? row.aging_bucket_id) === null ||
+          (row.agingBucketId ?? row.aging_bucket_id) === undefined
+            ? null
+            : DASHBOARD_AGING_BUCKET_IDS.includes(
+                  (row.agingBucketId ??
+                    row.aging_bucket_id) as (typeof DASHBOARD_AGING_BUCKET_IDS)[number],
+                )
+              ? ((row.agingBucketId ??
+                  row.aging_bucket_id) as LeadSaleDashboardAgingBucketId)
+              : null;
+        const rawActionIds = row.actionIds ?? row.action_ids;
+        const actionIds: LeadSaleDashboardActionId[] = Array.isArray(rawActionIds)
+          ? rawActionIds.filter(
+              (action: unknown): action is LeadSaleDashboardActionId =>
+                DASHBOARD_ACTION_IDS.includes(
+                  action as (typeof DASHBOARD_ACTION_IDS)[number],
+                ),
+            )
+          : [];
+        return {
+          id: text(row.id),
+          name: text(row.name, "Hồ sơ chưa đặt tên"),
+          owner: text(row.owner, "Chưa phân công"),
+          ownerId:
+            (row.ownerId ?? row.owner_id) === null ||
+            (row.ownerId ?? row.owner_id) === undefined
+              ? null
+              : text(row.ownerId ?? row.owner_id),
+          recordType,
+          stageId,
+          stageLabel: text(row.stageLabel ?? row.stage_label, stageId),
+          issueCode,
+          actionIds,
+          agingBucketId,
           ageDays: count(row.ageDays ?? row.age_days),
           nextAction: text(row.nextAction ?? row.next_action),
           lastActivityAt: text(row.lastActivityAt ?? row.last_activity_at),
@@ -417,6 +519,7 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
       actionRequired: count(summary.actionRequired ?? summary.action_required),
     },
     actions,
+    detailRecords,
     priorityQueue,
     stages,
     reps,

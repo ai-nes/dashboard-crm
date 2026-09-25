@@ -43,9 +43,71 @@ const response: LeadSaleOverviewResponse = {
     },
     actions: [
       { id: "overdue", value: 1, longestAgeDays: 2 },
-      { id: "unassigned", value: 0, longestAgeDays: 0 },
-      { id: "due-today", value: 2, longestAgeDays: 0 },
-      { id: "aging", value: 4, longestAgeDays: 11 },
+      { id: "unassigned", value: 1, longestAgeDays: 7 },
+      { id: "due-today", value: 1, longestAgeDays: 0 },
+      { id: "aging", value: 2, longestAgeDays: 11 },
+    ],
+    detailRecords: [
+      {
+        id: "student-1",
+        name: "Nguyễn Minh Khôi",
+        owner: "Nguyễn Minh Anh",
+        ownerId: "staff-1",
+        recordType: "active",
+        stageId: "connected",
+        stageLabel: "Đã kết nối",
+        issueCode: "overdue",
+        actionIds: ["overdue", "aging"],
+        agingBucketId: "over-10-days",
+        ageDays: 11,
+        nextAction: "Xử lý công việc quá hạn",
+        lastActivityAt: "2026-09-16 09:00:00",
+      },
+      {
+        id: "student-2",
+        name: "Hồ sơ chưa phân công",
+        owner: "Chưa phân công",
+        ownerId: null,
+        recordType: "active",
+        stageId: "attempting",
+        stageLabel: "Đang liên hệ",
+        issueCode: "uncontacted",
+        actionIds: ["unassigned", "aging"],
+        agingBucketId: "6-10-days",
+        ageDays: 7,
+        nextAction: "Thực hiện tương tác",
+        lastActivityAt: "2026-09-15 09:00:00",
+      },
+      {
+        id: "student-3",
+        name: "Hồ sơ cần liên hệ hôm nay",
+        owner: "Nguyễn Minh Anh",
+        ownerId: "staff-1",
+        recordType: "active",
+        stageId: "new",
+        stageLabel: "Lead mới",
+        issueCode: null,
+        actionIds: ["due-today"],
+        agingBucketId: "0-2-days",
+        ageDays: 1,
+        nextAction: "Thực hiện tương tác",
+        lastActivityAt: "2026-09-17 09:00:00",
+      },
+      {
+        id: "student-4",
+        name: "Hồ sơ đã nhập học",
+        owner: "Nguyễn Minh Anh",
+        ownerId: "staff-1",
+        recordType: "enrolled",
+        stageId: "qualified",
+        stageLabel: "Đủ điều kiện",
+        issueCode: null,
+        actionIds: [],
+        agingBucketId: null,
+        ageDays: 2,
+        nextAction: "Đã nhập học",
+        lastActivityAt: "2026-09-16 09:00:00",
+      },
     ],
     priorityQueue: [
       {
@@ -123,6 +185,37 @@ describe("Lead Sale dashboard adapter", () => {
       name: "Nguyễn Minh Khôi",
       issue: "Quá hạn xử lý",
       detailId: "record-minh-khoi",
+    });
+    expect(data.details.overdue.records.map((record) => record.id)).toEqual([
+      "student-1",
+    ]);
+    expect(data.details.unassigned.records.map((record) => record.id)).toEqual([
+      "student-2",
+    ]);
+    expect(
+      data.details["due-today"].records.map((record) => record.id),
+    ).toEqual(["student-3"]);
+    expect(data.details.aging.records.map((record) => record.id)).toEqual([
+      "student-1",
+      "student-2",
+    ]);
+    expect(
+      data.details["stage-connected"].records.map((record) => record.id),
+    ).toEqual(["student-1"]);
+    expect(
+      data.details["aging-6-10"].records.map((record) => record.id),
+    ).toEqual(["student-2"]);
+    expect(data.details["rep-a"].records.map((record) => record.id)).toEqual([
+      "student-1",
+      "student-3",
+      "student-4",
+    ]);
+    expect(data.details.enrollment.records.map((record) => record.id)).toEqual([
+      "student-4",
+    ]);
+    expect(data.details.overdue.metrics[1]).toEqual({
+      label: "Tuổi cao nhất",
+      value: "2 ngày",
     });
     expect(data.stages[0].detailId).toBe("stage-connected");
     expect(data.agingBuckets).toHaveLength(4);

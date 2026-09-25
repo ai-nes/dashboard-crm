@@ -86,13 +86,9 @@ function overviewFixture() {
         { id: "due-today", value: 0, longestAgeDays: 0 },
         { id: "aging", value: 0, longestAgeDays: 0 },
       ],
+      detailRecords: [],
       priorityQueue: [],
-      stages: [
-        "new",
-        "attempting",
-        "connected",
-        "qualified",
-      ].map((id) => ({
+      stages: ["new", "attempting", "connected", "qualified"].map((id) => ({
         id,
         label: id,
         volume: 0,
@@ -171,5 +167,47 @@ describe("Lead Sale overview API contract", () => {
     expect(() => normalizeLeadSaleOverview({ message: fixture })).toThrow(
       "Invalid Lead Sale dashboard response",
     );
+  });
+
+  it("normalizes drill-down record metadata without changing the dashboard counts", () => {
+    const fixture = overviewFixture();
+    const response = {
+      ...fixture,
+      dashboard: {
+        ...fixture.dashboard,
+        detailRecords: [
+          {
+            id: "STU-1",
+            name: "Hồ sơ chưa phân công",
+            owner: "Chưa phân công",
+            owner_id: null,
+            record_type: "active",
+            stage_id: "attempting",
+            stage_label: "Đang liên hệ",
+            issue_code: "uncontacted",
+            action_ids: ["unassigned", "aging"],
+            aging_bucket_id: "6-10-days",
+            age_days: 7,
+            next_action: "Thực hiện tương tác",
+            last_activity_at: "2026-09-05 08:00:00",
+          },
+        ],
+      },
+    };
+
+    const result = normalizeLeadSaleOverview({ message: response });
+
+    expect(result.dashboard.detailRecords).toEqual([
+      expect.objectContaining({
+        id: "STU-1",
+        ownerId: null,
+        recordType: "active",
+        stageId: "attempting",
+        actionIds: ["unassigned", "aging"],
+        agingBucketId: "6-10-days",
+        ageDays: 7,
+      }),
+    ]);
+    expect(result.dashboard.summary.actionRequired).toBe(0);
   });
 });

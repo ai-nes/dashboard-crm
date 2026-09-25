@@ -19,6 +19,7 @@ import {
   useDirectorStudentsQuery,
   useStudent360Query,
 } from "@/hooks/use-students-queries";
+import { invalidateLeadSaleOverview } from "@/hooks/use-lead-sale-overview-query";
 import { studentAuditKeys } from "@/hooks/use-student-audit-query";
 import { useStudentScoreContextQuery } from "@/hooks/use-student-score-context-query";
 import {
@@ -102,6 +103,7 @@ export default function Student360Dashboard({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       await queryClient.invalidateQueries({ queryKey: ["student-360"] });
+      await invalidateLeadSaleOverview(queryClient);
       setDeleteDialogOpen(false);
       toast.success("Đã xóa hồ sơ học sinh.");
       router.replace(backHref);
@@ -133,6 +135,7 @@ export default function Student360Dashboard({
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
       await queryClient.invalidateQueries({ queryKey: studentAuditKeys.all });
+      await invalidateLeadSaleOverview(queryClient);
       toast.success("Đã cập nhật trạng thái học sinh.");
     },
     onError: (error, variables) => {

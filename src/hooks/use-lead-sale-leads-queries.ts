@@ -8,6 +8,7 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 
+import { invalidateLeadSaleOverview } from "@/hooks/use-lead-sale-overview-query";
 import {
   convertLeadToStudent,
   assignLeadToStaff,
@@ -128,6 +129,7 @@ export function useUpdateLeadMutation() {
           queryKey: leadSaleLeadsKeys.detail(variables.leadId),
         }),
         queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        invalidateLeadSaleOverview(queryClient),
       ]),
   });
 }
@@ -146,6 +148,7 @@ export function useAssignLeadMutation() {
         queryClient.invalidateQueries({
           queryKey: leadSaleLeadsKeys.assignmentTargets(variables.lead),
         }),
+        invalidateLeadSaleOverview(queryClient),
       ]),
   });
 }
@@ -161,6 +164,7 @@ export function useProcessLeadMutation() {
           queryKey: leadSaleLeadsKeys.detail(variables.lead),
         }),
         queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        invalidateLeadSaleOverview(queryClient),
       ]),
   });
 }
@@ -171,7 +175,10 @@ export function useProcessNewLeadsMutation() {
   return useMutation<LeadProcessScanResponse, Error, LeadProcessScanRequest>({
     mutationFn: (request) => processNewLeads(request),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        invalidateLeadSaleOverview(queryClient),
+      ]),
   });
 }
 
@@ -196,6 +203,7 @@ export function useUpdateLeadProcessingStatusMutation() {
           queryKey: leadSaleLeadsKeys.detail(variables.lead),
         }),
         queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        invalidateLeadSaleOverview(queryClient),
       ]),
   });
 }
@@ -206,7 +214,10 @@ export function useCreateLeadMutation() {
   return useMutation<LeadDetailResponse, Error, LeadCreateFields>({
     mutationFn: (fields) => createLead(fields),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        invalidateLeadSaleOverview(queryClient),
+      ]),
   });
 }
 
@@ -225,7 +236,10 @@ export function useImportLeadRowsMutation() {
     mutationFn: ({ rows, filename, campaignCode }) =>
       importLeadRows(rows, filename, campaignCode),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        invalidateLeadSaleOverview(queryClient),
+      ]),
   });
 }
 
@@ -244,7 +258,10 @@ export function useImportLeadFileMutation() {
     mutationFn: ({ file, campaignCode, mapping }) =>
       importLeadFile(file, campaignCode, mapping),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        invalidateLeadSaleOverview(queryClient),
+      ]),
   });
 }
 
@@ -254,7 +271,10 @@ export function useDeleteLeadMutation() {
   return useMutation<LeadDeleteResponse, Error, string>({
     mutationFn: (leadId) => deleteLead(leadId),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        invalidateLeadSaleOverview(queryClient),
+      ]),
   });
 }
 
@@ -269,6 +289,7 @@ export function useConvertLeadToStudentMutation() {
           queryKey: leadSaleLeadsKeys.detail(leadId),
         }),
         queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        invalidateLeadSaleOverview(queryClient),
       ]),
   });
 }
@@ -284,6 +305,7 @@ export function useReopenLeadMutation() {
           queryKey: leadSaleLeadsKeys.detail(variables.lead),
         }),
         queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+        invalidateLeadSaleOverview(queryClient),
       ]),
   });
 }

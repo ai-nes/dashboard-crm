@@ -2,6 +2,7 @@
 
 import {
   useQuery,
+  type QueryClient,
   type UseQueryOptions,
   type UseQueryResult,
 } from "@tanstack/react-query";
@@ -17,6 +18,10 @@ export const leadSaleOverviewKeys = {
   overview: (params: LeadSaleOverviewParams = {}) =>
     ["lead-sale-overview", "overview", params] as const,
 };
+
+export function invalidateLeadSaleOverview(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({ queryKey: leadSaleOverviewKeys.all });
+}
 
 export function useLeadSaleOverviewQuery<TData = LeadSaleOverviewResponse>(
   params: LeadSaleOverviewParams = {},

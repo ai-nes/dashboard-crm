@@ -12,14 +12,14 @@ can thiệp, hiệu suất từng thành viên, trạng thái hồ sơ và kết
 
 Dashboard cần một snapshot thống nhất cho các vùng sau:
 
-| Vùng UI | Dữ liệu API | Ghi chú |
-|---|---|---|
-| Header | `meta.viewer`, `meta.date`, `meta.asOf` | Tên người xem và ngày không hard-code |
-| 6 KPI | `kpis[]` | Đang phụ trách, mới nhận, chưa phân công, cần xử lý, quá hạn, hồ sơ chờ |
-| Cần can thiệp | `interventions.items[]` | 4 nhóm cần trưởng nhóm quyết định hoặc hỗ trợ |
-| Hiệu suất đội ngũ | `teamPerformance.items[]` | Chỉ các thành viên thuộc team của Lead Sales |
-| Trạng thái học sinh | `studentStatus` | Phân bổ mutually exclusive trên toàn team |
-| Xu hướng kết quả | `resultTrend` | Hai range `4w` và `3m`; tư vấn hoàn tất và nhập học |
+| Vùng UI             | Dữ liệu API                             | Ghi chú                                                                 |
+| ------------------- | --------------------------------------- | ----------------------------------------------------------------------- |
+| Header              | `meta.viewer`, `meta.date`, `meta.asOf` | Tên người xem và ngày không hard-code                                   |
+| 6 KPI               | `kpis[]`                                | Đang phụ trách, mới nhận, chưa phân công, cần xử lý, quá hạn, hồ sơ chờ |
+| Cần can thiệp       | `interventions.items[]`                 | 4 nhóm cần trưởng nhóm quyết định hoặc hỗ trợ                           |
+| Hiệu suất đội ngũ   | `teamPerformance.items[]`               | Chỉ các thành viên thuộc team của Lead Sales                            |
+| Trạng thái học sinh | `studentStatus`                         | Phân bổ mutually exclusive trên toàn team                               |
+| Xu hướng kết quả    | `resultTrend`                           | Hai range `4w` và `3m`; tư vấn hoàn tất và nhập học                     |
 
 Nguồn tham chiếu trong frontend:
 
@@ -66,7 +66,7 @@ Quy tắc scope bắt buộc:
 - Chỉ trả dữ liệu tối thiểu cho dashboard overview; không nhúng số điện thoại,
   email hoặc nội dung trao đổi nhạy cảm của học sinh.
 
-Route-level role hiện được khai báo tại [rbac.ts](<../../src/components/common/auth/rbac.ts>)
+Route-level role hiện được khai báo tại [rbac.ts](../../src/components/common/auth/rbac.ts)
 và ma trận nghiệp vụ mô tả Lead Sales là quyền **Team** tại
 [rbac-permission-matrix.md](../../docs/rbac-permission-matrix.md).
 
@@ -78,13 +78,13 @@ Ví dụ tải overview cho team của Lead Sales đang đăng nhập:
 GET /api/method/crm.api.lead_sale.get_lead_sale_overview?admissionYear=2026&date=2026-09-05&trendRange=4w&timezone=Asia%2FHo_Chi_Minh&teamMemberLimit=20
 ```
 
-| Tên | Kiểu | Bắt buộc | Mặc định | Ràng buộc / mô tả |
-|---|---|---:|---|---|
-| `admissionYear` | integer | Không | Kỳ hiện hành | Kỳ mà Lead Sales được phép xem |
-| `date` | date `YYYY-MM-DD` | Không | Ngày hiện tại theo timezone | Dùng tính “hôm nay”, quá hạn và snapshot |
-| `trendRange` | enum | Không | `4w` | Nhận `4w`, `3m`; chỉ xác định range hiển thị ban đầu |
-| `timezone` | IANA timezone | Không | `Asia/Ho_Chi_Minh` | Dùng cắt ngày và tạo bucket trend |
-| `teamMemberLimit` | integer | Không | `20` | Giá trị `1..50`; chỉ giới hạn danh sách hiệu suất, không đổi aggregate |
+| Tên               | Kiểu              | Bắt buộc | Mặc định                    | Ràng buộc / mô tả                                                      |
+| ----------------- | ----------------- | -------: | --------------------------- | ---------------------------------------------------------------------- |
+| `admissionYear`   | integer           |    Không | Kỳ hiện hành                | Kỳ mà Lead Sales được phép xem                                         |
+| `date`            | date `YYYY-MM-DD` |    Không | Ngày hiện tại theo timezone | Dùng tính “hôm nay”, quá hạn và snapshot                               |
+| `trendRange`      | enum              |    Không | `4w`                        | Nhận `4w`, `3m`; chỉ xác định range hiển thị ban đầu                   |
+| `timezone`        | IANA timezone     |    Không | `Asia/Ho_Chi_Minh`          | Dùng cắt ngày và tạo bucket trend                                      |
+| `teamMemberLimit` | integer           |    Không | `20`                        | Giá trị `1..50`; chỉ giới hạn danh sách hiệu suất, không đổi aggregate |
 
 Request không có body. Không hỗ trợ `teamId` hoặc `memberId` cho Lead Sales thông
 thường. Nếu có role quản lý được phép xem nhiều team, cần contract scope riêng
@@ -155,10 +155,30 @@ Ví dụ rút gọn:
     "studentStatus": {
       "total": 184,
       "items": [
-        { "id": "consulting", "label": "Đang tư vấn", "count": 72, "share": 39.1 },
-        { "id": "waiting", "label": "Chờ phản hồi", "count": 48, "share": 26.1 },
-        { "id": "documents", "label": "Đang làm hồ sơ", "count": 29, "share": 15.8 },
-        { "id": "admission", "label": "Chờ nhập học", "count": 17, "share": 9.2 },
+        {
+          "id": "consulting",
+          "label": "Đang tư vấn",
+          "count": 72,
+          "share": 39.1
+        },
+        {
+          "id": "waiting",
+          "label": "Chờ phản hồi",
+          "count": 48,
+          "share": 26.1
+        },
+        {
+          "id": "documents",
+          "label": "Đang làm hồ sơ",
+          "count": 29,
+          "share": 15.8
+        },
+        {
+          "id": "admission",
+          "label": "Chờ nhập học",
+          "count": 17,
+          "share": 9.2
+        },
         { "id": "new", "label": "Mới nhận", "count": 18, "share": 9.8 }
       ]
     },
@@ -312,17 +332,17 @@ browser.
 type LeadSaleDashboardPayload = {
   summary: {
     enrollment: number;
-    target: number;
-    achievement: number;
-    remaining: number;
+    target: number | null;
+    achievement: number | null;
+    remaining: number | null;
     expected: number;
-    coverage: number;
+    coverage: number | null;
     openOpportunities: number;
     newOpportunities: number;
     winRate: number;
     followUpDue: number;
     overdue: number;
-    agingOverSla: number;
+    actionRequired: number;
   };
   actions: Array<{
     id: "overdue" | "unassigned" | "due-today" | "aging";
@@ -333,9 +353,29 @@ type LeadSaleDashboardPayload = {
     id: string;
     name: string;
     owner: string;
-    stageId: "lead" | "contacted" | "qualified" | "opportunity" | "application" | "enrollment";
+    stageId: "new" | "attempting" | "connected" | "qualified";
     stageLabel: string;
     issueCode: "overdue" | "missing-documents" | "uncontacted" | "aging";
+    ageDays: number;
+    nextAction: string;
+    lastActivityAt: string;
+  }>;
+  detailRecords: Array<{
+    id: string;
+    name: string;
+    owner: string;
+    ownerId: string | null;
+    recordType: "active" | "enrolled";
+    stageId: "new" | "attempting" | "connected" | "qualified";
+    stageLabel: string;
+    issueCode: "overdue" | "missing-documents" | "uncontacted" | "aging" | null;
+    actionIds: Array<"overdue" | "unassigned" | "due-today" | "aging">;
+    agingBucketId:
+      | "0-2-days"
+      | "3-5-days"
+      | "6-10-days"
+      | "over-10-days"
+      | null;
     ageDays: number;
     nextAction: string;
     lastActivityAt: string;
@@ -346,35 +386,39 @@ type LeadSaleDashboardPayload = {
     volume: number;
     nextStepConversion: number | null;
     averageDays: number;
-    slaDays: number;
-    stalledCount: number;
+    actionItemCount: number;
   }>;
   reps: Array<{
     id: string;
     displayName: string;
-    target: number;
+    target: number | null;
     enrollment: number;
-    achievement: number;
-    remaining: number;
+    achievement: number | null;
+    remaining: number | null;
     expected: number;
-    coverage: number;
+    coverage: number | null;
     winRate: number;
     closedOpportunities: number;
     wonOpportunities: number;
     openOpportunities: number;
     overdue: number;
     avgStageAgeDays: number;
-    agingOverSlaCount: number;
+    actionItemCount: number;
     pipeline: {
       newOpportunities: number;
       followUpDue: number;
       stageVolumes: Record<string, number>;
-      stageStalledCounts: Record<string, number>;
+      stageActionItemCounts: Record<string, number>;
       agingBuckets: Record<string, number>;
-      trend: Array<{ period: string; enrollment: number; target: number; newOpportunities: number }>;
+      trend: Array<{
+        period: string;
+        enrollment: number;
+        target: number;
+        newOpportunities: number;
+      }>;
     };
   }>;
-  trend: Array<{ period: string; enrollment: number; target: number; newOpportunities: number }>;
+  trend: Array<{ period: string; stageCounts: Record<string, number> }>;
   agingBuckets: Array<{
     id: "0-2-days" | "3-5-days" | "6-10-days" | "over-10-days";
     count: number;
@@ -391,25 +435,25 @@ tại; khi chưa cấu hình target, projection trả `status: "partial"` và wa
 
 ### 6.1. KPI và nhóm can thiệp
 
-| ID | Định nghĩa |
-|---|---|
-| `active` | Hồ sơ đang active, đã phân công cho một thành viên trong team, thuộc kỳ tuyển sinh |
-| `new` | Hồ sơ mới được tiếp nhận hoặc phân công trong ngày `meta.date` |
-| `unassigned` | Hồ sơ thuộc phạm vi team nhưng chưa có Sale phụ trách |
-| `needs-action` | Hồ sơ đang có hành động chăm sóc hoặc xử lý cần thực hiện theo policy hiện hành |
-| `overdue` | Task chưa hoàn tất có hạn trước `meta.asOf` trong team scope |
-| `documents` | Hồ sơ đang chờ giấy tờ, xác nhận hoặc bổ sung hồ sơ |
+| ID             | Định nghĩa                                                                         |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `active`       | Hồ sơ đang active, đã phân công cho một thành viên trong team, thuộc kỳ tuyển sinh |
+| `new`          | Hồ sơ mới được tiếp nhận hoặc phân công trong ngày `meta.date`                     |
+| `unassigned`   | Hồ sơ thuộc phạm vi team nhưng chưa có Sale phụ trách                              |
+| `needs-action` | Hồ sơ đang có hành động chăm sóc hoặc xử lý cần thực hiện theo policy hiện hành    |
+| `overdue`      | Task chưa hoàn tất có hạn trước `meta.asOf` trong team scope                       |
+| `documents`    | Hồ sơ đang chờ giấy tờ, xác nhận hoặc bổ sung hồ sơ                                |
 
 Các KPI có thể chồng lấn về nghiệp vụ; chỉ `studentStatus` là phân bổ độc quyền.
 `interventions.items[]` cũng có thể chồng lấn nếu một hồ sơ đồng thời vi phạm
 nhiều rule, vì vậy không cộng các nhóm này để suy ra tổng hồ sơ.
 
-| ID | Rule tối thiểu |
-|---|---|
-| `unassigned` | Chưa có Sale được gán tại thời điểm snapshot |
-| `not-contacted` | Sau 24 giờ kể từ lúc nhận/phân công nhưng chưa có contact hợp lệ |
-| `at-risk` | Không phản hồi hoặc giảm tương tác theo ngưỡng risk policy |
-| `blocked` | Bị chặn bởi giấy tờ thiếu, task chưa xử lý hoặc dependency nghiệp vụ |
+| ID              | Rule tối thiểu                                                       |
+| --------------- | -------------------------------------------------------------------- |
+| `unassigned`    | Chưa có Sale được gán tại thời điểm snapshot                         |
+| `not-contacted` | Sau 24 giờ kể từ lúc nhận/phân công nhưng chưa có contact hợp lệ     |
+| `at-risk`       | Không phản hồi hoặc giảm tương tác theo ngưỡng risk policy           |
+| `blocked`       | Bị chặn bởi giấy tờ thiếu, task chưa xử lý hoặc dependency nghiệp vụ |
 
 Ngưỡng “at risk”, “cần xử lý” và “blocked” phải là policy có version hoặc cấu
 hình được backend công bố; không để frontend tự suy đoán từ count.
@@ -469,14 +513,14 @@ hình được backend công bố; không để frontend tự suy đoán từ co
 }
 ```
 
-| HTTP | Code | Khi dùng |
-|---:|---|---|
-| `400` | `INVALID_QUERY` | Kỳ, ngày, timezone, range hoặc limit không hợp lệ |
-| `401` | `UNAUTHENTICATED` | Session không tồn tại hoặc đã hết hạn |
-| `403` | `FORBIDDEN` | User không có role Lead Sales hoặc truy cập ngoài team scope |
-| `404` | `ADMISSION_YEAR_NOT_FOUND` | Kỳ tuyển sinh không tồn tại/không khả dụng |
-| `502` | `INVALID_LEAD_SALE_OVERVIEW_RESPONSE` | Nguồn dữ liệu thiếu field bắt buộc hoặc sai kiểu |
-| `503` | `LEAD_SALE_OVERVIEW_UNAVAILABLE` | Không đọc được nguồn student, task, interaction hoặc document |
+|  HTTP | Code                                  | Khi dùng                                                      |
+| ----: | ------------------------------------- | ------------------------------------------------------------- |
+| `400` | `INVALID_QUERY`                       | Kỳ, ngày, timezone, range hoặc limit không hợp lệ             |
+| `401` | `UNAUTHENTICATED`                     | Session không tồn tại hoặc đã hết hạn                         |
+| `403` | `FORBIDDEN`                           | User không có role Lead Sales hoặc truy cập ngoài team scope  |
+| `404` | `ADMISSION_YEAR_NOT_FOUND`            | Kỳ tuyển sinh không tồn tại/không khả dụng                    |
+| `502` | `INVALID_LEAD_SALE_OVERVIEW_RESPONSE` | Nguồn dữ liệu thiếu field bắt buộc hoặc sai kiểu              |
+| `503` | `LEAD_SALE_OVERVIEW_UNAVAILABLE`      | Không đọc được nguồn student, task, interaction hoặc document |
 
 Frontend nên giữ `requestId` trong log có kiểm soát, nhưng không log PII của học
 sinh.
@@ -486,14 +530,14 @@ sinh.
 Các route con phải dùng cùng team scope của Lead Sales. Không dùng quyền
 `scope=all` của Director chỉ vì frontend đang tái sử dụng component:
 
-| Route | API | Trạng thái / yêu cầu |
-|---|---|---|
-| `/lead-sale/students` | `crm.api.director_students.get_director_students`, `get_director_student` | Có thể dùng adapter chung nhưng backend bắt buộc lọc hồ sơ theo team Lead Sales |
-| `/lead-sale/tasks` | `crm.api.task.list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task` | CRUD chỉ trong team scope; tham khảo [crm-tasks/index.ts](<../../src/services/api/crm-tasks/index.ts>) |
-| `/lead-sale/next-best-action` | NBA read/action APIs hiện có | Recommendation và mutation chỉ dành cho hồ sơ thuộc team |
-| `/lead-sale/demographics` | `director_demographics` overview/segment | Nếu cho phép xem, aggregate phải lọc team trước khi tính |
+| Route                           | API                                                                                         | Trạng thái / yêu cầu                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `/lead-sale/students`           | `crm.api.director_students.get_director_students`, `get_director_student`                   | Có thể dùng adapter chung nhưng backend bắt buộc lọc hồ sơ theo team Lead Sales                                              |
+| `/lead-sale/tasks`              | `crm.api.task.list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task`          | CRUD chỉ trong team scope; tham khảo [crm-tasks/index.ts](../../src/services/api/crm-tasks/index.ts)                         |
+| `/lead-sale/next-best-action`   | NBA read/action APIs hiện có                                                                | Recommendation và mutation chỉ dành cho hồ sơ thuộc team                                                                     |
+| `/lead-sale/demographics`       | `director_demographics` overview/segment                                                    | Nếu cho phép xem, aggregate phải lọc team trước khi tính                                                                     |
 | `/lead-sale/student-assignment` | get_student_assignment_workspace, get_student_assignment_detail, resolve_student_assignment | Contract chi tiết tại [lead-sale-student-assignment.md](./lead-sale-student-assignment.md); route hiện vẫn đang dùng fixture |
-| `/lead-sale/sales-team` | get_sales_team_workspace, get_sales_team_member_detail | Contract chi tiết tại [lead-sale-sales-team.md](./lead-sale-sales-team.md); route hiện vẫn đang dùng fixture |
+| `/lead-sale/sales-team`         | get_sales_team_workspace, get_sales_team_member_detail                                      | Contract chi tiết tại [lead-sale-sales-team.md](./lead-sale-sales-team.md); route hiện vẫn đang dùng fixture                 |
 
 Thao tác gán/chuyển hồ sơ là mutation, không thực hiện qua GET. Mutation cần
 kiểm tra team scope, optimistic concurrency nếu hồ sơ có thể bị gán đồng thời,
@@ -502,15 +546,15 @@ ghi audit và invalidate/refetch overview sau khi thành công.
 ## 9. Checklist tích hợp
 
 1. [x] Tạo Frappe method `crm.api.lead_sale.get_lead_sale_overview` với team
-   scope lấy từ session.
+       scope lấy từ session.
 2. [x] Tạo adapter tại `src/services/api/lead-sale` để serialize query, unwrap
-   `message`, validate response và chuẩn hóa lỗi.
+       `message`, validate response và chuẩn hóa lỗi.
 3. [x] Tạo query hook với query key gồm `admissionYear`, `date`, `timezone` và
-   `trendRange`.
+       `trendRange`.
 4. [x] Thay fixture trong `lead-sale/_components` bằng một overview query duy nhất;
-   giữ label, màu, icon và href ở presentation layer.
+       giữ label, màu, icon và href ở presentation layer.
 5. [x] Bổ sung test cho permission scope, query serialization, empty/partial data,
-   timezone, sorting team member và các invariant count/share.
+       timezone, sorting team member và các invariant count/share.
 6. Sau mutation ở assignment, task hoặc hồ sơ, invalidate query overview của
    Lead Sales.
 

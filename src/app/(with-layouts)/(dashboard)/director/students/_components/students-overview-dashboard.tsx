@@ -20,6 +20,7 @@ import {
   useAssignedStudentsQuery,
   useDirectorStudentsQuery,
 } from "@/hooks/use-students-queries";
+import { invalidateLeadSaleOverview } from "@/hooks/use-lead-sale-overview-query";
 import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-queries";
 import {
   createStudentWithLead,
@@ -123,6 +124,7 @@ export default function StudentsOverviewDashboard() {
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
+      await invalidateLeadSaleOverview(queryClient);
       setCreateDialogOpen(false);
       toast.success("Đã tạo hồ sơ học sinh.");
       if (response.name) {

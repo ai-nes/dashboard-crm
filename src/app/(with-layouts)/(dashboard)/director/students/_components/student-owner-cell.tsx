@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -9,6 +10,7 @@ import {
   useAssignStudentToSalesMutation,
   useAssignableSalesQuery,
 } from "@/hooks/use-student-ownership-queries";
+import { invalidateLeadSaleOverview } from "@/hooks/use-lead-sale-overview-query";
 import type { AssignableSale } from "@/services/api/student-ownership";
 
 interface StudentOwnerCellProps {
@@ -55,6 +57,7 @@ export default function StudentOwnerCell({
     },
   );
   const assignMutation = useAssignStudentToSalesMutation();
+  const queryClient = useQueryClient();
   const sales = assignableSalesQuery.data?.sales ?? [];
   const currentOwnerId = sales.find(
     (sale) => sale.name === owner || sale.label === owner,
@@ -82,6 +85,7 @@ export default function StudentOwnerCell({
         correlationId: createRequestId("manual-assign", studentId),
         targetTeamId: sale.team,
       });
+      await invalidateLeadSaleOverview(queryClient);
       onChange(sale.label);
       setIsEditing(false);
       toast.success("Đã cập nhật người phụ trách.");
