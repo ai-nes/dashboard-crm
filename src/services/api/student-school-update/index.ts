@@ -99,6 +99,13 @@ export type StudentCreateWithLeadFields = Omit<
   assigned_to: string;
 };
 
+type StudentCreateWithLeadRequestFields = Omit<
+  StudentCreateWithLeadFields,
+  "campaign"
+> & {
+  campaign_code: string;
+};
+
 export type SchoolUpdateFieldValue = string | number | null;
 
 export type SchoolUpdateFields = Partial<{
@@ -1140,11 +1147,11 @@ export function createStudent(fields: StudentCreateFields) {
 }
 
 export function createStudentWithLead(fields: StudentCreateWithLeadFields) {
-  const normalizedFields: StudentCreateWithLeadFields = {
+  const normalizedFields: StudentCreateWithLeadRequestFields = {
     student_name: fields.student_name.trim(),
     phone: fields.phone.trim(),
     province: fields.province.trim(),
-    campaign: fields.campaign.trim(),
+    campaign_code: fields.campaign.trim(),
     assigned_to: fields.assigned_to.trim(),
     ...compactStudentCreateFields({
       id_number: fields.id_number,
@@ -1183,7 +1190,7 @@ function compactStudentCreateFields(
       const trimmed = value.trim();
       return trimmed ? [[key, trimmed]] : [];
     }),
-  ) as Partial<StudentCreateWithLeadFields>;
+  ) as Partial<Omit<StudentCreateWithLeadFields, "campaign">>;
 }
 
 export function createLead(fields: LeadCreateFields) {
