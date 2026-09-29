@@ -629,7 +629,7 @@ describe("student and school create/delete contract", () => {
         ward: "WARD-001",
         high_school: "HIGH-SCHOOL-001",
         admission_year: "2026",
-        campaign: "Campaign 1",
+        campaign_code: "Campaign 1",
         assigned_to: "CRM-STAFF-001",
       },
     });

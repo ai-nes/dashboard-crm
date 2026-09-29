@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { StudentListItem } from "@/services/api/students/types";
+import { withReturnTo } from "@/utils/detail-navigation";
 
 import StudentOwnerCell from "./student-owner-cell";
 import { studentStatusBadgeColor, studentStatusLabel } from "./student-status";
@@ -10,6 +11,7 @@ import { studentStatusBadgeColor, studentStatusLabel } from "./student-status";
 interface StudentListProps {
   students: StudentListItem[];
   ownerEditable?: boolean;
+  returnTo?: string;
 }
 
 function getScoreTone(score: number): "success" | "warning" | "error" {
@@ -24,6 +26,7 @@ export const studentListGrid =
 export default function StudentList({
   students,
   ownerEditable = false,
+  returnTo,
 }: StudentListProps) {
   const [ownerOverrides, setOwnerOverrides] = useState<Record<string, string>>(
     {},
@@ -66,7 +69,10 @@ export default function StudentList({
               {/* Cột 2: Họ và tên */}
               <div className="min-w-0">
                 <Link
-                  href={`/director/students/${encodeURIComponent(student.code || student.id)}`}
+                  href={withReturnTo(
+                    `/director/students/${encodeURIComponent(student.code || student.id)}`,
+                    returnTo,
+                  )}
                   aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
                   className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
                 >

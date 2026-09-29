@@ -34,6 +34,7 @@ import type { StudentScoreBreakdown } from "./student-score-breakdown";
 import type { Student360SectionProps } from "./types";
 
 interface StudentHeaderProps extends Student360SectionProps {
+  backHref?: string;
   isStatusUpdating?: boolean;
   onDeleteRequest?: () => void;
   onOwnerChange?: (owner: string) => void;
@@ -50,6 +51,7 @@ interface StudentHeaderProps extends Student360SectionProps {
 }
 
 export default function StudentHeader({
+  backHref = "/director/students",
   data,
   isStatusUpdating,
   onDeleteRequest,
@@ -80,7 +82,7 @@ export default function StudentHeader({
   return (
     <header className="min-w-0 shrink-0">
       <Link
-        href="/director/students"
+        href={backHref}
         className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-text-secondary transition hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-button-primary-focus-ring"
       >
         <ArrowLeft size={16} />

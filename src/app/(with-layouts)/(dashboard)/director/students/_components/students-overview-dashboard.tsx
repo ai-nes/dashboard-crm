@@ -6,7 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { Plus } from "@tailgrids/icons";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -20,6 +20,7 @@ import {
   useAssignedStudentsQuery,
   useDirectorStudentsQuery,
 } from "@/hooks/use-students-queries";
+import { invalidateLeadSaleOverview } from "@/hooks/use-lead-sale-overview-query";
 import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-queries";
 import {
   createStudentWithLead,
@@ -29,6 +30,7 @@ import type {
   StudentAssignmentStatus,
   StudentStatus,
 } from "@/services/api/students/types";
+import { getCurrentPath } from "@/utils/detail-navigation";
 
 import StudentCreateDialog from "./student-create-dialog";
 import StudentList, { studentListGrid } from "./student-list";
@@ -36,6 +38,7 @@ import StudentListSkeleton from "./student-list-skeleton";
 import StudentListToolbar from "./student-list-toolbar";
 
 export default function StudentsOverviewDashboard() {
+  const pathname = usePathname();
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const canReadStudents = permissions.student.canRead;
@@ -61,6 +64,7 @@ export default function StudentsOverviewDashboard() {
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const listReturnTo = getCurrentPath(pathname, searchParams);
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -120,6 +124,7 @@ export default function StudentsOverviewDashboard() {
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
+      await invalidateLeadSaleOverview(queryClient);
       setCreateDialogOpen(false);
       toast.success("Đã tạo hồ sơ học sinh.");
       if (response.name) {
@@ -279,6 +284,7 @@ export default function StudentsOverviewDashboard() {
               <StudentList
                 students={students}
                 ownerEditable={permissions.student.canAssign}
+                returnTo={listReturnTo}
               />
             )}
           </div>

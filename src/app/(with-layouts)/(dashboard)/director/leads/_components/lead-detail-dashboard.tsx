@@ -25,6 +25,7 @@ import {
   useUpdateLeadMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 import type { LeadUpdateFields } from "@/services/api/lead-sale";
+import { resolveReturnTo, withReturnTo } from "@/utils/detail-navigation";
 
 import LeadCallsTab from "./lead-calls-tab";
 import LeadConversionDialog from "./lead-conversion-dialog";
@@ -32,6 +33,7 @@ import LeadDetailsTab from "./lead-details-tab";
 import LeadHeader from "./lead-header";
 import LeadLogTab from "./lead-log-tab";
 import LeadNotesTab from "./lead-notes-tab";
+import LeadNotFoundState from "./lead-not-found-state";
 import LeadWorkflowSection from "./lead-workflow-section";
 import {
   getLeadConversionMissingFields,
@@ -39,11 +41,18 @@ import {
 } from "./lead-conversion-validation";
 import { normalizeLeadStageStatus } from "./lead-status";
 
-export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
+export default function LeadDetailDashboard({
+  leadId,
+  returnTo,
+}: {
+  leadId: string;
+  returnTo?: string;
+}) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const leadListHref = getLeadListHref(user?.roles);
+  const backHref = resolveReturnTo(returnTo, leadListHref);
   const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId);
   const [activeTab, setActiveTab] = useState("details");
   const callLogsQuery = useLeadCallLogsQuery(leadId, {
@@ -69,6 +78,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     canPerformStudentAction(permissions.lead, "update", leadOwnership, user);
   const canDeleteLead =
     !isAuthLoading &&
+    !data?.lead.isConverted &&
     canPerformStudentAction(permissions.lead, "delete", leadOwnership, user);
   const canAssignLead =
     !isAuthLoading && hasCrmCapability(user, "student.routing.operate");
@@ -86,7 +96,10 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       onSuccess: (result) => {
         toast.success("Đã chuyển đổi Lead thành học sinh.");
         router.replace(
-          `/director/students/${encodeURIComponent(result.student)}`,
+          withReturnTo(
+            `/director/students/${encodeURIComponent(result.student)}`,
+            backHref,
+          ),
         );
         router.refresh();
       },
@@ -121,10 +134,16 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   };
   const handleDelete = () => {
     deleteMutation.mutate(leadId, {
-      onSuccess: () => {
+      onSuccess: (result) => {
         setDeleteDialogOpen(false);
-        toast.success("Đã xóa Lead.");
-        router.replace(leadListHref);
+        const removedItems = result.removedAssignmentItems ?? 0;
+        toast.success("Đã xóa Lead.", {
+          description:
+            removedItems > 0
+              ? `Đã gỡ ${removedItems} liên kết phân công liên quan.`
+              : undefined,
+        });
+        router.replace(backHref);
         router.refresh();
       },
       onError: (deleteError) => {
@@ -163,16 +182,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   }
 
   if (!data) {
-    return (
-      <main id="main-content" className="min-w-0 p-6">
-        <Card className="border-error-200 bg-badge-error-background p-5 text-error-600">
-          <p className="text-base font-semibold">Không tìm thấy Lead này.</p>
-          <p className="mt-1 text-sm">
-            Lead có thể đã bị xóa hoặc mã Lead không đúng.
-          </p>
-        </Card>
-      </main>
-    );
+    return <LeadNotFoundState backHref={backHref} />;
   }
 
   if (!isAuthLoading && !hasLeadAccess) {
@@ -245,7 +255,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     >
       <div className="px-2 pt-4 lg:px-6">
         <LeadHeader
-          backHref={leadListHref}
+          backHref={backHref}
           lead={data.lead}
           createdAt={data.lead.createdAt ?? undefined}
           isConverting={convertMutation.isPending || updateMutation.isPending}
@@ -279,7 +289,11 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
         onOpenChange={setDeleteDialogOpen}
         recordName={data.lead.name || leadId}
         recordType="Lead"
-      />
+      >
+        <p className="text-sm leading-5 text-text-secondary">
+          Các liên kết phân công Lead liên quan sẽ được gỡ tự động.
+        </p>
+      </DeleteRecordDialog>
       <LeadConversionDialog
         key={
           leadId +

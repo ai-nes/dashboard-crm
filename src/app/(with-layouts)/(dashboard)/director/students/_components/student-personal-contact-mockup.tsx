@@ -411,10 +411,19 @@ function getPersonalContactFields(
       type: "email",
     },
     {
-      label: "Nguồn",
-      value: details?.source || getProfileValue(data, "Nguồn"),
+      label: "Kênh tương tác",
+      value:
+        details?.source ||
+        data.acquisition.firstTouch ||
+        getProfileValue(data, "Nguồn"),
     },
-    { label: "Chiến dịch", value: details?.campaign },
+    {
+      label: "Chiến dịch",
+      value:
+        details?.campaign ||
+        data.acquisition.campaign ||
+        getProfileValue(data, "Chiến dịch"),
+    },
     { label: "Giao cho", value: details?.owner || data.student.counselor },
     {
       label: "Chuyển từ Lead",

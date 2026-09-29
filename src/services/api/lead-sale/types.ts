@@ -122,13 +122,42 @@ export interface LeadSaleDashboardAction {
   longestAgeDays: number;
 }
 
+export type LeadSaleDashboardActionId = LeadSaleDashboardAction["id"];
+export type LeadSaleDashboardIssueCode =
+  | "overdue"
+  | "missing-documents"
+  | "uncontacted"
+  | "aging";
+export type LeadSaleDashboardRecordType = "active" | "enrolled";
+export type LeadSaleDashboardAgingBucketId =
+  | "0-2-days"
+  | "3-5-days"
+  | "6-10-days"
+  | "over-10-days";
+
 export interface LeadSaleDashboardPriorityRecord {
   id: string;
   name: string;
   owner: string;
   stageId: LeadSaleDashboardStageId;
   stageLabel: string;
-  issueCode: "overdue" | "missing-documents" | "uncontacted" | "aging";
+  issueCode: LeadSaleDashboardIssueCode;
+  ageDays: number;
+  nextAction: string;
+  lastActivityAt: string;
+}
+
+export interface LeadSaleDashboardDetailRecord {
+  id: string;
+  name: string;
+  owner: string;
+  ownerId: string | null;
+  recordType: LeadSaleDashboardRecordType;
+  stageId: LeadSaleDashboardStageId;
+  stageLabel: string;
+  issueCode: LeadSaleDashboardIssueCode | null;
+  actionIds: LeadSaleDashboardActionId[];
+  agingBucketId: LeadSaleDashboardAgingBucketId | null;
   ageDays: number;
   nextAction: string;
   lastActivityAt: string;
@@ -175,13 +204,14 @@ export interface LeadSaleDashboardTrendPoint {
 }
 
 export interface LeadSaleDashboardAgingBucket {
-  id: "0-2-days" | "3-5-days" | "6-10-days" | "over-10-days";
+  id: LeadSaleDashboardAgingBucketId;
   count: number;
 }
 
 export interface LeadSaleDashboardPayload {
   summary: LeadSaleDashboardSummary;
   actions: LeadSaleDashboardAction[];
+  detailRecords: LeadSaleDashboardDetailRecord[];
   priorityQueue: LeadSaleDashboardPriorityRecord[];
   stages: LeadSaleDashboardStage[];
   reps: LeadSaleDashboardRep[];

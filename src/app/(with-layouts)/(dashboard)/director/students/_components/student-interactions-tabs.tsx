@@ -23,6 +23,7 @@ import type {
 } from "@/services/api/students/types";
 
 import StudentCallsTab from "./student-calls-tab";
+import StudentCampaignsTab from "./student-campaigns-tab";
 import StudentCreateInteractionDialog from "./student-create-interaction-dialog";
 import StudentOtherInteractionsTab from "./student-other-interactions-tab";
 import StudentZaloTab from "./student-zalo-tab";
@@ -30,6 +31,9 @@ import { isOtherInteractionType } from "./student-interaction-utils";
 
 interface StudentInteractionsTabsProps {
   studentId: string;
+  campaignStudentId?: string | null;
+  primaryCampaign?: string | null;
+  primaryCampaignOccurredAt?: string | null;
   studentName?: string;
   calls: StudentCallRecord[];
   messages: StudentZaloMessage[];
@@ -45,6 +49,9 @@ export function getDefaultInteractionTab(
 
 export default function StudentInteractionsTabs({
   studentId,
+  campaignStudentId,
+  primaryCampaign,
+  primaryCampaignOccurredAt,
   studentName,
   calls,
   messages,
@@ -52,6 +59,8 @@ export default function StudentInteractionsTabs({
   isZaloLoading = false,
 }: StudentInteractionsTabsProps) {
   const defaultSelectedKey = getDefaultInteractionTab(calls);
+  const [selectedInteractionTab, setSelectedInteractionTab] =
+    useState<string>(defaultSelectedKey);
   const normalizedStudentId = studentId.trim();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -98,6 +107,18 @@ export default function StudentInteractionsTabs({
       content: <StudentCallsTab calls={calls} isLoading={isCallsLoading} />,
     },
     {
+      id: "campaigns",
+      label: "Chiến dịch",
+      content: (
+        <StudentCampaignsTab
+          studentId={campaignStudentId ?? ""}
+          primaryCampaign={primaryCampaign}
+          primaryCampaignOccurredAt={primaryCampaignOccurredAt}
+          isActive={selectedInteractionTab === "campaigns"}
+        />
+      ),
+    },
+    {
       id: "other",
       label: "Khác",
       content: (
@@ -120,6 +141,7 @@ export default function StudentInteractionsTabs({
         key={defaultSelectedKey}
         defaultSelectedKey={defaultSelectedKey}
         isSticky={false}
+        onSelectionChange={setSelectedInteractionTab}
         actions={
           <Button
             type="button"

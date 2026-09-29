@@ -19,10 +19,10 @@ export default async function StudentDetailPage({
   searchParams,
 }: {
   params: Promise<{ studentId: string }>;
-  searchParams: Promise<{ tab?: string; taskId?: string }>;
+  searchParams: Promise<{ tab?: string; taskId?: string; returnTo?: string }>;
 }) {
   const { studentId } = await params;
-  const { tab, taskId } = await searchParams;
+  const { tab, taskId, returnTo } = await searchParams;
   const data = await getStudent360(studentId).catch(() => null);
   const leadId = data?.student.id || studentId;
   const canonicalStudentId = data?.student.studentId || leadId;
@@ -45,6 +45,7 @@ export default async function StudentDetailPage({
       initialStudentInteractions={interactions}
       initialTab={tab}
       initialTaskId={taskId}
+      returnTo={returnTo}
     />
   );
 }

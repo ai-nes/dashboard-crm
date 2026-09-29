@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { Bolt1, Play, Plus, UploadCloud } from "@tailgrids/icons";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -34,18 +35,22 @@ import type {
   LeadListParams,
   LeadProcessingPreviewResponse,
 } from "@/services/api/lead-sale";
+import { getCurrentPath } from "@/utils/detail-navigation";
 
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadImportDialog from "./lead-import-dialog";
 import LeadListToolbar from "./lead-list-toolbar";
 import LeadListSkeleton from "./lead-list-skeleton";
 import LeadProcessingPreviewDialog from "./lead-processing-preview-dialog";
+import { shouldShowLeadAssignmentButton } from "./lead-intake-action-policy";
 import { type LeadResultFilter, type LeadStageStatus } from "./lead-status";
 import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 
 const pageSize = 10;
 
 export default function LeadsOverviewDashboard() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
@@ -69,6 +74,7 @@ export default function LeadsOverviewDashboard() {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
+  const listReturnTo = getCurrentPath(pathname, searchParams);
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
@@ -103,6 +109,16 @@ export default function LeadsOverviewDashboard() {
   const pendingNewCount = meta?.pendingNew ?? 0;
   const readyToAssignCount = meta?.readyToAssign ?? 0;
   const hasPendingNew = pendingNewCount > 0;
+  const canShowLeadAssignmentButton = shouldShowLeadAssignmentButton({
+    pathname,
+    canManageLeadIntake,
+    hasMeta: Boolean(meta),
+    hasPendingNew,
+  });
+  const canShowLeadProcessingButton =
+    canManageLeadIntake && Boolean(meta) && hasPendingNew;
+  const canShowHeaderActions =
+    canCreateLead || canShowLeadProcessingButton || canShowLeadAssignmentButton;
   const totalCount = meta?.total ?? 0;
   const totalPages = Math.max(
     1,
@@ -292,7 +308,7 @@ export default function LeadsOverviewDashboard() {
             Toàn cảnh Lead tiếp nhận trước khi được phân công cho đội ngũ Sale.
           </p>
         </div>
-        {(canCreateLead || canManageLeadIntake) && (
+        {canShowHeaderActions && (
           <div className="flex shrink-0 flex-col items-end gap-2 max-sm:w-full">
             <div className="flex flex-wrap items-center justify-end gap-3 max-sm:w-full">
               {canCreateLead && (
@@ -318,44 +334,42 @@ export default function LeadsOverviewDashboard() {
                   Tạo Lead nhanh
                 </Button>
               )}
-              {canManageLeadIntake &&
-                meta &&
-                (hasPendingNew ? (
-                  <Button
-                    size="md"
-                    variant="primary"
-                    appearance="fill"
-                    onPress={runLeadProcessing}
-                    isDisabled={
-                      processNewLeadsMutation.isPending ||
-                      previewNewLeadsMutation.isPending
-                    }
-                    aria-label="Xem trước các Lead mới trước khi xử lý"
-                  >
-                    <Play size={18} aria-hidden="true" />
-                    {previewNewLeadsMutation.isPending
-                      ? "Đang xem trước…"
-                      : processNewLeadsMutation.isPending
-                        ? "Đang xử lý…"
-                        : `Xem trước xử lý (${pendingNewCount})`}
-                  </Button>
-                ) : (
-                  <Button
-                    size="md"
-                    variant="primary"
-                    appearance="fill"
-                    onPress={runLeadAssignment}
-                    isDisabled={runUnassignedMutation.isPending}
-                    aria-label="Phân công các Lead đã xử lý cho đội ngũ Sale"
-                  >
-                    <Bolt1 size={18} aria-hidden="true" />
-                    {runUnassignedMutation.isPending
-                      ? "Đang phân công…"
-                      : "Phân công Lead"}
-                  </Button>
-                ))}
+              {canShowLeadProcessingButton ? (
+                <Button
+                  size="md"
+                  variant="primary"
+                  appearance="fill"
+                  onPress={runLeadProcessing}
+                  isDisabled={
+                    processNewLeadsMutation.isPending ||
+                    previewNewLeadsMutation.isPending
+                  }
+                  aria-label="Xem trước các Lead mới trước khi xử lý"
+                >
+                  <Play size={18} aria-hidden="true" />
+                  {previewNewLeadsMutation.isPending
+                    ? "Đang xem trước…"
+                    : processNewLeadsMutation.isPending
+                      ? "Đang xử lý…"
+                      : `Xem trước xử lý (${pendingNewCount})`}
+                </Button>
+              ) : canShowLeadAssignmentButton ? (
+                <Button
+                  size="md"
+                  variant="primary"
+                  appearance="fill"
+                  onPress={runLeadAssignment}
+                  isDisabled={runUnassignedMutation.isPending}
+                  aria-label="Phân công các Lead đã xử lý cho đội ngũ Sale"
+                >
+                  <Bolt1 size={18} aria-hidden="true" />
+                  {runUnassignedMutation.isPending
+                    ? "Đang phân công…"
+                    : "Phân công Lead"}
+                </Button>
+              ) : null}
             </div>
-            {canManageLeadIntake && meta && !hasPendingNew && (
+            {canShowLeadAssignmentButton && (
               <p className="text-right text-xs text-text-tertiary max-sm:w-full max-sm:text-left">
                 {`${readyToAssignCount} Lead đã xử lý đang chờ phân công.`}
               </p>
@@ -401,7 +415,11 @@ export default function LeadsOverviewDashboard() {
             {isPending && !response ? (
               <LeadListSkeleton />
             ) : (
-              <LeadList canAssign={canAssignLead} leads={leads} />
+              <LeadList
+                canAssign={canAssignLead}
+                leads={leads}
+                returnTo={listReturnTo}
+              />
             )}
           </div>
         </div>

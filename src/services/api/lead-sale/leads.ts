@@ -32,6 +32,7 @@ export interface LeadListItem {
   leadCode: string;
   studentCode: string | null;
   studentId: string | null;
+  isConverted: boolean;
   initials: string;
   name: string;
   phone: string;
@@ -389,6 +390,9 @@ export interface LeadImportResponse {
 
 export interface LeadDeleteResponse {
   deleted: string;
+  deletedName?: string;
+  removedAssignmentItems?: number;
+  removedAssignmentBatches?: number;
 }
 
 export class LeadApiError extends Error {
@@ -714,6 +718,15 @@ function normalizeListItem(value: unknown): LeadListItem {
         row.matched_student,
         row.student,
       ]) || null,
+    isConverted: Boolean(
+      row.isConverted ??
+        row.is_converted ??
+        row.convertedStudent ??
+        row.converted_student ??
+        row.convertedAt ??
+        row.converted_at ??
+        row.student,
+    ),
     initials: firstText([row.initials], initials(name)),
     name,
     phone: firstText([row.phone]),
@@ -2121,7 +2134,25 @@ export async function deleteLead(
   );
   const message = asRecord(unwrapMessage(payload));
   if (message && message.deleted === normalizedLeadId) {
-    return { deleted: normalizedLeadId };
+    const deletedName = nullableText(
+      message.deletedName ?? message.deleted_name,
+    );
+    const removedAssignmentItems = integerOrNull(
+      message.removedAssignmentItems ?? message.removed_assignment_items,
+    );
+    const removedAssignmentBatches = integerOrNull(
+      message.removedAssignmentBatches ?? message.removed_assignment_batches,
+    );
+    return {
+      deleted: normalizedLeadId,
+      ...(deletedName && deletedName !== normalizedLeadId
+        ? { deletedName }
+        : {}),
+      ...(removedAssignmentItems !== null ? { removedAssignmentItems } : {}),
+      ...(removedAssignmentBatches !== null
+        ? { removedAssignmentBatches }
+        : {}),
+    };
   }
   throw new LeadApiError(
     502,

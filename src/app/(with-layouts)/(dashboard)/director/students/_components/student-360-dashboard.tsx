@@ -19,6 +19,7 @@ import {
   useDirectorStudentsQuery,
   useStudent360Query,
 } from "@/hooks/use-students-queries";
+import { invalidateLeadSaleOverview } from "@/hooks/use-lead-sale-overview-query";
 import { studentAuditKeys } from "@/hooks/use-student-audit-query";
 import { useStudentScoreContextQuery } from "@/hooks/use-student-score-context-query";
 import {
@@ -31,6 +32,7 @@ import type {
   StudentStatus,
   Student360Data,
 } from "@/services/api/students/types";
+import { resolveReturnTo } from "@/utils/detail-navigation";
 
 import StudentActivitiesTab from "./student-activities-tab";
 import StudentAdmissionInformationMockup from "./student-admission-information-mockup";
@@ -57,6 +59,7 @@ interface Student360DashboardProps {
   data?: Student360Data;
   initialTab?: string;
   initialTaskId?: string;
+  returnTo?: string;
 }
 
 interface StudentStageTransitionVariables {
@@ -73,6 +76,7 @@ export default function Student360Dashboard({
   data: propData,
   initialTab,
   initialTaskId,
+  returnTo,
 }: Student360DashboardProps) {
   const targetId =
     studentId?.trim() ||
@@ -82,6 +86,8 @@ export default function Student360Dashboard({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, isLoading: isAuthLoading } = useAuth();
+  const studentListHref = getStudentListHref(user?.roles);
+  const backHref = resolveReturnTo(returnTo, studentListHref);
   const permissions = getCrmPermissions(user);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [studentOwnerDraft, setStudentOwnerDraft] = useState<{
@@ -97,9 +103,10 @@ export default function Student360Dashboard({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       await queryClient.invalidateQueries({ queryKey: ["student-360"] });
+      await invalidateLeadSaleOverview(queryClient);
       setDeleteDialogOpen(false);
       toast.success("Đã xóa hồ sơ học sinh.");
-      router.replace("/director/students");
+      router.replace(backHref);
       router.refresh();
     },
     onError: (error) => {
@@ -128,6 +135,7 @@ export default function Student360Dashboard({
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
       await queryClient.invalidateQueries({ queryKey: studentAuditKeys.all });
+      await invalidateLeadSaleOverview(queryClient);
       toast.success("Đã cập nhật trạng thái học sinh.");
     },
     onError: (error, variables) => {
@@ -331,6 +339,7 @@ export default function Student360Dashboard({
       )}
       <div className="px-2 pt-4 lg:px-6">
         <StudentHeader
+          backHref={backHref}
           data={data}
           isStatusUpdating={stageTransitionMutation.isPending}
           status={studentStatus}
@@ -382,6 +391,13 @@ export default function Student360Dashboard({
       />
     </main>
   );
+}
+
+function getStudentListHref(roles: readonly string[] | null | undefined): string {
+  if (roles?.includes("CTV Sale")) return "/ctv-sale/students";
+  if (roles?.includes("Sale")) return "/sale/students";
+  if (roles?.includes("Lead Sale")) return "/lead-sale/students";
+  return "/director/students";
 }
 
 function getStudentTabs(

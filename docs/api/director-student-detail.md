@@ -940,3 +940,52 @@ Student được lưu trên `CRM Student`, các trường hồ sơ được lưu
 profile, còn `academic_rank` được lưu ở dòng lớp 12. Nếu cập nhật field profile khi
 Student chưa có admission profile tương ứng, API trả `404`. Backend luôn kiểm tra
 quyền `read` hoặc `write` trên các document trước khi trả/lưu dữ liệu.
+
+## 12. Tab Chiến dịch trong phần Tương tác
+
+Tab **Chiến dịch** đọc các chiến dịch và sự kiện ghi nhận trên hồ sơ bằng RPC method
+Student Context hiện có. Request dùng tên canonical của `CRM Student`, không dùng
+ID route có thể trỏ tới Lead cũ:
+
+```http
+GET /api/method/crm.api.student_engagement.get_student_context?student=STU-2026-00001&history_limit=50
+Cookie: sid=<Frappe session cookie>
+```
+
+Tab chỉ gọi API khi được mở. Dữ liệu nằm tại
+`message.admissions_context.campaign_history`; danh sách tối đa 50 hoạt động hiện
+hành, sắp xếp mới nhất trước. Các mục đã bị thay thế hoặc campaign/event mà người
+dùng không được phép đọc sẽ không xuất hiện. Mỗi mục chỉ chứa nhãn hiển thị, loại
+(`campaign` hoặc `event`), trạng thái sự kiện, thời điểm ghi nhận/tham gia và metadata
+hiển thị an toàn. API không trả ID thô của campaign, event hoặc attribution.
+
+```typescript
+{
+  label: string;
+  campaign: string | null;
+  event: string | null;
+  kind: "campaign" | "event";
+  status: "Registered" | "Checked-in" | "No-show" | "Feedback Given" | null;
+  occurred_at: string | null;
+  campaign_details: {
+    stable_code: string | null;
+    status: "DRAFT" | "UPCOMING" | "ACTIVE" | "CLOSED" | null;
+    campaign_type: string | null;
+    event_type: "On-Campus" | "Off-Campus" | null;
+    start_date: string | null;
+    end_date: string | null;
+  } | null;
+  event_details: {
+    event_date: string | null;
+    start_datetime: string | null;
+    end_datetime: string | null;
+    location: string | null;
+  } | null;
+}
+```
+
+`occurred_at` là thời điểm touchpoint hoặc đăng ký sự kiện. Nếu chiến dịch chỉ có
+trên trường `CRM Student.campaign` mà chưa có touchpoint riêng, API vẫn thêm một mục
+chiến dịch và dùng thời điểm tạo hồ sơ (`CRM Student.creation`) làm thời điểm ghi nhận.
+Trạng thái sự kiện được giữ nguyên từ nguồn: `Registered`, `Checked-in`, `No-show`
+hoặc `Feedback Given`.
