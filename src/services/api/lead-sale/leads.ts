@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import { getCsrfToken } from "../auth";
 
 export type LeadStatus = string;
@@ -401,7 +403,7 @@ export class LeadApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "LeadApiError";
   }
 }

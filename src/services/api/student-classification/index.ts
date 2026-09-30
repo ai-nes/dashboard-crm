@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 const METHODS = {
   GET: "crm.api.student_classification.get_classifications",
   TAG_GROUPS: "crm.api.student_classification.list_tag_groups",
@@ -59,7 +61,7 @@ export class StudentClassificationApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "StudentClassificationApiError";
   }
 }

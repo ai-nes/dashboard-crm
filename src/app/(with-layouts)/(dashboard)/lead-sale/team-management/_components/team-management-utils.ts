@@ -68,3 +68,17 @@ export function unassignedMembers(state: TeamOrgState): TeamMember[] {
   );
   return state.members.filter((member) => !assignedIds.has(member.id));
 }
+
+export function candidatesForTeam(
+  members: TeamMember[],
+  team: SmallTeam,
+): TeamMember[] {
+  return members.filter(
+    (member) =>
+      member.isAvailableForTeam === true &&
+      member.isActive !== false &&
+      (member.role === "SALE" || member.role === "CTV_SALE") &&
+      member.campusId === team.campusId &&
+      !team.memberIds.includes(member.id),
+  );
+}

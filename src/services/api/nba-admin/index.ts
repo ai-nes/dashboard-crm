@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import {
   normalizeActionType,
   normalizeTimingPolicy,
@@ -34,7 +36,7 @@ export class NbaAdminApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "NbaAdminApiError";
   }
 }

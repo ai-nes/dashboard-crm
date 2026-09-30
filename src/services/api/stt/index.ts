@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 const CALL_UUID_PATTERN = /^\d+\.\d+$/;
 const TERMINAL_STATUSES = new Set(["COMPLETED", "COMPLETED_LOCAL_ONLY", "FAILED"]);
 const TERMINAL_SUMMARY_STATUSES = new Set(["COMPLETED", "FAILED"]);
@@ -16,7 +18,7 @@ export class SttApiError extends Error {
     public readonly status: number,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "SttApiError";
   }
 }

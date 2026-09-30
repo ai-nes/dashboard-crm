@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   AdminAdmissionProfileTemplateCatalog,
   AdmissionDocumentTypeCatalog,
@@ -27,7 +29,7 @@ export class AdmissionProfileCatalogApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "AdmissionProfileCatalogApiError";
   }
 }

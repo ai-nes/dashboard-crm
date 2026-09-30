@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import {
   normalizeCrmUser,
   normalizePermissionProfile,
@@ -47,7 +49,7 @@ export class UserManagementApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(status === 403 ? "Bạn không có quyền thao tác." : message);
+    super(status === 403 ? "Bạn không có quyền thao tác." : formatApiErrorMessage(message));
     this.name = "UserManagementApiError";
   }
 }

@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import {
   computeDirectorDemographicsOverview,
   computeDirectorDemographicsSegment,
@@ -18,7 +20,7 @@ export class DirectorDemographicsApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "DirectorDemographicsApiError";
   }
 }

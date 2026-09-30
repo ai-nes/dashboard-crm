@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 export type CampaignChannelTypeMode = "ONLINE" | "OFFLINE";
 
 export interface CampaignChannelType {
@@ -33,7 +35,7 @@ export class CampaignChannelTypeApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "CampaignChannelTypeApiError";
   }
 }

@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   DirectorRegionalPerformanceParams,
   RegionalPerformanceData,
@@ -11,7 +13,7 @@ export class DirectorRegionalPerformanceApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "DirectorRegionalPerformanceApiError";
   }
 }

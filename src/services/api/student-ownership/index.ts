@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 const OWNERSHIP_TARGETS_METHOD = "crm.api.student_ownership.get_eligible_ownership_targets";
 const CHANGE_OWNERSHIP_METHOD = "crm.api.student_ownership.change_student_ownership";
 
@@ -34,7 +36,7 @@ export class StudentOwnershipApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "StudentOwnershipApiError";
   }
 }

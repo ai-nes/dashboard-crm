@@ -23,6 +23,9 @@ function normalizeWorkspace(
   user: CurrentUser | null,
 ): TeamOrgState {
   const permissions = getTeamManagementPermissions(user, workspace);
+  const availableMemberIds = new Set(
+    workspace.availableMembers.map((member) => member.id),
+  );
   const visibleGroupIds = new Set(permissions.visibleGroupIds);
   const visibleTeamIds = new Set(permissions.visibleTeamIds);
   const visibleWorkspaceTeams = workspace.teams.filter((team) =>
@@ -65,6 +68,7 @@ function normalizeWorkspace(
       email: member.email,
       role: member.role,
       isActive: member.isActive,
+      isAvailableForTeam: availableMemberIds.has(member.id),
       campusId: member.campusId,
       teamIds: (member.teamIds ?? []).filter((teamId) =>
         visibleTeamIds.has(teamId),

@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   LeadRoutingPolicy,
   LeadRoutingStrategy,
@@ -118,7 +120,7 @@ export class LeadAssignmentWorkflowConfigApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "LeadAssignmentWorkflowConfigApiError";
   }
 }

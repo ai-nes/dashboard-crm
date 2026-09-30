@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import { SCHOOL_EXAM_SCORE_BAND_LABELS } from "./types";
 import type {
   DataAvailabilityStatus,
@@ -604,7 +606,7 @@ export class DirectorApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "DirectorApiError";
   }
 }

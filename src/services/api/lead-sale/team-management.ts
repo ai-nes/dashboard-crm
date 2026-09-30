@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 export interface TeamManagementGroup {
   id: string;
   name: string;
@@ -95,7 +97,7 @@ export class TeamManagementApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "TeamManagementApiError";
   }
 }

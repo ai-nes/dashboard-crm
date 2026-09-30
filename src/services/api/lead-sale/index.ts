@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   LeadSaleDashboardActionId,
   LeadSaleDashboardAgingBucket,
@@ -91,7 +93,7 @@ export class LeadSaleOverviewApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "LeadSaleOverviewApiError";
   }
 }

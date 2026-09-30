@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   CtvSaleContactOutcomeItem,
   CtvSaleContactOutcomes,
@@ -30,7 +32,7 @@ export class CtvSaleOverviewApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "CtvSaleOverviewApiError";
   }
 }

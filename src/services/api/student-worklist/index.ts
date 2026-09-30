@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   CompleteActionParams,
   CompleteActionResponse,
@@ -21,7 +23,7 @@ export class StudentWorklistApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "StudentWorklistApiError";
   }
 }

@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 const METHODS = {
   catalogs: "crm.api.lead_assignment_batch.get_lead_assignment_catalogs",
   import: "crm.api.lead_assignment_batch.import_leads_to_assignment_batch",
@@ -284,7 +286,7 @@ export class LeadAssignmentBatchApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "LeadAssignmentBatchApiError";
   }
 }

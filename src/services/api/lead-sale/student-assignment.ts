@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 const WORKSPACE_METHOD = "crm.api.lead_sale.get_student_assignment_workspace";
 const DETAIL_METHOD = "crm.api.lead_sale.get_student_assignment_detail";
 const RESOLVE_METHOD = "crm.api.lead_sale.resolve_student_assignment";
@@ -254,7 +256,7 @@ export class StudentAssignmentApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "StudentAssignmentApiError";
   }
 }

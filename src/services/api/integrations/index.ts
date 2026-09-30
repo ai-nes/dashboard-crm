@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   GetIntegrationsParams,
   IntegrationItem,
@@ -27,7 +29,7 @@ export class IntegrationsApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "IntegrationsApiError";
   }
 }

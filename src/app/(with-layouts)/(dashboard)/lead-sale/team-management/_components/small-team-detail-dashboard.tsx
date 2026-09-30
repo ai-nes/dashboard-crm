@@ -11,6 +11,7 @@ import SmallTeamStats from "./small-team-stats";
 import TeamManagementSkeleton from "./team-management-skeleton";
 import { canManageMembers, canManageTeam } from "./team-management-access";
 import {
+  candidatesForTeam,
   findMember,
   membersOfSmallTeam,
 } from "./team-management-utils";
@@ -55,14 +56,7 @@ export default function SmallTeamDetailDashboard({
     state.permissions?.managedGroupIds.includes(bigTeam.id),
   );
   const members = membersOfSmallTeam(state, smallTeam);
-  const candidates = state.members.filter(
-    (member) =>
-      member.isActive !== false &&
-      member.campusId === smallTeam.campusId &&
-      member.role !== "LEAD_SALE" &&
-      (member.teamIds ?? []).length === 0 &&
-      !smallTeam.memberIds.includes(member.id),
-  );
+  const candidates = candidatesForTeam(state.members, smallTeam);
   const saleCount = members.filter((member) => member.role === "SALE").length;
   const ctvSaleCount = members.filter(
     (member) => member.role === "CTV_SALE",
