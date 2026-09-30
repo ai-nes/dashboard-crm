@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   DirectorAdmissionFunnelData,
   DirectorAdmissionFunnelParams,
@@ -14,7 +16,7 @@ export class DirectorAdmissionFunnelApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "DirectorAdmissionFunnelApiError";
   }
 }

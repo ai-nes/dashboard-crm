@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   ActionCommandRequest,
   ActionCommandResponse,
@@ -25,7 +27,7 @@ export class DirectorNextBestActionApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "DirectorNextBestActionApiError";
   }
 }

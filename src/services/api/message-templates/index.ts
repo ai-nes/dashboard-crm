@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import { getCsrfToken } from "../auth";
 import type {
   DeleteMessageTemplateResponse,
@@ -39,7 +41,7 @@ export class MessageTemplatesApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "MessageTemplatesApiError";
   }
 }

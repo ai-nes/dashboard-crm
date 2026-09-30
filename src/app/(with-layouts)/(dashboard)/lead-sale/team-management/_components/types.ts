@@ -7,6 +7,7 @@ export interface TeamMember {
   email: string;
   role: TeamMemberRole;
   isActive?: boolean;
+  isAvailableForTeam?: boolean;
   campusId?: string | null;
   teamIds?: string[];
   memberships?: TeamMembership[];

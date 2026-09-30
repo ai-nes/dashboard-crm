@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import {
   normalizeFactCatalog,
   normalizeRule,
@@ -62,7 +64,7 @@ export class CrmRulesApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "CrmRulesApiError";
   }
 }

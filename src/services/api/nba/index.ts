@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   NbaApiRequestOptions,
   NbaDecisionRequest,
@@ -31,7 +33,7 @@ export class NbaApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "NbaApiError";
   }
 }

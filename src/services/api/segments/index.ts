@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   CreateSegmentPayload,
   DeleteSegmentPayload,
@@ -72,7 +74,7 @@ export class SegmentApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "SegmentApiError";
   }
 }

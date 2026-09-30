@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
@@ -11,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/tailgrids/core/card";
-import { Toggle } from "@/components/tailgrids/core/toggle";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { hasCrmCapability } from "@/components/common/auth/permissions";
 import {
@@ -26,7 +24,6 @@ import type {
 } from "@/services/api/lead-sale";
 import { cn } from "@/utils/cn";
 import { workflowSteps } from "../../_shared/student-assignment/data";
-import { stepIcons, toneClasses } from "../../_shared/student-assignment/mappings";
 import type { StepId } from "../../_shared/student-assignment/types";
 import LeadAssignmentWorkflowStepPanel from "./lead-assignment-workflow-step-panel";
 
@@ -35,43 +32,11 @@ type StepMap = Record<
   LeadAssignmentWorkflowStepSnapshot
 >;
 
-function configMetric(snapshot: LeadAssignmentWorkflowStepSnapshot): string {
-  const settings = snapshot.settings as Record<string, unknown>;
-
-  switch (snapshot.id) {
-    case "input":
-      return snapshot.enabled
-        ? `Job nền · tối đa ${settings.maxLeadsPerRun as number} Lead`
-        : "Job nền đang tắt";
-    case "validation":
-      return "3 trường bắt buộc · luôn hoạt động";
-    case "classification":
-      return snapshot.enabled
-        ? "Chạy xác định kết quả xử lý"
-        : "Dùng kết quả xử lý đã lưu";
-    case "matching": {
-      const policy = settings.routingPolicy as {
-        layers?: { enabled: boolean }[];
-      };
-      const enabled = policy.layers?.filter((layer) => layer.enabled).length ?? 0;
-      return `${enabled} lớp phân tuyến · kéo để đổi ưu tiên`;
-    }
-    case "review":
-      return `Retry thủ công · tối đa ${settings.maxRetries as number} lần`;
-    case "assignment":
-      return "Giữ ownership · không tạo Student";
-  }
-}
-
 function sameStep(
   left: LeadAssignmentWorkflowStepSnapshot | undefined,
   right: LeadAssignmentWorkflowStepSnapshot | undefined,
 ): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function editableStep(stepId: StepId): boolean {
-  return ["input", "classification", "matching", "review"].includes(stepId);
 }
 
 export default function LeadAssignmentWorkflowConfigCard() {
@@ -89,15 +54,15 @@ export default function LeadAssignmentWorkflowConfigCard() {
   const activeSteps = draftSteps ?? serverSteps;
   const canEdit = Boolean(
     sourceResponse?.canManage &&
-      (hasCrmCapability(user, "system.configure") ||
-        hasCrmCapability(user, "student.routing.operate")),
+    (hasCrmCapability(user, "system.configure") ||
+      hasCrmCapability(user, "student.routing.operate")),
   );
   const selectedConfiguration = activeSteps?.[selectedStep];
   const selectedServerConfiguration = serverSteps?.[selectedStep];
   const isDirty = Boolean(
     selectedConfiguration &&
-      selectedServerConfiguration &&
-      !sameStep(selectedConfiguration, selectedServerConfiguration),
+    selectedServerConfiguration &&
+    !sameStep(selectedConfiguration, selectedServerConfiguration),
   );
   const selectedWorkflowStep = workflowSteps.find(
     (step) => step.id === selectedStep,
@@ -161,7 +126,8 @@ export default function LeadAssignmentWorkflowConfigCard() {
     } else if (selectedStep === "review") {
       requestSettings = { maxRetries: Number(settings.maxRetries) || 0 };
     } else {
-      requestSettings = settings as LeadAssignmentWorkflowStepUpdate["settings"];
+      requestSettings =
+        settings as LeadAssignmentWorkflowStepUpdate["settings"];
     }
 
     try {
@@ -207,7 +173,8 @@ export default function LeadAssignmentWorkflowConfigCard() {
   if (configQuery.isError && !sourceResponse) {
     return (
       <Card role="alert" className="text-sm text-badge-error-text">
-        Không thể tải cấu hình workflow phân công Lead: {configQuery.error.message}
+        Không thể tải cấu hình workflow phân công Lead:{" "}
+        {configQuery.error.message}
       </Card>
     );
   }
@@ -229,11 +196,10 @@ export default function LeadAssignmentWorkflowConfigCard() {
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle className="text-lg">Cấu hình phân công Lead</CardTitle>
               <Badge color="success">Đang áp dụng</Badge>
-              <Badge color="gray">{sourceResponse.config.version}</Badge>
             </div>
             <CardDescription className="mt-1 max-w-3xl text-sm leading-6">
-              Chọn một bước để xem hoặc sửa. Cấu hình chỉ áp dụng cho quyết định mới;
-              Lead đã có người phụ trách không bị phân công lại.
+              Áp dụng cho lần phân công mới. Lead đã có người phụ trách được giữ
+              nguyên.
             </CardDescription>
           </div>
           {!canEdit && (
@@ -244,132 +210,75 @@ export default function LeadAssignmentWorkflowConfigCard() {
         </div>
       </CardHeader>
 
-      <div className="grid gap-4 border-t border-card-border p-4 lg:grid-cols-[minmax(300px,0.85fr)_minmax(380px,1.15fr)] lg:p-5">
-        <section
+      <div className="grid border-t border-card-border lg:grid-cols-[320px_minmax(0,1fr)]">
+        <nav
           aria-labelledby="lead-assignment-config-steps"
-          className="min-w-0 rounded-xl border border-card-border bg-background-gray-secondary/30 p-3"
+          className="min-w-0 border-b border-card-border bg-background-gray-secondary/30 p-4 lg:border-r lg:border-b-0"
         >
-          <div className="mb-3 flex items-center justify-between gap-3 px-1">
-            <div>
-              <h2
-                id="lead-assignment-config-steps"
-                className="text-sm font-semibold text-text-primary"
-              >
-                Các bước nghiệp vụ
-              </h2>
-              <p className="mt-1 text-xs text-text-tertiary">
-                Bật/tắt bước cho phép và bấm Sửa để hiệu chỉnh.
-              </p>
-            </div>
-            <Badge color="gray">6 bước</Badge>
+          <div className="mb-3 px-2">
+            <h2
+              id="lead-assignment-config-steps"
+              className="text-sm font-semibold text-text-primary"
+            >
+              Quy trình phân công
+            </h2>
+            <p className="mt-1 text-xs text-text-secondary">
+              Chọn một bước để xem cấu hình.
+            </p>
           </div>
-
-          <div className="space-y-2">
+          <ol className="grid gap-1 sm:grid-cols-2 lg:grid-cols-1">
             {workflowSteps.map((step, index) => {
               const snapshot = activeSteps[step.id];
-              const Icon = stepIcons[step.id];
               const selected = selectedStep === step.id;
-              const canToggle = Boolean(snapshot?.canToggle);
-              const canEditStep = canEdit && editableStep(step.id);
-
               if (!snapshot) return null;
+              const dirty = !sameStep(snapshot, serverSteps?.[step.id]);
 
               return (
-                <div
-                  key={step.id}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border bg-card-background p-2 transition-colors",
-                    selected
-                      ? "border-primary-500 ring-2 ring-primary-100"
-                      : "border-card-border",
-                  )}
-                >
+                <li key={step.id} className="min-w-0">
                   <Button
                     type="button"
                     appearance="ghost"
                     onPress={() => setSelectedStep(step.id)}
-                    className="min-w-0 flex-1 justify-start gap-2.5 p-1.5 text-left"
-                    aria-label={`Xem cấu hình ${step.title}`}
+                    isDisabled={updateMutation.isPending}
+                    aria-current={selected ? "step" : undefined}
+                    aria-controls="lead-assignment-step-detail"
+                    className={cn(
+                      "h-auto w-full items-start justify-start gap-3 px-3 py-3 text-left motion-reduce:transition-none",
+                      selected
+                        ? "bg-badge-primary-background hover:bg-badge-primary-background"
+                        : "hover:bg-background-gray-secondary",
+                    )}
                   >
                     <span
                       className={cn(
-                        "flex size-8 shrink-0 items-center justify-center rounded-lg",
-                        toneClasses[step.tone],
+                        "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                        selected
+                          ? "bg-button-primary-background text-button-primary-text"
+                          : "bg-background-gray-secondary text-text-secondary",
                       )}
+                      aria-hidden="true"
                     >
-                      <Icon size={16} aria-hidden="true" />
+                      {index + 1}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-text-tertiary">
-                          {index + 1}.
-                        </span>
-                        <span className="truncate text-sm font-medium text-text-primary">
-                          {step.title.replace(/^Bước \d+ · /, "")}
-                        </span>
+                      <span className="block text-sm font-medium leading-5 text-text-primary">
+                        {step.title.replace(/^Bước \d+ · /, "")}
                       </span>
-                      <span className="mt-1 block truncate text-xs font-normal text-text-tertiary">
-                        {configMetric(snapshot)}
+                      <span className="mt-1 block text-xs font-normal leading-5 text-text-secondary">
+                        {snapshot.canToggle
+                          ? snapshot.enabled
+                            ? "Đang bật"
+                            : "Đang tắt"
+                          : "Luôn bật"}
+                        {dirty ? " · Chưa lưu" : ""}
                       </span>
                     </span>
-                    <ArrowRight
-                      size={14}
-                      className="shrink-0 text-text-tertiary"
-                      aria-hidden="true"
-                    />
                   </Button>
-
-                  <div className="flex shrink-0 items-center gap-2">
-                    {canToggle && canEdit ? (
-                      <Toggle
-                        label={snapshot.enabled ? "Bật" : "Tắt"}
-                        checked={snapshot.enabled}
-                        disabled={updateMutation.isPending}
-                        onChange={(event) => {
-                          setSelectedStep(step.id);
-                          updateStepSettings(step.id, {
-                            ...(snapshot.settings as Record<string, unknown>),
-                            enabled: event.target.checked,
-                          });
-                        }}
-                        aria-label={`${snapshot.enabled ? "Tắt" : "Bật"} ${step.title}`}
-                      />
-                    ) : (
-                      <Badge
-                        color={
-                          canToggle && !snapshot.enabled
-                            ? "gray"
-                            : canToggle
-                              ? "success"
-                              : "primary"
-                        }
-                        className="text-[10px]"
-                      >
-                        {canToggle
-                          ? snapshot.enabled
-                            ? "Bật"
-                            : "Tắt"
-                          : "Bắt buộc"}
-                      </Badge>
-                    )}
-                    {canEditStep ? (
-                      <Button
-                        type="button"
-                        size="xs"
-                        appearance="outline"
-                        onPress={() => setSelectedStep(step.id)}
-                      >
-                        Sửa
-                      </Button>
-                    ) : (
-                      <span className="px-1 text-[11px] text-text-tertiary">Xem</span>
-                    )}
-                  </div>
-                </div>
+                </li>
               );
             })}
-          </div>
-        </section>
+          </ol>
+        </nav>
 
         <LeadAssignmentWorkflowStepPanel
           step={selectedWorkflowStep}

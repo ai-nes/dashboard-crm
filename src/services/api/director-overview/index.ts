@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import { computeDirectorOverview } from "./data";
 import { normalizeDirectorOverview } from "./normalizers";
 import type {
@@ -16,7 +18,7 @@ export class DirectorOverviewApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "DirectorOverviewApiError";
   }
 }

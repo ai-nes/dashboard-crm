@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   CreateInteractionInput,
   InteractionCatalog,
@@ -44,7 +46,7 @@ export class InteractionIntelligenceApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "InteractionIntelligenceApiError";
   }
 }

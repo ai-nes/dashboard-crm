@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import { student360Data, studentListData } from "./data";
 import type {
   DirectorStudentsActionSummary,
@@ -20,7 +22,7 @@ export class DirectorStudentsApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "DirectorStudentsApiError";
   }
 }

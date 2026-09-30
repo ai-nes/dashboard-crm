@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 export type LeadRoutingLayerKey = "campaign" | "group" | "global";
 export type LeadRoutingStrategy = "least_load" | "round_robin";
 
@@ -51,7 +53,7 @@ export class LeadRoutingPolicyApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "LeadRoutingPolicyApiError";
   }
 }

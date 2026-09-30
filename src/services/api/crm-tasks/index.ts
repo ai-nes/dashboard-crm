@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   CRMTask,
   CRMTaskPriority,
@@ -31,7 +33,7 @@ export class CrmTaskApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "CrmTaskApiError";
   }
 }

@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import {
   getStudentStudyStageForPayload,
   normalizeStudentStudyStage,
@@ -267,7 +269,7 @@ export class StudentSchoolUpdateApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "StudentSchoolUpdateApiError";
   }
 }

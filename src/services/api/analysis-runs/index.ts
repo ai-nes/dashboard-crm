@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   AnalysisAdvisorySignal,
   AnalysisClaim,
@@ -69,7 +71,7 @@ export class AnalysisRunApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "AnalysisRunApiError";
   }
 }

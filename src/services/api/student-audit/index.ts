@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   LeadAuditLogsParams,
   SegmentAuditLogsParams,
@@ -24,7 +26,7 @@ export class StudentAuditApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "StudentAuditApiError";
   }
 }

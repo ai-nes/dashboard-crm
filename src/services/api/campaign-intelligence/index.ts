@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   CampaignIntelligenceResponse,
   CampaignRecord,
@@ -19,7 +21,7 @@ export class CampaignIntelligenceApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "CampaignIntelligenceApiError";
   }
 }

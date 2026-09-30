@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from "@/utils/format-api-error-message";
+
 import type {
   SaleConversionTrend,
   SaleConversionTrendPoint,
@@ -58,7 +60,7 @@ export class SaleOverviewApiError extends Error {
     public code: string,
     message: string,
   ) {
-    super(message);
+    super(formatApiErrorMessage(message));
     this.name = "SaleOverviewApiError";
   }
 }
