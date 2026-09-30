@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { CurrentUser } from "@/services/api/auth";
 
 import {
+  canEditScoreTemplates,
   canManageCrmRules,
   canConvertLeadToStudent,
   canPerformStudentAction,
@@ -23,7 +24,9 @@ const makeUser = (overrides: Partial<CurrentUser> = {}): CurrentUser => ({
 });
 
 const makeDoctypePermission = (
-  overrides: Partial<NonNullable<CurrentUser["crm_doctype_permissions"]>[string]> = {},
+  overrides: Partial<
+    NonNullable<CurrentUser["crm_doctype_permissions"]>[string]
+  > = {},
 ) => ({
   row_scope: "assigned",
   read: true,
@@ -32,6 +35,50 @@ const makeDoctypePermission = (
   delete: true,
   export: false,
   ...overrides,
+});
+
+describe("Score Template editing permissions", () => {
+  it("allows Administrator and the default System Manager write grant", () => {
+    expect(canEditScoreTemplates(makeUser({ user: "Administrator" }))).toBe(
+      true,
+    );
+    expect(canEditScoreTemplates(makeUser({ roles: ["System Manager"] }))).toBe(
+      true,
+    );
+  });
+
+  it("hides editing for missing sessions and read-only roles", () => {
+    expect(canEditScoreTemplates(null)).toBe(false);
+    expect(canEditScoreTemplates(makeUser({ roles: ["Marketing"] }))).toBe(
+      false,
+    );
+    expect(
+      canEditScoreTemplates(makeUser({ roles: ["Admissions Director"] })),
+    ).toBe(false);
+  });
+
+  it("honors effective write grants and denials", () => {
+    expect(
+      canEditScoreTemplates(
+        makeUser({
+          roles: ["Marketing"],
+          crm_doctype_permissions: {
+            "CRM Score Template": makeDoctypePermission({ write: true }),
+          },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      canEditScoreTemplates(
+        makeUser({
+          roles: ["System Manager"],
+          crm_doctype_permissions: {
+            "CRM Score Template": makeDoctypePermission({ write: false }),
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("CRM Rule administration permissions", () => {
@@ -85,10 +132,7 @@ describe("CRM sales permissions", () => {
       email: "sale@example.com",
       full_name: "Nguyễn Văn Sale",
       roles: ["Sale"],
-      crm_capabilities: [
-        "student.ownership.manage",
-        "student.routing.read",
-      ],
+      crm_capabilities: ["student.ownership.manage", "student.routing.read"],
       crm_doctype_permissions: {
         "CRM Lead": makeDoctypePermission({ delete: false }),
         "CRM Student": makeDoctypePermission({ delete: false }),
