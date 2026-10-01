@@ -166,6 +166,7 @@ describe("Lead list/detail API contract", () => {
         ward: "Phường An Cư",
         interestedMajor: "Trí tuệ nhân tạo",
         adChannel: "Facebook Ads",
+        campaign: "Tuyển sinh mùa thu 2026",
         segments: ["Quan tâm học bổng"],
         enrollmentYear: 2026,
         conversionPotential: "Cao",
@@ -210,6 +211,8 @@ describe("Lead list/detail API contract", () => {
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(result?.lead.email).toBe("an@example.com");
+    expect(result?.lead.campaign).toBe("Tuyển sinh mùa thu 2026");
+    expect(result?.lead.source).toBe(detail.lead.source);
     expect(result?.lead.ward).toBe("Phường An Cư");
     expect(result?.lead.segments).toEqual(["Quan tâm học bổng"]);
     expect(result?.log[0]).toMatchObject({
