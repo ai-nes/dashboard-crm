@@ -166,7 +166,7 @@ export default function UsersTable({
                       {user.email}
                     </AdminTableCell>
                     <AdminTableCell className="py-3.5">
-                      {canManageUsers && !isSystemManager ? (
+                      {canManageUsers ? (
                         <RoleSelectDropdown
                           value={user.role ?? ""}
                           disabled={isMutating}
