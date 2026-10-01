@@ -3,7 +3,7 @@ import type {
   CurrentUserDocTypePermission,
 } from "@/services/api/auth";
 
-import { getEffectiveDashboardRoles, hasFrappeTechnicalRole } from "./rbac";
+import { hasFrappeTechnicalRole } from "./rbac";
 
 /** Use effective DocPerm when provided; otherwise mirror Score Template's default write grant. */
 export function canEditScoreTemplates(
@@ -201,17 +201,9 @@ export function canPerformStudentAction(
 }
 
 export function canConvertLeadToStudent(
-  roles: readonly string[] | null | undefined,
+  permissions: CrmResourcePermissions,
   lead: StudentOwnershipInfo,
   user: CurrentUser | null | undefined,
 ): boolean {
-  const effectiveRoles = getEffectiveDashboardRoles(roles);
-  if (effectiveRoles.includes("Lead Sale")) return true;
-  if (
-    !effectiveRoles.includes("Sale") &&
-    !effectiveRoles.includes("CTV Sale")
-  ) {
-    return false;
-  }
-  return isStudentAssignedToUser(lead, user);
+  return canAccessStudent(permissions, lead, user);
 }
