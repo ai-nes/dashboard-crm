@@ -93,11 +93,11 @@ export default function LeadAssigneeField({
     <div className="min-w-0">
       <dt className="text-xs leading-5 text-text-tertiary">Người phụ trách</dt>
       <DropdownField
-        ariaLabel="Chọn Sale hoặc CTV phụ trách Lead"
+        ariaLabel="Chọn người phụ trách Lead"
         className="mt-1.5"
         contentClassName="max-h-64 min-w-72"
         emptyMessage={
-          searchQuery ? "Không tìm thấy nhân viên" : "Chưa có Sale/CTV phù hợp"
+          searchQuery ? "Không tìm thấy nhân viên" : "Chưa có người phụ trách phù hợp"
         }
         errorMessage="Không thể tải danh sách"
         filterOptions={false}
@@ -135,7 +135,7 @@ export default function LeadAssigneeField({
           selectedTarget?.displayName ??
           (lead.ownerStaff ? lead.owner || lead.ownerStaff : undefined)
         }
-        searchPlaceholder="Tìm Sale hoặc CTV"
+        searchPlaceholder="Tìm Sale, CTV, Lead Team/Group"
         triggerClassName={
           isEditing
             ? "h-9 w-full min-w-0 px-3 py-2 text-sm"
@@ -145,14 +145,14 @@ export default function LeadAssigneeField({
       />
       {targetsQuery.isError && (
         <p className="mt-1 text-xs text-text-tertiary">
-          Không thể tải danh sách Sale/CTV. Vui lòng thử lại sau.
+          Không thể tải danh sách người phụ trách. Vui lòng thử lại sau.
         </p>
       )}
       {!targetsQuery.isPending &&
         !targetsQuery.isError &&
         targets.length === 0 && (
           <p className="mt-1 text-xs text-text-tertiary">
-            Lead cần có tỉnh; Team trong tỉnh phải đang sẵn sàng nhận Lead.
+            Chưa có người phụ trách đủ điều kiện trong các Team phù hợp.
           </p>
         )}
     </div>

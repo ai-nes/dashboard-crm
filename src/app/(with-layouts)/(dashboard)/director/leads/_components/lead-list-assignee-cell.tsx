@@ -109,7 +109,7 @@ export default function LeadListAssigneeCell({
       appearance="ghost"
       className="w-full"
       contentClassName="w-72"
-      emptyMessage="Không tìm thấy Sale hoặc CTV Sale"
+      emptyMessage="Không tìm thấy người phụ trách phù hợp"
       errorMessage={
         <span className="flex items-center justify-between gap-2">
           <span>Không tải được danh sách</span>
@@ -155,7 +155,7 @@ export default function LeadListAssigneeCell({
         </span>
       )}
       selectedLabel={displayOwner || "Chưa phân công"}
-      searchPlaceholder="Tìm Sale hoặc CTV Sale"
+      searchPlaceholder="Tìm Sale, CTV, Lead Team/Group"
       triggerClassName="group/owner flex min-w-0 max-w-full truncate rounded px-1 py-0.5 text-left text-sm font-medium text-text-primary hover:bg-background-soft-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
       value={currentTarget ? getTargetKey(currentTarget) : undefined}
     />
