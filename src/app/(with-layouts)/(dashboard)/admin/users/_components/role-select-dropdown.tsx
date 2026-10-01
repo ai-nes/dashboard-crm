@@ -10,9 +10,14 @@ import {
   SelectValue,
 } from "@/components/tailgrids/core/select";
 
-// "Business Admin" is a historical role name kept only for legacy route
-// access; it is not assignable through crm.api.user.update_user_role.
-export const ASSIGNABLE_CRM_ROLES = CRM_ROLES.filter((role) => role !== "Business Admin");
+// Business Admin and Administrator are historical role names kept for legacy
+// access. System Manager is the canonical technical admin role to assign.
+export const ASSIGNABLE_CRM_ROLES = [
+  ...CRM_ROLES.filter(
+    (role) => role !== "Business Admin" && role !== "Administrator",
+  ),
+  "System Manager",
+] as const;
 
 interface RoleSelectDropdownProps {
   value: string;

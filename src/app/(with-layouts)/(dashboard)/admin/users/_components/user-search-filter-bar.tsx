@@ -61,9 +61,6 @@ export default function UserSearchFilterBar({
           <SelectItem id="all" textValue="Tất cả vai trò">
             Tất cả vai trò
           </SelectItem>
-          <SelectItem id="System Manager" textValue="System Manager">
-            System Manager
-          </SelectItem>
           {ASSIGNABLE_CRM_ROLES.map((option) => (
             <SelectItem key={option} id={option} textValue={option}>
               {option}
