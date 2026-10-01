@@ -247,23 +247,83 @@ describe("CRM sales permissions", () => {
     expect(permissions.student.canCreate).toBe(false);
   });
 
-  it("limits Lead conversion to Sales roles and assigned records", () => {
-    const sale = {
-      user: "sale@example.com",
-      email: "sale@example.com",
-      full_name: "Nguyễn Văn Sale",
-    } as CurrentUser;
-    const assignedLead = { owner: "sale@example.com" };
-    const otherLead = { owner: "other@example.com" };
+  it.each([
+    "Lead Sale",
+    "Sale",
+    "CTV Sale",
+    "Admissions Director",
+    "Marketing",
+  ])(
+    "allows %s to convert leads within their effective detail read scope",
+    (role) => {
+      const user = makeUser({
+        roles: [role],
+        crm_doctype_permissions: {
+          "CRM Lead": makeDoctypePermission({ row_scope: "all", write: false }),
+        },
+      });
+      expect(
+        canConvertLeadToStudent(
+          getCrmPermissions(user).lead,
+          { owner: "other@example.com" },
+          user,
+        ),
+      ).toBe(true);
+    },
+  );
 
-    expect(canConvertLeadToStudent(["Sale"], assignedLead, sale)).toBe(true);
-    expect(canConvertLeadToStudent(["Sale"], otherLead, sale)).toBe(false);
-    expect(canConvertLeadToStudent(["CTV Sale"], assignedLead, sale)).toBe(
-      true,
-    );
-    expect(canConvertLeadToStudent(["Lead Sale"], otherLead, sale)).toBe(true);
+  it("honors assigned and broader team read scopes for conversion", () => {
+    const user = makeUser({
+      roles: ["Sale"],
+      crm_doctype_permissions: { "CRM Lead": makeDoctypePermission() },
+    });
     expect(
-      canConvertLeadToStudent(["Admissions Director"], assignedLead, sale),
+      canConvertLeadToStudent(
+        getCrmPermissions(user).lead,
+        { owner: user.user },
+        user,
+      ),
+    ).toBe(true);
+    expect(
+      canConvertLeadToStudent(
+        getCrmPermissions(user).lead,
+        { owner: "other@example.com" },
+        user,
+      ),
+    ).toBe(false);
+
+    const teamReader = { ...user, crm_capabilities: ["student.routing.read"] };
+    expect(
+      canConvertLeadToStudent(
+        getCrmPermissions(teamReader).lead,
+        { owner: "other@example.com" },
+        teamReader,
+      ),
+    ).toBe(true);
+  });
+
+  it("denies conversion when detail read access is missing", () => {
+    for (const permission of [
+      undefined,
+      makeDoctypePermission({ read: false }),
+      makeDoctypePermission({ row_scope: "none" }),
+    ]) {
+      const user = makeUser({
+        roles: ["Lead Sale"],
+        crm_doctype_permissions: permission
+          ? { "CRM Lead": permission }
+          : undefined,
+      });
+      expect(
+        canConvertLeadToStudent(
+          getCrmPermissions(user).lead,
+          { owner: user.user },
+          user,
+        ),
+      ).toBe(false);
+    }
+    expect(
+      canConvertLeadToStudent(getCrmPermissions(null).lead, {}, null),
     ).toBe(false);
   });
 });

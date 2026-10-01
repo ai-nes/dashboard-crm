@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Copy1,
   Envelope1,
-  InfoCircle,
   MapMarker5,
   Phone,
   Trash1,
@@ -148,15 +147,7 @@ export default function LeadHeader({
                   {isConverting ? "Đang chuyển đổi…" : "Chuyển đổi Lead"}
                 </Button>
               )}
-              {lead.isConverted ? (
-                <div
-                  className="inline-flex max-w-[19rem] items-center gap-1.5 rounded-lg border border-warning-200 bg-badge-warning-background px-3 py-2 text-xs font-medium text-badge-warning-text"
-                  role="status"
-                >
-                  <InfoCircle size={15} aria-hidden="true" />
-                  <span>Đã chuyển đổi thành Student · không thể xóa</span>
-                </div>
-              ) : onDeleteRequest ? (
+              {!lead.isConverted && onDeleteRequest && (
                 <Button
                   aria-label="Xóa Lead"
                   appearance="ghost"
@@ -167,7 +158,7 @@ export default function LeadHeader({
                   <Trash1 size={15} aria-hidden="true" />
                   Xóa Lead
                 </Button>
-              ) : null}
+              )}
             </div>
           </div>
 

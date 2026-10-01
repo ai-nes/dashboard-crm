@@ -90,7 +90,7 @@ export default function LeadDetailDashboard({
     !isAuthLoading &&
     isLeadAssigned &&
     !data?.lead.studentId &&
-    canConvertLeadToStudent(user?.roles, leadOwnership, user);
+    canConvertLeadToStudent(permissions.lead, leadOwnership, user);
   const submitConversion = () => {
     convertMutation.mutate(leadId, {
       onSuccess: (result) => {
