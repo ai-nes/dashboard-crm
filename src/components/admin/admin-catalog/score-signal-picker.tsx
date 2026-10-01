@@ -11,6 +11,7 @@ interface ScoreSignalPickerProps {
   onChange: (value: string) => void;
   isDisabled?: boolean;
   allowedCategories?: readonly string[];
+  quiet?: boolean;
 }
 
 function isSignalCategoryAllowed(
@@ -31,6 +32,7 @@ export default function ScoreSignalPicker({
   onChange,
   isDisabled = false,
   allowedCategories,
+  quiet = false,
 }: ScoreSignalPickerProps) {
   const [search, setSearch] = useState("");
   const query = useScoreSignalsQuery({
@@ -68,6 +70,11 @@ export default function ScoreSignalPicker({
   return (
     <div className="space-y-1">
       <Combobox
+        triggerClassName={
+          quiet
+            ? "h-8 border-transparent bg-transparent shadow-none hover:border-card-border focus:border-primary-500"
+            : undefined
+        }
         value={value || null}
         onChange={(key) => {
           setSearch("");
@@ -89,7 +96,7 @@ export default function ScoreSignalPicker({
           <ComboboxItem
             key={signal.name}
             id={signal.name}
-            textValue={`${signal.label} ${signal.signal_key} ${signal.category} ${signal.signal_type}`}
+            textValue={signal.label || signal.signal_key}
             isDisabled={
               !signal.is_active ||
               !isSignalCategoryAllowed(signal, allowedCategories)

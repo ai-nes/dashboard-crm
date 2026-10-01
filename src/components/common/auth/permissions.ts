@@ -3,7 +3,18 @@ import type {
   CurrentUserDocTypePermission,
 } from "@/services/api/auth";
 
-import { getEffectiveDashboardRoles } from "./rbac";
+import { getEffectiveDashboardRoles, hasFrappeTechnicalRole } from "./rbac";
+
+/** Use effective DocPerm when provided; otherwise mirror Score Template's default write grant. */
+export function canEditScoreTemplates(
+  user: CurrentUser | null | undefined,
+): boolean {
+  if (!user) return false;
+  if (user.user === "Administrator") return true;
+  const permission = user.crm_doctype_permissions?.["CRM Score Template"];
+  if (permission) return permission.write;
+  return hasFrappeTechnicalRole(user.roles, "System Manager");
+}
 
 export type CrmRecordScope = "assigned" | "team" | "all" | "none";
 export type CrmPermissionAction = "create" | "read" | "update" | "delete";
