@@ -62,6 +62,7 @@ export type ConversionPotential =
 export type FptAspiration = string;
 
 export interface LeadDetail extends LeadListItem {
+  campaign?: string;
   lifecycleStatus?: string | null;
   lifecycleStatusCode?: string | null;
   email: string;
@@ -852,6 +853,7 @@ function normalizeDetail(value: unknown): LeadDetail {
 
   return {
     ...normalizeListItem(row),
+    campaign: firstText([row.campaign]),
     lifecycleStatus:
       firstText([
         row.lifecycleStatus,

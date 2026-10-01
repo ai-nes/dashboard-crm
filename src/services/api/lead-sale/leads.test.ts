@@ -166,6 +166,7 @@ describe("Lead list/detail API contract", () => {
         ward: "Phường An Cư",
         interestedMajor: "Trí tuệ nhân tạo",
         adChannel: "Facebook Ads",
+        campaign: "Tuyển sinh mùa thu 2026",
         segments: ["Quan tâm học bổng"],
         enrollmentYear: 2026,
         conversionPotential: "Cao",
@@ -210,6 +211,8 @@ describe("Lead list/detail API contract", () => {
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(result?.lead.email).toBe("an@example.com");
+    expect(result?.lead.campaign).toBe("Tuyển sinh mùa thu 2026");
+    expect(result?.lead.source).toBe(detail.lead.source);
     expect(result?.lead.ward).toBe("Phường An Cư");
     expect(result?.lead.segments).toEqual(["Quan tâm học bổng"]);
     expect(result?.log[0]).toMatchObject({
@@ -236,53 +239,57 @@ describe("Lead list/detail API contract", () => {
     expect(result.lead.isConverted).toBe(true);
   });
 
-  it("loads eligible Sale/CTV targets for a Lead", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            lead: "LEAD-2026-00001",
-            province: "Ho Chi Minh City",
-            ownership_revision: 2,
-            targets: [
-              {
-                staff: "STAFF-1",
-                staffName: "Nguyễn Minh An",
-                team: "TEAM-1",
-                teamName: "Sale HCM",
-                function: "Sale",
-                capacity: { active: 3, limit: 10, remaining: 7 },
-                effectiveActive: 3,
-              },
-            ],
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it.each(["Sale", "CTV Sale", "Lead Team", "Lead Group"])(
+    "loads eligible %s targets for a Lead",
+    async (recipientFunction) => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            message: {
+              lead: "LEAD-2026-00001",
+              province: "Ho Chi Minh City",
+              ownership_revision: 2,
+              targets: [
+                {
+                  staff: "STAFF-1",
+                  staffName: "Nguyễn Minh An",
+                  team: "TEAM-1",
+                  teamName: "Sale HCM",
+                  function: recipientFunction,
+                  capacity: { active: 3, limit: 10, remaining: 7 },
+                  effectiveActive: 3,
+                },
+              ],
+            },
+          }),
+          { status: 200 },
+        ),
+      );
 
-    await expect(
-      getLeadAssignmentTargets("LEAD-2026-00001", {
-        baseUrl: "http://frappe:8000",
-      }),
-    ).resolves.toMatchObject({
-      ownershipRevision: 2,
-      targets: [
-        expect.objectContaining({
-          id: "STAFF-1",
-          displayName: "Nguyễn Minh An",
-          teamId: "TEAM-1",
-          teamName: "Sale HCM",
-          effectiveActive: 3,
+      await expect(
+        getLeadAssignmentTargets("LEAD-2026-00001", {
+          baseUrl: "http://frappe:8000",
         }),
-      ],
-    });
+      ).resolves.toMatchObject({
+        ownershipRevision: 2,
+        targets: [
+          expect.objectContaining({
+            id: "STAFF-1",
+            displayName: "Nguyễn Minh An",
+            teamId: "TEAM-1",
+            teamName: "Sale HCM",
+            function: recipientFunction,
+            effectiveActive: 3,
+          }),
+        ],
+      });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.lead_processing.list_lead_assignment_targets?lead=LEAD-2026-00001",
-      expect.objectContaining({ method: "GET", cache: "no-store" }),
-    );
-  });
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "http://frappe:8000/api/method/crm.api.lead_processing.list_lead_assignment_targets?lead=LEAD-2026-00001",
+        expect.objectContaining({ method: "GET", cache: "no-store" }),
+      );
+    },
+  );
 
   it("assigns a Lead with its ownership revision", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
