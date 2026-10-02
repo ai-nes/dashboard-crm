@@ -24,6 +24,12 @@ export type LeadAssignmentWorkflowClassificationSettings = {
 };
 
 export type LeadAssignmentWorkflowMatchingSettings = {
+  teamOptions?: {
+    id: string;
+    label: string;
+    province: string;
+    provinceLabel: string;
+  }[];
   routingPolicy: LeadRoutingPolicy;
   noEligibleOutcome: "review";
 };
@@ -79,16 +85,16 @@ export type LeadAssignmentWorkflowConfigResponse = {
   canManage: boolean;
 };
 
-export type LeadAssignmentWorkflowInputUpdate = Partial<
-  LeadAssignmentWorkflowInputSettings
->;
-export type LeadAssignmentWorkflowClassificationUpdate = Partial<
-  LeadAssignmentWorkflowClassificationSettings
->;
+export type LeadAssignmentWorkflowInputUpdate =
+  Partial<LeadAssignmentWorkflowInputSettings>;
+export type LeadAssignmentWorkflowClassificationUpdate =
+  Partial<LeadAssignmentWorkflowClassificationSettings>;
 export type LeadAssignmentWorkflowReviewUpdate = Partial<
   Pick<LeadAssignmentWorkflowReviewSettings, "maxRetries">
 >;
 export type LeadAssignmentWorkflowMatchingUpdate = {
+  routingMode?: "global" | "group" | "campaign";
+  provinceTeamPriority?: Record<string, string>;
   enabled?: boolean;
   layerOrder?: string[];
   campaignLayerEnabled?: boolean;
@@ -207,6 +213,23 @@ function normalizeSettings(
       return { enabled: boolean(source.enabled, true) };
     case "matching":
       return {
+        teamOptions: Array.isArray(source.teamOptions)
+          ? source.teamOptions.flatMap((value) => {
+              const row = asRecord(value);
+              return row &&
+                typeof row.id === "string" &&
+                typeof row.province === "string"
+                ? [
+                    {
+                      id: row.id,
+                      label: text(row.label, row.id),
+                      province: row.province,
+                      provinceLabel: text(row.provinceLabel, row.province),
+                    },
+                  ]
+                : [];
+            })
+          : [],
         routingPolicy: policy,
         noEligibleOutcome: "review",
       };
@@ -238,7 +261,11 @@ function normalizeConfig(value: unknown): LeadAssignmentWorkflowConfig {
     lastChangedBy: nullableText(source.lastChangedBy),
     lastChangeReason: nullableText(source.lastChangeReason),
     stored: {
-      input: normalizeSettings("input", input, {} as LeadRoutingPolicy) as LeadAssignmentWorkflowInputSettings,
+      input: normalizeSettings(
+        "input",
+        input,
+        {} as LeadRoutingPolicy,
+      ) as LeadAssignmentWorkflowInputSettings,
       classification: normalizeSettings(
         "classification",
         classification,
@@ -266,9 +293,13 @@ function normalizeSteps(
     const row = asRecord(source[id]) ?? {};
     result[id] = {
       id,
-      enabled: id === "validation" || id === "matching" || id === "review" || id === "assignment"
-        ? true
-        : boolean(row.enabled, true),
+      enabled:
+        id === "validation" ||
+        id === "matching" ||
+        id === "review" ||
+        id === "assignment"
+          ? true
+          : boolean(row.enabled, true),
       canToggle: id === "input" || id === "classification",
       settings: normalizeSettings(id, row.settings, policy),
     };
@@ -354,7 +385,11 @@ function errorDetails(
   return {
     code: text(
       error?.code,
-      revisionConflict ? "WORKFLOW_REVISION_CONFLICT" : status === 403 ? "FORBIDDEN" : `HTTP_${status}`,
+      revisionConflict
+        ? "WORKFLOW_REVISION_CONFLICT"
+        : status === 403
+          ? "FORBIDDEN"
+          : `HTTP_${status}`,
     ),
     message:
       text(error?.message) ||

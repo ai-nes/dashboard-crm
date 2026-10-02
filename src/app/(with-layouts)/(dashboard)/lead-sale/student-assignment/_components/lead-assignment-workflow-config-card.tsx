@@ -107,6 +107,8 @@ export default function LeadAssignmentWorkflowConfigCard() {
         layers: { key: string; enabled: boolean }[];
         distributionStrategy: "least_load" | "round_robin";
         capacityRequired: boolean;
+        routingMode?: "global" | "group" | "campaign";
+        provinceTeamPriority?: Record<string, string>;
       };
       requestSettings = {
         enabled: policy.enabled,
@@ -122,6 +124,8 @@ export default function LeadAssignmentWorkflowConfigCard() {
         ),
         distributionStrategy: policy.distributionStrategy,
         capacityRequired: policy.capacityRequired,
+        routingMode: policy.routingMode,
+        provinceTeamPriority: policy.provinceTeamPriority,
       };
     } else if (selectedStep === "review") {
       requestSettings = { maxRetries: Number(settings.maxRetries) || 0 };

@@ -3,6 +3,9 @@
 import { ArrowLeft, ArrowRight, Close, Search1 } from "@tailgrids/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmPermissions } from "@/components/common/auth/permissions";
 import { Label } from "react-aria-components";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -35,6 +38,7 @@ const statusTabs = [
   { id: "skipped", label: "Đã bỏ qua" },
   { id: "failed", label: "Lỗi xử lý" },
   { id: "manual_review", label: "Cần kiểm tra" },
+  { id: "missing_information", label: "Thiếu thông tin" },
   { id: "deferred", label: "Tạm hoãn" },
   { id: "pending", label: "Chờ phân công" },
 ] as const;
@@ -48,9 +52,13 @@ function needsAttention(item: LeadAssignmentHistoryItem): boolean {
 function HistoryRow({
   item,
   onInspect,
+  missingInformation,
+  canReadLead,
 }: {
   item: LeadAssignmentHistoryItem;
   onInspect: (item: LeadAssignmentHistoryItem) => void;
+  missingInformation: boolean;
+  canReadLead: boolean;
 }) {
   return (
     <TableRow>
@@ -83,7 +91,7 @@ function HistoryRow({
         {item.status === "assigned"
           ? "Đã phân công thành công."
           : assignmentReasonLabel(item)}
-        {item.status === "skipped" && (
+        {item.status === "skipped" && !missingInformation && (
           <span className="mt-0.5 block text-xs text-text-tertiary">
             Hồ sơ đã bị loại khỏi luồng phân công — không cần xử lý thêm.
           </span>
@@ -93,7 +101,16 @@ function HistoryRow({
         {item.batchCreatedAt ? formatDate(item.batchCreatedAt) : "—"}
       </TableCell>
       <TableCell className="min-w-32 text-right">
-        {needsAttention(item) ? (
+        {missingInformation ? (
+          canReadLead && (
+            <Link
+              href={`/director/leads/${encodeURIComponent(item.leadId)}`}
+              className="text-sm font-medium text-primary-500 hover:underline focus-visible:outline focus-visible:outline-2"
+            >
+              Xem hồ sơ
+            </Link>
+          )
+        ) : needsAttention(item) ? (
           <Button appearance="outline" size="sm" onPress={() => onInspect(item)}>
             Xử lý
           </Button>
@@ -106,6 +123,8 @@ function HistoryRow({
 }
 
 export default function AssignmentBatchHistory() {
+  const { user } = useAuth();
+  const canReadLead = getCrmPermissions(user).lead.canRead;
   const searchParams = useSearchParams();
   const requestedStatus = searchParams.get("status");
   const initialStatus: HistoryStatus = statusTabs.some(
@@ -249,6 +268,8 @@ export default function AssignmentBatchHistory() {
                 <HistoryRow
                   key={`${item.batchId}:${item.id}`}
                   item={item}
+                  missingInformation={status === "missing_information"}
+                  canReadLead={canReadLead}
                   onInspect={(row) => setInspectedId(`${row.batchId}:${row.id}`)}
                 />
               ))

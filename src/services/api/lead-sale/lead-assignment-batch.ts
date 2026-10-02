@@ -155,7 +155,7 @@ export type LeadAssignmentBatchListParams = {
 export type LeadAssignmentHistoryParams = {
   page?: number;
   limit?: number;
-  status?: LeadAssignmentBatchItemStatus | "issues" | "all";
+  status?: LeadAssignmentBatchItemStatus | "issues" | "all" | "missing_information";
   q?: string;
   leadIds?: string[];
 };

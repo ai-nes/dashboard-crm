@@ -192,6 +192,7 @@ describe("assignmentActionCategory", () => {
   });
 
   it("keeps the Lead-data edit form for missing province, not campus", () => {
+    expect(assignmentActionCategory({ errorCode: "PROVINCE_TEAM_NOT_CONFIGURED" } as LeadAssignmentBatchItem)).toBe("routing-config");
     expect(
       assignmentActionCategory({ errorCode: "MISSING_PROVINCE" } as LeadAssignmentBatchItem),
     ).toBe("lead-data");

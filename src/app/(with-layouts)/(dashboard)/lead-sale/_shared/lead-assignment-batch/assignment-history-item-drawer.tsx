@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { canAccessDashboardPath } from "@/components/common/auth/rbac";
+import { getCrmPermissions, hasCrmCapability } from "@/components/common/auth/permissions";
 import {
   EditableDetailField,
   type EditableDetailOption,
@@ -69,6 +70,8 @@ export default function AssignmentHistoryItemDrawer({
 }: AssignmentHistoryItemDrawerProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const canOperate = hasCrmCapability(user, "student.routing.operate");
+  const canEditLead = getCrmPermissions(user).lead.canUpdate;
   const [province, setProvince] = useState(item.province ?? "");
   const [branch, setBranch] = useState(item.branch ?? "");
   const [phone, setPhone] = useState(item.phone ?? "");
@@ -111,14 +114,14 @@ export default function AssignmentHistoryItemDrawer({
   // must not show that form (or imply it's the fix) for those categories.
   const actionCategory = assignmentActionCategory(item);
   const actionLink =
-    actionCategory === "team-config" || actionCategory === "staff-capacity"
+    actionCategory === "team-config" || actionCategory === "staff-capacity" || actionCategory === "routing-config"
       ? assignmentActionLinks[actionCategory]
       : null;
   // Quản lý người dùng is Admin/System Manager-only — a Sale/CTV Sale viewer
   // can never open it, so a clickable link would be a dead end. Point them
   // at an Admin instead of a route their own role can't reach.
   const canOpenActionLink = Boolean(
-    actionLink && canAccessDashboardPath(actionLink.href, user?.roles),
+    actionLink && canAccessDashboardPath(actionLink.href.split("?")[0], user?.roles, user?.crm_capabilities),
   );
   const unconfiguredStaff =
     actionCategory === "staff-capacity"
@@ -134,7 +137,7 @@ export default function AssignmentHistoryItemDrawer({
   const isBusy = step !== null;
 
   async function handleResolve() {
-    if (isClosed || isAssigned) return;
+    if (isClosed || isAssigned || !canOperate || (isDirty && !canEditLead)) return;
 
     try {
       if (isDirty) {
@@ -159,7 +162,9 @@ export default function AssignmentHistoryItemDrawer({
       }
 
       setStep("Đang phân công lại…");
-      if (isLiveReview) {
+      // Configuration fixes need a new policy snapshot. Preserve the original
+      // batch for audit; ordinary retries continue to use its stored snapshot.
+      if (isLiveReview || actionCategory === "routing-config") {
         const created = await createBatchMutation.mutateAsync({
           batchName: `Phân công lại ${item.leadId} ${Date.now()}`,
           leadIds: [item.leadId],
@@ -261,6 +266,7 @@ export default function AssignmentHistoryItemDrawer({
       )}
 
       {!isClosed &&
+        canEditLead &&
         !isAssigned &&
         (actionCategory === "lead-data" || actionCategory === "unknown") && (
           <section className="mt-6" aria-labelledby="routing-fix-heading">
@@ -356,7 +362,7 @@ export default function AssignmentHistoryItemDrawer({
           >
             Đóng
           </Button>
-          {!isClosed && !isAssigned && (
+          {!isClosed && !isAssigned && canOperate && (
             <Button isDisabled={isBusy} onPress={handleResolve} size="sm">
               {isBusy ? "Đang xử lý…" : "Lưu và phân công lại"}
             </Button>
