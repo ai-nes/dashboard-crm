@@ -716,6 +716,7 @@ export function computeStudent360(
       major: student.major,
       province: student.province,
       counselor: student.owner,
+      ownerId: student.ownerId,
       revision: student.revision,
       studentStage: student.studentStage,
       grade: learningStage,

@@ -131,6 +131,7 @@ export default function StudentActivitiesTab({
   const studentTaskAssignee = resolveStudentTaskAssignee(
     assignedTo,
     taskAssignees,
+    data.student.ownerId,
   );
   const taskAssignmentMessage = getTaskAssignmentMessage(
     assignedTo,

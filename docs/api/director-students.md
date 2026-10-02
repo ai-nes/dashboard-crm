@@ -6,6 +6,11 @@ Tài liệu này tổng hợp dữ liệu cần để hiển thị trang danh s�
 
 ## 1. Phạm vi màn hình
 
+Mỗi phần tử `data[]` trả `owner` là tên hiển thị của CRM Staff được phân công và
+`ownerId` là tài khoản User liên kết (hoặc `null`). Các trường này phản ánh người
+phụ trách học sinh, không lấy từ người thực hiện task gần nhất. Dùng `ownerId` để
+xác định tài khoản nhận task; tên hiển thị có thể khác tên User hoặc trùng nhau.
+
 Trang `/director/students` hiện có các vùng dữ liệu sau:
 
 | Vùng UI | Dữ liệu cần | Trạng thái hiện tại |

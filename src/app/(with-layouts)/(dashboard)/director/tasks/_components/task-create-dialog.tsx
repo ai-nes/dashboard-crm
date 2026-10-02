@@ -51,6 +51,7 @@ export default function TaskCreateDialog({
   const studentTaskAssignee = resolveStudentTaskAssignee(
     studentOwner,
     assignees,
+    student?.ownerId,
   );
   const assigneeId =
     studentTaskAssignee?.name || (!requireAssignee ? studentOwner : undefined);
