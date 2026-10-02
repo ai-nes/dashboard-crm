@@ -49,4 +49,47 @@ describe("student task assignee policy", () => {
       "chưa thể tạo task",
     );
   });
+
+  it("resolves by linked User when the Staff display name differs", () => {
+    expect(
+      resolveStudentTaskAssignee("Sale", assignees, "sale@example.com"),
+    ).toBe(assignees[0]);
+  });
+
+  it("uses the linked User to distinguish accounts with the same display name", () => {
+    const duplicate = {
+      ...assignees[0],
+      name: "other@example.com",
+      email: "other@example.com",
+    };
+    const users = [duplicate, ...assignees];
+    expect(
+      resolveStudentTaskAssignee("Nguyễn Minh Anh", users, "sale@example.com"),
+    ).toBe(assignees[0]);
+    expect(resolveStudentTaskAssignee("Nguyễn Minh Anh", users)).toBeNull();
+  });
+
+  it("does not fall back to a different account when the linked User is unavailable", () => {
+    expect(
+      resolveStudentTaskAssignee("Nguyễn Minh Anh", assignees, null),
+    ).toBeNull();
+    expect(
+      resolveStudentTaskAssignee(
+        "Nguyễn Minh Anh",
+        assignees,
+        "missing@example.com",
+      ),
+    ).toBeNull();
+  });
+
+  it("keeps loading, error, and unassigned states blocked", () => {
+    expect(
+      getTaskAssignmentMessage("Sale", null, { isLoading: true }),
+    ).toContain("Đang xác định");
+    expect(
+      getTaskAssignmentMessage("Sale", null, { hasError: true }),
+    ).toContain("Không xác định");
+    expect(resolveStudentTaskAssignee("Chưa phân công", assignees)).toBeNull();
+    expect(getTaskAssignmentMessage("Sale", assignees[0])).toBeNull();
+  });
 });

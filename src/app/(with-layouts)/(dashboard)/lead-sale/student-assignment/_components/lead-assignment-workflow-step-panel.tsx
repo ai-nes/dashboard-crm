@@ -14,6 +14,7 @@ import { Toggle } from "@/components/tailgrids/core/toggle";
 import { cn } from "@/utils/cn";
 import type {
   LeadAssignmentWorkflowInputSettings,
+  LeadAssignmentWorkflowMatchingSettings,
   LeadAssignmentWorkflowReviewSettings,
   LeadAssignmentWorkflowStepSnapshot,
   LeadRoutingPolicy,
@@ -131,7 +132,7 @@ export default function LeadAssignmentWorkflowStepPanel({
           </div>
           <CardDescription className="mt-2 max-w-2xl text-sm leading-6">
             {step.id === "matching"
-              ? "Chọn thứ tự phân tuyến và cách chia Lead cho người phụ trách."
+              ? "Chọn chia đều cho toàn bộ Sales, theo team/tỉnh hoặc theo chiến dịch."
               : step.detail}
           </CardDescription>
         </div>
@@ -295,7 +296,12 @@ export default function LeadAssignmentWorkflowStepPanel({
           }
           canEdit={canEdit}
           isSaving={isSaving}
-          onChange={(routingPolicy) => onSettingsChange({ routingPolicy })}
+          teamOptions={
+            (settings as LeadAssignmentWorkflowMatchingSettings).teamOptions
+          }
+          onChange={(routingPolicy) =>
+            onSettingsChange({ ...settings, routingPolicy })
+          }
         />
       )}
 

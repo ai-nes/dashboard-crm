@@ -30,17 +30,28 @@ function matchesIdentifier(identifier: string, candidate: string): boolean {
 export function resolveStudentTaskAssignee(
   owner: string | null | undefined,
   assignees: SessionUser[],
+  ownerId?: string | null,
 ): SessionUser | null {
+  if (ownerId === null) return null;
+  const normalizedOwnerId = ownerId?.trim();
+  if (normalizedOwnerId) {
+    return (
+      assignees.find((candidate) =>
+        [candidate.name, candidate.email].some((identifier) =>
+          matchesIdentifier(identifier, normalizedOwnerId),
+        ),
+      ) ?? null
+    );
+  }
   const normalizedOwner = normalizeStudentOwner(owner);
   if (!normalizedOwner) return null;
 
-  return (
-    assignees.find((candidate) =>
-      [candidate.name, candidate.email, candidate.full_name].some(
-        (identifier) => matchesIdentifier(identifier, normalizedOwner),
-      ),
-    ) ?? null
+  const matches = assignees.filter((candidate) =>
+    [candidate.name, candidate.email, candidate.full_name].some((identifier) =>
+      matchesIdentifier(identifier, normalizedOwner),
+    ),
   );
+  return matches.length === 1 ? matches[0] : null;
 }
 
 export function getTaskAssignmentMessage(
@@ -48,7 +59,7 @@ export function getTaskAssignmentMessage(
   assignee: SessionUser | null,
   options: { isLoading?: boolean; hasError?: boolean } = {},
 ): string | null {
-  if (!normalizeStudentOwner(owner)) {
+  if (!assignee && !normalizeStudentOwner(owner)) {
     return "Student chưa được giao cho Sale/CTV nên chưa thể tạo task.";
   }
   if (options.isLoading) {

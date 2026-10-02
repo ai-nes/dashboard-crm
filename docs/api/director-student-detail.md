@@ -4,6 +4,11 @@ API này phục vụ trang `/director/students/{studentId}`, ví dụ `/director
 
 ## 1. Endpoint
 
+`student.counselor` là tên hiển thị của CRM Staff được phân công cho học sinh;
+`student.ownerId` là mã tài khoản User liên kết với Staff đó (hoặc `null` nếu chưa
+có tài khoản liên kết). Khi tạo task, đối chiếu `ownerId` với tài khoản User thay
+vì dò bằng tên hiển thị. Người phụ trách học sinh không lấy từ task gần nhất.
+
 ### RPC Method Frappe / CRM
 
 ```http

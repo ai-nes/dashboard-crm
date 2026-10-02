@@ -16,6 +16,7 @@ describe("toCampaignLeadRow", () => {
       leadCode: "LD-1",
       studentCode: null,
       studentId: "STU-1",
+      isConverted: false,
       initials: "MA",
       name: "Nguyễn Minh An",
       phone: "0900000000",

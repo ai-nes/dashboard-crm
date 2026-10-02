@@ -35,10 +35,10 @@ describe("LeadRoutingSettings permissions", () => {
     expect(html).not.toContain("<select");
     expect(html).not.toContain('type="checkbox"');
     expect(html).not.toContain('title="Kéo để đổi thứ tự ưu tiên"');
-    expect(html).toContain("Cân bằng theo tải");
+    expect(html).toContain("Theo chiến dịch");
     expect(html).toContain("Các thiết lập bên dưới được giữ");
   });
-  it("offers position selection and toggles to authorized editors", () => {
+  it("offers one mode selector and the automatic toggle to authorized editors", () => {
     const html = renderToStaticMarkup(
       <LeadRoutingSettings
         policy={policy}
@@ -47,8 +47,10 @@ describe("LeadRoutingSettings permissions", () => {
         onChange={() => {}}
       />,
     );
-    expect(html.match(/<select/g)).toHaveLength(4);
-    expect(html.match(/type="checkbox"/g)).toHaveLength(5);
+    expect(html.match(/<select/g)).toHaveLength(1);
+    expect(html.match(/type="checkbox"/g)).toHaveLength(1);
+    expect(html).toContain("Chia đều cho toàn bộ Sales");
+    expect(html).toContain("Theo team/tỉnh");
   });
   it("disables all settings during save", () => {
     const html = renderToStaticMarkup(

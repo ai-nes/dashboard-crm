@@ -235,6 +235,8 @@ export interface StudentListItem {
   lastActivity: string;
   nextAction: string;
   owner: string;
+  /** Linked User account of the assigned CRM Staff; owner is a display label. */
+  ownerId?: string | null;
   /** Ownership CAS revision returned by the student list API. */
   revision: number;
   source: string;

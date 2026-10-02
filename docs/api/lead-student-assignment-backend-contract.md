@@ -236,6 +236,19 @@ lượt khác chạy và `no_work` nếu không còn Lead chờ phân công.
 
 ### 5.3. API chính
 
+Cấu hình mới dùng `routingMode=global|group|campaign`, chỉ chọn một cách, không
+fallback. `global` chia đều cho toàn bộ Sales đủ điều kiện (Sale/CTV); `group` chọn team từ
+`provinceTeamPriority` (map tỉnh → team đang hoạt động, đúng tỉnh), không giới hạn
+campus; `campaign` giữ đích Team/Team Group hiện có trên Campaign. Thiếu cấu hình
+hoặc người nhận trả hồ sơ về `manual_review`; không đổi trạng thái Lead chỉ vì thiếu
+mapping. Ba cách chia luân phiên theo lịch sử gán thành công; nhân sự thuộc nhiều
+team chỉ được tính một lần. Batch cũ giữ policy snapshot đã lưu.
+
+`update_lead_assignment_workflow_step` với `step_id=matching` nhận thêm
+`settings.routingMode` và `settings.provinceTeamPriority`; kiểm tra revision/quyền
+vẫn như trước. Snapshot matching trả `teamOptions` để chọn team theo tỉnh.
+API policy trực tiếp nhận `routing_mode` và `province_team_priority` tương ứng.
+
 Tất cả API trả dữ liệu trong `response.message` theo chuẩn Frappe.
 
 | Method                                                             | HTTP | Mục đích                                                                                       |
@@ -260,6 +273,13 @@ Lead; nhờ đó các Lead đã được phân công nhưng đã rời scope v�
 `summary`, `steps`, `connections` và metrics được tính ở backend; frontend chỉ chịu
 trách nhiệm layout và hiển thị. Khi đang xem một `batch_name`, workflow là snapshot của
 đợt đó; khi không chọn đợt, UI phải ghi rõ đây là tổng quan hiện tại.
+
+Tab **Thiếu thông tin** gọi `list_lead_assignment_history_items` với
+`status=missing_information`. Bộ lọc dùng validation dữ liệu Lead hiện tại, bao gồm
+Lead chưa từng có batch, chưa có người phụ trách và chưa chuyển đổi; loại hồ sơ trùng
+hoặc spam. Trường optional không làm Lead xuất hiện trong tab. Kết quả dùng dữ liệu
+hiện tại, mỗi Lead một dòng, lọc trước phân trang và tuân thủ quyền đọc routing/Lead.
+Không thay đổi trạng thái xử lý Lead; hồ sơ đã bổ sung đủ tự ra khỏi kết quả truy vấn.
 
 `list_lead_assignment_history_items` cũng tổng hợp các Lead đang `CLOSED` từ DB với
 `status = manual_review` để tab Cần kiểm tra hiển thị đủ hồ sơ thực tế, kể cả khi

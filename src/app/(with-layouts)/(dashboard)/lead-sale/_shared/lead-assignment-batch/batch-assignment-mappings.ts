@@ -145,6 +145,8 @@ const reasonLabels: Record<string, string> = {
     "Đích phân bổ của Campaign không còn hoạt động hoặc không cùng campus.",
   GROUP_TARGET_UNAVAILABLE:
     "Tỉnh của Lead chưa có Team Sales đang hoạt động để nhận Lead.",
+  PROVINCE_TEAM_NOT_CONFIGURED: "Chưa chọn team ưu tiên cho tỉnh của Lead. Vào Cấu hình phân công để chọn team.",
+  PROVINCE_TEAM_SCOPE_MISMATCH: "Team của đợt phân công không khớp team ưu tiên của tỉnh. Kiểm tra cấu hình phân công.",
   NO_ROUTING_LAYER:
     "Không có lớp phân bổ nào đang bật và phù hợp với Lead này.",
   CAPACITY_BLOCKED: "Nhân sự phù hợp đã hết sức chứa nhận hồ sơ.",
@@ -192,7 +194,7 @@ const unknownReasonLabel =
 export const routingTierLabels: Record<string, string> = {
   campaign: "Theo Campaign",
   group: "Theo Team Group / tỉnh",
-  global: "Chia đều trong campus",
+  global: "Chia đều cho toàn bộ Sales",
   province: "Theo tỉnh (cấu hình cũ)",
   province_fallback_lead: "Fallback Trưởng nhóm (cấu hình cũ)",
 };
@@ -270,7 +272,7 @@ const SYSTEM_RETRY_CODES = new Set([
   "PREVIEW_FAILED",
 ]);
 
-export type AssignmentActionCategory = "lead-data" | "team-config" | "staff-capacity" | "system" | "unknown";
+export type AssignmentActionCategory = "lead-data" | "team-config" | "routing-config" | "staff-capacity" | "system" | "unknown";
 
 /**
  * Which kind of fix actually resolves this failure, so the "process" drawer
@@ -279,6 +281,7 @@ export type AssignmentActionCategory = "lead-data" | "team-config" | "staff-capa
  */
 export function assignmentActionCategory(item: AssignmentReasonContext): AssignmentActionCategory {
   const code = assignmentErrorCode(item);
+  if (["PROVINCE_TEAM_NOT_CONFIGURED", "PROVINCE_TEAM_SCOPE_MISMATCH", "LEAD_ROUTING_DISABLED", "NO_ROUTING_LAYER"].includes(code)) return "routing-config";
   if (STAFF_CAPACITY_CODES.has(code)) return "staff-capacity";
   if (code === "NO_ELIGIBLE_RECIPIENT") {
     // team_routing.py raises this single code for two distinct causes — tell
@@ -295,7 +298,8 @@ export function assignmentActionCategory(item: AssignmentReasonContext): Assignm
   return "unknown";
 }
 
-export const assignmentActionLinks: Record<"team-config" | "staff-capacity", { href: string; label: string }> = {
+export const assignmentActionLinks: Record<"team-config" | "routing-config" | "staff-capacity", { href: string; label: string }> = {
+  "routing-config": { href: "/lead-sale/student-assignment?tab=config", label: "Cấu hình phân công" },
   "team-config": { href: "/lead-sale/team-management", label: "Quản lý Team" },
   "staff-capacity": { href: "/admin/users", label: "Quản lý người dùng" },
 };
