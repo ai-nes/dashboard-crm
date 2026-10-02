@@ -57,7 +57,6 @@ interface AdmissionForm {
 }
 
 interface SourceForm {
-  source: string;
   segments: string;
   notes: string;
 }
@@ -107,10 +106,6 @@ export default function LeadDetailsTab({
     },
     editingSection === "contact" && Boolean(contactForm.province),
   );
-  const sourceOptionsQuery = useStudentSchoolFieldOptions(
-    { doctype: "CRM Lead", fieldname: "source" },
-    editingSection === "source",
-  );
   const majorOptionsQuery = useStudentSchoolFieldOptions(
     { doctype: "CRM Lead", fieldname: "major" },
     editingSection === "admission",
@@ -135,10 +130,6 @@ export default function LeadDetailsTab({
   const wardOptions = toEditableOptions(
     wardOptionsQuery.data?.options,
     contactForm.ward,
-  );
-  const sourceOptions = toEditableOptions(
-    sourceOptionsQuery.data?.options,
-    sourceForm.source,
   );
   const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
   const aspirationOptions = toEditableOptions(
@@ -252,9 +243,6 @@ export default function LeadDetailsTab({
     event.preventDefault();
     const initial = getSourceForm(lead);
     const fields: LeadUpdateFields = {};
-    if (sourceForm.source !== initial.source) {
-      fields.source = nullable(sourceForm.source);
-    }
     if (sourceForm.segments !== initial.segments) {
       fields.segments = serializeSegments(sourceForm.segments);
     }
@@ -507,18 +495,7 @@ export default function LeadDetailsTab({
       >
         <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
           <LeadDetailField label="Chiến dịch tham gia" value={lead.campaign} />
-          <EditableDetailField
-            isEditing={sourceEditing}
-            isDisabled={
-              sourceOptionsQuery.isLoading || sourceOptions.length === 0
-            }
-            label="Kênh tương tác"
-            onChange={(value) =>
-              setSourceForm((form) => ({ ...form, source: value }))
-            }
-            options={sourceOptions}
-            value={sourceEditing ? sourceForm.source : lead.source}
-          />
+          <LeadDetailField label="Kênh tương tác" value={lead.source} />
           <EditableDetailField
             isEditing={sourceEditing}
             label="Phân khúc"
@@ -584,7 +561,6 @@ function getAdmissionForm(lead: LeadDetail): AdmissionForm {
 
 function getSourceForm(lead: LeadDetail): SourceForm {
   return {
-    source: lead.source || "",
     segments: lead.segments.join(", "),
     notes: lead.description || "",
   };

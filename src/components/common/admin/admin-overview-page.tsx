@@ -7,7 +7,6 @@ import {
   Book4,
   Buildings11,
   Gear1,
-  RefreshCircle1Clockwise,
   Shield1Check,
   UserMultiple4,
 } from "@tailgrids/icons";
@@ -31,7 +30,6 @@ import {
 import { useSegmentsQuery } from "@/hooks/use-segment-queries";
 import { useCrmUsersQuery } from "@/hooks/use-user-management-queries";
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
-import { Button } from "@/components/tailgrids/core/button";
 import { listAdminMessageTemplateLibrary } from "@/services/api/message-templates";
 
 import AdminOverviewActivityChart, {
@@ -301,18 +299,6 @@ export default function AdminOverviewPage({
         section="ADMIN"
         title="Tổng quan hệ thống"
         description="Nắm nhanh tình trạng vận hành và các cấu hình đang phục vụ quy trình tuyển sinh."
-        actions={
-          <Button
-            size="md"
-            appearance="outline"
-            onPress={() =>
-              void Promise.all(queryList.map((query) => query.refetch()))
-            }
-          >
-            <RefreshCircle1Clockwise size={16} aria-hidden="true" />
-            Làm mới dữ liệu
-          </Button>
-        }
         metaLabel="Nguồn dữ liệu đã phản hồi"
         metaValue={`${resolvedSources}/${queryList.length} kết nối`}
       />
