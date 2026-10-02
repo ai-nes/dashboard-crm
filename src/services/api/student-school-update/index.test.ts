@@ -227,6 +227,46 @@ describe("student and school update contract", () => {
     );
   });
 
+  it.each(["CRM Lead", "CRM Student", "CRM High School"] as const)(
+    "loads provinces beyond the first API page for %s",
+    async (doctype) => {
+      vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
+      const provinces = [
+        ...Array.from({ length: 20 }, (_, index) => ({
+          value: `Province ${index}`,
+          label: `Province ${index}`,
+        })),
+        { value: "Hồ Chí Minh", label: "Hồ Chí Minh" },
+        { value: "Vĩnh Long", label: "Vĩnh Long" },
+      ];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+        const url = new URL(String(input));
+        const limit = Number(url.searchParams.get("limit") ?? 20);
+        return new Response(
+          JSON.stringify({
+            message: {
+              doctype,
+              fieldname: "province",
+              fieldtype: "Link",
+              target_doctype: "CRM Province",
+              options: provinces.slice(0, limit),
+            },
+          }),
+        );
+      });
+
+      const result = await getFieldOptions({ doctype, fieldname: "province" });
+      expect(result.options).toEqual(provinces);
+
+      const limitedResult = await getFieldOptions({
+        doctype,
+        fieldname: "province",
+        limit: 1,
+      });
+      expect(limitedResult.options).toEqual(provinces.slice(0, 1));
+    },
+  );
+
   it("loads dependent field options from the documented RPC", async () => {
     vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(

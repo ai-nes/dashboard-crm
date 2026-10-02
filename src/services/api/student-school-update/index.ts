@@ -835,7 +835,13 @@ export async function getFieldOptions(
   addOptionalQueryParam(url.searchParams, "search", params.search);
   addOptionalQueryParam(url.searchParams, "province", params.province);
   addOptionalQueryParam(url.searchParams, "high_school", params.high_school);
-  addOptionalQueryParam(url.searchParams, "limit", params.limit);
+  // Province pickers search locally, so load the whole catalog instead of the
+  // API's default first 20 results. Keep explicit limits for other consumers.
+  addOptionalQueryParam(
+    url.searchParams,
+    "limit",
+    params.limit ?? (fieldname === "province" ? 100 : undefined),
+  );
   if (params.filters && Object.keys(params.filters).length > 0) {
     url.searchParams.set("filters", JSON.stringify(params.filters));
   }
