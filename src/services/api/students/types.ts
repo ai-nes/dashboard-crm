@@ -97,6 +97,11 @@ export type StudentZaloDirection = "inbound" | "outbound";
 export type StudentZaloMessageStatus = "sent" | "delivered" | "read" | "failed";
 
 export interface StudentZaloMessage {
+  entryKind?: "message" | "manual_summary";
+  recordedBy?: string;
+  summary?: string;
+  notes?: string;
+  outcome?: string;
   id: string;
   time: string;
   senderName: string;

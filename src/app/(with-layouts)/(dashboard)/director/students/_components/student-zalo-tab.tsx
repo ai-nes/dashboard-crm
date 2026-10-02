@@ -23,6 +23,9 @@ import {
 import StudentZaloMessageDetails, {
   zaloMessageStatusConfig,
 } from "./student-zalo-message-details";
+import StudentZaloManualSummary from "./student-zalo-manual-summary";
+
+import StudentZaloTimelineStep from "./student-zalo-timeline-step";
 
 interface StudentZaloTabProps {
   messages: StudentZaloMessage[];
@@ -61,6 +64,10 @@ export default function StudentZaloTab({
         !query ||
         [
           message.content,
+          message.summary,
+          message.notes,
+          message.recordedBy,
+          message.outcome,
           message.senderName,
           message.senderRole,
           message.recipientName,
@@ -80,6 +87,18 @@ export default function StudentZaloTab({
 
   const conversations = useMemo(
     () => groupConversations(filteredMessages),
+    [filteredMessages],
+  );
+
+  const manualSummaries = useMemo(
+    () =>
+      filteredMessages
+        .filter((message) => message.entryKind === "manual_summary")
+        .sort(
+          (a, b) =>
+            parseStudentActivityDate(b.time).getTime() -
+            parseStudentActivityDate(a.time).getTime(),
+        ),
     [filteredMessages],
   );
 
@@ -108,15 +127,15 @@ export default function StudentZaloTab({
       <StudentActivityToolbar
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Tìm tin nhắn Zalo..."
-        searchLabel="Tìm tin nhắn Zalo"
+        searchPlaceholder="Tìm trao đổi Zalo..."
+        searchLabel="Tìm trao đổi Zalo"
         expansionMode={expansionMode}
         onExpansionModeChange={handleExpansionModeChange}
       />
 
       <div className="w-full max-w-md">
         <ActivityFilterSelect
-          ariaLabel="Lọc tin nhắn Zalo theo thời gian"
+          ariaLabel="Lọc trao đổi Zalo theo thời gian"
           triggerLabel="Tất cả thời gian"
           value={timeFilter}
           options={activityTimeFilterOptions}
@@ -128,14 +147,19 @@ export default function StudentZaloTab({
         <StudentZaloSkeleton />
       ) : messages.length === 0 ? (
         <p className="py-2 text-xs text-text-tertiary">
-          Chưa có tin nhắn Zalo.
+          Chưa có trao đổi Zalo.
         </p>
       ) : filteredMessages.length === 0 ? (
         <p className="py-2 text-xs text-text-tertiary">
-          Không tìm thấy tin nhắn phù hợp.
+          Không tìm thấy trao đổi phù hợp.
         </p>
       ) : (
         <div className="space-y-8">
+          {conversations.length > 0 ? (
+            <h3 className="text-sm font-semibold text-text-primary">
+              Tin nhắn Zalo
+            </h3>
+          ) : null}
           {conversations.map((conversation) => {
             const expanded = expandedConversationIds.has(conversation.id);
             return (
@@ -184,7 +208,9 @@ export default function StudentZaloTab({
                 {expanded ? (
                   <ol className="relative mt-5 ml-3 space-y-7 border-l border-card-border pl-6">
                     {conversation.messages.map((message) => (
-                      <ZaloMessageStep key={message.id} message={message} />
+                      <StudentZaloTimelineStep key={message.id}>
+                        <StudentZaloMessageDetails message={message} />
+                      </StudentZaloTimelineStep>
                     ))}
                   </ol>
                 ) : (
@@ -197,6 +223,23 @@ export default function StudentZaloTab({
               </section>
             );
           })}
+          {manualSummaries.length > 0 ? (
+            <section aria-label="Ghi nhận thủ công">
+              <div className="flex items-center gap-2 border-b border-card-border pb-3">
+                <h3 className="text-base font-semibold text-text-primary">
+                  Ghi nhận thủ công
+                </h3>
+                <Badge color="sky">{manualSummaries.length} ghi nhận</Badge>
+              </div>
+              <ol className="relative mt-5 ml-3 space-y-7 border-l border-card-border pl-6">
+                {manualSummaries.map((message) => (
+                  <StudentZaloTimelineStep key={message.id} isManual>
+                    <StudentZaloManualSummary message={message} />
+                  </StudentZaloTimelineStep>
+                ))}
+              </ol>
+            </section>
+          ) : null}
         </div>
       )}
     </div>
@@ -209,6 +252,7 @@ function groupConversations(
   const conversations = new Map<string, StudentZaloMessage[]>();
 
   for (const message of messages) {
+    if (message.entryKind === "manual_summary") continue;
     const title = getStudentZaloConversationTitle(message.conversationTitle);
     const current = conversations.get(title) ?? [];
     current.push(message);
@@ -238,21 +282,6 @@ function groupConversations(
     );
 }
 
-function ZaloMessageStep({ message }: { message: StudentZaloMessage }) {
-  return (
-    <li className="relative">
-      <span
-        className="absolute -left-[2.05rem] top-0 flex size-7 items-center justify-center rounded-full border-2 border-card-background bg-card-background text-badge-sky-text shadow-sm"
-        aria-hidden="true"
-      >
-        <span className="size-2.5 rounded-full bg-badge-sky-text" />
-      </span>
-
-      <StudentZaloMessageDetails message={message} />
-    </li>
-  );
-}
-
 export function StudentZaloSummary({
   messages,
   onOpen,
@@ -267,6 +296,11 @@ export function StudentZaloSummary({
       parseStudentActivityDate(b.time).getTime() -
       parseStudentActivityDate(a.time).getTime(),
   )[0];
+  const isManual = latestMessage.entryKind === "manual_summary";
+  const actualMessages = messages.filter(
+    (message) => message.entryKind !== "manual_summary",
+  );
+  const manualCount = messages.length - actualMessages.length;
   const status = zaloMessageStatusConfig[latestMessage.status ?? "sent"];
 
   return (
@@ -274,21 +308,30 @@ export function StudentZaloSummary({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
           <Badge color="sky">Zalo</Badge>
-          <span>{messages.length} tin nhắn</span>
+          {actualMessages.length > 0 ? (
+            <span>{actualMessages.length} tin nhắn</span>
+          ) : null}
+          {manualCount > 0 ? (
+            <span>{manualCount} ghi nhận thủ công</span>
+          ) : null}
           <span className="text-text-tertiary">
-            · {latestMessage.senderName}
+            · {isManual ? latestMessage.recordedBy : latestMessage.senderName}
           </span>
         </div>
-        <Badge color={status.color}>{status.label}</Badge>
+        {isManual ? null : <Badge color={status.color}>{status.label}</Badge>}
       </div>
-      <div className="rounded-lg bg-background-gray-secondary/60 px-4 py-3">
-        <p className="text-xs text-text-tertiary">
-          Tin nhắn gần nhất · {formatDateTime(latestMessage.time)}
-        </p>
-        <p className="mt-1 line-clamp-2 text-sm leading-6 text-text-primary">
-          {latestMessage.content}
-        </p>
-      </div>
+      {isManual ? (
+        <StudentZaloManualSummary message={latestMessage} />
+      ) : (
+        <div className="rounded-lg bg-background-gray-secondary/60 px-4 py-3">
+          <p className="text-xs text-text-tertiary">
+            Tin nhắn gần nhất · {formatDateTime(latestMessage.time)}
+          </p>
+          <p className="mt-1 line-clamp-2 text-sm leading-6 text-text-primary">
+            {latestMessage.content}
+          </p>
+        </div>
+      )}
       <Button
         type="button"
         variant="primary"

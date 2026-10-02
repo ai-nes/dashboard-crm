@@ -19,6 +19,12 @@ export function canEditScoreTemplates(
 export type CrmRecordScope = "assigned" | "team" | "all" | "none";
 export type CrmPermissionAction = "create" | "read" | "update" | "delete";
 
+export function canCreateStudentInteraction(
+  user: CurrentUser | null | undefined,
+): boolean {
+  return user?.crm_doctype_permissions?.["CRM Interaction"]?.create ?? false;
+}
+
 export function hasCrmCapability(
   user: CurrentUser | null | undefined,
   capability: string,

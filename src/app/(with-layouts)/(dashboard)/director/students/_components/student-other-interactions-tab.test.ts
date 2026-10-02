@@ -4,6 +4,7 @@ import type { InteractionSummary } from "@/services/api/interaction-intelligence
 
 import {
   getInteractionTypeLabel,
+  getManualInteractionTypes,
   isCallInteraction,
   isOtherInteraction,
   isOtherInteractionType,
@@ -48,6 +49,42 @@ describe("student other interactions", () => {
     expect(
       isZaloInteraction(interaction({ interaction_type: "MESSAGE_CHATWOOT" })),
     ).toBe(true);
+  });
+
+  it.each(["ZALO_CHAT", "ZALO", "MESSAGE", "TIN_NHAN_CHATWOOT"])(
+    "routes %s without a channel to Zalo, excluding Khác",
+    (type) => {
+      expect(isZaloInteraction(interaction({ interaction_type: type }))).toBe(
+        true,
+      );
+      expect(isOtherInteractionType(type)).toBe(false);
+    },
+  );
+
+  it.each(["CALL", "PHONE_CALL", "CONNECTED", "COUNSELING"])(
+    "routes %s without a channel to calls, excluding Khác",
+    (type) => {
+      expect(isCallInteraction(interaction({ interaction_type: type }))).toBe(
+        true,
+      );
+      expect(isOtherInteractionType(type)).toBe(false);
+    },
+  );
+
+  it("offers canonical message and call choices once, with other types retained", () => {
+    const types = ["ZALO_CHAT", "MESSAGE", "CALL", "PHONE_CALL", "NOTE"].map(
+      (code) => ({
+        code,
+        display_name: code,
+        enabled: true,
+        sort_order: 0,
+      }),
+    );
+    expect(getManualInteractionTypes(types).map((type) => type.code)).toEqual([
+      "MESSAGE",
+      "PHONE_CALL",
+      "NOTE",
+    ]);
   });
 
   it("only offers non-call and non-Zalo types for manual creation", () => {

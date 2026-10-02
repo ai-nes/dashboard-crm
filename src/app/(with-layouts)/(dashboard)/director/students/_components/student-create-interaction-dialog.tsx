@@ -33,7 +33,10 @@ import {
   Modal as AriaModal,
 } from "react-aria-components";
 
-import { getInteractionTypeLabel } from "./student-interaction-utils";
+import {
+  getInteractionTypeLabel,
+  interactionOutcomeLabels,
+} from "./student-interaction-utils";
 
 const OUTCOME_OPTIONS = [
   "Captured",
@@ -44,16 +47,6 @@ const OUTCOME_OPTIONS = [
   "Data Error",
   "Uncontactable",
 ] as const;
-
-const OUTCOME_LABELS: Record<(typeof OUTCOME_OPTIONS)[number], string> = {
-  Captured: "Đã ghi nhận",
-  "Follow Up Needed": "Cần follow-up",
-  Resolved: "Đã xử lý",
-  Converted: "Đã chuyển đổi",
-  "No Response": "Không phản hồi",
-  "Data Error": "Lỗi dữ liệu",
-  Uncontactable: "Không thể liên hệ",
-};
 
 interface StudentCreateInteractionDialogProps {
   isOpen: boolean;
@@ -168,8 +161,8 @@ export default function StudentCreateInteractionDialog({
               </DialogTitle>
               <DialogDescription className="text-text-tertiary">
                 {studentName
-                  ? `Ghi nhận tương tác cho ${studentName}. Không cần liên kết reference.`
-                  : "Ghi nhận tương tác không cần liên kết reference."}
+                  ? `Ghi nhận tương tác cho ${studentName}. Đây là ghi nhận thủ công, không gửi tin nhắn hay thực hiện cuộc gọi.`
+                  : "Ghi nhận thủ công, không gửi tin nhắn hay thực hiện cuộc gọi."}
               </DialogDescription>
             </DialogHeader>
 
@@ -269,9 +262,9 @@ export default function StudentCreateInteractionDialog({
                         <SelectItem
                           key={outcome}
                           id={outcome}
-                          textValue={OUTCOME_LABELS[outcome]}
+                          textValue={interactionOutcomeLabels[outcome]}
                         >
-                          {OUTCOME_LABELS[outcome]}
+                          {interactionOutcomeLabels[outcome]}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -316,7 +309,7 @@ export default function StudentCreateInteractionDialog({
 
               {interactionTypes.length === 0 && (
                 <p className="text-xs text-text-tertiary" role="status">
-                  Chưa có loại tương tác phù hợp để tạo trong tab Khác.
+                  Chưa có loại tương tác phù hợp để tạo.
                 </p>
               )}
               {submitError && (

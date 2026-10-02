@@ -169,10 +169,10 @@ record tự tạo từ Note, Call Log hoặc Task phải có `reference_doctype`
 
 ## 4. Zalo/Chatwoot dataset
 
-Backend detail hiện tương thích với cả `CHATWOOT_INTERACTION_TYPE` và mã legacy
-`TIN_NHAN_CHATWOOT`; API `get_student_chatwoot_interactions` lọc theo loại
-Chatwoot. Vì vậy không được chỉ tạo Interaction loại `MESSAGE` rồi kỳ vọng tab
-Zalo có dữ liệu.
+Backend detail dùng type chuẩn `MESSAGE` cho tin nhắn và tương thích các alias
+`TIN_NHAN_CHATWOOT`, `MESSAGE_CHATWOOT`, `ZALO_CHAT`, `ZALO`. API
+`get_student_chatwoot_interactions` lấy các type này hoặc `channel=zalo`.
+Interaction thủ công loại `MESSAGE` cũng hiển thị trong tab Zalo.
 
 Tạo tối thiểu ba row `CRM Interaction` có:
 
