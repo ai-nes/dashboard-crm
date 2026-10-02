@@ -4,6 +4,7 @@ import type { CurrentUser } from "@/services/api/auth";
 
 import {
   canEditScoreTemplates,
+  canCreateStudentInteraction,
   canManageCrmRules,
   canConvertLeadToStudent,
   canPerformStudentAction,
@@ -35,6 +36,32 @@ const makeDoctypePermission = (
   delete: true,
   export: false,
   ...overrides,
+});
+
+describe("manual student interaction permissions", () => {
+  it("uses the effective Interaction create grant", () => {
+    expect(
+      canCreateStudentInteraction(
+        makeUser({
+          crm_doctype_permissions: {
+            "CRM Interaction": makeDoctypePermission(),
+          },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      canCreateStudentInteraction(
+        makeUser({
+          roles: ["Lead Sale"],
+          crm_doctype_permissions: {
+            "CRM Interaction": makeDoctypePermission({ create: false }),
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(canCreateStudentInteraction(makeUser())).toBe(false);
+    expect(canCreateStudentInteraction(null)).toBe(false);
+  });
 });
 
 describe("Score Template editing permissions", () => {

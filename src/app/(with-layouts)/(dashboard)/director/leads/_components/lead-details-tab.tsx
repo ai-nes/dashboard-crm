@@ -315,7 +315,6 @@ export default function LeadDetailsTab({
             isDisabled={
               provinceOptionsQuery.isLoading || provinceOptions.length === 0
             }
-            dropdownClassName="!max-h-64"
             optionsPageSize={10}
             searchable
             searchPlaceholder="Tìm tỉnh / thành phố..."

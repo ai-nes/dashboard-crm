@@ -27,7 +27,10 @@ import StudentCampaignsTab from "./student-campaigns-tab";
 import StudentCreateInteractionDialog from "./student-create-interaction-dialog";
 import StudentOtherInteractionsTab from "./student-other-interactions-tab";
 import StudentZaloTab from "./student-zalo-tab";
-import { isOtherInteractionType } from "./student-interaction-utils";
+import { getManualInteractionTypes } from "./student-interaction-utils";
+import { studentsKeys } from "@/hooks/use-students-queries";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { canCreateStudentInteraction } from "@/components/common/auth/permissions";
 
 interface StudentInteractionsTabsProps {
   studentId: string;
@@ -58,6 +61,8 @@ export default function StudentInteractionsTabs({
   isCallsLoading = false,
   isZaloLoading = false,
 }: StudentInteractionsTabsProps) {
+  const { user } = useAuth();
+  const canCreateInteraction = canCreateStudentInteraction(user);
   const defaultSelectedKey = getDefaultInteractionTab(calls);
   const [selectedInteractionTab, setSelectedInteractionTab] =
     useState<string>(defaultSelectedKey);
@@ -70,21 +75,29 @@ export default function StudentInteractionsTabs({
     [catalogQuery.data?.interactionTypes],
   );
   const manualInteractionTypes = useMemo(
-    () =>
-      allInteractionTypes.filter((type) => isOtherInteractionType(type.code)),
+    () => getManualInteractionTypes(allInteractionTypes),
     [allInteractionTypes],
   );
   const createMutation = useMutation({
     mutationFn: (input: Omit<CreateInteractionInput, "student">) =>
       createInteraction({ student: normalizedStudentId, ...input }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: [
-          ...interactionIntelligenceKeys.all,
-          "feed",
-          normalizedStudentId,
-        ],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: [
+            ...interactionIntelligenceKeys.all,
+            "feed",
+            normalizedStudentId,
+          ],
+        }),
+        queryClient.invalidateQueries({
+          queryKey:
+            studentsKeys.studentChatwootInteractions(normalizedStudentId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: studentsKeys.studentInteractions(normalizedStudentId),
+        }),
+      ]);
       toast.success("Đã tạo tương tác thủ công.");
     },
   });
@@ -143,24 +156,26 @@ export default function StudentInteractionsTabs({
         isSticky={false}
         onSelectionChange={setSelectedInteractionTab}
         actions={
-          <Button
-            type="button"
-            size="sm"
-            onPress={() => setIsCreateDialogOpen(true)}
-            isDisabled={
-              !normalizedStudentId ||
-              catalogQuery.isPending ||
-              manualInteractionTypes.length === 0
-            }
-          >
-            <Plus size={16} aria-hidden="true" />
-            <span className="hidden sm:inline">Tạo tương tác</span>
-            <span className="sm:hidden">Tạo</span>
-          </Button>
+          canCreateInteraction ? (
+            <Button
+              type="button"
+              size="sm"
+              onPress={() => setIsCreateDialogOpen(true)}
+              isDisabled={
+                !normalizedStudentId ||
+                catalogQuery.isPending ||
+                manualInteractionTypes.length === 0
+              }
+            >
+              <Plus size={16} aria-hidden="true" />
+              <span className="hidden sm:inline">Tạo tương tác</span>
+              <span className="sm:hidden">Tạo</span>
+            </Button>
+          ) : undefined
         }
         tabs={interactionTabs}
       />
-      {isCreateDialogOpen && (
+      {canCreateInteraction && isCreateDialogOpen && (
         <StudentCreateInteractionDialog
           isOpen
           onOpenChange={setIsCreateDialogOpen}

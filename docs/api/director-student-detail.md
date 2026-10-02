@@ -853,8 +853,9 @@ GET /api/method/crm.api.director_students.get_student_chatwoot_interactions?stud
 Cookie: sid=<Frappe session cookie>
 ```
 
-Endpoint lọc chính xác `student_id` và `interaction_type = "Tin nhắn Chatwoot"`.
-Vì vậy message có `channel=webchat` vẫn được hiển thị trong tab Zalo. Response
+Endpoint giữ phạm vi Student và quyền đọc, sau đó lấy các type `MESSAGE`,
+`TIN_NHAN_CHATWOOT`, `MESSAGE_CHATWOOT`, `ZALO_CHAT`, `ZALO` hoặc `channel=zalo`.
+Vì vậy message Chatwoot có `channel=webchat` vẫn được hiển thị trong tab Zalo. Response
 được bọc trong `message` theo chuẩn Frappe:
 
 ```typescript
@@ -875,6 +876,19 @@ Trang detail gọi endpoint này ở server và hook TanStack Query tiếp tục
 khi component hoạt động ở browser. Nếu API chưa cấu hình hoặc trả `404`, tab
 Zalo dùng `data.zaloMessages` từ Student360 để giữ tương thích với fixture và
 backend cũ; không thay đổi giao diện, bộ lọc hoặc thao tác tạo dữ liệu.
+
+Tương tác thủ công mới dùng `MESSAGE` cho tin nhắn Zalo và `PHONE_CALL` cho cuộc gọi.
+Backend chuẩn hóa các alias thủ công `ZALO_CHAT`/`ZALO` thành `MESSAGE`, `CALL` thành
+`PHONE_CALL` khi tạo mới; lịch sử và bản ghi có nguồn ngoài giữ nguyên type.
+Cuộc gọi nhận diện cả `CALL`, `PHONE_CALL`, `CONNECTED`, `COUNSELING`, `OUTREACH`
+ngay cả khi thiếu channel. Tab Khác loại các tương tác thuộc Zalo/cuộc gọi.
+Sau khi tạo, frontend làm mới feed, danh sách Zalo và cuộc gọi để hiển thị ngay.
+
+Tạo tương tác yêu cầu quyền `create` thực tế trên `CRM Interaction` và quyền đọc
+Student liên kết. Kiểm tra này không yêu cầu quyền sửa Student hay quyền sở hữu
+cá nhân nếu hồ sơ thuộc phạm vi đọc được cấp. Session trả
+`crm_doctype_permissions["CRM Interaction"]`; frontend chỉ hiển thị nút tạo khi
+`create=true`. Backend vẫn từ chối hồ sơ ngoài phạm vi đọc.
 
 ## 11. Card Điểm THPT
 
@@ -994,3 +1008,7 @@ trên trường `CRM Student.campaign` mà chưa có touchpoint riêng, API vẫ
 chiến dịch và dùng thời điểm tạo hồ sơ (`CRM Student.creation`) làm thời điểm ghi nhận.
 Trạng thái sự kiện được giữ nguyên từ nguồn: `Registered`, `Checked-in`, `No-show`
 hoặc `Feedback Given`.
+
+### Phân biệt Zalo thực tế và ghi nhận thủ công
+
+`zalo_messages` bổ sung `entryKind` (`message` hoặc `manual_summary`). Bản ghi nhập tay không có channel hay thông tin nguồn/provider/conversation/reference được trả về dưới dạng `manual_summary`, gồm `recordedBy`, `summary`, `notes`, `outcome`; không suy diễn người gửi/nhận hoặc trạng thái giao tin từ kết quả tư vấn. `external_id` tự sinh và direction mặc định không phải bằng chứng có tin nhắn thực tế. Quy tắc này áp dụng cả endpoint Zalo và dữ liệu tổng quan, bao gồm các bản ghi thủ công đã tạo trước đó. Bản ghi có nguồn đồng bộ hoặc channel giữ cách hiển thị tin nhắn; client cũ không có `entryKind` được xử lý như tin nhắn.

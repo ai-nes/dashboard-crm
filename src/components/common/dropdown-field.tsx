@@ -17,6 +17,7 @@ import {
   InputGroupInput,
 } from "@/components/tailgrids/core/input-group";
 import { cn } from "@/utils/cn";
+import { normalizeSearchValue } from "@/utils/normalize-search-value";
 
 export interface DropdownOption {
   id: string;
@@ -61,15 +62,6 @@ export interface DropdownFieldProps {
 }
 
 const DEFAULT_PLACEHOLDER = "Chọn giá trị";
-
-function normalizeSearchValue(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[đĐ]/g, "d")
-    .toLocaleLowerCase("vi-VN")
-    .trim();
-}
 
 export function DropdownField({
   options,

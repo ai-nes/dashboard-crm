@@ -2,6 +2,7 @@ import type {
   InteractionCatalogItem,
   InteractionSummary,
   IntentType,
+  InteractionType,
 } from "@/services/api/interaction-intelligence";
 
 export const interactionChannelOptions = [
@@ -35,6 +36,8 @@ export const interactionFamilyOptions = [
 ];
 
 const INTERACTION_TYPE_LABEL_OVERRIDES: Record<string, string> = {
+  MESSAGE: "Tin nhắn Zalo",
+  PHONE_CALL: "Cuộc gọi",
   APPLICATION_SUBMIT: "Nộp hồ sơ",
   CANCEL_EVENT: "Hủy sự kiện",
   CONSULTATION_REGISTER: "Đăng ký tư vấn",
@@ -88,7 +91,9 @@ export function isCallInteraction(interaction: InteractionSummary): boolean {
   const channel = interaction.channel?.trim().toLocaleLowerCase("en-US");
 
   return (
-    ["PHONE_CALL", "CONNECTED", "COUNSELING"].includes(interactionType) ||
+    ["PHONE_CALL", "CALL", "CONNECTED", "COUNSELING", "OUTREACH"].includes(
+      interactionType,
+    ) ||
     channel === "call" ||
     channel === "phone"
   );
@@ -100,7 +105,7 @@ export function isZaloInteraction(interaction: InteractionSummary): boolean {
 
   return (
     channel === "zalo" ||
-    interactionType === "ZALO" ||
+    ["ZALO", "ZALO_CHAT"].includes(interactionType) ||
     ["MESSAGE", "MESSAGE_CHATWOOT", "TIN_NHAN_CHATWOOT"].includes(
       interactionType,
     )
@@ -112,16 +117,21 @@ export function isOtherInteraction(interaction: InteractionSummary): boolean {
 }
 
 export function isOtherInteractionType(interactionType: string): boolean {
-  return ![
-    "PHONE_CALL",
-    "CALL",
-    "CONNECTED",
-    "COUNSELING",
-    "ZALO",
-    "MESSAGE",
-    "MESSAGE_CHATWOOT",
-    "TIN_NHAN_CHATWOOT",
-  ].includes(interactionType.trim().toUpperCase());
+  return isOtherInteraction({ id: "", interaction_type: interactionType });
+}
+
+export function getManualInteractionTypes(
+  types: InteractionType[],
+): InteractionType[] {
+  const aliases: Record<string, string> = {
+    ZALO_CHAT: "MESSAGE",
+    ZALO: "MESSAGE",
+    MESSAGE_CHATWOOT: "MESSAGE",
+    TIN_NHAN_CHATWOOT: "MESSAGE",
+    CALL: "PHONE_CALL",
+  };
+  const catalogCodes = new Set(types.map((type) => type.code));
+  return types.filter((type) => !catalogCodes.has(aliases[type.code]));
 }
 
 export function getInteractionActivityTitle(
@@ -396,3 +406,13 @@ export function formatScore(value?: number | null): string {
   if (typeof value !== "number" || !Number.isFinite(value)) return "Chưa có";
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
+
+export const interactionOutcomeLabels: Record<string, string> = {
+  Captured: "Đã ghi nhận",
+  "Follow Up Needed": "Cần follow-up",
+  Resolved: "Đã xử lý",
+  Converted: "Đã chuyển đổi",
+  "No Response": "Không phản hồi",
+  "Data Error": "Lỗi dữ liệu",
+  Uncontactable: "Không thể liên hệ",
+};

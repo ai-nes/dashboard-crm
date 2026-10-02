@@ -13,6 +13,7 @@ import { DropdownField } from "@/components/common/dropdown-field";
 import { useInfinityScroll } from "@/hooks/use-infinity-scroll";
 import { Input } from "@/components/tailgrids/core/input";
 import { cn } from "@/utils/cn";
+import { normalizeSearchValue } from "@/utils/normalize-search-value";
 
 export interface EditableDetailOption {
   id: string;
@@ -67,11 +68,11 @@ export function EditableDetailField({
   const deferredOptionsQuery = useDeferredValue(optionsQuery);
   const optionItems = options ?? EMPTY_OPTIONS;
   const filteredOptionItems = useMemo(() => {
-    const query = deferredOptionsQuery.trim().toLocaleLowerCase("vi-VN");
+    const query = normalizeSearchValue(deferredOptionsQuery);
     if (!query) return optionItems;
 
     return optionItems.filter((option) =>
-      `${option.label} ${option.id}`.toLocaleLowerCase("vi-VN").includes(query),
+      normalizeSearchValue(`${option.label} ${option.id}`).includes(query),
     );
   }, [deferredOptionsQuery, optionItems]);
   const { visibleItems, hasMore, sentinelRef } = useInfinityScroll(
@@ -99,7 +100,7 @@ export function EditableDetailField({
             options={renderedOptions}
             ariaLabel={label}
             className="mt-1.5"
-            contentClassName={cn("max-h-36", dropdownClassName)}
+            contentClassName={dropdownClassName}
             filterOptions={false}
             isDisabled={isDisabled}
             isSearchable={searchable}
