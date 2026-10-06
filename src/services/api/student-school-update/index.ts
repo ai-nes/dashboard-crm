@@ -1,4 +1,4 @@
-import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import { isNestApiEnabled, NestApiError, nestRequest } from "../nest/nest-client";
 import { nestFieldOptions, nestSchools } from "../nest/nest-directory";
 import {
   nestReadStudent,
@@ -621,6 +621,21 @@ export async function getStudentHighSchoolScore(
     );
   }
 
+  if (isNestApiEnabled()) {
+    return viaNest(async () => {
+      const result = await nestRequest<{
+        data: StudentHighSchoolScoreResponse;
+      }>(
+        `/api/v1/students/${encodeURIComponent(normalizedName)}/high-school-score${
+          admissionYear?.trim()
+            ? `?admission_year=${encodeURIComponent(admissionYear.trim())}`
+            : ""
+        }`,
+      );
+      return result.data;
+    });
+  }
+
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     throw new StudentSchoolUpdateApiError(
@@ -668,6 +683,24 @@ export async function updateStudentHighSchoolScore(
       "INVALID_FIELDS",
       "Vui lòng thay đổi ít nhất một trường điểm THPT.",
     );
+  }
+
+  if (isNestApiEnabled()) {
+    return viaNest(async () => {
+      const current = await nestRequest<{
+        data: { revision: number };
+      }>(`/api/v1/students/${encodeURIComponent(normalizedName)}`);
+      const result = await nestRequest<{
+        data: UpdateStudentHighSchoolScoreResponse;
+      }>(`/api/v1/students/${encodeURIComponent(normalizedName)}/high-school-score`, {
+        method: "PUT",
+        body: {
+          ...fields,
+          expectedRevision: current.data.revision,
+        },
+      });
+      return result.data;
+    });
   }
 
   const baseUrl = getBaseUrl();
