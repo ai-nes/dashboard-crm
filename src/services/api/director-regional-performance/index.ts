@@ -1,3 +1,8 @@
+import {
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
 import type {
   DirectorRegionalPerformanceParams,
   RegionalPerformanceData,
@@ -37,10 +42,43 @@ function getError(payload: unknown): { code?: string; message?: string } {
   };
 }
 
+async function getNestRegionalPerformance(
+  params: DirectorRegionalPerformanceParams,
+): Promise<RegionalPerformanceData> {
+  let data: unknown;
+  try {
+    data = await nestRequest<unknown>("/api/v1/director/regional-performance", {
+      query: { admissionYear: params.admissionYear, scope: params.scope },
+    });
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new DirectorRegionalPerformanceApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw new DirectorRegionalPerformanceApiError(
+      503,
+      "REGIONAL_PERFORMANCE_DATA_UNAVAILABLE",
+      "Không thể kết nối tới dữ liệu hiệu suất theo địa bàn.",
+    );
+  }
+  if (!isRegionalPerformanceData(data)) {
+    throw new DirectorRegionalPerformanceApiError(
+      502,
+      "INVALID_REGIONAL_PERFORMANCE_RESPONSE",
+      "Phản hồi hiệu suất theo địa bàn không hợp lệ.",
+    );
+  }
+  return data;
+}
+
 export async function getDirectorRegionalPerformance(
   params: DirectorRegionalPerformanceParams = {},
   options: { baseUrl?: string } = {},
 ): Promise<RegionalPerformanceData> {
+  if (isNestApiEnabled()) return getNestRegionalPerformance(params);
   const baseUrl = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??
