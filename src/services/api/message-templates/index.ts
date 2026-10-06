@@ -1,4 +1,6 @@
 import { getCsrfToken } from "../auth";
+import { nestContentRequest } from "../nest/nest-content-router";
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
 import type {
   DeleteMessageTemplateResponse,
   ListMessageTemplatesParams,
@@ -84,6 +86,20 @@ async function request<T>(
     body?: Record<string, unknown>;
   } = {},
 ): Promise<T> {
+  if (isNestApiEnabled()) {
+    try {
+      return await nestContentRequest<T>(method, options);
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new MessageTemplatesApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  }
   const root = baseUrl(options.baseUrl);
   const url = new URL(`${root}/api/method/${method}`);
   Object.entries(options.query ?? {}).forEach(([key, value]) => {
@@ -158,16 +174,21 @@ export async function listAdminMessageTemplateLibrary(
   options: { baseUrl?: string } = {},
 ): Promise<ListMessageTemplatesResponse> {
   const requestOptions = params.baseUrl ? { baseUrl: params.baseUrl } : options;
-  const result = await request<ListMessageTemplatesResponse>(METHODS.ADMIN_LIBRARY, {
-    ...requestOptions,
-    query: {
-      search: params.search?.trim(),
-      owner: params.owner?.trim(),
-      start: params.start === undefined ? undefined : String(params.start),
-      page_length:
-        params.pageLength === undefined ? undefined : String(params.pageLength),
+  const result = await request<ListMessageTemplatesResponse>(
+    METHODS.ADMIN_LIBRARY,
+    {
+      ...requestOptions,
+      query: {
+        search: params.search?.trim(),
+        owner: params.owner?.trim(),
+        start: params.start === undefined ? undefined : String(params.start),
+        page_length:
+          params.pageLength === undefined
+            ? undefined
+            : String(params.pageLength),
+      },
     },
-  });
+  );
   if (params.start === undefined && params.pageLength === undefined) {
     return result;
   }

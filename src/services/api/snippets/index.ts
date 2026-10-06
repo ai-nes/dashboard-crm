@@ -1,4 +1,6 @@
 import { getCsrfToken } from "../auth";
+import { nestContentRequest } from "../nest/nest-content-router";
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
 import type {
   DeleteSnippetResponse,
   ListSnippetsParams,
@@ -105,6 +107,16 @@ async function request<T>(
     body?: Record<string, unknown>;
   } = {},
 ): Promise<T> {
+  if (isNestApiEnabled()) {
+    try {
+      return await nestContentRequest<T>(method, options);
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new SnippetsApiError(error.status, error.code, error.message);
+      }
+      throw error;
+    }
+  }
   const root = baseUrl(options.baseUrl);
   const url = new URL(`${root}/api/method/${method}`);
   Object.entries(options.query ?? {}).forEach(([key, value]) => {
