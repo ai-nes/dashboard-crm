@@ -1,3 +1,5 @@
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import { nestDirectorStudents } from "./students-nest";
 import { student360Data, studentListData } from "./data";
 import type {
   DirectorStudentsActionSummary,
@@ -57,7 +59,9 @@ function hasStudentsEnvelope(value: unknown): boolean {
 function hasStudentListRevision(value: unknown): boolean {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const revision = (value as Record<string, unknown>).revision;
-  return typeof revision === "number" && Number.isInteger(revision) && revision >= 0;
+  return (
+    typeof revision === "number" && Number.isInteger(revision) && revision >= 0
+  );
 }
 
 function hasStudent360Envelope(value: unknown): boolean {
@@ -595,8 +599,10 @@ function buildJourney(
 function buildApplication(
   student: StudentListItem,
 ): Student360Data["application"] {
-  const complete = student.stage === "Nhập học" || student.stage === "New Enter";
-  const inProgress = student.stage === "Ứng tuyển" || student.stage === "Đăng ký";
+  const complete =
+    student.stage === "Nhập học" || student.stage === "New Enter";
+  const inProgress =
+    student.stage === "Ứng tuyển" || student.stage === "Đăng ký";
   const documentStatus = complete
     ? "Đã hoàn tất · 5/5 tài liệu"
     : inProgress
@@ -1046,7 +1052,10 @@ export function computeDirectorStudents(
   const sort = params?.sort ?? "score";
   const order = params?.order ?? "desc";
 
-  const lifecycleByStage: Record<StudentListItem["stage"], StudentLifecycleStatus> = {
+  const lifecycleByStage: Record<
+    StudentListItem["stage"],
+    StudentLifecycleStatus
+  > = {
     "Quan tâm": "Lead",
     "Tìm hiểu": "MQL",
     "Tư vấn": "MQL",
@@ -1071,17 +1080,22 @@ export function computeDirectorStudents(
       ).includes(query);
     const matchesStage = stage === "all" || student.stage === stage;
     const matchesProvince =
-      province === "all" || student.province === province || student.provinceId === province;
+      province === "all" ||
+      student.province === province ||
+      student.provinceId === province;
     const matchesProvinceId =
       !provinceId ||
       student.provinceId === provinceId ||
-      normalizeSearchValue(student.province) === normalizeSearchValue(provinceId);
+      normalizeSearchValue(student.province) ===
+        normalizeSearchValue(provinceId);
     const matchesAssignment =
       assignmentStatus === "all" ||
-      (student.assignmentStatus ?? (student.owner ? "assigned" : "unassigned")) === assignmentStatus;
+      (student.assignmentStatus ??
+        (student.owner ? "assigned" : "unassigned")) === assignmentStatus;
     const matchesLifecycle =
       lifecycleStatus === "all" ||
-      (student.lifecycleStatus ?? lifecycleByStage[student.stage]) === lifecycleStatus;
+      (student.lifecycleStatus ?? lifecycleByStage[student.stage]) ===
+        lifecycleStatus;
 
     return (
       matchesQuery &&
@@ -1121,7 +1135,8 @@ export function computeDirectorStudents(
       ...student,
       assignmentStatus:
         student.assignmentStatus ?? (student.owner ? "assigned" : "unassigned"),
-      lifecycleStatus: student.lifecycleStatus ?? lifecycleByStage[student.stage] ?? null,
+      lifecycleStatus:
+        student.lifecycleStatus ?? lifecycleByStage[student.stage] ?? null,
     }));
 
   const summary: DirectorStudentsSummary = {
@@ -1151,7 +1166,8 @@ export function computeDirectorStudents(
     query: rawQuery || undefined,
     filters: {
       stage: stage !== "all" ? stage : undefined,
-      assignmentStatus: assignmentStatus !== "all" ? assignmentStatus : undefined,
+      assignmentStatus:
+        assignmentStatus !== "all" ? assignmentStatus : undefined,
       lifecycleStatus: lifecycleStatus !== "all" ? lifecycleStatus : undefined,
       province: province !== "all" ? province : provinceId || undefined,
     },
@@ -1174,6 +1190,20 @@ export async function getDirectorStudents(
   params?: DirectorStudentsParams,
   options: { baseUrl?: string; sessionRequired?: boolean } = {},
 ): Promise<DirectorStudentsResponse> {
+  if (isNestApiEnabled()) {
+    try {
+      return await nestDirectorStudents(params);
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new DirectorStudentsApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  }
   const searchParams = new URLSearchParams();
   if (params?.admissionYear)
     searchParams.set("admissionYear", String(params.admissionYear));
