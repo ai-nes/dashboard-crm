@@ -1,8 +1,5 @@
 import { isNestApiEnabled, NestApiError } from "./nest/nest-client";
-import {
-  NOT_HANDLED,
-  nestAdminCatalogRequest,
-} from "./nest/nest-admin-catalog-router";
+import { NOT_HANDLED, nestMethodRequest } from "./nest/nest-method-router";
 
 export class FrappeApiError extends Error {
   constructor(
@@ -104,7 +101,7 @@ async function tryNest(
       ? (JSON.parse(init.body) as Record<string, unknown>)
       : undefined;
   try {
-    const result = await nestAdminCatalogRequest(method, params, body);
+    const result = await nestMethodRequest(method, params, body);
     return result === NOT_HANDLED ? NOT_HANDLED : unwrapMessage(result);
   } catch (error) {
     if (error instanceof NestApiError) {
