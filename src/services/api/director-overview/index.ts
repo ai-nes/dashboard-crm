@@ -1,3 +1,8 @@
+import {
+  NestApiError,
+  isNestApiEnabled,
+  nestRequest,
+} from "../nest/nest-client";
 import { computeDirectorOverview } from "./data";
 import { normalizeDirectorOverview } from "./normalizers";
 import type {
@@ -21,11 +26,14 @@ export class DirectorOverviewApiError extends Error {
   }
 }
 
-function hasOverviewEnvelope(value: unknown): value is { message: DirectorOverviewData } | DirectorOverviewData {
+function hasOverviewEnvelope(
+  value: unknown,
+): value is { message: DirectorOverviewData } | DirectorOverviewData {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const payload = "message" in value && value.message && typeof value.message === "object"
-    ? (value as { message: Record<string, unknown> }).message
-    : (value as Record<string, unknown>);
+  const payload =
+    "message" in value && value.message && typeof value.message === "object"
+      ? (value as { message: Record<string, unknown> }).message
+      : (value as Record<string, unknown>);
 
   return (
     !!payload &&
@@ -50,12 +58,46 @@ export async function getDirectorOverview(
   options: { baseUrl?: string } = {},
 ): Promise<DirectorOverviewResponse> {
   const searchParams = new URLSearchParams();
-  if (params?.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
+  if (params?.admissionYear)
+    searchParams.set("admissionYear", String(params.admissionYear));
   if (params?.scope) searchParams.set("scope", params.scope);
   if (params?.trendRange) searchParams.set("trendRange", params.trendRange);
 
+  if (isNestApiEnabled() && !options.baseUrl) {
+    try {
+      const payload = await nestRequest("/api/v1/director/overview", {
+        query: {
+          admissionYear: params?.admissionYear,
+          scope: params?.scope,
+          trendRange: params?.trendRange,
+        },
+      });
+      if (!hasOverviewEnvelope(payload)) {
+        throw new DirectorOverviewApiError(
+          502,
+          "INVALID_OVERVIEW_RESPONSE",
+          "Phản hồi dữ liệu tổng quan tuyển sinh không hợp lệ.",
+        );
+      }
+      return normalizeDirectorOverview(payload);
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new DirectorOverviewApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  }
+
   const queryStr = searchParams.toString();
-  const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
+  const frappeBase = (
+    options.baseUrl ??
+    process.env.NEXT_PUBLIC_FRAPPE_URL ??
+    ""
+  ).replace(/\/+$/, "");
 
   if (!frappeBase) {
     return computeDirectorOverview(params);
@@ -83,7 +125,9 @@ export async function getDirectorOverview(
 
   const response = await fetch(url, {
     headers,
-    ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+    ...(typeof window !== "undefined"
+      ? { credentials: "include" as RequestCredentials }
+      : {}),
     cache: "no-store",
   });
 
@@ -106,7 +150,11 @@ export async function getDirectorOverview(
             ? payload.exception
             : `Lỗi HTTP ${response.status}: ${response.statusText}`;
 
-    throw new DirectorOverviewApiError(response.status, errorCode, errorMessage);
+    throw new DirectorOverviewApiError(
+      response.status,
+      errorCode,
+      errorMessage,
+    );
   }
 
   if (!hasOverviewEnvelope(payload)) {
@@ -119,4 +167,3 @@ export async function getDirectorOverview(
 
   return normalizeDirectorOverview(payload);
 }
-
