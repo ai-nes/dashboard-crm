@@ -1,3 +1,5 @@
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import { nestSegmentRequest } from "../nest/nest-segment-router";
 import type {
   CreateSegmentPayload,
   DeleteSegmentPayload,
@@ -220,6 +222,16 @@ async function callSegmentApi<T>(
   query: Record<string, string | number | undefined> = {},
   body?: Record<string, unknown>,
 ): Promise<T> {
+  if (isNestApiEnabled()) {
+    try {
+      return await nestSegmentRequest<T>(method, query, body);
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new SegmentApiError(error.status, error.code, error.message);
+      }
+      throw error;
+    }
+  }
   const baseUrl = resolveBaseUrl(options);
   const url = new URL(`${baseUrl}/api/method/${method}`);
   Object.entries(query).forEach(([key, value]) => {
