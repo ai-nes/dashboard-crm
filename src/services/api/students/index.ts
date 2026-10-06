@@ -1,4 +1,8 @@
-import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import {
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
 import { nestDirectorStudents } from "./students-nest";
 import { student360Data, studentListData } from "./data";
 import type {
@@ -7,6 +11,7 @@ import type {
   DirectorStudentsParams,
   DirectorStudentsResponse,
   DirectorStudentsSummary,
+  StudentCallRecord,
   StudentChatwootInteractionsResponse,
   StudentInteractionsResponse,
   StudentLifecycleStatus,
@@ -105,6 +110,53 @@ function hasStudentChatwootInteractionsEnvelope(value: unknown): boolean {
     typeof meta === "object" &&
     typeof (meta as Record<string, unknown>).total === "number"
   );
+}
+
+function normalizeNestStudentCall(value: unknown): StudentCallRecord | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  const direction = row.direction;
+  const outcome = row.outcome;
+  if (
+    typeof row.id !== "string" ||
+    typeof row.occurredAt !== "string" ||
+    !["inbound", "outbound", "missed"].includes(String(direction)) ||
+    !["connected", "missed", "no-answer", "callback"].includes(String(outcome))
+  ) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    time: row.occurredAt,
+    direction: direction as StudentCallRecord["direction"],
+    outcome: outcome as StudentCallRecord["outcome"],
+    callerName:
+      typeof row.callerName === "string" ? row.callerName : "Tư vấn viên",
+    receiverName:
+      typeof row.receiverName === "string" ? row.receiverName : "Học sinh",
+    ...(typeof row.callerRole === "string"
+      ? { callerRole: row.callerRole }
+      : {}),
+    ...(typeof row.receiverRole === "string"
+      ? { receiverRole: row.receiverRole }
+      : {}),
+    ...(typeof row.phoneNumber === "string"
+      ? { phoneNumber: row.phoneNumber }
+      : {}),
+    ...(typeof row.durationSeconds === "number"
+      ? { durationSeconds: row.durationSeconds }
+      : typeof row.durationSec === "number"
+        ? { durationSeconds: row.durationSec }
+        : {}),
+    ...(typeof row.title === "string" ? { topic: row.title } : {}),
+    ...(typeof row.content === "string" ? { summary: row.content } : {}),
+    summaryAvailable: typeof row.content === "string" && row.content.length > 0,
+    summaryStatus:
+      typeof row.content === "string" && row.content.length > 0
+        ? "COMPLETED"
+        : "NOT_AVAILABLE",
+  };
 }
 
 const stageMap: Record<
@@ -963,6 +1015,49 @@ export async function getStudentInteractions(
   studentId: string,
   options: { baseUrl?: string } = {},
 ): Promise<StudentInteractionsResponse | null> {
+  if (isNestApiEnabled()) {
+    try {
+      const result = await nestRequest<{
+        data?: Array<Record<string, unknown>>;
+      }>(`/api/v1/students/${encodeURIComponent(studentId)}/timeline`, {
+        query: { limit: 100 },
+      });
+      if (!Array.isArray(result.data)) {
+        throw new DirectorStudentsApiError(
+          502,
+          "INVALID_INTERACTIONS_RESPONSE",
+          "Phản hồi lịch sử tương tác không hợp lệ.",
+        );
+      }
+      const calls = result.data
+        .filter((entry) => entry.type === "call")
+        .map(normalizeNestStudentCall);
+      if (calls.some((call) => call === null)) {
+        throw new DirectorStudentsApiError(
+          502,
+          "INVALID_INTERACTIONS_RESPONSE",
+          "Phản hồi lịch sử tương tác không hợp lệ.",
+        );
+      }
+      return {
+        student_id: studentId,
+        zalo_messages: [],
+        calls: calls as StudentCallRecord[],
+        total_interactions: calls.length,
+      };
+    } catch (error) {
+      if (error instanceof DirectorStudentsApiError) throw error;
+      if (error instanceof NestApiError) {
+        throw new DirectorStudentsApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  }
+
   const frappeBase = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??
