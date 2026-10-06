@@ -6,6 +6,12 @@ import type {
   GetActivityLogsResponse,
 } from "./types";
 
+import {
+  NestApiError,
+  isNestApiEnabled,
+  nestRequest,
+} from "../nest/nest-client";
+
 export type * from "./types";
 
 const METHOD = "crm.api.activity_log.get_activity_logs";
@@ -33,10 +39,11 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function resolveBaseUrl(options: RequestOptions): string {
-  const baseUrl = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
-    /\/+$/,
-    "",
-  );
+  const baseUrl = (
+    options.baseUrl ??
+    process.env.NEXT_PUBLIC_FRAPPE_URL ??
+    ""
+  ).replace(/\/+$/, "");
 
   if (!baseUrl) {
     throw new ActivityLogApiError(
@@ -56,7 +63,9 @@ function frappeCookieHeader(cookieHeader: string): string {
     .join("; ");
 }
 
-async function requestHeaders(options: RequestOptions): Promise<Record<string, string>> {
+async function requestHeaders(
+  options: RequestOptions,
+): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -110,7 +119,8 @@ function rawValue(value: unknown): unknown | null {
 
 function normalizeActivityLog(raw: unknown): ActivityLogEntry {
   const record = asRecord(raw) ?? {};
-  const severity: ActivityLogSeverity = record.severity === "critical" ? "critical" : "info";
+  const severity: ActivityLogSeverity =
+    record.severity === "critical" ? "critical" : "info";
 
   return {
     eventId: String(record.event_id ?? record.eventId ?? ""),
@@ -122,7 +132,8 @@ function normalizeActivityLog(raw: unknown): ActivityLogEntry {
     oldValue: rawValue(record.old_value ?? record.oldValue),
     newValue: rawValue(record.new_value ?? record.newValue),
     owner: (record.owner as string | null | undefined) ?? null,
-    ownerFullName: (record.owner_full_name as string | null | undefined) ?? null,
+    ownerFullName:
+      (record.owner_full_name as string | null | undefined) ?? null,
     occurredAt: String(record.occurred_at ?? record.occurredAt ?? ""),
     eventType: String(record.event_type ?? record.eventType ?? ""),
     category: String(record.category ?? ""),
@@ -130,10 +141,50 @@ function normalizeActivityLog(raw: unknown): ActivityLogEntry {
   };
 }
 
+async function getActivityLogsFromNest(
+  params: GetActivityLogsParams,
+): Promise<GetActivityLogsResponse> {
+  let data: Record<string, unknown>;
+  try {
+    data =
+      (await nestRequest<Record<string, unknown>>("/api/v1/activity-logs", {
+        query: {
+          module: params.module,
+          actor: params.actor,
+          role: params.role,
+          severity: params.severity,
+          startDate: params.startDate,
+          endDate: params.endDate,
+          start: params.start ?? 0,
+          pageLength: params.pageLength ?? 50,
+        },
+      })) ?? {};
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new ActivityLogApiError(error.status, error.code, error.message);
+    }
+    throw error;
+  }
+  const logs = Array.isArray(data.logs)
+    ? data.logs.map(normalizeActivityLog)
+    : [];
+  return {
+    logs,
+    total: Number(data.total ?? logs.length),
+    start: Number(data.start ?? params.start ?? 0),
+    pageLength: Number(data.pageLength ?? params.pageLength ?? 50),
+    module: (data.module as ActivityLogModule) ?? params.module,
+    tracked: data.tracked !== false,
+  };
+}
+
 export async function getActivityLogs(
   params: GetActivityLogsParams,
   options: RequestOptions = {},
 ): Promise<GetActivityLogsResponse> {
+  if (isNestApiEnabled() && !options.baseUrl) {
+    return getActivityLogsFromNest(params);
+  }
   const baseUrl = resolveBaseUrl(options);
   let response: Response;
 
@@ -180,7 +231,9 @@ export async function getActivityLogs(
   }
 
   const data = asRecord(root?.message ?? payload) ?? {};
-  const logs = Array.isArray(data.logs) ? data.logs.map(normalizeActivityLog) : [];
+  const logs = Array.isArray(data.logs)
+    ? data.logs.map(normalizeActivityLog)
+    : [];
 
   return {
     logs,

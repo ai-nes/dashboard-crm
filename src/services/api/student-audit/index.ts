@@ -7,6 +7,12 @@ import type {
   StudentAuditLogsResponse,
 } from "./types";
 
+import {
+  NestApiError,
+  isNestApiEnabled,
+  nestRequest,
+} from "../nest/nest-client";
+
 export type * from "./types";
 
 const METHOD = "crm.api.audit.get_student_audit_logs";
@@ -201,6 +207,41 @@ function isAuditLogsResponse(
   );
 }
 
+/** Student and Lead histories come from the Nest backend; segments stay on Frappe. */
+async function getNestAuditLogs(
+  kind: "students" | "leads",
+  entityId: string,
+  params: { start?: number; pageLength?: number },
+): Promise<StudentAuditLogsResponse> {
+  try {
+    const data = await nestRequest<Record<string, unknown>>(
+      `/api/v1/${kind}/${encodeURIComponent(entityId)}/audit-logs`,
+      {
+        query: {
+          start: params.start ?? 0,
+          pageLength: params.pageLength ?? 100,
+        },
+      },
+    );
+    const logs = Array.isArray(data?.logs) ? data.logs : [];
+    return {
+      student: String(
+        data?.[kind === "students" ? "student" : "lead"] ?? entityId,
+      ),
+      logs: logs.map(normalizeAuditLog),
+      total: Number(data?.total ?? logs.length),
+      start: Number(data?.start ?? params.start ?? 0),
+      pageLength: Number(data?.pageLength ?? params.pageLength ?? 100),
+      readOnly: data?.readOnly !== false,
+    };
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new StudentAuditApiError(error.status, error.code, error.message);
+    }
+    throw error;
+  }
+}
+
 async function getAuditLogs(
   params: { id: string; start?: number; pageLength?: number },
   options: RequestOptions = {},
@@ -215,6 +256,13 @@ async function getAuditLogs(
       417,
       "INVALID_STUDENT",
       `Cần cung cấp mã ${entityLabel} để tải nhật ký.`,
+    );
+  }
+  if (isNestApiEnabled() && !options.baseUrl && queryParam !== "segment") {
+    return getNestAuditLogs(
+      queryParam === "student" ? "students" : "leads",
+      entityId,
+      params,
     );
   }
 
