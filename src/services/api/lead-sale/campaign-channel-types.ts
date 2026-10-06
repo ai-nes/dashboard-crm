@@ -1,3 +1,9 @@
+import {
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
+
 export type CampaignChannelTypeMode = "ONLINE" | "OFFLINE";
 
 export interface CampaignChannelType {
@@ -67,11 +73,14 @@ function unwrapMessage(value: unknown): unknown {
   return root?.message !== undefined ? root.message : value;
 }
 
-function normalizeModes(row: Record<string, unknown>): CampaignChannelTypeMode[] {
+function normalizeModes(
+  row: Record<string, unknown>,
+): CampaignChannelTypeMode[] {
   const modes = Array.isArray(row.modes)
     ? row.modes.filter(
         (mode): mode is CampaignChannelTypeMode =>
-          typeof mode === "string" && CHANNEL_MODES.includes(mode as CampaignChannelTypeMode),
+          typeof mode === "string" &&
+          CHANNEL_MODES.includes(mode as CampaignChannelTypeMode),
       )
     : [];
   if (modes.length) return modes;
@@ -82,7 +91,9 @@ function normalizeModes(row: Record<string, unknown>): CampaignChannelTypeMode[]
   ];
 }
 
-function normalizeCampaignChannelType(value: unknown): CampaignChannelType | null {
+function normalizeCampaignChannelType(
+  value: unknown,
+): CampaignChannelType | null {
   const row = asRecord(value);
   const code = text(row?.code);
   if (!code) return null;
@@ -176,10 +187,45 @@ function errorDetails(
   };
 }
 
+async function getNestCampaignChannelTypes(
+  params: CampaignChannelTypeListParams,
+): Promise<CampaignChannelTypeListResponse> {
+  try {
+    const payload = await nestRequest<unknown>(
+      "/api/v1/campaign-channel-types",
+      {
+        query: {
+          mode: params.mode,
+          search: params.search?.trim(),
+          enabledOnly: params.enabledOnly === false ? "0" : undefined,
+          start: params.start,
+          pageLength: params.pageLength ?? DEFAULT_PAGE_LENGTH,
+        },
+      },
+    );
+    return normalizeCampaignChannelTypeList(payload);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new CampaignChannelTypeApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw new CampaignChannelTypeApiError(
+      502,
+      "INVALID_CAMPAIGN_CHANNEL_TYPE_RESPONSE",
+      "Phản hồi danh sách loại kênh campaign không hợp lệ.",
+    );
+  }
+}
+
 export async function getCampaignChannelTypes(
   params: CampaignChannelTypeListParams = {},
   options: CampaignChannelTypeRequestOptions = {},
 ): Promise<CampaignChannelTypeListResponse> {
+  if (isNestApiEnabled()) return getNestCampaignChannelTypes(params);
+
   const baseUrl = resolveBaseUrl(options);
   if (!baseUrl) {
     throw new CampaignChannelTypeApiError(
@@ -191,7 +237,11 @@ export async function getCampaignChannelTypes(
 
   const pageLength = Math.max(
     1,
-    Math.floor(Number.isFinite(params.pageLength) ? params.pageLength! : DEFAULT_PAGE_LENGTH),
+    Math.floor(
+      Number.isFinite(params.pageLength)
+        ? params.pageLength!
+        : DEFAULT_PAGE_LENGTH,
+    ),
   );
   let nextStart = Math.max(
     0,
@@ -231,7 +281,11 @@ export async function getCampaignChannelTypes(
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       const details = errorDetails(payload, response.status);
-      throw new CampaignChannelTypeApiError(response.status, details.code, details.message);
+      throw new CampaignChannelTypeApiError(
+        response.status,
+        details.code,
+        details.message,
+      );
     }
 
     let page: CampaignChannelTypeListResponse;

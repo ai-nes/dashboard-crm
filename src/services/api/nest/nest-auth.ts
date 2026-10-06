@@ -1,4 +1,4 @@
-import type { CurrentUser } from "../auth/types";
+import type { CurrentUser, SessionUser } from "../auth/types";
 import { NestApiError, nestRequest } from "./nest-client";
 
 interface NestMe {
@@ -117,4 +117,18 @@ export async function nestLogout(): Promise<void> {
   } catch {
     // The session may already be gone; the caller routes to /login regardless.
   }
+}
+
+/** CRM accounts that can be picked as an assignee. */
+export async function nestSessionUsers(): Promise<SessionUser[]> {
+  const result = await nestRequest<{
+    data: { id: string; email: string; name: string; crmProfile: string }[];
+  }>("/api/v1/directory/users");
+  return result.data.map((user) => ({
+    name: user.id,
+    email: user.email,
+    full_name: user.name,
+    roles: rolesForProfile(user.crmProfile, "user"),
+    crm_profile: user.crmProfile,
+  }));
 }

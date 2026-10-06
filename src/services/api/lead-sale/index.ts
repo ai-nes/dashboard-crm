@@ -1,3 +1,8 @@
+import {
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
 import type {
   LeadSaleDashboardAgingBucket,
   LeadSaleDashboardPayload,
@@ -55,7 +60,12 @@ const DASHBOARD_STAGE_IDS = [
   "connected",
   "qualified",
 ] as const;
-const DASHBOARD_ACTION_IDS = ["overdue", "unassigned", "due-today", "aging"] as const;
+const DASHBOARD_ACTION_IDS = [
+  "overdue",
+  "unassigned",
+  "due-today",
+  "aging",
+] as const;
 const DASHBOARD_ISSUE_IDS = [
   "overdue",
   "missing-documents",
@@ -266,7 +276,8 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
           label: text(row.label, id),
           volume: count(row.volume),
           nextStepConversion:
-            row.nextStepConversion === null || row.nextStepConversion === undefined
+            row.nextStepConversion === null ||
+            row.nextStepConversion === undefined
               ? null
               : Math.min(100, Math.max(0, number(row.nextStepConversion))),
           averageDays: number(row.averageDays),
@@ -281,7 +292,10 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
         return {
           period: text(row.period),
           stageCounts: Object.fromEntries(
-            DASHBOARD_STAGE_IDS.map((stage) => [stage, count(stageCounts[stage])]),
+            DASHBOARD_STAGE_IDS.map((stage) => [
+              stage,
+              count(stageCounts[stage]),
+            ]),
           ) as Record<(typeof DASHBOARD_STAGE_IDS)[number], number>,
         };
       })
@@ -299,11 +313,16 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
         const repTrend = Array.isArray(pipeline.trend)
           ? pipeline.trend.map((point) => {
               const trendPoint = asRecord(point) ?? {};
-              const stageCounts = asRecord(trendPoint.stageCounts ?? trendPoint.stage_counts) ?? {};
+              const stageCounts =
+                asRecord(trendPoint.stageCounts ?? trendPoint.stage_counts) ??
+                {};
               return {
                 period: text(trendPoint.period),
                 stageCounts: Object.fromEntries(
-                  DASHBOARD_STAGE_IDS.map((stage) => [stage, count(stageCounts[stage])]),
+                  DASHBOARD_STAGE_IDS.map((stage) => [
+                    stage,
+                    count(stageCounts[stage]),
+                  ]),
                 ) as Record<(typeof DASHBOARD_STAGE_IDS)[number], number>,
               };
             })
@@ -321,19 +340,28 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
           closedOpportunities: count(
             row.closedOpportunities ?? row.closed_opportunities,
           ),
-          wonOpportunities: count(row.wonOpportunities ?? row.won_opportunities),
-          openOpportunities: count(row.openOpportunities ?? row.open_opportunities),
+          wonOpportunities: count(
+            row.wonOpportunities ?? row.won_opportunities,
+          ),
+          openOpportunities: count(
+            row.openOpportunities ?? row.open_opportunities,
+          ),
           overdue: count(row.overdue),
-          avgStageAgeDays: number(row.avgStageAgeDays ?? row.avg_stage_age_days),
+          avgStageAgeDays: number(
+            row.avgStageAgeDays ?? row.avg_stage_age_days,
+          ),
           actionItemCount: count(row.actionItemCount ?? row.action_item_count),
           pipeline: {
             newOpportunities: count(
               pipeline.newOpportunities ?? pipeline.new_opportunities,
             ),
             followUpDue: count(pipeline.followUpDue ?? pipeline.follow_up_due),
-            stageVolumes: numberMap(pipeline.stageVolumes ?? pipeline.stage_volumes),
+            stageVolumes: numberMap(
+              pipeline.stageVolumes ?? pipeline.stage_volumes,
+            ),
             stageActionItemCounts: numberMap(
-              pipeline.stageActionItemCounts ?? pipeline.stage_action_item_counts,
+              pipeline.stageActionItemCounts ??
+                pipeline.stage_action_item_counts,
             ),
             agingBuckets: numberMap(
               pipeline.agingBuckets ?? pipeline.aging_buckets,
@@ -565,10 +593,50 @@ function errorDetails(
   };
 }
 
+async function getNestLeadSaleOverview(
+  params: LeadSaleOverviewParams,
+): Promise<LeadSaleOverviewResponse> {
+  let payload: unknown;
+  try {
+    payload = await nestRequest<unknown>("/api/v1/lead-sale/overview", {
+      query: {
+        admissionYear: params.admissionYear,
+        date: params.date,
+        trendRange: params.trendRange ?? "4w",
+        timezone: params.timezone,
+        teamMemberLimit: params.teamMemberLimit ?? 20,
+      },
+    });
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new LeadSaleOverviewApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw new LeadSaleOverviewApiError(
+      503,
+      "LEAD_SALE_OVERVIEW_UNAVAILABLE",
+      "Không thể kết nối đến máy chủ tổng quan Lead Sale.",
+    );
+  }
+  try {
+    return normalizeLeadSaleOverview(payload);
+  } catch {
+    throw new LeadSaleOverviewApiError(
+      502,
+      "INVALID_LEAD_SALE_OVERVIEW_RESPONSE",
+      "Phản hồi tổng quan Lead Sale không hợp lệ.",
+    );
+  }
+}
+
 export async function getLeadSaleOverview(
   params: LeadSaleOverviewParams = {},
   options: RequestOptions = {},
 ): Promise<LeadSaleOverviewResponse> {
+  if (isNestApiEnabled()) return getNestLeadSaleOverview(params);
   const url = new URL(`${resolveBaseUrl(options)}/api/method/${METHOD}`);
   if (params.admissionYear !== undefined)
     url.searchParams.set("admissionYear", String(params.admissionYear));

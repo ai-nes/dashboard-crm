@@ -1,3 +1,9 @@
+import {
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
+
 export interface TeamManagementGroup {
   id: string;
   name: string;
@@ -207,11 +213,39 @@ function errorDetails(payload: unknown, status: number) {
   };
 }
 
+const NEST_PATHS: Record<string, string> = {
+  [METHODS.WORKSPACE]: "/api/v1/team-management/workspace",
+  [METHODS.SAVE_GROUP]: "/api/v1/team-management/groups",
+  [METHODS.SAVE_TEAM]: "/api/v1/team-management/teams",
+  [METHODS.ADD_MEMBER]: "/api/v1/team-management/members",
+  [METHODS.MOVE_MEMBER]: "/api/v1/team-management/members/move",
+  [METHODS.REMOVE_MEMBER]: "/api/v1/team-management/members/remove",
+  [METHODS.UPDATE_MEMBER]: "/api/v1/team-management/members/update",
+};
+
+async function callNest<T>(
+  method: string,
+  body?: Record<string, unknown>,
+): Promise<T> {
+  try {
+    return await nestRequest<T>(NEST_PATHS[method], {
+      method: body ? "POST" : "GET",
+      ...(body ? { body } : {}),
+    });
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new TeamManagementApiError(error.status, error.code, error.message);
+    }
+    throw error;
+  }
+}
+
 async function call<T>(
   method: string,
   options: TeamManagementRequestOptions,
   body?: Record<string, unknown>,
 ): Promise<T> {
+  if (isNestApiEnabled()) return callNest<T>(method, body);
   const baseUrl = resolveBaseUrl(options);
   if (!baseUrl) {
     throw new TeamManagementApiError(

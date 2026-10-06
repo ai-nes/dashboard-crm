@@ -1,3 +1,8 @@
+import {
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
 import type {
   CreateInteractionInput,
   InteractionCatalog,
@@ -265,15 +270,24 @@ function normalizeNpsPoint(value: unknown): InteractionNpsPoint | null {
     sale_user: normalizeString(item?.sale_user),
     agent_id: normalizeString(item?.agent_id),
     interaction_datetime: normalizeString(item?.interaction_datetime),
-    source_revision: typeof item?.source_revision === "number" ? item.source_revision : null,
+    source_revision:
+      typeof item?.source_revision === "number" ? item.source_revision : null,
     status,
     terminal_reason: normalizeString(item?.terminal_reason),
-    satisfaction_score: typeof item?.satisfaction_score === "number" ? item.satisfaction_score : null,
-    resolution_score: typeof item?.resolution_score === "number" ? item.resolution_score : null,
-    friction_score: typeof item?.friction_score === "number" ? item.friction_score : null,
-    complaint_score: typeof item?.complaint_score === "number" ? item.complaint_score : null,
-    total_score: typeof item?.total_score === "number" ? item.total_score : null,
-    normalized_score: typeof item?.normalized_score === "number" ? item.normalized_score : null,
+    satisfaction_score:
+      typeof item?.satisfaction_score === "number"
+        ? item.satisfaction_score
+        : null,
+    resolution_score:
+      typeof item?.resolution_score === "number" ? item.resolution_score : null,
+    friction_score:
+      typeof item?.friction_score === "number" ? item.friction_score : null,
+    complaint_score:
+      typeof item?.complaint_score === "number" ? item.complaint_score : null,
+    total_score:
+      typeof item?.total_score === "number" ? item.total_score : null,
+    normalized_score:
+      typeof item?.normalized_score === "number" ? item.normalized_score : null,
     confidence: normalizeString(item?.confidence),
     evidence_refs: asRecord(item?.evidence_refs),
     explanation: normalizeString(item?.explanation),
@@ -534,9 +548,14 @@ export async function getInteractionNpsPoint(
       "Thiếu mã tương tác.",
     );
   }
-  const raw = await callFrappeRpc<unknown>(METHODS.NPS_POINT, { interaction: id }, options);
+  const raw = await callFrappeRpc<unknown>(
+    METHODS.NPS_POINT,
+    { interaction: id },
+    options,
+  );
   const payload = asRecord(raw);
-  if (payload?.point === null || payload?.point === undefined) return { point: null };
+  if (payload?.point === null || payload?.point === undefined)
+    return { point: null };
   const point = normalizeNpsPoint(payload?.point);
   if (!point) {
     throw new InteractionIntelligenceApiError(
@@ -557,7 +576,25 @@ export async function getNpsSaleSummary(
     const value = filters[key];
     if (value?.trim()) params[key] = value.trim();
   }
-  const raw = await callFrappeRpc<unknown>(METHODS.NPS_SUMMARY, params, options);
+  let raw: unknown;
+  if (isNestApiEnabled()) {
+    try {
+      raw = await nestRequest<unknown>("/api/v1/interactions/nps-summary", {
+        query: params,
+      });
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new InteractionIntelligenceApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  } else {
+    raw = await callFrappeRpc<unknown>(METHODS.NPS_SUMMARY, params, options);
+  }
   const payload = asRecord(raw);
   const records = Array.isArray(payload?.records)
     ? payload.records
@@ -569,7 +606,8 @@ export async function getNpsSaleSummary(
             sale,
             sale_user: normalizeString(item?.sale_user),
             count: typeof item?.count === "number" ? item.count : 0,
-            average_score: typeof item?.average_score === "number" ? item.average_score : 0,
+            average_score:
+              typeof item?.average_score === "number" ? item.average_score : 0,
             average_normalized_score:
               typeof item?.average_normalized_score === "number"
                 ? item.average_normalized_score
@@ -580,7 +618,8 @@ export async function getNpsSaleSummary(
     : [];
   return {
     records,
-    total_points: typeof payload?.total_points === "number" ? payload.total_points : 0,
+    total_points:
+      typeof payload?.total_points === "number" ? payload.total_points : 0,
   };
 }
 

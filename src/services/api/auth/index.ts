@@ -2,6 +2,7 @@ import {
   nestGetCurrentUser,
   nestLoginWithPassword,
   nestLogout,
+  nestSessionUsers,
 } from "../nest/nest-auth";
 import { isNestApiEnabled } from "../nest/nest-client";
 import type { CurrentUser, FrappeMessage, SessionUser } from "./types";
@@ -105,6 +106,7 @@ function normalizeSessionUser(value: unknown): SessionUser | null {
 
 /** Lấy danh sách user CRM để dùng cho trường phân công task. */
 export async function getSessionUsers(): Promise<SessionUser[]> {
+  if (isNestApiEnabled()) return nestSessionUsers();
   let response: Response;
   try {
     response = await fetch(frappeMethod("crm.api.session.get_users"), {
