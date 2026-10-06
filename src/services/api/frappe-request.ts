@@ -1,3 +1,9 @@
+import { isNestApiEnabled, NestApiError } from "./nest/nest-client";
+import {
+  NOT_HANDLED,
+  nestAdminCatalogRequest,
+} from "./nest/nest-admin-catalog-router";
+
 export class FrappeApiError extends Error {
   constructor(
     public status: number,
@@ -81,12 +87,43 @@ function serverMessage(value: unknown): string | null {
   return null;
 }
 
+/** Serve a Frappe method call from the Nest backend when it has an equivalent. */
+async function tryNest(
+  url: string,
+  init: RequestInit,
+  ErrorClass: ApiErrorConstructor,
+): Promise<unknown> {
+  const parsed = new URL(url, "http://localhost");
+  const method = parsed.pathname.split("/api/method/")[1];
+  if (!method) return NOT_HANDLED;
+  const params: Record<string, string> = Object.fromEntries(
+    parsed.searchParams,
+  );
+  const body =
+    typeof init.body === "string"
+      ? (JSON.parse(init.body) as Record<string, unknown>)
+      : undefined;
+  try {
+    const result = await nestAdminCatalogRequest(method, params, body);
+    return result === NOT_HANDLED ? NOT_HANDLED : unwrapMessage(result);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new ErrorClass(error.status, error.code, error.message);
+    }
+    throw error;
+  }
+}
+
 export async function request(
   url: string,
   init: RequestInit = {},
   frappeBaseUrl?: string,
   ErrorClass: ApiErrorConstructor = FrappeApiError,
 ): Promise<Record<string, unknown>> {
+  if (isNestApiEnabled()) {
+    const handled = await tryNest(url, init, ErrorClass);
+    if (handled !== NOT_HANDLED) return handled as Record<string, unknown>;
+  }
   const csrfToken = frappeBaseUrl
     ? await browserCsrfToken(frappeBaseUrl)
     : null;
@@ -112,9 +149,7 @@ export async function request(
       (typeof payload?.exception === "string" ? payload.exception : null);
     throw new ErrorClass(
       response.status,
-      typeof error.code === "string"
-        ? error.code
-        : "FRAPPE_REQUEST_FAILED",
+      typeof error.code === "string" ? error.code : "FRAPPE_REQUEST_FAILED",
       message ?? `Không thể gọi API Frappe (${response.status}).`,
     );
   }
