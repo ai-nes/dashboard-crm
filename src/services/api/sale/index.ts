@@ -17,6 +17,12 @@ import type {
 } from "./types";
 import type { StudentStage } from "@/services/api/students/types";
 
+import {
+  NestApiError,
+  isNestApiEnabled,
+  nestRequest,
+} from "../nest/nest-client";
+
 export type * from "./types";
 
 const METHOD = "crm.api.sale.get_sale_overview";
@@ -86,7 +92,9 @@ function nullableCount(value: unknown): number | null {
 }
 
 function nullableText(value: unknown): string | null {
-  return value === null || value === undefined || value === "" ? null : text(value);
+  return value === null || value === undefined || value === ""
+    ? null
+    : text(value);
 }
 
 function unwrapMessage(value: unknown): unknown {
@@ -110,7 +118,9 @@ function normalizeMeta(value: unknown): SaleOverviewMeta {
     status:
       status === "partial" || status === "unavailable" ? status : "available",
     warnings: Array.isArray(source.warnings)
-      ? source.warnings.filter((item): item is string => typeof item === "string")
+      ? source.warnings.filter(
+          (item): item is string => typeof item === "string",
+        )
       : [],
   };
 }
@@ -123,15 +133,19 @@ function normalizeTask(value: unknown): SaleTask {
   return {
     id: text(source.id),
     studentId: text(source.studentId ?? source.student_id),
-    studentName: text(source.studentName ?? source.student_name, "Hồ sơ chưa đặt tên"),
+    studentName: text(
+      source.studentName ?? source.student_name,
+      "Hồ sơ chưa đặt tên",
+    ),
     title: text(source.title),
     type:
-      type === "call" || type === "document" || type === "message" ? type : "other",
+      type === "call" || type === "document" || type === "message"
+        ? type
+        : "other",
     startAt: nullableText(source.startAt ?? source.start_at),
     dueAt: nullableText(source.dueAt ?? source.due_at),
     context: nullableText(source.context),
-    priority:
-      priority === "High" || priority === "Low" ? priority : "Medium",
+    priority: priority === "High" || priority === "Low" ? priority : "Medium",
     status:
       status === "Backlog" ||
       status === "In Progress" ||
@@ -153,7 +167,9 @@ function normalizeTasks(value: unknown): SaleTasks {
   return {
     priority: {
       overdueCount: count(priority.overdueCount ?? priority.overdue_count),
-      items: Array.isArray(priority.items) ? priority.items.map(normalizeTask) : [],
+      items: Array.isArray(priority.items)
+        ? priority.items.map(normalizeTask)
+        : [],
     },
     summary: {
       today: {
@@ -185,7 +201,9 @@ function normalizeTrendRange(value: unknown): SaleConversionTrendRange {
   return {
     from: text(source.from),
     to: text(source.to),
-    points: Array.isArray(source.points) ? source.points.map(normalizeTrendPoint) : [],
+    points: Array.isArray(source.points)
+      ? source.points.map(normalizeTrendPoint)
+      : [],
   };
 }
 
@@ -208,15 +226,21 @@ function normalizeStudentStages(value: unknown): SaleStudentStages | undefined {
   const items = source.items.flatMap((item) => {
     const row = asRecord(item) ?? {};
     const stageValue = row.stage ?? row.id;
-    if (!STUDENT_STAGE_IDS.includes(stageValue as (typeof STUDENT_STAGE_IDS)[number])) {
+    if (
+      !STUDENT_STAGE_IDS.includes(
+        stageValue as (typeof STUDENT_STAGE_IDS)[number],
+      )
+    ) {
       return [];
     }
 
-    return [{
-      stage: stageValue as StudentStage,
-      count: count(row.count),
-      share: null,
-    }];
+    return [
+      {
+        stage: stageValue as StudentStage,
+        count: count(row.count),
+        share: null,
+      },
+    ];
   });
   const total = items.reduce((sum, item) => sum + item.count, 0);
 
@@ -229,20 +253,31 @@ function normalizeStudentStages(value: unknown): SaleStudentStages | undefined {
   };
 }
 
-function normalizeStudentActionNba(value: unknown): SaleStudentActionNba | undefined {
+function normalizeStudentActionNba(
+  value: unknown,
+): SaleStudentActionNba | undefined {
   const source = asRecord(value);
   if (!source) return undefined;
 
   const action = asRecord(source.action) ?? {};
   const recommendation = asRecord(source.recommendation) ?? {};
   const recommendationAction = asRecord(recommendation.action) ?? {};
-  const explanation = asRecord(source.explanation) ?? asRecord(recommendation.explanation) ?? {};
-  const timing = asRecord(source.timing) ?? asRecord(recommendation.timing) ?? {};
+  const explanation =
+    asRecord(source.explanation) ?? asRecord(recommendation.explanation) ?? {};
+  const timing =
+    asRecord(source.timing) ?? asRecord(recommendation.timing) ?? {};
   const priority = source.priority ?? recommendation.priority;
-  const title = text(source.title ?? action.title ?? recommendationAction.title);
+  const title = text(
+    source.title ?? action.title ?? recommendationAction.title,
+  );
   const actionCode = text(
-    source.actionCode ?? source.action_code ?? source.actionId ?? source.action_id ??
-      action.code ?? recommendation.actionId ?? recommendation.action_id,
+    source.actionCode ??
+      source.action_code ??
+      source.actionId ??
+      source.action_id ??
+      action.code ??
+      recommendation.actionId ??
+      recommendation.action_id,
   );
 
   if (
@@ -259,26 +294,46 @@ function normalizeStudentActionNba(value: unknown): SaleStudentActionNba | undef
     priority: priority as SaleStudentActionNba["priority"],
     channel: nullableText(source.channel ?? recommendation.channel),
     reason: nullableText(source.reason ?? recommendation.reason),
-    whyNow: nullableText(source.whyNow ?? source.why_now ?? explanation.whyNow ?? explanation.why_now),
+    whyNow: nullableText(
+      source.whyNow ??
+        source.why_now ??
+        explanation.whyNow ??
+        explanation.why_now,
+    ),
     salesNextStep: nullableText(
-      source.salesNextStep ?? source.sales_next_step ?? explanation.salesNextStep ?? explanation.sales_next_step,
+      source.salesNextStep ??
+        source.sales_next_step ??
+        explanation.salesNextStep ??
+        explanation.sales_next_step,
     ),
     scheduledAt: nullableText(
-      source.scheduledAt ?? source.scheduled_at ?? timing.scheduledAt ?? timing.scheduled_at,
+      source.scheduledAt ??
+        source.scheduled_at ??
+        timing.scheduledAt ??
+        timing.scheduled_at,
     ),
   };
 }
 
 function normalizeStudentAction(value: unknown): SaleStudentAction | null {
   const source = asRecord(value) ?? {};
-  const stageValue = source.studentStage ?? source.student_stage ?? source.stage;
-  if (!STUDENT_STAGE_IDS.includes(stageValue as (typeof STUDENT_STAGE_IDS)[number])) {
+  const stageValue =
+    source.studentStage ?? source.student_stage ?? source.stage;
+  if (
+    !STUDENT_STAGE_IDS.includes(
+      stageValue as (typeof STUDENT_STAGE_IDS)[number],
+    )
+  ) {
     return null;
   }
 
   const studentId = text(source.studentId ?? source.student_id);
-  const studentCode = text(source.studentCode ?? source.student_code ?? source.code);
-  const studentName = text(source.studentName ?? source.student_name ?? source.name);
+  const studentCode = text(
+    source.studentCode ?? source.student_code ?? source.code,
+  );
+  const studentName = text(
+    source.studentName ?? source.student_name ?? source.name,
+  );
   if (!studentId || !studentCode || !studentName) return null;
 
   const nba = normalizeStudentActionNba(source.nba);
@@ -289,13 +344,19 @@ function normalizeStudentAction(value: unknown): SaleStudentAction | null {
     studentName,
     studentStage: stageValue as StudentStage,
     stageAgeDays: nullableCount(source.stageAgeDays ?? source.stage_age_days),
-    lastActivityAt: nullableText(source.lastActivityAt ?? source.last_activity_at),
-    attentionReason: nullableText(source.attentionReason ?? source.attention_reason),
+    lastActivityAt: nullableText(
+      source.lastActivityAt ?? source.last_activity_at,
+    ),
+    attentionReason: nullableText(
+      source.attentionReason ?? source.attention_reason,
+    ),
     ...(nba ? { nba } : {}),
   };
 }
 
-function normalizeStudentActions(value: unknown): SaleStudentAction[] | undefined {
+function normalizeStudentActions(
+  value: unknown,
+): SaleStudentAction[] | undefined {
   if (!Array.isArray(value)) return undefined;
   return value
     .map(normalizeStudentAction)
@@ -310,7 +371,9 @@ function normalizeRecentLead(value: unknown): SaleRecentLead | null {
   const resolution = source.resolution;
   return {
     id: text(source.id ?? source.name),
-    leadCode: text(source.leadCode ?? source.lead_code ?? source.id ?? source.name),
+    leadCode: text(
+      source.leadCode ?? source.lead_code ?? source.id ?? source.name,
+    ),
     name: text(source.name, "Lead chưa đặt tên"),
     phone: nullableText(source.phone),
     school: nullableText(source.school ?? source.high_school),
@@ -364,8 +427,10 @@ function normalizeRecentStudents(value: unknown): SaleRecentStudent[] {
 function normalizeHealth(value: unknown): SalePipelineHealth | undefined {
   const source = asRecord(value);
   if (!source) return undefined;
-  const agingBuckets = Array.isArray(source.agingBuckets ?? source.aging_buckets)
-    ? (source.agingBuckets ?? source.aging_buckets) as unknown[]
+  const agingBuckets = Array.isArray(
+    source.agingBuckets ?? source.aging_buckets,
+  )
+    ? ((source.agingBuckets ?? source.aging_buckets) as unknown[])
     : [];
 
   return {
@@ -389,14 +454,22 @@ export function normalizeSaleOverview(value: unknown): SaleOverviewResponse {
   const tasks = asRecord(payload?.tasks);
   const priority = asRecord(tasks?.priority);
   const summary = asRecord(tasks?.summary);
-  const conversionTrend = asRecord(payload?.conversionTrend ?? payload?.conversion_trend);
+  const conversionTrend = asRecord(
+    payload?.conversionTrend ?? payload?.conversion_trend,
+  );
   const trendRanges = asRecord(conversionTrend?.ranges);
-  const recentLeads = normalizeRecentLeads(payload?.recentLeads ?? payload?.recent_leads);
+  const recentLeads = normalizeRecentLeads(
+    payload?.recentLeads ?? payload?.recent_leads,
+  );
   const recentStudents = normalizeRecentStudents(
     payload?.recentStudents ?? payload?.recent_students,
   );
-  const studentStages = normalizeStudentStages(payload?.studentStages ?? payload?.student_stages);
-  const studentActions = normalizeStudentActions(payload?.studentActions ?? payload?.student_actions);
+  const studentStages = normalizeStudentStages(
+    payload?.studentStages ?? payload?.student_stages,
+  );
+  const studentActions = normalizeStudentActions(
+    payload?.studentActions ?? payload?.student_actions,
+  );
   const health = normalizeHealth(payload?.health);
 
   if (
@@ -432,7 +505,9 @@ export function normalizeSaleOverview(value: unknown): SaleOverviewResponse {
 
 function resolveBaseUrl(options: RequestOptions): string {
   const baseUrl = (
-    options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? ""
+    options.baseUrl ??
+    process.env.NEXT_PUBLIC_FRAPPE_URL ??
+    ""
   ).replace(/\/+$/, "");
   if (!baseUrl) {
     throw new SaleOverviewApiError(
@@ -499,6 +574,29 @@ export async function getSaleOverview(
   params: SaleOverviewParams = {},
   options: RequestOptions = {},
 ): Promise<SaleOverviewResponse> {
+  if (isNestApiEnabled() && !options.baseUrl) {
+    try {
+      const payload = await nestRequest("/api/v1/sale/overview", {
+        query: {
+          admissionYear: params.admissionYear,
+          date: params.date,
+          trendRange: params.trendRange ?? "4w",
+          timezone: params.timezone,
+          priorityLimit: params.priorityLimit ?? 4,
+        },
+      });
+      return normalizeSaleOverview(payload);
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new SaleOverviewApiError(error.status, error.code, error.message);
+      }
+      throw new SaleOverviewApiError(
+        502,
+        "INVALID_SALE_OVERVIEW_RESPONSE",
+        "Phản hồi tổng quan Sale không hợp lệ.",
+      );
+    }
+  }
   const url = new URL(`${resolveBaseUrl(options)}/api/method/${METHOD}`);
   if (params.admissionYear) {
     url.searchParams.set("admissionYear", String(params.admissionYear));
