@@ -1,4 +1,17 @@
 import { getCsrfToken } from "../auth";
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import {
+  nestAssignLead,
+  nestAssignmentTargets,
+  nestCreateLead,
+  nestDeleteLead,
+  nestLeadDetail,
+  nestLeadList,
+  nestProcessLead,
+  nestReopenLead,
+  nestSetLeadStatus,
+  nestUpdateLead,
+} from "./leads-nest";
 
 export type LeadStatus = string;
 
@@ -399,6 +412,21 @@ export class LeadApiError extends Error {
   ) {
     super(message);
     this.name = "LeadApiError";
+  }
+}
+
+/** Run a Nest call, normalize its payload, and surface failures as `LeadApiError`. */
+async function viaNest<T>(
+  call: () => Promise<unknown>,
+  normalize: (payload: unknown) => T,
+): Promise<T> {
+  try {
+    return normalize(await call());
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new LeadApiError(error.status, error.code, error.message);
+    }
+    throw error;
   }
 }
 
@@ -1353,7 +1381,9 @@ function normalizeLeadImportPreview(value: unknown): LeadImportPreviewResponse {
     const rowNumber = count(row.row);
     const fields = asRecord(row.fields) ?? {};
     const rawErrors = Array.isArray(row.errors) ? row.errors : [];
-    const errors = rawErrors.map((error) => normalizeImportError(error, rowNumber));
+    const errors = rawErrors.map((error) =>
+      normalizeImportError(error, rowNumber),
+    );
     const duplicateError = errors.find((error) =>
       error.code.toUpperCase().startsWith("DUPLICATE"),
     );
@@ -1446,6 +1476,9 @@ export async function getLeadList(
   params: LeadListParams = {},
   options: LeadApiRequestOptions = {},
 ): Promise<LeadListResponse> {
+  if (isNestApiEnabled()) {
+    return viaNest(() => nestLeadList(params), normalizeLeadList);
+  }
   const searchParams = new URLSearchParams();
   if (params.admissionYear !== undefined)
     searchParams.set("admissionYear", String(params.admissionYear));
@@ -1477,6 +1510,14 @@ export async function getLeadDetail(
   leadId: string,
   options: LeadApiRequestOptions = {},
 ): Promise<LeadDetailResponse | null> {
+  if (isNestApiEnabled()) {
+    try {
+      return await viaNest(() => nestLeadDetail(leadId), normalizeLeadDetail);
+    } catch (error) {
+      if (error instanceof LeadApiError && error.status === 404) return null;
+      throw error;
+    }
+  }
   const searchParams = new URLSearchParams({ lead_id: leadId });
   try {
     const payload = await request(DETAIL_METHOD, searchParams, options);
@@ -1510,6 +1551,12 @@ export async function getLeadAssignmentTargets(
       "Thiếu mã Lead cần tải danh sách phân công.",
     );
   }
+  if (isNestApiEnabled()) {
+    return viaNest(
+      () => nestAssignmentTargets(normalizedLeadId),
+      normalizeAssignmentTargets,
+    );
+  }
 
   try {
     const payload = await request(
@@ -1538,6 +1585,10 @@ export async function createLead(
       "INVALID_FIELDS",
       "Họ và tên Lead không được để trống.",
     );
+  }
+
+  if (isNestApiEnabled()) {
+    return viaNest(() => nestCreateLead(fields), normalizeLeadDetail);
   }
 
   const payload = await mutationRequest(
@@ -1731,6 +1782,13 @@ export async function updateLead(
     );
   }
 
+  if (isNestApiEnabled()) {
+    return viaNest(
+      () => nestUpdateLead(normalizedLeadId, fields),
+      normalizeLeadDetail,
+    );
+  }
+
   const payload = await mutationRequest(
     UPDATE_METHOD,
     "POST",
@@ -1778,6 +1836,20 @@ export async function assignLeadToStaff(
       400,
       "INVALID_OWNERSHIP_REVISION",
       "Thông tin phân công đã cũ, vui lòng tải lại Lead.",
+    );
+  }
+
+  if (isNestApiEnabled()) {
+    return viaNest(
+      () =>
+        nestAssignLead({
+          lead,
+          ownerStaff,
+          targetTeamId,
+          expectedRevision: request.expectedRevision,
+          reason: request.reason?.trim(),
+        }),
+      normalizeAssignmentResponse,
     );
   }
 
@@ -1856,6 +1928,10 @@ export async function processLead(
       "INVALID_LEAD_RESOLUTION",
       "Không truyền PENDING khi gọi API xử lý Lead.",
     );
+  }
+
+  if (isNestApiEnabled()) {
+    return viaNest(() => nestProcessLead(lead), normalizeProcessResponse);
   }
 
   const body: Record<string, unknown> = { lead };
@@ -2056,6 +2132,13 @@ export async function updateLeadProcessingStatus(
     );
   }
 
+  if (isNestApiEnabled()) {
+    return viaNest(
+      () => nestSetLeadStatus(lead, status, request.reason?.trim()),
+      normalizeProcessResponse,
+    );
+  }
+
   const body: Record<string, unknown> = { lead, status };
   if (request.reason?.trim()) body.reason = request.reason.trim();
 
@@ -2089,6 +2172,13 @@ export async function reopenLead(
     );
   }
 
+  if (isNestApiEnabled()) {
+    return viaNest(
+      () => nestReopenLead(lead, request.reason?.trim()),
+      normalizeProcessResponse,
+    );
+  }
+
   const body: Record<string, unknown> = { lead };
   if (request.reason?.trim()) body.reason = request.reason.trim();
 
@@ -2111,6 +2201,14 @@ export async function deleteLead(
   const normalizedLeadId = leadId.trim();
   if (!normalizedLeadId) {
     throw new LeadApiError(400, "INVALID_LEAD_NAME", "Thiếu mã Lead cần xóa.");
+  }
+
+  if (isNestApiEnabled()) {
+    await viaNest(
+      () => nestDeleteLead(normalizedLeadId),
+      () => null,
+    );
+    return { deleted: normalizedLeadId };
   }
 
   const payload = await mutationRequest(

@@ -1,3 +1,9 @@
+import {
+  nestGetCurrentUser,
+  nestLoginWithPassword,
+  nestLogout,
+} from "../nest/nest-auth";
+import { isNestApiEnabled } from "../nest/nest-client";
 import type { CurrentUser, FrappeMessage, SessionUser } from "./types";
 
 export type * from "./types";
@@ -35,7 +41,9 @@ export function startGoogleLogin(returnTo?: string): void {
  * authenticated (guest session, or 401/403) so callers can treat "logged out"
  * as a normal state rather than an error.
  */
-async function getCurrentUserFrom(baseUrl: string): Promise<CurrentUser | null> {
+async function getCurrentUserFrom(
+  baseUrl: string,
+): Promise<CurrentUser | null> {
   let res: Response;
   try {
     res = await fetch(frappeMethod("crm.api.session.me", baseUrl), {
@@ -59,11 +67,16 @@ async function getCurrentUserFrom(baseUrl: string): Promise<CurrentUser | null> 
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
+  if (isNestApiEnabled()) return nestGetCurrentUser();
   return getCurrentUserFrom(FRAPPE_URL);
 }
 
 /** Fetch the CSRF token bound to the browser's current Frappe session. */
-export async function getCsrfToken(baseUrl = FRAPPE_URL): Promise<string | null> {
+export async function getCsrfToken(
+  baseUrl = FRAPPE_URL,
+): Promise<string | null> {
+  // Better Auth sessions rely on the cookie and origin check, not a CSRF header.
+  if (isNestApiEnabled()) return null;
   const user = await getCurrentUserFrom(baseUrl);
   return user?.csrf_token?.trim() || null;
 }
@@ -104,17 +117,20 @@ export async function getSessionUsers(): Promise<SessionUser[]> {
   }
 
   if (!response.ok) {
-    throw new Error(`Không thể tải danh sách người phân công (HTTP ${response.status}).`);
+    throw new Error(
+      `Không thể tải danh sách người phân công (HTTP ${response.status}).`,
+    );
   }
 
-  const body = (await response.json().catch(() => null)) as FrappeMessage<unknown> | null;
+  const body = (await response
+    .json()
+    .catch(() => null)) as FrappeMessage<unknown> | null;
   const message = body?.message;
   const messageArrays = Array.isArray(message) ? message : [];
   const rawUsers =
     (Array.isArray(messageArrays[1]) && messageArrays[1].length > 0
       ? messageArrays[1]
-      : messageArrays[0]) ??
-    (Array.isArray(message) ? message : []);
+      : messageArrays[0]) ?? (Array.isArray(message) ? message : []);
 
   const normalizedUsers = rawUsers.map((rawUser: unknown) =>
     normalizeSessionUser(rawUser),
@@ -139,6 +155,7 @@ export async function loginWithPassword(
   usr: string,
   pwd: string,
 ): Promise<PasswordLoginResult> {
+  if (isNestApiEnabled()) return nestLoginWithPassword(usr, pwd);
   let res: Response;
   try {
     res = await fetch(frappeMethod("login"), {
@@ -176,6 +193,7 @@ export async function loginWithPassword(
 
 /** Clear the Frappe session cookie. Errors are swallowed — the client routes to /login regardless. */
 export async function logout(): Promise<void> {
+  if (isNestApiEnabled()) return nestLogout();
   try {
     await fetch(frappeMethod("logout"), { credentials: "include" });
   } catch {
