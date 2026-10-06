@@ -1,4 +1,9 @@
 import {
+  NestApiError,
+  isNestApiEnabled,
+  nestRequest,
+} from "../nest/nest-client";
+import {
   computeDirectorDemographicsOverview,
   computeDirectorDemographicsSegment,
 } from "./data";
@@ -118,6 +123,33 @@ export async function getDirectorDemographicsOverview(
   if (params?.owner) searchParams.set("owner", params.owner);
   if (params?.sourceGroup) searchParams.set("sourceGroup", params.sourceGroup);
 
+  if (isNestApiEnabled() && !options.baseUrl) {
+    try {
+      const payload = await nestRequest("/api/v1/director/demographics", {
+        query: {
+          admissionYear: params?.admissionYear,
+          period: params?.period,
+          scope: params?.scope,
+          page: params?.page,
+          pageSize: params?.pageSize,
+        },
+      });
+      if (!hasDemographicsOverviewEnvelope(payload)) {
+        throw new DirectorDemographicsApiError(
+          502,
+          "INVALID_DEMOGRAPHICS_RESPONSE",
+          "Phản hồi dữ liệu phân tích người học không hợp lệ.",
+        );
+      }
+      return payload as DirectorDemographicsOverviewResponse;
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new DirectorDemographicsApiError(error.status, error.code, error.message);
+      }
+      throw error;
+    }
+  }
+
   const queryStr = searchParams.toString();
   const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
 
@@ -191,6 +223,29 @@ export async function getDirectorDemographicsSegment(
   const searchParams = new URLSearchParams();
   searchParams.set("segment_id", params.segment_id);
   if (params.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
+
+  if (isNestApiEnabled() && !options.baseUrl) {
+    try {
+      const payload = await nestRequest(
+        `/api/v1/director/demographics/segments/${encodeURIComponent(params.segment_id)}`,
+        { query: { admissionYear: params.admissionYear } },
+      );
+      if (!hasDemographicsSegmentEnvelope(payload)) {
+        throw new DirectorDemographicsApiError(
+          502,
+          "INVALID_SEGMENT_RESPONSE",
+          "Phản hồi dữ liệu phân khúc người học không hợp lệ.",
+        );
+      }
+      return payload as DirectorDemographicsSegmentResponse;
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        if (error.status === 404 && error.code === "SEGMENT_NOT_FOUND") return null;
+        throw new DirectorDemographicsApiError(error.status, error.code, error.message);
+      }
+      throw error;
+    }
+  }
 
   const queryStr = searchParams.toString();
   const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
