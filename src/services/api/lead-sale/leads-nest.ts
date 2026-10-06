@@ -139,6 +139,22 @@ export async function nestLeadDetail(id: string): Promise<unknown> {
   };
 }
 
+export async function nestCreateLeadComment(
+  id: string,
+  input: { content: string; title?: string },
+): Promise<unknown> {
+  return nestRequest<Envelope<Record<string, unknown>>>(
+    `/api/v1/leads/${encodeURIComponent(id)}/comments`,
+    {
+      method: "POST",
+      body: {
+        content: input.content,
+        ...(input.title ? { title: input.title } : {}),
+      },
+    },
+  );
+}
+
 export async function nestCreateLead(
   fields: Record<string, string | null | undefined>,
 ): Promise<unknown> {
