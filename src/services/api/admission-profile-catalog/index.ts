@@ -19,6 +19,14 @@ import type {
   UpdateAdmissionApplicationPreferenceResponse,
 } from "./types";
 
+import {
+  NEST_API_URL,
+  NestApiError,
+  isNestApiEnabled,
+} from "../nest/nest-client";
+import { NOT_HANDLED } from "../nest/nest-admin-catalog-router";
+import { nestMethodRequest } from "../nest/nest-method-router";
+
 export type * from "./types";
 
 export class AdmissionProfileCatalogApiError extends Error {
@@ -33,10 +41,49 @@ export class AdmissionProfileCatalogApiError extends Error {
 }
 
 function baseUrl(value?: string): string {
+  // With the Nest API enabled the root only has to be non-empty; `request`
+  // routes by method name and ignores it.
+  if (value === undefined && isNestApiEnabled()) return NEST_API_URL;
   return (value ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
     /\/+$/,
     "",
   );
+}
+
+/** Serve a `.../api/method/<method>` call from Nest; null when not handled. */
+async function nestRoute(
+  url: string,
+  init: RequestInit,
+): Promise<Record<string, unknown> | null> {
+  const [path, queryString = ""] = url.split("?");
+  const method = path.split("/api/method/")[1];
+  if (!method) return null;
+  const params: Record<string, string> = {};
+  new URLSearchParams(queryString).forEach((value, key) => {
+    params[key] = value;
+  });
+  let body: Record<string, unknown> | undefined;
+  if (typeof init.body === "string") {
+    try {
+      body = JSON.parse(init.body) as Record<string, unknown>;
+    } catch {
+      body = undefined;
+    }
+  }
+  try {
+    const result = await nestMethodRequest(method, params, body);
+    if (result === NOT_HANDLED) return null;
+    return unwrapMessage(result);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new AdmissionProfileCatalogApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
 }
 
 function unwrapMessage(value: unknown): Record<string, unknown> {
@@ -54,6 +101,10 @@ async function request(
   init: RequestInit = {},
   frappeBaseUrl?: string,
 ): Promise<Record<string, unknown>> {
+  if (isNestApiEnabled()) {
+    const served = await nestRoute(url, init);
+    if (served) return served;
+  }
   const csrfToken = frappeBaseUrl
     ? await browserCsrfToken(frappeBaseUrl)
     : null;
@@ -246,7 +297,10 @@ export async function listAdmissionProfileTemplates(
     total: Number(result.total ?? result.templates.length),
     start: Number(result.start ?? options.start ?? 0),
     pageLength: Number(
-      result.pageLength ?? paginatedResult.page_length ?? options.pageLength ?? 20,
+      result.pageLength ??
+        paginatedResult.page_length ??
+        options.pageLength ??
+        20,
     ),
   };
 }
@@ -391,7 +445,10 @@ export async function listAdmissionDocumentTypes(
     total: Number(result.total ?? result.documentTypes.length),
     start: Number(result.start ?? options.start ?? 0),
     pageLength: Number(
-      result.pageLength ?? paginatedResult.page_length ?? options.pageLength ?? 20,
+      result.pageLength ??
+        paginatedResult.page_length ??
+        options.pageLength ??
+        20,
     ),
   };
 }
@@ -509,7 +566,10 @@ export async function listAdmissionMethods(
     total: Number(result.total ?? result.methods.length),
     start: Number(result.start ?? options.start ?? 0),
     pageLength: Number(
-      result.pageLength ?? paginatedResult.page_length ?? options.pageLength ?? 20,
+      result.pageLength ??
+        paginatedResult.page_length ??
+        options.pageLength ??
+        20,
     ),
   };
 }
