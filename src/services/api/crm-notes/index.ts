@@ -1,3 +1,5 @@
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import { nestActivityRequest } from "../nest/nest-activity-router";
 import type {
   CreateNotePayload,
   CRMNote,
@@ -147,6 +149,16 @@ async function callFrappeRpc<T>(
   options: RequestOptions = {},
   isWrite = false,
 ): Promise<T> {
+  if (isNestApiEnabled()) {
+    try {
+      return await nestActivityRequest<T>(method, body);
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new CrmNoteApiError(error.status, error.code, error.message);
+      }
+      throw error;
+    }
+  }
   const baseUrl = resolveBaseUrl(options);
   const endpoint = `${baseUrl}/api/method/${method}`;
   const url = isWrite

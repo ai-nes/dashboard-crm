@@ -1,3 +1,5 @@
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import { nestActivityRequest } from "../nest/nest-activity-router";
 import type {
   CRMTask,
   CRMTaskPriority,
@@ -178,6 +180,16 @@ async function callTaskApi<T>(
   query: Record<string, string | number | undefined> = {},
   body?: Record<string, unknown>,
 ): Promise<T> {
+  if (isNestApiEnabled()) {
+    try {
+      return await nestActivityRequest<T>(method, { ...query, ...body });
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new CrmTaskApiError(error.status, error.code, error.message);
+      }
+      throw error;
+    }
+  }
   const baseUrl = resolveBaseUrl(options);
   const url = new URL(`${baseUrl}/api/method/${method}`);
   Object.entries(query).forEach(([key, value]) => {
