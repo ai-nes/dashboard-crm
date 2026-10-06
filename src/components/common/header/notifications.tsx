@@ -10,10 +10,20 @@ import {
 import { Button } from "@/components/tailgrids/core/button";
 import { OverlayWrapper } from "@/components/tailgrids/core/overlay";
 import { Popover } from "@/components/tailgrids/core/popover";
-import { ScrollArea, ScrollAreaViewport, ScrollBar } from "@/components/tailgrids/core/scroll-area";
+import {
+  ScrollArea,
+  ScrollAreaViewport,
+  ScrollBar,
+} from "@/components/tailgrids/core/scroll-area";
 import { cn } from "@/utils/cn";
+import {
+  getCrmNotifications,
+  markAllCrmNotificationsRead,
+  markCrmNotificationRead,
+  type CrmNotification,
+} from "@/services/api/notifications";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Header, Heading } from "react-aria-components";
 
 interface Notification {
@@ -49,7 +59,8 @@ const defaultNotifications: { title: string; items: Notification[] }[] = [
         id: "3",
         icon: <PrinterIcon />,
         title: "Upcoming Bill",
-        description: "Reminder: Invoice EST-INV012 is due in 3 days. Please submit payment.",
+        description:
+          "Reminder: Invoice EST-INV012 is due in 3 days. Please submit payment.",
         timestamp: "12h ago",
         isUnread: false,
       },
@@ -78,7 +89,8 @@ const defaultNotifications: { title: string; items: Notification[] }[] = [
         id: "6",
         icon: <PrinterIcon />,
         title: "Upcoming Bill",
-        description: "Reminder: Invoice EST-INV012 is due in 3 days. Please submit payment.",
+        description:
+          "Reminder: Invoice EST-INV012 is due in 3 days. Please submit payment.",
         timestamp: "12h ago",
         isUnread: false,
       },
@@ -90,9 +102,29 @@ export function NotificationsButton() {
   const [notifications, setNotifications] = useState(defaultNotifications);
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
-  const unreadCount = notifications.flatMap((n) => n.items).filter((n) => n.isUnread).length;
+  useEffect(() => {
+    let disposed = false;
+    const load = async () => {
+      try {
+        const result = await getCrmNotifications({ limit: 50 });
+        if (!result || disposed) return;
+        setNotifications(groupCrmNotifications(result.notifications));
+      } catch {
+        // Keep the existing empty/mock state when the local API is unavailable.
+      }
+    };
+    void load();
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  const unreadCount = notifications
+    .flatMap((n) => n.items)
+    .filter((n) => n.isUnread).length;
 
   const handleMarkAsRead = (notificationId: string) => {
+    void markCrmNotificationRead(notificationId).catch(() => undefined);
     setNotifications((prevNotifications) =>
       prevNotifications.map((group) => ({
         ...group,
@@ -104,8 +136,12 @@ export function NotificationsButton() {
   };
 
   const handleMarkAllAsRead = () => {
+    void markAllCrmNotificationsRead().catch(() => undefined);
     setNotifications(
-      notifications.map((n) => ({ ...n, items: n.items.map((i) => ({ ...i, isUnread: false })) })),
+      notifications.map((n) => ({
+        ...n,
+        items: n.items.map((i) => ({ ...i, isUnread: false })),
+      })),
     );
   };
 
@@ -118,7 +154,11 @@ export function NotificationsButton() {
       >
         <BellIcon />
         {unreadCount > 0 && (
-          <span className={cn("absolute top-1.5 right-2 z-1 size-2 rounded-full bg-red-400")}>
+          <span
+            className={cn(
+              "absolute top-1.5 right-2 z-1 size-2 rounded-full bg-red-400",
+            )}
+          >
             <span className="absolute inset-0 -z-1 animate-ping rounded-full bg-red-400 opacity-75" />
           </span>
         )}
@@ -130,7 +170,10 @@ export function NotificationsButton() {
       >
         {/* Header */}
         <Header className="flex items-center justify-between border-b border-border-secondary-alt px-5 pt-5 pb-4">
-          <Heading level={4} className="leading-6 font-semibold text-text-primary">
+          <Heading
+            level={4}
+            className="leading-6 font-semibold text-text-primary"
+          >
             Notifications
           </Heading>
 
@@ -149,7 +192,9 @@ export function NotificationsButton() {
               <section key={group.title}>
                 {/* Group Header */}
                 <div className="border-t border-b border-border-primary bg-background-gray-secondary px-5 py-2">
-                  <p className="text-xs leading-4 text-text-tertiary uppercase">{group.title}</p>
+                  <p className="text-xs leading-4 text-text-tertiary uppercase">
+                    {group.title}
+                  </p>
                 </div>
                 {/* Notifications List */}
                 <ul className="flex-1 overflow-y-auto px-3 py-2">
@@ -208,4 +253,23 @@ export function NotificationsButton() {
       </Popover>
     </OverlayWrapper>
   );
+}
+
+function groupCrmNotifications(notifications: CrmNotification[]) {
+  const groups = new Map<string, Notification[]>();
+  for (const notification of notifications) {
+    const date = new Date(notification.createdAt);
+    const group =
+      date.toDateString() === new Date().toDateString() ? "Today" : "Earlier";
+    const item: Notification = {
+      id: notification.id,
+      icon: <LetterIcon />,
+      title: notification.title,
+      description: notification.message,
+      timestamp: date.toLocaleString("vi-VN"),
+      isUnread: !notification.read,
+    };
+    groups.set(group, [...(groups.get(group) ?? []), item]);
+  }
+  return [...groups.entries()].map(([title, items]) => ({ title, items }));
 }
