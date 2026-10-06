@@ -1,3 +1,5 @@
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import { nestFieldOptions, nestSchools } from "../nest/nest-directory";
 import {
   getStudentStudyStageForPayload,
   normalizeStudentStudyStage,
@@ -728,6 +730,20 @@ function addOptionalQueryParam(
 async function readSchools(
   params: GetSchoolsParams = {},
 ): Promise<GetSchoolsResponse> {
+  if (isNestApiEnabled()) {
+    try {
+      return await nestSchools(params);
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new StudentSchoolUpdateApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  }
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     throw new StudentSchoolUpdateApiError(
@@ -800,6 +816,20 @@ export function getSchools(params: GetSchoolsParams = {}) {
 export async function getFieldOptions(
   params: GetFieldOptionsParams,
 ): Promise<GetFieldOptionsResponse> {
+  if (isNestApiEnabled()) {
+    try {
+      return await nestFieldOptions(params);
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new StudentSchoolUpdateApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  }
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     throw new StudentSchoolUpdateApiError(
