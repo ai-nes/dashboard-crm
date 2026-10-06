@@ -1,3 +1,5 @@
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import { nestStudentClassificationRequest } from "../nest/nest-segment-router";
 const METHODS = {
   GET: "crm.api.student_classification.get_classifications",
   TAG_GROUPS: "crm.api.student_classification.list_tag_groups",
@@ -203,6 +205,28 @@ async function request(
   options: StudentClassificationRequestOptions,
   init: RequestInit,
 ): Promise<unknown> {
+  if (isNestApiEnabled()) {
+    const parsed = new URL(url);
+    const method = parsed.pathname.split("/api/method/")[1] ?? "";
+    const params: Record<string, string | undefined> = {
+      ...Object.fromEntries(parsed.searchParams),
+    };
+    if (typeof init.body === "string") {
+      Object.assign(params, JSON.parse(init.body) as Record<string, string>);
+    }
+    try {
+      return await nestStudentClassificationRequest<unknown>(method, params);
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new StudentClassificationApiError(
+          error.status,
+          error.code === "REVISION_CONFLICT" ? "REVISION_CONFLICT" : error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  }
   let response: Response;
   try {
     response = await fetch(url, {

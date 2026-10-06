@@ -103,12 +103,93 @@ describe("nestSegmentRequest", () => {
     expect(init.method).toBe("DELETE");
   });
 
-  it("returns empty term lists and refuses classification management", async () => {
+  it("maps need and tag catalogs, including the paged shape", async () => {
+    fetchMock.mockImplementation(() =>
+      json({ terms: [{ name: "t1" }], total: 1 }),
+    );
     await expect(
-      call("crm.api.student_classification.list_needs"),
-    ).resolves.toEqual([]);
+      call("crm.api.student_classification.list_needs", { status: "" }),
+    ).resolves.toEqual([{ name: "t1" }]);
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      "http://api.test/api/v1/classification/terms/need?status=all",
+    );
     await expect(
-      call("crm.api.student_classification.create_need_group", {}, {}),
+      call("crm.api.student_classification.list_tags_page", {
+        status: "active",
+        group: "G",
+        start: 0,
+        page_length: 20,
+      }),
+    ).resolves.toEqual({
+      tags: [{ name: "t1" }],
+      total: 1,
+      start: 0,
+      page_length: 20,
+    });
+  });
+
+  it("maps group and term writes with revisions", async () => {
+    fetchMock.mockImplementation(() => json({ ok: true }));
+    await call(
+      "crm.api.student_classification.create_need_group",
+      {},
+      { data: { code: "G" } },
+    );
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      "http://api.test/api/v1/classification/groups/need",
+    );
+    await call(
+      "crm.api.student_classification.transition_tag",
+      {},
+      {
+        name: "t1",
+        status: "active",
+        expected_revision: 3,
+      },
+    );
+    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(url).toBe(
+      "http://api.test/api/v1/classification/terms/tag/t1/transition",
+    );
+    expect(JSON.parse(init.body as string)).toEqual({
+      status: "active",
+      expectedRevision: 3,
+    });
+  });
+
+  it("maps per-student tag calls, replacing a tag as remove then add", async () => {
+    fetchMock.mockImplementation((_url: string, init?: RequestInit) =>
+      json(init?.method === "DELETE" ? { modified: "m2" } : { ok: true }),
+    );
+    const { nestStudentClassificationRequest } =
+      await import("./nest-segment-router");
+    await nestStudentClassificationRequest(
+      "crm.api.student_classification.update_student_tag",
+      {
+        student: "s1",
+        tag: "old",
+        new_tag: "new",
+        expected_modified: "m1",
+      },
+    );
+    const [removeUrl, removeInit] = fetchMock.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(removeInit.method).toBe("DELETE");
+    expect(removeUrl).toBe(
+      "http://api.test/api/v1/students/s1/tags/old?expectedModified=m1",
+    );
+    const [, addInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(JSON.parse(addInit.body as string)).toEqual({
+      tag: "new",
+      expectedModified: "m2",
+    });
+  });
+
+  it("rejects methods without a Nest equivalent", async () => {
+    await expect(
+      call("crm.api.student_classification.unknown_thing"),
     ).rejects.toMatchObject({ status: 501, code: "NOT_PORTED" });
   });
 });

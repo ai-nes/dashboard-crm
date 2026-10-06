@@ -1,7 +1,6 @@
 /**
- * Maps the Frappe segment methods onto the NestJS segment API. Need/tag
- * classification is not ported yet, so term lists are empty and their
- * management calls report that they are unavailable.
+ * Maps the Frappe segment and need/tag classification methods onto the NestJS
+ * API, including the per-student classification calls.
  */
 import { NestApiError, nestRequest } from "./nest-client";
 
@@ -87,14 +86,143 @@ export async function nestSegmentRequest<T>(
         method: "DELETE",
         query: { expectedRevision: Number(body?.expected_revision) },
       });
-    case "list_needs":
-    case "list_tags":
-      return [] as T;
     default:
-      throw new NestApiError(
-        501,
-        "NOT_PORTED",
-        "Chức năng phân loại nhu cầu/thẻ chưa có trên backend mới.",
+      return nestClassificationRequest<T>(method, query, body);
+  }
+}
+
+type Kind = "need" | "tag";
+const CLASSIFICATION = "/api/v1/classification";
+
+/** `""` means "any status" to the Frappe API; Nest spells it `all`. */
+const statusOf = (value: unknown) => (value ? String(value) : "all");
+
+function kindOf(method: string): Kind | null {
+  if (/need/.test(method)) return "need";
+  if (/tag/.test(method)) return "tag";
+  return null;
+}
+
+async function nestClassificationRequest<T>(
+  method: string,
+  query: Query,
+  body: Body,
+): Promise<T> {
+  const action = method.split(".").pop() ?? "";
+  const kind = kindOf(action);
+  const send = (path: string, init: Parameters<typeof nestRequest>[1] = {}) =>
+    nestRequest<unknown>(path, init) as Promise<T>;
+  const paging = {
+    status: statusOf(query.status),
+    group: query.group as string | undefined,
+    start: query.start,
+    page_length: query.page_length,
+  };
+  const name = encodeURIComponent(String(body?.name ?? ""));
+  const revisionBody = (extra: Record<string, unknown> = {}) => ({
+    expectedRevision: Number(body?.expected_revision),
+    ...extra,
+  });
+
+  if (!kind) {
+    throw new NestApiError(501, "NOT_PORTED", `${action} is not available.`);
+  }
+  const isGroup = /group/.test(action);
+
+  // Reads.
+  if (action.startsWith("list_")) {
+    if (action === "list_tag_groups") {
+      return send(`${CLASSIFICATION}/tag-groups`, { query: paging });
+    }
+    if (isGroup) {
+      const page = (await nestRequest<{ groups: unknown[] }>(
+        `${CLASSIFICATION}/groups/${kind}`,
+        { query: paging },
+      )) as { groups: unknown[] } & Record<string, unknown>;
+      return (action.endsWith("_page") ? page : page.groups) as T;
+    }
+    const page = (await nestRequest<{ terms: unknown[] }>(
+      `${CLASSIFICATION}/terms/${kind}`,
+      { query: paging },
+    )) as { terms: unknown[]; total: number };
+    if (action.endsWith("_page")) {
+      return {
+        [kind === "need" ? "needs" : "tags"]: page.terms,
+        total: page.total,
+        start: Number(query.start ?? 0),
+        page_length: Number(query.page_length ?? 20),
+      } as T;
+    }
+    return page.terms as T;
+  }
+
+  const base = `${CLASSIFICATION}/${isGroup ? "groups" : "terms"}/${kind}`;
+  if (action.startsWith("create_")) {
+    return send(base, { method: "POST", body: { data: body?.data } });
+  }
+  if (action.startsWith("update_")) {
+    return send(`${base}/${name}`, {
+      method: "PATCH",
+      body: revisionBody({ data: body?.data }),
+    });
+  }
+  if (action.startsWith("transition_")) {
+    return send(`${base}/${name}/transition`, {
+      method: "POST",
+      body: revisionBody({ status: body?.status }),
+    });
+  }
+  if (action.startsWith("delete_")) {
+    return send(`${base}/${name}`, {
+      method: "DELETE",
+      query: { expectedRevision: Number(body?.expected_revision) },
+    });
+  }
+  throw new NestApiError(501, "NOT_PORTED", `${action} is not available.`);
+}
+
+/** Per-student classification calls (`crm.api.student_classification.*`). */
+export async function nestStudentClassificationRequest<T>(
+  method: string,
+  params: Record<string, string | undefined>,
+): Promise<T> {
+  const action = method.split(".").pop() ?? "";
+  const student = encodeURIComponent(params.student ?? "");
+  const expected = params.expected_modified ?? "";
+  const send = (path: string, init: Parameters<typeof nestRequest>[1] = {}) =>
+    nestRequest<unknown>(path, init) as Promise<T>;
+
+  switch (action) {
+    case "get_classifications":
+      return send(`/api/v1/students/${student}/classifications`);
+    case "list_tag_groups":
+      return send(`${CLASSIFICATION}/tag-groups`, {
+        query: {
+          status: statusOf(params.status),
+          page_length: params.page_length,
+        },
+      });
+    case "add_student_tag":
+      return send(`/api/v1/students/${student}/tags`, {
+        method: "POST",
+        body: { tag: params.tag, expectedModified: expected },
+      });
+    case "remove_student_tag":
+      return send(
+        `/api/v1/students/${student}/tags/${encodeURIComponent(params.tag ?? "")}`,
+        { method: "DELETE", query: { expectedModified: expected } },
       );
+    case "update_student_tag": {
+      const removed = (await send(
+        `/api/v1/students/${student}/tags/${encodeURIComponent(params.tag ?? "")}`,
+        { method: "DELETE", query: { expectedModified: expected } },
+      )) as { modified: string };
+      return send(`/api/v1/students/${student}/tags`, {
+        method: "POST",
+        body: { tag: params.new_tag, expectedModified: removed.modified },
+      });
+    }
+    default:
+      throw new NestApiError(501, "NOT_PORTED", `${action} is not available.`);
   }
 }
