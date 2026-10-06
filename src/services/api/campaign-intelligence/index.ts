@@ -7,6 +7,11 @@ import type {
   LeadStatusBreakdown,
   LeadStatusFilter,
 } from "./types";
+import {
+  NestApiError,
+  isNestApiEnabled,
+  nestRequest,
+} from "../nest/nest-client";
 
 const METHOD =
   "crm.api.director_campaign_intelligence.get_director_campaign_intelligence";
@@ -80,7 +85,11 @@ function normalizeCampaign(row: unknown): CampaignRecord | null {
   )
     return null;
   const leadCount = value.leadCount == null ? null : value.leadCount;
-  if (leadCount !== null && (!Number.isInteger(leadCount) || Number(leadCount) < 0)) return null;
+  if (
+    leadCount !== null &&
+    (!Number.isInteger(leadCount) || Number(leadCount) < 0)
+  )
+    return null;
   let statusBreakdown: LeadStatusBreakdown[] | null = null;
   if (value.statusBreakdown != null) {
     if (!Array.isArray(value.statusBreakdown)) return null;
@@ -89,13 +98,37 @@ function normalizeCampaign(row: unknown): CampaignRecord | null {
     for (const row of value.statusBreakdown) {
       const item = asRecord(row);
       const code = textValue(item?.code);
-      if (!item || !["new", "in_progress", "no_response", "disqualified", "converted"].includes(code)
-        || seen.has(code) || !Number.isInteger(item.count) || Number(item.count) < 0
-        || typeof item.share !== "number" || !Number.isFinite(item.share) || item.share < 0) return null;
+      if (
+        !item ||
+        ![
+          "new",
+          "in_progress",
+          "no_response",
+          "disqualified",
+          "converted",
+        ].includes(code) ||
+        seen.has(code) ||
+        !Number.isInteger(item.count) ||
+        Number(item.count) < 0 ||
+        typeof item.share !== "number" ||
+        !Number.isFinite(item.share) ||
+        item.share < 0
+      )
+        return null;
       seen.add(code);
-      statusBreakdown.push({ code: code as LeadStatusBreakdown["code"], label: textValue(item.label), count: Number(item.count), share: item.share });
+      statusBreakdown.push({
+        code: code as LeadStatusBreakdown["code"],
+        label: textValue(item.label),
+        count: Number(item.count),
+        share: item.share,
+      });
     }
-    if (leadCount === null || statusBreakdown.reduce((sum, item) => sum + item.count, 0) > Number(leadCount)) return null;
+    if (
+      leadCount === null ||
+      statusBreakdown.reduce((sum, item) => sum + item.count, 0) >
+        Number(leadCount)
+    )
+      return null;
   }
   return {
     id: textValue(value.id),
@@ -106,7 +139,8 @@ function normalizeCampaign(row: unknown): CampaignRecord | null {
     qualityCount:
       value.qualityCount == null
         ? null
-        : Number.isInteger(value.qualityCount) && Number(value.qualityCount) >= 0
+        : Number.isInteger(value.qualityCount) &&
+            Number(value.qualityCount) >= 0
           ? Number(value.qualityCount)
           : null,
     spend: numberValue(value.spend),
@@ -189,7 +223,44 @@ function normalizeResponse(
   };
 }
 
-async function requestCampaignData(method: string, params: CampaignScopeParams | CampaignLeadsParams, signal?: AbortSignal): Promise<unknown> {
+async function requestNestCampaignData(
+  path: string,
+  params: CampaignScopeParams | CampaignLeadsParams,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  const query: Record<string, string> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") query[key] = String(value);
+  }
+  try {
+    return await nestRequest(path, { query, signal });
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    if (error instanceof NestApiError) {
+      throw new CampaignIntelligenceApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+}
+
+async function requestCampaignData(
+  method: string,
+  params: CampaignScopeParams | CampaignLeadsParams,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  if (isNestApiEnabled()) {
+    return requestNestCampaignData(
+      method.endsWith("get_campaign_leads")
+        ? "/api/v1/director/campaign-intelligence/leads"
+        : "/api/v1/director/campaign-intelligence",
+      params,
+      signal,
+    );
+  }
   const baseUrl = (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
     /\/+$/,
     "",
@@ -233,8 +304,13 @@ async function requestCampaignData(method: string, params: CampaignScopeParams |
   return asRecord(payload)?.message;
 }
 
-export async function getCampaignIntelligence(params: CampaignScopeParams = {}, signal?: AbortSignal): Promise<CampaignIntelligenceResponse> {
-  const data = normalizeResponse(await requestCampaignData(METHOD, params, signal));
+export async function getCampaignIntelligence(
+  params: CampaignScopeParams = {},
+  signal?: AbortSignal,
+): Promise<CampaignIntelligenceResponse> {
+  const data = normalizeResponse(
+    await requestCampaignData(METHOD, params, signal),
+  );
   if (!data)
     throw new CampaignIntelligenceApiError(
       502,
@@ -244,35 +320,98 @@ export async function getCampaignIntelligence(params: CampaignScopeParams = {}, 
   return data;
 }
 
-export async function getCampaignLeads(params: CampaignLeadsParams, signal?: AbortSignal): Promise<CampaignLeadsResponse> {
-  const data = asRecord(await requestCampaignData("crm.api.director_campaign_intelligence.get_campaign_leads", params, signal));
-  const invalid = () => new CampaignIntelligenceApiError(502, "INVALID_CAMPAIGN_LEADS_RESPONSE", "Phản hồi danh sách lead không hợp lệ.");
+export async function getCampaignLeads(
+  params: CampaignLeadsParams,
+  signal?: AbortSignal,
+): Promise<CampaignLeadsResponse> {
+  const data = asRecord(
+    await requestCampaignData(
+      "crm.api.director_campaign_intelligence.get_campaign_leads",
+      params,
+      signal,
+    ),
+  );
+  const invalid = () =>
+    new CampaignIntelligenceApiError(
+      502,
+      "INVALID_CAMPAIGN_LEADS_RESPONSE",
+      "Phản hồi danh sách lead không hợp lệ.",
+    );
   const meta = asRecord(data?.meta);
   const pagination = asRecord(data?.pagination);
   const page = pagination?.page;
   const pageSize = pagination?.pageSize;
   const total = pagination?.total;
   const totalPages = pagination?.totalPages;
-  if (!data || !meta || !textValue(data.campaignId) || !pagination || !Array.isArray(data.items)
-    || !Number.isInteger(page) || Number(page) < 1 || !Number.isInteger(pageSize) || Number(pageSize) < 1
-    || !Number.isInteger(total) || Number(total) < 0 || !Number.isInteger(totalPages) || Number(totalPages) < 0) throw invalid();
+  if (
+    !data ||
+    !meta ||
+    !textValue(data.campaignId) ||
+    !pagination ||
+    !Array.isArray(data.items) ||
+    !Number.isInteger(page) ||
+    Number(page) < 1 ||
+    !Number.isInteger(pageSize) ||
+    Number(pageSize) < 1 ||
+    !Number.isInteger(total) ||
+    Number(total) < 0 ||
+    !Number.isInteger(totalPages) ||
+    Number(totalPages) < 0
+  )
+    throw invalid();
   const leads = data.items.map((row) => {
     const item = asRecord(row);
-    if (!item || !textValue(item.leadCode) || !textValue(item.name)) throw invalid();
-    if (item.contactAttemptCount != null && (!Number.isInteger(item.contactAttemptCount) || Number(item.contactAttemptCount) < 0)) throw invalid();
-    const statusGroup = textValue(item.statusGroup, "unknown") as LeadStatusFilter;
-    if (!["all", "new", "in_progress", "no_response", "disqualified", "converted", "invalid", "duplicate", "unknown"].includes(statusGroup)) throw invalid();
+    if (!item || !textValue(item.leadCode) || !textValue(item.name))
+      throw invalid();
+    if (
+      item.contactAttemptCount != null &&
+      (!Number.isInteger(item.contactAttemptCount) ||
+        Number(item.contactAttemptCount) < 0)
+    )
+      throw invalid();
+    const statusGroup = textValue(
+      item.statusGroup,
+      "unknown",
+    ) as LeadStatusFilter;
+    if (
+      ![
+        "all",
+        "new",
+        "in_progress",
+        "no_response",
+        "disqualified",
+        "converted",
+        "invalid",
+        "duplicate",
+        "unknown",
+      ].includes(statusGroup)
+    )
+      throw invalid();
     return {
       ...(textValue(item.id) ? { id: textValue(item.id) } : {}),
-      leadCode: textValue(item.leadCode), name: textValue(item.name), school: textValue(item.school),
-      status: textValue(item.status), statusCode: textValue(item.statusCode), owner: textValue(item.owner),
-      source: textValue(item.source), modifiedAt: item.modifiedAt == null ? null : textValue(item.modifiedAt),
+      leadCode: textValue(item.leadCode),
+      name: textValue(item.name),
+      school: textValue(item.school),
+      status: textValue(item.status),
+      statusCode: textValue(item.statusCode),
+      owner: textValue(item.owner),
+      source: textValue(item.source),
+      modifiedAt: item.modifiedAt == null ? null : textValue(item.modifiedAt),
       statusGroup,
-      lastContactAt: item.lastContactAt == null ? null : textValue(item.lastContactAt),
-      contactAttemptCount: item.contactAttemptCount == null ? null : Number(item.contactAttemptCount),
+      lastContactAt:
+        item.lastContactAt == null ? null : textValue(item.lastContactAt),
+      contactAttemptCount:
+        item.contactAttemptCount == null
+          ? null
+          : Number(item.contactAttemptCount),
     };
   });
-  if (leads.length > Number(pageSize) || leads.length > Number(total) || Number(page) > Number(totalPages || 1)) throw invalid();
+  if (
+    leads.length > Number(pageSize) ||
+    leads.length > Number(total) ||
+    Number(page) > Number(totalPages || 1)
+  )
+    throw invalid();
   return {
     meta,
     campaignId: textValue(data.campaignId),

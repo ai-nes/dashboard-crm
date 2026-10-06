@@ -29,6 +29,7 @@ export interface NestRequestOptions {
   query?: Record<string, string | number | undefined | null>;
   body?: unknown;
   headers?: Record<string, string>;
+  signal?: AbortSignal;
 }
 
 function buildUrl(path: string, query: NestRequestOptions["query"]): string {
@@ -68,6 +69,7 @@ export async function nestRequest<T = unknown>(
       method: options.method ?? "GET",
       credentials: "include",
       cache: "no-store",
+      ...(options.signal ? { signal: options.signal } : {}),
       headers: {
         Accept: "application/json",
         // The browser sets the multipart boundary for FormData itself.
