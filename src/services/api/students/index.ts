@@ -844,6 +844,36 @@ export async function getStudent360(
   studentId = "nguyen-minh-an",
   options: { baseUrl?: string } = {},
 ): Promise<Student360Data | null> {
+  if (!options.baseUrl && isNestApiEnabled()) {
+    try {
+      const result = await nestRequest<{
+        data?: Record<string, unknown>;
+      }>(`/api/v1/students/${encodeURIComponent(studentId)}`);
+      const student = result.data;
+      if (!student || typeof student !== "object") {
+        throw new DirectorStudentsApiError(
+          502,
+          "INVALID_STUDENT_RESPONSE",
+          "Phản hồi hồ sơ học sinh không hợp lệ.",
+        );
+      }
+      return toNestStudent360(student);
+    } catch (error) {
+      if (error instanceof DirectorStudentsApiError) throw error;
+      if (error instanceof NestApiError) {
+        if (error.status === 404 || error.code === "STUDENT_NOT_FOUND") {
+          return null;
+        }
+        throw new DirectorStudentsApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  }
+
   const frappeBase = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??
@@ -928,10 +958,232 @@ export async function getStudent360(
   return (payload.message || payload) as Student360Data;
 }
 
+function toNestStudent360(student: Record<string, unknown>): Student360Data {
+  const text = (value: unknown): string =>
+    typeof value === "string" ? value : "";
+  const nullableText = (value: unknown): string | null => {
+    const result = text(value).trim();
+    return result || null;
+  };
+  const name = text(student.fullName) || "Học sinh";
+  const stage = text(student.studentStage);
+  const owner = text(student.owner) || "Chưa phân công";
+  const source = text(student.source) || "Chưa xác định";
+  const province = text(student.province) || "Chưa xác định";
+  const major = text(student.major) || "Chưa xác định";
+  const qualityBucket = text(student.qualityBucket);
+  const score = Number(student.latestScore);
+  const signalScore = Number.isFinite(score) ? score : null;
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const initials = [words[0]?.[0], words.at(-1)?.[0]]
+    .filter(Boolean)
+    .join("")
+    .toUpperCase();
+  const parentName = text(student.parentName);
+  const admissionYear = nullableText(student.admissionYear);
+  const studyStage = nullableText(student.studyStage);
+  const currentGrade = nullableText(student.currentGrade);
+  const modifiedAt = text(student.modifiedAt) || new Date().toISOString();
+  const normalizedStage = [
+    "New",
+    "Attempting",
+    "Connected",
+    "Qualified",
+    "Registration",
+    "New Enter",
+    "Disqualified",
+  ].includes(stage)
+    ? (stage as Student360Data["student"]["studentStage"])
+    : null;
+  const readinessLevel = text(student.readinessLevel);
+  const readinessValue =
+    readinessLevel === "High" ? 85 : readinessLevel === "Medium" ? 60 : 35;
+
+  return {
+    student: {
+      id: text(student.id),
+      studentId: text(student.id),
+      initials: initials || "HS",
+      name,
+      code: text(student.studentCode),
+      school: text(student.school),
+      schoolId: nullableText(student.highSchoolId),
+      grade: currentGrade || studyStage || "Chưa xác định",
+      admissionYear,
+      studentStage: normalizedStage,
+      studyStage,
+      major,
+      phone: text(student.phone),
+      email: text(student.email),
+      province,
+      provinceId: nullableText(student.provinceId),
+      ward: nullableText(student.ward),
+      wardId: nullableText(student.wardId),
+      currentGrade,
+      counselor: owner,
+      ownerId: nullableText(student.ownerUserId),
+      revision:
+        typeof student.revision === "number" ? student.revision : undefined,
+      priority:
+        qualityBucket === "Hot"
+          ? "Cao"
+          : qualityBucket === "Warm"
+            ? "Trung bình"
+            : qualityBucket
+              ? "Thấp"
+              : null,
+      lastUpdatedAt: modifiedAt,
+      aspiration: nullableText(student.aspiration),
+      aspirationId: nullableText(student.aspirationId),
+    },
+    readiness: [
+      {
+        label: "Mức sẵn sàng",
+        value: readinessValue,
+        tone: readinessValue >= 75 ? "success" : readinessValue >= 50 ? "warning" : "error",
+        detail: readinessLevel || "Chưa có dữ liệu đánh giá",
+      },
+    ],
+    profile: [
+      { label: "Khu vực", value: province },
+      { label: "Nguồn", value: source },
+      { label: "Chiến dịch", value: text(student.campaign) || "—" },
+      { label: "Cập nhật lần cuối", value: modifiedAt },
+    ],
+    academics: [],
+    family: parentName ? [{ label: "Người liên hệ", value: parentName }] : [],
+    classification: {
+      dimensions: [],
+      combination: qualityBucket || "Chưa phân loại",
+      interpretation: "Chưa có dữ liệu phân loại chi tiết.",
+      action: "Tiếp tục cập nhật tương tác và nhu cầu của học sinh.",
+      updatedAt: modifiedAt,
+      updateTrigger: "Nest CRM student profile",
+      reviewStatus: "Chờ xác nhận",
+      reviewedBy: "",
+    },
+    acquisition: {
+      firstTouch: source,
+      sourceGroup: "Trực tuyến chủ động",
+      campaign: text(student.campaign) || "—",
+      capturedAt: text(student.createdAt) || modifiedAt,
+      attributionModel: "CRM source",
+      consent: text(student.privacyStatus) || "Chưa xác định",
+    },
+    segmentation: {
+      learningStage: studyStage || currentGrade || "Chưa xác định",
+      approachGoal: stage || "Theo dõi và xác minh nhu cầu",
+      geographyTier: province,
+      geographyImplication: "Chưa có dữ liệu phân vùng.",
+      schoolTier: text(student.school) || "Chưa xác định",
+      economicContext: "Chưa có dữ liệu",
+      economicUsage: "Chưa có dữ liệu",
+    },
+    parentProfile: {
+      name: parentName || "Chưa có thông tin",
+      relation: parentName ? "Người liên hệ" : "Chưa xác định",
+      involvement: "Chưa xác định",
+      role: "Chưa xác định",
+      concerns: [],
+      preferredChannel: "Chưa xác định",
+      bestContactTime: "Chưa xác định",
+      consentStatus: text(student.privacyStatus) || "Chưa xác định",
+      lastInteraction: modifiedAt,
+    },
+    insight: {
+      summary: `${name} đang ở trạng thái ${stage || "chưa xác định"}.`,
+      signalScore,
+      probability: signalScore,
+      concern: text(student.primaryBarrier) || "Chưa xác định",
+      decisionMaker: parentName || "Chưa xác định",
+      evidence: [
+        stage ? `Trạng thái: ${stage}` : "Chưa có trạng thái",
+        source !== "Chưa xác định" ? `Nguồn: ${source}` : "Chưa có nguồn",
+      ],
+      recommendation: "Bổ sung tương tác và cập nhật hồ sơ trước bước tiếp theo.",
+    },
+    journey: [],
+    engagement: [],
+    application: [],
+    zaloMessages: [],
+    calls: [],
+  };
+}
+
 export async function getStudentChatwootInteractions(
   studentId: string,
   options: { baseUrl?: string; page?: number; pageSize?: number } = {},
 ): Promise<StudentChatwootInteractionsResponse | null> {
+  if (isNestApiEnabled()) {
+    try {
+      const result = await nestRequest<{
+        data?: Array<Record<string, unknown>>;
+      }>(`/api/v1/students/${encodeURIComponent(studentId)}/timeline`, {
+        query: { limit: 200 },
+      });
+      if (!Array.isArray(result.data)) {
+        throw new DirectorStudentsApiError(
+          502,
+          "INVALID_CHATWOOT_INTERACTIONS_RESPONSE",
+          "Phản hồi tương tác Chatwoot không hợp lệ.",
+        );
+      }
+      const interactions = result.data
+        .filter((entry) => entry.type === "interaction")
+        .map((entry) => ({
+          name: typeof entry.id === "string" ? entry.id : "",
+          student: studentId,
+          crm_contact: null,
+          interaction_type:
+            typeof entry.channel === "string" && entry.channel
+              ? entry.channel
+              : "interaction",
+          interaction_datetime:
+            typeof entry.occurredAt === "string" ? entry.occurredAt : "",
+          summary: typeof entry.title === "string" ? entry.title : null,
+          notes: typeof entry.content === "string" ? entry.content : null,
+          channel: typeof entry.channel === "string" ? entry.channel : null,
+          direction:
+            entry.direction === "inbound" || entry.direction === "outbound"
+              ? (entry.direction as "inbound" | "outbound")
+              : null,
+          conversation_id: null,
+          agent_id: null,
+          outcome: typeof entry.outcome === "string" ? entry.outcome : null,
+          actor: typeof entry.author === "string" ? entry.author : null,
+          source_namespace: "nest.timeline",
+          source_record_id: typeof entry.id === "string" ? entry.id : null,
+          creation:
+            typeof entry.occurredAt === "string" ? entry.occurredAt : null,
+        }))
+        .filter((entry) => entry.name && entry.interaction_datetime);
+      const page = Math.max(1, options.page ?? 1);
+      const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 50));
+      const start = (page - 1) * pageSize;
+      return {
+        student_id: studentId,
+        data: interactions.slice(start, start + pageSize),
+        zalo_messages: [],
+        meta: {
+          page,
+          page_size: pageSize,
+          total: interactions.length,
+          has_next_page: start + pageSize < interactions.length,
+        },
+      };
+    } catch (error) {
+      if (error instanceof DirectorStudentsApiError) throw error;
+      if (error instanceof NestApiError) {
+        throw new DirectorStudentsApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  }
+
   const frappeBase = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??

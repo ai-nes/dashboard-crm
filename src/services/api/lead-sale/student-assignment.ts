@@ -1,3 +1,9 @@
+import {
+  NestApiError,
+  isNestApiEnabled,
+  nestRequest,
+} from "../nest/nest-client";
+
 const WORKSPACE_METHOD = "crm.api.lead_sale.get_student_assignment_workspace";
 const DETAIL_METHOD = "crm.api.lead_sale.get_student_assignment_detail";
 const RESOLVE_METHOD = "crm.api.lead_sale.resolve_student_assignment";
@@ -1020,10 +1026,56 @@ async function request(url: string, init: RequestInit): Promise<unknown> {
   return payload;
 }
 
+const shouldUseNest = (options: StudentAssignmentRequestOptions) =>
+  isNestApiEnabled() && !options.baseUrl;
+
+/** Nest call whose failures surface as `StudentAssignmentApiError`. */
+async function nestCall(
+  path: string,
+  init: Parameters<typeof nestRequest>[1] = {},
+): Promise<unknown> {
+  try {
+    return await nestRequest(path, init);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new StudentAssignmentApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+}
+
 export async function getStudentAssignmentWorkspace(
   params: StudentAssignmentWorkspaceParams = {},
   options: StudentAssignmentRequestOptions = {},
 ): Promise<AssignmentWorkspaceResponse> {
+  if (shouldUseNest(options)) {
+    const payload = await nestCall("/api/v1/student-assignment/workspace", {
+      query: {
+        admissionYear: params.admissionYear,
+        date: params.date,
+        timezone: params.timezone,
+        filter: params.filter ?? "all",
+        q: params.q ?? "",
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        sort: params.sort ?? "receivedAt",
+        order: params.order ?? "desc",
+      },
+    });
+    try {
+      return normalizeStudentAssignmentWorkspace(payload);
+    } catch {
+      throw new StudentAssignmentApiError(
+        502,
+        "INVALID_ASSIGNMENT_RESPONSE",
+        "Phản hồi workspace phân công học sinh không hợp lệ.",
+      );
+    }
+  }
   const query = new URLSearchParams();
   if (params.admissionYear !== undefined)
     query.set("admissionYear", String(params.admissionYear));
@@ -1063,6 +1115,20 @@ export async function getStudentAssignmentDetail(
       "studentId là bắt buộc.",
     );
   }
+  if (shouldUseNest(options)) {
+    const nestPayload = await nestCall("/api/v1/student-assignment/detail", {
+      query: { studentId: normalizedStudentId, admissionYear },
+    });
+    try {
+      return normalizeStudentAssignmentDetail(nestPayload);
+    } catch {
+      throw new StudentAssignmentApiError(
+        502,
+        "INVALID_ASSIGNMENT_RESPONSE",
+        "Phản hồi chi tiết phân công học sinh không hợp lệ.",
+      );
+    }
+  }
   const query = new URLSearchParams({ studentId: normalizedStudentId });
   if (admissionYear !== undefined)
     query.set("admissionYear", String(admissionYear));
@@ -1085,6 +1151,27 @@ export async function runStudentAssignmentPipeline(
   params: RunStudentAssignmentPipelineRequest = {},
   options: StudentAssignmentRequestOptions = {},
 ): Promise<RunStudentAssignmentPipelineResponse> {
+  if (shouldUseNest(options)) {
+    const nestPayload = await nestCall("/api/v1/student-assignment/pipeline", {
+      method: "POST",
+      body: {
+        ...(params.admissionYear !== undefined
+          ? { admissionYear: params.admissionYear }
+          : {}),
+        timezone: params.timezone ?? DEFAULT_TIMEZONE,
+        limit: params.limit ?? 50,
+      },
+    });
+    try {
+      return normalizeRunStudentAssignmentPipeline(nestPayload);
+    } catch {
+      throw new StudentAssignmentApiError(
+        502,
+        "INVALID_ASSIGNMENT_RESPONSE",
+        "Phản hồi chạy pipeline phân công học sinh không hợp lệ.",
+      );
+    }
+  }
   const headers = await requestHeaders(options, true);
   const payload = await request(
     `${resolveBaseUrl(options)}/api/method/${RUN_PIPELINE_METHOD}`,
@@ -1122,6 +1209,28 @@ export async function resolveStudentAssignment(
       "INVALID_PAYLOAD",
       "Idempotency-Key không hợp lệ.",
     );
+  }
+  if (shouldUseNest(options)) {
+    const nestPayload = await nestCall("/api/v1/student-assignment/resolve", {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: {
+        studentId: requestBody.studentId,
+        ownerId: requestBody.ownerId,
+        region: requestBody.region,
+        reason: requestBody.reason,
+        expectedRevision: requestBody.expectedRevision,
+      },
+    });
+    try {
+      return normalizeResolvedStudentAssignment(nestPayload);
+    } catch {
+      throw new StudentAssignmentApiError(
+        502,
+        "INVALID_ASSIGNMENT_RESPONSE",
+        "Phản hồi xử lý phân công học sinh không hợp lệ.",
+      );
+    }
   }
   const headers = await requestHeaders(options, true);
   headers["Idempotency-Key"] = idempotencyKey;
