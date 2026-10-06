@@ -29,6 +29,7 @@ interface NestStudent {
   source: string;
   latestScore: string | null;
   revision: number;
+  ownershipRevision?: number;
   modifiedAt: string;
 }
 
@@ -108,7 +109,8 @@ function toListItem(student: NestStudent): StudentListItem {
     lastActivity: student.modifiedAt,
     nextAction: "",
     owner: student.owner,
-    revision: student.revision,
+    // The list revision is the ownership compare-and-set token.
+    revision: student.ownershipRevision ?? student.revision,
     source: student.source,
     priority: priority(student.qualityBucket),
   };

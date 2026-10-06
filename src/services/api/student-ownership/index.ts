@@ -1,5 +1,13 @@
-const OWNERSHIP_TARGETS_METHOD = "crm.api.student_ownership.get_eligible_ownership_targets";
-const CHANGE_OWNERSHIP_METHOD = "crm.api.student_ownership.change_student_ownership";
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import {
+  nestAssignableOwners,
+  nestAssignOwner,
+} from "../nest/nest-student-ownership";
+
+const OWNERSHIP_TARGETS_METHOD =
+  "crm.api.student_ownership.get_eligible_ownership_targets";
+const CHANGE_OWNERSHIP_METHOD =
+  "crm.api.student_ownership.change_student_ownership";
 
 export interface AssignableSale {
   name: string;
@@ -8,6 +16,8 @@ export interface AssignableSale {
   role: string;
   function: string;
   team: string;
+  /** Team id when the backend distinguishes it from the display name. */
+  teamId?: string;
   campus: string;
 }
 
@@ -60,7 +70,11 @@ function unwrapMessage(value: unknown): unknown {
 }
 
 function resolveBaseUrl(options: StudentOwnershipRequestOptions): string {
-  const baseUrl = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
+  const baseUrl = (
+    options.baseUrl ??
+    process.env.NEXT_PUBLIC_FRAPPE_URL ??
+    ""
+  ).replace(/\/+$/, "");
   if (!baseUrl) {
     throw new StudentOwnershipApiError(
       0,
@@ -131,7 +145,10 @@ async function requestHeaders(
   return headers;
 }
 
-function errorDetails(value: unknown, status: number): { code: string; message: string } {
+function errorDetails(
+  value: unknown,
+  status: number,
+): { code: string; message: string } {
   const root = asRecord(value);
   const message = asRecord(root?.message);
   const error = asRecord(root?.error) ?? asRecord(message?.error);
@@ -140,7 +157,11 @@ function errorDetails(value: unknown, status: number): { code: string; message: 
     code:
       text(error?.code) ||
       text(message?.code) ||
-      (status === 401 ? "UNAUTHENTICATED" : status === 403 ? "FORBIDDEN" : `HTTP_${status}`),
+      (status === 401
+        ? "UNAUTHENTICATED"
+        : status === 403
+          ? "FORBIDDEN"
+          : `HTTP_${status}`),
     message:
       text(error?.message) ||
       text(message?.message) ||
@@ -150,10 +171,7 @@ function errorDetails(value: unknown, status: number): { code: string; message: 
   };
 }
 
-async function request(
-  url: string,
-  init: RequestInit,
-): Promise<unknown> {
+async function request(url: string, init: RequestInit): Promise<unknown> {
   let response: Response;
   try {
     response = await fetch(url, {
@@ -174,13 +192,35 @@ async function request(
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const details = errorDetails(payload, response.status);
-    throw new StudentOwnershipApiError(response.status, details.code, details.message);
+    throw new StudentOwnershipApiError(
+      response.status,
+      details.code,
+      details.message,
+    );
   }
 
   return payload;
 }
 
-function normalizeAssignableSale(value: unknown, index: number): AssignableSale {
+async function withNestErrors<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new StudentOwnershipApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+}
+
+function normalizeAssignableSale(
+  value: unknown,
+  index: number,
+): AssignableSale {
   const source = asRecord(value);
   const sale = {
     name: text(source?.name).trim(),
@@ -189,6 +229,9 @@ function normalizeAssignableSale(value: unknown, index: number): AssignableSale 
     role: text(source?.role).trim(),
     function: text(source?.function).trim(),
     team: text(source?.team).trim(),
+    ...(text(source?.teamId).trim()
+      ? { teamId: text(source?.teamId).trim() }
+      : {}),
     campus: text(source?.campus).trim(),
   };
 
@@ -199,7 +242,10 @@ function normalizeAssignableSale(value: unknown, index: number): AssignableSale 
   return sale;
 }
 
-function normalizeAssignableSales(studentId: string, value: unknown): AssignableSalesResponse {
+function normalizeAssignableSales(
+  studentId: string,
+  value: unknown,
+): AssignableSalesResponse {
   const source = asRecord(unwrapMessage(value));
   const sales = Array.isArray(source?.owners)
     ? source.owners.map((sale, index) => normalizeAssignableSale(sale, index))
@@ -219,14 +265,20 @@ export async function getAssignableSales(
 ): Promise<AssignableSalesResponse> {
   const normalizedStudentId = studentId.trim();
   if (!normalizedStudentId) {
-    throw new StudentOwnershipApiError(400, "INVALID_STUDENT_ID", "studentId là bắt buộc.");
+    throw new StudentOwnershipApiError(
+      400,
+      "INVALID_STUDENT_ID",
+      "studentId là bắt buộc.",
+    );
   }
 
   const query = new URLSearchParams({ student: normalizedStudentId });
-  const payload = await request(
-    `${resolveBaseUrl(options)}/api/method/${OWNERSHIP_TARGETS_METHOD}?${query.toString()}`,
-    { method: "GET", headers: await requestHeaders(options) },
-  );
+  const payload = await (isNestApiEnabled()
+    ? withNestErrors(() => nestAssignableOwners(normalizedStudentId))
+    : request(
+        `${resolveBaseUrl(options)}/api/method/${OWNERSHIP_TARGETS_METHOD}?${query.toString()}`,
+        { method: "GET", headers: await requestHeaders(options) },
+      ));
 
   try {
     const result = normalizeAssignableSales(normalizedStudentId, payload);
@@ -276,6 +328,19 @@ export async function assignStudentToSales(
       400,
       "INVALID_PAYLOAD",
       "studentId, ownerId, targetTeamId, expectedRevision, reason, idempotencyKey và correlationId là bắt buộc.",
+    );
+  }
+
+  if (isNestApiEnabled()) {
+    return withNestErrors(() =>
+      nestAssignOwner({
+        studentId,
+        ownerId,
+        targetTeamId,
+        reason,
+        expectedRevision: requestBody.expectedRevision,
+        idempotencyKey,
+      }),
     );
   }
 

@@ -80,7 +80,7 @@ export default function StudentOwnerCell({
         expectedRevision,
         idempotencyKey: createRequestId("student-ownership", studentId),
         correlationId: createRequestId("manual-assign", studentId),
-        targetTeamId: sale.team,
+        targetTeamId: sale.teamId ?? sale.team,
       });
       onChange(sale.label);
       setIsEditing(false);
