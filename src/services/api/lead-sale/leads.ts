@@ -5,6 +5,10 @@ import {
   nestAssignmentTargets,
   nestCreateLead,
   nestDeleteLead,
+  nestImportLeadFile,
+  nestImportLeadRows,
+  nestInspectLeadImport,
+  nestPreviewLeadImport,
   nestLeadDetail,
   nestLeadList,
   nestProcessLead,
@@ -1616,6 +1620,13 @@ export async function inspectLeadImport(
     throw new LeadApiError(400, "INVALID_FILE", "Vui lòng chọn file import.");
   }
 
+  if (isNestApiEnabled()) {
+    return viaNest(
+      () => nestInspectLeadImport(file),
+      normalizeLeadImportInspect,
+    );
+  }
+
   const body = new FormData();
   body.append("file", file, file.name);
   const payload = await fileMutationRequest(
@@ -1642,6 +1653,16 @@ export async function previewLeadImport(
 ): Promise<LeadImportPreviewResponse> {
   if (!file || !file.name) {
     throw new LeadApiError(400, "INVALID_FILE", "Vui lòng chọn file import.");
+  }
+
+  if (isNestApiEnabled()) {
+    const nestMapping = Array.isArray(mappingOrOptions)
+      ? mappingOrOptions
+      : undefined;
+    return viaNest(
+      () => nestPreviewLeadImport(file, campaignCode?.trim(), nestMapping),
+      normalizeLeadImportPreview,
+    );
   }
 
   const body = new FormData();
@@ -1700,6 +1721,13 @@ export async function importLeadFile(
     );
   }
 
+  if (isNestApiEnabled()) {
+    return viaNest(
+      () => nestImportLeadFile(file, normalizedCampaignCode, mapping),
+      normalizeLeadImportResponse,
+    );
+  }
+
   const body = new FormData();
   body.append("file", file, file.name);
   body.append("campaign_code", normalizedCampaignCode);
@@ -1736,6 +1764,13 @@ export async function importLeadRows(
       400,
       "CAMPAIGN_REQUIRED",
       "Vui lòng chọn campaign trước khi nhập Lead.",
+    );
+  }
+
+  if (isNestApiEnabled()) {
+    return viaNest(
+      () => nestImportLeadRows(rows, filename, normalizedCampaignCode),
+      normalizeLeadImportResponse,
     );
   }
 

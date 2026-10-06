@@ -259,3 +259,44 @@ export async function nestAssignLead(request: {
     },
   };
 }
+
+export async function nestInspectLeadImport(file: File): Promise<unknown> {
+  const body = new FormData();
+  body.append("file", file, file.name);
+  return nestRequest("/api/v1/leads/import/inspect", { method: "POST", body });
+}
+
+export async function nestPreviewLeadImport(
+  file: File,
+  campaignCode: string | undefined,
+  mapping: unknown,
+): Promise<unknown> {
+  const body = new FormData();
+  body.append("file", file, file.name);
+  if (campaignCode) body.append("campaign_code", campaignCode);
+  if (mapping) body.append("column_mapping", JSON.stringify(mapping));
+  return nestRequest("/api/v1/leads/import/preview", { method: "POST", body });
+}
+
+export async function nestImportLeadFile(
+  file: File,
+  campaignCode: string,
+  mapping: unknown,
+): Promise<unknown> {
+  const body = new FormData();
+  body.append("file", file, file.name);
+  body.append("campaign_code", campaignCode);
+  body.append("column_mapping", JSON.stringify(mapping));
+  return nestRequest("/api/v1/leads/import", { method: "POST", body });
+}
+
+export async function nestImportLeadRows(
+  rows: Record<string, unknown>[],
+  filename: string,
+  campaignCode: string,
+): Promise<unknown> {
+  return nestRequest("/api/v1/leads/import", {
+    method: "POST",
+    body: { rows, filename, campaign_code: campaignCode },
+  });
+}

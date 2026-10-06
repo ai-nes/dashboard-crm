@@ -70,13 +70,19 @@ export async function nestRequest<T = unknown>(
       cache: "no-store",
       headers: {
         Accept: "application/json",
-        ...(options.body !== undefined
+        // The browser sets the multipart boundary for FormData itself.
+        ...(options.body !== undefined && !(options.body instanceof FormData)
           ? { "Content-Type": "application/json" }
           : {}),
         ...options.headers,
       },
       ...(options.body !== undefined
-        ? { body: JSON.stringify(options.body) }
+        ? {
+            body:
+              options.body instanceof FormData
+                ? options.body
+                : JSON.stringify(options.body),
+          }
         : {}),
     });
   } catch {
