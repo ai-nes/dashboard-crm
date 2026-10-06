@@ -25,6 +25,7 @@ import {
   isNestApiEnabled,
 } from "../nest/nest-client";
 import { NOT_HANDLED } from "../nest/nest-admin-catalog-router";
+import { uploadProfileDocument } from "../nest/nest-admission-catalog-router";
 import { nestMethodRequest } from "../nest/nest-method-router";
 
 export type * from "./types";
@@ -58,6 +59,24 @@ async function nestRoute(
   const [path, queryString = ""] = url.split("?");
   const method = path.split("/api/method/")[1];
   if (!method) return null;
+  if (
+    method.endsWith("student_documents.upload_document") &&
+    typeof FormData !== "undefined" &&
+    init.body instanceof FormData
+  ) {
+    try {
+      return unwrapMessage(await uploadProfileDocument(init.body));
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new AdmissionProfileCatalogApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+  }
   const params: Record<string, string> = {};
   new URLSearchParams(queryString).forEach((value, key) => {
     params[key] = value;

@@ -23,16 +23,56 @@ const RESOURCES: Record<string, string> = {
   admission_profile_templates: "profile-templates",
 };
 
+const PROFILE = "/api/v1/admission-profile";
+
+/** Application commands (`crm.api.admission_application.*`). */
+async function applicationCommand(action: string, body: Body) {
+  const application = encodeURIComponent(String(body?.application ?? ""));
+  switch (action) {
+    case "create_application":
+      return nestRequest(`${PROFILE}/applications`, {
+        method: "POST",
+        body: {
+          student: body?.student,
+          values: body?.values,
+          expectedRevision: body?.expected_revision,
+          idempotencyKey: body?.idempotency_key,
+        },
+      });
+    case "update_application":
+      return nestRequest(`${PROFILE}/applications/${application}`, {
+        method: "PUT",
+        body: { values: body?.values },
+      });
+    case "update_preference":
+      return nestRequest(`${PROFILE}/applications/${application}/preference`, {
+        method: "PUT",
+        body: { preference: body?.preference },
+      });
+    default:
+      return NOT_HANDLED;
+  }
+}
+
+/** Upload a profile document (`crm.api.student_documents.upload_document`). */
+export function uploadProfileDocument(form: FormData): Promise<unknown> {
+  return nestRequest(`${PROFILE}/documents`, { method: "POST", body: form });
+}
+
 export async function nestAdmissionCatalogHandler(
   method: string,
   params: Params,
   body: Body,
 ): Promise<unknown> {
   const parts = method.split(".");
-  if (!MODULES.includes(parts[parts.length - 2] as (typeof MODULES)[number])) {
+  const moduleName = parts[parts.length - 2];
+  const action = parts[parts.length - 1] ?? "";
+  if (moduleName === "admission_application") {
+    return applicationCommand(action, body);
+  }
+  if (!MODULES.includes(moduleName as (typeof MODULES)[number])) {
     return NOT_HANDLED;
   }
-  const action = parts[parts.length - 1] ?? "";
   if (action === "get_admission_profile_catalog") {
     return nestRequest(`${BASE}/profile-catalog`, { query: params });
   }

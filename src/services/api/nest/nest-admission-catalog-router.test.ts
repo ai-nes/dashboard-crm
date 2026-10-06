@@ -119,6 +119,60 @@ describe("admission profile catalog with the Nest backend", () => {
     });
   });
 
+  it("sends application commands and document uploads to the profile API", async () => {
+    fetchMock.mockImplementation(() => json({ application: "a1" }));
+    const api = await import("../admission-profile-catalog");
+    await api.createAdmissionApplication({
+      student: "s1",
+      values: { admission_method: "m1", preference: "Primary" } as never,
+      expectedRevision: 3,
+      idempotencyKey: "key-12345678",
+    });
+    expect(lastCall()).toMatchObject({
+      method: "POST",
+      url: "http://api.test/api/v1/admission-profile/applications",
+      body: {
+        student: "s1",
+        expectedRevision: 3,
+        idempotencyKey: "key-12345678",
+      },
+    });
+
+    await api.updateAdmissionApplicationPreference({
+      application: "a 1",
+      preference: "Alternative",
+    });
+    expect(lastCall()).toMatchObject({
+      method: "PUT",
+      url: "http://api.test/api/v1/admission-profile/applications/a%201/preference",
+      body: { preference: "Alternative" },
+    });
+
+    await api.updateAdmissionApplication({
+      application: "a1",
+      values: { admission_method: "m2", profile_template: "t2" } as never,
+    });
+    expect(lastCall()).toMatchObject({
+      method: "PUT",
+      url: "http://api.test/api/v1/admission-profile/applications/a1",
+      body: { values: { admission_method: "m2" } },
+    });
+
+    fetchMock.mockImplementation(() => json({ document: { id: "d1" } }));
+    const file = new File(["scan"], "cccd.txt", { type: "text/plain" });
+    await api.uploadStudentAdmissionDocument({
+      student: "s1",
+      profile: "p1",
+      documentType: "dt1",
+      application: "a1",
+      file,
+    });
+    const [url, init] = fetchMock.mock.calls.at(-1) as [string, RequestInit];
+    expect(url).toBe("http://api.test/api/v1/admission-profile/documents");
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.body as FormData).get("document_type")).toBe("dt1");
+  });
+
   it("keeps the backend error code and message", async () => {
     fetchMock.mockImplementation(() =>
       json(
