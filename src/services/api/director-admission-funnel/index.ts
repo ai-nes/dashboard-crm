@@ -1,3 +1,8 @@
+import {
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
 import type {
   DirectorAdmissionFunnelData,
   DirectorAdmissionFunnelParams,
@@ -33,27 +38,65 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function getErrorDetails(payload: unknown): { code?: string; message?: string } {
+function getErrorDetails(payload: unknown): {
+  code?: string;
+  message?: string;
+} {
   const root = asRecord(payload);
   const message = asRecord(root?.message);
   const error = asRecord(root?.error) ?? asRecord(message?.error);
 
   return {
-    code: typeof error?.code === "string"
-      ? error.code
-      : typeof root?.exception === "string"
-        ? root.exception
-        : undefined,
-    message: typeof error?.message === "string"
-      ? error.message
-      : typeof message?.message === "string"
-        ? message.message
-        : typeof root?.message === "string"
-          ? root.message
-          : typeof root?.exception === "string"
-            ? root.exception
-            : undefined,
+    code:
+      typeof error?.code === "string"
+        ? error.code
+        : typeof root?.exception === "string"
+          ? root.exception
+          : undefined,
+    message:
+      typeof error?.message === "string"
+        ? error.message
+        : typeof message?.message === "string"
+          ? message.message
+          : typeof root?.message === "string"
+            ? root.message
+            : typeof root?.exception === "string"
+              ? root.exception
+              : undefined,
   };
+}
+
+async function getNestAdmissionFunnel(
+  params: DirectorAdmissionFunnelParams,
+): Promise<DirectorAdmissionFunnelResponse> {
+  let payload: unknown;
+  try {
+    payload = await nestRequest<unknown>("/api/v1/director/admission-funnel", {
+      query: { admissionYear: params.admissionYear },
+    });
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new DirectorAdmissionFunnelApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw new DirectorAdmissionFunnelApiError(
+      503,
+      "DIRECTOR_ADMISSION_FUNNEL_UNAVAILABLE",
+      "Không thể kết nối tới dữ liệu phễu tuyển sinh.",
+    );
+  }
+  try {
+    return normalizeDirectorAdmissionFunnel(payload);
+  } catch {
+    throw new DirectorAdmissionFunnelApiError(
+      502,
+      "INVALID_FUNNEL_RESPONSE",
+      "Phản hồi dữ liệu phễu tuyển sinh không hợp lệ.",
+    );
+  }
 }
 
 export async function getDirectorAdmissionFunnel(
@@ -61,10 +104,17 @@ export async function getDirectorAdmissionFunnel(
   options: { baseUrl?: string } = {},
 ): Promise<DirectorAdmissionFunnelResponse> {
   const searchParams = new URLSearchParams();
-  if (params.admissionYear !== undefined) searchParams.set("admissionYear", String(params.admissionYear));
+  if (params.admissionYear !== undefined)
+    searchParams.set("admissionYear", String(params.admissionYear));
   if (params.scope) searchParams.set("scope", params.scope);
 
-  const baseUrl = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
+  if (isNestApiEnabled()) return getNestAdmissionFunnel(params);
+
+  const baseUrl = (
+    options.baseUrl ??
+    process.env.NEXT_PUBLIC_FRAPPE_URL ??
+    ""
+  ).replace(/\/+$/, "");
   if (!baseUrl) {
     throw new DirectorAdmissionFunnelApiError(
       0,
@@ -91,7 +141,9 @@ export async function getDirectorAdmissionFunnel(
   try {
     response = await fetch(url, {
       headers,
-      ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
+      ...(typeof window !== "undefined"
+        ? { credentials: "include" as RequestCredentials }
+        : {}),
       cache: "no-store",
     });
   } catch {
