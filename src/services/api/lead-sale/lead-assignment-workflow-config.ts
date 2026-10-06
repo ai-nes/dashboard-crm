@@ -1,3 +1,8 @@
+import {
+  NestApiError,
+  isNestApiEnabled,
+  nestRequest,
+} from "../nest/nest-client";
 import type {
   LeadRoutingPolicy,
   LeadRoutingStrategy,
@@ -77,12 +82,10 @@ export type LeadAssignmentWorkflowConfigResponse = {
   canManage: boolean;
 };
 
-export type LeadAssignmentWorkflowInputUpdate = Partial<
-  LeadAssignmentWorkflowInputSettings
->;
-export type LeadAssignmentWorkflowClassificationUpdate = Partial<
-  LeadAssignmentWorkflowClassificationSettings
->;
+export type LeadAssignmentWorkflowInputUpdate =
+  Partial<LeadAssignmentWorkflowInputSettings>;
+export type LeadAssignmentWorkflowClassificationUpdate =
+  Partial<LeadAssignmentWorkflowClassificationSettings>;
 export type LeadAssignmentWorkflowReviewUpdate = Partial<
   Pick<LeadAssignmentWorkflowReviewSettings, "maxRetries">
 >;
@@ -236,7 +239,11 @@ function normalizeConfig(value: unknown): LeadAssignmentWorkflowConfig {
     lastChangedBy: nullableText(source.lastChangedBy),
     lastChangeReason: nullableText(source.lastChangeReason),
     stored: {
-      input: normalizeSettings("input", input, {} as LeadRoutingPolicy) as LeadAssignmentWorkflowInputSettings,
+      input: normalizeSettings(
+        "input",
+        input,
+        {} as LeadRoutingPolicy,
+      ) as LeadAssignmentWorkflowInputSettings,
       classification: normalizeSettings(
         "classification",
         classification,
@@ -264,9 +271,13 @@ function normalizeSteps(
     const row = asRecord(source[id]) ?? {};
     result[id] = {
       id,
-      enabled: id === "validation" || id === "matching" || id === "review" || id === "assignment"
-        ? true
-        : boolean(row.enabled, true),
+      enabled:
+        id === "validation" ||
+        id === "matching" ||
+        id === "review" ||
+        id === "assignment"
+          ? true
+          : boolean(row.enabled, true),
       canToggle: id === "input" || id === "classification",
       settings: normalizeSettings(id, row.settings, policy),
     };
@@ -352,7 +363,11 @@ function errorDetails(
   return {
     code: text(
       error?.code,
-      revisionConflict ? "WORKFLOW_REVISION_CONFLICT" : status === 403 ? "FORBIDDEN" : `HTTP_${status}`,
+      revisionConflict
+        ? "WORKFLOW_REVISION_CONFLICT"
+        : status === 403
+          ? "FORBIDDEN"
+          : `HTTP_${status}`,
     ),
     message:
       text(error?.message) ||
@@ -410,10 +425,34 @@ async function call<T>(
   return (asRecord(payload)?.message ?? payload) as T;
 }
 
+const useNest = (options: LeadAssignmentWorkflowConfigRequestOptions) =>
+  isNestApiEnabled() && !options.baseUrl;
+
+async function nestCall(
+  path: string,
+  method: "GET" | "PUT",
+  body?: Record<string, unknown>,
+): Promise<unknown> {
+  try {
+    return await nestRequest(path, { method, body });
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new LeadAssignmentWorkflowConfigApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+}
+
 export async function getLeadAssignmentWorkflowConfig(
   options: LeadAssignmentWorkflowConfigRequestOptions = {},
 ): Promise<LeadAssignmentWorkflowConfigResponse> {
-  const raw = await call<unknown>(METHODS.GET, "GET", options);
+  const raw = useNest(options)
+    ? await nestCall("/api/v1/lead-assignment-workflow", "GET")
+    : await call<unknown>(METHODS.GET, "GET", options);
   const source = asRecord(unwrapMessage(raw));
   const policy = normalizeLeadRoutingPolicy(source?.policy);
   if (!source?.config || !source.steps) {
@@ -436,12 +475,22 @@ export async function updateLeadAssignmentWorkflowStep(
   request: LeadAssignmentWorkflowStepUpdate,
   options: LeadAssignmentWorkflowConfigRequestOptions = {},
 ): Promise<LeadAssignmentWorkflowConfigResponse> {
-  const raw = await call<unknown>(METHODS.UPDATE, "POST", options, {
-    step_id: request.stepId,
-    settings: JSON.stringify(request.settings),
-    reason: request.reason,
-    expected_revision: request.expectedRevision,
-  });
+  const raw = useNest(options)
+    ? await nestCall(
+        `/api/v1/lead-assignment-workflow/steps/${encodeURIComponent(request.stepId)}`,
+        "PUT",
+        {
+          settings: request.settings,
+          reason: request.reason,
+          expectedRevision: request.expectedRevision,
+        },
+      )
+    : await call<unknown>(METHODS.UPDATE, "POST", options, {
+        step_id: request.stepId,
+        settings: JSON.stringify(request.settings),
+        reason: request.reason,
+        expected_revision: request.expectedRevision,
+      });
   const source = asRecord(unwrapMessage(raw));
   if (!source?.config || !source.steps) {
     throw new LeadAssignmentWorkflowConfigApiError(

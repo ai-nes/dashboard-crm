@@ -1,3 +1,9 @@
+import {
+  NestApiError,
+  isNestApiEnabled,
+  nestRequest,
+} from "../nest/nest-client";
+
 export type LeadRoutingLayerKey = "campaign" | "group" | "global";
 export type LeadRoutingStrategy = "least_load" | "round_robin";
 
@@ -272,10 +278,33 @@ async function call<T>(
   return (asRecord(payload)?.message ?? payload) as T;
 }
 
+const useNest = (options: LeadRoutingPolicyRequestOptions) =>
+  isNestApiEnabled() && !options.baseUrl;
+
+async function nestCall(
+  method: "GET" | "PUT",
+  body?: Record<string, unknown>,
+): Promise<unknown> {
+  try {
+    return await nestRequest("/api/v1/lead-routing-policy", { method, body });
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new LeadRoutingPolicyApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+}
+
 export async function getLeadRoutingPolicy(
   options: LeadRoutingPolicyRequestOptions = {},
 ): Promise<LeadRoutingPolicyResponse> {
-  const raw = await call<unknown>(METHODS.GET, "GET", options);
+  const raw = useNest(options)
+    ? await nestCall("GET")
+    : await call<unknown>(METHODS.GET, "GET", options);
   const source = asRecord(unwrapMessage(raw));
   const policy = source?.policy;
   if (!source || !policy) {
@@ -296,16 +325,27 @@ export async function updateLeadRoutingPolicy(
   request: UpdateLeadRoutingPolicyRequest,
   options: LeadRoutingPolicyRequestOptions = {},
 ): Promise<LeadRoutingPolicyResponse> {
-  const raw = await call<unknown>(METHODS.UPDATE, "POST", options, {
-    enabled: request.enabled,
-    layer_order: request.layerOrder.join(","),
-    campaign_layer_enabled: request.campaignLayerEnabled,
-    group_layer_enabled: request.groupLayerEnabled,
-    global_layer_enabled: request.globalLayerEnabled,
-    distribution_strategy: request.distributionStrategy,
-    capacity_required: request.capacityRequired,
-    reason: request.reason,
-  });
+  const raw = useNest(options)
+    ? await nestCall("PUT", {
+        enabled: request.enabled,
+        layerOrder: request.layerOrder.join(","),
+        campaignLayerEnabled: request.campaignLayerEnabled,
+        groupLayerEnabled: request.groupLayerEnabled,
+        globalLayerEnabled: request.globalLayerEnabled,
+        distributionStrategy: request.distributionStrategy,
+        capacityRequired: request.capacityRequired,
+        reason: request.reason,
+      })
+    : await call<unknown>(METHODS.UPDATE, "POST", options, {
+        enabled: request.enabled,
+        layer_order: request.layerOrder.join(","),
+        campaign_layer_enabled: request.campaignLayerEnabled,
+        group_layer_enabled: request.groupLayerEnabled,
+        global_layer_enabled: request.globalLayerEnabled,
+        distribution_strategy: request.distributionStrategy,
+        capacity_required: request.capacityRequired,
+        reason: request.reason,
+      });
   const source = asRecord(unwrapMessage(raw));
   if (!source?.policy) {
     throw new LeadRoutingPolicyApiError(
