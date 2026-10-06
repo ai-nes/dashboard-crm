@@ -126,4 +126,36 @@ describe("notes and tasks with the Nest backend", () => {
       updateTask({ name: "t1", status: "Done" }),
     ).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
   });
+
+  it("keeps segment task references on the Nest transport", async () => {
+    fetchMock.mockImplementation(() =>
+      json({
+        total: 1,
+        start: 0,
+        page_length: 20,
+        tasks: [
+          {
+            name: "segment-task-1",
+            title: "Gọi lại nhóm tuyển sinh",
+            reference_doctype: "CRM Segment",
+            reference_docname: "segment-1",
+            status: "Todo",
+            priority: "Medium",
+          },
+        ],
+      }),
+    );
+    const { listTasks } = await import("../crm-tasks");
+    const result = await listTasks({
+      referenceDoctype: "CRM Segment",
+      referenceDocname: "segment-1",
+    });
+    expect(result.tasks[0]).toMatchObject({
+      referenceDoctype: "CRM Segment",
+      referenceDocname: "segment-1",
+    });
+    expect(String(fetchMock.mock.calls[0][0])).toContain(
+      "/api/v1/tasks?referenceDoctype=CRM+Segment&referenceDocname=segment-1",
+    );
+  });
 });
