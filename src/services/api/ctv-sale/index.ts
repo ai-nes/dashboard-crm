@@ -14,6 +14,12 @@ import type {
   CtvSaleTasks,
 } from "./types";
 
+import {
+  NestApiError,
+  isNestApiEnabled,
+  nestRequest,
+} from "../nest/nest-client";
+
 export type * from "./types";
 
 const METHOD = "crm.api.ctv_sale.get_ctv_sale_overview";
@@ -397,6 +403,39 @@ export async function getCtvSaleOverview(
   params: CtvSaleOverviewParams = {},
   options: RequestOptions = {},
 ): Promise<CtvSaleOverviewResponse> {
+  if (isNestApiEnabled() && !options.baseUrl) {
+    let payload: unknown;
+    try {
+      payload = await nestRequest("/api/v1/ctv-sale/overview", {
+        query: {
+          date: params.date,
+          trendRange: params.trendRange ?? "7d",
+          outcomeRange: params.outcomeRange ?? "30d",
+          timezone: params.timezone,
+          ctvId: params.ctvId,
+          priorityLimit: params.priorityLimit ?? 3,
+        },
+      });
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new CtvSaleOverviewApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
+    try {
+      return normalizeCtvSaleOverview(payload);
+    } catch {
+      throw new CtvSaleOverviewApiError(
+        502,
+        "INVALID_CTV_SALE_OVERVIEW_RESPONSE",
+        "Phản hồi tổng quan CTV Sale không hợp lệ.",
+      );
+    }
+  }
   const url = new URL(`${resolveBaseUrl(options)}/api/method/${METHOD}`);
   if (params.date) url.searchParams.set("date", params.date);
   url.searchParams.set("trendRange", params.trendRange ?? "7d");
