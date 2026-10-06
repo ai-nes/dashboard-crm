@@ -1,3 +1,9 @@
+import {
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
+
 const METHODS = {
   catalogs: "crm.api.lead_assignment_batch.get_lead_assignment_catalogs",
   import: "crm.api.lead_assignment_batch.import_leads_to_assignment_batch",
@@ -335,7 +341,8 @@ function nullableStringOrNumber(value: unknown): string | number | null {
 
 function unwrapMessage(value: unknown): unknown {
   const root = asRecord(value);
-  return root?.message !== undefined ? root.message : value;
+  if (root?.message !== undefined) return root.message;
+  return root?.data !== undefined ? root.data : value;
 }
 
 function oneOf<T extends string>(
@@ -608,7 +615,9 @@ function normalizeItem(value: unknown, index: number): LeadAssignmentBatchItem {
     highSchool: nullableText(
       source.highSchool ?? source.high_school ?? source.school,
     ),
-    highSchoolLabel: nullableText(source.highSchoolLabel ?? source.high_school_label),
+    highSchoolLabel: nullableText(
+      source.highSchoolLabel ?? source.high_school_label,
+    ),
     major: nullableText(source.major ?? source.interest),
     source: nullableText(source.source),
     branch: nullableText(source.branch),
@@ -942,10 +951,45 @@ async function post(
   });
 }
 
+function nestBackendEnabled(
+  options: LeadAssignmentBatchRequestOptions,
+): boolean {
+  return !options.baseUrl && isNestApiEnabled();
+}
+
+async function nestCall<T>(
+  path: string,
+  options: {
+    method?: "GET" | "POST";
+    query?: Record<string, string | number | undefined>;
+    body?: unknown;
+  } = {},
+): Promise<T> {
+  try {
+    return await nestRequest<T>(path, options);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new LeadAssignmentBatchApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+}
+
 export async function getLeadAssignmentCatalogs(
   params: LeadAssignmentBatchCatalogParams = {},
   options: LeadAssignmentBatchRequestOptions = {},
 ): Promise<LeadAssignmentCatalogs> {
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>(
+      "/api/v1/lead-assignment-batches/catalogs",
+      { query: { province: params.province } },
+    );
+    return normalizeCatalogs(payload);
+  }
   const query = new URLSearchParams();
   if (params.province) query.set("province", params.province);
   const payload = await request(
@@ -973,6 +1017,28 @@ export async function importLeadsToAssignmentBatch(
     csv_content: requestBody.csvContent,
     rows: requestBody.rows,
   };
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>(
+      "/api/v1/lead-assignment-batches/import",
+      {
+        method: "POST",
+        body: {
+          batchName,
+          description: requestBody.description?.trim() || undefined,
+          rows: requestBody.rows,
+        },
+      },
+    );
+    try {
+      return normalizeMutation(payload);
+    } catch {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+        "Phản hồi nhập Lead vào batch không hợp lệ.",
+      );
+    }
+  }
   const payload = await post(METHODS.import, body, options);
   try {
     return normalizeMutation(payload);
@@ -995,6 +1061,25 @@ export async function createLeadAssignmentBatch(
       "INVALID_PAYLOAD",
       "Batch phải có ít nhất một Lead.",
     );
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>("/api/v1/lead-assignment-batches", {
+      method: "POST",
+      body: {
+        batchName: requestBody.batchName?.trim() || undefined,
+        description: requestBody.description?.trim() || undefined,
+        leadIds: requestBody.leadIds,
+      },
+    });
+    try {
+      return normalizeMutation(payload);
+    } catch {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+        "Phản hồi tạo batch không hợp lệ.",
+      );
+    }
+  }
   const payload = await post(
     METHODS.create,
     {
@@ -1019,6 +1104,21 @@ export async function previewLeadAssignmentBatch(
   requestBody: LeadAssignmentBatchActionRequest,
   options: LeadAssignmentBatchRequestOptions = {},
 ): Promise<LeadAssignmentBatchMutationResponse> {
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>(
+      `/api/v1/lead-assignment-batches/${encodeURIComponent(requestBody.batchId)}/preview`,
+      { method: "POST" },
+    );
+    try {
+      return normalizeMutation(payload);
+    } catch {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+        "Phản hồi preview batch không hợp lệ.",
+      );
+    }
+  }
   const payload = await post(
     METHODS.preview,
     { batch_name: requestBody.batchId },
@@ -1039,6 +1139,21 @@ export async function runLeadAssignmentBatch(
   requestBody: LeadAssignmentBatchActionRequest,
   options: LeadAssignmentBatchRequestOptions = {},
 ): Promise<LeadAssignmentBatchMutationResponse> {
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>(
+      `/api/v1/lead-assignment-batches/${encodeURIComponent(requestBody.batchId)}/run`,
+      { method: "POST" },
+    );
+    try {
+      return normalizeMutation(payload);
+    } catch {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+        "Phản hồi chạy batch không hợp lệ.",
+      );
+    }
+  }
   const payload = await post(
     METHODS.run,
     { batch_name: requestBody.batchId },
@@ -1058,6 +1173,45 @@ export async function runLeadAssignmentBatch(
 export async function runUnassignedLeadAssignment(
   options: LeadAssignmentBatchRequestOptions = {},
 ): Promise<LeadAssignmentAutoRunResponse> {
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>(
+      "/api/v1/lead-assignment-batches/run-unassigned",
+      { method: "POST" },
+    );
+    const source = asRecord(unwrapMessage(payload));
+    if (!source) {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+        "Phản hồi phân công Lead không hợp lệ.",
+      );
+    }
+    if (source.status === "no_work" || source.batch === null) {
+      return {
+        status: "no_work",
+        batch: null,
+        items: [],
+        scanned: count(source.scanned),
+        message: nullableText(source.message),
+      };
+    }
+    try {
+      const normalized = normalizeMutation(payload);
+      return {
+        status: normalized.batch.status,
+        batch: normalized.batch,
+        items: normalized.items,
+        scanned: count(source.scanned, normalized.batch.summary.total),
+        message: nullableText(source.message),
+      };
+    } catch {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+        "Phản hồi phân công Lead không hợp lệ.",
+      );
+    }
+  }
   const payload = await post(METHODS.runUnassigned, {}, options);
   const source = asRecord(unwrapMessage(payload));
   if (!source) {
@@ -1110,6 +1264,21 @@ export async function retryLeadAssignmentBatch(
   requestBody: RetryLeadAssignmentBatchRequest,
   options: LeadAssignmentBatchRequestOptions = {},
 ): Promise<LeadAssignmentBatchMutationResponse> {
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>(
+      `/api/v1/lead-assignment-batches/${encodeURIComponent(requestBody.batchId)}/retry`,
+      { method: "POST", body: { itemIds: requestBody.itemIds } },
+    );
+    try {
+      return normalizeMutation(payload);
+    } catch {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+        "Phản hồi retry batch không hợp lệ.",
+      );
+    }
+  }
   const payload = await post(
     METHODS.retry,
     {
@@ -1140,6 +1309,20 @@ export async function getLeadAssignmentBatch(
       "INVALID_QUERY",
       "batchId là bắt buộc.",
     );
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>(
+      `/api/v1/lead-assignment-batches/${encodeURIComponent(normalizedBatchId)}`,
+    );
+    try {
+      return normalizeDetail(payload);
+    } catch {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+        "Phản hồi chi tiết batch không hợp lệ.",
+      );
+    }
+  }
   const query = new URLSearchParams({ batch_name: normalizedBatchId });
   const payload = await request(
     `${resolveBaseUrl(options)}/api/method/${METHODS.detail}?${query.toString()}`,
@@ -1160,6 +1343,21 @@ export async function getLeadAssignmentWorkflow(
   batchId?: string | null,
   options: LeadAssignmentBatchRequestOptions = {},
 ): Promise<LeadAssignmentWorkflowResponse> {
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>(
+      "/api/v1/lead-assignment-batches/workflow",
+      { query: { batchId: batchId?.trim() || undefined } },
+    );
+    try {
+      return normalizeWorkflow(payload);
+    } catch {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_WORKFLOW_RESPONSE",
+        "Phản hồi workflow phân công Lead không hợp lệ.",
+      );
+    }
+  }
   const query = new URLSearchParams();
   if (batchId?.trim()) query.set("batch_name", batchId.trim());
   const queryString = query.toString();
@@ -1182,6 +1380,26 @@ export async function listLeadAssignmentBatches(
   params: LeadAssignmentBatchListParams = {},
   options: LeadAssignmentBatchRequestOptions = {},
 ): Promise<LeadAssignmentBatchListResponse> {
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>("/api/v1/lead-assignment-batches", {
+      query: {
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+        status:
+          params.status && params.status !== "all" ? params.status : undefined,
+        q: params.q?.trim() || undefined,
+      },
+    });
+    try {
+      return normalizeList(payload);
+    } catch {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_BATCH_RESPONSE",
+        "Phản hồi lịch sử batch không hợp lệ.",
+      );
+    }
+  }
   const query = new URLSearchParams({
     page: String(params.page ?? 1),
     page_size: String(params.pageSize ?? 20),
@@ -1208,6 +1426,31 @@ export async function listLeadAssignmentHistoryItems(
   params: LeadAssignmentHistoryParams = {},
   options: LeadAssignmentBatchRequestOptions = {},
 ): Promise<LeadAssignmentHistoryResponse> {
+  if (nestBackendEnabled(options)) {
+    const payload = await nestCall<unknown>(
+      "/api/v1/lead-assignment-batches/history",
+      {
+        query: {
+          page: params.page ?? 1,
+          limit: params.limit ?? 50,
+          status: params.status ?? "all",
+          q: params.q?.trim() ?? "",
+          leadIds: params.leadIds?.length
+            ? params.leadIds.join(",")
+            : undefined,
+        },
+      },
+    );
+    try {
+      return normalizeHistory(payload);
+    } catch {
+      throw new LeadAssignmentBatchApiError(
+        502,
+        "INVALID_LEAD_ASSIGNMENT_HISTORY_RESPONSE",
+        "Phản hồi lịch sử phân công không hợp lệ.",
+      );
+    }
+  }
   const query = new URLSearchParams({
     page: String(params.page ?? 1),
     limit: String(params.limit ?? 50),
