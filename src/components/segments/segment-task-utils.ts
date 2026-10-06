@@ -187,12 +187,15 @@ function dateGroupLabel(date: Date): string {
   return formatDate(date);
 }
 
-export function groupSegmentTasks(tasks: CRMTask[]): SegmentTaskGroup[] {
+export function groupSegmentTasks(
+  tasks: CRMTask[],
+  now = Date.now(),
+): SegmentTaskGroup[] {
   const groups = new Map<string, SegmentTaskGroup>();
 
   for (const task of tasks) {
     const date = getSegmentTaskDate(task);
-    const overdue = isSegmentTaskOverdue(task);
+    const overdue = isSegmentTaskOverdue(task, now);
     const validDate = date.getTime() > 0;
     const id = overdue ? "overdue" : validDate ? dateKey(date) : "unknown";
     const existing = groups.get(id);

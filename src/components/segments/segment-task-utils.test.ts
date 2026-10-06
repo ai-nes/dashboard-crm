@@ -39,10 +39,13 @@ describe("segment task deadline helpers", () => {
   });
 
   it("groups tasks by due date and puts overdue work first", () => {
-    const groups = groupSegmentTasks([
-      task({ name: "upcoming", dueDate: "12/09/2026", status: "Todo" }),
-      task({ name: "overdue", dueDate: "08/09/2026", status: "Todo" }),
-    ]);
+    const groups = groupSegmentTasks(
+      [
+        task({ name: "upcoming", dueDate: "12/09/2026", status: "Todo" }),
+        task({ name: "overdue", dueDate: "08/09/2026", status: "Todo" }),
+      ],
+      now,
+    );
 
     expect(groups.map((group) => group.id)).toEqual(["overdue", "2026-8-12"]);
   });
