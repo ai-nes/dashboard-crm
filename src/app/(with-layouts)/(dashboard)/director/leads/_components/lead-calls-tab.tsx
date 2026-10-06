@@ -32,20 +32,27 @@ import {
 import type { LeadCallRecord } from "@/services/api/lead-sale/call-logs";
 
 import LeadCallRecording from "./lead-call-recording";
+import LeadCreateCallDialog from "./lead-create-call-dialog";
 import StudentCanonicalCallAnalysis from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-canonical-call-analysis";
 
 type LeadCallDirection = LeadCallRecord["direction"];
 type LeadCallOutcome = LeadCallRecord["outcome"];
 
 interface LeadCallsTabProps {
+  leadId: string;
+  leadName: string;
   calls: LeadCallRecord[];
   isLoading?: boolean;
   isError?: boolean;
   onRetry?: () => void;
   onCallUpdated?: () => void;
+  canCreateCall?: boolean;
 }
 
-const outcomeConfig: Record<LeadCallOutcome, { label: string; color: "success" | "error" | "warning" | "primary" }> = {
+const outcomeConfig: Record<
+  LeadCallOutcome,
+  { label: string; color: "success" | "error" | "warning" | "primary" }
+> = {
   connected: { label: "Đã kết nối", color: "success" },
   missed: { label: "Cuộc gọi nhỡ", color: "error" },
   "no-answer": { label: "Không nghe máy", color: "warning" },
@@ -58,25 +65,33 @@ const directionLabel: Record<LeadCallDirection, string> = {
   missed: "Cuộc gọi nhỡ",
 };
 
-const directionBadgeColor: Record<LeadCallDirection, "primary" | "warning" | "error"> = {
+const directionBadgeColor: Record<
+  LeadCallDirection,
+  "primary" | "warning" | "error"
+> = {
   inbound: "primary",
   outbound: "warning",
   missed: "error",
 };
 
 export default function LeadCallsTab({
+  leadId,
+  leadName,
   calls,
   isLoading = false,
   isError = false,
   onRetry,
   onCallUpdated,
+  canCreateCall = false,
 }: LeadCallsTabProps) {
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState<ActivityTimeFilter>("all");
-  const [expansionMode, setExpansionMode] = useState<ActivityExpansionMode>("collapse");
+  const [expansionMode, setExpansionMode] =
+    useState<ActivityExpansionMode>("collapse");
   const [expandedCallIds, setExpandedCallIds] = useState<Set<string>>(
     () => new Set(calls.map((call) => call.id)),
   );
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const filteredCalls = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("vi-VN");
@@ -105,13 +120,18 @@ export default function LeadCallsTab({
   }, [calls, search, timeFilter]);
 
   const groupedCalls = useMemo(
-    () => groupActivitiesByDate(filteredCalls, (call) => parseStudentActivityDate(call.time)),
+    () =>
+      groupActivitiesByDate(filteredCalls, (call) =>
+        parseStudentActivityDate(call.time),
+      ),
     [filteredCalls],
   );
 
   const handleExpansionModeChange = (mode: ActivityExpansionMode) => {
     setExpansionMode(mode);
-    setExpandedCallIds(new Set(mode === "expand" ? calls.map((call) => call.id) : []));
+    setExpandedCallIds(
+      new Set(mode === "expand" ? calls.map((call) => call.id) : []),
+    );
   };
 
   const handleCallExpandedChange = (id: string, expanded: boolean) => {
@@ -127,9 +147,16 @@ export default function LeadCallsTab({
     <div className="space-y-4">
       {isError ? (
         <div className="rounded-lg border border-card-border p-6 text-center">
-          <p className="text-sm text-text-secondary">Không thể tải lịch sử cuộc gọi.</p>
+          <p className="text-sm text-text-secondary">
+            Không thể tải lịch sử cuộc gọi.
+          </p>
           {onRetry ? (
-            <Button className="mt-3" appearance="outline" size="sm" onPress={onRetry}>
+            <Button
+              className="mt-3"
+              appearance="outline"
+              size="sm"
+              onPress={onRetry}
+            >
               Thử lại
             </Button>
           ) : null}
@@ -143,6 +170,8 @@ export default function LeadCallsTab({
         searchLabel="Tìm cuộc gọi"
         expansionMode={expansionMode}
         onExpansionModeChange={handleExpansionModeChange}
+        onCreate={canCreateCall ? () => setIsCreateOpen(true) : undefined}
+        createLabel="Ghi cuộc gọi"
       />
 
       <div className="w-full max-w-md">
@@ -158,13 +187,22 @@ export default function LeadCallsTab({
       {isLoading ? <StudentCallsSkeleton /> : null}
 
       {!isLoading && !isError && calls.length === 0 ? (
-        <p className="py-2 text-xs text-text-tertiary">Chưa có lịch sử cuộc gọi.</p>
+        <p className="py-2 text-xs text-text-tertiary">
+          Chưa có lịch sử cuộc gọi.
+        </p>
       ) : !isLoading && !isError && filteredCalls.length === 0 ? (
-        <p className="py-2 text-xs text-text-tertiary">Không tìm thấy cuộc gọi phù hợp.</p>
+        <p className="py-2 text-xs text-text-tertiary">
+          Không tìm thấy cuộc gọi phù hợp.
+        </p>
       ) : !isLoading && !isError ? (
         <div className="space-y-6">
           {groupedCalls.map((group) => (
-            <StudentActivityGroup key={group.id} id={`calls-group-${group.id}`} label={group.label} count={group.items.length}>
+            <StudentActivityGroup
+              key={group.id}
+              id={`calls-group-${group.id}`}
+              label={group.label}
+              count={group.items.length}
+            >
               {group.items.map((call) => (
                 <StudentActivityCard
                   key={call.id}
@@ -172,7 +210,9 @@ export default function LeadCallsTab({
                   timestamp={formatDateTime(call.time)}
                   preview={<LeadCallDetails call={call} compact />}
                   expanded={expandedCallIds.has(call.id)}
-                  onExpandedChange={(expanded) => handleCallExpandedChange(call.id, expanded)}
+                  onExpandedChange={(expanded) =>
+                    handleCallExpandedChange(call.id, expanded)
+                  }
                 >
                   <LeadCallDetails call={call} onCallUpdated={onCallUpdated} />
                 </StudentActivityCard>
@@ -180,6 +220,18 @@ export default function LeadCallsTab({
             </StudentActivityGroup>
           ))}
         </div>
+      ) : null}
+
+      {canCreateCall ? (
+        <LeadCreateCallDialog
+          isOpen={isCreateOpen}
+          leadId={leadId}
+          leadName={leadName}
+          onOpenChange={setIsCreateOpen}
+          onCreated={async () => {
+            await onCallUpdated?.();
+          }}
+        />
       ) : null}
     </div>
   );
@@ -205,11 +257,16 @@ export function LeadCallDetails({
             <span>
               {call.callerName} → {call.receiverName}
             </span>
-            <span className="text-text-tertiary">{formatDuration(call.durationSeconds)}</span>
+            <span className="text-text-tertiary">
+              {formatDuration(call.durationSeconds)}
+            </span>
           </div>
           <Badge color={outcome.color}>{outcome.label}</Badge>
         </div>
-        <LeadCallRecording recordingUrl={call.recordingUrl} durationSeconds={call.durationSeconds} />
+        <LeadCallRecording
+          recordingUrl={call.recordingUrl}
+          durationSeconds={call.durationSeconds}
+        />
       </div>
     );
   }
@@ -217,8 +274,16 @@ export function LeadCallDetails({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <CallMeta label="Người gọi" value={call.callerName} detail={call.callerRole} />
-        <CallMeta label="Người nhận" value={call.receiverName} detail={call.receiverRole} />
+        <CallMeta
+          label="Người gọi"
+          value={call.callerName}
+          detail={call.callerRole}
+        />
+        <CallMeta
+          label="Người nhận"
+          value={call.receiverName}
+          detail={call.receiverRole}
+        />
         <CallMeta label="Số điện thoại" value={call.phoneNumber || "-"} />
         <div className="min-w-0">
           <p className="text-xs text-text-tertiary">Kết quả</p>
@@ -229,15 +294,21 @@ export function LeadCallDetails({
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-card-border pt-4 text-sm text-text-secondary">
-        <Badge color={directionBadgeColor[call.direction]}>{directionLabel[call.direction]}</Badge>
+        <Badge color={directionBadgeColor[call.direction]}>
+          {directionLabel[call.direction]}
+        </Badge>
         <span>Thời gian: {formatDateTime(call.time)}</span>
         <span>Thời lượng: {formatDuration(call.durationSeconds)}</span>
       </div>
 
       {call.summary && hasSummary ? (
         <div className="rounded-lg bg-background-gray-secondary/60 px-4 py-3">
-          <p className="text-xs font-medium text-text-tertiary">Tóm tắt cuộc gọi</p>
-          <p className="mt-1 text-sm leading-6 text-text-primary">{call.summary}</p>
+          <p className="text-xs font-medium text-text-tertiary">
+            Tóm tắt cuộc gọi
+          </p>
+          <p className="mt-1 text-sm leading-6 text-text-primary">
+            {call.summary}
+          </p>
         </div>
       ) : null}
 
@@ -247,13 +318,16 @@ export function LeadCallDetails({
 
       <LeadCallTranscript transcript={call.transcript} />
 
-      {!call.transcript && isSttCallUuid(call.id)
-        ? call.summaryStatus === "PENDING" ? (
-            <AutomaticCallAnalysisStatus />
-          ) : (
-            <LeadCallTranscriptionAction callUuid={call.id} onCompleted={onCallUpdated} />
-          )
-        : null}
+      {!call.transcript && isSttCallUuid(call.id) ? (
+        call.summaryStatus === "PENDING" ? (
+          <AutomaticCallAnalysisStatus />
+        ) : (
+          <LeadCallTranscriptionAction
+            callUuid={call.id}
+            onCompleted={onCallUpdated}
+          />
+        )
+      ) : null}
 
       {call.transcript && !hasSummary && isSttCallUuid(call.id) ? (
         <LeadCallSummaryAction callUuid={call.id} onCompleted={onCallUpdated} />
@@ -261,7 +335,10 @@ export function LeadCallDetails({
 
       <StudentCanonicalCallAnalysis interactionId={call.interactionId} />
 
-      <LeadCallRecording recordingUrl={call.recordingUrl} durationSeconds={call.durationSeconds} />
+      <LeadCallRecording
+        recordingUrl={call.recordingUrl}
+        durationSeconds={call.durationSeconds}
+      />
     </div>
   );
 }
@@ -269,7 +346,9 @@ export function LeadCallDetails({
 function AutomaticCallAnalysisStatus() {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-card-border px-3 py-2">
-      <span className="text-sm font-medium text-text-primary">Tóm tắt cuộc gọi</span>
+      <span className="text-sm font-medium text-text-primary">
+        Tóm tắt cuộc gọi
+      </span>
       <span className="text-xs text-text-tertiary" role="status">
         Đang chờ phân tích tự động…
       </span>
@@ -307,7 +386,11 @@ function LeadCallTranscriptionAction({
         }
       } catch (pollError) {
         if (!disposed) {
-          setError(pollError instanceof Error ? pollError.message : "Không lấy được trạng thái STT.");
+          setError(
+            pollError instanceof Error
+              ? pollError.message
+              : "Không lấy được trạng thái STT.",
+          );
         }
       }
       if (!disposed) timer = setTimeout(poll, 3000);
@@ -327,7 +410,11 @@ function LeadCallTranscriptionAction({
       await triggerSttTranscription(callUuid);
       setJob({ status: "PROCESSING" });
     } catch (startError) {
-      setError(startError instanceof Error ? startError.message : "Không thể bắt đầu STT.");
+      setError(
+        startError instanceof Error
+          ? startError.message
+          : "Không thể bắt đầu STT.",
+      );
     } finally {
       setIsStarting(false);
     }
@@ -403,7 +490,8 @@ function LeadCallSummaryAction({
   }, [callUuid, onCompleted]);
 
   useEffect(() => {
-    if (!job?.summary_status || isSttSummaryTerminalStatus(job.summary_status)) return;
+    if (!job?.summary_status || isSttSummaryTerminalStatus(job.summary_status))
+      return;
 
     let disposed = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -421,7 +509,11 @@ function LeadCallSummaryAction({
         }
       } catch (pollError) {
         if (!disposed) {
-          setError(pollError instanceof Error ? pollError.message : "Không lấy được trạng thái tóm tắt.");
+          setError(
+            pollError instanceof Error
+              ? pollError.message
+              : "Không lấy được trạng thái tóm tắt.",
+          );
         }
       }
       if (!disposed) timer = setTimeout(poll, 3000);
@@ -441,7 +533,11 @@ function LeadCallSummaryAction({
       await triggerSttSummary(callUuid);
       setJob({ status: "COMPLETED", summary_status: "PROCESSING" });
     } catch (startError) {
-      setError(startError instanceof Error ? startError.message : "Không thể tạo tóm tắt AI.");
+      setError(
+        startError instanceof Error
+          ? startError.message
+          : "Không thể tạo tóm tắt AI.",
+      );
     } finally {
       setIsStarting(false);
     }
@@ -512,8 +608,12 @@ function LeadCallTranscript({ transcript }: { transcript?: string | null }) {
     <details className="group rounded-lg border border-card-border bg-background-gray-secondary/40">
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
         <span>Transcript cuộc gọi</span>
-        <span className="text-xs font-normal text-text-tertiary group-open:hidden">Mở</span>
-        <span className="hidden text-xs font-normal text-text-tertiary group-open:inline">Thu gọn</span>
+        <span className="text-xs font-normal text-text-tertiary group-open:hidden">
+          Mở
+        </span>
+        <span className="hidden text-xs font-normal text-text-tertiary group-open:inline">
+          Thu gọn
+        </span>
       </summary>
       <div className="border-t border-card-border px-4 py-3">
         <p className="max-h-64 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-text-primary">
@@ -535,14 +635,27 @@ export function LeadCallActivityTitle({ call }: { call: LeadCallRecord }) {
   );
 }
 
-function CallMeta({ label, value, detail }: { label: string; value: string; detail?: string }) {
+function CallMeta({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+}) {
   return (
     <div className="min-w-0">
       <p className="text-xs text-text-tertiary">{label}</p>
-      <p className="mt-1 truncate text-sm font-semibold text-text-primary" title={value}>
+      <p
+        className="mt-1 truncate text-sm font-semibold text-text-primary"
+        title={value}
+      >
         {value || "-"}
       </p>
-      {detail ? <p className="mt-0.5 truncate text-xs text-text-tertiary">{detail}</p> : null}
+      {detail ? (
+        <p className="mt-0.5 truncate text-xs text-text-tertiary">{detail}</p>
+      ) : null}
     </div>
   );
 }

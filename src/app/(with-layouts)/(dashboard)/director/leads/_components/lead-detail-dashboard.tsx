@@ -18,6 +18,7 @@ import DetailTabs, {
 } from "@/components/common/detail-tabs";
 import { Card } from "@/components/tailgrids/core/card";
 import { useLeadCallLogsQuery } from "@/hooks/use-lead-call-logs-query";
+import { isNestApiEnabled } from "@/services/api/nest/nest-client";
 import {
   useConvertLeadToStudentMutation,
   useDeleteLeadMutation,
@@ -72,6 +73,10 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     canPerformStudentAction(permissions.lead, "delete", leadOwnership, user);
   const canAssignLead =
     !isAuthLoading && hasCrmCapability(user, "student.routing.operate");
+  const canRecordCall =
+    !isAuthLoading &&
+    isNestApiEnabled() &&
+    hasCrmCapability(user, "interaction.record");
   const isLeadAssigned =
     normalizeLeadStageStatus(
       data?.lead.processingStatus ?? data?.lead.statusCode ?? data?.lead.status,
@@ -211,11 +216,14 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       label: "Cuộc gọi",
       content: (
         <LeadCallsTab
+          leadId={leadId}
+          leadName={data.lead.name}
           calls={callLogsQuery.data?.calls ?? []}
           isLoading={callLogsQuery.isPending}
           isError={callLogsQuery.isError}
           onRetry={() => void callLogsQuery.refetch()}
           onCallUpdated={() => void callLogsQuery.refetch()}
+          canCreateCall={canRecordCall}
         />
       ),
     },

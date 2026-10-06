@@ -2,6 +2,7 @@ import type {
   StudentCallRecord,
   StudentCallSummaryStatus,
 } from "@/services/api/students/types";
+import { isNestApiEnabled, nestRequest } from "@/services/api/nest/nest-client";
 
 export type LeadCallRecord = StudentCallRecord;
 
@@ -20,6 +21,15 @@ export interface LeadCallLogsRequestOptions {
   headers?: Record<string, string>;
 }
 
+export interface CreateLeadCallPayload {
+  direction: "inbound" | "outbound" | "missed";
+  outcome: "connected" | "missed" | "no-answer" | "callback";
+  occurredAt?: string;
+  durationSeconds?: number;
+  topic?: string;
+  summary?: string;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -31,9 +41,10 @@ function text(value: unknown): string {
 }
 
 function resolveBaseUrl(options: LeadCallLogsRequestOptions): string {
-  return (
-    options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? ""
-  ).replace(/\/+$/, "");
+  return (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
+    /\/+$/,
+    "",
+  );
 }
 
 function frappeCookieHeader(cookieHeader: string): string {
@@ -99,16 +110,26 @@ function normalizeCall(value: unknown): LeadCallRecord | null {
     outcome: outcome as LeadCallRecord["outcome"],
     callerName: text(row.callerName),
     receiverName: text(row.receiverName),
-    ...(typeof row.callerRole === "string" ? { callerRole: row.callerRole } : {}),
-    ...(typeof row.receiverRole === "string" ? { receiverRole: row.receiverRole } : {}),
-    ...(typeof row.phoneNumber === "string" ? { phoneNumber: row.phoneNumber } : {}),
-    ...(typeof row.durationSeconds === "number" && Number.isFinite(row.durationSeconds)
+    ...(typeof row.callerRole === "string"
+      ? { callerRole: row.callerRole }
+      : {}),
+    ...(typeof row.receiverRole === "string"
+      ? { receiverRole: row.receiverRole }
+      : {}),
+    ...(typeof row.phoneNumber === "string"
+      ? { phoneNumber: row.phoneNumber }
+      : {}),
+    ...(typeof row.durationSeconds === "number" &&
+    Number.isFinite(row.durationSeconds)
       ? { durationSeconds: Math.max(0, Math.floor(row.durationSeconds)) }
       : {}),
     ...(typeof row.topic === "string" ? { topic: row.topic } : {}),
     ...(typeof row.summary === "string" ? { summary: row.summary } : {}),
-    ...(typeof row.summaryAvailable === "boolean" ? { summaryAvailable: row.summaryAvailable } : {}),
-    ...(typeof row.summaryStatus === "string" && SUMMARY_STATUSES.has(row.summaryStatus)
+    ...(typeof row.summaryAvailable === "boolean"
+      ? { summaryAvailable: row.summaryAvailable }
+      : {}),
+    ...(typeof row.summaryStatus === "string" &&
+    SUMMARY_STATUSES.has(row.summaryStatus)
       ? { summaryStatus: row.summaryStatus as StudentCallSummaryStatus }
       : {}),
     ...(typeof row.transcript === "string" && row.transcript.trim()
@@ -117,6 +138,32 @@ function normalizeCall(value: unknown): LeadCallRecord | null {
     ...(typeof row.recordingUrl === "string" && row.recordingUrl.trim()
       ? { recordingUrl: row.recordingUrl }
       : {}),
+  };
+}
+
+function parseCallLogsResponse(value: unknown): LeadCallLogsResponse {
+  const payload = asRecord(unwrapMessage(value));
+  if (
+    !payload ||
+    typeof (payload.lead_id ?? payload.leadId) !== "string" ||
+    !Array.isArray(payload.calls)
+  ) {
+    throw new Error("Phản hồi lịch sử cuộc gọi không hợp lệ.");
+  }
+  const calls = payload.calls
+    .map(normalizeCall)
+    .filter((call): call is LeadCallRecord => call !== null);
+  if (calls.length !== payload.calls.length) {
+    throw new Error("Phản hồi lịch sử cuộc gọi không hợp lệ.");
+  }
+
+  return {
+    leadId: text(payload.lead_id ?? payload.leadId),
+    calls,
+    total:
+      typeof payload.total === "number" && Number.isFinite(payload.total)
+        ? Math.max(0, Math.floor(payload.total))
+        : calls.length,
   };
 }
 
@@ -130,6 +177,13 @@ export async function getLeadCallLogs(
 ): Promise<LeadCallLogsResponse | null> {
   const normalizedLeadId = leadId.trim();
   if (!normalizedLeadId) return null;
+
+  if (isNestApiEnabled()) {
+    const result = await nestRequest<{
+      data: LeadCallLogsResponse;
+    }>(`/api/v1/leads/${encodeURIComponent(normalizedLeadId)}/calls`);
+    return parseCallLogsResponse(result.data);
+  }
 
   const baseUrl = resolveBaseUrl(options);
   if (!baseUrl) {
@@ -167,27 +221,24 @@ export async function getLeadCallLogs(
     );
   }
 
-  const payload = asRecord(unwrapMessage(raw));
-  if (
-    !payload ||
-    typeof (payload.lead_id ?? payload.leadId) !== "string" ||
-    !Array.isArray(payload.calls)
-  ) {
-    throw new Error("Phản hồi lịch sử cuộc gọi không hợp lệ.");
-  }
-  const calls = payload.calls
-    .map(normalizeCall)
-    .filter((call): call is LeadCallRecord => call !== null);
-  if (calls.length !== payload.calls.length) {
-    throw new Error("Phản hồi lịch sử cuộc gọi không hợp lệ.");
-  }
+  return parseCallLogsResponse(raw);
+}
 
-  return {
-    leadId: text(payload.lead_id ?? payload.leadId),
-    calls,
-    total:
-      typeof payload.total === "number" && Number.isFinite(payload.total)
-        ? Math.max(0, Math.floor(payload.total))
-        : calls.length,
-  };
+export async function createLeadCall(
+  leadId: string,
+  payload: CreateLeadCallPayload,
+): Promise<LeadCallRecord> {
+  const normalizedLeadId = leadId.trim();
+  if (!normalizedLeadId)
+    throw new Error("Thiếu Lead cần ghi nhật ký cuộc gọi.");
+  if (!isNestApiEnabled()) {
+    throw new Error("Ghi nhật ký cuộc gọi cần bật backend NestJS mới.");
+  }
+  const result = await nestRequest<{ data: LeadCallRecord }>(
+    `/api/v1/leads/${encodeURIComponent(normalizedLeadId)}/calls`,
+    { method: "POST", body: payload },
+  );
+  const call = normalizeCall(result.data);
+  if (!call) throw new Error("Phản hồi ghi nhật ký cuộc gọi không hợp lệ.");
+  return call;
 }
