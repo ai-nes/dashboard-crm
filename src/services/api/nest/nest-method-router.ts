@@ -10,6 +10,7 @@ import {
   NOT_HANDLED,
   nestAdminCatalogRequest,
 } from "./nest-admin-catalog-router";
+import { nestUserManagementHandler } from "./nest-user-management-router";
 
 export { NOT_HANDLED };
 
@@ -32,6 +33,7 @@ const HANDLERS: MethodHandler[] = [
   sessionHandler,
   nestAdminCatalogRequest,
   nestMajorCatalogHandler,
+  nestUserManagementHandler,
 ];
 
 /** Register another domain handler (kept in order; first match wins). */

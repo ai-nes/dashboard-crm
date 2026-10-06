@@ -1,0 +1,260 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const fetchMock = vi.fn();
+
+function json(body: unknown, status = 200) {
+  return Promise.resolve(
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+}
+
+const FRAPPE = "http://frappe.test/api/method";
+
+describe("user management with the Nest backend", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://api.test");
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("maps the paginated user directory and capacity snapshots", async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes("/api/v1/users?")) {
+        return json({
+          data: [
+            {
+              id: "u1",
+              email: "sale@example.test",
+              name: "Sale One",
+              identityRole: "user",
+              crmProfile: "sales",
+              emailVerified: true,
+              status: "active",
+            },
+          ],
+          meta: { pagination: { page: 2, pageSize: 8, total: 9 } },
+        });
+      }
+      if (url.endsWith("/api/v1/staff-capacity")) {
+        return json({
+          data: {
+            u1: { limit: 5, active: 2, remaining: 3, configured: true },
+          },
+        });
+      }
+      if (url.endsWith("/api/v1/me")) {
+        return json({
+          data: {
+            id: "u1",
+            email: "sale@example.test",
+            name: "Sale One",
+            identityRole: "user",
+            crmProfile: "sales",
+            crmCapabilities: [],
+          },
+        });
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    const { request } = await import("../frappe-request");
+    const result = await request(
+      `${FRAPPE}/crm.api.session.list_admin_users?search=sale&role=Sale&start=8&page_length=8`,
+    );
+
+    expect(result).toMatchObject({
+      total: 9,
+      start: 8,
+      page_length: 8,
+      users: [
+        {
+          name: "u1",
+          full_name: "Sale One",
+          role: "Sale",
+          session_user: true,
+          capacity: { limit: 5, active: 2, remaining: 3, configured: true },
+        },
+      ],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.test/api/v1/users?page=2&pageSize=8&search=sale&crmProfile=sales",
+      expect.anything(),
+    );
+  });
+
+  it("maps profile mutations, account provisioning, and capacity updates", async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url.endsWith("/api/v1/users/u1/crm-profile"))
+        return json({ data: {} });
+      if (url === "http://api.test/api/v1/users") {
+        return json(
+          {
+            data: {
+              id: "u2",
+              email: "new@example.test",
+              name: "New User",
+              identityRole: "user",
+              crmProfile: null,
+              emailVerified: true,
+            },
+          },
+          201,
+        );
+      }
+      if (url.endsWith("/api/v1/users/u2/crm-profile"))
+        return json({ data: {} });
+      if (url.endsWith("/api/v1/staff-capacity/u1")) {
+        return json({
+          data: { limit: 8, active: 1, remaining: 7, configured: true },
+        });
+      }
+      throw new Error(`Unexpected ${init?.method ?? "GET"} ${url}`);
+    });
+
+    const { request } = await import("../frappe-request");
+    await request(`${FRAPPE}/crm.api.user.update_user_role`, {
+      method: "POST",
+      body: JSON.stringify({ user: "u1", new_role: "Lead Sale" }),
+    });
+    await request(`${FRAPPE}/crm.api.user.create_crm_user`, {
+      method: "POST",
+      body: JSON.stringify({
+        email: "new@example.test",
+        full_name: "New User",
+        password: "long-enough-password",
+        role: "Sale",
+      }),
+    });
+    const capacity = await request(
+      `${FRAPPE}/crm.api.assignment_control.upsert_user_capacity`,
+      {
+        method: "POST",
+        body: JSON.stringify({ user: "u1", max_active_students: 8 }),
+      },
+    );
+
+    expect(capacity).toEqual({
+      limit: 8,
+      active: 1,
+      remaining: 7,
+      configured: true,
+    });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://api.test/api/v1/users/u1/crm-profile",
+    );
+    expect(
+      JSON.parse((fetchMock.mock.calls[0]?.[1] as RequestInit).body as string),
+    ).toEqual({
+      crmProfile: "lead_sales",
+    });
+    expect((fetchMock.mock.calls[1]?.[1] as RequestInit).headers).toMatchObject(
+      {
+        "Idempotency-Key": expect.any(String),
+      },
+    );
+    expect(fetchMock.mock.calls[2]?.[0]).toBe(
+      "http://api.test/api/v1/users/u2/crm-profile",
+    );
+  });
+
+  it("maps permission profile pages and updates to the Nest contract", async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (
+        url.startsWith("http://api.test/api/v1/permission-profiles?") ||
+        url.endsWith("/permission-profiles/Sale")
+      ) {
+        return json(
+          init?.method === "PUT"
+            ? {
+                data: {
+                  name: "Sale",
+                  role: "Sale",
+                  rowScope: "assigned",
+                  deleteRequiresOwnership: false,
+                  isSystemManaged: true,
+                  applicableDoctypes: [],
+                },
+              }
+            : {
+                data: {
+                  profiles: [
+                    {
+                      name: "Sale",
+                      role: "Sale",
+                      rowScope: "assigned",
+                      deleteRequiresOwnership: true,
+                      isSystemManaged: true,
+                      applicableDoctypes: [],
+                    },
+                  ],
+                  selectedRole: "Sale",
+                  viewMode: "grouped",
+                },
+                meta: { pagination: { total: 1, start: 0, pageSize: 8 } },
+              },
+        );
+      }
+      throw new Error(`Unexpected ${init?.method ?? "GET"} ${url}`);
+    });
+
+    const { request } = await import("../frappe-request");
+    const list = await request(
+      `${FRAPPE}/crm.api.permission_profile.list_permission_profiles?role=Sale&start=0&page_length=8`,
+    );
+    expect(list).toMatchObject({
+      selected_role: "Sale",
+      profiles: [{ role: "Sale", row_scope: "assigned" }],
+    });
+
+    await request(
+      `${FRAPPE}/crm.api.permission_profile.update_permission_profile`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          role: "Sale",
+          row_scope: "assigned",
+          delete_requires_ownership: false,
+          applicable_doctypes: [{ document_type: "CRM Lead", read: true }],
+        }),
+      },
+    );
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "http://api.test/api/v1/permission-profiles/Sale",
+    );
+    expect(
+      JSON.parse((fetchMock.mock.calls[1]?.[1] as RequestInit).body as string),
+    ).toMatchObject({
+      rowScope: "assigned",
+      applicableDoctypes: [{ documentType: "CRM Lead", read: true }],
+    });
+  });
+
+  it("validates the requested CRM role before provisioning an account", async () => {
+    const { request } = await import("../frappe-request");
+
+    await expect(
+      request(`${FRAPPE}/crm.api.user.create_crm_user`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: "invalid-role@example.test",
+          full_name: "Invalid Role",
+          password: "long-enough-password",
+          role: "Unknown Role",
+        }),
+      }),
+    ).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_CRM_PROFILE",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
