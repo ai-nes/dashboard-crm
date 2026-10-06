@@ -1,3 +1,13 @@
+import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import {
+  nestCampaignCreate,
+  nestCampaignDelete,
+  nestCampaignGet,
+  nestCampaignList,
+  nestCampaignRoutingOptions,
+  nestCampaignUpdate,
+} from "./campaigns-nest";
+
 export interface LeadSaleCampaign {
   name: string;
   stableCode: string;
@@ -101,6 +111,18 @@ const METHODS = {
 } as const;
 const DEFAULT_PAGE_LENGTH = 100;
 
+/** Run a Nest call and surface its failures as `CampaignApiError`. */
+async function viaNest<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new CampaignApiError(error.status, error.code, error.message);
+    }
+    throw error;
+  }
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -157,7 +179,9 @@ function normalizeCampaign(value: unknown): LeadSaleCampaign | null {
     ...(rawTargetType !== undefined
       ? {
           leadRoutingTargetType:
-            targetType === "Team" || targetType === "Team Group" ? targetType : "",
+            targetType === "Team" || targetType === "Team Group"
+              ? targetType
+              : "",
         }
       : {}),
     ...(text(rawTargetTeam)
@@ -431,6 +455,11 @@ export async function getCampaignList(
   params: CampaignListParams = {},
   options: CampaignApiRequestOptions = {},
 ): Promise<CampaignListResponse> {
+  if (isNestApiEnabled()) {
+    return viaNest(async () =>
+      normalizeCampaignList(await nestCampaignList({ search: params.search })),
+    );
+  }
   const baseUrl = resolveBaseUrl(options);
   if (!baseUrl) {
     throw new CampaignApiError(
@@ -524,6 +553,11 @@ export async function createCampaign(
   payload: CreateCampaignPayload,
   options: CampaignApiRequestOptions = {},
 ): Promise<LeadSaleCampaign> {
+  if (isNestApiEnabled()) {
+    return viaNest(async () =>
+      normalizeCampaignRecord(await nestCampaignCreate(payload)),
+    );
+  }
   try {
     const raw = await callCampaignApi<unknown>(
       METHODS.CREATE,
@@ -553,6 +587,18 @@ export async function getCampaign(
       "INVALID_CAMPAIGN_CODE",
       "Mã campaign không được để trống.",
     );
+  }
+
+  if (isNestApiEnabled()) {
+    try {
+      return await viaNest(async () =>
+        normalizeCampaignRecord(await nestCampaignGet(campaignCode)),
+      );
+    } catch (error) {
+      if (error instanceof CampaignApiError && error.status === 404)
+        return null;
+      throw error;
+    }
   }
 
   try {
@@ -594,13 +640,15 @@ function normalizeCampaignRoutingOption(
 export async function getCampaignRoutingOptions(
   options: CampaignApiRequestOptions = {},
 ): Promise<CampaignRoutingOptions> {
-  const raw = await callCampaignApi<unknown>(
-    METHODS.ROUTING_OPTIONS,
-    "GET",
-    options,
-  );
+  const raw = isNestApiEnabled()
+    ? await viaNest(() => nestCampaignRoutingOptions())
+    : await callCampaignApi<unknown>(METHODS.ROUTING_OPTIONS, "GET", options);
   const payload = asRecord(unwrapMessage(raw));
-  if (!payload || !Array.isArray(payload.teams) || !Array.isArray(payload.groups)) {
+  if (
+    !payload ||
+    !Array.isArray(payload.teams) ||
+    !Array.isArray(payload.groups)
+  ) {
     throw new CampaignApiError(
       502,
       "INVALID_CAMPAIGN_ROUTING_OPTIONS",
@@ -623,6 +671,11 @@ export async function updateCampaign(
   payload: UpdateCampaignPayload,
   options: CampaignApiRequestOptions = {},
 ): Promise<LeadSaleCampaign> {
+  if (isNestApiEnabled()) {
+    return viaNest(async () =>
+      normalizeCampaignRecord(await nestCampaignUpdate(payload.name, payload)),
+    );
+  }
   try {
     const raw = await callCampaignApi<unknown>(
       METHODS.UPDATE,
@@ -651,6 +704,10 @@ export async function deleteCampaign(
       "INVALID_CAMPAIGN_NAME",
       "Mã campaign không được để trống.",
     );
+  }
+  if (isNestApiEnabled()) {
+    await viaNest(() => nestCampaignDelete(name));
+    return { deleted: name };
   }
   try {
     const raw = await callCampaignApi<unknown>(
