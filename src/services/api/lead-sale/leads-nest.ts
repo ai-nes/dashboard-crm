@@ -12,16 +12,15 @@ interface Envelope<T> {
 
 type LeadRecord = Record<string, unknown> & { id: string };
 
-interface HistoryEntry {
+interface TimelineItem {
   id: string;
-  type: "status" | "ownership";
+  type: "note" | "call" | "interaction" | "status" | "ownership";
   occurredAt: string;
-  actorUserId: string | null;
-  processingStatus?: string;
-  resolution?: string;
-  fromOwnerUserId?: string | null;
-  toOwnerUserId?: string | null;
-  reason?: string | null;
+  author: string;
+  title: string;
+  content: string;
+  channel: string | null;
+  outcome: string | null;
 }
 
 const POTENTIAL_TO_API: Record<string, string> = {
@@ -86,19 +85,17 @@ export function toNestLeadBody(
   return body;
 }
 
-function logEntries(history: HistoryEntry[]) {
-  return history.map((entry) => ({
-    id: entry.id,
-    type: "activity",
-    title:
-      entry.type === "ownership"
-        ? "Đổi người phụ trách"
-        : `Trạng thái: ${entry.processingStatus ?? ""} / ${entry.resolution ?? ""}`,
-    author: entry.actorUserId ?? "",
-    date: entry.occurredAt,
-    content: entry.reason ?? "",
-    eventType: entry.type,
-    reason: entry.reason ?? null,
+function logEntries(items: TimelineItem[]) {
+  return items.map((item) => ({
+    id: item.id,
+    type: item.type === "note" ? "note" : "activity",
+    title: item.title,
+    author: item.author,
+    date: item.occurredAt,
+    content: item.content,
+    eventType: item.type,
+    category: item.channel,
+    reason: item.type === "status" ? item.content : null,
   }));
 }
 
@@ -127,17 +124,17 @@ export async function nestLeadList(params: {
 }
 
 export async function nestLeadDetail(id: string): Promise<unknown> {
-  const [lead, history] = await Promise.all([
+  const [lead, timeline] = await Promise.all([
     nestRequest<Envelope<LeadRecord>>(
       `/api/v1/leads/${encodeURIComponent(id)}`,
     ),
-    nestRequest<Envelope<HistoryEntry[]>>(
-      `/api/v1/leads/${encodeURIComponent(id)}/history`,
+    nestRequest<Envelope<TimelineItem[]>>(
+      `/api/v1/leads/${encodeURIComponent(id)}/timeline`,
     ),
   ]);
   return {
     lead: lead.data,
-    log: logEntries(history.data),
+    log: logEntries(timeline.data),
     meta: { asOf: lead.data.modifiedAt ?? null },
   };
 }
