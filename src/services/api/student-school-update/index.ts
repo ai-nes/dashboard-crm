@@ -1,6 +1,11 @@
 import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
 import { nestFieldOptions, nestSchools } from "../nest/nest-directory";
 import {
+  nestReadStudent,
+  nestStudentStage,
+  nestUpdateStudent,
+} from "../nest/nest-student-profile";
+import {
   getStudentStudyStageForPayload,
   normalizeStudentStudyStage,
 } from "./student-study-stage";
@@ -435,6 +440,21 @@ function getReadRequestInit(): RequestInit {
   };
 }
 
+async function viaNest<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new StudentSchoolUpdateApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+}
+
 async function readRecord<TFields>(
   method: "get_student" | "get_school",
   name: string,
@@ -446,6 +466,12 @@ async function readRecord<TFields>(
       "INVALID_NAME",
       "Thiếu tên bản ghi cần tải.",
     );
+  }
+
+  if (isNestApiEnabled() && method === "get_student") {
+    return viaNest(() => nestReadStudent(normalizedName)) as unknown as Promise<
+      StudentSchoolRecord<TFields>
+    >;
   }
 
   const baseUrl = getBaseUrl();
@@ -997,6 +1023,12 @@ async function updateRecord<TFields>(
     );
   }
 
+  if (isNestApiEnabled() && method === "update_student") {
+    return viaNest(() =>
+      nestUpdateStudent(normalizedName, fields as Record<string, unknown>),
+    ) as unknown as Promise<UpdateRecordResponse<TFields>>;
+  }
+
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     throw new StudentSchoolUpdateApiError(
@@ -1059,6 +1091,11 @@ export async function requestStudentStageTransition({
       "INVALID_STUDENT",
       "Thiếu học sinh cần cập nhật trạng thái.",
     );
+  }
+
+  if (isNestApiEnabled()) {
+    await viaNest(() => nestStudentStage(normalizedStudent, target_stage));
+    return;
   }
 
   const baseUrl = getBaseUrl();
