@@ -100,7 +100,7 @@ describe("frappe request with the Nest backend enabled", () => {
   it("fails fast with 501 for methods the Nest backend lacks", async () => {
     const { request } = await import("../frappe-request");
     await expect(
-      request(`${FRAPPE}/crm.api.admin_catalog.list_governed_values`),
+      request(`${FRAPPE}/crm.api.admin_catalog.list_unknown_catalog`),
     ).rejects.toMatchObject({ status: 501, code: "FEATURE_NOT_MIGRATED" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -151,6 +151,88 @@ describe("frappe request with the Nest backend enabled", () => {
       ],
       ["http://api.test/api/v1/score-config/signals?active_only=true", "GET"],
       ["http://api.test/api/v1/score-config/templates/SCT-1", "PATCH"],
+    ]);
+  });
+  it("serves governed values and their change workflow from Nest", async () => {
+    fetchMock.mockImplementation(() => json({ records: [], changes: [] }));
+    const { request } = await import("../frappe-request");
+    await request(
+      `${FRAPPE}/crm.api.admin_catalog.list_governed_values?doctype=CRM%20Lead%20Source&include_retired=true&page_length=20`,
+    );
+    await request(`${FRAPPE}/crm.api.admin_catalog.create_governed_value`, {
+      method: "POST",
+      body: JSON.stringify({
+        doctype: "CRM Platform",
+        data: { platform_name: "Zalo OA", lead_source: "Social" },
+      }),
+    });
+    await request(`${FRAPPE}/crm.api.admin_catalog.propose_governed_change`, {
+      method: "POST",
+      body: JSON.stringify({
+        doctype: "CRM Campus",
+        docname: "FPTU HCM",
+        action: "Retire",
+        reason: "Closed",
+        expected_version: 2,
+      }),
+    });
+    await request(
+      `${FRAPPE}/crm.api.admin_catalog.list_governed_changes?doctype=CRM%20Campus`,
+    );
+    await request(`${FRAPPE}/crm.api.admin_catalog.approve_governed_change`, {
+      method: "POST",
+      body: JSON.stringify({ change_log_name: "MDC-2026-00015" }),
+    });
+    const calls = fetchMock.mock.calls.map((call) => [
+      String(call[0]),
+      (call[1] as RequestInit | undefined)?.method ?? "GET",
+    ]);
+    expect(calls).toEqual([
+      [
+        "http://api.test/api/v1/governed-values/lead-source?page_length=20&include_retired=true",
+        "GET",
+      ],
+      ["http://api.test/api/v1/governed-values/platform", "POST"],
+      ["http://api.test/api/v1/governed-values/campus/changes", "POST"],
+      ["http://api.test/api/v1/governed-values/campus/changes", "GET"],
+      [
+        "http://api.test/api/v1/governed-values/changes/MDC-2026-00015/approve",
+        "POST",
+      ],
+    ]);
+    const created = JSON.parse(
+      String((fetchMock.mock.calls[1][1] as RequestInit).body),
+    );
+    expect(created).toMatchObject({
+      value: "Zalo OA",
+      lead_source: "Social",
+    });
+  });
+
+  it("serves the academic year config from Nest", async () => {
+    fetchMock.mockImplementation(() => json({ configs: [], total: 0 }));
+    const { request } = await import("../frappe-request");
+    await request(
+      `${FRAPPE}/crm.api.admin_catalog.list_academic_year_configs?search=26`,
+    );
+    await request(
+      `${FRAPPE}/crm.api.admin_catalog.update_academic_year_config`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: "cfg-1",
+          data: { notes: "x" },
+          expected_modified: "2026-01-01T00:00:00.000Z",
+        }),
+      },
+    );
+    const calls = fetchMock.mock.calls.map((call) => [
+      String(call[0]),
+      (call[1] as RequestInit | undefined)?.method ?? "GET",
+    ]);
+    expect(calls).toEqual([
+      ["http://api.test/api/v1/academic-year-configs?search=26", "GET"],
+      ["http://api.test/api/v1/academic-year-configs/cfg-1", "PATCH"],
     ]);
   });
   it("writes channel types through the Nest endpoint and answers in Frappe's shape", async () => {

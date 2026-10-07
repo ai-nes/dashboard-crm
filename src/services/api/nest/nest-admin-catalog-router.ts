@@ -28,6 +28,21 @@ const YEARS = "/api/v1/reference-data/admission-years";
 const OFFERINGS = "/api/v1/admission-offerings";
 const CHANNEL_TYPES = "/api/v1/campaign-channel-types";
 const SCORE = "/api/v1/score-config";
+const GOVERNED = "/api/v1/governed-values";
+const YEAR_CONFIGS = "/api/v1/academic-year-configs";
+
+const GOVERNED_CATALOGS: Record<string, { path: string; valueField: string }> =
+  {
+    "CRM Campus": { path: "campus", valueField: "campus_name" },
+    "CRM Lead Source": { path: "lead-source", valueField: "source_name" },
+    "CRM Platform": { path: "platform", valueField: "platform_name" },
+  };
+
+function governedCatalog(doctype: unknown) {
+  const catalog = GOVERNED_CATALOGS[String(doctype ?? "")];
+  if (!catalog) throw new Error("Unsupported governed catalog.");
+  return catalog;
+}
 
 interface NestChannelType {
   code: string;
@@ -132,8 +147,66 @@ export async function nestAdminCatalogRequest(
       return { deleted: decodeURIComponent(id) };
 
     case "list_academic_year_configs":
-      // Not ported; the table is empty in production.
-      return { configs: [], total: 0 };
+      return nestRequest(YEAR_CONFIGS, { query: paging });
+    case "create_academic_year_config":
+      return nestRequest(YEAR_CONFIGS, {
+        method: "POST",
+        body: { data: dataOf(body) },
+      });
+    case "update_academic_year_config":
+      return nestRequest(`${YEAR_CONFIGS}/${id}`, {
+        method: "PATCH",
+        body: { data: dataOf(body), expected_modified: expected },
+      });
+    case "delete_academic_year_config":
+      return nestRequest(`${YEAR_CONFIGS}/${id}`, {
+        method: "DELETE",
+        query: { expectedModified: expected },
+      });
+
+    case "list_governed_values":
+      return nestRequest(
+        `${GOVERNED}/${governedCatalog(params.doctype).path}`,
+        {
+          query: { ...paging, include_retired: params.include_retired },
+        },
+      );
+    case "create_governed_value": {
+      const catalog = governedCatalog(body?.doctype);
+      const data = dataOf(body);
+      return nestRequest(`${GOVERNED}/${catalog.path}`, {
+        method: "POST",
+        body: {
+          value: data[catalog.valueField],
+          lead_source: data.lead_source,
+          reason: data.reason,
+          idempotency_key: data.idempotency_key,
+        },
+      });
+    }
+    case "propose_governed_change":
+      return nestRequest(
+        `${GOVERNED}/${governedCatalog(body?.doctype).path}/changes`,
+        {
+          method: "POST",
+          body: {
+            docname: body?.docname,
+            action: body?.action,
+            reason: body?.reason,
+            new_value: body?.new_value ?? undefined,
+            expected_version: body?.expected_version ?? undefined,
+          },
+        },
+      );
+    case "list_governed_changes":
+      return nestRequest(
+        `${GOVERNED}/${governedCatalog(params.doctype).path}/changes`,
+      );
+    case "approve_governed_change":
+      return nestRequest(
+        `${GOVERNED}/changes/${encodeURIComponent(String(body?.change_log_name ?? ""))}/approve`,
+        { method: "POST" },
+      );
 
     case "list_admission_offerings":
       return nestRequest(OFFERINGS, {
