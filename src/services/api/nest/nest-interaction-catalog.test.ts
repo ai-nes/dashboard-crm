@@ -57,9 +57,45 @@ describe("interaction catalog with the Nest backend", () => {
     expect(urls.every((url) => url.startsWith("http://api.test/"))).toBe(true);
   });
 
-  it("fails fast with 501 for interaction feeds not served yet", async () => {
+  it("lists, creates and reads student interactions from Nest", async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") return json({ name: "i1" }, 201);
+      if (String(url).includes("/api/v1/interactions/")) {
+        return json({
+          interaction: { id: "i1", interaction_type: "CALL" },
+          intents: [],
+        });
+      }
+      return json({
+        items: [{ id: "i1", interaction_type: "CALL" }],
+        next_cursor: null,
+      });
+    });
+    const { listInteractions, createInteraction, getInteractionDetail } =
+      await import("../interaction-intelligence");
+    const feed = await listInteractions({ student: "HS-1" }, { limit: 5 });
+    expect(feed.items[0]?.id).toBe("i1");
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      "http://api.test/api/v1/students/HS-1/interactions?limit=5",
+    );
+    const created = await createInteraction({
+      student: "HS-1",
+      interaction_type: "CALL",
+      summary: "Gọi",
+    });
+    expect(created.name).toBe("i1");
+    const detail = await getInteractionDetail("i1");
+    expect(detail.interaction.id).toBe("i1");
+    expect(
+      fetchMock.mock.calls.every((call) =>
+        String(call[0]).startsWith("http://api.test/"),
+      ),
+    ).toBe(true);
+  });
+
+  it("fails fast with 501 for contact feeds not served yet", async () => {
     const { listInteractions } = await import("../interaction-intelligence");
-    await expect(listInteractions({ student: "HS-1" })).rejects.toMatchObject({
+    await expect(listInteractions({ contact: "C-1" })).rejects.toMatchObject({
       status: 501,
       code: "FEATURE_NOT_MIGRATED",
     });

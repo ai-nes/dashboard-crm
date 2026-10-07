@@ -432,6 +432,27 @@ function assertSingleTarget(target: InteractionTarget): void {
   }
 }
 
+async function nestInteractionRequest<T>(
+  path: string,
+  options: {
+    method?: "GET" | "POST";
+    query?: Record<string, string | undefined>;
+    body?: unknown;
+  } = {},
+): Promise<T> {
+  try {
+    return await nestRequest<T>(path, options);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new InteractionIntelligenceApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+}
 export async function listInteractions(
   target: InteractionTarget,
   filters: InteractionFeedFilters = {},
@@ -463,6 +484,22 @@ export async function listInteractions(
     if (typeof value === "string" && value.trim()) params[key] = value.trim();
   }
 
+  if (frappeUnavailable(options.baseUrl)) {
+    if (!target.student) {
+      throw new InteractionIntelligenceApiError(
+        FEATURE_NOT_MIGRATED_STATUS,
+        FEATURE_NOT_MIGRATED_CODE,
+        FEATURE_NOT_MIGRATED_MESSAGE,
+      );
+    }
+    const { student, ...query } = params;
+    return normalizeFeed(
+      await nestInteractionRequest(
+        `/api/v1/students/${encodeURIComponent(student!)}/interactions`,
+        { query },
+      ),
+    );
+  }
   return normalizeFeed(await callFrappeRpc(METHODS.LIST, params, options));
 }
 
@@ -479,11 +516,15 @@ export async function getInteractionDetail(
     );
   }
 
-  const raw = await callFrappeRpc<unknown>(
-    METHODS.DETAIL,
-    { interaction: id },
-    options,
-  );
+  const raw = frappeUnavailable(options.baseUrl)
+    ? await nestInteractionRequest<unknown>(
+        `/api/v1/interactions/${encodeURIComponent(id)}`,
+      )
+    : await callFrappeRpc<unknown>(
+        METHODS.DETAIL,
+        { interaction: id },
+        options,
+      );
   const payload = asRecord(raw);
   const summary = normalizeSummary(payload?.interaction);
   if (!summary) {
@@ -661,11 +702,23 @@ export async function createInteraction(
   if (input.summary?.trim()) doc.summary = input.summary.trim();
   if (input.notes?.trim()) doc.notes = input.notes.trim();
 
-  const raw = await callFrappeRpcPost<unknown>(
-    METHODS.INSERT,
-    { doc },
-    options,
-  );
+  const raw = frappeUnavailable(options.baseUrl)
+    ? await nestInteractionRequest<unknown>(
+        `/api/v1/students/${encodeURIComponent(student)}/interactions`,
+        {
+          method: "POST",
+          body: {
+            interaction_type: interactionType,
+            ...(doc.interaction_datetime
+              ? { interaction_datetime: doc.interaction_datetime }
+              : {}),
+            ...(doc.outcome ? { outcome: doc.outcome } : {}),
+            ...(doc.summary ? { summary: doc.summary } : {}),
+            ...(doc.notes ? { notes: doc.notes } : {}),
+          },
+        },
+      )
+    : await callFrappeRpcPost<unknown>(METHODS.INSERT, { doc }, options);
   const created = asRecord(raw);
   if (!created?.name || typeof created.name !== "string") {
     throw new InteractionIntelligenceApiError(
