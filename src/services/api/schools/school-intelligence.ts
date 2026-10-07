@@ -1,3 +1,8 @@
+import {
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
 import { SCHOOL_EXAM_SCORE_BAND_LABELS } from "./types";
 import type {
   DataAvailabilityStatus,
@@ -609,10 +614,48 @@ export class DirectorApiError extends Error {
   }
 }
 
+/** School detail from the Nest backend; the session cookie is forwarded on the server. */
+async function getNestSchoolDetail(
+  schoolId: string,
+  options: GetSchoolOptions,
+): Promise<DirectorSchoolDetailData | null> {
+  const headers: Record<string, string> = {};
+  if (typeof window === "undefined") {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieHeader = (await cookies()).toString();
+      if (cookieHeader) headers.Cookie = cookieHeader;
+    } catch {
+      // Outside a Next request context (for example, contract tests).
+    }
+  }
+  try {
+    const payload = await nestRequest<Record<string, unknown>>(
+      `/api/v1/director/schools/${encodeURIComponent(schoolId)}`,
+      {
+        query: { admissionYear: options.admissionYear },
+        headers,
+      },
+    );
+    return normalizeSchoolIntelligence(payload);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      if (error.status === 404 && error.code === "SCHOOL_NOT_FOUND") {
+        return null;
+      }
+      throw new DirectorApiError(error.status, error.code, error.message);
+    }
+    throw error;
+  }
+}
+
 export async function getDirectorSchoolDetail(
   schoolId: string,
   options: GetSchoolOptions = {},
 ): Promise<DirectorSchoolDetailData | null> {
+  if (isNestApiEnabled() && !options.baseUrl) {
+    return getNestSchoolDetail(schoolId, options);
+  }
   const query = new URLSearchParams({ school_id: schoolId });
   if (options.admissionYear)
     query.set("admissionYear", String(options.admissionYear));
