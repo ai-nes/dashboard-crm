@@ -3,6 +3,9 @@ import {
   FEATURE_NOT_MIGRATED_MESSAGE,
   FEATURE_NOT_MIGRATED_STATUS,
   frappeUnavailable,
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
 } from "../nest/nest-client";
 import {
   normalizeFactCatalog,
@@ -75,6 +78,145 @@ export class CrmRulesApiError extends Error {
 
 type RequestMethod = "DELETE" | "GET" | "POST" | "PUT";
 type QueryValue = string | number | boolean | undefined;
+
+function restQuery(
+  query: Record<string, QueryValue>,
+): Record<string, string | number | undefined> {
+  return Object.fromEntries(
+    Object.entries(query).map(([key, value]) => [
+      key,
+      value === undefined ? undefined : String(value),
+    ]),
+  );
+}
+
+function restName(value: unknown, field: string): string {
+  if (typeof value !== "string" || !value) {
+    throw new CrmRulesApiError(
+      400,
+      "INVALID_RULE_INPUT",
+      `${field} is required.`,
+    );
+  }
+  return encodeURIComponent(value);
+}
+
+async function callNest<T>(
+  method: string,
+  requestMethod: RequestMethod,
+  options: RequestOptions,
+  query: Record<string, QueryValue>,
+  body?: Record<string, unknown>,
+): Promise<T> {
+  const versionFromQuery = query.version_name ?? query.versionName;
+  const versionFromBody = body?.version_name ?? body?.versionName;
+  const version = versionFromQuery ?? versionFromBody;
+  const ruleFromBody = body?.name;
+  let path: string;
+  let methodOverride: "GET" | "POST" | "PATCH" | "DELETE" =
+    requestMethod === "PUT" ? "PATCH" : requestMethod;
+  let requestBody = body;
+  let requestQuery = restQuery(query);
+
+  switch (method) {
+    case METHODS.LIST_VERSIONS:
+      path = "/api/v1/rule-engine/versions";
+      break;
+    case METHODS.GET_VERSION:
+      path = `/api/v1/rule-engine/versions/${restName(query.name, "name")}`;
+      requestQuery = {};
+      break;
+    case METHODS.CREATE_VERSION:
+      path = "/api/v1/rule-engine/versions";
+      break;
+    case METHODS.UPDATE_VERSION: {
+      const name = restName(body?.name, "name");
+      if (body?.status === "active") {
+        path = `/api/v1/rule-engine/versions/${name}/publish`;
+        methodOverride = "POST";
+      } else if (body?.status === "archived") {
+        path = `/api/v1/rule-engine/versions/${name}/archive`;
+        methodOverride = "POST";
+        requestBody = {
+          ...body,
+          reason: body.reason ?? body.change_note ?? "Archived from dashboard.",
+        };
+      } else {
+        path = `/api/v1/rule-engine/versions/${name}`;
+      }
+      break;
+    }
+    case METHODS.CLONE_VERSION:
+      path = `/api/v1/rule-engine/versions/${restName(body?.source_name ?? body?.sourceName, "source_name")}/clone`;
+      break;
+    case METHODS.LIST_GROUPS:
+      path = `/api/v1/rule-engine/versions/${restName(version, "version_name")}/groups`;
+      requestQuery = {};
+      break;
+    case METHODS.CREATE_GROUP:
+      path = `/api/v1/rule-engine/versions/${restName(version, "version_name")}/groups`;
+      break;
+    case METHODS.UPDATE_GROUP:
+      path = `/api/v1/rule-engine/versions/${restName(version, "version_name")}/groups/${restName(body?.code, "code")}`;
+      break;
+    case METHODS.DELETE_GROUP:
+      path = `/api/v1/rule-engine/versions/${restName(version, "version_name")}/groups/${restName(body?.code, "code")}`;
+      break;
+    case METHODS.LIST_RULES:
+      path = "/api/v1/rule-engine/rules";
+      break;
+    case METHODS.GET_RULE:
+      path = `/api/v1/rule-engine/rules/${restName(query.name, "name")}`;
+      requestQuery = query.version_name
+        ? { versionId: String(query.version_name) }
+        : {};
+      break;
+    case METHODS.CREATE_RULE:
+      path = "/api/v1/rule-engine/rules";
+      break;
+    case METHODS.UPDATE_RULE:
+      path = `/api/v1/rule-engine/rules/${restName(ruleFromBody, "name")}`;
+      break;
+    case METHODS.DELETE_RULE:
+      path = `/api/v1/rule-engine/rules/${restName(ruleFromBody, "name")}`;
+      break;
+    case METHODS.SET_RULE_ENABLED:
+      path = `/api/v1/rule-engine/rules/${restName(ruleFromBody, "name")}/enabled`;
+      break;
+    case METHODS.PUBLISH_VERSION:
+      path = `/api/v1/rule-engine/versions/${restName(ruleFromBody ?? version, "name")}/publish`;
+      methodOverride = "POST";
+      break;
+    case METHODS.ARCHIVE_VERSION:
+      path = `/api/v1/rule-engine/versions/${restName(ruleFromBody ?? version, "name")}/archive`;
+      methodOverride = "POST";
+      break;
+    case METHODS.LIST_FACT_CATALOG:
+      path = "/api/v1/rule-engine/fact-catalog";
+      requestQuery = {};
+      break;
+    default:
+      throw new CrmRulesApiError(
+        501,
+        FEATURE_NOT_MIGRATED_CODE,
+        FEATURE_NOT_MIGRATED_MESSAGE,
+      );
+  }
+
+  try {
+    return await nestRequest<T>(path, {
+      method: methodOverride,
+      query: requestQuery,
+      ...(requestBody ? { body: requestBody } : {}),
+      ...(options.headers ? { headers: options.headers } : {}),
+    });
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new CrmRulesApiError(error.status, error.code, error.message);
+    }
+    throw error;
+  }
+}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -201,6 +343,9 @@ async function call<T>(
   query: Record<string, QueryValue> = {},
   body?: Record<string, unknown>,
 ): Promise<T> {
+  if (!options.baseUrl && isNestApiEnabled()) {
+    return callNest<T>(method, requestMethod, options, query, body);
+  }
   const url = new URL(`${resolveBaseUrl(options)}/api/method/${method}`);
   Object.entries(query).forEach(([key, value]) => {
     if (value !== undefined && value !== "")
