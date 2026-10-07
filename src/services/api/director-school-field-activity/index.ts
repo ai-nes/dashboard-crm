@@ -1,4 +1,9 @@
 import {
+  isNestApiEnabled,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
+import {
   getFieldActivityPayload,
   hasFieldActivityEnvelope,
   normalizeDirectorSchoolFieldActivity,
@@ -11,7 +16,8 @@ import type {
 export type * from "./types";
 export * from "./normalizers";
 
-const endpoint = "crm.api.director_school_field_activity.get_director_school_field_activity";
+const endpoint =
+  "crm.api.director_school_field_activity.get_director_school_field_activity";
 
 export class DirectorSchoolFieldActivityApiError extends Error {
   constructor(
@@ -32,24 +38,94 @@ function frappeCookieHeader(cookieHeader: string): string {
     .join("; ");
 }
 
-function errorDetails(payload: unknown, status: number, statusText: string): { code: string; message: string } {
+function errorDetails(
+  payload: unknown,
+  status: number,
+  statusText: string,
+): { code: string; message: string } {
   const root = getFieldActivityPayload(payload);
-  const error = root.error ?? (payload && typeof payload === "object" ? (payload as Record<string, unknown>).error : null);
-  const errorRecord = error && typeof error === "object" ? (error as Record<string, unknown>) : {};
-  const code = typeof errorRecord.code === "string"
-    ? errorRecord.code
-    : "DIRECTOR_SCHOOL_FIELD_ACTIVITY_UNAVAILABLE";
-  const message = typeof errorRecord.message === "string"
-    ? errorRecord.message
-    : `Không thể tải dữ liệu hoạt động trường và thực địa (HTTP ${status}${statusText ? `: ${statusText}` : ""}).`;
+  const error =
+    root.error ??
+    (payload && typeof payload === "object"
+      ? (payload as Record<string, unknown>).error
+      : null);
+  const errorRecord =
+    error && typeof error === "object"
+      ? (error as Record<string, unknown>)
+      : {};
+  const code =
+    typeof errorRecord.code === "string"
+      ? errorRecord.code
+      : "DIRECTOR_SCHOOL_FIELD_ACTIVITY_UNAVAILABLE";
+  const message =
+    typeof errorRecord.message === "string"
+      ? errorRecord.message
+      : `Không thể tải dữ liệu hoạt động trường và thực địa (HTTP ${status}${statusText ? `: ${statusText}` : ""}).`;
   return { code, message };
+}
+
+/** Field activity from the Nest backend; the session cookie is forwarded on the server. */
+async function getNestFieldActivity(
+  params: DirectorSchoolFieldActivityParams,
+): Promise<DirectorSchoolFieldActivityData> {
+  const headers: Record<string, string> = {};
+  if (typeof window === "undefined") {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieHeader = (await cookies()).toString();
+      if (cookieHeader) headers.Cookie = cookieHeader;
+    } catch {
+      // Outside a Next request context, for example in contract tests.
+    }
+  }
+  let payload: unknown;
+  try {
+    payload = await nestRequest("/api/v1/director/school-field-activity", {
+      headers,
+      query: {
+        admissionYear: params.admissionYear,
+        scope: params.scope,
+        period: params.period,
+        activityLimit: params.activityLimit,
+        upcomingLimit: params.upcomingLimit,
+        includeDevices:
+          params.includeDevices === undefined
+            ? undefined
+            : String(params.includeDevices),
+      },
+    });
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new DirectorSchoolFieldActivityApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+  if (!hasFieldActivityEnvelope(payload)) {
+    throw new DirectorSchoolFieldActivityApiError(
+      502,
+      "INVALID_FIELD_ACTIVITY_RESPONSE",
+      "Phản hồi dữ liệu hoạt động trường và thực địa không hợp lệ.",
+    );
+  }
+  return normalizeDirectorSchoolFieldActivity(payload);
 }
 
 export async function getDirectorSchoolFieldActivity(
   params: DirectorSchoolFieldActivityParams = {},
   options: { baseUrl?: string } = {},
 ): Promise<DirectorSchoolFieldActivityData> {
-  const baseUrl = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
+  if (isNestApiEnabled() && !options.baseUrl) {
+    return getNestFieldActivity(params);
+  }
+  const baseUrl = (
+    options.baseUrl ??
+    process.env.NEXT_PUBLIC_FRAPPE_URL ??
+    ""
+  ).replace(/\/+$/, "");
   if (!baseUrl) {
     throw new DirectorSchoolFieldActivityApiError(
       503,
@@ -59,12 +135,16 @@ export async function getDirectorSchoolFieldActivity(
   }
 
   const query = new URLSearchParams();
-  if (params.admissionYear !== undefined) query.set("admissionYear", String(params.admissionYear));
+  if (params.admissionYear !== undefined)
+    query.set("admissionYear", String(params.admissionYear));
   if (params.scope) query.set("scope", params.scope);
   if (params.period) query.set("period", params.period);
-  if (params.activityLimit) query.set("activityLimit", String(params.activityLimit));
-  if (params.upcomingLimit) query.set("upcomingLimit", String(params.upcomingLimit));
-  if (params.includeDevices !== undefined) query.set("includeDevices", String(params.includeDevices));
+  if (params.activityLimit)
+    query.set("activityLimit", String(params.activityLimit));
+  if (params.upcomingLimit)
+    query.set("upcomingLimit", String(params.upcomingLimit));
+  if (params.includeDevices !== undefined)
+    query.set("includeDevices", String(params.includeDevices));
 
   const headers: Record<string, string> = { Accept: "application/json" };
   if (!options.baseUrl && typeof window === "undefined") {
@@ -79,11 +159,16 @@ export async function getDirectorSchoolFieldActivity(
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/api/method/${endpoint}?${query.toString()}`, {
-      headers,
-      ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
-      cache: "no-store",
-    });
+    response = await fetch(
+      `${baseUrl}/api/method/${endpoint}?${query.toString()}`,
+      {
+        headers,
+        ...(typeof window !== "undefined"
+          ? { credentials: "include" as RequestCredentials }
+          : {}),
+        cache: "no-store",
+      },
+    );
   } catch {
     throw new DirectorSchoolFieldActivityApiError(
       503,
@@ -95,7 +180,11 @@ export async function getDirectorSchoolFieldActivity(
 
   if (!response.ok) {
     const error = errorDetails(payload, response.status, response.statusText);
-    throw new DirectorSchoolFieldActivityApiError(response.status, error.code, error.message);
+    throw new DirectorSchoolFieldActivityApiError(
+      response.status,
+      error.code,
+      error.message,
+    );
   }
   if (!hasFieldActivityEnvelope(payload)) {
     throw new DirectorSchoolFieldActivityApiError(
