@@ -13,6 +13,7 @@ import {
 import { nestUserManagementHandler } from "./nest-user-management-router";
 import { nestNbaHandler } from "./nest-nba-router";
 import { nestStudentActionsHandler } from "./nest-student-actions-router";
+import { nestStudentSchoolHandler } from "./nest-student-school-router";
 import { nestGeographyHandler } from "./nest-geography-router";
 import { nestAdmissionCatalogHandler } from "./nest-admission-catalog-router";
 
@@ -42,6 +43,7 @@ const HANDLERS: MethodHandler[] = [
   nestGeographyHandler,
   nestNbaHandler,
   nestStudentActionsHandler,
+  nestStudentSchoolHandler,
 ];
 
 /** Register another domain handler (kept in order; first match wins). */
