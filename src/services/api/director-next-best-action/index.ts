@@ -1,3 +1,9 @@
+import {
+  FEATURE_NOT_MIGRATED_CODE,
+  FEATURE_NOT_MIGRATED_MESSAGE,
+  FEATURE_NOT_MIGRATED_STATUS,
+  frappeUnavailable,
+} from "../nest/nest-client";
 import type {
   ActionCommandRequest,
   ActionCommandResponse,
@@ -65,6 +71,13 @@ function getErrorDetails(payload: unknown): {
 }
 
 function resolveBaseUrl(options: RequestOptions): string {
+  if (frappeUnavailable(options.baseUrl)) {
+    throw new DirectorNextBestActionApiError(
+      FEATURE_NOT_MIGRATED_STATUS,
+      FEATURE_NOT_MIGRATED_CODE,
+      FEATURE_NOT_MIGRATED_MESSAGE,
+    );
+  }
   const baseUrl = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??

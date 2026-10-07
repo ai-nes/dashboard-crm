@@ -13,6 +13,21 @@ export function isNestApiEnabled(): boolean {
   return NEST_API_URL !== "";
 }
 
+/**
+ * Features the Nest backend does not serve yet. Calling Frappe for them would
+ * only return 403 (there is no Frappe session), which redirects the whole app
+ * to the access-denied page, so callers fail fast with this status instead.
+ */
+export const FEATURE_NOT_MIGRATED_STATUS = 501;
+export const FEATURE_NOT_MIGRATED_CODE = "FEATURE_NOT_MIGRATED";
+export const FEATURE_NOT_MIGRATED_MESSAGE =
+  "Tính năng này đang được chuyển sang hệ thống mới nên chưa khả dụng.";
+
+/** True when a request must not go to Frappe because Nest is the backend. */
+export function frappeUnavailable(explicitBaseUrl?: string): boolean {
+  return !explicitBaseUrl && isNestApiEnabled();
+}
+
 export class NestApiError extends Error {
   constructor(
     readonly status: number,

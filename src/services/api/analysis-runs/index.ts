@@ -1,3 +1,9 @@
+import {
+  FEATURE_NOT_MIGRATED_CODE,
+  FEATURE_NOT_MIGRATED_MESSAGE,
+  FEATURE_NOT_MIGRATED_STATUS,
+  frappeUnavailable,
+} from "../nest/nest-client";
 import type {
   AnalysisAdvisorySignal,
   AnalysisClaim,
@@ -113,19 +119,28 @@ function getErrorDetails(payload: unknown): {
   };
 }
 
-function resolveTransport(options: AnalysisRunRequestOptions): AnalysisRunTransport {
+function resolveTransport(
+  options: AnalysisRunRequestOptions,
+): AnalysisRunTransport {
   return options.transport ?? "frappe-proxy";
 }
 
 function resolveBaseUrl(options: AnalysisRunRequestOptions): string {
   const transport = resolveTransport(options);
+  if (transport !== "agents" && frappeUnavailable(options.baseUrl)) {
+    throw new AnalysisRunApiError(
+      FEATURE_NOT_MIGRATED_STATUS,
+      FEATURE_NOT_MIGRATED_CODE,
+      FEATURE_NOT_MIGRATED_MESSAGE,
+    );
+  }
   const baseUrl = (
     options.baseUrl ??
     (transport === "agents"
-      ? process.env.CRM_AGENTS_URL ??
+      ? (process.env.CRM_AGENTS_URL ??
         process.env.NEXT_PUBLIC_CRM_AGENTS_URL ??
-        "http://localhost:7999"
-      : process.env.NEXT_PUBLIC_FRAPPE_URL ?? "http://localhost:8000")
+        "http://localhost:7999")
+      : (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "http://localhost:8000"))
   ).replace(/\/+$/, "");
   if (!baseUrl || !/^https?:\/\//i.test(baseUrl)) {
     throw new AnalysisRunApiError(
@@ -155,26 +170,26 @@ async function requestHeaders(
 
   const apiKey =
     transport === "agents"
-      ? options.apiKey ??
+      ? (options.apiKey ??
         (typeof window !== "undefined"
           ? process.env.NEXT_PUBLIC_CRM_AGENTS_API_KEY
-          : process.env.CRM_AGENTS_API_KEY)
+          : process.env.CRM_AGENTS_API_KEY))
       : undefined;
   const authorization =
     transport === "agents"
-      ? options.authorization ??
+      ? (options.authorization ??
         (typeof window !== "undefined"
-          ? process.env.NEXT_PUBLIC_CRM_AGENTS_AUTHORIZATION ??
-            process.env.NEXT_PUBLIC_CRM_AGENTS_OAUTH_TOKEN
-          : process.env.CRM_AGENTS_AUTHORIZATION ??
-            process.env.CRM_AGENTS_OAUTH_TOKEN)
+          ? (process.env.NEXT_PUBLIC_CRM_AGENTS_AUTHORIZATION ??
+            process.env.NEXT_PUBLIC_CRM_AGENTS_OAUTH_TOKEN)
+          : (process.env.CRM_AGENTS_AUTHORIZATION ??
+            process.env.CRM_AGENTS_OAUTH_TOKEN)))
       : undefined;
   const delegationProof =
     transport === "agents"
-      ? options.delegationProof ??
+      ? (options.delegationProof ??
         (typeof window !== "undefined"
           ? process.env.NEXT_PUBLIC_CRM_AGENTS_DELEGATION_PROOF
-          : process.env.CRM_AGENTS_DELEGATION_PROOF)
+          : process.env.CRM_AGENTS_DELEGATION_PROOF))
       : undefined;
 
   if (apiKey) headers["X-API-Key"] = apiKey;
@@ -195,7 +210,11 @@ async function requestHeaders(
     }
   }
 
-  if (transport === "frappe-proxy" && typeof window !== "undefined" && contentType) {
+  if (
+    transport === "frappe-proxy" &&
+    typeof window !== "undefined" &&
+    contentType
+  ) {
     const csrfToken = document.cookie
       .split(";")
       .map((part) => part.trim())
@@ -238,9 +257,7 @@ function analysisRunPath(
       : AGENTS_SCHOOL_RUN_PATH;
   }
   return `/api/method/${
-    kind === "student"
-      ? FRAPPE_STUDENT_RUN_METHOD
-      : FRAPPE_SCHOOL_RUN_METHOD
+    kind === "student" ? FRAPPE_STUDENT_RUN_METHOD : FRAPPE_SCHOOL_RUN_METHOD
   }`;
 }
 
@@ -409,10 +426,15 @@ function parseTextList(value: unknown): string[] {
   });
 }
 
-function parseReferenceList<T extends { contract_version: "intelligence-reference-v1" }>(value: unknown): T[] {
+function parseReferenceList<
+  T extends { contract_version: "intelligence-reference-v1" },
+>(value: unknown): T[] {
   const parsed = parseJson(value);
   if (!Array.isArray(parsed)) return [];
-  return parsed.filter((item): item is T => asRecord(item)?.contract_version === "intelligence-reference-v1");
+  return parsed.filter(
+    (item): item is T =>
+      asRecord(item)?.contract_version === "intelligence-reference-v1",
+  );
 }
 
 function parseConfidence(value: unknown): AnalysisConfidence {
@@ -458,7 +480,9 @@ function parseReportItems(
     if (!headline && !detail) return [];
     const rawKind = text(item.kind)?.toLowerCase();
     const kind: AnalysisReportItem["kind"] =
-      rawKind === "risk" || rawKind === "recommendation" || rawKind === "opportunity"
+      rawKind === "risk" ||
+      rawKind === "recommendation" ||
+      rawKind === "opportunity"
         ? rawKind
         : defaultKind;
     return [
@@ -569,8 +593,12 @@ function parseReport(value: unknown): AnalysisReport | null {
     opportunities,
     recentChanges,
     missingEvidence,
-    intelligenceRefs: parseReferenceList<EvidenceRef>(report.intelligence_refs ?? report.intelligenceRefs),
-    findingRefs: parseReferenceList<FindingRef>(report.finding_refs ?? report.findingRefs),
+    intelligenceRefs: parseReferenceList<EvidenceRef>(
+      report.intelligence_refs ?? report.intelligenceRefs,
+    ),
+    findingRefs: parseReferenceList<FindingRef>(
+      report.finding_refs ?? report.findingRefs,
+    ),
     coverage: parseReferenceList<Coverage>(report.coverage),
   };
   return normalized.summary ||
@@ -709,15 +737,19 @@ export async function requestAnalysisRun(
 
   let response: Response;
   try {
-    response = await fetchWithTimeout(`${baseUrl}${path}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-    }, ANALYSIS_RUN_REQUEST_TIMEOUT_MS);
+    response = await fetchWithTimeout(
+      `${baseUrl}${path}`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        ...(typeof window !== "undefined"
+          ? { credentials: "include" as RequestCredentials }
+          : {}),
+        cache: "no-store",
+      },
+      ANALYSIS_RUN_REQUEST_TIMEOUT_MS,
+    );
   } catch (error) {
     if (error instanceof AnalysisRunApiError) throw error;
     throw new AnalysisRunApiError(
@@ -770,16 +802,13 @@ export async function getAnalysisRun(
 
   let response: Response;
   try {
-    response = await fetch(
-      url,
-      {
-        headers,
-        ...(typeof window !== "undefined"
-          ? { credentials: "include" as RequestCredentials }
-          : {}),
-        cache: "no-store",
-      },
-    );
+    response = await fetch(url, {
+      headers,
+      ...(typeof window !== "undefined"
+        ? { credentials: "include" as RequestCredentials }
+        : {}),
+      cache: "no-store",
+    });
   } catch {
     throw new AnalysisRunApiError(
       503,

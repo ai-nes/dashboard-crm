@@ -1,4 +1,9 @@
 import {
+  frappeUnavailable,
+  NestApiError,
+  nestRequest,
+} from "../nest/nest-client";
+import {
   ensureRoot,
   FrappeApiError,
   getBaseUrl,
@@ -175,6 +180,26 @@ export async function getStudentScoreContext(
       "INVALID_STUDENT",
       "Cần cung cấp mã học sinh để tải chi tiết điểm.",
     );
+  }
+
+  if (frappeUnavailable(options.baseUrl)) {
+    try {
+      return normalizeContext(
+        await nestRequest(
+          `/api/v1/students/${encodeURIComponent(normalizedStudentId)}/score-context`,
+          { query: { limit: 1 } },
+        ),
+      );
+    } catch (error) {
+      if (error instanceof NestApiError) {
+        throw new StudentScoreContextApiError(
+          error.status,
+          error.code,
+          error.message,
+        );
+      }
+      throw error;
+    }
   }
 
   const root = rootFor(options);

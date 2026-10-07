@@ -1,4 +1,10 @@
 import {
+  FEATURE_NOT_MIGRATED_CODE,
+  FEATURE_NOT_MIGRATED_MESSAGE,
+  FEATURE_NOT_MIGRATED_STATUS,
+  frappeUnavailable,
+} from "../nest/nest-client";
+import {
   normalizeActionType,
   normalizeTimingPolicy,
   unwrapMethodPayload,
@@ -49,6 +55,13 @@ function asRecord(value: unknown): RecordValue | null {
 }
 
 function resolveBaseUrl(options: RequestOptions = {}): string {
+  if (frappeUnavailable(options.baseUrl)) {
+    throw new NbaAdminApiError(
+      FEATURE_NOT_MIGRATED_STATUS,
+      FEATURE_NOT_MIGRATED_CODE,
+      FEATURE_NOT_MIGRATED_MESSAGE,
+    );
+  }
   const baseUrl = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??

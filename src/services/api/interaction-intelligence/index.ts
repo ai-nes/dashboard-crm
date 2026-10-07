@@ -1,4 +1,8 @@
 import {
+  FEATURE_NOT_MIGRATED_CODE,
+  FEATURE_NOT_MIGRATED_MESSAGE,
+  FEATURE_NOT_MIGRATED_STATUS,
+  frappeUnavailable,
   isNestApiEnabled,
   NestApiError,
   nestRequest,
@@ -66,6 +70,13 @@ function unwrapMessage(value: unknown): unknown {
 }
 
 function resolveBaseUrl(options: InteractionRequestOptions = {}): string {
+  if (frappeUnavailable(options.baseUrl)) {
+    throw new InteractionIntelligenceApiError(
+      FEATURE_NOT_MIGRATED_STATUS,
+      FEATURE_NOT_MIGRATED_CODE,
+      FEATURE_NOT_MIGRATED_MESSAGE,
+    );
+  }
   const baseUrl = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??
@@ -667,11 +678,56 @@ export async function createInteraction(
   return created;
 }
 
+const NEST_CATALOG_PATHS = {
+  "CRM Interaction Type": "/api/v1/reference-data/interaction-types",
+  "CRM Intent Type": "/api/v1/reference-data/intent-types",
+} as const;
+
+async function getNestCatalogItems<T extends InteractionCatalogItem>(
+  doctype: keyof typeof NEST_CATALOG_PATHS,
+  normalizeItem: (value: unknown) => T | null,
+): Promise<T[]> {
+  let raw: unknown;
+  try {
+    raw = await nestRequest<unknown>(NEST_CATALOG_PATHS[doctype], {
+      query: { pageSize: 100 },
+    });
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new InteractionIntelligenceApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+  const rows = asRecord(raw)?.data;
+  if (!Array.isArray(rows)) return [];
+  return normalizeCatalog(
+    rows.map((row) => {
+      const item = asRecord(row);
+      return {
+        name: item?.id,
+        code: item?.code,
+        display_name: item?.displayName,
+        enabled: item?.enabled,
+        sort_order: item?.sortOrder,
+        description: item?.description,
+      };
+    }),
+    normalizeItem,
+  );
+}
+
 async function getCatalogItems<T extends InteractionCatalogItem>(
   doctype: "CRM Interaction Type" | "CRM Intent Type",
   normalizeItem: (value: unknown) => T | null,
   options: InteractionRequestOptions = {},
 ): Promise<T[]> {
+  if (frappeUnavailable(options.baseUrl)) {
+    return getNestCatalogItems(doctype, normalizeItem);
+  }
   const raw = await callFrappeRpc<unknown>(
     METHODS.GET_LIST,
     {

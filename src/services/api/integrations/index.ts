@@ -1,3 +1,9 @@
+import {
+  FEATURE_NOT_MIGRATED_CODE,
+  FEATURE_NOT_MIGRATED_MESSAGE,
+  FEATURE_NOT_MIGRATED_STATUS,
+  frappeUnavailable,
+} from "../nest/nest-client";
 import type {
   GetIntegrationsParams,
   IntegrationItem,
@@ -39,6 +45,13 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function resolveBaseUrl(options: RequestOptions): string {
+  if (frappeUnavailable(options.baseUrl)) {
+    throw new IntegrationsApiError(
+      FEATURE_NOT_MIGRATED_STATUS,
+      FEATURE_NOT_MIGRATED_CODE,
+      FEATURE_NOT_MIGRATED_MESSAGE,
+    );
+  }
   const baseUrl = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??

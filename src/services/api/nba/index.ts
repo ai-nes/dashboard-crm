@@ -1,3 +1,9 @@
+import {
+  FEATURE_NOT_MIGRATED_CODE,
+  FEATURE_NOT_MIGRATED_MESSAGE,
+  FEATURE_NOT_MIGRATED_STATUS,
+  frappeUnavailable,
+} from "../nest/nest-client";
 import type {
   NbaApiRequestOptions,
   NbaDecisionRequest,
@@ -73,20 +79,31 @@ function stringArray(value: unknown): string[] {
     : [];
 }
 
-function normalizeRuleDecision(value: unknown): NbaRecommendation["ruleDecision"] {
+function normalizeRuleDecision(
+  value: unknown,
+): NbaRecommendation["ruleDecision"] {
   const record = asRecord(value);
   if (!record) return null;
   const outcome = text(record.outcome);
   if (!outcome) return null;
   return {
     outcome,
-    matchedRuleIds: stringArray(record.matched_rule_ids ?? record.matchedRuleIds).slice(0, 50),
-    reasonCodes: stringArray(record.reason_codes ?? record.reasonCodes).slice(0, 12),
+    matchedRuleIds: stringArray(
+      record.matched_rule_ids ?? record.matchedRuleIds,
+    ).slice(0, 50),
+    reasonCodes: stringArray(record.reason_codes ?? record.reasonCodes).slice(
+      0,
+      12,
+    ),
     businessReason: text(record.business_reason ?? record.businessReason),
     salesNextStep: text(record.sales_next_step ?? record.salesNextStep),
-    affectedActions: stringArray(record.affected_actions ?? record.affectedActions).slice(0, 30),
+    affectedActions: stringArray(
+      record.affected_actions ?? record.affectedActions,
+    ).slice(0, 30),
     ruleVersion: text(record.rule_version ?? record.ruleVersion),
-    ruleVersionDigest: text(record.rule_version_digest ?? record.ruleVersionDigest),
+    ruleVersionDigest: text(
+      record.rule_version_digest ?? record.ruleVersionDigest,
+    ),
     rulesetDigest: text(record.ruleset_digest ?? record.rulesetDigest),
   };
 }
@@ -203,7 +220,10 @@ function normalizeRecommendation(
     record.explanation ?? record.explanation_json ?? record.explanationJson,
   );
   const ruleDecision = normalizeRuleDecision(
-    record.rule_decision ?? record.ruleDecision ?? aiPayload.rule_decision ?? aiPayload.ruleDecision,
+    record.rule_decision ??
+      record.ruleDecision ??
+      aiPayload.rule_decision ??
+      aiPayload.ruleDecision,
   );
   const status = asRecord(record.status);
   const timing = asRecord(record.timing);
@@ -305,6 +325,13 @@ function normalizeDirectorRecommendationsMeta(
 }
 
 function resolveBaseUrl(options: NbaApiRequestOptions): string {
+  if (frappeUnavailable(options.baseUrl)) {
+    throw new NbaApiError(
+      FEATURE_NOT_MIGRATED_STATUS,
+      FEATURE_NOT_MIGRATED_CODE,
+      FEATURE_NOT_MIGRATED_MESSAGE,
+    );
+  }
   const baseUrl = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??

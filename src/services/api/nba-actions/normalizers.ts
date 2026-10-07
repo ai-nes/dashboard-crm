@@ -80,7 +80,8 @@ function normalizeStringArray(value: unknown): string[] {
 }
 
 function normalizeChannel(value: unknown): ActionChannel | null {
-  return typeof value === "string" && ["NONE", "CALL", "EMAIL", "MESSAGE"].includes(value)
+  return typeof value === "string" &&
+    ["NONE", "CALL", "EMAIL", "MESSAGE"].includes(value)
     ? (value as ActionChannel)
     : null;
 }
@@ -101,21 +102,26 @@ function normalizeAction(value: unknown, fallbackName = ""): NbaAction {
   return {
     name,
     code,
-    displayName: stringValue(
-      action.display_name ?? action.displayName,
-      code,
-    ),
+    displayName: stringValue(action.display_name ?? action.displayName, code),
     actionType: nullableString(action.action_type ?? action.actionType),
     description: nullableString(action.description),
     purpose: nullableString(action.purpose),
-    defaultChannel: normalizeChannel(action.default_channel ?? action.defaultChannel),
-    allowedActors: normalizeStringArray(action.allowed_actors ?? action.allowedActors),
+    defaultChannel: normalizeChannel(
+      action.default_channel ?? action.defaultChannel,
+    ),
+    allowedActors: normalizeStringArray(
+      action.allowed_actors ?? action.allowedActors,
+    ),
     allowedTimeSlots: normalizeTimeSlots(
       action.allowed_time_slots ?? action.allowedTimeSlots,
     ),
-    requiresApproval: booleanValue(action.requires_approval ?? action.requiresApproval),
+    requiresApproval: booleanValue(
+      action.requires_approval ?? action.requiresApproval,
+    ),
     autoExecute: booleanValue(action.auto_execute ?? action.autoExecute),
-    executionType: normalizeExecutionType(action.execution_type ?? action.executionType),
+    executionType: normalizeExecutionType(
+      action.execution_type ?? action.executionType,
+    ),
     aiAllowed: booleanValue(action.ai_allowed ?? action.aiAllowed),
     enabled: booleanValue(action.enabled, true),
     sortOrder: numberValue(action.sort_order ?? action.sortOrder, 0),
@@ -171,10 +177,7 @@ export function normalizeNbaActionTypesResponse(
   return {
     total: numberValue(payload.total, rawActionTypes.length),
     start: numberValue(payload.start, 0),
-    pageLength: numberValue(
-      payload.page_length,
-      rawActionTypes.length || 20,
-    ),
+    pageLength: numberValue(payload.page_length, rawActionTypes.length || 20),
     actionTypes: rawActionTypes.map(normalizeActionType),
   };
 }
@@ -193,9 +196,10 @@ export function normalizeNbaActionUpdateResponse(
 ): UpdateNbaActionResponse {
   const payload = payloadFrom(value);
   const candidate = asRecord(payload.action) ?? payload;
-  const action = candidate.name || candidate.code
-    ? normalizeAction(candidate, fallbackName)
-    : null;
+  const action =
+    candidate.name || candidate.code
+      ? normalizeAction(candidate, fallbackName)
+      : null;
 
   return {
     name: stringValue(payload.name, action?.name ?? fallbackName),

@@ -1,9 +1,4 @@
-export const ACTION_TIME_SLOTS = [
-  "0-6",
-  "6-12",
-  "12-18",
-  "18-24",
-] as const;
+export const ACTION_TIME_SLOTS = ["0-6", "6-12", "12-18", "18-24"] as const;
 
 export type ActionTimeSlot = (typeof ACTION_TIME_SLOTS)[number];
 

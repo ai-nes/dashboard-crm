@@ -1,9 +1,9 @@
-import { ACTION_TIME_SLOTS, type ActionTimeSlot } from "@/services/api/nba-actions";
+import {
+  ACTION_TIME_SLOTS,
+  type ActionTimeSlot,
+} from "@/services/api/nba-actions";
 
-import type {
-  NbaAdminActionType,
-  NbaTimingPolicy,
-} from "./types";
+import type { NbaAdminActionType, NbaTimingPolicy } from "./types";
 
 type RecordValue = Record<string, unknown>;
 
@@ -32,8 +32,14 @@ function booleanValue(value: unknown, fallback = false): boolean {
   return fallback;
 }
 
-function enumValue<T extends string>(value: unknown, options: readonly T[], fallback: T): T {
-  return typeof value === "string" && options.includes(value as T) ? (value as T) : fallback;
+function enumValue<T extends string>(
+  value: unknown,
+  options: readonly T[],
+  fallback: T,
+): T {
+  return typeof value === "string" && options.includes(value as T)
+    ? (value as T)
+    : fallback;
 }
 
 function timeSlot(value: unknown): ActionTimeSlot | null {
@@ -48,13 +54,18 @@ export function unwrapMethodPayload(value: unknown): unknown {
 export function normalizeActionType(value: unknown): NbaAdminActionType {
   const object = asRecord(value);
   if (!object) throw new Error("action type must be an object");
-  const actionType = stringValue(object.action_type ?? object.actionType ?? object.name);
+  const actionType = stringValue(
+    object.action_type ?? object.actionType ?? object.name,
+  );
   if (!actionType) throw new Error("action type code is missing");
 
   return {
     name: stringValue(object.name, actionType),
     actionType,
-    displayName: stringValue(object.display_name ?? object.displayName, actionType),
+    displayName: stringValue(
+      object.display_name ?? object.displayName,
+      actionType,
+    ),
     enabled: booleanValue(object.enabled, true),
     sortOrder: numberValue(object.sort_order ?? object.sortOrder),
     modified: nullableString(object.modified),
@@ -64,26 +75,59 @@ export function normalizeActionType(value: unknown): NbaAdminActionType {
 export function normalizeTimingPolicy(value: unknown): NbaTimingPolicy {
   const object = asRecord(value);
   if (!object) throw new Error("timing policy must be an object");
-  const policyKey = stringValue(object.policy_key ?? object.policyKey ?? object.name);
+  const policyKey = stringValue(
+    object.policy_key ?? object.policyKey ?? object.name,
+  );
   if (!policyKey) throw new Error("timing policy key is missing");
 
   return {
     name: stringValue(object.name, policyKey),
     policyKey,
-    triggerType: enumValue(object.trigger_type ?? object.triggerType, ["event", "relative", "deadline", "schedule"], "relative"),
+    triggerType: enumValue(
+      object.trigger_type ?? object.triggerType,
+      ["event", "relative", "deadline", "schedule"],
+      "relative",
+    ),
     triggerEvent: nullableString(object.trigger_event ?? object.triggerEvent),
     delayValue: numberValue(object.delay_value ?? object.delayValue),
-    delayUnit: enumValue(object.delay_unit ?? object.delayUnit, ["minutes", "hours", "days"], "hours"),
+    delayUnit: enumValue(
+      object.delay_unit ?? object.delayUnit,
+      ["minutes", "hours", "days"],
+      "hours",
+    ),
     timeSlot: timeSlot(object.time_slot ?? object.timeSlot),
-    allowedStartTime: nullableString(object.allowed_start_time ?? object.allowedStartTime),
-    allowedEndTime: nullableString(object.allowed_end_time ?? object.allowedEndTime),
-    deadlineType: enumValue(object.deadline_type ?? object.deadlineType, ["none", "fixed_offset", "business_days"], "none"),
-    deadlineOffset: numberValue(object.deadline_offset ?? object.deadlineOffset),
-    recurrenceType: enumValue(object.recurrence_type ?? object.recurrenceType, ["none", "daily", "weekly", "monthly"], "none"),
-    recurrenceInterval: numberValue(object.recurrence_interval ?? object.recurrenceInterval, 1),
-    stopCondition: nullableString(object.stop_condition ?? object.stopCondition),
-    optimizationEnabled: booleanValue(object.optimization_enabled ?? object.optimizationEnabled),
-    optimizationObjective: nullableString(object.optimization_objective ?? object.optimizationObjective),
+    allowedStartTime: nullableString(
+      object.allowed_start_time ?? object.allowedStartTime,
+    ),
+    allowedEndTime: nullableString(
+      object.allowed_end_time ?? object.allowedEndTime,
+    ),
+    deadlineType: enumValue(
+      object.deadline_type ?? object.deadlineType,
+      ["none", "fixed_offset", "business_days"],
+      "none",
+    ),
+    deadlineOffset: numberValue(
+      object.deadline_offset ?? object.deadlineOffset,
+    ),
+    recurrenceType: enumValue(
+      object.recurrence_type ?? object.recurrenceType,
+      ["none", "daily", "weekly", "monthly"],
+      "none",
+    ),
+    recurrenceInterval: numberValue(
+      object.recurrence_interval ?? object.recurrenceInterval,
+      1,
+    ),
+    stopCondition: nullableString(
+      object.stop_condition ?? object.stopCondition,
+    ),
+    optimizationEnabled: booleanValue(
+      object.optimization_enabled ?? object.optimizationEnabled,
+    ),
+    optimizationObjective: nullableString(
+      object.optimization_objective ?? object.optimizationObjective,
+    ),
     modified: nullableString(object.modified),
   };
 }

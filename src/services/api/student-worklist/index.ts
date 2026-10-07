@@ -1,3 +1,9 @@
+import {
+  FEATURE_NOT_MIGRATED_CODE,
+  FEATURE_NOT_MIGRATED_MESSAGE,
+  FEATURE_NOT_MIGRATED_STATUS,
+  frappeUnavailable,
+} from "../nest/nest-client";
 import type {
   CompleteActionParams,
   CompleteActionResponse,
@@ -61,6 +67,13 @@ function getErrorDetails(payload: unknown): {
 }
 
 function resolveBaseUrl(options: RequestOptions): string {
+  if (frappeUnavailable(options.baseUrl)) {
+    throw new StudentWorklistApiError(
+      FEATURE_NOT_MIGRATED_STATUS,
+      FEATURE_NOT_MIGRATED_CODE,
+      FEATURE_NOT_MIGRATED_MESSAGE,
+    );
+  }
   const baseUrl = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??
@@ -346,7 +359,9 @@ export async function completeActionManually(
       expected_action_revision: params.expectedActionRevision,
       expected_package_revision: params.expectedPackageRevision,
       outcome_code: params.outcomeCode,
-      ...(params.outcomeEvidence ? { outcome_evidence: params.outcomeEvidence } : {}),
+      ...(params.outcomeEvidence
+        ? { outcome_evidence: params.outcomeEvidence }
+        : {}),
       ...(params.outcomeNotes ? { outcome_notes: params.outcomeNotes } : {}),
     },
   );

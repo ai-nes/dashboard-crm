@@ -1,4 +1,10 @@
 import {
+  FEATURE_NOT_MIGRATED_CODE,
+  FEATURE_NOT_MIGRATED_MESSAGE,
+  FEATURE_NOT_MIGRATED_STATUS,
+  frappeUnavailable,
+} from "../nest/nest-client";
+import {
   normalizeNbaActionTypesResponse,
   normalizeNbaActionUpdateResponse,
   normalizeNbaActionsResponse,
@@ -55,6 +61,13 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function resolveBaseUrl(options: RequestOptions = {}): string {
+  if (frappeUnavailable(options.baseUrl)) {
+    throw new NbaActionsApiError(
+      FEATURE_NOT_MIGRATED_STATUS,
+      FEATURE_NOT_MIGRATED_CODE,
+      FEATURE_NOT_MIGRATED_MESSAGE,
+    );
+  }
   const baseUrl = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??
@@ -152,9 +165,9 @@ function getErrorDetails(payload: unknown): {
         ? error.code
         : typeof root?.exc_type === "string"
           ? root.exc_type
-        : typeof root?.exception === "string"
-          ? root.exception
-          : undefined,
+          : typeof root?.exception === "string"
+            ? root.exception
+            : undefined,
     message:
       typeof error?.message === "string"
         ? error.message
@@ -178,7 +191,8 @@ async function callNbaActionsApi<T>(
   const baseUrl = resolveBaseUrl(options);
   const url = new URL(`${baseUrl}/api/method/${method}`);
   Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") url.searchParams.set(key, String(value));
+    if (value !== undefined && value !== "")
+      url.searchParams.set(key, String(value));
   });
 
   const headers = await requestHeaders(options, requestMethod !== "GET");
@@ -268,22 +282,48 @@ export async function getNbaAction(
   }
 }
 
-function actionBody(payload: CreateNbaActionPayload | UpdateNbaActionPayload): Record<string, unknown> {
+function actionBody(
+  payload: CreateNbaActionPayload | UpdateNbaActionPayload,
+): Record<string, unknown> {
   return {
     ...("code" in payload ? { code: payload.code } : {}),
-    ...(payload.displayName !== undefined ? { display_name: payload.displayName } : {}),
-    ...(payload.actionType !== undefined ? { action_type: payload.actionType } : {}),
-    ...(payload.description !== undefined ? { description: payload.description } : {}),
+    ...(payload.displayName !== undefined
+      ? { display_name: payload.displayName }
+      : {}),
+    ...(payload.actionType !== undefined
+      ? { action_type: payload.actionType }
+      : {}),
+    ...(payload.description !== undefined
+      ? { description: payload.description }
+      : {}),
     ...(payload.purpose !== undefined ? { purpose: payload.purpose } : {}),
-    ...(payload.defaultChannel !== undefined ? { default_channel: payload.defaultChannel } : {}),
-    ...(payload.allowedActors !== undefined ? { allowed_actors: payload.allowedActors } : {}),
-    ...(payload.allowedTimeSlots !== undefined ? { allowed_time_slots: payload.allowedTimeSlots } : {}),
-    ...(payload.requiresApproval !== undefined ? { requires_approval: payload.requiresApproval ? 1 : 0 } : {}),
-    ...(payload.autoExecute !== undefined ? { auto_execute: payload.autoExecute ? 1 : 0 } : {}),
-    ...(payload.executionType !== undefined ? { execution_type: payload.executionType } : {}),
-    ...(payload.aiAllowed !== undefined ? { ai_allowed: payload.aiAllowed ? 1 : 0 } : {}),
-    ...(payload.enabled !== undefined ? { enabled: payload.enabled ? 1 : 0 } : {}),
-    ...(payload.sortOrder !== undefined ? { sort_order: payload.sortOrder } : {}),
+    ...(payload.defaultChannel !== undefined
+      ? { default_channel: payload.defaultChannel }
+      : {}),
+    ...(payload.allowedActors !== undefined
+      ? { allowed_actors: payload.allowedActors }
+      : {}),
+    ...(payload.allowedTimeSlots !== undefined
+      ? { allowed_time_slots: payload.allowedTimeSlots }
+      : {}),
+    ...(payload.requiresApproval !== undefined
+      ? { requires_approval: payload.requiresApproval ? 1 : 0 }
+      : {}),
+    ...(payload.autoExecute !== undefined
+      ? { auto_execute: payload.autoExecute ? 1 : 0 }
+      : {}),
+    ...(payload.executionType !== undefined
+      ? { execution_type: payload.executionType }
+      : {}),
+    ...(payload.aiAllowed !== undefined
+      ? { ai_allowed: payload.aiAllowed ? 1 : 0 }
+      : {}),
+    ...(payload.enabled !== undefined
+      ? { enabled: payload.enabled ? 1 : 0 }
+      : {}),
+    ...(payload.sortOrder !== undefined
+      ? { sort_order: payload.sortOrder }
+      : {}),
   };
 }
 
@@ -300,7 +340,9 @@ export async function createNbaAction(
   );
 
   try {
-    const response = normalizeNbaActionsResponse({ actions: [asRecord(raw)?.message ?? raw] });
+    const response = normalizeNbaActionsResponse({
+      actions: [asRecord(raw)?.message ?? raw],
+    });
     return response.actions[0];
   } catch {
     throw new NbaActionsApiError(
@@ -379,10 +421,7 @@ export async function deleteNbaAction(
   name: string,
   options: RequestOptions = {},
 ): Promise<void> {
-  await callNbaActionsApi<unknown>(
-    METHODS.DELETE_ACTION,
-    "DELETE",
-    options,
-    { name },
-  );
+  await callNbaActionsApi<unknown>(METHODS.DELETE_ACTION, "DELETE", options, {
+    name,
+  });
 }
