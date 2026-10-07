@@ -61,7 +61,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function resolveBaseUrl(options: RequestOptions = {}): string {
-  if (frappeUnavailable(options.baseUrl)) {
+  if (typeof window === "undefined" && frappeUnavailable(options.baseUrl)) {
     throw new NbaActionsApiError(
       FEATURE_NOT_MIGRATED_STATUS,
       FEATURE_NOT_MIGRATED_CODE,
