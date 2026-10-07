@@ -100,7 +100,7 @@ describe("frappe request with the Nest backend enabled", () => {
   it("fails fast with 501 for methods the Nest backend lacks", async () => {
     const { request } = await import("../frappe-request");
     await expect(
-      request(`${FRAPPE}/crm.api.admin_catalog.list_score_templates`),
+      request(`${FRAPPE}/crm.api.admin_catalog.list_governed_values`),
     ).rejects.toMatchObject({ status: 501, code: "FEATURE_NOT_MIGRATED" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -122,5 +122,75 @@ describe("frappe request with the Nest backend enabled", () => {
     expect(String(fetchMock.mock.calls[1][0])).toContain(
       "/api/v1/campaign-channel-types",
     );
+  });
+  it("routes the score template and signal calls to the score config", async () => {
+    fetchMock.mockImplementation(() => json({ templates: [], total: 0 }));
+    const { request } = await import("../frappe-request");
+    await request(
+      `${FRAPPE}/crm.api.admin_catalog.list_score_templates?search=a&start=0&page_length=20`,
+    );
+    await request(
+      `${FRAPPE}/crm.api.admin_catalog.list_score_signals?active_only=true`,
+    );
+    await request(`${FRAPPE}/crm.api.admin_catalog.update_score_template`, {
+      method: "POST",
+      body: JSON.stringify({
+        name: "SCT-1",
+        data: { status: "Draft" },
+        expected_modified: "2026-01-01T00:00:00.000Z",
+      }),
+    });
+    const calls = fetchMock.mock.calls.map((call) => [
+      String(call[0]),
+      (call[1] as RequestInit | undefined)?.method ?? "GET",
+    ]);
+    expect(calls).toEqual([
+      [
+        "http://api.test/api/v1/score-config/templates?search=a&start=0&page_length=20",
+        "GET",
+      ],
+      ["http://api.test/api/v1/score-config/signals?active_only=true", "GET"],
+      ["http://api.test/api/v1/score-config/templates/SCT-1", "PATCH"],
+    ]);
+  });
+  it("writes channel types through the Nest endpoint and answers in Frappe's shape", async () => {
+    fetchMock.mockImplementation(() =>
+      json({
+        code: "ZALO",
+        displayName: "Zalo",
+        modes: ["ONLINE"],
+        enabled: true,
+        sortOrder: 1,
+        description: "",
+      }),
+    );
+    const { request } = await import("../frappe-request");
+    const created = await request(
+      `${FRAPPE}/crm.api.campaign_channel_type.create_campaign_channel_type`,
+      {
+        method: "POST",
+        body: JSON.stringify({ data: { code: "ZALO", display_name: "Zalo" } }),
+      },
+    );
+    expect(created).toMatchObject({
+      code: "ZALO",
+      display_name: "Zalo",
+      is_online: 1,
+      is_offline: 0,
+      enabled: 1,
+    });
+    await request(
+      `${FRAPPE}/crm.api.campaign_channel_type.delete_campaign_channel_type`,
+      { method: "POST", body: JSON.stringify({ name: "ZALO" }) },
+    );
+    expect(
+      fetchMock.mock.calls.map((call) => [
+        String(call[0]),
+        (call[1] as RequestInit).method,
+      ]),
+    ).toEqual([
+      ["http://api.test/api/v1/campaign-channel-types", "POST"],
+      ["http://api.test/api/v1/campaign-channel-types/ZALO", "DELETE"],
+    ]);
   });
 });

@@ -27,7 +27,29 @@ interface NestYear {
 const YEARS = "/api/v1/reference-data/admission-years";
 const OFFERINGS = "/api/v1/admission-offerings";
 const CHANNEL_TYPES = "/api/v1/campaign-channel-types";
+const SCORE = "/api/v1/score-config";
 
+interface NestChannelType {
+  code: string;
+  displayName: string;
+  modes: string[];
+  enabled: boolean;
+  sortOrder: number;
+  description: string;
+}
+
+function channelDto(row: NestChannelType) {
+  return {
+    code: row.code,
+    display_name: row.displayName,
+    is_online: row.modes.includes("ONLINE") ? 1 : 0,
+    is_offline: row.modes.includes("OFFLINE") ? 1 : 0,
+    modes: row.modes,
+    enabled: row.enabled ? 1 : 0,
+    sort_order: row.sortOrder,
+    description: row.description,
+  };
+}
 const day = (value: string | null) => (value ? value.slice(0, 10) : null);
 
 function yearDto(year: NestYear) {
@@ -136,14 +158,7 @@ export async function nestAdminCatalogRequest(
       });
     case "list_campaign_channel_types": {
       const page = await nestRequest<{
-        channelTypes: {
-          code: string;
-          displayName: string;
-          modes: string[];
-          enabled: boolean;
-          sortOrder: number;
-          description: string;
-        }[];
+        channelTypes: NestChannelType[];
         total: number;
       }>(CHANNEL_TYPES, {
         query: {
@@ -154,19 +169,50 @@ export async function nestAdminCatalogRequest(
         },
       });
       return {
-        channel_types: page.channelTypes.map((row) => ({
-          code: row.code,
-          display_name: row.displayName,
-          is_online: row.modes.includes("ONLINE") ? 1 : 0,
-          is_offline: row.modes.includes("OFFLINE") ? 1 : 0,
-          modes: row.modes,
-          enabled: row.enabled ? 1 : 0,
-          sort_order: row.sortOrder,
-          description: row.description,
-        })),
+        channel_types: page.channelTypes.map(channelDto),
         total: page.total,
       };
     }
+    case "create_campaign_channel_type":
+      return channelDto(
+        await nestRequest<NestChannelType>(CHANNEL_TYPES, {
+          method: "POST",
+          body: dataOf(body),
+        }),
+      );
+    case "update_campaign_channel_type":
+      return channelDto(
+        await nestRequest<NestChannelType>(`${CHANNEL_TYPES}/${id}`, {
+          method: "PATCH",
+          body: dataOf(body),
+        }),
+      );
+    case "delete_campaign_channel_type":
+      await nestRequest(`${CHANNEL_TYPES}/${id}`, { method: "DELETE" });
+      return { deleted: decodeURIComponent(id) };
+    case "list_score_templates":
+      return nestRequest(`${SCORE}/templates`, { query: paging });
+    case "get_score_template":
+      return nestRequest(`${SCORE}/templates/${id}`);
+    case "list_score_signals":
+      return nestRequest(`${SCORE}/signals`, {
+        query: { ...paging, active_only: params.active_only },
+      });
+    case "create_score_template":
+      return nestRequest(`${SCORE}/templates`, {
+        method: "POST",
+        body: { data: dataOf(body) },
+      });
+    case "update_score_template":
+      return nestRequest(`${SCORE}/templates/${id}`, {
+        method: "PATCH",
+        body: { data: dataOf(body), expected_modified: expected },
+      });
+    case "delete_score_template":
+      return nestRequest(`${SCORE}/templates/${id}`, {
+        method: "DELETE",
+        query: { expectedModified: expected },
+      });
 
     default:
       return NOT_HANDLED;
