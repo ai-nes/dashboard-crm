@@ -67,7 +67,7 @@ function getErrorDetails(payload: unknown): {
 }
 
 function resolveBaseUrl(options: RequestOptions): string {
-  if (frappeUnavailable(options.baseUrl)) {
+  if (typeof window === "undefined" && frappeUnavailable(options.baseUrl)) {
     throw new StudentWorklistApiError(
       FEATURE_NOT_MIGRATED_STATUS,
       FEATURE_NOT_MIGRATED_CODE,
