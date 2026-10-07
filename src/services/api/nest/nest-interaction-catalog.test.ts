@@ -41,7 +41,8 @@ describe("interaction catalog with the Nest backend", () => {
           : [row("ADMISSION_PROCESS", 1)],
       }),
     );
-    const { getInteractionCatalog } = await import("../interaction-intelligence");
+    const { getInteractionCatalog } =
+      await import("../interaction-intelligence");
     const catalog = await getInteractionCatalog();
 
     expect(catalog.interactionTypes.map((item) => item.code)).toEqual([

@@ -26,6 +26,7 @@ interface NestYear {
 
 const YEARS = "/api/v1/reference-data/admission-years";
 const OFFERINGS = "/api/v1/admission-offerings";
+const CHANNEL_TYPES = "/api/v1/campaign-channel-types";
 
 const day = (value: string | null) => (value ? value.slice(0, 10) : null);
 
@@ -133,6 +134,40 @@ export async function nestAdminCatalogRequest(
         method: "DELETE",
         query: { expectedModified: expected },
       });
+    case "list_campaign_channel_types": {
+      const page = await nestRequest<{
+        channelTypes: {
+          code: string;
+          displayName: string;
+          modes: string[];
+          enabled: boolean;
+          sortOrder: number;
+          description: string;
+        }[];
+        total: number;
+      }>(CHANNEL_TYPES, {
+        query: {
+          search: params.search,
+          start: params.start,
+          pageLength: params.page_length ?? 50,
+          enabledOnly: "false",
+        },
+      });
+      return {
+        channel_types: page.channelTypes.map((row) => ({
+          code: row.code,
+          display_name: row.displayName,
+          is_online: row.modes.includes("ONLINE") ? 1 : 0,
+          is_offline: row.modes.includes("OFFLINE") ? 1 : 0,
+          modes: row.modes,
+          enabled: row.enabled ? 1 : 0,
+          sort_order: row.sortOrder,
+          description: row.description,
+        })),
+        total: page.total,
+      };
+    }
+
     default:
       return NOT_HANDLED;
   }

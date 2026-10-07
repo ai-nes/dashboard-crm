@@ -48,10 +48,16 @@ describe("legacy method shim", () => {
     expect(handler.mock.calls[0]?.[2]).toEqual({ email: "a@b.vn" });
   });
 
-  it("falls back to Frappe for methods Nest does not serve", async () => {
+  it("answers 501 instead of reaching Frappe for methods Nest does not serve", async () => {
     handler.mockResolvedValue(NOT_HANDLED);
-    await fetchShim(`${FRAPPE}/api/method/crm.api.unknown.thing`);
-    expect(original).toHaveBeenCalledTimes(1);
+    const response = await fetchShim(
+      `${FRAPPE}/api/method/crm.api.unknown.thing`,
+    );
+    expect(response.status).toBe(501);
+    expect(await response.json()).toMatchObject({
+      error: { code: "FEATURE_NOT_MIGRATED" },
+    });
+    expect(original).not.toHaveBeenCalled();
   });
 
   it("never touches requests that are not Frappe method calls", async () => {

@@ -1,4 +1,10 @@
-import { isNestApiEnabled, NestApiError } from "./nest/nest-client";
+import {
+  FEATURE_NOT_MIGRATED_CODE,
+  FEATURE_NOT_MIGRATED_MESSAGE,
+  FEATURE_NOT_MIGRATED_STATUS,
+  isNestApiEnabled,
+  NestApiError,
+} from "./nest/nest-client";
 import { NOT_HANDLED, nestMethodRequest } from "./nest/nest-method-router";
 
 export class FrappeApiError extends Error {
@@ -120,6 +126,13 @@ export async function request(
   if (isNestApiEnabled()) {
     const handled = await tryNest(url, init, ErrorClass);
     if (handled !== NOT_HANDLED) return handled as Record<string, unknown>;
+    // The Frappe site is retired for browsers that use the Nest backend, so a
+    // method without a Nest equivalent fails fast instead of answering 403.
+    throw new ErrorClass(
+      FEATURE_NOT_MIGRATED_STATUS,
+      FEATURE_NOT_MIGRATED_CODE,
+      FEATURE_NOT_MIGRATED_MESSAGE,
+    );
   }
   const csrfToken = frappeBaseUrl
     ? await browserCsrfToken(frappeBaseUrl)

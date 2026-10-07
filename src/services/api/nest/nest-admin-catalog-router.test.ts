@@ -97,14 +97,30 @@ describe("frappe request with the Nest backend enabled", () => {
     ).rejects.toMatchObject({ status: 409, code: "ACTIVE_IMMUTABLE" });
   });
 
-  it("falls through to Frappe for methods the Nest backend lacks", async () => {
-    fetchMock.mockImplementation(() => json({ message: { items: [] } }));
+  it("fails fast with 501 for methods the Nest backend lacks", async () => {
     const { request } = await import("../frappe-request");
     await expect(
       request(`${FRAPPE}/crm.api.admin_catalog.list_score_templates`),
-    ).resolves.toEqual({ items: [] });
+    ).rejects.toMatchObject({ status: 501, code: "FEATURE_NOT_MIGRATED" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("serves the geography catalog and channel types from Nest", async () => {
+    fetchMock.mockImplementation(() =>
+      json({ provinces: [], total: 0, channelTypes: [], start: 0 }),
+    );
+    const { request } = await import("../frappe-request");
+    await request(
+      `${FRAPPE}/crm.api.geography_catalog.list_provinces?search=a&page_length=5`,
+    );
+    await request(
+      `${FRAPPE}/crm.api.campaign_channel_type.list_campaign_channel_types`,
+    );
     expect(String(fetchMock.mock.calls[0][0])).toBe(
-      `${FRAPPE}/crm.api.admin_catalog.list_score_templates`,
+      "http://api.test/api/v1/geography-catalog/provinces?search=a&page_length=5",
+    );
+    expect(String(fetchMock.mock.calls[1][0])).toContain(
+      "/api/v1/campaign-channel-types",
     );
   });
 });

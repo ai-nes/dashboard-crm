@@ -2,11 +2,17 @@
  * Transitional transport: while the dashboard still has services written for
  * Frappe (`<FRAPPE_URL>/api/method/<method>`), this wraps `fetch` so a call
  * the Nest backend can serve is answered by Nest in Frappe's response shape.
- * Anything Nest does not handle goes to Frappe unchanged. Delete this file,
+ * Anything Nest does not handle answers 501 instead of reaching Frappe. Delete this file,
  * `nest-method-router.ts` and the services' Frappe branches together once the
  * last Frappe call-site is gone (plan phase 8).
  */
-import { isNestApiEnabled, NestApiError } from "./nest-client";
+import {
+  FEATURE_NOT_MIGRATED_CODE,
+  FEATURE_NOT_MIGRATED_MESSAGE,
+  FEATURE_NOT_MIGRATED_STATUS,
+  isNestApiEnabled,
+  NestApiError,
+} from "./nest-client";
 import { NOT_HANDLED, nestMethodRequest } from "./nest-method-router";
 
 const INSTALLED = "__crmLegacyMethodShim";
@@ -49,7 +55,17 @@ export function createLegacyFetch(
     }
     try {
       const result = await nestMethodRequest(match[1]!, params, body);
-      if (result === NOT_HANDLED) return original(input, init);
+      if (result === NOT_HANDLED) {
+        return json(
+          {
+            error: {
+              code: FEATURE_NOT_MIGRATED_CODE,
+              message: FEATURE_NOT_MIGRATED_MESSAGE,
+            },
+          },
+          FEATURE_NOT_MIGRATED_STATUS,
+        );
+      }
       return json({ message: result }, 200);
     } catch (error) {
       if (error instanceof NestApiError) {
