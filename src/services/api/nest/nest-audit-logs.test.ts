@@ -54,6 +54,25 @@ describe("audit and activity logs with the Nest backend", () => {
     );
   });
 
+  it("reads a segment history", async () => {
+    fetchMock.mockImplementation(() =>
+      json({
+        segment: "SEG-1",
+        logs: [],
+        total: 0,
+        start: 0,
+        pageLength: 100,
+        readOnly: true,
+      }),
+    );
+    const { getSegmentAuditLogs } = await import("../student-audit");
+    const result = await getSegmentAuditLogs({ segment: "SEG-1" });
+    expect(result).toMatchObject({ segment: "SEG-1", total: 0 });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://api.test/api/v1/segments/SEG-1/audit-logs?start=0&pageLength=100",
+    );
+  });
+
   it("sends activity filters as query parameters and maps errors", async () => {
     fetchMock.mockImplementationOnce(() =>
       json({ logs: [], total: 0, start: 0, pageLength: 50, module: "auth" }),

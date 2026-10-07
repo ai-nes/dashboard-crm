@@ -207,9 +207,9 @@ function isAuditLogsResponse(
   );
 }
 
-/** Student and Lead histories come from the Nest backend; segments stay on Frappe. */
+/** Student, Lead and Segment histories come from the Nest backend. */
 async function getNestAuditLogs(
-  kind: "students" | "leads",
+  kind: "students" | "leads" | "segments",
   entityId: string,
   params: { start?: number; pageLength?: number },
 ): Promise<StudentAuditLogsResponse> {
@@ -225,9 +225,7 @@ async function getNestAuditLogs(
     );
     const logs = Array.isArray(data?.logs) ? data.logs : [];
     return {
-      student: String(
-        data?.[kind === "students" ? "student" : "lead"] ?? entityId,
-      ),
+      student: String(data?.[kind.slice(0, -1)] ?? entityId),
       logs: logs.map(normalizeAuditLog),
       total: Number(data?.total ?? logs.length),
       start: Number(data?.start ?? params.start ?? 0),
@@ -258,12 +256,14 @@ async function getAuditLogs(
       `Cần cung cấp mã ${entityLabel} để tải nhật ký.`,
     );
   }
-  if (isNestApiEnabled() && !options.baseUrl && queryParam !== "segment") {
-    return getNestAuditLogs(
-      queryParam === "student" ? "students" : "leads",
-      entityId,
-      params,
-    );
+  if (isNestApiEnabled() && !options.baseUrl) {
+    const kind =
+      queryParam === "student"
+        ? "students"
+        : queryParam === "segment"
+          ? "segments"
+          : "leads";
+    return getNestAuditLogs(kind, entityId, params);
   }
 
   const url = new URL(`${resolveBaseUrl(options)}/api/method/${method}`);
