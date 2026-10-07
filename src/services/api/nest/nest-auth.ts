@@ -1,4 +1,8 @@
-import type { CurrentUser, SessionUser } from "../auth/types";
+import type {
+  CurrentUser,
+  CurrentUserDocTypePermission,
+  SessionUser,
+} from "../auth/types";
 import { NestApiError, nestRequest } from "./nest-client";
 
 interface NestMe {
@@ -9,6 +13,32 @@ interface NestMe {
     identityRole: "admin" | "user";
     crmProfile: string | null;
     crmCapabilities: { key: string }[];
+    leadScope?: "all" | "own" | null;
+  };
+}
+
+/**
+ * Doctype permissions the Frappe session used to carry. The backend still
+ * authorizes every call; these only decide what the screens show and fetch.
+ */
+export function doctypePermissions(
+  leadScope: "all" | "own" | null | undefined,
+  capabilities: string[],
+): NonNullable<CurrentUser["crm_doctype_permissions"]> {
+  if (!leadScope) return {};
+  const canWrite = capabilities.includes("student.execute");
+  const permission: CurrentUserDocTypePermission = {
+    row_scope: leadScope === "all" ? "all" : "assigned",
+    read: true,
+    write: canWrite,
+    create: canWrite,
+    delete: false,
+    export: false,
+  };
+  return {
+    "CRM Student": permission,
+    "CRM Lead": permission,
+    Task: permission,
   };
 }
 
@@ -65,6 +95,10 @@ export async function nestGetCurrentUser(): Promise<CurrentUser | null> {
         : null,
       crm_capabilities: data.crmCapabilities.map(
         (capability) => capability.key,
+      ),
+      crm_doctype_permissions: doctypePermissions(
+        data.leadScope,
+        data.crmCapabilities.map((capability) => capability.key),
       ),
       csrf_token: null,
     };
