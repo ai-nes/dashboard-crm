@@ -1,8 +1,4 @@
-import {
-  isNestApiEnabled,
-  NestApiError,
-  nestRequest,
-} from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 
 export interface TeamManagementGroup {
   id: string;
@@ -78,11 +74,6 @@ export interface TeamManagementWorkspace {
   permissions: { canManage: boolean; canManageAll: boolean };
 }
 
-export interface TeamManagementRequestOptions {
-  baseUrl?: string;
-  headers?: Record<string, string>;
-}
-
 export interface TeamManagementMutationResponse {
   action: string;
   status: string;
@@ -122,97 +113,6 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function text(value: unknown, fallback = ""): string {
-  return typeof value === "string" ? value : fallback;
-}
-
-function resolveBaseUrl(options: TeamManagementRequestOptions): string {
-  return (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
-    /\/+$/,
-    "",
-  );
-}
-
-function cookieHeader(value: string): string {
-  return value
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-async function headers(
-  options: TeamManagementRequestOptions,
-  write: boolean,
-): Promise<Record<string, string>> {
-  const result: Record<string, string> = {
-    Accept: "application/json",
-    ...(write ? { "Content-Type": "application/json" } : {}),
-    ...(options.headers ?? {}),
-  };
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const sid = cookieHeader((await cookies()).toString());
-      if (sid) result.Cookie = sid;
-    } catch {
-      // Client-side calls use credentials instead.
-    }
-  }
-  if (typeof window !== "undefined" && write) {
-    const csrf = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith("csrf_token="))
-      ?.split("=")
-      .slice(1)
-      .join("=");
-    if (csrf) {
-      result["X-Frappe-CSRF-Token"] = decodeURIComponent(csrf);
-    } else {
-      try {
-        const sessionResponse = await fetch(
-          `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
-          { credentials: "include", headers: { Accept: "application/json" } },
-        );
-        const sessionPayload = (await sessionResponse
-          .json()
-          .catch(() => null)) as {
-          message?: { csrf_token?: unknown };
-        } | null;
-        const csrfToken = sessionPayload?.message?.csrf_token;
-        if (typeof csrfToken === "string" && csrfToken) {
-          result["X-Frappe-CSRF-Token"] = csrfToken;
-        }
-      } catch {
-        // Fallback to cookie-only authentication.
-      }
-    }
-  }
-  return result;
-}
-
-function errorDetails(payload: unknown, status: number) {
-  const root = asRecord(payload);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-  return {
-    code:
-      text(error?.code) ||
-      (status === 401
-        ? "UNAUTHENTICATED"
-        : status === 403
-          ? "FORBIDDEN"
-          : `HTTP_${status}`),
-    message:
-      text(error?.message) ||
-      text(message?.message) ||
-      text(root?.message) ||
-      text(root?.exception) ||
-      "Không thể thực hiện thao tác quản lý đội ngũ.",
-  };
-}
-
 const NEST_PATHS: Record<string, string> = {
   [METHODS.WORKSPACE]: "/api/v1/team-management/workspace",
   [METHODS.SAVE_GROUP]: "/api/v1/team-management/groups",
@@ -223,7 +123,7 @@ const NEST_PATHS: Record<string, string> = {
   [METHODS.UPDATE_MEMBER]: "/api/v1/team-management/members/update",
 };
 
-async function callNest<T>(
+async function call<T>(
   method: string,
   body?: Record<string, unknown>,
 ): Promise<T> {
@@ -240,60 +140,14 @@ async function callNest<T>(
   }
 }
 
-async function call<T>(
-  method: string,
-  options: TeamManagementRequestOptions,
-  body?: Record<string, unknown>,
-): Promise<T> {
-  if (isNestApiEnabled()) return callNest<T>(method, body);
-  const baseUrl = resolveBaseUrl(options);
-  if (!baseUrl) {
-    throw new TeamManagementApiError(
-      503,
-      "TEAM_MANAGEMENT_API_UNAVAILABLE",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
-    );
-  }
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl}/api/method/${method}`, {
-      method: body ? "POST" : "GET",
-      headers: await headers(options, Boolean(body)),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-      ...(body ? { body: JSON.stringify(body) } : {}),
-    });
-  } catch {
-    throw new TeamManagementApiError(
-      503,
-      "TEAM_MANAGEMENT_API_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ CRM.",
-    );
-  }
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = errorDetails(payload, response.status);
-    throw new TeamManagementApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-  return (asRecord(payload)?.message ?? payload) as T;
-}
-
 function idempotencyKey(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `team-management-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export async function getTeamManagementWorkspace(
-  options: TeamManagementRequestOptions = {},
-): Promise<TeamManagementWorkspace> {
-  const workspace = await call<unknown>(METHODS.WORKSPACE, options);
+export async function getTeamManagementWorkspace(): Promise<TeamManagementWorkspace> {
+  const workspace = await call<unknown>(METHODS.WORKSPACE);
   const payload = asRecord(workspace);
   if (
     !payload ||
@@ -309,19 +163,16 @@ export async function getTeamManagementWorkspace(
   return workspace as TeamManagementWorkspace;
 }
 
-export async function saveTeamGroup(
-  payload: {
-    groupId?: string;
-    groupName: string;
-    provinceId?: string | null;
-    groupLeadStaff?: string | null;
-    clearGroupLead?: boolean;
-    isActive?: boolean;
-    expectedRevision?: string;
-  },
-  options: TeamManagementRequestOptions = {},
-) {
-  return call<TeamManagementMutationResponse>(METHODS.SAVE_GROUP, options, {
+export async function saveTeamGroup(payload: {
+  groupId?: string;
+  groupName: string;
+  provinceId?: string | null;
+  groupLeadStaff?: string | null;
+  clearGroupLead?: boolean;
+  isActive?: boolean;
+  expectedRevision?: string;
+}) {
+  return call<TeamManagementMutationResponse>(METHODS.SAVE_GROUP, {
     group_id: payload.groupId,
     group_name: payload.groupName,
     province: payload.provinceId,
@@ -333,21 +184,18 @@ export async function saveTeamGroup(
   });
 }
 
-export async function saveTeam(
-  payload: {
-    teamId?: string;
-    teamName: string;
-    groupId?: string | null;
-    teamType?: string;
-    campus: string;
-    territory?: string | null;
-    teamLeadStaff?: string | null;
-    isActive?: boolean;
-    expectedRevision?: string;
-  },
-  options: TeamManagementRequestOptions = {},
-) {
-  return call<TeamManagementMutationResponse>(METHODS.SAVE_TEAM, options, {
+export async function saveTeam(payload: {
+  teamId?: string;
+  teamName: string;
+  groupId?: string | null;
+  teamType?: string;
+  campus: string;
+  territory?: string | null;
+  teamLeadStaff?: string | null;
+  isActive?: boolean;
+  expectedRevision?: string;
+}) {
+  return call<TeamManagementMutationResponse>(METHODS.SAVE_TEAM, {
     team_id: payload.teamId,
     team_name: payload.teamName,
     group_id: payload.groupId,
@@ -361,17 +209,14 @@ export async function saveTeam(
   });
 }
 
-export async function addTeamMember(
-  payload: {
-    staffId: string;
-    teamId: string;
-    function?: string;
-    isPrimary?: boolean;
-    isTeamLead?: boolean;
-  },
-  options: TeamManagementRequestOptions = {},
-) {
-  return call<TeamManagementMutationResponse>(METHODS.ADD_MEMBER, options, {
+export async function addTeamMember(payload: {
+  staffId: string;
+  teamId: string;
+  function?: string;
+  isPrimary?: boolean;
+  isTeamLead?: boolean;
+}) {
+  return call<TeamManagementMutationResponse>(METHODS.ADD_MEMBER, {
     staff_id: payload.staffId,
     team_id: payload.teamId,
     function: payload.function ?? "Sale",
@@ -381,16 +226,13 @@ export async function addTeamMember(
   });
 }
 
-export async function moveTeamMember(
-  payload: {
-    staffId: string;
-    sourceTeamId: string;
-    targetTeamId: string;
-    function?: string;
-  },
-  options: TeamManagementRequestOptions = {},
-) {
-  return call<TeamManagementMutationResponse>(METHODS.MOVE_MEMBER, options, {
+export async function moveTeamMember(payload: {
+  staffId: string;
+  sourceTeamId: string;
+  targetTeamId: string;
+  function?: string;
+}) {
+  return call<TeamManagementMutationResponse>(METHODS.MOVE_MEMBER, {
     staff_id: payload.staffId,
     source_team_id: payload.sourceTeamId,
     target_team_id: payload.targetTeamId,
@@ -399,11 +241,12 @@ export async function moveTeamMember(
   });
 }
 
-export async function removeTeamMember(
-  payload: { staffId: string; teamId: string; expectedRevision?: string },
-  options: TeamManagementRequestOptions = {},
-) {
-  return call<TeamManagementMutationResponse>(METHODS.REMOVE_MEMBER, options, {
+export async function removeTeamMember(payload: {
+  staffId: string;
+  teamId: string;
+  expectedRevision?: string;
+}) {
+  return call<TeamManagementMutationResponse>(METHODS.REMOVE_MEMBER, {
     staff_id: payload.staffId,
     team_id: payload.teamId,
     expected_revision: payload.expectedRevision,
@@ -411,11 +254,12 @@ export async function removeTeamMember(
   });
 }
 
-export async function updateTeamMember(
-  payload: { staffId: string; fullName: string; expectedRevision?: string },
-  options: TeamManagementRequestOptions = {},
-) {
-  return call<TeamManagementMutationResponse>(METHODS.UPDATE_MEMBER, options, {
+export async function updateTeamMember(payload: {
+  staffId: string;
+  fullName: string;
+  expectedRevision?: string;
+}) {
+  return call<TeamManagementMutationResponse>(METHODS.UPDATE_MEMBER, {
     staff_id: payload.staffId,
     full_name: payload.fullName,
     expected_revision: payload.expectedRevision,
