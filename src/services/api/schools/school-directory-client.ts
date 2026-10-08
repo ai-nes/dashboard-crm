@@ -19,7 +19,9 @@ export async function searchSchoolDirectory(
   return response.schools.map(toSchoolDirectoryRecord);
 }
 
-function toSchoolDirectoryRecord(record: SchoolListRecord): SchoolDirectoryRecord {
+function toSchoolDirectoryRecord(
+  record: SchoolListRecord,
+): SchoolDirectoryRecord {
   const fields = record.fields;
   const boardingType = fieldText(fields.boarding_type);
 

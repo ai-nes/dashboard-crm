@@ -22,11 +22,55 @@ const DIRECTORY_FILE = path.join(
 let directoryPromise: Promise<SchoolDirectoryRecord[]> | undefined;
 
 const CENTRAL_PROVINCES = new Set([
-  "Thanh Hóa", "Nghệ An", "Hà Tĩnh", "Quảng Bình", "Quảng Trị", "Thành phố Huế", "Thừa Thiên Huế", "Đà Nẵng", "Quảng Nam", "Quảng Ngãi", "Bình Định", "Phú Yên", "Khánh Hòa", "Ninh Thuận", "Bình Thuận", "Kon Tum", "Gia Lai", "Đắk Lắk", "Đắk Nông", "Lâm Đồng",
+  "Thanh Hóa",
+  "Nghệ An",
+  "Hà Tĩnh",
+  "Quảng Bình",
+  "Quảng Trị",
+  "Thành phố Huế",
+  "Thừa Thiên Huế",
+  "Đà Nẵng",
+  "Quảng Nam",
+  "Quảng Ngãi",
+  "Bình Định",
+  "Phú Yên",
+  "Khánh Hòa",
+  "Ninh Thuận",
+  "Bình Thuận",
+  "Kon Tum",
+  "Gia Lai",
+  "Đắk Lắk",
+  "Đắk Nông",
+  "Lâm Đồng",
 ]);
 
 const NORTHERN_PROVINCES = new Set([
-  "Hà Nội", "Hải Phòng", "Quảng Ninh", "Hà Giang", "Cao Bằng", "Bắc Kạn", "Tuyên Quang", "Lào Cai", "Điện Biên", "Lai Châu", "Sơn La", "Yên Bái", "Hòa Bình", "Hoà Bình", "Thái Nguyên", "Lạng Sơn", "Bắc Giang", "Phú Thọ", "Vĩnh Phúc", "Bắc Ninh", "Hưng Yên", "Hải Dương", "Thái Bình", "Hà Nam", "Nam Định", "Ninh Bình",
+  "Hà Nội",
+  "Hải Phòng",
+  "Quảng Ninh",
+  "Hà Giang",
+  "Cao Bằng",
+  "Bắc Kạn",
+  "Tuyên Quang",
+  "Lào Cai",
+  "Điện Biên",
+  "Lai Châu",
+  "Sơn La",
+  "Yên Bái",
+  "Hòa Bình",
+  "Hoà Bình",
+  "Thái Nguyên",
+  "Lạng Sơn",
+  "Bắc Giang",
+  "Phú Thọ",
+  "Vĩnh Phúc",
+  "Bắc Ninh",
+  "Hưng Yên",
+  "Hải Dương",
+  "Thái Bình",
+  "Hà Nam",
+  "Nam Định",
+  "Ninh Bình",
 ]);
 
 function parseCsvRow(row: string) {
@@ -70,7 +114,9 @@ async function loadDirectory() {
     .slice(1)
     .filter(Boolean)
     .map(parseCsvRow)
-    .filter((row) => row.length >= 10 && row[5] && row[6] && isHighSchool(row[6]))
+    .filter(
+      (row) => row.length >= 10 && row[5] && row[6] && isHighSchool(row[6]),
+    )
     .map<SchoolDirectoryRecord>((row) => ({
       id: `${row[1]}-${row[3]}-${canonicalSchoolCode(row[5])}`,
       provinceCode: row[1],
@@ -114,13 +160,15 @@ const MARKET_REGION_TO_SCHOOL_REGION: Record<MarketRegionKey, SchoolRegion> = {
 };
 
 /**
- * Priority schools sourced from the Frappe market-intelligence overview, whose
+ * Priority schools sourced from the market-intelligence overview, whose
  * ids are the canonical `provinceCode-wardCode-schoolCode` that
- * `get_director_school_detail` resolves. Returns `null` when the endpoint is
+ * the school detail endpoint resolves. Returns `null` when the endpoint is
  * unavailable (unauthenticated, offline) so the caller can fall back to the
  * static directory — the disjoint CSV ids 404 on the detail page.
  */
-async function getPrioritySchoolsFromMarket(): Promise<PrioritySchoolReport[] | null> {
+async function getPrioritySchoolsFromMarket(): Promise<
+  PrioritySchoolReport[] | null
+> {
   try {
     const overview = await getDirectorMarketIntelligence({
       includeSchools: true,
@@ -128,12 +176,16 @@ async function getPrioritySchoolsFromMarket(): Promise<PrioritySchoolReport[] | 
     });
     const rows: PrioritySchoolReport[] = [];
     for (const province of overview.provinces) {
-      const region = MARKET_REGION_TO_SCHOOL_REGION[province.regionKey] ?? "Miền Nam";
+      const region =
+        MARKET_REGION_TO_SCHOOL_REGION[province.regionKey] ?? "Miền Nam";
       for (const school of province.highSchools) {
         if (!school.id) continue;
         const schoolCode = school.id.split("-").at(-1) ?? "";
         const potentialSeed =
-          [...school.id].reduce((total, ch) => (total * 31 + ch.charCodeAt(0)) % 100_000, 17) % 25;
+          [...school.id].reduce(
+            (total, ch) => (total * 31 + ch.charCodeAt(0)) % 100_000,
+            17,
+          ) % 25;
         rows.push({
           school: {
             id: school.id,
@@ -172,7 +224,10 @@ export async function getSchoolReport(): Promise<SchoolReportData> {
     getSchoolDirectory(),
     getPrioritySchoolsFromMarket(),
   ]);
-  const provinceMap = new Map<string, { region: SchoolRegion; scores: number[] }>();
+  const provinceMap = new Map<
+    string,
+    { region: SchoolRegion; scores: number[] }
+  >();
   const regionMap = new Map<SchoolRegion, number[]>();
 
   for (const school of schools) {
@@ -184,13 +239,29 @@ export async function getSchoolReport(): Promise<SchoolReportData> {
     regionMap.set(region, [...(regionMap.get(region) ?? []), score]);
   }
 
-  const average = (scores: number[]) => Math.round(scores.reduce((total, score) => total + score, 0) / scores.length);
+  const average = (scores: number[]) =>
+    Math.round(
+      scores.reduce((total, score) => total + score, 0) / scores.length,
+    );
   const provinces = [...provinceMap.entries()]
-    .map(([province, value]) => ({ province, region: value.region, schools: value.scores.length, prioritySchools: value.scores.filter((score) => score >= 88).length, averagePotential: average(value.scores) }))
+    .map(([province, value]) => ({
+      province,
+      region: value.region,
+      schools: value.scores.length,
+      prioritySchools: value.scores.filter((score) => score >= 88).length,
+      averagePotential: average(value.scores),
+    }))
     .sort((a, b) => b.schools - a.schools);
-  const regions = (["Miền Bắc", "Miền Trung", "Miền Nam"] as SchoolRegion[]).map((region) => {
+  const regions = (
+    ["Miền Bắc", "Miền Trung", "Miền Nam"] as SchoolRegion[]
+  ).map((region) => {
     const scores = regionMap.get(region) ?? [];
-    return { region, schools: scores.length, prioritySchools: scores.filter((score) => score >= 88).length, averagePotential: average(scores) };
+    return {
+      region,
+      schools: scores.length,
+      prioritySchools: scores.filter((score) => score >= 88).length,
+      averagePotential: average(scores),
+    };
   });
   const priorityList =
     marketPriorityList ??
@@ -198,13 +269,31 @@ export async function getSchoolReport(): Promise<SchoolReportData> {
       .map((school) => {
         const potentialScore = getSchoolPotentialScore(school);
         const seed = potentialScore + school.schoolCode.charCodeAt(0);
-        return { school, region: getSchoolRegion(school.province), potentialScore, grade12Students: 360 + (seed % 540), enrollmentForecast: 12 + (seed % 31) };
+        return {
+          school,
+          region: getSchoolRegion(school.province),
+          potentialScore,
+          grade12Students: 360 + (seed % 540),
+          enrollmentForecast: 12 + (seed % 31),
+        };
       })
-      .sort((a, b) => b.potentialScore - a.potentialScore || b.enrollmentForecast - a.enrollmentForecast)
+      .sort(
+        (a, b) =>
+          b.potentialScore - a.potentialScore ||
+          b.enrollmentForecast - a.enrollmentForecast,
+      )
       .slice(0, 60);
   const allScores = schools.map(getSchoolPotentialScore);
 
-  return { totalSchools: schools.length, totalProvinces: provinces.length, prioritySchools: allScores.filter((score) => score >= 88).length, averagePotential: average(allScores), regions, provinces, priorityList };
+  return {
+    totalSchools: schools.length,
+    totalProvinces: provinces.length,
+    prioritySchools: allScores.filter((score) => score >= 88).length,
+    averagePotential: average(allScores),
+    regions,
+    provinces,
+    priorityList,
+  };
 }
 
 export async function getSchoolById(id: string) {
@@ -230,7 +319,9 @@ export async function searchSchools(query?: string) {
   return schools
     .filter((school) =>
       normalizeForSearch(
-        [school.name, school.province, school.district, school.schoolCode].join(" "),
+        [school.name, school.province, school.district, school.schoolCode].join(
+          " ",
+        ),
       ).includes(normalizedQuery),
     )
     .slice(0, 50);

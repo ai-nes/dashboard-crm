@@ -1,8 +1,4 @@
-import {
-  isNestApiEnabled,
-  NestApiError,
-  nestRequest,
-} from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 import { SCHOOL_EXAM_SCORE_BAND_LABELS } from "./types";
 import type {
   DataAvailabilityStatus,
@@ -19,30 +15,7 @@ import type {
   SchoolClassification,
 } from "./types";
 
-type GetSchoolOptions = { admissionYear?: number; baseUrl?: string };
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-function hasSchoolEnvelope(value: unknown): boolean {
-  const root = record(value);
-  const message = record(root.message);
-  const school = record(message.school);
-  const availability = record(message.dataAvailability);
-  const meta = record(message.meta);
-  return (
-    typeof school.id === "string" &&
-    !!school.id.trim() &&
-    typeof school.name === "string" &&
-    !!availability.sections &&
-    !!meta.admissionYear
-  );
-}
+type GetSchoolOptions = { admissionYear?: number };
 
 const statuses = new Set(["available", "partial", "unavailable"]);
 const classifications = new Set([
@@ -615,9 +588,9 @@ export class DirectorApiError extends Error {
 }
 
 /** School detail from the Nest backend; the session cookie is forwarded on the server. */
-async function getNestSchoolDetail(
+export async function getDirectorSchoolDetail(
   schoolId: string,
-  options: GetSchoolOptions,
+  options: GetSchoolOptions = {},
 ): Promise<DirectorSchoolDetailData | null> {
   const headers: Record<string, string> = {};
   if (typeof window === "undefined") {
@@ -637,6 +610,13 @@ async function getNestSchoolDetail(
         headers,
       },
     );
+    if (!record(payload.school).id) {
+      throw new DirectorApiError(
+        502,
+        "INVALID_SCHOOL_RESPONSE",
+        "Phản hồi dữ liệu trường học không hợp lệ.",
+      );
+    }
     return normalizeSchoolIntelligence(payload);
   } catch (error) {
     if (error instanceof NestApiError) {
@@ -647,66 +627,4 @@ async function getNestSchoolDetail(
     }
     throw error;
   }
-}
-
-export async function getDirectorSchoolDetail(
-  schoolId: string,
-  options: GetSchoolOptions = {},
-): Promise<DirectorSchoolDetailData | null> {
-  if (isNestApiEnabled() && !options.baseUrl) {
-    return getNestSchoolDetail(schoolId, options);
-  }
-  const query = new URLSearchParams({ school_id: schoolId });
-  if (options.admissionYear)
-    query.set("admissionYear", String(options.admissionYear));
-  const baseUrl = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-  const method = "crm.api.director_school_detail.get_director_school_detail";
-  const headers: Record<string, string> = { Accept: "application/json" };
-
-  if (!options.baseUrl) {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) headers.Cookie = cookieHeader;
-    } catch {
-      // Outside a Next request context (for example, contract tests).
-    }
-  }
-
-  const response = await fetch(
-    `${baseUrl}/api/method/${method}?${query.toString()}`,
-    {
-      headers,
-      // Client-side the session cookie rides along on the cross-origin request;
-      // server-side it is forwarded explicitly via the Cookie header above.
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-    },
-  );
-  const payload = await response.json().catch(() => ({}));
-  const error = payload?.error ?? {};
-  if (response.status === 404 && error.code === "SCHOOL_NOT_FOUND") return null;
-  if (!response.ok) {
-    throw new DirectorApiError(
-      response.status,
-      typeof error.code === "string" ? error.code : "SCHOOL_DATA_UNAVAILABLE",
-      typeof error.message === "string"
-        ? error.message
-        : "Không thể tải dữ liệu trường học.",
-    );
-  }
-  if (!hasSchoolEnvelope(payload)) {
-    throw new DirectorApiError(
-      502,
-      "INVALID_SCHOOL_RESPONSE",
-      "Phản hồi dữ liệu trường học không hợp lệ.",
-    );
-  }
-  return normalizeSchoolIntelligence(payload?.message ?? payload);
 }
