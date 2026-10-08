@@ -1,3 +1,5 @@
+// Simulated data for demos and QA only. This is not the CRM backend and no real
+// screen reads from it.
 import { NextRequest, NextResponse } from "next/server";
 
 import {

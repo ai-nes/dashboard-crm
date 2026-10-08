@@ -69,33 +69,43 @@ test("adds multiple tags, searches, removes just one, and retains Vietnamese lab
     tags: tags.map((tag) => ({ tag, term: tag })),
     needs: [],
   });
-  await page.route("**/api/method/**", async (route) => {
-    const method = new URL(route.request().url()).pathname.split(".").at(-1);
-    if (method === "me")
-      return route.fulfill({ json: { message: { csrf_token: "test-token" } } });
-    if (method === "list_tag_groups")
-      return route.fulfill({ json: { message: catalogue } });
-    if (method === "get_classifications")
-      return route.fulfill({ json: { message: response() } });
-    const body = route.request().postDataJSON();
-    writes.push(body);
-    if (body.expected_modified !== String(revision)) {
+  await page.route("**/api/v1/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (url.pathname.endsWith("/classification/tag-groups"))
+      return route.fulfill({ json: catalogue });
+    if (request.method() === "GET") return route.fulfill({ json: response() });
+    const body = request.postDataJSON() ?? {};
+    const tag =
+      request.method() === "DELETE"
+        ? decodeURIComponent(url.pathname.split("/").at(-1) ?? "")
+        : body.tag;
+    const expected =
+      request.method() === "DELETE"
+        ? url.searchParams.get("expectedModified")
+        : body.expectedModified;
+    writes.push({ tag, expected_modified: expected ?? "" });
+    if (expected !== String(revision)) {
       return route.fulfill({
-        status: 417,
-        json: { exception: "REVISION_CONFLICT: Student changed" },
+        status: 409,
+        json: {
+          error: { code: "REVISION_CONFLICT", message: "Student changed" },
+        },
       });
     }
     tags =
-      method === "add_student_tag"
-        ? [...new Set([...tags, body.tag])]
-        : tags.filter((tag) => tag !== body.tag);
+      request.method() === "POST"
+        ? [...new Set([...tags, tag])]
+        : tags.filter((existing) => existing !== tag);
     revision++;
-    return route.fulfill({ json: { message: response() } });
+    return route.fulfill({ json: response() });
   });
   await page.goto(origin, { waitUntil: "commit" });
-  const trigger = page.getByRole("button", { name: /^Sửa tag:/ });
-  await expect(trigger).toContainText("Cần chú ý đặc biệt", { timeout: 30000 });
-  await expect(trigger.locator("svg")).toHaveCount(0);
+  const trigger = page.getByRole("button", { name: /^Sửa hoặc thêm tag:/ });
+  await expect(trigger).toContainText("Cần quan tâm đặc biệt", {
+    timeout: 30000,
+  });
+  await expect(trigger.locator("svg")).toHaveCount(1);
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Gắn tag học sinh" });
   await expect(dialog).toBeVisible();
@@ -106,12 +116,12 @@ test("adds multiple tags, searches, removes just one, and retains Vietnamese lab
   await priority.click();
   await expect(priority).toHaveAttribute("aria-selected", "true");
   await expect(
-    page.getByRole("option", { name: "Cần chú ý đặc biệt", exact: true }),
+    page.getByRole("option", { name: "Cần quan tâm đặc biệt", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await expect(dialog).toBeVisible();
   await page.getByLabel("Tìm tag học sinh").fill("phu huynh");
   const parent = page.getByRole("option", {
-    name: "Phụ huynh đồng hành",
+    name: "Phụ huynh tham gia",
     exact: true,
   });
   await parent.click();
@@ -130,9 +140,9 @@ test("adds multiple tags, searches, removes just one, and retains Vietnamese lab
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();
   expect(writes).toHaveLength(3);
-  await expect(trigger).toContainText("Phụ huynh đồng hành");
+  await expect(trigger).toContainText("Phụ huynh tham gia");
   await page.reload();
-  await expect(trigger).toContainText("Phụ huynh đồng hành");
+  await expect(trigger).toContainText("Phụ huynh tham gia");
   await expect(trigger).not.toContainText("hash-");
   await page.setViewportSize({ width: 375, height: 700 });
   await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
@@ -154,6 +164,7 @@ test("adds multiple tags, searches, removes just one, and retains Vietnamese lab
   await page.screenshot({ path: "test-results/student-tags-desktop.png" });
   expect(pageErrors).toEqual([]);
   await page.goto(`${origin}/?readonly`);
-  await expect(trigger).toBeDisabled();
-  await expect(trigger).toContainText("Cần chú ý đặc biệt");
+  const readonlyTrigger = page.getByRole("button", { name: /^Xem tag:/ });
+  await expect(readonlyTrigger).toBeDisabled();
+  await expect(readonlyTrigger).toContainText("Cần quan tâm đặc biệt");
 });
