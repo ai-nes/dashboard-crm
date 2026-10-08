@@ -1,12 +1,4 @@
-import {
-  NestApiError,
-  isNestApiEnabled,
-  nestRequest,
-} from "../nest/nest-client";
-import {
-  computeDirectorDemographicsOverview,
-  computeDirectorDemographicsSegment,
-} from "./data";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 import type {
   DirectorDemographicsOverviewParams,
   DirectorDemographicsOverviewResponse,
@@ -27,22 +19,9 @@ export class DirectorDemographicsApiError extends Error {
     this.name = "DirectorDemographicsApiError";
   }
 }
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
 function hasDemographicsOverviewEnvelope(value: unknown): boolean {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const root = value as Record<string, unknown>;
-  const payload =
-    "message" in root && root.message && typeof root.message === "object"
-      ? (root.message as Record<string, unknown>)
-      : root;
+  const payload = value as Record<string, unknown>;
   const data = payload.data as Record<string, unknown> | undefined;
   const meta = payload.meta as Record<string, unknown> | undefined;
 
@@ -77,17 +56,13 @@ function hasDemographicsOverviewEnvelope(value: unknown): boolean {
     meta.page <= meta.totalPages &&
     data.segments.length <= meta.pageSize &&
     typeof meta.hasNextPage === "boolean" &&
-    meta.hasNextPage === (meta.page < meta.totalPages)
+    meta.hasNextPage === meta.page < meta.totalPages
   );
 }
 
 function hasDemographicsSegmentEnvelope(value: unknown): boolean {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const root = value as Record<string, unknown>;
-  const payload =
-    "message" in root && root.message && typeof root.message === "object"
-      ? (root.message as Record<string, unknown>)
-      : root;
+  const payload = value as Record<string, unknown>;
   const data = payload.data as Record<string, unknown> | undefined;
   const meta = payload.meta as Record<string, unknown> | undefined;
 
@@ -108,213 +83,64 @@ function hasDemographicsSegmentEnvelope(value: unknown): boolean {
 
 export async function getDirectorDemographicsOverview(
   params?: DirectorDemographicsOverviewParams,
-  options: { baseUrl?: string } = {},
 ): Promise<DirectorDemographicsOverviewResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
-  if (params?.page !== undefined) searchParams.set("page", String(params.page));
-  if (params?.pageSize !== undefined) searchParams.set("pageSize", String(params.pageSize));
-  if (params?.period) searchParams.set("period", params.period);
-  if (params?.scope) searchParams.set("scope", params.scope);
-  if (params?.province) searchParams.set("province", params.province);
-  if (params?.major) searchParams.set("major", params.major);
-  if (params?.stage) searchParams.set("stage", params.stage);
-  if (params?.priority) searchParams.set("priority", params.priority);
-  if (params?.owner) searchParams.set("owner", params.owner);
-  if (params?.sourceGroup) searchParams.set("sourceGroup", params.sourceGroup);
-
-  if (isNestApiEnabled() && !options.baseUrl) {
-    try {
-      const payload = await nestRequest("/api/v1/director/demographics", {
-        query: {
-          admissionYear: params?.admissionYear,
-          period: params?.period,
-          scope: params?.scope,
-          page: params?.page,
-          pageSize: params?.pageSize,
-        },
-      });
-      if (!hasDemographicsOverviewEnvelope(payload)) {
-        throw new DirectorDemographicsApiError(
-          502,
-          "INVALID_DEMOGRAPHICS_RESPONSE",
-          "Phản hồi dữ liệu phân tích người học không hợp lệ.",
-        );
-      }
-      return payload as DirectorDemographicsOverviewResponse;
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        throw new DirectorDemographicsApiError(error.status, error.code, error.message);
-      }
-      throw error;
+  try {
+    const payload = await nestRequest("/api/v1/director/demographics", {
+      query: {
+        admissionYear: params?.admissionYear,
+        period: params?.period,
+        scope: params?.scope,
+        page: params?.page,
+        pageSize: params?.pageSize,
+      },
+    });
+    if (!hasDemographicsOverviewEnvelope(payload)) {
+      throw new DirectorDemographicsApiError(
+        502,
+        "INVALID_DEMOGRAPHICS_RESPONSE",
+        "Phản hồi dữ liệu phân tích người học không hợp lệ.",
+      );
     }
-  }
-
-  const queryStr = searchParams.toString();
-  const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
-
-  if (!frappeBase) {
-    return computeDirectorDemographicsOverview(params);
-  }
-
-  const url = `${frappeBase}/api/method/crm.api.director_demographics.get_director_demographics_overview${
-    queryStr ? `?${queryStr}` : ""
-  }`;
-
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-  };
-
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) {
-        headers.Cookie = cookieHeader;
-      }
-    } catch {
-      // Ignored outside request context (e.g., tests)
+    return payload as DirectorDemographicsOverviewResponse;
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new DirectorDemographicsApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
     }
+    throw error;
   }
-
-  const response = await fetch(url, {
-    headers,
-    ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
-    cache: "no-store",
-  });
-
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const error = payload?.error ?? {};
-    const errorCode =
-      typeof error.code === "string"
-        ? error.code
-        : typeof payload?.exception === "string"
-          ? payload.exception
-          : "DEMOGRAPHICS_DATA_UNAVAILABLE";
-    const errorMessage =
-      typeof error.message === "string"
-        ? error.message
-        : typeof payload?.message === "string"
-          ? payload.message
-          : typeof payload?.exception === "string"
-            ? payload.exception
-            : `Lỗi HTTP ${response.status}: ${response.statusText}`;
-
-    throw new DirectorDemographicsApiError(response.status, errorCode, errorMessage);
-  }
-
-  if (!hasDemographicsOverviewEnvelope(payload)) {
-    throw new DirectorDemographicsApiError(
-      502,
-      "INVALID_DEMOGRAPHICS_RESPONSE",
-      "Phản hồi dữ liệu phân tích người học không hợp lệ.",
-    );
-  }
-
-  return (payload.message || payload) as DirectorDemographicsOverviewResponse;
 }
 
 export async function getDirectorDemographicsSegment(
   params: DirectorDemographicsSegmentParams,
-  options: { baseUrl?: string } = {},
 ): Promise<DirectorDemographicsSegmentResponse | null> {
-  const searchParams = new URLSearchParams();
-  searchParams.set("segment_id", params.segment_id);
-  if (params.admissionYear) searchParams.set("admissionYear", String(params.admissionYear));
-
-  if (isNestApiEnabled() && !options.baseUrl) {
-    try {
-      const payload = await nestRequest(
-        `/api/v1/director/demographics/segments/${encodeURIComponent(params.segment_id)}`,
-        { query: { admissionYear: params.admissionYear } },
-      );
-      if (!hasDemographicsSegmentEnvelope(payload)) {
-        throw new DirectorDemographicsApiError(
-          502,
-          "INVALID_SEGMENT_RESPONSE",
-          "Phản hồi dữ liệu phân khúc người học không hợp lệ.",
-        );
-      }
-      return payload as DirectorDemographicsSegmentResponse;
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        if (error.status === 404 && error.code === "SEGMENT_NOT_FOUND") return null;
-        throw new DirectorDemographicsApiError(error.status, error.code, error.message);
-      }
-      throw error;
-    }
-  }
-
-  const queryStr = searchParams.toString();
-  const frappeBase = (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
-
-  if (!frappeBase) {
-    const mockResult = computeDirectorDemographicsSegment(params);
-    return mockResult ?? null;
-  }
-
-  const url = `${frappeBase}/api/method/crm.api.director_demographics.get_director_demographics_segment${
-    queryStr ? `?${queryStr}` : ""
-  }`;
-
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-  };
-
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) {
-        headers.Cookie = cookieHeader;
-      }
-    } catch {
-      // Ignored outside request context
-    }
-  }
-
-  const response = await fetch(url, {
-    headers,
-    ...(typeof window !== "undefined" ? { credentials: "include" as RequestCredentials } : {}),
-    cache: "no-store",
-  });
-
-  const payload = await response.json().catch(() => ({}));
-  const error = payload?.error ?? {};
-
-  if (response.status === 404 && (error.code === "SEGMENT_NOT_FOUND" || !error.code)) {
-    return null;
-  }
-
-  if (!response.ok) {
-    const errorCode =
-      typeof error.code === "string"
-        ? error.code
-        : typeof payload?.exception === "string"
-          ? payload.exception
-          : "SEGMENT_DATA_UNAVAILABLE";
-    const errorMessage =
-      typeof error.message === "string"
-        ? error.message
-        : typeof payload?.message === "string"
-          ? payload.message
-          : typeof payload?.exception === "string"
-            ? payload.exception
-            : `Lỗi HTTP ${response.status}: ${response.statusText}`;
-
-    throw new DirectorDemographicsApiError(response.status, errorCode, errorMessage);
-  }
-
-  if (!hasDemographicsSegmentEnvelope(payload)) {
-    throw new DirectorDemographicsApiError(
-      502,
-      "INVALID_SEGMENT_RESPONSE",
-      "Phản hồi dữ liệu phân khúc người học không hợp lệ.",
+  try {
+    const payload = await nestRequest(
+      `/api/v1/director/demographics/segments/${encodeURIComponent(params.segment_id)}`,
+      { query: { admissionYear: params.admissionYear } },
     );
+    if (!hasDemographicsSegmentEnvelope(payload)) {
+      throw new DirectorDemographicsApiError(
+        502,
+        "INVALID_SEGMENT_RESPONSE",
+        "Phản hồi dữ liệu phân khúc người học không hợp lệ.",
+      );
+    }
+    return payload as DirectorDemographicsSegmentResponse;
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      if (error.status === 404 && error.code === "SEGMENT_NOT_FOUND") {
+        return null;
+      }
+      throw new DirectorDemographicsApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
   }
-
-  return (payload.message || payload) as DirectorDemographicsSegmentResponse;
 }
-
