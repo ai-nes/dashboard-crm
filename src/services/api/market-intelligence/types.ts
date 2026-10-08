@@ -44,8 +44,19 @@ export interface DirectorMarketMeta {
   sourceDataRevision: string;
 }
 
-export type MarketRegionKey = "all" | "north" | "central" | "highlands" | "south" | "mekong";
-export type MarketSchoolClassification = "Trọng điểm" | "Mở rộng" | "Duy trì" | "Sàng lọc" | null;
+export type MarketRegionKey =
+  | "all"
+  | "north"
+  | "central"
+  | "highlands"
+  | "south"
+  | "mekong";
+export type MarketSchoolClassification =
+  | "Trọng điểm"
+  | "Mở rộng"
+  | "Duy trì"
+  | "Sàng lọc"
+  | null;
 
 export interface MarketSchoolCoordinates {
   latitude: number;

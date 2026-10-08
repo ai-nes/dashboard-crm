@@ -14,9 +14,27 @@ import type {
 } from "./types";
 
 const statuses = new Set(["available", "partial", "unavailable"]);
-const regions = new Set(["all", "north", "central", "highlands", "south", "mekong"]);
-const classifications = new Set(["Trọng điểm", "Mở rộng", "Duy trì", "Sàng lọc"]);
-const metrics = new Set(["opportunity", "leads", "conversion", "competition", "revenue"]);
+const regions = new Set([
+  "all",
+  "north",
+  "central",
+  "highlands",
+  "south",
+  "mekong",
+]);
+const classifications = new Set([
+  "Trọng điểm",
+  "Mở rộng",
+  "Duy trì",
+  "Sàng lọc",
+]);
+const metrics = new Set([
+  "opportunity",
+  "leads",
+  "conversion",
+  "competition",
+  "revenue",
+]);
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -36,37 +54,59 @@ function coordinates(value: unknown): MarketSchoolCoordinates | null {
   const source = record(value);
   const latitude = number(source.latitude ?? source.lat);
   const longitude = number(source.longitude ?? source.lng ?? source.lon);
-  return latitude !== null && longitude !== null ? { latitude, longitude } : null;
+  return latitude !== null && longitude !== null
+    ? { latitude, longitude }
+    : null;
 }
 
 function normalizeParticipations(value: unknown): MarketSchoolParticipation[] {
   if (!Array.isArray(value)) return [];
 
-  return value.map((item) => {
-    const source = record(item);
-    const id = text(source.id ?? source.eventId ?? source.event_id ?? source.campaignId ?? source.campaign_id);
-    const name = text(source.name ?? source.title);
-    const type = text(source.type ?? source.participationType ?? source.participation_type);
-    if (!id || !name || (type !== "event" && type !== "campaign")) return null;
+  return value
+    .map((item) => {
+      const source = record(item);
+      const id = text(
+        source.id ??
+          source.eventId ??
+          source.event_id ??
+          source.campaignId ??
+          source.campaign_id,
+      );
+      const name = text(source.name ?? source.title);
+      const type = text(
+        source.type ?? source.participationType ?? source.participation_type,
+      );
+      if (!id || !name || (type !== "event" && type !== "campaign"))
+        return null;
 
-    return {
-      id,
-      name,
-      type,
-      occurredAt: text(source.occurredAt ?? source.occurred_at ?? source.startedAt ?? source.started_at),
-    };
-  }).filter((item): item is MarketSchoolParticipation => item !== null);
+      return {
+        id,
+        name,
+        type,
+        occurredAt: text(
+          source.occurredAt ??
+            source.occurred_at ??
+            source.startedAt ??
+            source.started_at,
+        ),
+      };
+    })
+    .filter((item): item is MarketSchoolParticipation => item !== null);
 }
 
 function availability(value: unknown): DataAvailability {
   const source = record(value);
   const normalizeMap = (candidate: unknown) =>
     Object.fromEntries(
-      Object.entries(record(candidate)).filter(([, status]) => statuses.has(String(status))),
+      Object.entries(record(candidate)).filter(([, status]) =>
+        statuses.has(String(status)),
+      ),
     ) as DataAvailability["sections"];
 
   return {
-    status: statuses.has(String(source.status)) ? (source.status as DataAvailability["status"]) : undefined,
+    status: statuses.has(String(source.status))
+      ? (source.status as DataAvailability["status"])
+      : undefined,
     sections: normalizeMap(source.sections),
     fields: normalizeMap(source.fields),
   };
@@ -75,8 +115,14 @@ function availability(value: unknown): DataAvailability {
 function metricAvailability(value: unknown): MarketMetricAvailability {
   const source = record(value);
   const getStatus = (key: keyof MarketMetricAvailability) => {
-    const candidate = source[key] ?? source[key.replace(/[A-Z]/g, (character) => `_${character.toLowerCase()}`)];
-    return statuses.has(String(candidate)) ? (candidate as DataAvailability["status"]) ?? "unavailable" : "unavailable";
+    const candidate =
+      source[key] ??
+      source[
+        key.replace(/[A-Z]/g, (character) => `_${character.toLowerCase()}`)
+      ];
+    return statuses.has(String(candidate))
+      ? ((candidate as DataAvailability["status"]) ?? "unavailable")
+      : "unavailable";
   };
 
   return {
@@ -87,25 +133,39 @@ function metricAvailability(value: unknown): MarketMetricAvailability {
   } as MarketMetricAvailability;
 }
 
-function normalizeSchool(value: unknown, fallbackId: string): DirectorMarketSchool | null {
+function normalizeSchool(
+  value: unknown,
+  fallbackId: string,
+): DirectorMarketSchool | null {
   const source = record(value);
-  const directoryId = text(source.directoryId ?? source.directory_id ?? source.externalId ?? source.id);
+  const directoryId = text(
+    source.directoryId ?? source.directory_id ?? source.externalId ?? source.id,
+  );
   const name = text(source.name);
   if (!name) return null;
 
   const classificationValue = text(source.classification);
   const locality = record(source.locality);
-  const coordinateSource = source.coordinates ?? locality.coordinates ?? record(locality.source).coordinates;
+  const coordinateSource =
+    source.coordinates ??
+    locality.coordinates ??
+    record(locality.source).coordinates;
   return {
     id: text(source.id) ?? fallbackId,
     directoryId,
     name,
     district: text(source.district),
-    coordinates: coordinates(coordinateSource) ?? coordinates({
-      latitude: source.latitude ?? source.lat ?? locality.latitude,
-      longitude: source.longitude ?? source.lng ?? source.lon ?? locality.longitude,
-    }),
-    tier: (["Tier 1", "Tier 2", "Tier 3"] as const).find((item) => item === source.tier) ?? null,
+    coordinates:
+      coordinates(coordinateSource) ??
+      coordinates({
+        latitude: source.latitude ?? source.lat ?? locality.latitude,
+        longitude:
+          source.longitude ?? source.lng ?? source.lon ?? locality.longitude,
+      }),
+    tier:
+      (["Tier 1", "Tier 2", "Tier 3"] as const).find(
+        (item) => item === source.tier,
+      ) ?? null,
     potentialScore: number(source.potentialScore),
     grade12Students: number(source.grade12Students),
     prospects: number(source.prospects),
@@ -120,7 +180,10 @@ function normalizeSchool(value: unknown, fallbackId: string): DirectorMarketScho
       ? (classificationValue as MarketSchoolClassification)
       : null,
     participations: normalizeParticipations(
-      source.participations ?? source.eventParticipations ?? source.event_participations ?? source.activities,
+      source.participations ??
+        source.eventParticipations ??
+        source.event_participations ??
+        source.activities,
     ),
   };
 }
@@ -150,12 +213,16 @@ function normalizeProvince(value: unknown): DirectorMarketProvince | null {
     recommendation: text(source.recommendation),
     keyAction: text(source.keyAction),
     highSchools: schools
-      .map((school, index) => normalizeSchool(school, `${code}-school-${index}`))
+      .map((school, index) =>
+        normalizeSchool(school, `${code}-school-${index}`),
+      )
       .filter((item): item is DirectorMarketSchool => item !== null),
   };
 }
 
-function normalizeRegionSummary(value: unknown): DirectorMarketRegionSummary | null {
+function normalizeRegionSummary(
+  value: unknown,
+): DirectorMarketRegionSummary | null {
   const source = record(value);
   const scope = text(source.scope);
   const count = number(source.count);
@@ -175,7 +242,9 @@ function normalizeRegionSummary(value: unknown): DirectorMarketRegionSummary | n
   };
 }
 
-function normalizeMetricConfig(value: unknown): DirectorMarketMetricConfig | null {
+function normalizeMetricConfig(
+  value: unknown,
+): DirectorMarketMetricConfig | null {
   const source = record(value);
   const key = text(source.key);
   if (!key || !metrics.has(key)) return null;
@@ -197,7 +266,9 @@ function normalizeMeta(value: unknown): DirectorMarketMeta | null {
   const metric = text(source.metric);
   const asOf = text(source.asOf ?? source.as_of);
   const scope = text(source.scope);
-  const sourceDataRevision = text(source.sourceDataRevision ?? source.source_data_revision);
+  const sourceDataRevision = text(
+    source.sourceDataRevision ?? source.source_data_revision,
+  );
 
   if (
     admissionYear === null ||
@@ -224,23 +295,35 @@ function normalizeMeta(value: unknown): DirectorMarketMeta | null {
   };
 }
 
-export function normalizeMarketOverview(value: unknown): DirectorMarketOverview {
+export function normalizeMarketOverview(
+  value: unknown,
+): DirectorMarketOverview {
   const root = record(value);
-  const data = record(root.data && !Array.isArray(root.data) ? root.data : root);
+  const data = record(
+    root.data && !Array.isArray(root.data) ? root.data : root,
+  );
   const meta = record(root.meta);
   const provinces = Array.isArray(data.provinces) ? data.provinces : [];
-  const normalizedAvailability = availability(root.dataAvailability ?? data.dataAvailability);
+  const normalizedAvailability = availability(
+    root.dataAvailability ?? data.dataAvailability,
+  );
   const normalizedMeta = normalizeMeta(root.meta);
 
   return {
-    provinces: provinces.map(normalizeProvince).filter((item): item is DirectorMarketProvince => item !== null),
+    provinces: provinces
+      .map(normalizeProvince)
+      .filter((item): item is DirectorMarketProvince => item !== null),
     totalProvinces: number(data.totalProvinces),
     totalSchools: number(data.totalSchools),
     admissionYear: number(meta.admissionYear ?? data.admissionYear),
     asOf: text(meta.asOf ?? data.asOf),
-    regionSummary: normalizeRegionSummary(data.regionSummary ?? root.regionSummary),
+    regionSummary: normalizeRegionSummary(
+      data.regionSummary ?? root.regionSummary,
+    ),
     metricConfig: normalizeMetricConfig(data.metricConfig ?? root.metricConfig),
-    metricAvailability: metricAvailability(data.dataAvailability ?? root.metricAvailability),
+    metricAvailability: metricAvailability(
+      data.dataAvailability ?? root.metricAvailability,
+    ),
     meta: normalizedMeta,
     dataAvailability: {
       ...normalizedAvailability,
@@ -259,13 +342,20 @@ export function averageAvailable(values: Array<number | null>): number | null {
 
 export function sumAvailable(values: Array<number | null>): number | null {
   const available = values.filter((value): value is number => value !== null);
-  return available.length ? available.reduce((sum, value) => sum + value, 0) : null;
+  return available.length
+    ? available.reduce((sum, value) => sum + value, 0)
+    : null;
 }
 
-export function sortByAvailableScore<T, K extends keyof T>(rows: T[], key: K): T[] {
+export function sortByAvailableScore<T, K extends keyof T>(
+  rows: T[],
+  key: K,
+): T[] {
   return [...rows].sort((left, right) => {
-    const leftValue = typeof left[key] === "number" ? (left[key] as number) : null;
-    const rightValue = typeof right[key] === "number" ? (right[key] as number) : null;
+    const leftValue =
+      typeof left[key] === "number" ? (left[key] as number) : null;
+    const rightValue =
+      typeof right[key] === "number" ? (right[key] as number) : null;
     if (leftValue === null) return rightValue === null ? 0 : 1;
     if (rightValue === null) return -1;
     return rightValue - leftValue;
