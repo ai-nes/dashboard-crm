@@ -316,3 +316,41 @@ export async function nestImportLeadRows(
     body: { rows, filename, campaign_code: campaignCode },
   });
 }
+
+/** `POST /leads/{id}/convert` returns the student; the screens expect the conversion summary. */
+export async function nestConvertLead(id: string): Promise<unknown> {
+  const result = await nestRequest<
+    Envelope<{ id: string; studentStage?: string | null }>
+  >(`/api/v1/leads/${encodeURIComponent(id)}/convert`, { method: "POST" });
+  return {
+    status: "CLOSED",
+    resolution: "CREATED",
+    lead: id,
+    student: result.data.id,
+    studentStage: result.data.studentStage ?? "New",
+  };
+}
+
+export interface NestNewLeadScan {
+  admissionYear?: number;
+  limit?: number;
+}
+
+/** Dry run over the NEW leads in scope; writes nothing. */
+export async function nestPreviewNewLeads(
+  scan: NestNewLeadScan,
+): Promise<unknown> {
+  return nestRequest("/api/v1/leads/process-new/preview", {
+    method: "POST",
+    body: scan,
+  });
+}
+
+export async function nestProcessNewLeads(
+  scan: NestNewLeadScan,
+): Promise<unknown> {
+  return nestRequest("/api/v1/leads/process-new", {
+    method: "POST",
+    body: scan,
+  });
+}
