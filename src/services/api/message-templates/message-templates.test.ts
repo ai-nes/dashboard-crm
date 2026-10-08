@@ -10,18 +10,24 @@ import {
   listMessageTemplateTokens,
   listMessageTemplateLibrary,
   listMessageTemplates,
+  MessageTemplatesApiError,
   previewMessageTemplate,
   updateMessageTemplate,
   updateMessageTemplateLibrary,
 } from "./index";
 
-vi.mock("../auth", () => ({
-  getCsrfToken: vi.fn().mockResolvedValue("csrf-token"),
-}));
+const API = "http://localhost:3001";
+const fetchMock = vi.fn();
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
+
+const urlOf = (index: number) =>
+  new URL(String(fetchMock.mock.calls[index]![0]));
+const initOf = (index: number): RequestInit & { body?: string } =>
+  fetchMock.mock.calls[index]![1];
 
 describe("Message templates API service", () => {
-  const originalFetch = globalThis.fetch;
-  const baseUrl = "http://crm-test.local:8000";
   const draft = {
     name: "Liên hệ lần đầu",
     subject: "Chào {{student.first_name}}",
@@ -29,330 +35,275 @@ describe("Message templates API service", () => {
     sharing: "public" as const,
     customValues: {},
   };
+  const libraryDraft = {
+    name: draft.name,
+    subject: draft.subject,
+    body: draft.body,
+    customValues: draft.customValues,
+  };
 
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", API);
+    vi.stubGlobal("fetch", fetchMock);
+  });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
   });
 
   it("loads permission-scoped templates and owner options", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            total: 1,
-            owners: [{ id: "owner@example.com", name: "Người tạo" }],
-            templates: [{ id: "MSG-001", code: "MSG-001", name: draft.name }],
-          },
-        }),
-        { status: 200 },
-      ),
+    fetchMock.mockResolvedValue(
+      json({
+        total: 1,
+        owners: [{ id: "owner@example.com", name: "Người tạo" }],
+        templates: [{ id: "MSG-001", code: "MSG-001", name: draft.name }],
+      }),
     );
 
-    const result = await listMessageTemplates(
-      { search: "Liên hệ", owner: "owner@example.com" },
-      { baseUrl },
-    );
+    const result = await listMessageTemplates({
+      search: "Liên hệ",
+      owner: "owner@example.com",
+    });
 
     expect(result.total).toBe(1);
-    const requestUrl = new URL(
-      String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]),
-    );
-    expect(requestUrl.pathname).toBe(
-      "/api/method/crm.api.message_templates.list_message_templates",
-    );
-    expect(requestUrl.searchParams.get("search")).toBe("Liên hệ");
-    expect(requestUrl.searchParams.get("owner")).toBe("owner@example.com");
+    expect(urlOf(0).pathname).toBe("/api/v1/message-templates");
+    expect(urlOf(0).searchParams.get("search")).toBe("Liên hệ");
+    expect(urlOf(0).searchParams.get("owner")).toBe("owner@example.com");
+    expect(initOf(0)).toMatchObject({ method: "GET", credentials: "include" });
   });
 
   it("sends the shared draft contract for create and update", async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ message: { id: "MSG-001" } }), {
-          status: 200,
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ message: { id: "MSG-001" } }), {
-          status: 200,
-        }),
-      );
+    fetchMock.mockImplementation(async () =>
+      json({ template: { id: "MSG-001" } }),
+    );
 
-    await createMessageTemplate(draft, { baseUrl });
+    await createMessageTemplate(draft);
     await updateMessageTemplate(
       "MSG-001",
       { ...draft, sharing: "private" },
       "modified-1",
-      { baseUrl },
     );
 
-    expect(globalThis.fetch).toHaveBeenNthCalledWith(
-      1,
-      `${baseUrl}/api/method/crm.api.message_templates.create_message_template`,
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ data: draft }),
-      }),
-    );
-    expect(globalThis.fetch).toHaveBeenNthCalledWith(
-      2,
-      `${baseUrl}/api/method/crm.api.message_templates.update_message_template`,
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          name: "MSG-001",
-          data: { ...draft, sharing: "private" },
-          expected_modified: "modified-1",
-        }),
-      }),
-    );
+    expect(urlOf(0).pathname).toBe("/api/v1/message-templates");
+    expect(initOf(0)).toMatchObject({ method: "POST" });
+    expect(JSON.parse(initOf(0).body!)).toEqual(draft);
+
+    expect(urlOf(1).pathname).toBe("/api/v1/message-templates/MSG-001");
+    expect(initOf(1)).toMatchObject({ method: "PATCH" });
+    expect(JSON.parse(initOf(1).body!)).toEqual({
+      ...draft,
+      sharing: "private",
+      expectedModified: "modified-1",
+    });
   });
 
   it("loads the seeded system-template library", async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({ message: { templates: [], owners: [], total: 0 } }),
-          { status: 200 },
-        ),
-      );
+    fetchMock.mockResolvedValue(json({ templates: [], owners: [], total: 0 }));
 
-    await listMessageTemplateLibrary({ baseUrl });
+    await listMessageTemplateLibrary();
 
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      `${baseUrl}/api/method/crm.api.message_templates.list_message_template_library`,
-      expect.objectContaining({ method: "GET" }),
-    );
+    expect(urlOf(0).pathname).toBe("/api/v1/message-templates/library");
+    expect(initOf(0)).toMatchObject({ method: "GET" });
   });
 
   it("loads the backend-owned token catalog", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            total: 2,
-            tokens: [
-              {
-                id: "school-name",
-                value: "school.name",
-                label: "School Name",
-                group: "common",
-                groupLabel: "Thông tin chung",
-                sourceType: "admin_value",
-                adminValue: "Đại học FPT",
-              },
-              {
-                id: "program-name",
-                value: "program.name",
-                label: "Program Name",
-                group: "custom",
-                groupLabel: "Thông tin nhập thêm",
-                sourceType: "user_value",
-              },
-            ],
+    fetchMock.mockResolvedValue(
+      json({
+        total: 2,
+        tokens: [
+          {
+            id: "school-name",
+            value: "school.name",
+            label: "School Name",
+            group: "common",
+            groupLabel: "Thông tin chung",
+            sourceType: "admin_value",
+            adminValue: "Đại học FPT",
           },
-        }),
-        { status: 200 },
-      ),
+          {
+            id: "program-name",
+            value: "program.name",
+            label: "Program Name",
+            group: "custom",
+            groupLabel: "Thông tin nhập thêm",
+            sourceType: "user_value",
+          },
+        ],
+      }),
     );
 
-    await expect(listMessageTemplateTokens({ baseUrl })).resolves.toMatchObject(
-      {
-        total: 2,
-        tokens: [{ value: "school.name" }, { value: "program.name" }],
-      },
+    await expect(listMessageTemplateTokens()).resolves.toMatchObject({
+      total: 2,
+      tokens: [{ value: "school.name" }, { value: "program.name" }],
+    });
+    expect(urlOf(0).pathname).toBe("/api/v1/message-templates/tokens");
+  });
+
+  it("pages the admin library", async () => {
+    fetchMock.mockResolvedValue(
+      json({ templates: [], owners: [], total: 40, start: 20, pageLength: 20 }),
     );
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      `${baseUrl}/api/method/crm.api.message_templates.list_message_template_tokens`,
-      expect.objectContaining({ method: "GET" }),
-    );
+
+    const result = await listAdminMessageTemplateLibrary({
+      search: "chào",
+      start: 20,
+      pageLength: 20,
+    });
+
+    expect(urlOf(0).pathname).toBe("/api/v1/message-templates/library/admin");
+    expect(Object.fromEntries(urlOf(0).searchParams)).toEqual({
+      search: "chào",
+      start: "20",
+      page_length: "20",
+    });
+    expect(result).toMatchObject({ total: 40, start: 20, pageLength: 20 });
   });
 
   it("uses the admin library endpoints without sending user sharing fields", async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ message: { templates: [], owners: [], total: 0 } }),
-          { status: 200 },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ message: { id: "MSG-LIB-001" } }), {
-          status: 200,
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ message: { id: "MSG-LIB-001" } }), {
-          status: 200,
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ message: { name: "MSG-LIB-001", deleted: true } }),
-          { status: 200 },
-        ),
-      );
-
-    await listAdminMessageTemplateLibrary({ baseUrl });
-    await createMessageTemplateLibrary(draft, { baseUrl });
-    await updateMessageTemplateLibrary("MSG-LIB-001", draft, "modified-1", {
-      baseUrl,
-    });
-    await deleteMessageTemplateLibrary("MSG-LIB-001", "modified-2", {
-      baseUrl,
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      if (method === "DELETE") return json({ deleted: "MSG-LIB-001" });
+      if (method === "GET")
+        return json({ templates: [], owners: [], total: 0 });
+      return json({ template: { id: "MSG-LIB-001" } });
     });
 
-    expect(globalThis.fetch).toHaveBeenNthCalledWith(
-      1,
-      `${baseUrl}/api/method/crm.api.message_templates.list_admin_message_template_library`,
-      expect.objectContaining({ method: "GET" }),
+    await listAdminMessageTemplateLibrary();
+    await createMessageTemplateLibrary(draft);
+    await updateMessageTemplateLibrary("MSG-LIB-001", draft, "modified-1");
+    const deleted = await deleteMessageTemplateLibrary(
+      "MSG-LIB-001",
+      "modified-2",
     );
-    expect(globalThis.fetch).toHaveBeenNthCalledWith(
-      2,
-      `${baseUrl}/api/method/crm.api.message_templates.create_message_template_library`,
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          data: {
-            name: draft.name,
-            subject: draft.subject,
-            body: draft.body,
-            customValues: draft.customValues,
-          },
-        }),
-      }),
+
+    expect(urlOf(0).pathname).toBe("/api/v1/message-templates/library/admin");
+
+    expect(urlOf(1).pathname).toBe("/api/v1/message-templates/library");
+    expect(initOf(1)).toMatchObject({ method: "POST" });
+    expect(JSON.parse(initOf(1).body!)).toEqual(libraryDraft);
+
+    expect(urlOf(2).pathname).toBe(
+      "/api/v1/message-templates/library/MSG-LIB-001",
     );
-    expect(globalThis.fetch).toHaveBeenNthCalledWith(
-      3,
-      `${baseUrl}/api/method/crm.api.message_templates.update_message_template_library`,
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          name: "MSG-LIB-001",
-          data: {
-            name: draft.name,
-            subject: draft.subject,
-            body: draft.body,
-            customValues: draft.customValues,
-          },
-          expected_modified: "modified-1",
-        }),
-      }),
+    expect(initOf(2)).toMatchObject({ method: "PATCH" });
+    expect(JSON.parse(initOf(2).body!)).toEqual({
+      ...libraryDraft,
+      expectedModified: "modified-1",
+    });
+
+    expect(urlOf(3).pathname).toBe(
+      "/api/v1/message-templates/library/MSG-LIB-001",
     );
-    expect(globalThis.fetch).toHaveBeenNthCalledWith(
-      4,
-      `${baseUrl}/api/method/crm.api.message_templates.delete_message_template_library`,
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          name: "MSG-LIB-001",
-          expected_modified: "modified-2",
-        }),
-      }),
-    );
+    expect(urlOf(3).searchParams.get("expectedModified")).toBe("modified-2");
+    expect(initOf(3)).toMatchObject({ method: "DELETE" });
+    expect(deleted).toEqual({ name: "MSG-LIB-001", deleted: true });
   });
 
-  it("returns the delete result from the Frappe envelope", async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({ message: { name: "MSG-001", deleted: true } }),
-          { status: 200 },
-        ),
-      );
+  it("returns the delete result", async () => {
+    fetchMock.mockResolvedValue(json({ deleted: "MSG-001" }));
 
     await expect(
-      deleteMessageTemplate("MSG-001", "modified-1", { baseUrl }),
-    ).resolves.toEqual({
-      name: "MSG-001",
-      deleted: true,
-    });
+      deleteMessageTemplate("MSG-001", "modified-1"),
+    ).resolves.toEqual({ name: "MSG-001", deleted: true });
+    expect(urlOf(0).pathname).toBe("/api/v1/message-templates/MSG-001");
+    expect(urlOf(0).searchParams.get("expectedModified")).toBe("modified-1");
   });
 
   it("loads real preview contacts and resolves a draft against a Lead", async () => {
-    globalThis.fetch = vi
-      .fn()
+    fetchMock
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            message: {
-              contacts: [
-                {
-                  id: "LEAD-001",
-                  label: "Nguyễn Minh Anh · LEAD-001",
-                  email: "minh.anh@example.com",
-                  phone: "0900000000",
-                },
-              ],
-              total: 1,
+        json({
+          contacts: [
+            {
+              id: "LEAD-001",
+              label: "Nguyễn Minh Anh · LEAD-001",
+              email: "minh.anh@example.com",
+              phone: "0900000000",
             },
-          }),
-          { status: 200 },
-        ),
+          ],
+          total: 1,
+        }),
       )
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            message: {
-              lead: {
-                id: "LEAD-001",
-                label: "Nguyễn Minh Anh · LEAD-001",
-                email: "minh.anh@example.com",
-                phone: "0900000000",
-              },
-              subject: "Chào Anh",
-              body: "<p>Nguyễn Minh Anh</p>",
-              missingTokens: [],
-            },
-          }),
-          { status: 200 },
-        ),
+        json({
+          lead: {
+            id: "LEAD-001",
+            label: "Nguyễn Minh Anh · LEAD-001",
+            email: "minh.anh@example.com",
+            phone: "0900000000",
+          },
+          subject: "Chào Anh",
+          body: "<p>Nguyễn Minh Anh</p>",
+          missingTokens: [],
+        }),
       );
 
     await expect(
-      listMessageTemplatePreviewContacts(
-        { search: "Minh Anh", pageLength: 100 },
-        { baseUrl },
-      ),
+      listMessageTemplatePreviewContacts({
+        search: "Minh Anh",
+        pageLength: 100,
+      }),
     ).resolves.toMatchObject({ total: 1 });
     await expect(
-      previewMessageTemplate(
-        "LEAD-001",
-        {
-          subject: "Chào {{student.first_name}}",
-          body: "<p>{{student.full_name}}</p>",
-          customValues: {},
-        },
-        { baseUrl },
-      ),
+      previewMessageTemplate("LEAD-001", {
+        subject: "Chào {{student.first_name}}",
+        body: "<p>{{student.full_name}}</p>",
+        customValues: {},
+      }),
     ).resolves.toMatchObject({
       subject: "Chào Anh",
       body: "<p>Nguyễn Minh Anh</p>",
     });
 
-    expect(globalThis.fetch).toHaveBeenNthCalledWith(
-      1,
-      `${baseUrl}/api/method/crm.api.message_templates.list_message_template_preview_contacts?search=Minh+Anh&page_length=100`,
-      expect.objectContaining({ method: "GET" }),
+    expect(urlOf(0).pathname).toBe(
+      "/api/v1/message-templates/preview-contacts",
     );
-    expect(globalThis.fetch).toHaveBeenNthCalledWith(
-      2,
-      `${baseUrl}/api/method/crm.api.message_templates.preview_message_template`,
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          lead_id: "LEAD-001",
-          data: {
-            subject: "Chào {{student.first_name}}",
-            body: "<p>{{student.full_name}}</p>",
-            customValues: {},
-          },
-        }),
+    expect(Object.fromEntries(urlOf(0).searchParams)).toEqual({
+      search: "Minh Anh",
+      limit: "100",
+    });
+    expect(urlOf(1).pathname).toBe("/api/v1/message-templates/preview");
+    expect(initOf(1)).toMatchObject({ method: "POST" });
+    expect(JSON.parse(initOf(1).body!)).toEqual({
+      recordId: "LEAD-001",
+      context: "lead",
+      data: {
+        subject: "Chào {{student.first_name}}",
+        body: "<p>{{student.full_name}}</p>",
+        customValues: {},
+      },
+    });
+  });
+
+  it("previews against a student when the context says so", async () => {
+    fetchMock.mockResolvedValue(
+      json({ subject: "s", body: "b", missingTokens: [] }),
+    );
+
+    await previewMessageTemplate(
+      "STU-1",
+      { subject: "s", body: "b", customValues: {} },
+      { context: "student" },
+    );
+
+    expect(JSON.parse(initOf(0).body!)).toMatchObject({
+      recordId: "STU-1",
+      context: "student",
+    });
+  });
+
+  it("reports an upstream failure as a message templates error", async () => {
+    fetchMock.mockResolvedValue(
+      json({ error: { code: "FORBIDDEN", message: "Không có quyền." } }, 403),
+    );
+
+    await expect(listMessageTemplates()).rejects.toEqual(
+      expect.objectContaining<Partial<MessageTemplatesApiError>>({
+        status: 403,
+        code: "FORBIDDEN",
+        message: "Không có quyền.",
       }),
     );
   });
