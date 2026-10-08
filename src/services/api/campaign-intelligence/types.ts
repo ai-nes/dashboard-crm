@@ -1,7 +1,12 @@
 export type AttributionConfidence = "high" | "medium" | "low";
 export type CampaignHealth = "on_track" | "watch" | "reallocate";
 
-export type LeadStatusGroup = "new" | "in_progress" | "no_response" | "disqualified" | "converted";
+export type LeadStatusGroup =
+  | "new"
+  | "in_progress"
+  | "no_response"
+  | "disqualified"
+  | "converted";
 export type LeadQualityGroup = "invalid" | "duplicate" | "unknown";
 export type LeadStatusFilter = LeadStatusGroup | LeadQualityGroup | "all";
 
