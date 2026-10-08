@@ -54,7 +54,7 @@ describe("Segment API service", () => {
     const data = {
       title: "Tiềm năng cao",
       purpose: "Ưu tiên chăm sóc",
-      category: "potential",
+      category: "potential" as const,
       segment_type: "dynamic" as const,
       is_public: 0,
       filters,
