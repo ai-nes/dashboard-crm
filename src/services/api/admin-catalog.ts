@@ -1,22 +1,17 @@
-import {
-  ensureRoot,
-  FrappeApiError,
-  getBaseUrl,
-  queryString,
-  request as frappeRequest,
-} from "./frappe-request";
+import { NestApiError } from "./nest/nest-client";
+import { NOT_HANDLED } from "./nest/nest-handler";
+import { nestAdminCatalogRequest } from "./nest/nest-admin-catalog-router";
 
-export class AdminCatalogApiError extends FrappeApiError {
-  constructor(status: number, code: string, message: string) {
-    super(status, code, message);
+export class AdminCatalogApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
     this.name = "AdminCatalogApiError";
   }
 }
-
-export interface AdminCatalogRequestOptions {
-  baseUrl?: string;
-}
-
 export interface AdmissionYear {
   name: string;
   year_name: string;
@@ -153,17 +148,19 @@ export interface PendingGovernedChange {
   target_version?: number;
 }
 
-type ListParams = AdminCatalogRequestOptions & {
+type ListParams = {
   search?: string;
   status?: string;
   start?: number;
   pageLength?: number;
 };
 
-type ScoreSignalListParams = AdminCatalogRequestOptions &
-  Pick<ListParams, "search" | "start" | "pageLength"> & {
-    activeOnly?: boolean;
-  };
+type ScoreSignalListParams = Pick<
+  ListParams,
+  "search" | "start" | "pageLength"
+> & {
+  activeOnly?: boolean;
+};
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -189,43 +186,37 @@ function normalize<T>(value: unknown): T {
   return value as T;
 }
 
-function rootFor(options: AdminCatalogRequestOptions): string {
-  const root = getBaseUrl(options.baseUrl);
-  ensureRoot(
-    root,
-    "Chưa cấu hình API máy chủ CRM cho khu vực quản trị.",
-    AdminCatalogApiError,
-  );
-  return root;
-}
-
-async function call<T>(
+/** Runs one admin catalog operation through the Nest adapter. */
+async function run<T>(
   method: string,
-  options: AdminCatalogRequestOptions,
-  init: RequestInit = {},
-  params?: URLSearchParams,
+  params: Record<string, string | undefined>,
+  body?: Record<string, unknown>,
 ): Promise<T> {
-  const root = rootFor(options);
-  const result = await frappeRequest(
-    `${root}/api/method/${method}${params ? queryString(params) : ""}`,
-    init,
-    root,
-    AdminCatalogApiError,
-  );
-  return normalize<T>(result);
+  try {
+    const result = await nestAdminCatalogRequest(method, params, body);
+    if (result === NOT_HANDLED) {
+      throw new AdminCatalogApiError(
+        501,
+        "FEATURE_NOT_MIGRATED",
+        "Chức năng này chưa có trên máy chủ CRM.",
+      );
+    }
+    return normalize<T>(result);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new AdminCatalogApiError(error.status, error.code, error.message);
+    }
+    throw error;
+  }
 }
 
-function post<T>(
-  method: string,
-  data: Record<string, unknown>,
-  options: AdminCatalogRequestOptions,
-) {
-  return call<T>(method, options, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+function call<T>(method: string, query?: URLSearchParams) {
+  return run<T>(method, Object.fromEntries(query ?? []));
 }
 
+function post<T>(method: string, data: Record<string, unknown>) {
+  return run<T>(method, {}, data);
+}
 function listParams(params: ListParams): URLSearchParams {
   const result = new URLSearchParams();
   if (params.search?.trim()) result.set("search", params.search.trim());
@@ -241,8 +232,6 @@ export async function listAdmissionYears(
 ): Promise<{ years: AdmissionYear[]; total: number }> {
   const result = await call<Record<string, unknown>>(
     "crm.api.admin_catalog.list_admission_years",
-    params,
-    {},
     listParams(params),
   );
   return {
@@ -251,39 +240,28 @@ export async function listAdmissionYears(
   };
 }
 
-export function createAdmissionYear(
-  data: Partial<AdmissionYear>,
-  options: AdminCatalogRequestOptions = {},
-) {
-  return post<AdmissionYear>(
-    "crm.api.admin_catalog.create_admission_year",
-    { data },
-    options,
-  );
+export function createAdmissionYear(data: Partial<AdmissionYear>) {
+  return post<AdmissionYear>("crm.api.admin_catalog.create_admission_year", {
+    data,
+  });
 }
 
 export function updateAdmissionYear(
   name: string,
   data: Partial<AdmissionYear>,
   expectedModified?: string,
-  options: AdminCatalogRequestOptions = {},
 ) {
-  return post<AdmissionYear>(
-    "crm.api.admin_catalog.update_admission_year",
-    { name, data, expected_modified: expectedModified },
-    options,
-  );
+  return post<AdmissionYear>("crm.api.admin_catalog.update_admission_year", {
+    name,
+    data,
+    expected_modified: expectedModified,
+  });
 }
 
-export function deleteAdmissionYear(
-  name: string,
-  expectedModified?: string,
-  options: AdminCatalogRequestOptions = {},
-) {
+export function deleteAdmissionYear(name: string, expectedModified?: string) {
   return post<{ deleted: string }>(
     "crm.api.admin_catalog.delete_admission_year",
     { name, expected_modified: expectedModified },
-    options,
   );
 }
 
@@ -292,8 +270,6 @@ export async function listAcademicYearConfigs(
 ): Promise<{ configs: AcademicYearConfig[]; total: number }> {
   const result = await call<Record<string, unknown>>(
     "crm.api.admin_catalog.list_academic_year_configs",
-    params,
-    {},
     listParams(params),
   );
   return {
@@ -302,14 +278,10 @@ export async function listAcademicYearConfigs(
   };
 }
 
-export function createAcademicYearConfig(
-  data: Partial<AcademicYearConfig>,
-  options: AdminCatalogRequestOptions = {},
-) {
+export function createAcademicYearConfig(data: Partial<AcademicYearConfig>) {
   return post<AcademicYearConfig>(
     "crm.api.admin_catalog.create_academic_year_config",
     { data },
-    options,
   );
 }
 
@@ -317,24 +289,20 @@ export function updateAcademicYearConfig(
   name: string,
   data: Partial<AcademicYearConfig>,
   expectedModified?: string,
-  options: AdminCatalogRequestOptions = {},
 ) {
   return post<AcademicYearConfig>(
     "crm.api.admin_catalog.update_academic_year_config",
     { name, data, expected_modified: expectedModified },
-    options,
   );
 }
 
 export function deleteAcademicYearConfig(
   name: string,
   expectedModified?: string,
-  options: AdminCatalogRequestOptions = {},
 ) {
   return post<{ deleted: string }>(
     "crm.api.admin_catalog.delete_academic_year_config",
     { name, expected_modified: expectedModified },
-    options,
   );
 }
 
@@ -343,8 +311,6 @@ export async function listAdmissionOfferings(
 ): Promise<{ offerings: AdmissionOffering[]; total: number }> {
   const result = await call<Record<string, unknown>>(
     "crm.api.admin_catalog.list_admission_offerings",
-    params,
-    {},
     listParams(params),
   );
   return {
@@ -353,14 +319,10 @@ export async function listAdmissionOfferings(
   };
 }
 
-export function createAdmissionOffering(
-  data: Partial<AdmissionOffering>,
-  options: AdminCatalogRequestOptions = {},
-) {
+export function createAdmissionOffering(data: Partial<AdmissionOffering>) {
   return post<AdmissionOffering>(
     "crm.api.admin_catalog.create_admission_offering",
     { data },
-    options,
   );
 }
 
@@ -368,12 +330,10 @@ export function updateAdmissionOffering(
   name: string,
   data: Partial<AdmissionOffering>,
   expectedModified?: string,
-  options: AdminCatalogRequestOptions = {},
 ) {
   return post<AdmissionOffering>(
     "crm.api.admin_catalog.update_admission_offering",
     { name, data, expected_modified: expectedModified },
-    options,
   );
 }
 
@@ -382,7 +342,6 @@ export function transitionAdmissionOffering(
   status: AdmissionOffering["status"],
   expectedModified?: string,
   idempotencyKey?: string,
-  options: AdminCatalogRequestOptions = {},
 ) {
   return post<AdmissionOffering>(
     "crm.api.admin_catalog.transition_admission_offering",
@@ -392,30 +351,24 @@ export function transitionAdmissionOffering(
       expected_modified: expectedModified,
       idempotency_key: idempotencyKey,
     },
-    options,
   );
 }
 
 export function deleteAdmissionOffering(
   name: string,
   expectedModified?: string,
-  options: AdminCatalogRequestOptions = {},
 ) {
   return post<{ deleted: string }>(
     "crm.api.admin_catalog.delete_admission_offering",
     { name, expected_modified: expectedModified },
-    options,
   );
 }
 
 export async function listScoreTemplates(
-  params: Pick<ListParams, "search" | "start" | "pageLength"> &
-    AdminCatalogRequestOptions = {},
+  params: Pick<ListParams, "search" | "start" | "pageLength"> = {},
 ): Promise<{ templates: ScoreTemplate[]; total: number }> {
   const result = await call<Record<string, unknown>>(
     "crm.api.admin_catalog.list_score_templates",
-    params,
-    {},
     listParams(params),
   );
   return {
@@ -424,14 +377,9 @@ export async function listScoreTemplates(
   };
 }
 
-export function getScoreTemplate(
-  name: string,
-  options: AdminCatalogRequestOptions = {},
-) {
+export function getScoreTemplate(name: string) {
   return call<ScoreTemplate>(
     "crm.api.admin_catalog.get_score_template",
-    options,
-    {},
     new URLSearchParams({ name }),
   );
 }
@@ -445,8 +393,6 @@ export async function listScoreSignals(
   }
   const result = await call<Record<string, unknown>>(
     "crm.api.admin_catalog.list_score_signals",
-    params,
-    {},
     query,
   );
   const signals = normalize<unknown[]>(result.signals ?? []).map((value) => {
@@ -465,39 +411,28 @@ export async function listScoreSignals(
   return { signals, total: Number(result.total ?? 0) };
 }
 
-export function createScoreTemplate(
-  data: Partial<ScoreTemplate>,
-  options: AdminCatalogRequestOptions = {},
-) {
-  return post<ScoreTemplate>(
-    "crm.api.admin_catalog.create_score_template",
-    { data },
-    options,
-  );
+export function createScoreTemplate(data: Partial<ScoreTemplate>) {
+  return post<ScoreTemplate>("crm.api.admin_catalog.create_score_template", {
+    data,
+  });
 }
 
 export function updateScoreTemplate(
   name: string,
   data: Partial<ScoreTemplate>,
   expectedModified?: string,
-  options: AdminCatalogRequestOptions = {},
 ) {
-  return post<ScoreTemplate>(
-    "crm.api.admin_catalog.update_score_template",
-    { name, data, expected_modified: expectedModified },
-    options,
-  );
+  return post<ScoreTemplate>("crm.api.admin_catalog.update_score_template", {
+    name,
+    data,
+    expected_modified: expectedModified,
+  });
 }
 
-export function deleteScoreTemplate(
-  name: string,
-  expectedModified?: string,
-  options: AdminCatalogRequestOptions = {},
-) {
+export function deleteScoreTemplate(name: string, expectedModified?: string) {
   return post<{ deleted: string }>(
     "crm.api.admin_catalog.delete_score_template",
     { name, expected_modified: expectedModified },
-    options,
   );
 }
 
@@ -506,8 +441,6 @@ export async function listCampaignChannelTypes(
 ): Promise<{ channel_types: CampaignChannelType[]; total: number }> {
   const result = await call<Record<string, unknown>>(
     "crm.api.campaign_channel_type.list_campaign_channel_types",
-    params,
-    {},
     listParams({ ...params, pageLength: params.pageLength ?? 50 }),
   );
   return {
@@ -516,37 +449,27 @@ export async function listCampaignChannelTypes(
   };
 }
 
-export function createCampaignChannelType(
-  data: Partial<CampaignChannelType>,
-  options: AdminCatalogRequestOptions = {},
-) {
+export function createCampaignChannelType(data: Partial<CampaignChannelType>) {
   return post<CampaignChannelType>(
     "crm.api.campaign_channel_type.create_campaign_channel_type",
     { data },
-    options,
   );
 }
 
 export function updateCampaignChannelType(
   name: string,
   data: Partial<CampaignChannelType>,
-  options: AdminCatalogRequestOptions = {},
 ) {
   return post<CampaignChannelType>(
     "crm.api.campaign_channel_type.update_campaign_channel_type",
     { name, data },
-    options,
   );
 }
 
-export function deleteCampaignChannelType(
-  name: string,
-  options: AdminCatalogRequestOptions = {},
-) {
+export function deleteCampaignChannelType(name: string) {
   return post<{ deleted: string }>(
     "crm.api.campaign_channel_type.delete_campaign_channel_type",
     { name },
-    options,
   );
 }
 
@@ -556,8 +479,6 @@ export async function listGovernedValues(
 ): Promise<{ records: GovernedRecord[]; total: number }> {
   const result = await call<Record<string, unknown>>(
     "crm.api.admin_catalog.list_governed_values",
-    params,
-    {},
     new URLSearchParams({ doctype, ...Object.fromEntries(listParams(params)) }),
   );
   return {
@@ -569,26 +490,21 @@ export async function listGovernedValues(
 export function createGovernedValue(
   doctype: GovernedDoctype,
   data: Record<string, unknown>,
-  options: AdminCatalogRequestOptions = {},
 ) {
   return post<{ record: GovernedRecord; status: string }>(
     "crm.api.admin_catalog.create_governed_value",
     { doctype, data },
-    options,
   );
 }
 
-export function proposeGovernedChange(
-  input: {
-    doctype: GovernedDoctype;
-    docname: string;
-    action: "Retire" | "Reactivate" | "Supersede";
-    reason: string;
-    newValue?: string;
-    expectedVersion?: number;
-  },
-  options: AdminCatalogRequestOptions = {},
-) {
+export function proposeGovernedChange(input: {
+  doctype: GovernedDoctype;
+  docname: string;
+  action: "Retire" | "Reactivate" | "Supersede";
+  reason: string;
+  newValue?: string;
+  expectedVersion?: number;
+}) {
   return post<{ change: string }>(
     "crm.api.admin_catalog.propose_governed_change",
     {
@@ -599,30 +515,20 @@ export function proposeGovernedChange(
       new_value: input.newValue,
       expected_version: input.expectedVersion,
     },
-    options,
   );
 }
 
-export function listGovernedChanges(
-  doctype: GovernedDoctype,
-  options: AdminCatalogRequestOptions = {},
-) {
+export function listGovernedChanges(doctype: GovernedDoctype) {
   return call<{ changes: PendingGovernedChange[] }>(
     "crm.api.admin_catalog.list_governed_changes",
-    options,
-    {},
     new URLSearchParams({ doctype }),
   );
 }
 
-export function approveGovernedChange(
-  changeLogName: string,
-  options: AdminCatalogRequestOptions = {},
-) {
+export function approveGovernedChange(changeLogName: string) {
   return post<{ status: string }>(
     "crm.api.admin_catalog.approve_governed_change",
     { change_log_name: changeLogName },
-    options,
   );
 }
 
