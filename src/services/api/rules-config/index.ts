@@ -1,9 +1,6 @@
 import {
   FEATURE_NOT_MIGRATED_CODE,
   FEATURE_NOT_MIGRATED_MESSAGE,
-  FEATURE_NOT_MIGRATED_STATUS,
-  frappeUnavailable,
-  isNestApiEnabled,
   NestApiError,
   nestRequest,
 } from "../nest/nest-client";
@@ -13,7 +10,6 @@ import {
   normalizeRuleGroup,
   normalizeRuleVersion,
   normalizeRuleVersionDetail,
-  unwrapMethodPayload,
 } from "./normalizers";
 import type {
   ArchiveCrmRuleVersionPayload,
@@ -36,7 +32,6 @@ import type {
   ListCrmRulesResponse,
   ListCrmRuleVersionsParams,
   ListCrmRuleVersionsResponse,
-  RequestOptions,
   SetCrmRuleEnabledPayload,
   UpdateCrmRulePayload,
   UpdateCrmRuleVersionPayload,
@@ -101,10 +96,9 @@ function restName(value: unknown, field: string): string {
   return encodeURIComponent(value);
 }
 
-async function callNest<T>(
+async function call<T>(
   method: string,
   requestMethod: RequestMethod,
-  options: RequestOptions,
   query: Record<string, QueryValue>,
   body?: Record<string, unknown>,
 ): Promise<T> {
@@ -208,7 +202,6 @@ async function callNest<T>(
       method: methodOverride,
       query: requestQuery,
       ...(requestBody ? { body: requestBody } : {}),
-      ...(options.headers ? { headers: options.headers } : {}),
     });
   } catch (error) {
     if (error instanceof NestApiError) {
@@ -222,164 +215,6 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
-}
-
-function resolveBaseUrl(options: RequestOptions): string {
-  if (frappeUnavailable(options.baseUrl)) {
-    throw new CrmRulesApiError(
-      FEATURE_NOT_MIGRATED_STATUS,
-      FEATURE_NOT_MIGRATED_CODE,
-      FEATURE_NOT_MIGRATED_MESSAGE,
-    );
-  }
-  const baseUrl = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-  if (!baseUrl)
-    throw new CrmRulesApiError(
-      0,
-      "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ máy chủ CRM.",
-    );
-  return baseUrl;
-}
-
-function cookieHeader(value: string): string {
-  return value
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.startsWith("sid="))
-    .join("; ");
-}
-
-async function headers(
-  options: RequestOptions,
-  write: boolean,
-): Promise<Record<string, string>> {
-  const result: Record<string, string> = {
-    Accept: "application/json",
-    ...(write ? { "Content-Type": "application/json" } : {}),
-    ...(options.headers ?? {}),
-  };
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const sid = cookieHeader((await cookies()).toString());
-      if (sid) result.Cookie = sid;
-    } catch {
-      // Tests and non-request contexts do not have a Next request store.
-    }
-  }
-  if (typeof window !== "undefined" && write) {
-    const csrf = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith("csrf_token="));
-    if (csrf) {
-      result["X-Frappe-CSRF-Token"] = decodeURIComponent(
-        csrf.split("=").slice(1).join("="),
-      );
-    } else {
-      // Cross-origin deployments can't read the Frappe-domain cookie from
-      // document.cookie; fall back to fetching it from the session itself.
-      try {
-        const response = await fetch(
-          `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
-          {
-            credentials: "include",
-            headers: { Accept: "application/json" },
-          },
-        );
-        const payload = (await response.json().catch(() => null)) as {
-          message?: { csrf_token?: unknown };
-        } | null;
-        if (typeof payload?.message?.csrf_token === "string") {
-          result["X-Frappe-CSRF-Token"] = payload.message.csrf_token;
-        }
-      } catch {
-        // Frappe still accepts the session cookie when CSRF is disabled.
-      }
-    }
-  }
-  return result;
-}
-
-function errorDetails(payload: unknown): { code?: string; message?: string } {
-  const root = asRecord(payload);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-  const exception = typeof root?.exception === "string" ? root.exception : "";
-  const serverMessage =
-    typeof root?._server_messages === "string" ? root._server_messages : "";
-  const stale = [exception, serverMessage].some((value) =>
-    value.includes("STALE_RULE_VERSION"),
-  );
-  const code = stale
-    ? "STALE_RULE_VERSION"
-    : typeof error?.code === "string"
-      ? error.code
-      : typeof root?.exc_type === "string"
-        ? root.exc_type
-        : undefined;
-  const extractedMessage =
-    typeof error?.message === "string"
-      ? error.message
-      : typeof message?.message === "string"
-        ? message.message
-        : exception ||
-          (typeof root?.message === "string" ? root.message : undefined);
-  return {
-    code,
-    message: extractedMessage,
-  };
-}
-
-async function call<T>(
-  method: string,
-  requestMethod: RequestMethod,
-  options: RequestOptions,
-  query: Record<string, QueryValue> = {},
-  body?: Record<string, unknown>,
-): Promise<T> {
-  if (!options.baseUrl && isNestApiEnabled()) {
-    return callNest<T>(method, requestMethod, options, query, body);
-  }
-  const url = new URL(`${resolveBaseUrl(options)}/api/method/${method}`);
-  Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== "")
-      url.searchParams.set(key, String(value));
-  });
-  let response: Response;
-  try {
-    response = await fetch(url.toString(), {
-      method: requestMethod,
-      headers: await headers(options, requestMethod !== "GET"),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      ...(body ? { body: JSON.stringify(body) } : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new CrmRulesApiError(
-      503,
-      "CRM_RULES_API_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ Rule Engine.",
-    );
-  }
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = errorDetails(payload);
-    const code = details.code ?? `HTTP_${response.status}`;
-    throw new CrmRulesApiError(
-      response.status,
-      code,
-      details.message ?? "Thao tác Rule thất bại.",
-    );
-  }
-  return unwrapMethodPayload(payload) as T;
 }
 
 function pageLength(value: number | undefined, fallback = 50): number {
@@ -428,9 +263,8 @@ function ruleBody(payload: CrmRulePayload): Record<string, unknown> {
 
 export async function listCrmRuleVersions(
   params: ListCrmRuleVersionsParams = {},
-  options: RequestOptions = {},
 ): Promise<ListCrmRuleVersionsResponse> {
-  const raw = await call<unknown>(METHODS.LIST_VERSIONS, "GET", options, {
+  const raw = await call<unknown>(METHODS.LIST_VERSIONS, "GET", {
     status: params.status,
     search: params.search,
     active_only: params.activeOnly,
@@ -450,22 +284,19 @@ export async function listCrmRuleVersions(
 
 export async function getCrmRuleVersion(
   name: string,
-  options: RequestOptions = {},
 ): Promise<CrmRuleVersionDetail> {
   return normalizeRuleVersionDetail(
-    await call(METHODS.GET_VERSION, "GET", options, { name }),
+    await call(METHODS.GET_VERSION, "GET", { name }),
   );
 }
 
 export async function createCrmRuleVersion(
   payload: CrmRuleVersionPayload,
-  options: RequestOptions = {},
 ): Promise<CrmRuleVersion> {
   return normalizeRuleVersion(
     await call(
       METHODS.CREATE_VERSION,
       "POST",
-      options,
       {},
       {
         version_id: payload.versionId,
@@ -478,13 +309,11 @@ export async function createCrmRuleVersion(
 
 export async function updateCrmRuleVersion(
   payload: UpdateCrmRuleVersionPayload,
-  options: RequestOptions = {},
 ): Promise<CrmRuleVersion> {
   return normalizeRuleVersion(
     await call(
       METHODS.UPDATE_VERSION,
       "PUT",
-      options,
       {},
       {
         name: payload.name,
@@ -509,13 +338,11 @@ export async function updateCrmRuleVersion(
 
 export async function cloneCrmRuleVersion(
   payload: CloneCrmRuleVersionPayload,
-  options: RequestOptions = {},
 ): Promise<CrmRuleVersion> {
   return normalizeRuleVersion(
     await call(
       METHODS.CLONE_VERSION,
       "POST",
-      options,
       {},
       {
         source_name: payload.sourceName,
@@ -529,10 +356,9 @@ export async function cloneCrmRuleVersion(
 
 export async function listCrmRuleGroups(
   versionName: string,
-  options: RequestOptions = {},
 ): Promise<CrmRuleGroupSummary[]> {
   const payload = asRecord(
-    await call(METHODS.LIST_GROUPS, "GET", options, {
+    await call(METHODS.LIST_GROUPS, "GET", {
       version_name: versionName,
     }),
   );
@@ -543,13 +369,11 @@ export async function listCrmRuleGroups(
 
 export async function createCrmRuleGroup(
   payload: CrmRuleGroupPayload,
-  options: RequestOptions = {},
 ): Promise<CrmRuleGroupSummary> {
   const raw = asRecord(
     await call(
       METHODS.CREATE_GROUP,
       "POST",
-      options,
       {},
       {
         version_name: payload.versionName,
@@ -567,13 +391,11 @@ export async function createCrmRuleGroup(
 
 export async function updateCrmRuleGroup(
   payload: UpdateCrmRuleGroupPayload,
-  options: RequestOptions = {},
 ): Promise<CrmRuleGroupSummary> {
   const raw = asRecord(
     await call(
       METHODS.UPDATE_GROUP,
       "PUT",
-      options,
       {},
       {
         version_name: payload.versionName,
@@ -591,13 +413,11 @@ export async function updateCrmRuleGroup(
 
 export async function deleteCrmRuleGroup(
   payload: DeleteCrmRuleGroupPayload,
-  options: RequestOptions = {},
 ): Promise<{ code: string; deleted: boolean }> {
   const raw = asRecord(
     await call(
       METHODS.DELETE_GROUP,
       "DELETE",
-      options,
       {},
       {
         version_name: payload.versionName,
@@ -614,9 +434,8 @@ export async function deleteCrmRuleGroup(
 
 export async function listCrmRules(
   params: ListCrmRulesParams = {},
-  options: RequestOptions = {},
 ): Promise<ListCrmRulesResponse> {
-  const raw = await call<unknown>(METHODS.LIST_RULES, "GET", options, {
+  const raw = await call<unknown>(METHODS.LIST_RULES, "GET", {
     version_name: params.versionName,
     rule_group: params.ruleGroup,
     search: params.search,
@@ -638,22 +457,17 @@ export async function listCrmRules(
   };
 }
 
-export async function getCrmRule(
-  name: string,
-  options: RequestOptions = {},
-): Promise<CrmRule> {
-  return normalizeRule(await call(METHODS.GET_RULE, "GET", options, { name }));
+export async function getCrmRule(name: string): Promise<CrmRule> {
+  return normalizeRule(await call(METHODS.GET_RULE, "GET", { name }));
 }
 
 export async function createCrmRule(
   payload: CreateCrmRulePayload,
-  options: RequestOptions = {},
 ): Promise<CrmRule> {
   return normalizeRule(
     await call(
       METHODS.CREATE_RULE,
       "POST",
-      options,
       {},
       {
         version_name: payload.versionName,
@@ -666,13 +480,11 @@ export async function createCrmRule(
 
 export async function updateCrmRule(
   payload: UpdateCrmRulePayload,
-  options: RequestOptions = {},
 ): Promise<CrmRule> {
   return normalizeRule(
     await call(
       METHODS.UPDATE_RULE,
       "PUT",
-      options,
       {},
       {
         name: payload.name,
@@ -685,13 +497,11 @@ export async function updateCrmRule(
 
 export async function deleteCrmRule(
   payload: DeleteCrmRulePayload,
-  options: RequestOptions = {},
 ): Promise<{ name: string; deleted: boolean; versionId: string }> {
   const raw = asRecord(
     await call(
       METHODS.DELETE_RULE,
       "DELETE",
-      options,
       {},
       {
         name: payload.name,
@@ -708,13 +518,11 @@ export async function deleteCrmRule(
 
 export async function updateCrmRuleVersionStatus(
   payload: UpdateCrmRuleVersionPayload,
-  options: RequestOptions = {},
 ): Promise<CrmRuleVersion> {
   return normalizeRuleVersion(
     await call(
       METHODS.UPDATE_VERSION,
       "PUT",
-      options,
       {},
       {
         name: payload.name,
@@ -729,13 +537,11 @@ export async function updateCrmRuleVersionStatus(
 
 export async function setCrmRuleEnabled(
   payload: SetCrmRuleEnabledPayload,
-  options: RequestOptions = {},
 ): Promise<CrmRule> {
   return normalizeRule(
     await call(
       METHODS.SET_RULE_ENABLED,
       "PUT",
-      options,
       {},
       {
         name: payload.name,
@@ -748,13 +554,11 @@ export async function setCrmRuleEnabled(
 
 export async function archiveCrmRuleVersion(
   payload: ArchiveCrmRuleVersionPayload,
-  options: RequestOptions = {},
 ): Promise<CrmRuleVersion> {
   return normalizeRuleVersion(
     await call(
       METHODS.ARCHIVE_VERSION,
       "POST",
-      options,
       {},
       {
         name: payload.name,
@@ -765,10 +569,6 @@ export async function archiveCrmRuleVersion(
   );
 }
 
-export async function listCrmFactCatalog(
-  options: RequestOptions = {},
-): Promise<CrmRuleFactCatalog> {
-  return normalizeFactCatalog(
-    await call(METHODS.LIST_FACT_CATALOG, "GET", options),
-  );
+export async function listCrmFactCatalog(): Promise<CrmRuleFactCatalog> {
+  return normalizeFactCatalog(await call(METHODS.LIST_FACT_CATALOG, "GET", {}));
 }
