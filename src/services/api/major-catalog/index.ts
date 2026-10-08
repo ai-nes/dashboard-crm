@@ -11,35 +11,60 @@ import type {
   UpdateMajorInput,
 } from "./types";
 
-import {
-  ensureRoot as ensureFrappeRoot,
-  FrappeApiError,
-  getBaseUrl,
-  queryString,
-  request as frappeRequest,
-} from "../frappe-request";
+import { NestApiError } from "../nest/nest-client";
+import { NOT_HANDLED } from "../nest/nest-handler";
+import { nestMajorCatalogHandler } from "../nest/nest-catalog-router";
 
 export type * from "./types";
 
-export class MajorCatalogApiError extends FrappeApiError {
-  constructor(status: number, code: string, message: string) {
-    super(status, code, message);
+export class MajorCatalogApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
     this.name = "MajorCatalogApiError";
   }
 }
 
-function request(
-  url: string,
-  init: RequestInit = {},
-  frappeBaseUrl?: string,
+async function call(
+  method: string,
+  params: Record<string, string | undefined>,
+  body?: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
-  return frappeRequest(url, init, frappeBaseUrl, MajorCatalogApiError);
+  try {
+    const result = await nestMajorCatalogHandler(
+      `crm.api.major_catalog.${method}`,
+      params,
+      body,
+    );
+    if (result === NOT_HANDLED) {
+      throw new MajorCatalogApiError(
+        501,
+        "FEATURE_NOT_MIGRATED",
+        "Chức năng này chưa có trên máy chủ CRM.",
+      );
+    }
+    return (result ?? {}) as Record<string, unknown>;
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new MajorCatalogApiError(error.status, error.code, error.message);
+    }
+    throw error;
+  }
 }
 
-function ensureRoot(root: string, message: string): void {
-  ensureFrappeRoot(root, message, MajorCatalogApiError);
+function listParams(
+  entries: Record<string, string | number | boolean | undefined>,
+): Record<string, string | undefined> {
+  return Object.fromEntries(
+    Object.entries(entries).map(([key, value]) => [
+      key,
+      value === undefined || value === "" ? undefined : String(value),
+    ]),
+  );
 }
-
 function isGroupCatalog(value: unknown): value is MajorGroupCatalog {
   return Boolean(
     value &&
@@ -74,7 +99,6 @@ function normalizePagination<T extends MajorGroupCatalog | MajorCatalog>(
 
 export async function listMajorGroups(
   options: {
-    baseUrl?: string;
     search?: string;
     includeDisabled?: boolean;
     enabled?: boolean;
@@ -82,21 +106,15 @@ export async function listMajorGroups(
     pageLength?: number;
   } = {},
 ): Promise<MajorGroupCatalog> {
-  const root = getBaseUrl(options.baseUrl);
-  ensureRoot(root, "Chưa cấu hình API máy chủ CRM để tải nhóm ngành.");
-  const params = new URLSearchParams();
-  if (options.search?.trim()) params.set("search", options.search.trim());
-  if (options.includeDisabled !== undefined)
-    params.set("include_disabled", String(options.includeDisabled));
-  if (options.enabled !== undefined)
-    params.set("enabled", String(options.enabled));
-  if (options.start !== undefined) params.set("start", String(options.start));
-  if (options.pageLength !== undefined)
-    params.set("page_length", String(options.pageLength));
-  const result = await request(
-    `${root}/api/method/crm.api.major_catalog.list_major_groups${queryString(params)}`,
-    {},
-    root,
+  const result = await call(
+    "list_major_groups",
+    listParams({
+      search: options.search?.trim(),
+      include_disabled: options.includeDisabled,
+      enabled: options.enabled,
+      start: options.start,
+      page_length: options.pageLength,
+    }),
   );
   if (!isGroupCatalog(result)) {
     throw new MajorCatalogApiError(
@@ -107,10 +125,8 @@ export async function listMajorGroups(
   }
   return normalizePagination(result, options);
 }
-
 export async function listMajors(
   options: {
-    baseUrl?: string;
     search?: string;
     group?: string;
     includeInactive?: boolean;
@@ -119,22 +135,16 @@ export async function listMajors(
     pageLength?: number;
   } = {},
 ): Promise<MajorCatalog> {
-  const root = getBaseUrl(options.baseUrl);
-  ensureRoot(root, "Chưa cấu hình API máy chủ CRM để tải ngành học.");
-  const params = new URLSearchParams();
-  if (options.search?.trim()) params.set("search", options.search.trim());
-  if (options.group) params.set("group", options.group);
-  if (options.includeInactive !== undefined)
-    params.set("include_inactive", String(options.includeInactive));
-  if (options.isActive !== undefined)
-    params.set("is_active", String(options.isActive));
-  if (options.start !== undefined) params.set("start", String(options.start));
-  if (options.pageLength !== undefined)
-    params.set("page_length", String(options.pageLength));
-  const result = await request(
-    `${root}/api/method/crm.api.major_catalog.list_majors${queryString(params)}`,
-    {},
-    root,
+  const result = await call(
+    "list_majors",
+    listParams({
+      search: options.search?.trim(),
+      group: options.group,
+      include_inactive: options.includeInactive,
+      is_active: options.isActive,
+      start: options.start,
+      page_length: options.pageLength,
+    }),
   );
   if (!isMajorCatalog(result)) {
     throw new MajorCatalogApiError(
@@ -145,98 +155,54 @@ export async function listMajors(
   }
   return normalizePagination(result, options);
 }
-
 async function mutate<T>(
   method: string,
   data: Record<string, unknown>,
-  message: string,
-  options: { baseUrl?: string } = {},
 ): Promise<T> {
-  const root = getBaseUrl(options.baseUrl);
-  ensureRoot(root, message);
-  return (await request(
-    `${root}/api/method/crm.api.major_catalog.${method}`,
-    { method: "POST", body: JSON.stringify(data) },
-    root,
-  )) as unknown as T;
+  return (await call(method, {}, data)) as unknown as T;
 }
-
 export function createMajorGroup(
   data: MajorGroupMutationInput,
-  options: { baseUrl?: string } = {},
 ): Promise<MajorGroupOption> {
-  return mutate(
-    "create_major_group",
-    { data },
-    "Chưa cấu hình API máy chủ CRM để tạo nhóm ngành.",
-    options,
-  );
+  return mutate("create_major_group", { data });
 }
 
 export function updateMajorGroup(
   input: UpdateMajorGroupInput,
-  options: { baseUrl?: string } = {},
 ): Promise<MajorGroupOption> {
-  return mutate(
-    "update_major_group",
-    {
-      name: input.name,
-      data: input.data,
-      expected_modified: input.expectedModified,
-    },
-    "Chưa cấu hình API máy chủ CRM để sửa nhóm ngành.",
-    options,
-  );
+  return mutate("update_major_group", {
+    name: input.name,
+    data: input.data,
+    expected_modified: input.expectedModified,
+  });
 }
 
 export function deleteMajorGroup(
   input: DeleteMajorGroupInput,
-  options: { baseUrl?: string } = {},
 ): Promise<{ deleted: string }> {
-  return mutate(
-    "delete_major_group",
-    { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API máy chủ CRM để xóa nhóm ngành.",
-    options,
-  );
+  return mutate("delete_major_group", {
+    name: input.name,
+    expected_modified: input.expectedModified,
+  });
 }
 
-export function createMajor(
-  data: MajorMutationInput,
-  options: { baseUrl?: string } = {},
-): Promise<MajorOption> {
-  return mutate(
-    "create_major",
-    { data },
-    "Chưa cấu hình API máy chủ CRM để tạo ngành học.",
-    options,
-  );
+export function createMajor(data: MajorMutationInput): Promise<MajorOption> {
+  return mutate("create_major", { data });
 }
 
-export function updateMajor(
-  input: UpdateMajorInput,
-  options: { baseUrl?: string } = {},
-): Promise<MajorOption> {
-  return mutate(
-    "update_major",
-    {
-      name: input.name,
-      data: input.data,
-      expected_modified: input.expectedModified,
-    },
-    "Chưa cấu hình API máy chủ CRM để sửa ngành học.",
-    options,
-  );
+export function updateMajor(input: UpdateMajorInput): Promise<MajorOption> {
+  return mutate("update_major", {
+    name: input.name,
+    data: input.data,
+    expected_modified: input.expectedModified,
+  });
 }
 
 export function deleteMajor(
   input: DeleteMajorInput,
-  options: { baseUrl?: string } = {},
 ): Promise<{ deleted: string }> {
-  return mutate(
-    "delete_major",
-    { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API máy chủ CRM để xóa ngành học.",
-    options,
-  );
+  return mutate("delete_major", {
+    name: input.name,
+    expected_modified: input.expectedModified,
+  });
 }
