@@ -1,8 +1,4 @@
-import {
-  NestApiError,
-  isNestApiEnabled,
-  nestRequest,
-} from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 import type {
   LeadRoutingPolicy,
   LeadRoutingStrategy,
@@ -110,11 +106,6 @@ export type LeadAssignmentWorkflowStepUpdate = {
   expectedRevision?: number;
 };
 
-export type LeadAssignmentWorkflowConfigRequestOptions = {
-  baseUrl?: string;
-  headers?: Record<string, string>;
-};
-
 export class LeadAssignmentWorkflowConfigApiError extends Error {
   constructor(
     public status: number,
@@ -135,20 +126,10 @@ const STEP_IDS: readonly LeadAssignmentWorkflowStepId[] = [
   "assignment",
 ];
 
-const METHODS = {
-  GET: "crm.api.assignment_control.get_lead_assignment_workflow_config",
-  UPDATE: "crm.api.assignment_control.update_lead_assignment_workflow_step",
-} as const;
-
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
-}
-
-function unwrapMessage(value: unknown): unknown {
-  const root = asRecord(value);
-  return root?.message !== undefined ? root.message : value;
 }
 
 function text(value: unknown, fallback = ""): string {
@@ -285,149 +266,6 @@ function normalizeSteps(
   return result;
 }
 
-function baseUrl(options: LeadAssignmentWorkflowConfigRequestOptions): string {
-  return (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
-    /\/+$/,
-    "",
-  );
-}
-
-function cookieHeader(value: string): string {
-  return value
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-async function headers(
-  options: LeadAssignmentWorkflowConfigRequestOptions,
-  write: boolean,
-): Promise<Record<string, string>> {
-  const result: Record<string, string> = {
-    Accept: "application/json",
-    ...(write ? { "Content-Type": "application/json" } : {}),
-    ...(options.headers ?? {}),
-  };
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const sid = cookieHeader((await cookies()).toString());
-      if (sid) result.Cookie = sid;
-    } catch {
-      // API contract tests can run without Next request cookies.
-    }
-  }
-  if (write && typeof window !== "undefined") {
-    const csrf = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith("csrf_token="))
-      ?.split("=")
-      .slice(1)
-      .join("=");
-    if (csrf) {
-      result["X-Frappe-CSRF-Token"] = decodeURIComponent(csrf);
-    } else {
-      try {
-        const sessionResponse = await fetch(
-          `${baseUrl(options)}/api/method/crm.api.session.me`,
-          { credentials: "include", headers: { Accept: "application/json" } },
-        );
-        const sessionPayload = (await sessionResponse
-          .json()
-          .catch(() => null)) as {
-          message?: { csrf_token?: unknown };
-        } | null;
-        const csrfToken = sessionPayload?.message?.csrf_token;
-        if (typeof csrfToken === "string" && csrfToken) {
-          result["X-Frappe-CSRF-Token"] = csrfToken;
-        }
-      } catch {
-        // Fallback to cookie-only authentication.
-      }
-    }
-  }
-  return result;
-}
-
-function errorDetails(
-  value: unknown,
-  status: number,
-): { code: string; message: string } {
-  const root = asRecord(value);
-  const nested = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(nested?.error);
-  const serialized = JSON.stringify(value);
-  const revisionConflict = serialized.includes("WORKFLOW_REVISION_CONFLICT");
-  return {
-    code: text(
-      error?.code,
-      revisionConflict
-        ? "WORKFLOW_REVISION_CONFLICT"
-        : status === 403
-          ? "FORBIDDEN"
-          : `HTTP_${status}`,
-    ),
-    message:
-      text(error?.message) ||
-      text(nested?.message) ||
-      text(root?._error_message) ||
-      text(root?.exception) ||
-      (revisionConflict
-        ? "Cấu hình workflow đã thay đổi. Hãy tải lại trước khi lưu lần nữa."
-        : undefined) ||
-      (status === 403
-        ? "Bạn không có quyền thay đổi cấu hình workflow phân công Lead."
-        : "Không thể cập nhật cấu hình workflow phân công Lead."),
-  };
-}
-
-async function call<T>(
-  method: string,
-  requestMethod: "GET" | "POST",
-  options: LeadAssignmentWorkflowConfigRequestOptions,
-  body?: Record<string, unknown>,
-): Promise<T> {
-  const urlBase = baseUrl(options);
-  if (!urlBase) {
-    throw new LeadAssignmentWorkflowConfigApiError(
-      503,
-      "LEAD_ASSIGNMENT_WORKFLOW_API_UNAVAILABLE",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
-    );
-  }
-  let response: Response;
-  try {
-    response = await fetch(`${urlBase}/api/method/${method}`, {
-      method: requestMethod,
-      headers: await headers(options, requestMethod !== "GET"),
-      ...(typeof window !== "undefined" ? { credentials: "include" } : {}),
-      cache: "no-store",
-      ...(body ? { body: JSON.stringify(body) } : {}),
-    });
-  } catch {
-    throw new LeadAssignmentWorkflowConfigApiError(
-      503,
-      "LEAD_ASSIGNMENT_WORKFLOW_API_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ cấu hình workflow phân công Lead.",
-    );
-  }
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = errorDetails(payload, response.status);
-    throw new LeadAssignmentWorkflowConfigApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-  return (asRecord(payload)?.message ?? payload) as T;
-}
-
-const useNest = (options: LeadAssignmentWorkflowConfigRequestOptions) =>
-  isNestApiEnabled() && !options.baseUrl;
-
 async function nestCall(
   path: string,
   method: "GET" | "PUT",
@@ -447,13 +285,10 @@ async function nestCall(
   }
 }
 
-export async function getLeadAssignmentWorkflowConfig(
-  options: LeadAssignmentWorkflowConfigRequestOptions = {},
-): Promise<LeadAssignmentWorkflowConfigResponse> {
-  const raw = useNest(options)
-    ? await nestCall("/api/v1/lead-assignment-workflow", "GET")
-    : await call<unknown>(METHODS.GET, "GET", options);
-  const source = asRecord(unwrapMessage(raw));
+export async function getLeadAssignmentWorkflowConfig(): Promise<LeadAssignmentWorkflowConfigResponse> {
+  const source = asRecord(
+    await nestCall("/api/v1/lead-assignment-workflow", "GET"),
+  );
   const policy = normalizeLeadRoutingPolicy(source?.policy);
   if (!source?.config || !source.steps) {
     throw new LeadAssignmentWorkflowConfigApiError(
@@ -473,25 +308,18 @@ export async function getLeadAssignmentWorkflowConfig(
 
 export async function updateLeadAssignmentWorkflowStep(
   request: LeadAssignmentWorkflowStepUpdate,
-  options: LeadAssignmentWorkflowConfigRequestOptions = {},
 ): Promise<LeadAssignmentWorkflowConfigResponse> {
-  const raw = useNest(options)
-    ? await nestCall(
-        `/api/v1/lead-assignment-workflow/steps/${encodeURIComponent(request.stepId)}`,
-        "PUT",
-        {
-          settings: request.settings,
-          reason: request.reason,
-          expectedRevision: request.expectedRevision,
-        },
-      )
-    : await call<unknown>(METHODS.UPDATE, "POST", options, {
-        step_id: request.stepId,
-        settings: JSON.stringify(request.settings),
+  const source = asRecord(
+    await nestCall(
+      `/api/v1/lead-assignment-workflow/steps/${encodeURIComponent(request.stepId)}`,
+      "PUT",
+      {
+        settings: request.settings,
         reason: request.reason,
-        expected_revision: request.expectedRevision,
-      });
-  const source = asRecord(unwrapMessage(raw));
+        expectedRevision: request.expectedRevision,
+      },
+    ),
+  );
   if (!source?.config || !source.steps) {
     throw new LeadAssignmentWorkflowConfigApiError(
       502,

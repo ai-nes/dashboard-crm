@@ -1,11 +1,22 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   getLeadAssignmentWorkflowConfig,
   updateLeadAssignmentWorkflowStep,
 } from "./lead-assignment-workflow-config";
 
-afterEach(() => vi.restoreAllMocks());
+const fetchMock = vi.fn();
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://localhost:3001");
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+});
 
 const policy = {
   enabled: true,
@@ -98,13 +109,11 @@ function workflowFixture() {
 
 describe("Lead assignment workflow config API contract", () => {
   it("normalizes all fixed steps and legacy limits", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: workflowFixture() }), { status: 200 }),
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(workflowFixture()), { status: 200 }),
     );
 
-    const result = await getLeadAssignmentWorkflowConfig({
-      baseUrl: "http://frappe:8000",
-    });
+    const result = await getLeadAssignmentWorkflowConfig();
 
     expect(Object.keys(result.steps)).toEqual([
       "input",
@@ -120,61 +129,55 @@ describe("Lead assignment workflow config API contract", () => {
       retryMode: "manual",
       maxRetries: 2,
     });
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.assignment_control.get_lead_assignment_workflow_config",
-      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      "http://localhost:3001/api/v1/lead-assignment-workflow",
     );
+    expect(fetchMock.mock.calls[0]![1]).toMatchObject({
+      method: "GET",
+      credentials: "include",
+    });
   });
 
   it("sends one step, reason and revision for an update", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: workflowFixture() }), { status: 200 }),
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(workflowFixture()), { status: 200 }),
     );
 
-    await updateLeadAssignmentWorkflowStep(
-      {
-        stepId: "review",
-        settings: { maxRetries: 4 },
-        reason: "Tăng retry cho mùa cao điểm",
-        expectedRevision: 3,
-      },
-      { baseUrl: "http://frappe:8000" },
-    );
+    await updateLeadAssignmentWorkflowStep({
+      stepId: "review",
+      settings: { maxRetries: 4 },
+      reason: "Tăng retry cho mùa cao điểm",
+      expectedRevision: 3,
+    });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.assignment_control.update_lead_assignment_workflow_step",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          step_id: "review",
-          settings: JSON.stringify({ maxRetries: 4 }),
-          reason: "Tăng retry cho mùa cao điểm",
-          expected_revision: 3,
-        }),
-      }),
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(
+      "http://localhost:3001/api/v1/lead-assignment-workflow/steps/review",
     );
+    expect(init).toMatchObject({ method: "PUT" });
+    expect(JSON.parse(init.body)).toEqual({
+      settings: { maxRetries: 4 },
+      reason: "Tăng retry cho mùa cao điểm",
+      expectedRevision: 3,
+    });
   });
 
   it("preserves a forbidden response as a typed API error", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({
-          exception: "frappe.exceptions.PermissionError",
-          _error_message: "Không có quyền",
+          error: { code: "FORBIDDEN", message: "Không có quyền" },
         }),
         { status: 403 },
       ),
     );
 
     await expect(
-      updateLeadAssignmentWorkflowStep(
-        {
-          stepId: "input",
-          settings: { enabled: false },
-          reason: "Tắt job nền",
-        },
-        { baseUrl: "http://frappe:8000" },
-      ),
+      updateLeadAssignmentWorkflowStep({
+        stepId: "input",
+        settings: { enabled: false },
+        reason: "Tắt job nền",
+      }),
     ).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
   });
 });
