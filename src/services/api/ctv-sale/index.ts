@@ -14,21 +14,11 @@ import type {
   CtvSaleTasks,
 } from "./types";
 
-import {
-  NestApiError,
-  isNestApiEnabled,
-  nestRequest,
-} from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 
 export type * from "./types";
 
-const METHOD = "crm.api.ctv_sale.get_ctv_sale_overview";
 const KPI_IDS = ["assigned", "uncontacted", "follow-up", "transfer"] as const;
-
-export type RequestOptions = {
-  baseUrl?: string;
-  headers?: Record<string, string>;
-};
 
 export class CtvSaleOverviewApiError extends Error {
   constructor(
@@ -332,146 +322,31 @@ export function normalizeCtvSaleOverview(
   return result;
 }
 
-function resolveBaseUrl(options: RequestOptions): string {
-  const baseUrl = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-  if (!baseUrl) {
-    throw new CtvSaleOverviewApiError(
-      0,
-      "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ máy chủ CRM.",
-    );
-  }
-  return baseUrl;
-}
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-async function requestHeaders(
-  options: RequestOptions,
-): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(options.headers ?? {}),
-  };
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) headers.Cookie = cookieHeader;
-    } catch {
-      // Contract tests and non-request contexts do not have Next headers.
-    }
-  }
-  return headers;
-}
-
-function errorDetails(
-  payload: unknown,
-  status: number,
-): { code: string; message: string } {
-  const root = asRecord(payload);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-  return {
-    code:
-      text(error?.code) ||
-      (status === 401
-        ? "UNAUTHENTICATED"
-        : status === 403
-          ? "FORBIDDEN"
-          : `HTTP_${status}`),
-    message:
-      text(error?.message) ||
-      text(message?.message) ||
-      text(root?.message) ||
-      text(root?.exception) ||
-      `Không thể tải tổng quan CTV Sale (${status}).`,
-  };
-}
-
 export async function getCtvSaleOverview(
   params: CtvSaleOverviewParams = {},
-  options: RequestOptions = {},
 ): Promise<CtvSaleOverviewResponse> {
-  if (isNestApiEnabled() && !options.baseUrl) {
-    let payload: unknown;
-    try {
-      payload = await nestRequest("/api/v1/ctv-sale/overview", {
-        query: {
-          date: params.date,
-          trendRange: params.trendRange ?? "7d",
-          outcomeRange: params.outcomeRange ?? "30d",
-          timezone: params.timezone,
-          ctvId: params.ctvId,
-          priorityLimit: params.priorityLimit ?? 3,
-        },
-      });
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        throw new CtvSaleOverviewApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
-    }
-    try {
-      return normalizeCtvSaleOverview(payload);
-    } catch {
+  let payload: unknown;
+  try {
+    payload = await nestRequest("/api/v1/ctv-sale/overview", {
+      query: {
+        date: params.date,
+        trendRange: params.trendRange ?? "7d",
+        outcomeRange: params.outcomeRange ?? "30d",
+        timezone: params.timezone,
+        ctvId: params.ctvId,
+        priorityLimit: params.priorityLimit ?? 3,
+      },
+    });
+  } catch (error) {
+    if (error instanceof NestApiError) {
       throw new CtvSaleOverviewApiError(
-        502,
-        "INVALID_CTV_SALE_OVERVIEW_RESPONSE",
-        "Phản hồi tổng quan CTV Sale không hợp lệ.",
+        error.status,
+        error.code,
+        error.message,
       );
     }
+    throw error;
   }
-  const url = new URL(`${resolveBaseUrl(options)}/api/method/${METHOD}`);
-  if (params.date) url.searchParams.set("date", params.date);
-  url.searchParams.set("trendRange", params.trendRange ?? "7d");
-  url.searchParams.set("outcomeRange", params.outcomeRange ?? "30d");
-  if (params.timezone) url.searchParams.set("timezone", params.timezone);
-  if (params.ctvId) url.searchParams.set("ctvId", params.ctvId);
-  url.searchParams.set("priorityLimit", String(params.priorityLimit ?? 3));
-
-  let response: Response;
-  try {
-    response = await fetch(url.toString(), {
-      method: "GET",
-      headers: await requestHeaders(options),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new CtvSaleOverviewApiError(
-      503,
-      "CTV_SALE_OVERVIEW_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ tổng quan CTV Sale.",
-    );
-  }
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = errorDetails(payload, response.status);
-    throw new CtvSaleOverviewApiError(
-      response.status,
-      error.code,
-      error.message,
-    );
-  }
-
   try {
     return normalizeCtvSaleOverview(payload);
   } catch {
