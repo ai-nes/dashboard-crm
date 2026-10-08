@@ -95,7 +95,7 @@ export function useAssignedStudentsQuery(
   return useQuery({
     ...queryOptions,
     queryKey: studentsKeys.assignedStudents(params, sessionUser),
-    queryFn: () => getDirectorStudents(params, { sessionRequired: true }),
+    queryFn: () => getDirectorStudents(params),
     enabled: Boolean(sessionUser) && enabled,
   });
 }
