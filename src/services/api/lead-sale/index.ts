@@ -1,8 +1,4 @@
-import {
-  isNestApiEnabled,
-  NestApiError,
-  nestRequest,
-} from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 import type {
   LeadSaleDashboardAgingBucket,
   LeadSaleDashboardPayload,
@@ -31,7 +27,6 @@ export * from "./lead-assignment-batch";
 export * from "./lead-routing-policy";
 export * from "./lead-assignment-workflow-config";
 
-const METHOD = "crm.api.lead_sale.get_lead_sale_overview";
 const KPI_IDS = [
   "active",
   "new",
@@ -72,11 +67,6 @@ const DASHBOARD_ISSUE_IDS = [
   "uncontacted",
   "aging",
 ] as const;
-
-export type RequestOptions = {
-  baseUrl?: string;
-  headers?: Record<string, string>;
-};
 
 export class LeadSaleOverviewApiError extends Error {
   constructor(
@@ -526,75 +516,8 @@ export function normalizeLeadSaleOverview(
   return result;
 }
 
-function resolveBaseUrl(options: RequestOptions): string {
-  const baseUrl = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-  if (!baseUrl) {
-    throw new LeadSaleOverviewApiError(
-      0,
-      "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ máy chủ CRM.",
-    );
-  }
-  return baseUrl;
-}
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-async function requestHeaders(
-  options: RequestOptions,
-): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(options.headers ?? {}),
-  };
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) headers.Cookie = cookieHeader;
-    } catch {
-      // Contract tests and non-request contexts do not have Next headers.
-    }
-  }
-  return headers;
-}
-
-function errorDetails(
-  value: unknown,
-  status: number,
-): { code: string; message: string } {
-  const root = asRecord(value);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-  return {
-    code:
-      text(error?.code) ||
-      (status === 401
-        ? "UNAUTHENTICATED"
-        : status === 403
-          ? "FORBIDDEN"
-          : `HTTP_${status}`),
-    message:
-      text(error?.message) ||
-      text(message?.message) ||
-      text(root?.message) ||
-      text(root?.exception) ||
-      `Không thể tải tổng quan Lead Sale (${status}).`,
-  };
-}
-
-async function getNestLeadSaleOverview(
-  params: LeadSaleOverviewParams,
+export async function getLeadSaleOverview(
+  params: LeadSaleOverviewParams = {},
 ): Promise<LeadSaleOverviewResponse> {
   let payload: unknown;
   try {
@@ -621,58 +544,6 @@ async function getNestLeadSaleOverview(
       "Không thể kết nối đến máy chủ tổng quan Lead Sale.",
     );
   }
-  try {
-    return normalizeLeadSaleOverview(payload);
-  } catch {
-    throw new LeadSaleOverviewApiError(
-      502,
-      "INVALID_LEAD_SALE_OVERVIEW_RESPONSE",
-      "Phản hồi tổng quan Lead Sale không hợp lệ.",
-    );
-  }
-}
-
-export async function getLeadSaleOverview(
-  params: LeadSaleOverviewParams = {},
-  options: RequestOptions = {},
-): Promise<LeadSaleOverviewResponse> {
-  if (isNestApiEnabled()) return getNestLeadSaleOverview(params);
-  const url = new URL(`${resolveBaseUrl(options)}/api/method/${METHOD}`);
-  if (params.admissionYear !== undefined)
-    url.searchParams.set("admissionYear", String(params.admissionYear));
-  if (params.date) url.searchParams.set("date", params.date);
-  url.searchParams.set("trendRange", params.trendRange ?? "4w");
-  if (params.timezone) url.searchParams.set("timezone", params.timezone);
-  url.searchParams.set("teamMemberLimit", String(params.teamMemberLimit ?? 20));
-
-  let response: Response;
-  try {
-    response = await fetch(url.toString(), {
-      method: "GET",
-      headers: await requestHeaders(options),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new LeadSaleOverviewApiError(
-      503,
-      "LEAD_SALE_OVERVIEW_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ tổng quan Lead Sale.",
-    );
-  }
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = errorDetails(payload, response.status);
-    throw new LeadSaleOverviewApiError(
-      response.status,
-      error.code,
-      error.message,
-    );
-  }
-
   try {
     return normalizeLeadSaleOverview(payload);
   } catch {
