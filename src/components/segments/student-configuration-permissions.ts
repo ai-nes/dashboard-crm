@@ -1,10 +1,10 @@
-import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
+import { hasTechnicalRole } from "@/components/common/auth/rbac";
 
 export function canManageStudentConfiguration(
   roles?: readonly string[] | null,
 ): boolean {
   return Boolean(
-    hasFrappeTechnicalRole(roles, "System Manager") ||
+    hasTechnicalRole(roles, "System Manager") ||
     roles?.includes("Administrator") ||
     roles?.includes("Admissions Director"),
   );
@@ -14,7 +14,7 @@ export function canManageMajorCatalog(
   roles?: readonly string[] | null,
 ): boolean {
   return Boolean(
-    hasFrappeTechnicalRole(roles, "System Manager") ||
+    hasTechnicalRole(roles, "System Manager") ||
     roles?.includes("Administrator"),
   );
 }
@@ -22,19 +22,19 @@ export function canManageMajorCatalog(
 export function canManageAdmissionDocumentTypes(
   roles?: readonly string[] | null,
 ): boolean {
-  return hasFrappeTechnicalRole(roles, "System Manager");
+  return hasTechnicalRole(roles, "System Manager");
 }
 
 export function canDeleteAdmissionDocumentTypes(
   roles?: readonly string[] | null,
 ): boolean {
-  return hasFrappeTechnicalRole(roles, "System Manager");
+  return hasTechnicalRole(roles, "System Manager");
 }
 
 export function canManageAdmissionMethods(
   roles?: readonly string[] | null,
 ): boolean {
-  return hasFrappeTechnicalRole(roles, "System Manager");
+  return hasTechnicalRole(roles, "System Manager");
 }
 
 export function canDeleteAdmissionMethods(

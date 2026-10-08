@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
 interface AuthContextValue {
-  /** Current Frappe user, or null when not authenticated. */
+  /** Current user, or null when not authenticated. */
   user: CurrentUser | null;
   /** True while the initial session check is in flight. */
   isLoading: boolean;

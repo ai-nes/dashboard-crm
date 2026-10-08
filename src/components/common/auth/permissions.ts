@@ -21,7 +21,7 @@ const CRM_RULE_ADMIN_ROLES = new Set([
   "Business Admin",
 ]);
 
-/** Mirrors the Frappe Rule Engine admin gate; server authorization remains authoritative. */
+/** Mirrors the Rule Engine admin gate; server authorization remains authoritative. */
 export function canManageCrmRules(
   user: CurrentUser | null | undefined,
 ): boolean {
@@ -105,7 +105,7 @@ function toResourcePermissions(
 /**
  * Frontend capability map for the Sales workspaces.
  *
- * Frappe remains the source of truth for authorization. These capabilities
+ * The backend remains the source of truth for authorization. These capabilities
  * only keep the UI from exposing actions that the current role cannot use.
  */
 export function getCrmPermissions(

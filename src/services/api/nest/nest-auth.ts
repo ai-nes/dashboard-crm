@@ -18,7 +18,7 @@ interface NestMe {
 }
 
 /**
- * Doctype permissions the Frappe session used to carry. The backend still
+ * Record permissions the screens use to decide what to show. The backend still
  * authorizes every call; these only decide what the screens show and fetch.
  */
 export function doctypePermissions(
@@ -100,7 +100,6 @@ export async function nestGetCurrentUser(): Promise<CurrentUser | null> {
         data.leadScope,
         data.crmCapabilities.map((capability) => capability.key),
       ),
-      csrf_token: null,
     };
   } catch (error) {
     if (

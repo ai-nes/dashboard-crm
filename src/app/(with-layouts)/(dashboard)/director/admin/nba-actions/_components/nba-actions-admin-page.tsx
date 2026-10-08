@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
+import { hasTechnicalRole } from "@/components/common/auth/rbac";
 import {
   useNbaActionTypesQuery,
   useNbaActionsQuery,
@@ -33,7 +33,7 @@ export default function NbaActionsAdminPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const canEdit = hasFrappeTechnicalRole(user?.roles, "System Manager");
+  const canEdit = hasTechnicalRole(user?.roles, "System Manager");
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [debouncedSearch, setDebouncedSearch] = useState(

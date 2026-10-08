@@ -9,7 +9,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import { AdminTableFrame } from "@/components/common/admin/admin-table";
 import {
   CRM_ROLES,
-  FRAPPE_TECHNICAL_ROLES,
+  TECHNICAL_ROLES,
 } from "@/components/common/auth/rbac";
 import type { GetActivityLogsParams } from "@/services/api/activity-log";
 
@@ -23,7 +23,7 @@ interface ActivityLogFiltersProps {
   onChange: (next: ActivityLogFilterState) => void;
 }
 
-const roles = [...CRM_ROLES, ...FRAPPE_TECHNICAL_ROLES];
+const roles = [...CRM_ROLES, ...TECHNICAL_ROLES];
 
 function formatDateInput(date: Date): string {
   const year = date.getFullYear();

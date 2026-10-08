@@ -7,7 +7,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from "react-aria-components";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
+import { hasTechnicalRole } from "@/components/common/auth/rbac";
 import {
   useDeleteSegmentMutation,
   useSegmentDetailQuery,
@@ -46,7 +46,7 @@ export function SegmentDetailPage({
 }) {
   const router = useRouter();
   const { user } = useAuth();
-  const canManage = hasFrappeTechnicalRole(user?.roles, "System Manager");
+  const canManage = hasTechnicalRole(user?.roles, "System Manager");
   const [studentSearch, setStudentSearch] = useState("");
   const [studentPage, setStudentPage] = useState(1);
   const segmentQuery = useSegmentDetailQuery(segmentId);

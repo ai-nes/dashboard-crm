@@ -1,6 +1,6 @@
-/** Shape returned by `crm.api.session.me` on the Frappe backend. */
+/** The signed-in account, built from `GET /api/v1/me`. */
 export interface CurrentUser {
-  /** Frappe user id (the login email). */
+  /** User id (the login email). */
   user: string;
   email: string;
   full_name: string;
@@ -12,14 +12,12 @@ export interface CurrentUser {
   /** Human-readable CRM role label. */
   crm_role: string | null;
   crm_capabilities: string[];
-  /** Effective DocType CRUD flags from the authenticated Frappe session. */
+  /** Effective record CRUD flags for the signed-in account. */
   crm_doctype_permissions?: Record<string, CurrentUserDocTypePermission>;
   /** Current Staff memberships used by organization-aware screens. */
   crm_team_memberships?: CurrentUserTeamMembership[];
   /** Members of Groups currently managed by the session user. */
   crm_managed_group_members?: CurrentUserManagedGroupMember[];
-  /** Session-bound token required by Frappe for authenticated write requests. */
-  csrf_token: string | null;
 }
 
 export interface CurrentUserDocTypePermission {
@@ -71,9 +69,4 @@ export interface SessionUser {
   full_name: string;
   roles: string[];
   crm_profile: string | null;
-}
-
-/** Raw `frappe.whitelist` envelope: the payload sits under `message`. */
-export interface FrappeMessage<T> {
-  message?: T;
 }

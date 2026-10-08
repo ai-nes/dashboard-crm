@@ -18,7 +18,6 @@ const makeUser = (overrides: Partial<CurrentUser> = {}): CurrentUser => ({
   crm_profile: null,
   crm_role: null,
   crm_capabilities: [],
-  csrf_token: null,
   ...overrides,
 });
 
