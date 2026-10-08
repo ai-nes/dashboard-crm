@@ -46,11 +46,6 @@ function timeSlot(value: unknown): ActionTimeSlot | null {
   return enumValue(value, ACTION_TIME_SLOTS, "" as ActionTimeSlot) || null;
 }
 
-export function unwrapMethodPayload(value: unknown): unknown {
-  const root = asRecord(value);
-  return root?.message ?? value;
-}
-
 export function normalizeActionType(value: unknown): NbaAdminActionType {
   const object = asRecord(value);
   if (!object) throw new Error("action type must be an object");

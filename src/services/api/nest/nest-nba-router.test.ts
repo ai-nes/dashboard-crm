@@ -45,11 +45,16 @@ describe("next-best-action catalog routed to Nest", () => {
     expect(JSON.parse(update[1].body as string)).toEqual({ enabled: 0 });
   });
 
-  it("answers timing policies with an empty page", async () => {
-    const { request } = await import("../frappe-request");
+  it("leaves timing policies to the dedicated endpoints", async () => {
+    const { nestNbaHandler } = await import("./nest-nba-router");
+    const { NOT_HANDLED } = await import("./nest-handler");
     await expect(
-      request(`${FRAPPE}/crm.api.timing_policy.list_timing_policies`),
-    ).resolves.toMatchObject({ policies: [], total: 0 });
+      nestNbaHandler(
+        "crm.api.timing_policy.list_timing_policies",
+        {},
+        undefined,
+      ),
+    ).resolves.toBe(NOT_HANDLED);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -71,4 +76,5 @@ describe("next-best-action catalog routed to Nest", () => {
       name: "C1",
       operation: "ACCEPT",
     });
-  });});
+  });
+});

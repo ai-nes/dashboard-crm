@@ -161,7 +161,7 @@ export default function TimingPolicyEditorDialog({ policy, canEdit, onClose }: T
       return;
     }
     try {
-      if (policy) await updateMutation.mutateAsync({ name: policy.name, payload: toPayload() });
+      if (policy) await updateMutation.mutateAsync({ name: policy.name, payload: toPayload(), expectedModified: policy.modified });
       else await createMutation.mutateAsync(toPayload());
       toast.success(isEditing ? "Đã cập nhật chính sách thời gian." : "Đã tạo chính sách thời gian.");
       onClose();
@@ -173,7 +173,7 @@ export default function TimingPolicyEditorDialog({ policy, canEdit, onClose }: T
   const handleDelete = async () => {
     if (!policy || !window.confirm(`Xóa chính sách ${policy.policyKey}?`)) return;
     try {
-      await deleteMutation.mutateAsync(policy.name);
+      await deleteMutation.mutateAsync({ name: policy.name, expectedModified: policy.modified });
       toast.success("Đã xóa chính sách thời gian.");
       onClose();
     } catch (caught) {
