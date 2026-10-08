@@ -5,11 +5,7 @@
  */
 import { nestGetCurrentUser } from "./nest-auth";
 import { NestApiError, nestRequest } from "./nest-client";
-import {
-  NOT_HANDLED,
-  type MethodHandler,
-  type Params,
-} from "./nest-handler";
+import { NOT_HANDLED, type MethodHandler, type Params } from "./nest-handler";
 
 const USERS = "/api/v1/users";
 const PERMISSION_PROFILES = "/api/v1/permission-profiles";

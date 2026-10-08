@@ -16,9 +16,8 @@ async function call(
   params: Record<string, string> = {},
   body?: Record<string, unknown>,
 ) {
-  const { nestUserManagementHandler } = await import(
-    "./nest-user-management-router"
-  );
+  const { nestUserManagementHandler } =
+    await import("./nest-user-management-router");
   return nestUserManagementHandler(method, params, body);
 }
 

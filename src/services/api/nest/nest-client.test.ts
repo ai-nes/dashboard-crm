@@ -44,7 +44,9 @@ describe("nestRequest", () => {
   it("sends credentials and builds the query string", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
 
-    await nestRequest("/api/v1/items", { query: { page: 2, q: "", skip: null } });
+    await nestRequest("/api/v1/items", {
+      query: { page: 2, q: "", skip: null },
+    });
 
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe("http://localhost:3001/api/v1/items?page=2");
@@ -69,13 +71,17 @@ describe("nestRequest", () => {
 
   it("resolves null for 204", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
-    await expect(nestRequest("/api/v1/items/1", { method: "DELETE" })).resolves
-      .toBeNull();
+    await expect(
+      nestRequest("/api/v1/items/1", { method: "DELETE" }),
+    ).resolves.toBeNull();
   });
 
   it("surfaces the backend error code and message", async () => {
     fetchMock.mockResolvedValue(
-      jsonResponse({ error: { code: "FORBIDDEN", message: "Không có quyền" } }, 403),
+      jsonResponse(
+        { error: { code: "FORBIDDEN", message: "Không có quyền" } },
+        403,
+      ),
     );
     await expect(nestRequest("/api/v1/items")).rejects.toMatchObject({
       status: 403,
@@ -105,7 +111,10 @@ describe("toServiceError", () => {
   }
 
   it("rewraps Nest errors and keeps status, code and message", () => {
-    const result = toServiceError(new NestApiError(409, "STALE", "Cũ"), ServiceError);
+    const result = toServiceError(
+      new NestApiError(409, "STALE", "Cũ"),
+      ServiceError,
+    );
     expect(result).toBeInstanceOf(ServiceError);
     expect(result).toMatchObject({ status: 409, code: "STALE", message: "Cũ" });
   });

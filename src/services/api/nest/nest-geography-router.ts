@@ -3,11 +3,7 @@
  * Responses are already in the shape the reference catalog types expect.
  */
 import { nestRequest } from "./nest-client";
-import {
-  NOT_HANDLED,
-  type Body,
-  type MethodHandler,
-} from "./nest-handler";
+import { NOT_HANDLED, type Body, type MethodHandler } from "./nest-handler";
 
 const BASE = "/api/v1/geography-catalog";
 

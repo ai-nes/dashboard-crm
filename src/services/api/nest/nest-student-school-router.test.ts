@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { nestStudentSchoolHandler } from "./nest-student-school-router";
+import { chainHandlers } from "./nest-test-support";
+
 const fetchMock = vi.fn();
 
 function json(body: unknown, status = 200) {
@@ -25,7 +28,7 @@ describe("student form calls routed to Nest", () => {
 
   it("reads the lead options from the directory", async () => {
     fetchMock.mockImplementation(() => json({ staff: [], segments: [] }));
-    const { nestMethodRequest } = await import("./nest-method-router");
+    const nestMethodRequest = chainHandlers(nestStudentSchoolHandler);
     await nestMethodRequest(
       "crm.api.lead_mapping.get_lead_options",
       { limit: "100" },
@@ -36,7 +39,7 @@ describe("student form calls routed to Nest", () => {
     );
   });
 
-  it("creates a student from the form fields and answers in Frappe's shape", async () => {
+  it("creates a student from the form fields and answers in the dashboard shape", async () => {
     fetchMock.mockImplementation(() =>
       json(
         {
@@ -51,7 +54,7 @@ describe("student form calls routed to Nest", () => {
         201,
       ),
     );
-    const { nestMethodRequest } = await import("./nest-method-router");
+    const nestMethodRequest = chainHandlers(nestStudentSchoolHandler);
     const result = await nestMethodRequest(
       "crm.api.student_school.create_student_with_lead",
       {},
@@ -85,7 +88,7 @@ describe("student form calls routed to Nest", () => {
 
   it("deletes a student and a school", async () => {
     fetchMock.mockImplementation(() => json({ deleted: "x" }));
-    const { nestMethodRequest } = await import("./nest-method-router");
+    const nestMethodRequest = chainHandlers(nestStudentSchoolHandler);
     const student = await nestMethodRequest(
       "crm.api.student_school.delete_student",
       {},
