@@ -52,4 +52,23 @@ describe("next-best-action catalog routed to Nest", () => {
     ).resolves.toMatchObject({ policies: [], total: 0 });
     expect(fetchMock).not.toHaveBeenCalled();
   });
-});
+
+  it("serves the recommendation queue and decisions through the nba endpoints", async () => {
+    const { request } = await import("../frappe-request");
+    await request(
+      `${FRAPPE}/crm.api.student_worklist.list_student_worklist?student_id=HS-1&page_size=50`,
+    );
+    await request(`${FRAPPE}/crm.api.student_decision.decide_recommendation`, {
+      method: "POST",
+      body: JSON.stringify({ name: "C1", operation: "ACCEPT" }),
+    });
+    const [list, decide] = fetchMock.mock.calls as [string, RequestInit][];
+    expect(String(list[0])).toBe(
+      "http://api.test/api/v1/nba/worklist?student_id=HS-1&page_size=50",
+    );
+    expect(String(decide[0])).toBe("http://api.test/api/v1/nba/decisions");
+    expect(JSON.parse(String(decide[1].body))).toMatchObject({
+      name: "C1",
+      operation: "ACCEPT",
+    });
+  });});

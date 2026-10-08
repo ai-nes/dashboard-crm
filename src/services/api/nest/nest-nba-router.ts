@@ -21,7 +21,25 @@ const valuesOf = (body: Body) => {
   return values;
 };
 
+/** The recommendation queues and decisions, backed by the cards crm-ai writes. */
+const nestQueueHandler: MethodHandler = async (method, params, body) => {
+  switch (method) {
+    case "crm.api.student_worklist.list_student_worklist":
+      return nestRequest(`${BASE}/worklist`, { query: params });
+    case "crm.api.director_next_best_action.get_director_recommendations":
+      return nestRequest(`${BASE}/director-recommendations`, { query: params });
+    case "crm.api.student_decision.decide_recommendation":
+      return nestRequest(`${BASE}/decisions`, { method: "POST", body });
+    case "crm.api.copilot_delegation.run_student_nba_evaluation":
+      return nestRequest(`${BASE}/evaluations`, { method: "POST", body });
+    default:
+      return NOT_HANDLED;
+  }
+};
+
 export const nestNbaHandler: MethodHandler = async (method, params, body) => {
+  const queued = await nestQueueHandler(method, params, body);
+  if (queued !== NOT_HANDLED) return queued;
   const match =
     /^crm\.api\.(action|action_type|timing_policy)\.([a-z_]+)$/.exec(method);
   if (!match) return NOT_HANDLED;

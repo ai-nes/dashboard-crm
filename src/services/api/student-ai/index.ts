@@ -75,7 +75,7 @@ export function acceptNbaCard(
   cardId: string,
   due?: string,
 ): Promise<{ card_id: string; status: string; task_id: string }> {
-  return nestRequest(`/cards//accept`, {
+  return nestRequest(`${base(studentId)}/cards/${encodeURIComponent(cardId)}/accept`, {
     method: "POST",
     body: due ? { due } : {},
   });
@@ -86,7 +86,7 @@ export function rejectNbaCard(
   cardId: string,
   reason?: string,
 ): Promise<{ card_id: string; status: string }> {
-  return nestRequest(`/cards//reject`, {
+  return nestRequest(`${base(studentId)}/cards/${encodeURIComponent(cardId)}/reject`, {
     method: "POST",
     body: reason ? { reason } : {},
   });

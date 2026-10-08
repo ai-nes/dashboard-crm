@@ -1,9 +1,3 @@
-import {
-  FEATURE_NOT_MIGRATED_CODE,
-  FEATURE_NOT_MIGRATED_MESSAGE,
-  FEATURE_NOT_MIGRATED_STATUS,
-  frappeUnavailable,
-} from "../nest/nest-client";
 import type {
   NbaApiRequestOptions,
   NbaDecisionRequest,
@@ -325,13 +319,6 @@ function normalizeDirectorRecommendationsMeta(
 }
 
 function resolveBaseUrl(options: NbaApiRequestOptions): string {
-  if (frappeUnavailable(options.baseUrl)) {
-    throw new NbaApiError(
-      FEATURE_NOT_MIGRATED_STATUS,
-      FEATURE_NOT_MIGRATED_CODE,
-      FEATURE_NOT_MIGRATED_MESSAGE,
-    );
-  }
   const baseUrl = (
     options.baseUrl ??
     process.env.NEXT_PUBLIC_FRAPPE_URL ??
