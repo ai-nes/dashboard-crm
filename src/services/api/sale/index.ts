@@ -17,15 +17,10 @@ import type {
 } from "./types";
 import type { StudentStage } from "@/services/api/students/types";
 
-import {
-  NestApiError,
-  isNestApiEnabled,
-  nestRequest,
-} from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 
 export type * from "./types";
 
-const METHOD = "crm.api.sale.get_sale_overview";
 const STUDENT_STAGE_IDS = [
   "New",
   "Attempting",
@@ -52,11 +47,6 @@ const LEAD_PROCESSING_RESOLUTIONS = [
   "SPAM",
   "FAILED",
 ] as const;
-
-export type RequestOptions = {
-  baseUrl?: string;
-  headers?: Record<string, string>;
-};
 
 export class SaleOverviewApiError extends Error {
   constructor(
@@ -503,136 +493,24 @@ export function normalizeSaleOverview(value: unknown): SaleOverviewResponse {
   return result;
 }
 
-function resolveBaseUrl(options: RequestOptions): string {
-  const baseUrl = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-  if (!baseUrl) {
-    throw new SaleOverviewApiError(
-      0,
-      "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ máy chủ CRM.",
-    );
-  }
-  return baseUrl;
-}
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-async function requestHeaders(
-  options: RequestOptions,
-): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(options.headers ?? {}),
-  };
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) headers.Cookie = cookieHeader;
-    } catch {
-      // Contract tests and non-request contexts do not have Next headers.
-    }
-  }
-  return headers;
-}
-
-function errorDetails(
-  payload: unknown,
-  status: number,
-): { code: string; message: string } {
-  const root = asRecord(payload);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-  return {
-    code:
-      text(error?.code) ||
-      (status === 401
-        ? "UNAUTHENTICATED"
-        : status === 403
-          ? "FORBIDDEN"
-          : `HTTP_${status}`),
-    message:
-      text(error?.message) ||
-      text(message?.message) ||
-      text(root?.message) ||
-      text(root?.exception) ||
-      `Không thể tải tổng quan Sale (${status}).`,
-  };
-}
-
 export async function getSaleOverview(
   params: SaleOverviewParams = {},
-  options: RequestOptions = {},
 ): Promise<SaleOverviewResponse> {
-  if (isNestApiEnabled() && !options.baseUrl) {
-    try {
-      const payload = await nestRequest("/api/v1/sale/overview", {
-        query: {
-          admissionYear: params.admissionYear,
-          date: params.date,
-          trendRange: params.trendRange ?? "4w",
-          timezone: params.timezone,
-          priorityLimit: params.priorityLimit ?? 4,
-        },
-      });
-      return normalizeSaleOverview(payload);
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        throw new SaleOverviewApiError(error.status, error.code, error.message);
-      }
-      throw new SaleOverviewApiError(
-        502,
-        "INVALID_SALE_OVERVIEW_RESPONSE",
-        "Phản hồi tổng quan Sale không hợp lệ.",
-      );
-    }
-  }
-  const url = new URL(`${resolveBaseUrl(options)}/api/method/${METHOD}`);
-  if (params.admissionYear) {
-    url.searchParams.set("admissionYear", String(params.admissionYear));
-  }
-  if (params.date) url.searchParams.set("date", params.date);
-  url.searchParams.set("trendRange", params.trendRange ?? "4w");
-  if (params.timezone) url.searchParams.set("timezone", params.timezone);
-  url.searchParams.set("priorityLimit", String(params.priorityLimit ?? 4));
-
-  let response: Response;
   try {
-    response = await fetch(url.toString(), {
-      method: "GET",
-      headers: await requestHeaders(options),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
+    const payload = await nestRequest("/api/v1/sale/overview", {
+      query: {
+        admissionYear: params.admissionYear,
+        date: params.date,
+        trendRange: params.trendRange ?? "4w",
+        timezone: params.timezone,
+        priorityLimit: params.priorityLimit ?? 4,
+      },
     });
-  } catch {
-    throw new SaleOverviewApiError(
-      503,
-      "SALE_OVERVIEW_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ tổng quan Sale.",
-    );
-  }
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = errorDetails(payload, response.status);
-    throw new SaleOverviewApiError(response.status, error.code, error.message);
-  }
-
-  try {
     return normalizeSaleOverview(payload);
-  } catch {
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new SaleOverviewApiError(error.status, error.code, error.message);
+    }
     throw new SaleOverviewApiError(
       502,
       "INVALID_SALE_OVERVIEW_RESPONSE",
