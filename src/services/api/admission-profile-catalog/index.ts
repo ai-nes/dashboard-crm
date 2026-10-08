@@ -20,9 +20,9 @@ import type {
 } from "./types";
 
 import {
-  NEST_API_URL,
-  NestApiError,
+  getApiUrl,
   isNestApiEnabled,
+  NestApiError,
 } from "../nest/nest-client";
 import { NOT_HANDLED } from "../nest/nest-admin-catalog-router";
 import { uploadProfileDocument } from "../nest/nest-admission-catalog-router";
@@ -44,7 +44,7 @@ export class AdmissionProfileCatalogApiError extends Error {
 function baseUrl(value?: string): string {
   // With the Nest API enabled the root only has to be non-empty; `request`
   // routes by method name and ignores it.
-  if (value === undefined && isNestApiEnabled()) return NEST_API_URL;
+  if (value === undefined && isNestApiEnabled()) return getApiUrl();
   return (value ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
     /\/+$/,
     "",

@@ -4,13 +4,27 @@
  * Auth is a Better Auth session cookie, so every call sends credentials.
  */
 
-export const NEST_API_URL = (process.env.NEXT_PUBLIC_CRM_API_URL ?? "").replace(
-  /\/+$/,
-  "",
-);
+/** Origin of the Nest API, read on every call so tests can change it. */
+function readApiUrl(): string {
+  return (process.env.NEXT_PUBLIC_CRM_API_URL ?? "").replace(/\/+$/, "");
+}
 
+/** Origin of the Nest API; fails loudly when the dashboard is not configured. */
+export function getApiUrl(): string {
+  const url = readApiUrl();
+  if (!url) {
+    throw new NestApiError(
+      503,
+      "API_URL_MISSING",
+      "Chưa cấu hình NEXT_PUBLIC_CRM_API_URL cho máy chủ CRM.",
+    );
+  }
+  return url;
+}
+
+/** @deprecated Nest is the only backend; remove with the Frappe fallback branches. */
 export function isNestApiEnabled(): boolean {
-  return NEST_API_URL !== "";
+  return readApiUrl() !== "";
 }
 
 /**
@@ -23,7 +37,7 @@ export const FEATURE_NOT_MIGRATED_CODE = "FEATURE_NOT_MIGRATED";
 export const FEATURE_NOT_MIGRATED_MESSAGE =
   "Tính năng này đang được chuyển sang hệ thống mới nên chưa khả dụng.";
 
-/** True when a request must not go to Frappe because Nest is the backend. */
+/** @deprecated True when a request must not go to Frappe because Nest is the backend. */
 export function frappeUnavailable(explicitBaseUrl?: string): boolean {
   return !explicitBaseUrl && isNestApiEnabled();
 }
@@ -39,6 +53,34 @@ export class NestApiError extends Error {
   }
 }
 
+/**
+ * Throws the 501 for a function whose Nest endpoint is still being built, so a
+ * screen shows an honest message instead of empty data.
+ */
+export function notMigrated(): never {
+  throw new NestApiError(
+    FEATURE_NOT_MIGRATED_STATUS,
+    FEATURE_NOT_MIGRATED_CODE,
+    FEATURE_NOT_MIGRATED_MESSAGE,
+  );
+}
+
+type ServiceErrorConstructor<E extends Error> = new (
+  status: number,
+  code: string,
+  message: string,
+) => E;
+
+/** Re-throws a Nest failure as the service's own error class; other errors pass through. */
+export function toServiceError<E extends Error>(
+  error: unknown,
+  ErrorClass: ServiceErrorConstructor<E>,
+): unknown {
+  return error instanceof NestApiError
+    ? new ErrorClass(error.status, error.code, error.message)
+    : error;
+}
+
 export interface NestRequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   query?: Record<string, string | number | undefined | null>;
@@ -48,7 +90,7 @@ export interface NestRequestOptions {
 }
 
 function buildUrl(path: string, query: NestRequestOptions["query"]): string {
-  const url = `${NEST_API_URL}${path}`;
+  const url = `${getApiUrl()}${path}`;
   if (!query) return url;
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
