@@ -27,7 +27,7 @@ const PROFILE = `${API}/api/v1/admission-profile`;
 const fetchMock = vi.fn();
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status });
-
+const catalog = {
   methods: [],
   years: [],
   offerings: [],
