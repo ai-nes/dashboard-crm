@@ -119,7 +119,7 @@ function parseClaims(value: unknown): AnalysisClaim[] {
 
   return claimsValue.flatMap((item): AnalysisClaim[] => {
     const claim = asRecord(item);
-    // Frappe's visible_claims response uses the compact wire names
+    // The compact wire names
     // (kind/text/visibility); accept the dashboard's camelCase and the
     // agent's snake_case aliases as well so a valid completed run is not
     // rendered as an empty result set.

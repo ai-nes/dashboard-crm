@@ -193,7 +193,7 @@ function rootFor(options: AdminCatalogRequestOptions): string {
   const root = getBaseUrl(options.baseUrl);
   ensureRoot(
     root,
-    "Chưa cấu hình API Frappe CRM cho khu vực quản trị.",
+    "Chưa cấu hình API máy chủ CRM cho khu vực quản trị.",
     AdminCatalogApiError,
   );
   return root;

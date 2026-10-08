@@ -513,7 +513,7 @@ function resolveBaseUrl(options: RequestOptions): string {
     throw new SaleOverviewApiError(
       0,
       "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
+      "Chưa cấu hình địa chỉ máy chủ CRM.",
     );
   }
   return baseUrl;

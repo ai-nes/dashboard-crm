@@ -1,13 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Fragment,
-  useId,
-  useRef,
-  useState,
-  type ChangeEvent,
-} from "react";
+import { Fragment, useId, useRef, useState, type ChangeEvent } from "react";
 
 import { FileText, UploadCloud } from "@tailgrids/icons";
 import { Radio, RadioGroup } from "react-aria-components";
@@ -20,6 +14,7 @@ import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Input } from "@/components/tailgrids/core/input";
 import { studentsKeys } from "@/hooks/use-students-queries";
 import { uploadStudentAdmissionDocument } from "@/services/api/admission-profile-catalog";
+import { readApiUrl } from "@/services/api/nest/nest-client";
 import type {
   StudentAdmissionDocument,
   StudentAdmissionProfile,
@@ -685,12 +680,9 @@ function resolveAdmissionDocumentUrl(file: string): string {
     return normalizedFile;
   }
 
-  const frappeBaseUrl = (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
-    /\/+$/,
-    "",
-  );
-  return frappeBaseUrl
-    ? `${frappeBaseUrl}/${normalizedFile.replace(/^\/+/, "")}`
+  const apiUrl = readApiUrl();
+  return apiUrl
+    ? `${apiUrl}/${normalizedFile.replace(/^\/+/, "")}`
     : normalizedFile;
 }
 

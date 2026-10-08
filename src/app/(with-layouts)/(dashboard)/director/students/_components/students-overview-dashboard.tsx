@@ -192,7 +192,7 @@ export default function StudentsOverviewDashboard() {
       {isError && (
         <Card className="border-error-200 bg-badge-error-background p-4 text-error-600">
           <p className="font-semibold text-sm">
-            Không thể tải dữ liệu từ Frappe CRM API
+            Không thể tải dữ liệu từ máy chủ CRM
           </p>
           <p className="mt-1 text-xs">
             {error?.message ||

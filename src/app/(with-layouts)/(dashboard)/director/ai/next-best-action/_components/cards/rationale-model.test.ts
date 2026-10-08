@@ -31,7 +31,11 @@ describe("buildRationaleRows", () => {
       approach: "Nhắn tin kèm checklist",
       expectedOutcome: "Nhận đủ giấy tờ",
     });
-    expect(rows.map((row) => row.id)).toEqual(["whyNow", "approach", "outcome"]);
+    expect(rows.map((row) => row.id)).toEqual([
+      "whyNow",
+      "approach",
+      "outcome",
+    ]);
   });
 
   it("drops every row whose source value is missing", () => {
@@ -48,17 +52,17 @@ describe("buildRationaleRows", () => {
   it("scrubs internal system nouns from rendered copy", () => {
     const rows = buildRationaleRows({
       ...base,
-      whyNow: "Liên hệ học viên do Frappe xác định và cần theo dõi",
+      whyNow: "Liên hệ học viên theo gợi ý của Bedrock và cần theo dõi",
     });
     const value = rows.find((row) => row.id === "whyNow")?.value ?? "";
-    expect(value).not.toMatch(/Frappe/i);
+    expect(value).not.toMatch(/Bedrock/i);
   });
 });
 
 describe("scrubCopy", () => {
   it("replaces or removes internal identifiers", () => {
-    expect(scrubCopy("Bộ phận phù hợp do Frappe định tuyến")).toBe(
-      "Bộ phận phù hợp",
+    expect(scrubCopy("Bộ phận phù hợp theo LLM")).toBe(
+      "Bộ phận phù hợp theo trợ lý AI",
     );
     expect(scrubCopy("Ghi vào CRM Action")).toBe("Ghi vào hành động");
   });

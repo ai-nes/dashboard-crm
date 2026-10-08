@@ -1,6 +1,6 @@
 /**
  * Student profile read/update against the Nest backend, translating between
- * the dashboard's Frappe-style snake_case fields and the REST DTO.
+ * the dashboard's snake_case fields and the REST DTO.
  */
 import { nestRequest } from "./nest-client";
 

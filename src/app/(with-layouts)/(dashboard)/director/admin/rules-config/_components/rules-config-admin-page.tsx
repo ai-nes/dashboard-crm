@@ -522,7 +522,7 @@ export default function RulesConfigAdminPage({
               }}
             />
           }
-          metaLabel="Đồng bộ từ Frappe CRM"
+          metaLabel="Đồng bộ từ máy chủ CRM"
           metaValue={
             <>
               <span className="font-semibold text-text-primary">
@@ -561,7 +561,7 @@ export default function RulesConfigAdminPage({
             </Button>
           ) : null
         }
-        metaLabel="Đồng bộ từ Frappe CRM"
+        metaLabel="Đồng bộ từ máy chủ CRM"
         metaValue={
           <>
             <span className="font-semibold text-text-primary">

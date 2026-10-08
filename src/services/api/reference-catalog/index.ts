@@ -45,17 +45,19 @@ type PaginationOptions = {
 
 type ListOptions = PaginationOptions & Record<string, unknown>;
 
-function normalizePagination<T extends { total?: number; start?: number; pageLength?: number }>(
-  result: T,
-  options: PaginationOptions,
-): T {
-  if (options.start === undefined && options.pageLength === undefined) return result;
+function normalizePagination<
+  T extends { total?: number; start?: number; pageLength?: number },
+>(result: T, options: PaginationOptions): T {
+  if (options.start === undefined && options.pageLength === undefined)
+    return result;
   const raw = result as T & { page_length?: number };
   return {
     ...result,
     total: Number(result.total ?? 0),
     start: Number(result.start ?? options.start ?? 0),
-    pageLength: Number(result.pageLength ?? raw.page_length ?? options.pageLength ?? 20),
+    pageLength: Number(
+      result.pageLength ?? raw.page_length ?? options.pageLength ?? 20,
+    ),
   };
 }
 
@@ -64,13 +66,18 @@ function buildListParams(options: ListOptions): URLSearchParams {
   if (options.search?.trim()) params.set("search", options.search.trim());
   for (const [key, value] of Object.entries(options)) {
     if (key === "baseUrl" || key === "search" || value === undefined) continue;
-    const apiKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    const apiKey = key.replace(
+      /[A-Z]/g,
+      (letter) => `_${letter.toLowerCase()}`,
+    );
     params.set(apiKey, String(value));
   }
   return params;
 }
 
-async function listRequest<T extends { total?: number; start?: number; pageLength?: number }>(
+async function listRequest<
+  T extends { total?: number; start?: number; pageLength?: number },
+>(
   method: string,
   options: ListOptions,
   responseKey: string,
@@ -94,79 +101,93 @@ async function listRequest<T extends { total?: number; start?: number; pageLengt
   return normalizePagination(result as T, options);
 }
 
-export function listProvinces(options: {
-  baseUrl?: string;
-  search?: string;
-  region?: string;
-  cityType?: string;
-  start?: number;
-  pageLength?: number;
-} = {}): Promise<ProvinceCatalog> {
+export function listProvinces(
+  options: {
+    baseUrl?: string;
+    search?: string;
+    region?: string;
+    cityType?: string;
+    start?: number;
+    pageLength?: number;
+  } = {},
+): Promise<ProvinceCatalog> {
   return listRequest(
     "list_provinces",
     options,
     "provinces",
-    "Chưa cấu hình API Frappe CRM để tải tỉnh/thành.",
+    "Chưa cấu hình API máy chủ CRM để tải tỉnh/thành.",
   );
 }
 
-export function listWards(options: {
-  baseUrl?: string;
-  search?: string;
-  province?: string;
-  zone?: string;
-  wardType?: string;
-  start?: number;
-  pageLength?: number;
-} = {}): Promise<WardCatalog> {
+export function listWards(
+  options: {
+    baseUrl?: string;
+    search?: string;
+    province?: string;
+    zone?: string;
+    wardType?: string;
+    start?: number;
+    pageLength?: number;
+  } = {},
+): Promise<WardCatalog> {
   return listRequest(
     "list_wards",
     options,
     "wards",
-    "Chưa cấu hình API Frappe CRM để tải xã/phường.",
+    "Chưa cấu hình API máy chủ CRM để tải xã/phường.",
   );
 }
 
-export function listSchools(options: {
-  baseUrl?: string;
-  search?: string;
-  province?: string;
-  ward?: string;
-  schoolArea?: string;
-  isActive?: boolean;
-  start?: number;
-  pageLength?: number;
-} = {}): Promise<SchoolCatalog> {
+export function listSchools(
+  options: {
+    baseUrl?: string;
+    search?: string;
+    province?: string;
+    ward?: string;
+    schoolArea?: string;
+    isActive?: boolean;
+    start?: number;
+    pageLength?: number;
+  } = {},
+): Promise<SchoolCatalog> {
   return listRequest(
     "list_high_schools",
     options,
     "schools",
-    "Chưa cấu hình API Frappe CRM để tải trường học.",
+    "Chưa cấu hình API máy chủ CRM để tải trường học.",
   );
 }
 
-export function listSchoolAreas(options: {
-  baseUrl?: string;
-  search?: string;
-  includeDisabled?: boolean;
-  enabled?: boolean;
-  start?: number;
-  pageLength?: number;
-} = {}): Promise<SchoolAreaCatalog> {
+export function listSchoolAreas(
+  options: {
+    baseUrl?: string;
+    search?: string;
+    includeDisabled?: boolean;
+    enabled?: boolean;
+    start?: number;
+    pageLength?: number;
+  } = {},
+): Promise<SchoolAreaCatalog> {
   return listRequest(
     "list_school_areas",
     options,
     "schoolAreas",
-    "Chưa cấu hình API Frappe CRM để tải khu vực trường.",
+    "Chưa cấu hình API máy chủ CRM để tải khu vực trường.",
   );
 }
 
-export async function listGeographyOptions(options: {
-  baseUrl?: string;
-  province?: string;
-} = {}): Promise<GeographyOptions> {
+export async function listGeographyOptions(
+  options: {
+    baseUrl?: string;
+    province?: string;
+  } = {},
+): Promise<GeographyOptions> {
   const root = getBaseUrl(options.baseUrl);
-  ensureRoot(root, "Chưa cấu hình API Frappe CRM để tải tùy chọn địa bàn.", ReferenceCatalogApiError);
+  ensureRoot(
+    root,
+    "Chưa cấu hình API máy chủ CRM để tải tùy chọn địa bàn.",
+    ReferenceCatalogApiError,
+  );
   const params = new URLSearchParams();
   if (options.province) params.set("province", options.province);
   const result = await frappeRequest(
@@ -205,7 +226,12 @@ export function createProvince(
   data: ProvinceMutationInput,
   options: { baseUrl?: string } = {},
 ): Promise<ProvinceOption> {
-  return mutate("create_province", { data }, "Chưa cấu hình API Frappe CRM để tạo tỉnh/thành.", options);
+  return mutate(
+    "create_province",
+    { data },
+    "Chưa cấu hình API máy chủ CRM để tạo tỉnh/thành.",
+    options,
+  );
 }
 
 export function updateProvince(
@@ -214,8 +240,12 @@ export function updateProvince(
 ): Promise<ProvinceOption> {
   return mutate(
     "update_province",
-    { name: input.name, data: input.data, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để sửa tỉnh/thành.",
+    {
+      name: input.name,
+      data: input.data,
+      expected_modified: input.expectedModified,
+    },
+    "Chưa cấu hình API máy chủ CRM để sửa tỉnh/thành.",
     options,
   );
 }
@@ -227,7 +257,7 @@ export function deleteProvince(
   return mutate(
     "delete_province",
     { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để xóa tỉnh/thành.",
+    "Chưa cấu hình API máy chủ CRM để xóa tỉnh/thành.",
     options,
   );
 }
@@ -236,7 +266,12 @@ export function createWard(
   data: WardMutationInput,
   options: { baseUrl?: string } = {},
 ): Promise<WardOption> {
-  return mutate("create_ward", { data }, "Chưa cấu hình API Frappe CRM để tạo xã/phường.", options);
+  return mutate(
+    "create_ward",
+    { data },
+    "Chưa cấu hình API máy chủ CRM để tạo xã/phường.",
+    options,
+  );
 }
 
 export function updateWard(
@@ -245,8 +280,12 @@ export function updateWard(
 ): Promise<WardOption> {
   return mutate(
     "update_ward",
-    { name: input.name, data: input.data, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để sửa xã/phường.",
+    {
+      name: input.name,
+      data: input.data,
+      expected_modified: input.expectedModified,
+    },
+    "Chưa cấu hình API máy chủ CRM để sửa xã/phường.",
     options,
   );
 }
@@ -258,7 +297,7 @@ export function deleteWard(
   return mutate(
     "delete_ward",
     { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để xóa xã/phường.",
+    "Chưa cấu hình API máy chủ CRM để xóa xã/phường.",
     options,
   );
 }
@@ -267,7 +306,12 @@ export function createSchool(
   data: SchoolMutationInput,
   options: { baseUrl?: string } = {},
 ): Promise<SchoolOption> {
-  return mutate("create_high_school", { data }, "Chưa cấu hình API Frappe CRM để tạo trường học.", options);
+  return mutate(
+    "create_high_school",
+    { data },
+    "Chưa cấu hình API máy chủ CRM để tạo trường học.",
+    options,
+  );
 }
 
 export function updateSchool(
@@ -276,8 +320,12 @@ export function updateSchool(
 ): Promise<SchoolOption> {
   return mutate(
     "update_high_school",
-    { name: input.name, data: input.data, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để sửa trường học.",
+    {
+      name: input.name,
+      data: input.data,
+      expected_modified: input.expectedModified,
+    },
+    "Chưa cấu hình API máy chủ CRM để sửa trường học.",
     options,
   );
 }
@@ -289,7 +337,7 @@ export function deleteSchool(
   return mutate(
     "delete_high_school",
     { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để xóa trường học.",
+    "Chưa cấu hình API máy chủ CRM để xóa trường học.",
     options,
   );
 }
@@ -301,7 +349,7 @@ export function createSchoolArea(
   return mutate(
     "create_school_area",
     { data },
-    "Chưa cấu hình API Frappe CRM để tạo khu vực trường.",
+    "Chưa cấu hình API máy chủ CRM để tạo khu vực trường.",
     options,
   );
 }
@@ -312,8 +360,12 @@ export function updateSchoolArea(
 ): Promise<SchoolAreaOption> {
   return mutate(
     "update_school_area",
-    { name: input.name, data: input.data, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để sửa khu vực trường.",
+    {
+      name: input.name,
+      data: input.data,
+      expected_modified: input.expectedModified,
+    },
+    "Chưa cấu hình API máy chủ CRM để sửa khu vực trường.",
     options,
   );
 }
@@ -325,7 +377,7 @@ export function deleteSchoolArea(
   return mutate(
     "delete_school_area",
     { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để xóa khu vực trường.",
+    "Chưa cấu hình API máy chủ CRM để xóa khu vực trường.",
     options,
   );
 }

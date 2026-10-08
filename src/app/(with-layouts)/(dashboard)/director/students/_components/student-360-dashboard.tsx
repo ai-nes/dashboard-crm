@@ -296,7 +296,7 @@ export default function Student360Dashboard({
       <main id="main-content" className="min-w-0 p-6">
         <Card className="border-error-200 bg-badge-error-background p-5 text-error-600">
           <p className="font-semibold text-base">
-            Không thể tải hồ sơ học sinh từ Frappe CRM
+            Không thể tải hồ sơ học sinh từ máy chủ CRM
           </p>
           <p className="mt-1 text-sm">
             {error?.message || "Lỗi 403 Forbidden hoặc không tìm thấy hồ sơ."}
@@ -323,7 +323,7 @@ export default function Student360Dashboard({
         <div className="px-2 pt-4 lg:px-6">
           <Card className="border-error-200 bg-badge-error-background p-4 text-error-600">
             <p className="font-semibold text-sm">
-              Cảnh báo: Lỗi khi đồng bộ từ Frappe CRM
+              Cảnh báo: Lỗi khi đồng bộ từ máy chủ CRM
             </p>
             <p className="mt-1 text-xs">{error?.message}</p>
           </Card>

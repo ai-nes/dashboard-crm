@@ -145,7 +145,7 @@ export default function NbaActionsAdminPage() {
         title="Cấu hình gợi ý NBA"
         description="Cấu hình hành động đề xuất tuyển sinh."
         canEdit={canEdit}
-        metaLabel="Dữ liệu từ Frappe CRM"
+        metaLabel="Dữ liệu từ máy chủ CRM"
         metaValue={
           <>
             <span className="font-semibold text-text-primary">

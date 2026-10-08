@@ -163,7 +163,7 @@ export default function SegmentBuilderPage({
         filters: backendFilters,
       });
 
-      toast.success("Đã tạo segment từ dữ liệu Frappe CRM");
+      toast.success("Đã tạo segment từ dữ liệu máy chủ CRM");
       router.push(backHref);
     } catch (error) {
       toast.error(

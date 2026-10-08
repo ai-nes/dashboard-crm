@@ -83,7 +83,7 @@ export async function listMajorGroups(
   } = {},
 ): Promise<MajorGroupCatalog> {
   const root = getBaseUrl(options.baseUrl);
-  ensureRoot(root, "Chưa cấu hình API Frappe CRM để tải nhóm ngành.");
+  ensureRoot(root, "Chưa cấu hình API máy chủ CRM để tải nhóm ngành.");
   const params = new URLSearchParams();
   if (options.search?.trim()) params.set("search", options.search.trim());
   if (options.includeDisabled !== undefined)
@@ -120,7 +120,7 @@ export async function listMajors(
   } = {},
 ): Promise<MajorCatalog> {
   const root = getBaseUrl(options.baseUrl);
-  ensureRoot(root, "Chưa cấu hình API Frappe CRM để tải ngành học.");
+  ensureRoot(root, "Chưa cấu hình API máy chủ CRM để tải ngành học.");
   const params = new URLSearchParams();
   if (options.search?.trim()) params.set("search", options.search.trim());
   if (options.group) params.set("group", options.group);
@@ -168,7 +168,7 @@ export function createMajorGroup(
   return mutate(
     "create_major_group",
     { data },
-    "Chưa cấu hình API Frappe CRM để tạo nhóm ngành.",
+    "Chưa cấu hình API máy chủ CRM để tạo nhóm ngành.",
     options,
   );
 }
@@ -184,7 +184,7 @@ export function updateMajorGroup(
       data: input.data,
       expected_modified: input.expectedModified,
     },
-    "Chưa cấu hình API Frappe CRM để sửa nhóm ngành.",
+    "Chưa cấu hình API máy chủ CRM để sửa nhóm ngành.",
     options,
   );
 }
@@ -196,7 +196,7 @@ export function deleteMajorGroup(
   return mutate(
     "delete_major_group",
     { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để xóa nhóm ngành.",
+    "Chưa cấu hình API máy chủ CRM để xóa nhóm ngành.",
     options,
   );
 }
@@ -208,7 +208,7 @@ export function createMajor(
   return mutate(
     "create_major",
     { data },
-    "Chưa cấu hình API Frappe CRM để tạo ngành học.",
+    "Chưa cấu hình API máy chủ CRM để tạo ngành học.",
     options,
   );
 }
@@ -224,7 +224,7 @@ export function updateMajor(
       data: input.data,
       expected_modified: input.expectedModified,
     },
-    "Chưa cấu hình API Frappe CRM để sửa ngành học.",
+    "Chưa cấu hình API máy chủ CRM để sửa ngành học.",
     options,
   );
 }
@@ -236,7 +236,7 @@ export function deleteMajor(
   return mutate(
     "delete_major",
     { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để xóa ngành học.",
+    "Chưa cấu hình API máy chủ CRM để xóa ngành học.",
     options,
   );
 }

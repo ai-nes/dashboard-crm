@@ -269,7 +269,7 @@ async function requestCampaignData(
     throw new CampaignIntelligenceApiError(
       0,
       "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
+      "Chưa cấu hình địa chỉ máy chủ CRM.",
     );
   let response: Response;
   const query = new URLSearchParams();

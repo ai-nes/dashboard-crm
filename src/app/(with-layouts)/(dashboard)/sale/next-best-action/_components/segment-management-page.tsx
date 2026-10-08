@@ -48,7 +48,7 @@ export default function SegmentManagementPage({
               </Button>
             ) : null
           }
-          metaLabel="Dữ liệu từ Frappe CRM"
+          metaLabel="Dữ liệu từ máy chủ CRM"
           metaValue="Nhóm dùng chung"
         />
       ) : (

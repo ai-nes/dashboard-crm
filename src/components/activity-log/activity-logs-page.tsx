@@ -49,7 +49,7 @@ export default function ActivityLogsPage() {
         section="Nhật ký"
         title="Nhật ký hoạt động"
         description="Lịch sử hoạt động hệ thống."
-        metaLabel="Dữ liệu từ Frappe CRM"
+        metaLabel="Dữ liệu từ máy chủ CRM"
         metaValue={
           <>
             <span className="font-semibold text-text-primary">

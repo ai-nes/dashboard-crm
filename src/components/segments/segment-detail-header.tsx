@@ -63,13 +63,13 @@ export function SegmentDetailHeader({
               {SEGMENT_STATUS_LABELS[segment.status]}
             </Badge>
             <span>
-              Ngày tạo: {" "}
+              Ngày tạo:{" "}
               <strong className="font-medium text-text-secondary">
                 {formatDate(createdAt)}
               </strong>
             </span>
             <span>
-              Cập nhật lần cuối: {" "}
+              Cập nhật lần cuối:{" "}
               <strong className="font-medium text-text-secondary">
                 {formatDate(segment.updatedAt)}
               </strong>
@@ -95,7 +95,7 @@ export function SegmentDetailHeader({
             </>
           ) : null
         }
-        metaLabel="Dữ liệu được đồng bộ từ Frappe CRM"
+        metaLabel="Dữ liệu được đồng bộ từ máy chủ CRM"
         metaValue={
           <>
             <span className="font-semibold text-text-primary">

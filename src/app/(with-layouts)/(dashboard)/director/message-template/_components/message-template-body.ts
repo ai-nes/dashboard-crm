@@ -64,10 +64,12 @@ function htmlToEditorHtml(body: string) {
 function tokenizeJsonNode(node: JSONContent): JSONContent[] {
   if (node.type !== "text" || !node.text || !TOKEN_PATTERN.test(node.text)) {
     TOKEN_PATTERN.lastIndex = 0;
-    return [{
-      ...node,
-      content: node.content?.flatMap(tokenizeJsonNode),
-    }];
+    return [
+      {
+        ...node,
+        content: node.content?.flatMap(tokenizeJsonNode),
+      },
+    ];
   }
 
   TOKEN_PATTERN.lastIndex = 0;
@@ -135,8 +137,12 @@ function asJsonDocument(value: unknown): JSONContent | null {
 function parseJsonBody(body: string): JSONContent | null {
   let value: unknown = body.trim();
 
-  // Frappe can return a JSON field that has been encoded more than once.
-  for (let attempt = 0; attempt < 3 && typeof value === "string"; attempt += 1) {
+  // A JSON field can arrive encoded more than once (older imported records).
+  for (
+    let attempt = 0;
+    attempt < 3 && typeof value === "string";
+    attempt += 1
+  ) {
     if (!/^[\[{]/.test(value.trim())) return null;
 
     try {
@@ -154,10 +160,13 @@ function jsonBodyToHtml(body: string) {
   if (!document) return null;
 
   try {
-    return generateHTML({
-      ...document,
-      content: document.content?.flatMap(tokenizeJsonNode),
-    }, BODY_EXTENSIONS);
+    return generateHTML(
+      {
+        ...document,
+        content: document.content?.flatMap(tokenizeJsonNode),
+      },
+      BODY_EXTENSIONS,
+    );
   } catch {
     // An unknown node from an older editor version should not leak its JSON
     // representation into the editor. Falling back to readable text keeps the

@@ -45,7 +45,7 @@ export function RuleVersionsPage() {
             </Button>
           ) : null
         }
-        metaLabel="Đồng bộ từ Frappe CRM"
+        metaLabel="Đồng bộ từ máy chủ CRM"
         metaValue="Rule trong từng Version"
       />
       <AdminTabRoot

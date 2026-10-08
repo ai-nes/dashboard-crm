@@ -19,11 +19,7 @@ import type {
   UpdateAdmissionApplicationPreferenceResponse,
 } from "./types";
 
-import {
-  getApiUrl,
-  isNestApiEnabled,
-  NestApiError,
-} from "../nest/nest-client";
+import { getApiUrl, isNestApiEnabled, NestApiError } from "../nest/nest-client";
 import { NOT_HANDLED } from "../nest/nest-admin-catalog-router";
 import { uploadProfileDocument } from "../nest/nest-admission-catalog-router";
 import { nestMethodRequest } from "../nest/nest-method-router";
@@ -214,7 +210,7 @@ export async function getAdmissionProfileCatalog(
     throw new AdmissionProfileCatalogApiError(
       503,
       "ADMISSION_CATALOG_UNAVAILABLE",
-      "Chưa cấu hình API Frappe CRM cho catalog tuyển sinh.",
+      "Chưa cấu hình API máy chủ CRM cho catalog tuyển sinh.",
     );
   }
   const params = new URLSearchParams();
@@ -284,7 +280,7 @@ export async function listAdmissionProfileTemplates(
   const root = baseUrl(options.baseUrl);
   ensureApiRoot(
     root,
-    "Chưa cấu hình API Frappe CRM để quản lý loại hồ sơ nhập học.",
+    "Chưa cấu hình API máy chủ CRM để quản lý loại hồ sơ nhập học.",
   );
   const params = new URLSearchParams();
   if (options.status) params.set("status", options.status);
@@ -329,7 +325,7 @@ export async function createAdmissionProfileTemplate(
   options: { baseUrl?: string } = {},
 ): Promise<AdmissionProfileTemplateOption> {
   const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để tạo loại hồ sơ.");
+  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để tạo loại hồ sơ.");
   const result = await request(
     `${root}/api/method/crm.api.admission_profile_templates.create_admission_profile_template`,
     { method: "POST", body: JSON.stringify({ data }) },
@@ -349,7 +345,7 @@ export async function updateAdmissionProfileTemplate(
   options: { baseUrl?: string } = {},
 ): Promise<AdmissionProfileTemplateOption> {
   const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để sửa loại hồ sơ.");
+  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để sửa loại hồ sơ.");
   const result = await request(
     `${root}/api/method/crm.api.admission_profile_templates.update_admission_profile_template`,
     {
@@ -378,7 +374,7 @@ export async function transitionAdmissionProfileTemplate(
   const root = baseUrl(options.baseUrl);
   ensureApiRoot(
     root,
-    "Chưa cấu hình API Frappe CRM để cập nhật trạng thái loại hồ sơ.",
+    "Chưa cấu hình API máy chủ CRM để cập nhật trạng thái loại hồ sơ.",
   );
   const result = await request(
     `${root}/api/method/crm.api.admission_profile_templates.transition_admission_profile_template`,
@@ -405,7 +401,7 @@ export async function deleteAdmissionProfileTemplate(
   options: { baseUrl?: string } = {},
 ): Promise<{ name: string; deleted: boolean }> {
   const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để xóa loại hồ sơ.");
+  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để xóa loại hồ sơ.");
   const result = await request(
     `${root}/api/method/crm.api.admission_profile_templates.delete_admission_profile_template`,
     {
@@ -431,7 +427,10 @@ export async function listAdmissionDocumentTypes(
   } = {},
 ): Promise<AdmissionDocumentTypeCatalog> {
   const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để quản lý loại tài liệu.");
+  ensureApiRoot(
+    root,
+    "Chưa cấu hình API máy chủ CRM để quản lý loại tài liệu.",
+  );
   const params = new URLSearchParams();
   if (options.search?.trim()) params.set("search", options.search.trim());
   if (options.includeArchived !== undefined) {
@@ -477,7 +476,7 @@ export async function createAdmissionDocumentType(
   options: { baseUrl?: string } = {},
 ): Promise<AdmissionDocumentTypeCatalog["documentTypes"][number]> {
   const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để tạo loại tài liệu.");
+  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để tạo loại tài liệu.");
   const result = await request(
     `${root}/api/method/crm.api.admission_catalog.create_admission_document_type`,
     { method: "POST", body: JSON.stringify({ data }) },
@@ -497,7 +496,7 @@ export async function updateAdmissionDocumentType(
   options: { baseUrl?: string } = {},
 ): Promise<AdmissionDocumentTypeCatalog["documentTypes"][number]> {
   const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để sửa loại tài liệu.");
+  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để sửa loại tài liệu.");
   const result = await request(
     `${root}/api/method/crm.api.admission_catalog.update_admission_document_type`,
     {
@@ -523,7 +522,7 @@ export async function deleteAdmissionDocumentType(
   options: { baseUrl?: string } = {},
 ): Promise<{ deleted: string }> {
   const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API Frappe CRM để xóa loại tài liệu.");
+  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để xóa loại tài liệu.");
   const result = await request(
     `${root}/api/method/crm.api.admission_catalog.delete_admission_document_type`,
     {
@@ -551,7 +550,7 @@ export async function listAdmissionMethods(
   const root = baseUrl(options.baseUrl);
   ensureApiRoot(
     root,
-    "Chưa cấu hình API Frappe CRM để quản lý phương thức xét tuyển.",
+    "Chưa cấu hình API máy chủ CRM để quản lý phương thức xét tuyển.",
   );
   const params = new URLSearchParams();
   if (options.search?.trim()) params.set("search", options.search.trim());
@@ -600,7 +599,7 @@ export async function createAdmissionMethod(
   const root = baseUrl(options.baseUrl);
   ensureApiRoot(
     root,
-    "Chưa cấu hình API Frappe CRM để tạo phương thức xét tuyển.",
+    "Chưa cấu hình API máy chủ CRM để tạo phương thức xét tuyển.",
   );
   const result = await request(
     `${root}/api/method/crm.api.admission_catalog.create_admission_method`,
@@ -623,7 +622,7 @@ export async function updateAdmissionMethod(
   const root = baseUrl(options.baseUrl);
   ensureApiRoot(
     root,
-    "Chưa cấu hình API Frappe CRM để sửa phương thức xét tuyển.",
+    "Chưa cấu hình API máy chủ CRM để sửa phương thức xét tuyển.",
   );
   const result = await request(
     `${root}/api/method/crm.api.admission_catalog.update_admission_method`,
@@ -652,7 +651,7 @@ export async function deleteAdmissionMethod(
   const root = baseUrl(options.baseUrl);
   ensureApiRoot(
     root,
-    "Chưa cấu hình API Frappe CRM để xóa phương thức xét tuyển.",
+    "Chưa cấu hình API máy chủ CRM để xóa phương thức xét tuyển.",
   );
   const result = await request(
     `${root}/api/method/crm.api.admission_catalog.delete_admission_method`,
@@ -677,7 +676,7 @@ export async function createAdmissionApplication(
     throw new AdmissionProfileCatalogApiError(
       503,
       "ADMISSION_APPLICATION_UNAVAILABLE",
-      "Chưa cấu hình API Frappe CRM để tạo hồ sơ nhập học.",
+      "Chưa cấu hình API máy chủ CRM để tạo hồ sơ nhập học.",
     );
   }
   const result = await request(
@@ -705,7 +704,7 @@ export async function uploadStudentAdmissionDocument(
     throw new AdmissionProfileCatalogApiError(
       503,
       "ADMISSION_DOCUMENT_UPLOAD_UNAVAILABLE",
-      "Chưa cấu hình API Frappe CRM để tải tài liệu nhập học.",
+      "Chưa cấu hình API máy chủ CRM để tải tài liệu nhập học.",
     );
   }
   if (!input.file || !input.file.name) {
@@ -740,7 +739,7 @@ export async function updateAdmissionApplicationPreference(
     throw new AdmissionProfileCatalogApiError(
       503,
       "ADMISSION_APPLICATION_UNAVAILABLE",
-      "Chưa cấu hình API Frappe CRM để cập nhật hồ sơ nhập học.",
+      "Chưa cấu hình API máy chủ CRM để cập nhật hồ sơ nhập học.",
     );
   }
   const result = await request(
@@ -763,7 +762,7 @@ export async function updateAdmissionApplication(
     throw new AdmissionProfileCatalogApiError(
       503,
       "ADMISSION_APPLICATION_UNAVAILABLE",
-      "Chưa cấu hình API Frappe CRM để cập nhật hồ sơ nhập học.",
+      "Chưa cấu hình API máy chủ CRM để cập nhật hồ sơ nhập học.",
     );
   }
   const result = await request(

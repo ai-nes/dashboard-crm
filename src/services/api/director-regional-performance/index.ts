@@ -88,7 +88,7 @@ export async function getDirectorRegionalPerformance(
     throw new DirectorRegionalPerformanceApiError(
       0,
       "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
+      "Chưa cấu hình địa chỉ máy chủ CRM.",
     );
   }
   const query = new URLSearchParams();

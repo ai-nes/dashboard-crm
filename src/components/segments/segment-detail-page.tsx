@@ -89,7 +89,7 @@ export function SegmentDetailPage({
     return (
       <main id="main-content" className="px-2 py-4 lg:px-6">
         <section className="rounded-2xl border border-card-border bg-card-background p-6 text-sm text-text-secondary">
-          Đang tải segment từ Frappe CRM…
+          Đang tải segment từ máy chủ CRM…
         </section>
       </main>
     );

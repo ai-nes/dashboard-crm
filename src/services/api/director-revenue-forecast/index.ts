@@ -42,7 +42,7 @@ export async function getRevenueForecast(): Promise<RevenueForecastResponse> {
     "",
   );
   if (!baseUrl)
-    throw new RevenueForecastApiError("Chưa cấu hình địa chỉ Frappe CRM API.");
+    throw new RevenueForecastApiError("Chưa cấu hình địa chỉ máy chủ CRM.");
   const response = await fetch(`${baseUrl}/api/method/${METHOD}`, {
     headers: { Accept: "application/json" },
     credentials: "include",

@@ -128,7 +128,7 @@ export default function StudentCreateInteractionDialog({
     try {
       await onCreate({
         interaction_type: form.interactionType,
-        interaction_datetime: toFrappeDatetime(
+        interaction_datetime: toApiDatetime(
           `${form.interactionDate}T${form.interactionTime}`,
         ),
         outcome: form.outcome || undefined,
@@ -363,6 +363,6 @@ function getDateTimeInputValue(date = new Date()): string {
   return localDate.toISOString().slice(0, 16);
 }
 
-function toFrappeDatetime(value: string): string {
+function toApiDatetime(value: string): string {
   return value.length === 16 ? `${value.replace("T", " ")}:00` : value;
 }
