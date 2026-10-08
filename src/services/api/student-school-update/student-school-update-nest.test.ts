@@ -37,8 +37,9 @@ describe("student high-school score Nest transport", () => {
         priority_score: null,
       },
     };
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
-      async (input, init) => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input, init) => {
         const url = String(input);
         if (url.includes("/high-school-score") && init?.method === "PUT") {
           return new Response(
@@ -61,18 +62,17 @@ describe("student high-school score Nest transport", () => {
           });
         }
         return new Response(JSON.stringify({ data: score }), { status: 200 });
-      },
-    );
+      });
 
     await expect(
       api.getStudentHighSchoolScore("HS-2026-HCM-000001", "2026"),
     ).resolves.toEqual(score);
     await expect(
-      api.updateStudentHighSchoolScore(
-        "HS-2026-HCM-000001",
-        { graduation_score: 8.6, transcript_score: 8.5, total_score: 27.25 },
-        "2026",
-      ),
+      api.updateStudentHighSchoolScore("HS-2026-HCM-000001", {
+        graduation_score: 8.6,
+        transcript_score: 8.5,
+        total_score: 27.25,
+      }),
     ).resolves.toMatchObject({ updated_fields: { total_score: 27.25 } });
 
     expect(fetchSpy).toHaveBeenCalledWith(

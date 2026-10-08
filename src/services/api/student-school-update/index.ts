@@ -1,5 +1,7 @@
-import { isNestApiEnabled, NestApiError, nestRequest } from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
+import { NOT_HANDLED, type Body, type Params } from "../nest/nest-handler";
 import { nestFieldOptions, nestSchools } from "../nest/nest-directory";
+import { nestStudentSchoolHandler } from "../nest/nest-student-school-router";
 import {
   nestReadStudent,
   nestStudentStage,
@@ -320,124 +322,8 @@ export function normalizeStudentFields<TFields extends StudentUpdateFields>(
   return normalizedFields;
 }
 
-function getBaseUrl() {
-  return (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(/\/+$/, "");
-}
-
-async function getRequestHeaders() {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  };
-
-  if (typeof window === "undefined") return headers;
-
-  const cookieToken = document.cookie
-    .split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith("csrf_token="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-
-  if (cookieToken) {
-    headers["X-Frappe-CSRF-Token"] = decodeURIComponent(cookieToken);
-    return headers;
-  }
-
-  try {
-    const response = await fetch(
-      `${getBaseUrl()}/api/method/crm.api.session.me`,
-      {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      },
-    );
-    const payload = (await response.json().catch(() => null)) as {
-      message?: { csrf_token?: unknown };
-    } | null;
-    if (typeof payload?.message?.csrf_token === "string") {
-      headers["X-Frappe-CSRF-Token"] = payload.message.csrf_token;
-    }
-  } catch {
-    // The write request returns the authoritative CSRF error if needed.
-  }
-
-  return headers;
-}
-
 function text(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function getErrorDetails(
-  payload: unknown,
-  status: number,
-  operation: "create" | "read" | "update" | "delete",
-) {
-  const root =
-    payload && typeof payload === "object"
-      ? (payload as Record<string, unknown>)
-      : {};
-  const message =
-    root.message && typeof root.message === "object"
-      ? (root.message as Record<string, unknown>)
-      : {};
-  const error =
-    root.error && typeof root.error === "object"
-      ? (root.error as Record<string, unknown>)
-      : {};
-
-  return {
-    code:
-      text(error.code) ??
-      text(message.code) ??
-      (status === 401
-        ? "UNAUTHENTICATED"
-        : status === 403
-          ? "FORBIDDEN"
-          : `HTTP_${status}`),
-    message:
-      text(error.message) ??
-      text(message.message) ??
-      text(root.exception) ??
-      (typeof root.message === "string" ? root.message : null) ??
-      `${getOperationLabel(operation)} (${status}).`,
-  };
-}
-
-function getOperationLabel(operation: "create" | "read" | "update" | "delete") {
-  if (operation === "create") return "Không thể tạo bản ghi";
-  if (operation === "delete") return "Không thể xóa bản ghi";
-  if (operation === "read") return "Không thể tải dữ liệu";
-  return "Không thể cập nhật dữ liệu";
-}
-
-function assertObject(
-  value: unknown,
-): asserts value is Record<string, unknown> {
-  if (!value || typeof value !== "object") {
-    throw new StudentSchoolUpdateApiError(
-      502,
-      "INVALID_API_RESPONSE",
-      "Phản hồi từ CRM không hợp lệ.",
-    );
-  }
-}
-
-function getMessage(payload: unknown) {
-  if (!payload || typeof payload !== "object") return payload;
-  const root = payload as Record<string, unknown>;
-  return root.message ?? payload;
-}
-
-function getReadRequestInit(): RequestInit {
-  return {
-    method: "GET",
-    credentials: "include",
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-  };
 }
 
 async function viaNest<T>(call: () => Promise<T>): Promise<T> {
@@ -455,10 +341,40 @@ async function viaNest<T>(call: () => Promise<T>): Promise<T> {
   }
 }
 
-async function readRecord<TFields>(
-  method: "get_student" | "get_school",
+/** Runs an operation owned by the student/school adapter. */
+function callSchoolApi<T>(
+  method: string,
+  params: Params,
+  body?: Body,
+): Promise<T> {
+  return viaNest(async () => {
+    const result = await nestStudentSchoolHandler(method, params, body);
+    if (result === NOT_HANDLED) {
+      throw new StudentSchoolUpdateApiError(
+        501,
+        "FEATURE_NOT_MIGRATED",
+        "Chức năng này chưa có trên máy chủ CRM.",
+      );
+    }
+    return result as T;
+  });
+}
+
+function assertObject(
+  value: unknown,
+): asserts value is Record<string, unknown> {
+  if (!value || typeof value !== "object") {
+    throw new StudentSchoolUpdateApiError(
+      502,
+      "INVALID_API_RESPONSE",
+      "Phản hồi từ CRM không hợp lệ.",
+    );
+  }
+}
+
+export async function getStudent<TFields = Record<string, unknown>>(
   name: string,
-): Promise<StudentSchoolRecord<TFields>> {
+) {
   const normalizedName = name.trim();
   if (!normalizedName) {
     throw new StudentSchoolUpdateApiError(
@@ -467,145 +383,9 @@ async function readRecord<TFields>(
       "Thiếu tên bản ghi cần tải.",
     );
   }
-
-  if (isNestApiEnabled() && method === "get_student") {
-    return viaNest(() => nestReadStudent(normalizedName)) as unknown as Promise<
-      StudentSchoolRecord<TFields>
-    >;
-  }
-
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "STUDENT_SCHOOL_READ_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể tải dữ liệu.",
-    );
-  }
-
-  const url = new URL(`${baseUrl}/api/method/crm.api.student_school.${method}`);
-  url.searchParams.set("name", normalizedName);
-
-  const response = await fetch(url.toString(), getReadRequestInit());
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "read");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-
-  const message = getMessage(payload);
-  assertObject(message);
-  if (
-    typeof message.doctype !== "string" ||
-    typeof message.name !== "string" ||
-    !message.fields ||
-    typeof message.fields !== "object" ||
-    Array.isArray(message.fields)
-  ) {
-    throw new StudentSchoolUpdateApiError(
-      502,
-      "INVALID_READ_RESPONSE",
-      "Phản hồi đọc dữ liệu không hợp lệ.",
-    );
-  }
-
-  return message as unknown as StudentSchoolRecord<TFields>;
-}
-
-export function getStudent<TFields = Record<string, unknown>>(name: string) {
-  return readRecord<TFields>("get_student", name);
-}
-
-function isNullableNumber(value: unknown): value is number | null {
-  return (
-    value === null || (typeof value === "number" && Number.isFinite(value))
-  );
-}
-
-function isNullableBoolean(value: unknown): value is boolean | null {
-  return value === null || typeof value === "boolean";
-}
-
-function isNullableString(value: unknown): value is string | null {
-  return value === null || typeof value === "string";
-}
-
-function isScoreDetails(value: unknown): value is StudentScoreDetails | null {
-  return value === null || (typeof value === "object" && value !== null);
-}
-
-function isScoreFieldValue(
-  fieldname: keyof StudentHighSchoolScoreFields,
-  value: unknown,
-): boolean {
-  if (
-    fieldname === "graduation_score" ||
-    fieldname === "transcript_score" ||
-    fieldname === "total_score" ||
-    fieldname === "graduation_year" ||
-    fieldname === "grade_12_gpa" ||
-    fieldname === "encouragement_score" ||
-    fieldname === "priority_score"
-  ) {
-    return isNullableNumber(value);
-  }
-  if (fieldname === "is_high_school_graduate") return isNullableBoolean(value);
-  if (fieldname === "score_details") return isScoreDetails(value);
-  return isNullableString(value);
-}
-
-function parseStudentHighSchoolScoreResponse(
-  payload: unknown,
-): StudentHighSchoolScoreResponse {
-  const message = getMessage(payload);
-  assertObject(message);
-  const fields = message.fields;
-  const fieldNames = Object.keys({
-    graduation_score: true,
-    transcript_score: true,
-    total_score: true,
-    is_high_school_graduate: true,
-    graduation_year: true,
-    academic_rank: true,
-    priority_group: true,
-    graduation_classification: true,
-    conduct_rank: true,
-    grade_12_gpa: true,
-    exam_candidate_number: true,
-    score_details: true,
-    encouragement_type: true,
-    encouragement_score: true,
-    priority_type: true,
-    priority_score: true,
-  }) as Array<keyof StudentHighSchoolScoreFields>;
-
-  if (
-    message.doctype !== "CRM Student" ||
-    typeof message.name !== "string" ||
-    !fields ||
-    typeof fields !== "object" ||
-    Array.isArray(fields) ||
-    (typeof message.admission_profile !== "string" &&
-      message.admission_profile !== null) ||
-    (typeof message.admission_year !== "string" &&
-      message.admission_year !== null) ||
-    fieldNames.some((fieldname) => {
-      const value = (fields as Record<string, unknown>)[fieldname];
-      return !isScoreFieldValue(fieldname, value);
-    })
-  ) {
-    throw new StudentSchoolUpdateApiError(
-      502,
-      "INVALID_STUDENT_HIGH_SCHOOL_SCORE_RESPONSE",
-      "Phản hồi điểm THPT không hợp lệ.",
-    );
-  }
-
-  return message as unknown as StudentHighSchoolScoreResponse;
+  return viaNest(() => nestReadStudent(normalizedName)) as unknown as Promise<
+    StudentSchoolRecord<TFields>
+  >;
 }
 
 export async function getStudentHighSchoolScore(
@@ -621,53 +401,22 @@ export async function getStudentHighSchoolScore(
     );
   }
 
-  if (isNestApiEnabled()) {
-    return viaNest(async () => {
-      const result = await nestRequest<{
-        data: StudentHighSchoolScoreResponse;
-      }>(
-        `/api/v1/students/${encodeURIComponent(normalizedName)}/high-school-score${
-          admissionYear?.trim()
-            ? `?admission_year=${encodeURIComponent(admissionYear.trim())}`
-            : ""
-        }`,
-      );
-      return result.data;
-    });
-  }
-
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "STUDENT_HIGH_SCHOOL_SCORE_READ_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể tải điểm THPT.",
+  return viaNest(async () => {
+    const result = await nestRequest<{
+      data: StudentHighSchoolScoreResponse;
+    }>(
+      `/api/v1/students/${encodeURIComponent(normalizedName)}/high-school-score`,
+      {
+        query: { admission_year: admissionYear?.trim() || undefined },
+      },
     );
-  }
-
-  const url = new URL(
-    `${baseUrl}/api/method/crm.api.student_school.get_student_high_school_score`,
-  );
-  url.searchParams.set("name", normalizedName);
-  addOptionalQueryParam(url.searchParams, "admission_year", admissionYear);
-  const response = await fetch(url.toString(), getReadRequestInit());
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "read");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-
-  return parseStudentHighSchoolScoreResponse(payload);
+    return result.data;
+  });
 }
 
 export async function updateStudentHighSchoolScore(
   name: string,
   fields: StudentHighSchoolScoreUpdateFields,
-  admissionYear?: string,
 ): Promise<UpdateStudentHighSchoolScoreResponse> {
   const normalizedName = name.trim();
   if (!normalizedName) {
@@ -685,311 +434,45 @@ export async function updateStudentHighSchoolScore(
     );
   }
 
-  if (isNestApiEnabled()) {
-    return viaNest(async () => {
-      const current = await nestRequest<{
-        data: { revision: number };
-      }>(`/api/v1/students/${encodeURIComponent(normalizedName)}`);
-      const result = await nestRequest<{
-        data: UpdateStudentHighSchoolScoreResponse;
-      }>(`/api/v1/students/${encodeURIComponent(normalizedName)}/high-school-score`, {
+  return viaNest(async () => {
+    const current = await nestRequest<{
+      data: { revision: number };
+    }>(`/api/v1/students/${encodeURIComponent(normalizedName)}`);
+    const result = await nestRequest<{
+      data: UpdateStudentHighSchoolScoreResponse;
+    }>(
+      `/api/v1/students/${encodeURIComponent(normalizedName)}/high-school-score`,
+      {
         method: "PUT",
         body: {
           ...fields,
           expectedRevision: current.data.revision,
         },
-      });
-      return result.data;
-    });
-  }
-
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "STUDENT_HIGH_SCHOOL_SCORE_UPDATE_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể lưu điểm THPT.",
+      },
     );
-  }
-
-  const response = await fetch(
-    `${baseUrl}/api/method/crm.api.student_school.update_student_high_school_score`,
-    {
-      method: "PUT",
-      credentials: "include",
-      headers: await getRequestHeaders(),
-      body: JSON.stringify({
-        name: normalizedName,
-        ...(admissionYear?.trim()
-          ? { admission_year: admissionYear.trim() }
-          : {}),
-        fields,
-      }),
-    },
-  );
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "update");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-
-  const result = parseStudentHighSchoolScoreResponse(payload);
-  const root =
-    payload && typeof payload === "object"
-      ? (payload as Record<string, unknown>)
-      : {};
-  const message =
-    root.message && typeof root.message === "object"
-      ? (root.message as Record<string, unknown>)
-      : root;
-  if (
-    !message.updated_fields ||
-    typeof message.updated_fields !== "object" ||
-    Array.isArray(message.updated_fields) ||
-    Object.entries(message.updated_fields).some(([fieldname, value]) => {
-      if (!(fieldname in result.fields)) return true;
-      return !isScoreFieldValue(
-        fieldname as keyof StudentHighSchoolScoreFields,
-        value,
-      );
-    })
-  ) {
-    throw new StudentSchoolUpdateApiError(
-      502,
-      "INVALID_STUDENT_HIGH_SCHOOL_SCORE_UPDATE_RESPONSE",
-      "Phản hồi cập nhật điểm THPT không hợp lệ.",
-    );
-  }
-
-  return {
-    ...result,
-    updated_fields:
-      message.updated_fields as StudentHighSchoolScoreUpdateFields,
-  };
+    return result.data;
+  });
 }
 
-export function getSchool<TFields = Record<string, unknown>>(name: string) {
-  return readRecord<TFields>("get_school", name);
-}
-
-function addOptionalQueryParam(
-  searchParams: URLSearchParams,
-  key: string,
-  value: string | number | undefined,
-) {
-  if (typeof value === "number" || value?.trim()) {
-    searchParams.set(key, String(value));
-  }
-}
-
-async function readSchools(
+export function getSchools(
   params: GetSchoolsParams = {},
 ): Promise<GetSchoolsResponse> {
-  if (isNestApiEnabled()) {
-    try {
-      return await nestSchools(params);
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        throw new StudentSchoolUpdateApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
-    }
-  }
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "STUDENT_SCHOOL_READ_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể tải dữ liệu trường.",
-    );
-  }
-
-  const url = new URL(
-    `${baseUrl}/api/method/crm.api.student_school.get_schools`,
-  );
-  addOptionalQueryParam(url.searchParams, "province", params.province);
-  addOptionalQueryParam(url.searchParams, "ward", params.ward);
-  addOptionalQueryParam(url.searchParams, "search", params.search);
-  addOptionalQueryParam(url.searchParams, "limit", params.limit);
-
-  const response = await fetch(url.toString(), getReadRequestInit());
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "read");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-
-  const message = getMessage(payload);
-  assertObject(message);
-  if (
-    message.doctype !== "CRM High School" ||
-    !Array.isArray(message.schools) ||
-    message.schools.some((school) => {
-      if (!school || typeof school !== "object" || Array.isArray(school)) {
-        return true;
-      }
-      const item = school as Record<string, unknown>;
-      return (
-        typeof item.name !== "string" ||
-        !item.fields ||
-        typeof item.fields !== "object" ||
-        Array.isArray(item.fields)
-      );
-    })
-  ) {
-    throw new StudentSchoolUpdateApiError(
-      502,
-      "INVALID_SCHOOLS_RESPONSE",
-      "Phản hồi danh sách trường không hợp lệ.",
-    );
-  }
-
-  return {
-    doctype: "CRM High School",
-    filters:
-      message.filters &&
-      typeof message.filters === "object" &&
-      !Array.isArray(message.filters)
-        ? (message.filters as Record<string, unknown>)
-        : {},
-    schools: message.schools as SchoolListRecord[],
-  };
+  return viaNest(() => nestSchools(params));
 }
 
-export function getSchools(params: GetSchoolsParams = {}) {
-  return readSchools(params);
-}
-
-export async function getFieldOptions(
+export function getFieldOptions(
   params: GetFieldOptionsParams,
 ): Promise<GetFieldOptionsResponse> {
-  if (isNestApiEnabled()) {
-    try {
-      return await nestFieldOptions(params);
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        throw new StudentSchoolUpdateApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
-    }
-  }
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "STUDENT_SCHOOL_READ_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể tải danh sách lựa chọn.",
-    );
-  }
-
-  const fieldname = params.fieldname.trim();
-  if (!fieldname) {
-    throw new StudentSchoolUpdateApiError(
-      400,
-      "INVALID_FIELDNAME",
-      "Thiếu tên field cần tải lựa chọn.",
-    );
-  }
-
-  const url = new URL(
-    `${baseUrl}/api/method/crm.api.student_school.get_field_options`,
-  );
-  url.searchParams.set("doctype", params.doctype);
-  url.searchParams.set("fieldname", fieldname);
-  addOptionalQueryParam(url.searchParams, "search", params.search);
-  addOptionalQueryParam(url.searchParams, "province", params.province);
-  addOptionalQueryParam(url.searchParams, "high_school", params.high_school);
-  addOptionalQueryParam(url.searchParams, "limit", params.limit);
-  if (params.filters && Object.keys(params.filters).length > 0) {
-    url.searchParams.set("filters", JSON.stringify(params.filters));
-  }
-
-  const response = await fetch(url.toString(), getReadRequestInit());
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "read");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-
-  const message = getMessage(payload);
-  assertObject(message);
-  if (
-    (message.doctype !== "CRM Lead" &&
-      message.doctype !== "CRM Student" &&
-      message.doctype !== "CRM High School") ||
-    typeof message.fieldname !== "string" ||
-    (message.fieldtype !== "Link" && message.fieldtype !== "Select") ||
-    !(
-      message.target_doctype === null ||
-      typeof message.target_doctype === "string"
-    ) ||
-    !Array.isArray(message.options) ||
-    message.options.some(
-      (option) =>
-        !option ||
-        typeof option !== "object" ||
-        typeof (option as Record<string, unknown>).value !== "string" ||
-        typeof (option as Record<string, unknown>).label !== "string",
-    )
-  ) {
-    throw new StudentSchoolUpdateApiError(
-      502,
-      "INVALID_FIELD_OPTIONS_RESPONSE",
-      "Phản hồi danh sách lựa chọn không hợp lệ.",
-    );
-  }
-
-  return message as unknown as GetFieldOptionsResponse;
+  return viaNest(() => nestFieldOptions(params));
 }
 
 export async function getLeadOptions(
   limit = 100,
 ): Promise<GetLeadOptionsResponse> {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "STUDENT_SCHOOL_READ_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể tải lựa chọn Lead.",
-    );
-  }
-
-  const url = new URL(
-    `${baseUrl}/api/method/crm.api.lead_mapping.get_lead_options`,
+  const message = await callSchoolApi<unknown>(
+    "crm.api.lead_mapping.get_lead_options",
+    { limit: String(limit) },
   );
-  url.searchParams.set("limit", String(limit));
-  const response = await fetch(url.toString(), getReadRequestInit());
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "read");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-
-  const message = getMessage(payload);
   assertObject(message);
   if (
     !isLeadOptionArray(message.staff) ||
@@ -1031,13 +514,8 @@ function isFieldOption(value: unknown): value is FieldOption {
   );
 }
 
-async function updateRecord<TFields>(
-  method: "update_student" | "update_school",
-  name: string,
-  fields: TFields,
-): Promise<UpdateRecordResponse<TFields>> {
-  const normalizedName = name.trim();
-  if (!normalizedName) {
+function assertUpdateFields(name: string, fields: unknown) {
+  if (!name) {
     throw new StudentSchoolUpdateApiError(
       400,
       "INVALID_NAME",
@@ -1055,62 +533,18 @@ async function updateRecord<TFields>(
       "Vui lòng thay đổi ít nhất một trường.",
     );
   }
-
-  if (isNestApiEnabled() && method === "update_student") {
-    return viaNest(() =>
-      nestUpdateStudent(normalizedName, fields as Record<string, unknown>),
-    ) as unknown as Promise<UpdateRecordResponse<TFields>>;
-  }
-
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "STUDENT_SCHOOL_UPDATE_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể lưu thay đổi.",
-    );
-  }
-
-  const response = await fetch(
-    `${baseUrl}/api/method/crm.api.student_school.${method}`,
-    {
-      method: "PUT",
-      credentials: "include",
-      headers: await getRequestHeaders(),
-      body: JSON.stringify({ name: normalizedName, fields }),
-    },
-  );
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "update");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-
-  const message = payload?.message ?? payload;
-  if (
-    !message ||
-    typeof message !== "object" ||
-    typeof message.name !== "string" ||
-    !message.updated_fields ||
-    typeof message.updated_fields !== "object"
-  ) {
-    throw new StudentSchoolUpdateApiError(
-      502,
-      "INVALID_UPDATE_RESPONSE",
-      "Phản hồi cập nhật dữ liệu không hợp lệ.",
-    );
-  }
-
-  return message as UpdateRecordResponse<TFields>;
 }
 
-export function updateStudent(name: string, fields: StudentUpdateFields) {
-  return updateRecord("update_student", name, normalizeStudentFields(fields));
+export async function updateStudent(name: string, fields: StudentUpdateFields) {
+  const normalizedName = name.trim();
+  const normalizedFields = normalizeStudentFields(fields);
+  assertUpdateFields(normalizedName, normalizedFields);
+  return viaNest(() =>
+    nestUpdateStudent(
+      normalizedName,
+      normalizedFields as Record<string, unknown>,
+    ),
+  ) as unknown as Promise<UpdateRecordResponse<StudentUpdateFields>>;
 }
 
 export async function requestStudentStageTransition({
@@ -1126,56 +560,35 @@ export async function requestStudentStageTransition({
     );
   }
 
-  if (isNestApiEnabled()) {
-    await viaNest(() => nestStudentStage(normalizedStudent, target_stage));
-    return;
-  }
-
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "STUDENT_STAGE_UPDATE_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể cập nhật trạng thái.",
-    );
-  }
-
-  const response = await fetch(
-    `${baseUrl}/api/method/crm.api.student_stage.request_transition`,
-    {
-      method: "POST",
-      credentials: "include",
-      headers: await getRequestHeaders(),
-      body: JSON.stringify({
-        student: normalizedStudent,
-        target_stage,
-      }),
-    },
-  );
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "update");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
+  await viaNest(() => nestStudentStage(normalizedStudent, target_stage));
 }
 
-export function updateSchool(name: string, fields: SchoolUpdateFields) {
-  return updateRecord("update_school", name, fields);
+export async function updateSchool(name: string, fields: SchoolUpdateFields) {
+  const normalizedName = name.trim();
+  assertUpdateFields(normalizedName, fields);
+  const message = await callSchoolApi<unknown>(
+    "crm.api.student_school.update_school",
+    {},
+    { name: normalizedName, fields },
+  );
+  assertObject(message);
+  if (
+    typeof message.name !== "string" ||
+    !message.updated_fields ||
+    typeof message.updated_fields !== "object"
+  ) {
+    throw new StudentSchoolUpdateApiError(
+      502,
+      "INVALID_UPDATE_RESPONSE",
+      "Phản hồi cập nhật dữ liệu không hợp lệ.",
+    );
+  }
+  return message as unknown as UpdateRecordResponse<SchoolUpdateFields>;
 }
 
 async function createRecord<TFields>(
-  method:
-    | "create_student"
-    | "create_student_with_lead"
-    | "create_school"
-    | "create_lead",
+  method: "create_student" | "create_student_with_lead" | "create_school",
   fields: TFields,
-  apiModule: "student_school" | "lead_mapping" = "student_school",
 ): Promise<CreateRecordResponse<TFields>> {
   if (
     !fields ||
@@ -1189,36 +602,11 @@ async function createRecord<TFields>(
     );
   }
 
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "STUDENT_SCHOOL_CREATE_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể tạo bản ghi.",
-    );
-  }
-
-  const response = await fetch(
-    `${baseUrl}/api/method/crm.api.${apiModule}.${method}`,
-    {
-      method: "POST",
-      credentials: "include",
-      headers: await getRequestHeaders(),
-      body: JSON.stringify({ fields }),
-    },
+  const message = await callSchoolApi<unknown>(
+    `crm.api.student_school.${method}`,
+    {},
+    { fields },
   );
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "create");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-
-  const message = payload?.message ?? payload;
   assertObject(message);
   if (
     typeof message.name !== "string" ||
@@ -1238,7 +626,6 @@ async function createRecord<TFields>(
 export function createStudent(fields: StudentCreateFields) {
   return createRecord("create_student", normalizeStudentFields(fields));
 }
-
 export function createStudentWithLead(fields: StudentCreateWithLeadFields) {
   const normalizedFields: StudentCreateWithLeadFields = {
     student_name: fields.student_name.trim(),
@@ -1286,60 +673,6 @@ function compactStudentCreateFields(
   ) as Partial<StudentCreateWithLeadFields>;
 }
 
-export function createLead(fields: LeadCreateFields) {
-  return createRecord("create_lead", fields, "lead_mapping");
-}
-
-export async function importLeads(
-  csvContent: string,
-  filename?: string,
-): Promise<LeadImportResponse> {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "LEAD_IMPORT_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể nhập CSV.",
-    );
-  }
-
-  const response = await fetch(
-    `${baseUrl}/api/method/crm.api.lead_mapping.import_leads`,
-    {
-      method: "POST",
-      credentials: "include",
-      headers: await getRequestHeaders(),
-      body: JSON.stringify({ csv_content: csvContent, filename }),
-    },
-  );
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "create");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-
-  const message = payload?.message ?? payload;
-  assertObject(message);
-  if (
-    typeof message.total !== "number" ||
-    typeof message.created !== "number" ||
-    typeof message.failed !== "number" ||
-    !Array.isArray(message.errors) ||
-    !Array.isArray(message.students)
-  ) {
-    throw new StudentSchoolUpdateApiError(
-      502,
-      "INVALID_LEAD_IMPORT_RESPONSE",
-      "Phản hồi nhập CSV không hợp lệ.",
-    );
-  }
-  return message as unknown as LeadImportResponse;
-}
-
 export function createSchool(fields: SchoolCreateFields) {
   return createRecord("create_school", fields);
 }
@@ -1357,36 +690,11 @@ async function deleteRecord(
     );
   }
 
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new StudentSchoolUpdateApiError(
-      503,
-      "STUDENT_SCHOOL_DELETE_UNAVAILABLE",
-      "Chưa cấu hình Frappe CRM API nên không thể xóa bản ghi.",
-    );
-  }
-
-  const response = await fetch(
-    `${baseUrl}/api/method/crm.api.student_school.${method}`,
-    {
-      method: "DELETE",
-      credentials: "include",
-      headers: await getRequestHeaders(),
-      body: JSON.stringify({ name: normalizedName }),
-    },
+  const message = await callSchoolApi<unknown>(
+    `crm.api.student_school.${method}`,
+    {},
+    { name: normalizedName },
   );
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const details = getErrorDetails(payload, response.status, "delete");
-    throw new StudentSchoolUpdateApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-
-  const message = payload?.message ?? payload;
   assertObject(message);
   if (typeof message.name !== "string" || message.deleted !== true) {
     throw new StudentSchoolUpdateApiError(

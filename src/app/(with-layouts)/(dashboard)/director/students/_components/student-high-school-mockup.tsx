@@ -98,11 +98,7 @@ export default function StudentHighSchoolMockup({
   });
   const scoreUpdateMutation = useMutation({
     mutationFn: (fields: StudentHighSchoolScoreUpdateFields) =>
-      updateStudentHighSchoolScore(
-        studentId,
-        fields,
-        data.student.admissionYear || undefined,
-      ),
+      updateStudentHighSchoolScore(studentId, fields),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
