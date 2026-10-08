@@ -6,10 +6,8 @@
  */
 import { nestGetCurrentUser } from "./nest-auth";
 import { nestMajorCatalogHandler } from "./nest-catalog-router";
-import {
-  NOT_HANDLED,
-  nestAdminCatalogRequest,
-} from "./nest-admin-catalog-router";
+import { NOT_HANDLED, type Body, type MethodHandler, type Params } from "./nest-handler";
+import { nestAdminCatalogRequest } from "./nest-admin-catalog-router";
 import { nestUserManagementHandler } from "./nest-user-management-router";
 import { nestNbaHandler } from "./nest-nba-router";
 import { nestStudentActionsHandler } from "./nest-student-actions-router";
@@ -18,14 +16,7 @@ import { nestGeographyHandler } from "./nest-geography-router";
 import { nestAdmissionCatalogHandler } from "./nest-admission-catalog-router";
 
 export { NOT_HANDLED };
-
-export type Params = Record<string, string | undefined>;
-export type Body = Record<string, unknown> | undefined;
-export type MethodHandler = (
-  method: string,
-  params: Params,
-  body: Body,
-) => Promise<unknown>;
+export type { Body, MethodHandler, Params };
 
 /** `session.me` is answered by the signed-in Nest session, not Frappe. */
 const sessionHandler: MethodHandler = async (method) => {

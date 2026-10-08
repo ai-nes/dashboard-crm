@@ -1,8 +1,3 @@
-export interface RequestOptions {
-  baseUrl?: string;
-  headers?: Record<string, string>;
-}
-
 export interface CrmUserCapacity {
   /** Max active Leads this Sale/CTV Sale may hold; null when not configured. */
   limit: number | null;

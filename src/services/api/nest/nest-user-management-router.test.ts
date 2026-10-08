@@ -11,7 +11,16 @@ function json(body: unknown, status = 200) {
   );
 }
 
-const FRAPPE = "http://frappe.test/api/method";
+async function call(
+  method: string,
+  params: Record<string, string> = {},
+  body?: Record<string, unknown>,
+) {
+  const { nestUserManagementHandler } = await import(
+    "./nest-user-management-router"
+  );
+  return nestUserManagementHandler(method, params, body);
+}
 
 describe("user management with the Nest backend", () => {
   beforeEach(() => {
@@ -66,10 +75,12 @@ describe("user management with the Nest backend", () => {
       throw new Error(`Unexpected URL: ${url}`);
     });
 
-    const { request } = await import("../frappe-request");
-    const result = await request(
-      `${FRAPPE}/crm.api.session.list_admin_users?search=sale&role=Sale&start=8&page_length=8`,
-    );
+    const result = await call("crm.api.session.list_admin_users", {
+      search: "sale",
+      role: "Sale",
+      start: "8",
+      page_length: "8",
+    });
 
     expect(result).toMatchObject({
       total: 9,
@@ -120,26 +131,25 @@ describe("user management with the Nest backend", () => {
       throw new Error(`Unexpected ${init?.method ?? "GET"} ${url}`);
     });
 
-    const { request } = await import("../frappe-request");
-    await request(`${FRAPPE}/crm.api.user.update_user_role`, {
-      method: "POST",
-      body: JSON.stringify({ user: "u1", new_role: "Lead Sale" }),
-    });
-    await request(`${FRAPPE}/crm.api.user.create_crm_user`, {
-      method: "POST",
-      body: JSON.stringify({
+    await call(
+      "crm.api.user.update_user_role",
+      {},
+      { user: "u1", new_role: "Lead Sale" },
+    );
+    await call(
+      "crm.api.user.create_crm_user",
+      {},
+      {
         email: "new@example.test",
         full_name: "New User",
         password: "long-enough-password",
         role: "Sale",
-      }),
-    });
-    const capacity = await request(
-      `${FRAPPE}/crm.api.assignment_control.upsert_user_capacity`,
-      {
-        method: "POST",
-        body: JSON.stringify({ user: "u1", max_active_students: 8 }),
       },
+    );
+    const capacity = await call(
+      "crm.api.assignment_control.upsert_user_capacity",
+      {},
+      { user: "u1", max_active_students: 8 },
     );
 
     expect(capacity).toEqual({
@@ -206,25 +216,23 @@ describe("user management with the Nest backend", () => {
       throw new Error(`Unexpected ${init?.method ?? "GET"} ${url}`);
     });
 
-    const { request } = await import("../frappe-request");
-    const list = await request(
-      `${FRAPPE}/crm.api.permission_profile.list_permission_profiles?role=Sale&start=0&page_length=8`,
+    const list = await call(
+      "crm.api.permission_profile.list_permission_profiles",
+      { role: "Sale", start: "0", page_length: "8" },
     );
     expect(list).toMatchObject({
       selected_role: "Sale",
       profiles: [{ role: "Sale", row_scope: "assigned" }],
     });
 
-    await request(
-      `${FRAPPE}/crm.api.permission_profile.update_permission_profile`,
+    await call(
+      "crm.api.permission_profile.update_permission_profile",
+      {},
       {
-        method: "POST",
-        body: JSON.stringify({
-          role: "Sale",
-          row_scope: "assigned",
-          delete_requires_ownership: false,
-          applicable_doctypes: [{ document_type: "CRM Lead", read: true }],
-        }),
+        role: "Sale",
+        row_scope: "assigned",
+        delete_requires_ownership: false,
+        applicable_doctypes: [{ document_type: "CRM Lead", read: true }],
       },
     );
     expect(fetchMock.mock.calls[1]?.[0]).toBe(
@@ -239,18 +247,17 @@ describe("user management with the Nest backend", () => {
   });
 
   it("validates the requested CRM role before provisioning an account", async () => {
-    const { request } = await import("../frappe-request");
-
     await expect(
-      request(`${FRAPPE}/crm.api.user.create_crm_user`, {
-        method: "POST",
-        body: JSON.stringify({
+      call(
+        "crm.api.user.create_crm_user",
+        {},
+        {
           email: "invalid-role@example.test",
           full_name: "Invalid Role",
           password: "long-enough-password",
           role: "Unknown Role",
-        }),
-      }),
+        },
+      ),
     ).rejects.toMatchObject({
       status: 400,
       code: "INVALID_CRM_PROFILE",

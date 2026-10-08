@@ -31,11 +31,6 @@ function booleanValue(value: unknown, fallback = false): boolean {
   return fallback;
 }
 
-export function unwrapMethodPayload(value: unknown): unknown {
-  const root = asRecord(value);
-  return root?.message ?? value;
-}
-
 function numberOrNull(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }

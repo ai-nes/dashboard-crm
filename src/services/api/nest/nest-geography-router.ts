@@ -7,7 +7,7 @@ import {
   NOT_HANDLED,
   type Body,
   type MethodHandler,
-} from "./nest-method-router";
+} from "./nest-handler";
 
 const BASE = "/api/v1/geography-catalog";
 

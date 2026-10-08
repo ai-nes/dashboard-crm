@@ -1,8 +1,10 @@
+import { toServiceError } from "../nest/nest-client";
+import { NOT_HANDLED } from "../nest/nest-handler";
+import { nestUserManagementHandler } from "../nest/nest-user-management-router";
 import {
   normalizeCrmUser,
   normalizePermissionProfile,
   normalizeUserRoleLog,
-  unwrapMethodPayload,
 } from "./normalizers";
 import type {
   CreateCrmUserPayload,
@@ -13,7 +15,6 @@ import type {
   ListUserRoleLogsParams,
   ListUserRoleLogsResponse,
   RemoveUserPayload,
-  RequestOptions,
   UpdateCrmUserProfilePayload,
   UpdateUserCapacityPayload,
   UpdatePermissionProfilePayload,
@@ -22,6 +23,7 @@ import type {
 
 export type * from "./types";
 
+/** Operation ids understood by `nestUserManagementHandler`. */
 const METHODS = {
   LIST_USERS: "crm.api.session.list_admin_users",
   LEGACY_LIST_USERS: "crm.api.session.get_users",
@@ -52,7 +54,7 @@ export class UserManagementApiError extends Error {
   }
 }
 
-type RequestMethod = "GET" | "POST";
+type Query = Record<string, string | number | boolean | undefined>;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -60,182 +62,46 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function resolveBaseUrl(options: RequestOptions): string {
-  const baseUrl = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-  if (!baseUrl)
-    throw new UserManagementApiError(
-      0,
-      "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
-    );
-  return baseUrl;
-}
-
-function cookieHeader(value: string): string {
-  return value
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.startsWith("sid="))
-    .join("; ");
-}
-
-async function headers(
-  options: RequestOptions,
-  write: boolean,
-): Promise<Record<string, string>> {
-  const result: Record<string, string> = {
-    Accept: "application/json",
-    ...(write ? { "Content-Type": "application/json" } : {}),
-    ...(options.headers ?? {}),
-  };
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const sid = cookieHeader((await cookies()).toString());
-      if (sid) result.Cookie = sid;
-    } catch {
-      // Tests and non-request contexts do not have a Next request store.
-    }
-  }
-  if (typeof window !== "undefined" && write) {
-    const csrf = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith("csrf_token="));
-    if (csrf) {
-      result["X-Frappe-CSRF-Token"] = decodeURIComponent(
-        csrf.split("=").slice(1).join("="),
-      );
-    } else {
-      // Cross-origin deployments can't read the Frappe-domain cookie from
-      // document.cookie; fall back to fetching it from the session itself.
-      try {
-        const response = await fetch(
-          `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
-          {
-            credentials: "include",
-            headers: { Accept: "application/json" },
-          },
-        );
-        const payload = (await response.json().catch(() => null)) as {
-          message?: { csrf_token?: unknown };
-        } | null;
-        if (typeof payload?.message?.csrf_token === "string") {
-          result["X-Frappe-CSRF-Token"] = payload.message.csrf_token;
-        }
-      } catch {
-        // Frappe still accepts the session cookie when CSRF is disabled.
-      }
-    }
-  }
-  return result;
-}
-
-function errorDetails(payload: unknown): { code?: string; message?: string } {
-  const root = asRecord(payload);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-  const exception = typeof root?.exception === "string" ? root.exception : "";
-  const code =
-    typeof error?.code === "string"
-      ? error.code
-      : typeof root?.exc_type === "string"
-        ? root.exc_type
-        : undefined;
-  const extractedMessage =
-    typeof error?.message === "string"
-      ? error.message
-      : typeof message?.message === "string"
-        ? message.message
-        : exception ||
-          (typeof root?.message === "string" ? root.message : undefined);
-  return { code, message: extractedMessage };
-}
-
+/** Runs one user-management operation against the Nest users, profiles and capacity resources. */
 async function call<T>(
   method: string,
-  requestMethod: RequestMethod,
-  options: RequestOptions,
-  query: Record<string, string | number | boolean | undefined> = {},
+  query: Query = {},
   body?: Record<string, unknown>,
 ): Promise<T> {
-  const url = new URL(`${resolveBaseUrl(options)}/api/method/${method}`);
-  Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== "")
-      url.searchParams.set(key, String(value));
-  });
-  let response: Response;
+  const params: Record<string, string> = {};
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") params[key] = String(value);
+  }
   try {
-    response = await fetch(url.toString(), {
-      method: requestMethod,
-      headers: await headers(options, requestMethod !== "GET"),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      ...(body ? { body: JSON.stringify(body) } : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new UserManagementApiError(
-      503,
-      "USER_MANAGEMENT_API_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ Frappe CRM.",
-    );
+    const result = await nestUserManagementHandler(method, params, body);
+    if (result === NOT_HANDLED) {
+      throw new UserManagementApiError(
+        501,
+        "FEATURE_NOT_MIGRATED",
+        "Thao tác người dùng chưa khả dụng.",
+      );
+    }
+    return result as T;
+  } catch (error) {
+    throw toServiceError(error, UserManagementApiError);
   }
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = errorDetails(payload);
-    const code = details.code ?? `HTTP_${response.status}`;
-    throw new UserManagementApiError(
-      response.status,
-      code,
-      details.message ?? "Thao tác người dùng thất bại.",
-    );
-  }
-  return unwrapMethodPayload(payload) as T;
 }
 
-export function listCrmUsers(
-  options?: RequestOptions,
-): Promise<ListCrmUsersResponse>;
-export function listCrmUsers(
-  params?: ListCrmUsersParams,
-  options?: RequestOptions,
-): Promise<ListCrmUsersResponse>;
 export async function listCrmUsers(
-  paramsOrOptions: ListCrmUsersParams | RequestOptions = {},
-  options: RequestOptions = {},
+  params: ListCrmUsersParams = {},
 ): Promise<ListCrmUsersResponse> {
-  const input = paramsOrOptions as ListCrmUsersParams & RequestOptions;
-  const params: ListCrmUsersParams = {
-    search: input.search,
-    role: input.role,
-    start: input.start,
-    pageLength: input.pageLength,
-  };
-  const requestOptions: RequestOptions =
-    input.baseUrl || input.headers
-      ? {
-          ...options,
-          baseUrl: input.baseUrl ?? options.baseUrl,
-          headers: input.headers ?? options.headers,
-        }
-      : options;
-  const hasServerParams = Object.values(params).some(
-    (value) => value !== undefined,
-  );
+  const hasServerParams = [
+    params.search,
+    params.role,
+    params.start,
+    params.pageLength,
+  ].some((value) => value !== undefined);
   const listMethod = hasServerParams
     ? METHODS.LIST_USERS
     : METHODS.LEGACY_LIST_USERS;
   const [raw, capacitySettled] = await Promise.all([
     call<unknown>(
       listMethod,
-      "GET",
-      requestOptions,
       hasServerParams
         ? {
             search: params.search?.trim(),
@@ -251,17 +117,15 @@ export async function listCrmUsers(
     // (not that expected permission gap) still shouldn't take down the whole
     // user list, but it must not look identical to "you're not an admin" —
     // log it so it doesn't disappear silently for a caller who does qualify.
-    call<unknown>(METHODS.LIST_USER_CAPACITY, "GET", requestOptions).catch(
-      (error: unknown) => {
-        const isPermissionDenied =
-          error instanceof UserManagementApiError &&
-          (error.status === 403 || /permission/i.test(error.code));
-        if (!isPermissionDenied) {
-          console.error("Không tải được dữ liệu capacity người dùng.", error);
-        }
-        return null;
-      },
-    ),
+    call<unknown>(METHODS.LIST_USER_CAPACITY).catch((error: unknown) => {
+      const isPermissionDenied =
+        error instanceof UserManagementApiError &&
+        (error.status === 403 || /permission/i.test(error.code));
+      if (!isPermissionDenied) {
+        console.error("Không tải được dữ liệu capacity người dùng.", error);
+      }
+      return null;
+    }),
   ]);
   const capacityByUser = asRecord(capacitySettled) ?? {};
   const payload = asRecord(raw);
@@ -300,12 +164,9 @@ export async function listCrmUsers(
 
 export async function updateUserRole(
   payload: UpdateUserRolePayload,
-  options: RequestOptions = {},
 ): Promise<void> {
   await call(
     METHODS.UPDATE_ROLE,
-    "POST",
-    options,
     {},
     {
       user: payload.user,
@@ -314,29 +175,15 @@ export async function updateUserRole(
   );
 }
 
-export async function removeUser(
-  payload: RemoveUserPayload,
-  options: RequestOptions = {},
-): Promise<void> {
-  await call(
-    METHODS.REMOVE_USER,
-    "POST",
-    options,
-    {},
-    {
-      user: payload.user,
-    },
-  );
+export async function removeUser(payload: RemoveUserPayload): Promise<void> {
+  await call(METHODS.REMOVE_USER, {}, { user: payload.user });
 }
 
 export async function createCrmUser(
   payload: CreateCrmUserPayload,
-  options: RequestOptions = {},
 ): Promise<string> {
   const raw = await call<unknown>(
     METHODS.CREATE_USER,
-    "POST",
-    options,
     {},
     {
       email: payload.email,
@@ -350,12 +197,9 @@ export async function createCrmUser(
 
 export async function updateCrmUserProfile(
   payload: UpdateCrmUserProfilePayload,
-  options: RequestOptions = {},
 ): Promise<void> {
   await call(
     METHODS.UPDATE_PROFILE,
-    "POST",
-    options,
     {},
     {
       user: payload.user,
@@ -367,12 +211,9 @@ export async function updateCrmUserProfile(
 
 export async function updateUserCapacity(
   payload: UpdateUserCapacityPayload,
-  options: RequestOptions = {},
 ): Promise<void> {
   await call(
     METHODS.UPDATE_USER_CAPACITY,
-    "POST",
-    options,
     {},
     {
       user: payload.user,
@@ -384,9 +225,8 @@ export async function updateUserCapacity(
 
 export async function listUserRoleLogs(
   params: ListUserRoleLogsParams = {},
-  options: RequestOptions = {},
 ): Promise<ListUserRoleLogsResponse> {
-  const raw = await call<unknown>(METHODS.LIST_LOGS, "GET", options, {
+  const raw = await call<unknown>(METHODS.LIST_LOGS, {
     user: params.user,
     start: params.start ?? 0,
     page_length: Math.min(params.pageLength ?? 50, 200),
@@ -402,44 +242,15 @@ export async function listUserRoleLogs(
   };
 }
 
-export function listPermissionProfiles(
-  options?: RequestOptions,
-): Promise<ListPermissionProfilesResponse>;
-export function listPermissionProfiles(
-  params?: ListPermissionProfilesParams,
-  options?: RequestOptions,
-): Promise<ListPermissionProfilesResponse>;
 export async function listPermissionProfiles(
-  paramsOrOptions: ListPermissionProfilesParams | RequestOptions = {},
-  options: RequestOptions = {},
+  params: ListPermissionProfilesParams = {},
 ): Promise<ListPermissionProfilesResponse> {
-  const input = paramsOrOptions as ListPermissionProfilesParams &
-    RequestOptions;
-  const params: ListPermissionProfilesParams = {
-    role: input.role,
-    start: input.start,
-    pageLength: input.pageLength,
-    viewMode: input.viewMode,
-  };
-  const requestOptions: RequestOptions =
-    input.baseUrl || input.headers
-      ? {
-          ...options,
-          baseUrl: input.baseUrl ?? options.baseUrl,
-          headers: input.headers ?? options.headers,
-        }
-      : options;
-  const raw = await call<unknown>(
-    METHODS.LIST_PERMISSION_PROFILES,
-    "GET",
-    requestOptions,
-    {
-      role: params.role?.trim() || undefined,
-      start: params.start ?? 0,
-      page_length: Math.min(params.pageLength ?? 8, 100),
-      view_mode: params.viewMode === "detailed" ? "detailed" : undefined,
-    },
-  );
+  const raw = await call<unknown>(METHODS.LIST_PERMISSION_PROFILES, {
+    role: params.role?.trim() || undefined,
+    start: params.start ?? 0,
+    page_length: Math.min(params.pageLength ?? 8, 100),
+    view_mode: params.viewMode === "detailed" ? "detailed" : undefined,
+  });
   const payload = asRecord(raw);
   return {
     profiles: Array.isArray(payload?.profiles)
@@ -458,12 +269,9 @@ export async function listPermissionProfiles(
 
 export async function updatePermissionProfile(
   payload: UpdatePermissionProfilePayload,
-  options: RequestOptions = {},
 ): Promise<NonNullable<ReturnType<typeof normalizePermissionProfile>>> {
   const raw = await call<unknown>(
     METHODS.UPDATE_PERMISSION_PROFILE,
-    "POST",
-    options,
     {},
     {
       role: payload.role,

@@ -1,7 +1,7 @@
 /**
- * Transitional adapter for the user-management Frappe methods. The admin
- * screen keeps its existing client contract while these calls use the Nest
- * user, permission-profile, and staff-capacity resources.
+ * Adapter for the user-management operations. The admin screen keeps its
+ * client contract while these calls use the Nest user, permission-profile, and
+ * staff-capacity resources.
  */
 import { nestGetCurrentUser } from "./nest-auth";
 import { NestApiError, nestRequest } from "./nest-client";
@@ -9,7 +9,7 @@ import {
   NOT_HANDLED,
   type MethodHandler,
   type Params,
-} from "./nest-method-router";
+} from "./nest-handler";
 
 const USERS = "/api/v1/users";
 const PERMISSION_PROFILES = "/api/v1/permission-profiles";

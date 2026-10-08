@@ -3,7 +3,7 @@
  * `complete_action_manually`) served by the NestJS student actions module.
  */
 import { nestRequest } from "./nest-client";
-import { NOT_HANDLED, type MethodHandler } from "./nest-method-router";
+import { NOT_HANDLED, type MethodHandler } from "./nest-handler";
 
 const id = (value: unknown) => encodeURIComponent(String(value ?? ""));
 

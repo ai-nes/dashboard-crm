@@ -8,7 +8,7 @@ import {
   NOT_HANDLED,
   type Body,
   type MethodHandler,
-} from "./nest-method-router";
+} from "./nest-handler";
 
 /** Form field (Frappe name) to the student intake API field. */
 const STUDENT_FIELDS: Record<string, string> = {
