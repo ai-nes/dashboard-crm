@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  AdmissionProfileCatalogApiError,
   createAdmissionApplication,
   createAdmissionDocumentType,
   createAdmissionMethod,
@@ -9,20 +10,24 @@ import {
   deleteAdmissionMethod,
   deleteAdmissionProfileTemplate,
   getAdmissionProfileCatalog,
-  AdmissionProfileCatalogApiError,
-  listAdmissionProfileTemplates,
   listAdmissionDocumentTypes,
   listAdmissionMethods,
+  listAdmissionProfileTemplates,
   transitionAdmissionProfileTemplate,
-  uploadStudentAdmissionDocument,
   updateAdmissionApplication,
-  updateAdmissionProfileTemplate,
   updateAdmissionApplicationPreference,
   updateAdmissionDocumentType,
   updateAdmissionMethod,
+  updateAdmissionProfileTemplate,
+  uploadStudentAdmissionDocument,
 } from ".";
 
-const catalog = {
+const API = "http://localhost:3001";
+const PROFILE = `${API}/api/v1/admission-profile`;
+const fetchMock = vi.fn();
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
+
   methods: [],
   years: [],
   offerings: [],
@@ -30,43 +35,46 @@ const catalog = {
   templates: [],
   specialTemplates: [],
 };
+const adminTemplateCatalog = { templates: [], documentTypes: [] };
 
-const adminTemplateCatalog = {
-  templates: [],
-  documentTypes: [],
+const lastCall = () => {
+  const [url, init] = fetchMock.mock.calls.at(-1)!;
+  const parsed = new URL(url);
+  return {
+    url: parsed,
+    method: init?.method ?? "GET",
+    body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
+  };
 };
 
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", API);
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+});
+
 describe("admission profile catalog API", () => {
-  it("loads the catalog through the Frappe method endpoint", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        new Response(JSON.stringify({ message: catalog }), { status: 200 }),
-      );
+  it("loads the catalog for an admission year", async () => {
+    fetchMock.mockImplementation(async () => json(catalog));
 
     await expect(
-      getAdmissionProfileCatalog({
-        baseUrl: "http://frappe:8000",
-        admissionYear: "2026",
-      }),
+      getAdmissionProfileCatalog({ admissionYear: "2026" }),
     ).resolves.toEqual(catalog);
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.admission_profile_templates.get_admission_profile_catalog?admission_year=2026",
-      expect.objectContaining({ cache: "no-store", credentials: "include" }),
-    );
+    const call = lastCall();
+    expect(call.url.pathname).toBe("/api/v1/admission-catalog/profile-catalog");
+    expect(call.url.searchParams.get("admission_year")).toBe("2026");
   });
 
   it("rejects an invalid catalog response", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: { methods: [] } }), {
-        status: 200,
-      }),
-    );
+    fetchMock.mockImplementation(async () => json({ methods: [] }));
 
-    await expect(
-      getAdmissionProfileCatalog({ baseUrl: "http://frappe:8000" }),
-    ).rejects.toEqual(
+    await expect(getAdmissionProfileCatalog()).rejects.toEqual(
       expect.objectContaining<Partial<AdmissionProfileCatalogApiError>>({
         status: 502,
         code: "INVALID_ADMISSION_CATALOG_RESPONSE",
@@ -74,52 +82,35 @@ describe("admission profile catalog API", () => {
     );
   });
 
-  it("lists templates for the admin catalog", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: adminTemplateCatalog }), {
-        status: 200,
-      }),
+  it("maps API errors to the service error type", async () => {
+    fetchMock.mockImplementation(async () =>
+      json({ error: { code: "REVISION_CONFLICT", message: "stale" } }, 409),
     );
 
-    await expect(
-      listAdmissionProfileTemplates({
-        baseUrl: "http://frappe:8000",
-        status: "Draft",
-      }),
-    ).resolves.toEqual(adminTemplateCatalog);
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.admission_profile_templates.list_admission_profile_templates?status=Draft",
-      expect.objectContaining({ cache: "no-store", credentials: "include" }),
-    );
+    await expect(getAdmissionProfileCatalog()).rejects.toMatchObject({
+      name: "AdmissionProfileCatalogApiError",
+      status: 409,
+      code: "REVISION_CONFLICT",
+    });
   });
 
-  it("passes document type search to the admin catalog endpoint", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: adminTemplateCatalog }), {
-        status: 200,
-      }),
-    );
+  it("lists templates with status and search filters", async () => {
+    fetchMock.mockImplementation(async () => json(adminTemplateCatalog));
 
     await expect(
-      listAdmissionProfileTemplates({
-        baseUrl: "http://frappe:8000",
-        search: "achievement",
-      }),
+      listAdmissionProfileTemplates({ status: "Draft", search: "achievement" }),
     ).resolves.toEqual(adminTemplateCatalog);
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.admission_profile_templates.list_admission_profile_templates?search=achievement",
-      expect.objectContaining({ cache: "no-store", credentials: "include" }),
+    const call = lastCall();
+    expect(call.url.pathname).toBe(
+      "/api/v1/admission-catalog/profile-templates",
     );
+    expect(call.url.searchParams.get("status")).toBe("Draft");
+    expect(call.url.searchParams.get("search")).toBe("achievement");
   });
 
-  it("calls the admin CRUD methods with the Frappe payload contract", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: { id: "TPL-1" } }), {
-        status: 200,
-      }),
-    );
+  it("runs template CRUD with the record version", async () => {
+    fetchMock.mockImplementation(async () => json({ id: "TPL-1" }));
     const data = {
       template_code: "STANDARD",
       template_name: "Hồ sơ tiêu chuẩn",
@@ -129,76 +120,49 @@ describe("admission profile catalog API", () => {
       version: 1,
       requirements: [],
     };
+    const expectedModified = "2026-09-10 10:00:00";
 
-    await createAdmissionProfileTemplate(data, { baseUrl: "http://frappe:8000" });
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      "http://frappe:8000/api/method/crm.api.admission_profile_templates.create_admission_profile_template",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ data }),
-      }),
+    await createAdmissionProfileTemplate(data);
+    expect(lastCall()).toMatchObject({ method: "POST", body: { data } });
+    expect(lastCall().url.pathname).toBe(
+      "/api/v1/admission-catalog/profile-templates",
     );
 
-    await updateAdmissionProfileTemplate(
-      { name: "TPL-1", data, expectedModified: "2026-09-10 10:00:00" },
-      { baseUrl: "http://frappe:8000" },
-    );
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      "http://frappe:8000/api/method/crm.api.admission_profile_templates.update_admission_profile_template",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          name: "TPL-1",
-          data,
-          expected_modified: "2026-09-10 10:00:00",
-        }),
-      }),
-    );
+    await updateAdmissionProfileTemplate({
+      name: "TPL-1",
+      data,
+      expectedModified,
+    });
+    expect(lastCall()).toMatchObject({
+      method: "PATCH",
+      body: { data, expectedModified },
+    });
 
-    await transitionAdmissionProfileTemplate(
-      { name: "TPL-1", status: "Active", expectedModified: "2026-09-10 10:00:00" },
-      { baseUrl: "http://frappe:8000" },
+    await transitionAdmissionProfileTemplate({
+      name: "TPL-1",
+      status: "Active",
+      expectedModified,
+    });
+    expect(lastCall().url.pathname).toBe(
+      "/api/v1/admission-catalog/profile-templates/TPL-1/transition",
     );
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      "http://frappe:8000/api/method/crm.api.admission_profile_templates.transition_admission_profile_template",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          name: "TPL-1",
-          status: "Active",
-          expected_modified: "2026-09-10 10:00:00",
-        }),
-      }),
-    );
+    expect(lastCall().body).toEqual({ status: "Active", expectedModified });
 
-    await deleteAdmissionProfileTemplate(
-      { name: "TPL-1", expectedModified: "2026-09-10 10:00:00" },
-      { baseUrl: "http://frappe:8000" },
-    );
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      "http://frappe:8000/api/method/crm.api.admission_profile_templates.delete_admission_profile_template",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          name: "TPL-1",
-          expected_modified: "2026-09-10 10:00:00",
-        }),
-      }),
+    await deleteAdmissionProfileTemplate({ name: "TPL-1", expectedModified });
+    expect(lastCall().method).toBe("DELETE");
+    expect(lastCall().url.searchParams.get("expectedModified")).toBe(
+      expectedModified,
     );
   });
 
-  it("calls document type and admission method CRUD with the catalog contract", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
-      const url = String(input);
-      if (url.includes("list_admission_document_types")) {
-        return new Response(JSON.stringify({ message: { documentTypes: [] } }), { status: 200 });
-      }
-      if (url.includes("list_admission_methods")) {
-        return new Response(JSON.stringify({ message: { methods: [] } }), { status: 200 });
-      }
-      return new Response(JSON.stringify({ message: { deleted: "CAT-1" } }), { status: 200 });
-    });
-    const baseUrl = "http://frappe:8000";
+  it("runs document type and admission method CRUD", async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url.includes("/document-types") && !url.includes("/document-types/")
+        ? json({ documentTypes: [] })
+        : url.includes("/methods") && !url.includes("/methods/")
+          ? json({ methods: [] })
+          : json({ deleted: "CAT-1" }),
+    );
     const documentType = {
       code: "BIRTH_CERTIFICATE",
       label: "Giấy khai sinh",
@@ -215,226 +179,162 @@ describe("admission profile catalog API", () => {
       enabled: true,
       sort_order: 30,
     };
+    const expectedModified = "2026-09-11 10:00:00";
 
-    await listAdmissionDocumentTypes({ baseUrl, search: "birth", includeArchived: true });
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      `${baseUrl}/api/method/crm.api.admission_catalog.list_admission_document_types?search=birth&include_archived=1`,
-      expect.objectContaining({ cache: "no-store", credentials: "include" }),
+    await listAdmissionDocumentTypes({
+      search: "birth",
+      includeArchived: true,
+    });
+    expect(lastCall().url.pathname).toBe(
+      "/api/v1/admission-catalog/document-types",
     );
-    await createAdmissionDocumentType(documentType, { baseUrl });
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      `${baseUrl}/api/method/crm.api.admission_catalog.create_admission_document_type`,
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ data: documentType }) }),
-    );
-    await updateAdmissionDocumentType(
-      { name: "BIRTH_CERTIFICATE", data: documentType, expectedModified: "2026-09-11 10:00:00" },
-      { baseUrl },
-    );
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      `${baseUrl}/api/method/crm.api.admission_catalog.update_admission_document_type`,
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          name: "BIRTH_CERTIFICATE",
-          data: documentType,
-          expected_modified: "2026-09-11 10:00:00",
-        }),
-      }),
-    );
-    await deleteAdmissionDocumentType({ name: "BIRTH_CERTIFICATE" }, { baseUrl });
+    expect(lastCall().url.searchParams.get("include_archived")).toBe("1");
 
-    await listAdmissionMethods({ baseUrl, search: "transcript", includeDisabled: false });
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      `${baseUrl}/api/method/crm.api.admission_catalog.list_admission_methods?search=transcript&include_disabled=0`,
-      expect.objectContaining({ cache: "no-store", credentials: "include" }),
+    await createAdmissionDocumentType(documentType);
+    expect(lastCall()).toMatchObject({
+      method: "POST",
+      body: { data: documentType },
+    });
+    await updateAdmissionDocumentType({
+      name: "BIRTH_CERTIFICATE",
+      data: documentType,
+      expectedModified,
+    });
+    expect(lastCall().url.pathname).toBe(
+      "/api/v1/admission-catalog/document-types/BIRTH_CERTIFICATE",
     );
-    await createAdmissionMethod(method, { baseUrl });
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      `${baseUrl}/api/method/crm.api.admission_catalog.create_admission_method`,
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ data: method }) }),
-    );
-    await updateAdmissionMethod(
-      { name: "TRANSCRIPT_REVIEW", data: method, expectedModified: "2026-09-11 10:00:00" },
-      { baseUrl },
-    );
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      `${baseUrl}/api/method/crm.api.admission_catalog.update_admission_method`,
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          name: "TRANSCRIPT_REVIEW",
-          data: method,
-          expected_modified: "2026-09-11 10:00:00",
-        }),
-      }),
-    );
-    await deleteAdmissionMethod({ name: "TRANSCRIPT_REVIEW" }, { baseUrl });
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      `${baseUrl}/api/method/crm.api.admission_catalog.delete_admission_method`,
-      expect.objectContaining({ method: "POST" }),
+    expect(lastCall().body).toEqual({ data: documentType, expectedModified });
+    await deleteAdmissionDocumentType({ name: "BIRTH_CERTIFICATE" });
+    expect(lastCall().method).toBe("DELETE");
+
+    await listAdmissionMethods({
+      search: "transcript",
+      includeDisabled: false,
+    });
+    expect(lastCall().url.pathname).toBe("/api/v1/admission-catalog/methods");
+    expect(lastCall().url.searchParams.get("include_disabled")).toBe("0");
+    await createAdmissionMethod(method);
+    expect(lastCall()).toMatchObject({
+      method: "POST",
+      body: { data: method },
+    });
+    await updateAdmissionMethod({
+      name: "TRANSCRIPT_REVIEW",
+      data: method,
+      expectedModified,
+    });
+    expect(lastCall().method).toBe("PATCH");
+    await deleteAdmissionMethod({ name: "TRANSCRIPT_REVIEW" });
+    expect(lastCall().url.pathname).toBe(
+      "/api/v1/admission-catalog/methods/TRANSCRIPT_REVIEW",
     );
   });
 
   it("creates an application with the selected offering, method and template", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: { application: "APP-1" } }), {
-        status: 200,
-      }),
-    );
+    fetchMock.mockImplementation(async () => json({ application: "APP-1" }));
 
-    await createAdmissionApplication(
-      {
-        student: "STU-1",
-        values: {
-          offering: "OFF-1",
-          admission_year: "2026",
-          admission_method: "THPT_SCORE",
-          profile_template: "STANDARD",
-          special_profile_options: ["SCHOLARSHIP"],
-          preference_order: 1,
-          preference: "Primary",
-          status: "Draft",
-        },
-        expectedRevision: 2,
-        idempotencyKey: "student-admission:test",
+    await createAdmissionApplication({
+      student: "STU-1",
+      values: {
+        offering: "OFF-1",
+        admission_year: "2026",
+        admission_method: "THPT_SCORE",
+        profile_template: "STANDARD",
+        special_profile_options: ["SCHOLARSHIP"],
+        preference_order: 1,
+        preference: "Primary",
+        status: "Draft",
       },
-      { baseUrl: "http://frappe:8000" },
-    );
+      expectedRevision: 2,
+      idempotencyKey: "student-admission:test",
+    });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.admission_application.create_application",
-      expect.objectContaining({
-        method: "POST",
-        body: expect.stringContaining('"profile_template":"STANDARD"'),
-      }),
-    );
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        body: expect.stringContaining('"special_profile_options":["SCHOLARSHIP"]'),
-      }),
-    );
+    const call = lastCall();
+    expect(call.url.href).toBe(`${PROFILE}/applications`);
+    expect(call.method).toBe("POST");
+    expect(call.body).toMatchObject({
+      student: "STU-1",
+      expectedRevision: 2,
+      idempotencyKey: "student-admission:test",
+      values: {
+        profile_template: "STANDARD",
+        special_profile_options: ["SCHOLARSHIP"],
+      },
+    });
   });
 
-  it("updates the preference on an existing admission application", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            application: "APP-1",
-            student: "STU-1",
-            preference: "Alternative",
-            preference_order: 2,
-          },
-        }),
-        { status: 200 },
-      ),
+  it("updates the preference on an existing application", async () => {
+    fetchMock.mockImplementation(async () =>
+      json({ application: "APP-1", preference: "Alternative" }),
     );
 
-    await updateAdmissionApplicationPreference(
-      { application: "APP-1", preference: "Alternative" },
-      { baseUrl: "http://frappe:8000" },
-    );
+    await updateAdmissionApplicationPreference({
+      application: "APP-1",
+      preference: "Alternative",
+    });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.admission_application.update_preference",
-      expect.objectContaining({
-        method: "PUT",
-        body: JSON.stringify({
-          application: "APP-1",
-          preference: "Alternative",
-        }),
-      }),
-    );
+    const call = lastCall();
+    expect(call.url.href).toBe(`${PROFILE}/applications/APP-1/preference`);
+    expect(call.method).toBe("PUT");
+    expect(call.body).toEqual({ preference: "Alternative" });
   });
 
-  it("updates the admission method and profile template on an existing application", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            application: "APP-1",
-            student: "STU-1",
-            admission_method: "THPT_SCORE",
-            profile_template: "SCHOLARSHIP",
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it("updates the method and profile template on an existing application", async () => {
+    fetchMock.mockImplementation(async () => json({ application: "APP-1" }));
+    const values = {
+      admission_method: "THPT_SCORE",
+      profile_template: "SCHOLARSHIP",
+      special_profile_options: ["FIRST_GENERATION", "SCHOLARSHIP"],
+      preference: "Primary" as const,
+    };
 
-    await updateAdmissionApplication(
-      {
-        application: "APP-1",
-        values: {
-          admission_method: "THPT_SCORE",
-          profile_template: "SCHOLARSHIP",
-          special_profile_options: ["FIRST_GENERATION", "SCHOLARSHIP"],
-          preference: "Primary",
-        },
-      },
-      { baseUrl: "http://frappe:8000" },
-    );
+    await updateAdmissionApplication({ application: "APP-1", values });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.admission_application.update_application",
-      expect.objectContaining({
-        method: "PUT",
-        body: JSON.stringify({
-          application: "APP-1",
-          values: {
-            admission_method: "THPT_SCORE",
-            profile_template: "SCHOLARSHIP",
-            special_profile_options: ["FIRST_GENERATION", "SCHOLARSHIP"],
-            preference: "Primary",
-          },
-        }),
-      }),
-    );
+    const call = lastCall();
+    expect(call.url.href).toBe(`${PROFILE}/applications/APP-1`);
+    expect(call.method).toBe("PUT");
+    expect(call.body).toEqual({ values });
   });
 
   it("uploads a document as multipart form data", async () => {
-    vi.clearAllMocks();
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            document: { id: "SDOC-1" },
-            file: { id: "FILE-1" },
-          },
-        }),
-        { status: 200 },
-      ),
+    fetchMock.mockImplementation(async () =>
+      json({ document: { id: "SDOC-1" }, file: { id: "FILE-1" } }),
     );
     const file = new File(["file-content"], "enrollment-form.pdf", {
       type: "application/pdf",
     });
 
-    await uploadStudentAdmissionDocument(
-      {
-        student: "STU-1",
-        profile: "SAP-1",
-        application: "APP-1",
-        documentType: "DOC-1",
-        file,
-      },
-      { baseUrl: "http://frappe:8000" },
-    );
+    await uploadStudentAdmissionDocument({
+      student: "STU-1",
+      profile: "SAP-1",
+      application: "APP-1",
+      documentType: "DOC-1",
+      file,
+    });
 
-    const [url, request] = fetchSpy.mock.calls[0] || [];
-    expect(url).toBe(
-      "http://frappe:8000/api/method/crm.api.student_documents.upload_document",
-    );
-    expect(request?.method).toBe("POST");
-    expect(request?.body).toBeInstanceOf(FormData);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${PROFILE}/documents`);
+    expect(init.method).toBe("POST");
+    expect(init.body).toBeInstanceOf(FormData);
     expect(
-      (request?.headers as Record<string, string>)?.["Content-Type"],
+      (init.headers as Record<string, string> | undefined)?.["Content-Type"],
     ).toBeUndefined();
-    const form = request?.body as FormData;
+    const form = init.body as FormData;
     expect(form.get("student")).toBe("STU-1");
     expect(form.get("profile")).toBe("SAP-1");
     expect(form.get("document_type")).toBe("DOC-1");
-    expect(form.get("file")).toBeInstanceOf(File);
     expect((form.get("file") as File).name).toBe(file.name);
+  });
+
+  it("rejects an upload without a file before fetching", async () => {
+    await expect(
+      uploadStudentAdmissionDocument({
+        student: "STU-1",
+        profile: "SAP-1",
+        documentType: "DOC-1",
+        file: undefined as unknown as File,
+      }),
+    ).rejects.toMatchObject({ status: 400, code: "INVALID_FILE" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

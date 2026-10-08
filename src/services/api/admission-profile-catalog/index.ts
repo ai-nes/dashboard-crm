@@ -19,10 +19,12 @@ import type {
   UpdateAdmissionApplicationPreferenceResponse,
 } from "./types";
 
-import { getApiUrl, isNestApiEnabled, NestApiError } from "../nest/nest-client";
-import { NOT_HANDLED } from "../nest/nest-admin-catalog-router";
-import { uploadProfileDocument } from "../nest/nest-admission-catalog-router";
-import { nestMethodRequest } from "../nest/nest-method-router";
+import { NestApiError } from "../nest/nest-client";
+import { NOT_HANDLED } from "../nest/nest-handler";
+import {
+  nestAdmissionCatalogHandler,
+  uploadProfileDocument,
+} from "../nest/nest-admission-catalog-router";
 
 export type * from "./types";
 
@@ -37,158 +39,46 @@ export class AdmissionProfileCatalogApiError extends Error {
   }
 }
 
-function baseUrl(value?: string): string {
-  // With the Nest API enabled the root only has to be non-empty; `request`
-  // routes by method name and ignores it.
-  if (value === undefined && isNestApiEnabled()) return getApiUrl();
-  return (value ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
-    /\/+$/,
-    "",
-  );
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
-/** Serve a `.../api/method/<method>` call from Nest; null when not handled. */
-async function nestRoute(
-  url: string,
-  init: RequestInit,
-): Promise<Record<string, unknown> | null> {
-  const [path, queryString = ""] = url.split("?");
-  const method = path.split("/api/method/")[1];
-  if (!method) return null;
-  if (
-    method.endsWith("student_documents.upload_document") &&
-    typeof FormData !== "undefined" &&
-    init.body instanceof FormData
-  ) {
-    try {
-      return unwrapMessage(await uploadProfileDocument(init.body));
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        throw new AdmissionProfileCatalogApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
-    }
+function mapError(error: unknown): never {
+  if (error instanceof NestApiError) {
+    throw new AdmissionProfileCatalogApiError(
+      error.status,
+      error.code,
+      error.message,
+    );
   }
-  const params: Record<string, string> = {};
-  new URLSearchParams(queryString).forEach((value, key) => {
-    params[key] = value;
-  });
-  let body: Record<string, unknown> | undefined;
-  if (typeof init.body === "string") {
-    try {
-      body = JSON.parse(init.body) as Record<string, unknown>;
-    } catch {
-      body = undefined;
-    }
-  }
+  throw error;
+}
+
+async function call(
+  operation: string,
+  params: Record<string, string | undefined>,
+  body?: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   try {
-    const result = await nestMethodRequest(method, params, body);
-    if (result === NOT_HANDLED) return null;
-    return unwrapMessage(result);
-  } catch (error) {
-    if (error instanceof NestApiError) {
+    const result = await nestAdmissionCatalogHandler(
+      `crm.api.${operation}`,
+      params,
+      body,
+    );
+    if (result === NOT_HANDLED) {
       throw new AdmissionProfileCatalogApiError(
-        error.status,
-        error.code,
-        error.message,
+        501,
+        "FEATURE_NOT_MIGRATED",
+        "Chức năng này chưa có trên máy chủ CRM.",
       );
     }
-    throw error;
+    return asRecord(result);
+  } catch (error) {
+    return mapError(error);
   }
 }
-
-function unwrapMessage(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const root = value as Record<string, unknown>;
-  return root.message &&
-    typeof root.message === "object" &&
-    !Array.isArray(root.message)
-    ? (root.message as Record<string, unknown>)
-    : root;
-}
-
-async function request(
-  url: string,
-  init: RequestInit = {},
-  frappeBaseUrl?: string,
-): Promise<Record<string, unknown>> {
-  if (isNestApiEnabled()) {
-    const served = await nestRoute(url, init);
-    if (served) return served;
-  }
-  const csrfToken = frappeBaseUrl
-    ? await browserCsrfToken(frappeBaseUrl)
-    : null;
-  const isMultipart =
-    typeof FormData !== "undefined" && init.body instanceof FormData;
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(init.body && !isMultipart
-      ? { "Content-Type": "application/json" }
-      : {}),
-    ...(init.headers as Record<string, string> | undefined),
-  };
-  if (csrfToken) headers["X-Frappe-CSRF-Token"] = csrfToken;
-
-  const response = await fetch(url, {
-    ...init,
-    credentials: "include",
-    headers,
-    cache: "no-store",
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = payload?.error ?? {};
-    throw new AdmissionProfileCatalogApiError(
-      response.status,
-      typeof error.code === "string"
-        ? error.code
-        : "ADMISSION_CATALOG_REQUEST_FAILED",
-      typeof error.message === "string"
-        ? error.message
-        : typeof payload?.exception === "string"
-          ? payload.exception
-          : `Không thể gọi API tuyển sinh (${response.status}).`,
-    );
-  }
-  return unwrapMessage(payload);
-}
-
-async function browserCsrfToken(frappeBaseUrl: string): Promise<string | null> {
-  if (typeof window === "undefined") return null;
-
-  const cookieToken = document.cookie
-    .split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith("csrf_token="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (cookieToken) return decodeURIComponent(cookieToken);
-
-  try {
-    const response = await fetch(
-      `${frappeBaseUrl}/api/method/crm.api.session.me`,
-      {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      },
-    );
-    const payload = (await response.json().catch(() => null)) as {
-      message?: { csrf_token?: unknown };
-    } | null;
-    return typeof payload?.message?.csrf_token === "string"
-      ? payload.message.csrf_token
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 function isCatalog(value: unknown): value is AdmissionProfileCatalog {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const candidate = value as Partial<AdmissionProfileCatalog>;
@@ -203,25 +93,15 @@ function isCatalog(value: unknown): value is AdmissionProfileCatalog {
 }
 
 export async function getAdmissionProfileCatalog(
-  options: { baseUrl?: string; admissionYear?: string; search?: string } = {},
+  options: { admissionYear?: string; search?: string } = {},
 ): Promise<AdmissionProfileCatalog> {
-  const root = baseUrl(options.baseUrl);
-  if (!root) {
-    throw new AdmissionProfileCatalogApiError(
-      503,
-      "ADMISSION_CATALOG_UNAVAILABLE",
-      "Chưa cấu hình API máy chủ CRM cho catalog tuyển sinh.",
-    );
-  }
   const params = new URLSearchParams();
   if (options.admissionYear)
     params.set("admission_year", options.admissionYear);
   if (options.search?.trim()) params.set("search", options.search.trim());
-  const query = params.toString() ? `?${params.toString()}` : "";
-  const result = await request(
-    `${root}/api/method/crm.api.admission_profile_templates.get_admission_profile_catalog${query}`,
-    {},
-    root,
+  const result = await call(
+    "admission_profile_templates.get_admission_profile_catalog",
+    Object.fromEntries(params),
   );
   if (!isCatalog(result)) {
     throw new AdmissionProfileCatalogApiError(
@@ -257,19 +137,8 @@ function isMethodCatalog(value: unknown): value is AdmissionMethodCatalog {
   return Array.isArray((value as Partial<AdmissionMethodCatalog>).methods);
 }
 
-function ensureApiRoot(root: string, message: string): void {
-  if (!root) {
-    throw new AdmissionProfileCatalogApiError(
-      503,
-      "ADMISSION_PROFILE_TEMPLATE_UNAVAILABLE",
-      message,
-    );
-  }
-}
-
 export async function listAdmissionProfileTemplates(
   options: {
-    baseUrl?: string;
     status?: AdmissionProfileTemplateStatus;
     search?: string;
     templateKind?: AdmissionProfileTemplateOption["templateKind"] | "all";
@@ -277,11 +146,6 @@ export async function listAdmissionProfileTemplates(
     pageLength?: number;
   } = {},
 ): Promise<AdminAdmissionProfileTemplateCatalog> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(
-    root,
-    "Chưa cấu hình API máy chủ CRM để quản lý loại hồ sơ nhập học.",
-  );
   const params = new URLSearchParams();
   if (options.status) params.set("status", options.status);
   if (options.search?.trim()) params.set("search", options.search.trim());
@@ -290,11 +154,9 @@ export async function listAdmissionProfileTemplates(
   if (options.start !== undefined) params.set("start", String(options.start));
   if (options.pageLength !== undefined)
     params.set("page_length", String(options.pageLength));
-  const query = params.toString() ? `?${params.toString()}` : "";
-  const result = await request(
-    `${root}/api/method/crm.api.admission_profile_templates.list_admission_profile_templates${query}`,
-    {},
-    root,
+  const result = await call(
+    "admission_profile_templates.list_admission_profile_templates",
+    Object.fromEntries(params),
   );
   if (!isAdminTemplateCatalog(result)) {
     throw new AdmissionProfileCatalogApiError(
@@ -322,14 +184,11 @@ export async function listAdmissionProfileTemplates(
 
 export async function createAdmissionProfileTemplate(
   data: AdmissionProfileTemplateMutationInput,
-  options: { baseUrl?: string } = {},
 ): Promise<AdmissionProfileTemplateOption> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để tạo loại hồ sơ.");
-  const result = await request(
-    `${root}/api/method/crm.api.admission_profile_templates.create_admission_profile_template`,
-    { method: "POST", body: JSON.stringify({ data }) },
-    root,
+  const result = await call(
+    "admission_profile_templates.create_admission_profile_template",
+    {},
+    { data },
   );
   return result as unknown as AdmissionProfileTemplateOption;
 }
@@ -342,21 +201,15 @@ export interface UpdateAdmissionProfileTemplateInput {
 
 export async function updateAdmissionProfileTemplate(
   input: UpdateAdmissionProfileTemplateInput,
-  options: { baseUrl?: string } = {},
 ): Promise<AdmissionProfileTemplateOption> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để sửa loại hồ sơ.");
-  const result = await request(
-    `${root}/api/method/crm.api.admission_profile_templates.update_admission_profile_template`,
+  const result = await call(
+    "admission_profile_templates.update_admission_profile_template",
+    {},
     {
-      method: "POST",
-      body: JSON.stringify({
-        name: input.name,
-        data: input.data,
-        expected_modified: input.expectedModified,
-      }),
+      name: input.name,
+      data: input.data,
+      expected_modified: input.expectedModified,
     },
-    root,
   );
   return result as unknown as AdmissionProfileTemplateOption;
 }
@@ -369,24 +222,15 @@ export interface TransitionAdmissionProfileTemplateInput {
 
 export async function transitionAdmissionProfileTemplate(
   input: TransitionAdmissionProfileTemplateInput,
-  options: { baseUrl?: string } = {},
 ): Promise<AdmissionProfileTemplateOption> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(
-    root,
-    "Chưa cấu hình API máy chủ CRM để cập nhật trạng thái loại hồ sơ.",
-  );
-  const result = await request(
-    `${root}/api/method/crm.api.admission_profile_templates.transition_admission_profile_template`,
+  const result = await call(
+    "admission_profile_templates.transition_admission_profile_template",
+    {},
     {
-      method: "POST",
-      body: JSON.stringify({
-        name: input.name,
-        status: input.status,
-        expected_modified: input.expectedModified,
-      }),
+      name: input.name,
+      status: input.status,
+      expected_modified: input.expectedModified,
     },
-    root,
   );
   return result as unknown as AdmissionProfileTemplateOption;
 }
@@ -398,27 +242,20 @@ export interface DeleteAdmissionProfileTemplateInput {
 
 export async function deleteAdmissionProfileTemplate(
   input: DeleteAdmissionProfileTemplateInput,
-  options: { baseUrl?: string } = {},
 ): Promise<{ name: string; deleted: boolean }> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để xóa loại hồ sơ.");
-  const result = await request(
-    `${root}/api/method/crm.api.admission_profile_templates.delete_admission_profile_template`,
+  const result = await call(
+    "admission_profile_templates.delete_admission_profile_template",
+    {},
     {
-      method: "POST",
-      body: JSON.stringify({
-        name: input.name,
-        expected_modified: input.expectedModified,
-      }),
+      name: input.name,
+      expected_modified: input.expectedModified,
     },
-    root,
   );
   return result as unknown as { name: string; deleted: boolean };
 }
 
 export async function listAdmissionDocumentTypes(
   options: {
-    baseUrl?: string;
     search?: string;
     includeArchived?: boolean;
     status?: AdmissionDocumentTypeOption["status"] | "all";
@@ -426,11 +263,6 @@ export async function listAdmissionDocumentTypes(
     pageLength?: number;
   } = {},
 ): Promise<AdmissionDocumentTypeCatalog> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(
-    root,
-    "Chưa cấu hình API máy chủ CRM để quản lý loại tài liệu.",
-  );
   const params = new URLSearchParams();
   if (options.search?.trim()) params.set("search", options.search.trim());
   if (options.includeArchived !== undefined) {
@@ -441,11 +273,9 @@ export async function listAdmissionDocumentTypes(
   if (options.start !== undefined) params.set("start", String(options.start));
   if (options.pageLength !== undefined)
     params.set("page_length", String(options.pageLength));
-  const query = params.toString() ? `?${params.toString()}` : "";
-  const result = await request(
-    `${root}/api/method/crm.api.admission_catalog.list_admission_document_types${query}`,
-    {},
-    root,
+  const result = await call(
+    "admission_catalog.list_admission_document_types",
+    Object.fromEntries(params),
   );
   if (!isDocumentTypeCatalog(result)) {
     throw new AdmissionProfileCatalogApiError(
@@ -473,14 +303,11 @@ export async function listAdmissionDocumentTypes(
 
 export async function createAdmissionDocumentType(
   data: AdmissionDocumentTypeMutationInput,
-  options: { baseUrl?: string } = {},
 ): Promise<AdmissionDocumentTypeCatalog["documentTypes"][number]> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để tạo loại tài liệu.");
-  const result = await request(
-    `${root}/api/method/crm.api.admission_catalog.create_admission_document_type`,
-    { method: "POST", body: JSON.stringify({ data }) },
-    root,
+  const result = await call(
+    "admission_catalog.create_admission_document_type",
+    {},
+    { data },
   );
   return result as unknown as AdmissionDocumentTypeCatalog["documentTypes"][number];
 }
@@ -493,21 +320,15 @@ export interface UpdateAdmissionDocumentTypeInput {
 
 export async function updateAdmissionDocumentType(
   input: UpdateAdmissionDocumentTypeInput,
-  options: { baseUrl?: string } = {},
 ): Promise<AdmissionDocumentTypeCatalog["documentTypes"][number]> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để sửa loại tài liệu.");
-  const result = await request(
-    `${root}/api/method/crm.api.admission_catalog.update_admission_document_type`,
+  const result = await call(
+    "admission_catalog.update_admission_document_type",
+    {},
     {
-      method: "POST",
-      body: JSON.stringify({
-        name: input.name,
-        data: input.data,
-        expected_modified: input.expectedModified,
-      }),
+      name: input.name,
+      data: input.data,
+      expected_modified: input.expectedModified,
     },
-    root,
   );
   return result as unknown as AdmissionDocumentTypeCatalog["documentTypes"][number];
 }
@@ -519,27 +340,20 @@ export interface DeleteAdmissionDocumentTypeInput {
 
 export async function deleteAdmissionDocumentType(
   input: DeleteAdmissionDocumentTypeInput,
-  options: { baseUrl?: string } = {},
 ): Promise<{ deleted: string }> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(root, "Chưa cấu hình API máy chủ CRM để xóa loại tài liệu.");
-  const result = await request(
-    `${root}/api/method/crm.api.admission_catalog.delete_admission_document_type`,
+  const result = await call(
+    "admission_catalog.delete_admission_document_type",
+    {},
     {
-      method: "POST",
-      body: JSON.stringify({
-        name: input.name,
-        expected_modified: input.expectedModified,
-      }),
+      name: input.name,
+      expected_modified: input.expectedModified,
     },
-    root,
   );
   return result as unknown as { deleted: string };
 }
 
 export async function listAdmissionMethods(
   options: {
-    baseUrl?: string;
     search?: string;
     includeDisabled?: boolean;
     enabled?: boolean;
@@ -547,11 +361,6 @@ export async function listAdmissionMethods(
     pageLength?: number;
   } = {},
 ): Promise<AdmissionMethodCatalog> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(
-    root,
-    "Chưa cấu hình API máy chủ CRM để quản lý phương thức xét tuyển.",
-  );
   const params = new URLSearchParams();
   if (options.search?.trim()) params.set("search", options.search.trim());
   if (options.includeDisabled !== undefined) {
@@ -562,11 +371,9 @@ export async function listAdmissionMethods(
   if (options.start !== undefined) params.set("start", String(options.start));
   if (options.pageLength !== undefined)
     params.set("page_length", String(options.pageLength));
-  const query = params.toString() ? `?${params.toString()}` : "";
-  const result = await request(
-    `${root}/api/method/crm.api.admission_catalog.list_admission_methods${query}`,
-    {},
-    root,
+  const result = await call(
+    "admission_catalog.list_admission_methods",
+    Object.fromEntries(params),
   );
   if (!isMethodCatalog(result)) {
     throw new AdmissionProfileCatalogApiError(
@@ -594,17 +401,11 @@ export async function listAdmissionMethods(
 
 export async function createAdmissionMethod(
   data: AdmissionMethodMutationInput,
-  options: { baseUrl?: string } = {},
 ): Promise<AdmissionMethodCatalog["methods"][number]> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(
-    root,
-    "Chưa cấu hình API máy chủ CRM để tạo phương thức xét tuyển.",
-  );
-  const result = await request(
-    `${root}/api/method/crm.api.admission_catalog.create_admission_method`,
-    { method: "POST", body: JSON.stringify({ data }) },
-    root,
+  const result = await call(
+    "admission_catalog.create_admission_method",
+    {},
+    { data },
   );
   return result as unknown as AdmissionMethodCatalog["methods"][number];
 }
@@ -617,24 +418,15 @@ export interface UpdateAdmissionMethodInput {
 
 export async function updateAdmissionMethod(
   input: UpdateAdmissionMethodInput,
-  options: { baseUrl?: string } = {},
 ): Promise<AdmissionMethodCatalog["methods"][number]> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(
-    root,
-    "Chưa cấu hình API máy chủ CRM để sửa phương thức xét tuyển.",
-  );
-  const result = await request(
-    `${root}/api/method/crm.api.admission_catalog.update_admission_method`,
+  const result = await call(
+    "admission_catalog.update_admission_method",
+    {},
     {
-      method: "POST",
-      body: JSON.stringify({
-        name: input.name,
-        data: input.data,
-        expected_modified: input.expectedModified,
-      }),
+      name: input.name,
+      data: input.data,
+      expected_modified: input.expectedModified,
     },
-    root,
   );
   return result as unknown as AdmissionMethodCatalog["methods"][number];
 }
@@ -646,67 +438,37 @@ export interface DeleteAdmissionMethodInput {
 
 export async function deleteAdmissionMethod(
   input: DeleteAdmissionMethodInput,
-  options: { baseUrl?: string } = {},
 ): Promise<{ deleted: string }> {
-  const root = baseUrl(options.baseUrl);
-  ensureApiRoot(
-    root,
-    "Chưa cấu hình API máy chủ CRM để xóa phương thức xét tuyển.",
-  );
-  const result = await request(
-    `${root}/api/method/crm.api.admission_catalog.delete_admission_method`,
+  const result = await call(
+    "admission_catalog.delete_admission_method",
+    {},
     {
-      method: "POST",
-      body: JSON.stringify({
-        name: input.name,
-        expected_modified: input.expectedModified,
-      }),
+      name: input.name,
+      expected_modified: input.expectedModified,
     },
-    root,
   );
   return result as unknown as { deleted: string };
 }
 
 export async function createAdmissionApplication(
   input: CreateAdmissionApplicationInput,
-  options: { baseUrl?: string } = {},
 ): Promise<CreateAdmissionApplicationResponse> {
-  const root = baseUrl(options.baseUrl);
-  if (!root) {
-    throw new AdmissionProfileCatalogApiError(
-      503,
-      "ADMISSION_APPLICATION_UNAVAILABLE",
-      "Chưa cấu hình API máy chủ CRM để tạo hồ sơ nhập học.",
-    );
-  }
-  const result = await request(
-    `${root}/api/method/crm.api.admission_application.create_application`,
+  const result = await call(
+    "admission_application.create_application",
+    {},
     {
-      method: "POST",
-      body: JSON.stringify({
-        student: input.student,
-        values: input.values,
-        expected_revision: input.expectedRevision,
-        idempotency_key: input.idempotencyKey,
-      }),
+      student: input.student,
+      values: input.values,
+      expected_revision: input.expectedRevision,
+      idempotency_key: input.idempotencyKey,
     },
-    root,
   );
   return result as unknown as CreateAdmissionApplicationResponse;
 }
 
 export async function uploadStudentAdmissionDocument(
   input: UploadStudentAdmissionDocumentInput,
-  options: { baseUrl?: string } = {},
 ): Promise<UploadStudentAdmissionDocumentResponse> {
-  const root = baseUrl(options.baseUrl);
-  if (!root) {
-    throw new AdmissionProfileCatalogApiError(
-      503,
-      "ADMISSION_DOCUMENT_UPLOAD_UNAVAILABLE",
-      "Chưa cấu hình API máy chủ CRM để tải tài liệu nhập học.",
-    );
-  }
   if (!input.file || !input.file.name) {
     throw new AdmissionProfileCatalogApiError(
       400,
@@ -722,56 +484,33 @@ export async function uploadStudentAdmissionDocument(
   if (input.application) body.append("application", input.application);
   body.append("file", input.file, input.file.name);
 
-  const result = await request(
-    `${root}/api/method/crm.api.student_documents.upload_document`,
-    { method: "POST", body },
-    root,
-  );
-  return result as unknown as UploadStudentAdmissionDocumentResponse;
+  try {
+    return asRecord(
+      await uploadProfileDocument(body),
+    ) as unknown as UploadStudentAdmissionDocumentResponse;
+  } catch (error) {
+    return mapError(error);
+  }
 }
 
 export async function updateAdmissionApplicationPreference(
   input: UpdateAdmissionApplicationPreferenceInput,
-  options: { baseUrl?: string } = {},
 ): Promise<UpdateAdmissionApplicationPreferenceResponse> {
-  const root = baseUrl(options.baseUrl);
-  if (!root) {
-    throw new AdmissionProfileCatalogApiError(
-      503,
-      "ADMISSION_APPLICATION_UNAVAILABLE",
-      "Chưa cấu hình API máy chủ CRM để cập nhật hồ sơ nhập học.",
-    );
-  }
-  const result = await request(
-    `${root}/api/method/crm.api.admission_application.update_preference`,
-    {
-      method: "PUT",
-      body: JSON.stringify(input),
-    },
-    root,
+  const result = await call(
+    "admission_application.update_preference",
+    {},
+    { ...input },
   );
   return result as unknown as UpdateAdmissionApplicationPreferenceResponse;
 }
 
 export async function updateAdmissionApplication(
   input: UpdateAdmissionApplicationInput,
-  options: { baseUrl?: string } = {},
 ): Promise<UpdateAdmissionApplicationResponse> {
-  const root = baseUrl(options.baseUrl);
-  if (!root) {
-    throw new AdmissionProfileCatalogApiError(
-      503,
-      "ADMISSION_APPLICATION_UNAVAILABLE",
-      "Chưa cấu hình API máy chủ CRM để cập nhật hồ sơ nhập học.",
-    );
-  }
-  const result = await request(
-    `${root}/api/method/crm.api.admission_application.update_application`,
-    {
-      method: "PUT",
-      body: JSON.stringify(input),
-    },
-    root,
+  const result = await call(
+    "admission_application.update_application",
+    {},
+    { ...input },
   );
   return result as unknown as UpdateAdmissionApplicationResponse;
 }
