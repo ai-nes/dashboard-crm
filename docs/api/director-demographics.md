@@ -13,27 +13,23 @@ Overview không dồn 24 biểu đồ vào một màn hình dài. UI hiện tạ
 
 Bảng **Nhóm lead cần ưu tiên** (`data.segments`) dùng phân trang server-side. Các metric tổng quan vẫn tính trên toàn bộ tập kết quả sau filter; chỉ mảng `data.segments` là dữ liệu của trang hiện tại.
 
-Toàn bộ 24 chart hiện đọc từ cùng payload `data.acquisitionMap`, vì vậy fixture offline, mock route và response Frappe dùng chung một schema. Khi backend chưa có nguồn canonical, dataset tương ứng phải trả `null`/array rỗng theo contract; không dùng số trình diễn làm dữ liệu production. Fallback local chỉ được dùng khi không cấu hình `NEXT_PUBLIC_FRAPPE_URL`.
+Toàn bộ 24 chart hiện đọc từ cùng payload `data.acquisitionMap`, vì vậy fixture của route demo và response API dùng chung một schema. Khi backend chưa có nguồn canonical, dataset tương ứng phải trả `null`/array rỗng theo contract; không dùng số trình diễn làm dữ liệu production. Service không còn fallback local: thiếu `NEXT_PUBLIC_CRM_API_URL` trả lỗi cấu hình.
 
 ## Endpoint
 
 ```http
-GET /api/method/crm.api.director_demographics.get_director_demographics_overview
-GET /api/method/crm.api.director_demographics.get_director_demographics_segment
+GET /api/v1/director/demographics
+GET /api/v1/director/demographics/segments/{segmentId}
 ```
 
-Frappe bọc payload trong `message`:
+Cần phiên đăng nhập (`credentials: "include"`). Payload được trả trực tiếp (không bọc `message`):
 
 ```json
 {
-  "message": {
-    "data": {},
-    "meta": {}
-  }
+  "data": {},
+  "meta": {}
 }
 ```
-
-Trong môi trường không có `NEXT_PUBLIC_FRAPPE_URL`, frontend dùng fixture local làm fallback. Fallback chỉ để kiểm tra UI, không phải nguồn dữ liệu production.
 
 ## Query parameters — overview
 
@@ -312,31 +308,29 @@ Options phục vụ các select bên trong filter popover. Nếu không có, fro
 ## Response contract — segment detail
 
 ```http
-GET ...get_director_demographics_segment?segment_id=female-ai-dong-nai&admissionYear=2026
+GET /api/v1/director/demographics/segments/female-ai-dong-nai?admissionYear=2026
 ```
 
 ```json
 {
-  "message": {
-    "data": {
-      "segment": {},
-      "benchmark": {},
-      "regionOpportunities": [],
-      "nextAction": {
-        "priority": "high",
-        "label": "Nên làm ngay",
-        "title": "...",
-        "description": "...",
-        "steps": []
-      },
-      "guardrails": []
+  "data": {
+    "segment": {},
+    "benchmark": {},
+    "regionOpportunities": [],
+    "nextAction": {
+      "priority": "high",
+      "label": "Nên làm ngay",
+      "title": "...",
+      "description": "...",
+      "steps": []
     },
-    "meta": {
-      "admissionYear": 2026,
-      "asOf": "2026-06-06T10:00:00+07:00",
-      "minSampleSize": 30,
-      "sampleSize": 3420
-    }
+    "guardrails": []
+  },
+  "meta": {
+    "admissionYear": 2026,
+    "asOf": "2026-06-06T10:00:00+07:00",
+    "minSampleSize": 30,
+    "sampleSize": 3420
   }
 }
 ```
@@ -390,7 +384,7 @@ Shape canonical:
 }
 ```
 
-Các dataset vẫn phải trả đủ key ngay cả khi chưa có dữ liệu; dùng `[]` cho collection và `null` cho metric không khả dụng. Với response Frappe, thiếu `data.acquisitionMap` là response không hợp lệ và frontend trả `INVALID_DEMOGRAPHICS_RESPONSE`.
+Các dataset vẫn phải trả đủ key ngay cả khi chưa có dữ liệu; dùng `[]` cho collection và `null` cho metric không khả dụng. Với response API, thiếu `data.acquisitionMap` là response không hợp lệ và frontend trả `INVALID_DEMOGRAPHICS_RESPONSE`.
 
 ### A. Platform và cost
 

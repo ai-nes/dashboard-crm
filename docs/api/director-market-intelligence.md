@@ -1,16 +1,16 @@
 # Director Market Intelligence API
 
-Contract đang được dùng bởi trang `/director/market-intelligence`. Server page gọi Frappe, chuyển tiếp cookie theo request, dùng `cache: "no-store"` và không quay về CSV/mock khi API lỗi.
+Contract đang được dùng bởi trang `/director/market-intelligence`. Service `getDirectorMarketIntelligence()` gọi API Nest với `credentials: "include"` và không quay về CSV/mock khi API lỗi.
 
 ## Endpoint và quyền truy cập
 
 ```http
-GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.director_market_intelligence.get_director_market_intelligence_overview
-Cookie: sid=<Frappe session cookie>
+GET {NEXT_PUBLIC_CRM_API_URL}/api/v1/director/market-intelligence
+Cookie: <Better Auth session cookie>   (credentials: "include")
 Accept: application/json
 ```
 
-Method chỉ nhận `GET`; Frappe bọc kết quả thành công trong `message`. Quyền hợp lệ: `Administrator`, profile chuẩn `Admissions Director`, hoặc `System Manager` không đồng thời mang business role bị cấm. Kiểm tra quyền chạy trước truy vấn dữ liệu.
+Endpoint chỉ nhận `GET` và trả kết quả trực tiếp (không bọc `message`). Quyền: quản trị viên hoặc user có lead scope `all`; kiểm tra quyền chạy trước truy vấn dữ liệu.
 
 ## Query parameters
 
@@ -23,101 +23,99 @@ Method chỉ nhận `GET`; Frappe bọc kết quả thành công trong `message`
 | `includeSchools` | boolean | `true` | Chỉ `true` hoặc `false` |
 | `schoolLimit` | integer | `6` | `1..20` |
 
-Nếu bỏ `admissionYear`, phải có đúng một `CRM Admission Year` active; nếu không API trả `422`.
+Nếu bỏ `admissionYear`, phải có đúng một kỳ tuyển sinh active; nếu không API trả `422`.
 
 ## Response `200`
 
 ```json
 {
-  "message": {
-    "status": "available",
-    "data": {
-      "totalProvinces": 1,
-      "totalSchools": 2,
-      "provinces": [
-        {
-          "code": "01",
-          "name": "Hà Nội",
-          "fullName": "Hà Nội",
-          "regionKey": "north",
-          "opportunity": null,
-          "leads": 12,
-          "conversion": 25.0,
-          "competition": null,
-          "revenue": null,
-          "grade12Population": null,
-          "penetrationRate": null,
-          "trend": null,
-          "recommendation": null,
-          "keyAction": null,
-          "schoolCount": 2,
-          "highSchools": [
-            {
-              "id": "01-00001-062",
-              "directoryId": "01-00001-062",
-              "name": "THPT Nguyễn Trãi",
-              "district": "Phường Ba Đình",
-              "coordinates": { "latitude": 21.03, "longitude": 105.81 },
-              "tier": "Tier 1",
-              "potentialScore": null,
-              "grade12Students": null,
-              "prospects": 5,
-              "penetrationRate": null,
-              "applications": 2,
-              "enrollmentForecast": null,
-              "conversionRate": 50.0,
-              "lastActivity": null,
-              "recommendation": null,
-              "nextAction": null,
-              "classification": "Trọng điểm"
-            }
-          ]
-        }
-      ],
-      "regionSummary": {
-        "scope": "all",
-        "count": 1,
-        "totalGrade12": null,
-        "totalLeads": 12,
-        "avgConversion": 25.0,
-        "hotspotCount": null,
-        "totalRevenue": null,
-        "grade12Trend": null,
-        "leadsTrend": null,
-        "revenueTrend": null
-      },
-      "metricConfig": { "key": "opportunity", "label": null, "unit": null, "min": null, "max": null },
-      "dataAvailability": {
-        "opportunity": "unavailable",
-        "competition": "unavailable",
-        "revenue": "unavailable",
-        "grade12Population": "unavailable"
+  "status": "available",
+  "data": {
+    "totalProvinces": 1,
+    "totalSchools": 2,
+    "provinces": [
+      {
+        "code": "01",
+        "name": "Hà Nội",
+        "fullName": "Hà Nội",
+        "regionKey": "north",
+        "opportunity": null,
+        "leads": 12,
+        "conversion": 25.0,
+        "competition": null,
+        "revenue": null,
+        "grade12Population": null,
+        "penetrationRate": null,
+        "trend": null,
+        "recommendation": null,
+        "keyAction": null,
+        "schoolCount": 2,
+        "highSchools": [
+          {
+            "id": "01-00001-062",
+            "directoryId": "01-00001-062",
+            "name": "THPT Nguyễn Trãi",
+            "district": "Phường Ba Đình",
+            "coordinates": { "latitude": 21.03, "longitude": 105.81 },
+            "tier": "Tier 1",
+            "potentialScore": null,
+            "grade12Students": null,
+            "prospects": 5,
+            "penetrationRate": null,
+            "applications": 2,
+            "enrollmentForecast": null,
+            "conversionRate": 50.0,
+            "lastActivity": null,
+            "recommendation": null,
+            "nextAction": null,
+            "classification": "Trọng điểm"
+          }
+        ]
       }
+    ],
+    "regionSummary": {
+      "scope": "all",
+      "count": 1,
+      "totalGrade12": null,
+      "totalLeads": 12,
+      "avgConversion": 25.0,
+      "hotspotCount": null,
+      "totalRevenue": null,
+      "grade12Trend": null,
+      "leadsTrend": null,
+      "revenueTrend": null
     },
+    "metricConfig": { "key": "opportunity", "label": null, "unit": null, "min": null, "max": null },
     "dataAvailability": {
-      "sections": {
-        "identity": "available",
-        "students": "available",
-        "snapshots": "available",
-        "wards": "available"
-      },
-      "fields": {
-        "provinces[].opportunity": "unavailable",
-        "provinces[].competition": "unavailable",
-        "provinces[].revenue": "unavailable",
-        "provinces[].grade12Population": "unavailable",
-        "provinces[].recommendation": "unavailable"
-      }
-    },
-    "meta": {
-      "admissionYear": 2026,
-      "period": "30d",
-      "region": "all",
-      "metric": "opportunity",
-      "asOf": "2026-08-30",
-      "scope": "director",
-      "sourceDataRevision": "0123456789abcdef"
+      "opportunity": "unavailable",
+      "competition": "unavailable",
+      "revenue": "unavailable",
+      "grade12Population": "unavailable"
     }
+  },
+  "dataAvailability": {
+    "sections": {
+      "identity": "available",
+      "students": "available",
+      "snapshots": "available",
+      "wards": "available"
+    },
+    "fields": {
+      "provinces[].opportunity": "unavailable",
+      "provinces[].competition": "unavailable",
+      "provinces[].revenue": "unavailable",
+      "provinces[].grade12Population": "unavailable",
+      "provinces[].recommendation": "unavailable"
+    }
+  },
+  "meta": {
+    "admissionYear": 2026,
+    "period": "30d",
+    "region": "all",
+    "metric": "opportunity",
+    "asOf": "2026-08-30",
+    "scope": "director",
+    "sourceDataRevision": "0123456789abcdef"
   }
 }
 ```

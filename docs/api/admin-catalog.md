@@ -1,36 +1,42 @@
 # Admin catalog command API
 
-The primary dashboard admin workspace is `/director/admin/catalogs`. It uses
-explicit Frappe command boundaries under `crm.api.admin_catalog` instead of
-generic DocType writes.
+The admin workspace is `/director/admin/catalogs`. Every write is an explicit
+command on a dedicated endpoint; the dashboard never writes generic records.
+All update and delete commands carry the version read earlier
+(`expectedModified`) so a stale write answers `409`.
 
 ## Admission and policy catalogs
 
-- `list/create/update/delete_admission_year`
-- `list/create/update/delete_academic_year_config`
-- `list/create/update/delete_admission_offering`
-- `transition_admission_offering` — `Active` always goes through the approval command.
-- `list/get/create/update/delete_score_template` (`list_score_templates` accepts
-  `search`, `start` and `page_length`)
+| Resource | Endpoint |
+| --- | --- |
+| Admission years | `/api/v1/reference-data/admission-years` (`GET`, `POST`, `PATCH /{id}`, `DELETE /{id}`) |
+| Academic year configs | `/api/v1/academic-year-configs` (`GET`, `POST`, `PATCH /{id}`, `DELETE /{id}`) |
+| Admission offerings | `/api/v1/admission-offerings` (`GET`, `POST`, `PATCH /{id}`, `DELETE /{id}`, `POST /{id}/transition`) |
+| Score templates | `/api/v1/score-config/templates` (`GET`, `GET /{name}`, `POST`, `PATCH /{name}`, `DELETE /{name}`) |
+| Score signals | `GET /api/v1/score-config/signals` |
 
-All update and delete commands accept `expected_modified` for stale-write
-protection. Admission Year and Academic Year Config enforce active-year,
-one-config-per-year and duplicate line invariants on the backend.
-
-The dashboard editors submit structured line/rule arrays. Search fields are
-server-side and paginated; the UI sends `start` and `page_length` instead of
-loading an unbounded catalog.
+- `POST /admission-offerings/{id}/transition` takes `{ status, expectedModified }`;
+  moving to `Active` always goes through the approval command.
+- Lists are paginated on the server: `search`, `start`, `page_length`.
+- Admission year and academic year config enforce the active-year,
+  one-config-per-year and duplicate-line rules on the backend. The editors submit
+  structured line and rule arrays.
 
 ## Governed references
 
-`list_governed_values`, `create_governed_value`, `list_governed_changes`,
-`propose_governed_change` and `approve_governed_change` cover `CRM Campus`,
-`CRM Lead Source` and `CRM Platform`. These calls retain the Phase 9
-owner/approval gate; the dashboard must not call generic Frappe CRUD for them.
+`CRM Campus`, `CRM Lead Source` and `CRM Platform` are governed catalogs:
+
+| Method | Path |
+| --- | --- |
+| `GET`, `POST` | `/api/v1/governed-values/{campus\|lead-source\|platform}` |
+| `GET`, `POST` | `/api/v1/governed-values/{catalog}/changes` (propose and list changes) |
+| `POST` | `/api/v1/governed-values/changes/{name}/approve` |
+
+The owner/approval gate stays: the dashboard proposes a change and an approver
+confirms it; there is no direct write.
 
 ## Campaign channel types
 
-`crm.api.campaign_channel_type` now also exposes
-`create_campaign_channel_type`, `update_campaign_channel_type` and
-`delete_campaign_channel_type`. Channel codes are immutable and every record
-must support Online or Offline mode.
+`/api/v1/campaign-channel-types` (`GET`, `POST`, `PATCH /{code}`, `DELETE /{code}`).
+Codes are immutable and every record supports Online or Offline mode.
+See [campaign-channel-types](campaign-channel-types.md).

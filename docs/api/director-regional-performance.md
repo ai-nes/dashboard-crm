@@ -33,25 +33,17 @@ Nguồn tham chiếu trực tiếp:
 
 ## 2. Tình trạng tích hợp hiện tại
 
-Route hiện chưa gọi API. Các component đang import fixture trực tiếp từ `data.ts`; năm tuyển sinh, scope và danh sách action cũng còn có nội dung tĩnh.
-
-Contract bên dưới là contract production đề xuất. Khi tích hợp, frontend nên thay dataset local bằng một response duy nhất để tổng funnel, số liệu địa bàn và các tỷ lệ được lấy từ cùng một snapshot. Không dùng fixture local làm fallback im lặng khi API production lỗi.
+Route gọi `getDirectorRegionalPerformance()` (`src/services/api/director-regional-performance`) và dùng một response duy nhất để tổng funnel, số liệu địa bàn và các tỷ lệ lấy từ cùng một snapshot. Service kiểm tra schema tối thiểu (`provinces`, `capabilityColumns`, `priorityActions`, `meta`) và trả `502 INVALID_REGIONAL_PERFORMANCE_RESPONSE` nếu sai. Không có fallback im lặng về dữ liệu mẫu khi API lỗi.
 
 ## 3. Endpoint và quyền truy cập
 
 ```http
-GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.director_regional_performance.get_director_regional_performance
-Cookie: sid=<Frappe session cookie>
+GET {NEXT_PUBLIC_CRM_API_URL}/api/v1/director/regional-performance
+Cookie: <Better Auth session cookie>   (credentials: "include")
 Accept: application/json
 ```
 
-Method chỉ đọc và Frappe bọc response thành công trong `message`. API không trả PII.
-
-Backend phải kiểm tra quyền Director trước khi áp dụng `scope`:
-
-- profile nghiệp vụ `Admissions Director`;
-- `Administrator` hoặc `System Manager` có quyền phù hợp;
-- scope yêu cầu phải nằm trong phạm vi user được cấp quyền.
+Endpoint chỉ đọc, trả response trực tiếp (không bọc `message`) và không trả PII. Quyền: quản trị viên hoặc user có lead scope `all`; còn lại `403 FORBIDDEN`.
 
 Không để client tự quyết định danh sách tỉnh hoặc vượt scope bằng cách sửa query string.
 
@@ -60,7 +52,7 @@ Không để client tự quyết định danh sách tỉnh hoặc vượt scope 
 Ví dụ:
 
 ```http
-GET /api/method/crm.api.director_regional_performance.get_director_regional_performance?admissionYear=2026&scope=all
+GET /api/v1/director/regional-performance?admissionYear=2026&scope=all
 ```
 
 ### Query parameters
@@ -95,82 +87,80 @@ Ví dụ response rút gọn:
 
 ```json
 {
-  "message": {
-    "meta": {
-      "admissionYear": 2026,
-      "scope": "all",
-      "scopeLabel": "7 địa bàn trọng điểm",
-      "asOf": "2026-08-31T10:00:00+07:00",
-      "timezone": "Asia/Ho_Chi_Minh",
-      "status": "available",
-      "trendMonths": 6,
-      "warnings": []
-    },
-    "capabilityColumns": [
-      { "key": "leadGeneration", "label": "Tạo nguồn hồ sơ" },
-      { "key": "counselling", "label": "Tư vấn" },
-      { "key": "quality", "label": "Chất lượng hồ sơ" },
-      { "key": "conversion", "label": "Tỷ lệ nhập học" },
-      { "key": "campaigns", "label": "Hoạt động tuyển sinh" },
-      { "key": "productivity", "label": "Năng suất đội ngũ" }
-    ],
-    "provinces": [
-      {
-        "id": "dak-lak",
-        "name": "Đắk Lắk",
-        "applications": 826,
-        "enrollments": 166,
-        "enrollmentTarget": 218,
-        "targetAchievement": 76.1,
-        "conversion": 20.1,
-        "applicationChange": -2.8,
-        "enrollmentChange": -4.6,
-        "activeAdvisors": 8,
-        "capacity": 94,
-        "health": "critical",
-        "trend": [
-          {
-            "month": "T2/2026",
-            "applications": 317,
-            "enrollments": 58,
-            "previousApplications": 288
-          }
-        ],
-        "funnel": [
-          { "id": "applications", "stage": "Hồ sơ đăng ký", "value": 826 },
-          { "id": "qualified", "stage": "Đủ điều kiện", "value": 512 },
-          { "id": "counselling", "stage": "Đang tư vấn", "value": 389 },
-          { "id": "enrolled", "stage": "Đã nhập học", "value": 166 }
-        ],
-        "capabilities": {
-          "leadGeneration": "watch",
-          "counselling": "critical",
-          "quality": "watch",
-          "conversion": "watch",
-          "campaigns": "critical",
-          "productivity": "critical"
+  "meta": {
+    "admissionYear": 2026,
+    "scope": "all",
+    "scopeLabel": "7 địa bàn trọng điểm",
+    "asOf": "2026-08-31T10:00:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "status": "available",
+    "trendMonths": 6,
+    "warnings": []
+  },
+  "capabilityColumns": [
+    { "key": "leadGeneration", "label": "Tạo nguồn hồ sơ" },
+    { "key": "counselling", "label": "Tư vấn" },
+    { "key": "quality", "label": "Chất lượng hồ sơ" },
+    { "key": "conversion", "label": "Tỷ lệ nhập học" },
+    { "key": "campaigns", "label": "Hoạt động tuyển sinh" },
+    { "key": "productivity", "label": "Năng suất đội ngũ" }
+  ],
+  "provinces": [
+    {
+      "id": "dak-lak",
+      "name": "Đắk Lắk",
+      "applications": 826,
+      "enrollments": 166,
+      "enrollmentTarget": 218,
+      "targetAchievement": 76.1,
+      "conversion": 20.1,
+      "applicationChange": -2.8,
+      "enrollmentChange": -4.6,
+      "activeAdvisors": 8,
+      "capacity": 94,
+      "health": "critical",
+      "trend": [
+        {
+          "month": "T2/2026",
+          "applications": 317,
+          "enrollments": 58,
+          "previousApplications": 288
         }
+      ],
+      "funnel": [
+        { "id": "applications", "stage": "Hồ sơ đăng ký", "value": 826 },
+        { "id": "qualified", "stage": "Đủ điều kiện", "value": 512 },
+        { "id": "counselling", "stage": "Đang tư vấn", "value": 389 },
+        { "id": "enrolled", "stage": "Đã nhập học", "value": 166 }
+      ],
+      "capabilities": {
+        "leadGeneration": "watch",
+        "counselling": "critical",
+        "quality": "watch",
+        "conversion": "watch",
+        "campaigns": "critical",
+        "productivity": "critical"
       }
-    ],
-    "priorityActions": [
-      {
-        "id": "a1",
-        "title": "Bổ sung 2 tư vấn viên cho Đắk Lắk",
-        "detail": "Đội ngũ đã dùng 94% khả năng xử lý hồ sơ.",
-        "provinceId": "dak-lak",
-        "priority": "Cao",
-        "tone": "critical"
-      },
-      {
-        "id": "a5",
-        "title": "Nhân rộng cách tư vấn hiệu quả",
-        "detail": "Chia sẻ kịch bản từ địa bàn có tỷ lệ chuyển đổi tốt.",
-        "provinceId": "all",
-        "priority": "Thấp",
-        "tone": "good"
-      }
-    ]
-  }
+    }
+  ],
+  "priorityActions": [
+    {
+      "id": "a1",
+      "title": "Bổ sung 2 tư vấn viên cho Đắk Lắk",
+      "detail": "Đội ngũ đã dùng 94% khả năng xử lý hồ sơ.",
+      "provinceId": "dak-lak",
+      "priority": "Cao",
+      "tone": "critical"
+    },
+    {
+      "id": "a5",
+      "title": "Nhân rộng cách tư vấn hiệu quả",
+      "detail": "Chia sẻ kịch bản từ địa bàn có tỷ lệ chuyển đổi tốt.",
+      "provinceId": "all",
+      "priority": "Thấp",
+      "tone": "good"
+    }
+  ]
 }
 ```
 
@@ -337,7 +327,7 @@ Không trả `200` với một phần field bị đổi tên, sai kiểu hoặc 
 
 Để render đầy đủ route bằng dữ liệu thật, frontend chỉ cần:
 
-1. Gọi `GET ...get_director_regional_performance?admissionYear=2026&scope=all` một lần khi tải màn hình.
+1. Gọi `GET /api/v1/director/regional-performance?admissionYear=2026&scope=all` một lần khi tải màn hình.
 2. Lấy danh sách select từ `provinces[]`.
 3. Dùng `selectedProvinceId` để chọn một object trong snapshot hiện tại; không gọi lại API khi đổi địa bàn.
 4. Tính aggregate funnel từ các `provinces[].funnel` cùng order canonical.

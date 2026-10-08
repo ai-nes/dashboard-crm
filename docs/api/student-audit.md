@@ -1,21 +1,23 @@
-# Student / Lead audit API
+# Student / lead / segment audit API
 
 ## Read-only endpoints
 
-Both endpoints return the same additive audit projection. The Lead endpoint keeps
-`lead_id` in the response for compatibility:
+| Method | Path |
+| --- | --- |
+| `GET` | `/api/v1/students/{id}/audit-logs` |
+| `GET` | `/api/v1/leads/{id}/audit-logs` |
+| `GET` | `/api/v1/segments/{id}/audit-logs` |
 
-- `crm.api.audit.get_student_audit_logs` with `student`
-- `crm.api.audit.get_lead_audit_logs` with `lead_id`
+All three return the same additive audit projection. Query parameters are
+`start` and `pageLength` (maximum `100`, default `100`). The backend checks read
+permission for the requested record and its related records.
 
-Supported query parameters are `start` and `page_length` (maximum `100`). The
-backend checks read permission for the requested Lead/Student and related records.
+The projection combines a lead and its canonical student when linked. It covers
+creation, field changes, status and assignment history, deletions, comments,
+messages, attachments, calls, notes, tasks, actions, interactions and the
+lifecycle, ownership, outcome, marketing, SLA, decision, consent and conversion
+events.
 
-The projection combines a Lead and its canonical Student when linked. It includes
-document creation, Version changes, status/assignment history, deleted documents,
-Comment, Communication/Email, File attachments, Call Log, FCRM Note, Task, CRM
-Action Item, CRM Interaction, and lifecycle, ownership, outcome, marketing, SLA,
-decision, consent and conversion events.
-
-Rows keep the existing audit envelope and may contain `content`, `subject`, and
-source-specific `metadata`. The API is read-only and does not modify related data.
+Rows keep the audit envelope (`eventId`, `occurredAt`, `action`, `sourceName`,
+`changeType`) and may carry `content`, `subject` and source-specific `metadata`.
+The endpoints never modify data. Types: `src/services/api/student-audit/types.ts`.
