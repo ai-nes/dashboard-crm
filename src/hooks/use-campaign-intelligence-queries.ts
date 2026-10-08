@@ -14,8 +14,8 @@ import {
 } from "@/services/api/campaign-intelligence";
 
 export const campaignIntelligenceKeys = {
-  all: ["campaign-intelligence", "frappe-v1"] as const,
-  root: (params: CampaignScopeParams = {}) => ["campaign-intelligence", "frappe-v1", params] as const,
+  all: ["campaign-intelligence", "v1"] as const,
+  root: (params: CampaignScopeParams = {}) => ["campaign-intelligence", "v1", params] as const,
   leads: (params: CampaignLeadsParams) => ["campaign-intelligence", "leads", params] as const,
 };
 

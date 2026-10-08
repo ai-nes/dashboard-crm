@@ -15,7 +15,7 @@ function json(body: unknown, status = 200) {
   );
 }
 
-const OPS = "http://ops.test/api/method";
+const OPS = "http://ops.test/operations";
 
 describe("admin catalog operations routed to Nest", () => {
   beforeEach(() => {

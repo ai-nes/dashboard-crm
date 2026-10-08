@@ -25,7 +25,7 @@ export function operationCaller(...handlers: MethodHandler[]) {
   const handler = chainHandlers(...handlers);
   return (url: string, init: RequestInit = {}) => {
     const parsed = new URL(url);
-    const method = parsed.pathname.split("/api/method/")[1] ?? "";
+    const method = parsed.pathname.split("/operations/")[1] ?? "";
     const params = Object.fromEntries(parsed.searchParams);
     const body =
       typeof init.body === "string"

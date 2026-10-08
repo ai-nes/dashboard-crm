@@ -32,15 +32,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return nestGetCurrentUser();
 }
 
-/**
- * @deprecated Better Auth sessions use the cookie and an origin check, so there
- * is no CSRF token to send. Remove with the last service that still asks.
- */
-export async function getCsrfToken(...args: [baseUrl?: string]): Promise<null> {
-  void args;
-  return null;
-}
-
 /** CRM accounts that can be picked as a task assignee. */
 export async function getSessionUsers(): Promise<SessionUser[]> {
   return nestSessionUsers();

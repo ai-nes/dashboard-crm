@@ -7,7 +7,7 @@ export type SegmentStatus = ApiSegmentStatus;
 export type SegmentType = "dynamic" | "static";
 
 export interface SegmentListItem {
-  /** Frappe document name is the stable segment identifier. */
+  /** The document name is the stable segment identifier. */
   id: string;
   segmentCode: string;
   name: string;

@@ -379,7 +379,7 @@ export default function RuleBuilderPage({
           <section className="space-y-3 rounded-2xl border border-card-border bg-card-surface-area p-4 shadow-xs sm:p-5">
             <div>
               <h3 className="text-sm font-semibold text-title-50">Phân loại và action</h3>
-              <p className="text-xs text-text-tertiary">Enum phải khớp schema Rule Engine trên Frappe.</p>
+              <p className="text-xs text-text-tertiary">Enum phải khớp schema Rule Engine trên máy chủ CRM.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1.5 text-sm font-medium text-title-50">

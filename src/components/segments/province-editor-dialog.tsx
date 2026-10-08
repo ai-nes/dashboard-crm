@@ -141,7 +141,7 @@ export function ProvinceEditorDialog({
       </div>
       {record && (
         <p className="text-xs text-text-tertiary">
-          Muốn đổi mã hoặc tên, cần xử lý bằng quy trình đổi định danh của Frappe.
+          Muốn đổi mã hoặc tên, cần xử lý bằng quy trình đổi định danh của hệ thống.
         </p>
       )}
     </ReferenceCatalogEditorDialog>

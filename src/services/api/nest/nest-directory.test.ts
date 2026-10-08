@@ -49,7 +49,7 @@ describe("student school update with the Nest backend", () => {
     );
   });
 
-  it("returns schools in the Frappe list shape", async () => {
+  it("returns schools in the list shape", async () => {
     fetchMock.mockImplementation(() =>
       json({
         schools: [

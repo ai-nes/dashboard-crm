@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 describe("toNestLeadBody", () => {
-  it("maps Frappe field names and drops empty values", async () => {
+  it("maps snake_case field names and drops empty values", async () => {
     const { toNestLeadBody } = await import("./leads-nest");
     expect(
       toNestLeadBody({

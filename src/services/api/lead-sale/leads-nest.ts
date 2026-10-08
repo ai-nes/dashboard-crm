@@ -34,7 +34,7 @@ const POTENTIAL_TO_API: Record<string, string> = {
   unknown: "unknown",
 };
 
-/** Frappe-style snake_case lead fields -> Nest request body. Empty values are omitted. */
+/** Snake_case lead fields -> Nest request body. Empty values are omitted. */
 const FIELD_MAP: Record<string, string> = {
   student_name: "studentName",
   phone: "phone",

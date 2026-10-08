@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   getApiUrl,
-  isNestApiEnabled,
   nestRequest,
   NestApiError,
   notMigrated,
@@ -28,12 +27,10 @@ const jsonResponse = (body: unknown, status = 200) =>
 describe("getApiUrl", () => {
   it("returns the configured origin without a trailing slash", () => {
     expect(getApiUrl()).toBe("http://localhost:3001");
-    expect(isNestApiEnabled()).toBe(true);
   });
 
   it("fails with a configuration error when the origin is missing", () => {
     vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "");
-    expect(isNestApiEnabled()).toBe(false);
     expect(() => getApiUrl()).toThrowError(
       expect.objectContaining({ status: 503, code: "API_URL_MISSING" }),
     );

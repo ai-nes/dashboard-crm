@@ -1,5 +1,5 @@
 /**
- * Maps the Frappe segment and need/tag classification methods onto the NestJS
+ * Maps the segment and need/tag classification methods onto the NestJS
  * API, including the per-student classification calls.
  */
 import { NestApiError, nestRequest } from "./nest-client";
@@ -94,7 +94,7 @@ export async function nestSegmentRequest<T>(
 type Kind = "need" | "tag";
 const CLASSIFICATION = "/api/v1/classification";
 
-/** `""` means "any status" to the Frappe API; Nest spells it `all`. */
+/** `""` means "any status" to the legacy operations; Nest spells it `all`. */
 const statusOf = (value: unknown) => (value ? String(value) : "all");
 
 function kindOf(method: string): Kind | null {

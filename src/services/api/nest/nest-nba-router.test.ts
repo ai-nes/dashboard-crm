@@ -4,7 +4,7 @@ import { nestNbaHandler } from "./nest-nba-router";
 import { operationCaller } from "./nest-test-support";
 
 const fetchMock = vi.fn();
-const OPS = "http://ops.test/api/method";
+const OPS = "http://ops.test/operations";
 
 function json(body: unknown, status = 200) {
   return Promise.resolve(

@@ -1,6 +1,6 @@
 /**
  * `crm.api.action.*`, `crm.api.action_type.*` and the recommendation queues served
- * by the NestJS next-best-action catalog. Responses keep Frappe's snake_case.
+ * by the NestJS next-best-action catalog. Responses keep snake_case.
  */
 import { nestRequest } from "./nest-client";
 import {

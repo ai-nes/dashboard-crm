@@ -1,7 +1,7 @@
 /**
- * Transport for the NestJS CRM backend (`crm-backend`). Enabled by setting
- * `NEXT_PUBLIC_CRM_API_URL`; when unset the dashboard keeps talking to Frappe.
- * Auth is a Better Auth session cookie, so every call sends credentials.
+ * Transport for the NestJS CRM backend (`crm-backend`). `NEXT_PUBLIC_CRM_API_URL`
+ * is its origin. Auth is a Better Auth session cookie, so every call sends
+ * credentials.
  */
 
 /** Origin of the Nest API, read on every call so tests can change it. */
@@ -22,25 +22,14 @@ export function getApiUrl(): string {
   return url;
 }
 
-/** @deprecated Nest is the only backend; remove with the Frappe fallback branches. */
-export function isNestApiEnabled(): boolean {
-  return readApiUrl() !== "";
-}
-
 /**
- * Features the Nest backend does not serve yet. Calling Frappe for them would
- * only return 403 (there is no Frappe session), which redirects the whole app
- * to the access-denied page, so callers fail fast with this status instead.
+ * Features the Nest backend does not serve yet fail fast with this status so a
+ * screen shows an honest message instead of empty data.
  */
 export const FEATURE_NOT_MIGRATED_STATUS = 501;
 export const FEATURE_NOT_MIGRATED_CODE = "FEATURE_NOT_MIGRATED";
 export const FEATURE_NOT_MIGRATED_MESSAGE =
   "Tính năng này đang được chuyển sang hệ thống mới nên chưa khả dụng.";
-
-/** @deprecated True when a request must not go to Frappe because Nest is the backend. */
-export function frappeUnavailable(explicitBaseUrl?: string): boolean {
-  return !explicitBaseUrl && isNestApiEnabled();
-}
 
 export class NestApiError extends Error {
   constructor(
