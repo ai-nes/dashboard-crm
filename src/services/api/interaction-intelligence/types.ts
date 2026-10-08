@@ -135,7 +135,12 @@ export interface ConversationProblem {
 }
 
 export interface ConversationResolution {
-  status: "resolved" | "partially_resolved" | "unresolved" | "unknown" | (string & {});
+  status:
+    | "resolved"
+    | "partially_resolved"
+    | "unresolved"
+    | "unknown"
+    | (string & {});
   description: string;
   evidence_refs: ConversationEvidenceReference[];
 }
@@ -161,7 +166,13 @@ export interface ConversationSummary {
 
 export interface InteractionIntelligence {
   summary?: string | null;
-  sentiment?: "positive" | "neutral" | "negative" | "mixed" | (string & {}) | null;
+  sentiment?:
+    | "positive"
+    | "neutral"
+    | "negative"
+    | "mixed"
+    | (string & {})
+    | null;
   entities?: Record<string, string[]> | null;
   readiness?: "ready" | "hesitant" | "unknown" | (string & {}) | null;
   concerns?: string[] | null;
@@ -266,20 +277,6 @@ export interface NpsSaleSummaryResponse {
   total_points: number;
 }
 
-export interface InteractionEvidence {
-  contract_version?: string;
-  id: string;
-  interaction?: string | null;
-  kind?: string | null;
-  state?: string | null;
-  occurred_at?: string | null;
-  channel?: string | null;
-  direction?: string | null;
-  speaker_role?: string | null;
-  content?: string | null;
-  content_redacted?: boolean;
-}
-
 export interface InteractionTarget {
   student?: string;
   contact?: string;
@@ -324,11 +321,6 @@ export interface IntentType extends InteractionCatalogItem {
 export interface InteractionCatalog {
   interactionTypes: InteractionType[];
   intentTypes: IntentType[];
-}
-
-export interface InteractionRequestOptions {
-  baseUrl?: string;
-  headers?: Record<string, string>;
 }
 
 export interface CreateInteractionInput {
