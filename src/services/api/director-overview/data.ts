@@ -88,7 +88,9 @@ function computePipeline(): AdmissionsPipeline {
   };
 }
 
-export function computeDirectorOverview(params?: DirectorOverviewParams): DirectorOverviewResponse {
+export function computeDirectorOverview(
+  params?: DirectorOverviewParams,
+): DirectorOverviewResponse {
   const admissionYear = params?.admissionYear ?? 2026;
   const scope = params?.scope ?? "all";
   const trendRange: TrendRange = params?.trendRange ?? "30d";
