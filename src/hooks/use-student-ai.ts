@@ -10,10 +10,12 @@ import {
 
 import type { AnalysisRunSnapshot } from "@/services/api/analysis-runs";
 import {
+  acceptNbaCard,
   closeStudentMemory,
   editStudentMemory,
   getStudentAi,
   listStudentMemory,
+  rejectNbaCard,
   requestStudentAnalysis,
   type AiMemoryEdit,
   type AiMemoryItem,
@@ -111,4 +113,25 @@ export function useStudentMemoryActions(studentId: string) {
     onSuccess: refresh,
   });
   return { edit, close };
+}
+
+/** Accept or reject a recommended action; accepting also creates a task. */
+export function useNbaCardDecision(studentId: string) {
+  const queryClient = useQueryClient();
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: studentAiKeys.overview(studentId) }),
+      queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+    ]);
+  const accept = useMutation({
+    mutationFn: (input: { cardId: string; due?: string }) =>
+      acceptNbaCard(studentId, input.cardId, input.due),
+    onSuccess: refresh,
+  });
+  const reject = useMutation({
+    mutationFn: (input: { cardId: string; reason?: string }) =>
+      rejectNbaCard(studentId, input.cardId, input.reason),
+    onSuccess: refresh,
+  });
+  return { accept, reject };
 }

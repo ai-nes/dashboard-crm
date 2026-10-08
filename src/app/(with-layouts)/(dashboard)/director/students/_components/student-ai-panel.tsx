@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
 import {
+  useNbaCardDecision,
   useStudentMemory,
   useStudentMemoryActions,
 } from "@/hooks/use-student-ai";
@@ -24,8 +25,20 @@ const dateFormat = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" });
 const formatDate = (value: string | null) =>
   value ? dateFormat.format(new Date(value)) : null;
 
-function AiRecommendations({ overview }: { overview: StudentAiOverview }) {
+function AiRecommendations({
+  studentId,
+  overview,
+}: {
+  studentId: string;
+  overview: StudentAiOverview;
+}) {
   const { analysis, labels } = overview;
+  const { accept, reject } = useNbaCardDecision(studentId);
+  const busy = accept.isPending || reject.isPending;
+  const fail = () =>
+    toast.error("Chưa thể ghi nhận quyết định", {
+      description: "Đề xuất có thể đã được xử lý, vui lòng tải lại.",
+    });
   if (!analysis) {
     return (
       <p className="text-sm text-text-tertiary">
@@ -63,6 +76,45 @@ function AiRecommendations({ overview }: { overview: StudentAiOverview }) {
             <p className="mt-1 text-xs text-text-tertiary">
               Thời điểm: {item.time}
             </p>
+          )}
+          {item.card_id && item.status === "pending" && (
+            <div className="mt-3 flex gap-2">
+              <Button
+                size="xs"
+                isDisabled={busy}
+                onPress={() =>
+                  accept.mutate(
+                    { cardId: item.card_id! },
+                    {
+                      onSuccess: () =>
+                        toast.success("Đã tạo việc từ đề xuất"),
+                      onError: fail,
+                    },
+                  )
+                }
+              >
+                Duyệt và tạo việc
+              </Button>
+              <Button
+                appearance="outline"
+                size="xs"
+                isDisabled={busy}
+                onPress={() =>
+                  reject.mutate({ cardId: item.card_id! }, { onError: fail })
+                }
+              >
+                Từ chối
+              </Button>
+            </div>
+          )}
+          {item.status === "accepted" && (
+            <p className="mt-3 text-xs font-medium text-text-success">
+              Đã duyệt, việc đã được tạo
+              {item.task_status === "Done" ? " và hoàn thành." : "."}
+            </p>
+          )}
+          {item.status === "rejected" && (
+            <p className="mt-3 text-xs text-text-tertiary">Đã từ chối.</p>
           )}
         </li>
       ))}
@@ -240,7 +292,7 @@ export default function StudentAiPanel({
             Tính năng AI chưa được bật trên hệ thống.
           </p>
         ) : overview ? (
-          <AiRecommendations overview={overview} />
+          <AiRecommendations studentId={studentId} overview={overview} />
         ) : null}
       </section>
 

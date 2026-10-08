@@ -68,3 +68,26 @@ export function closeStudentMemory(
     },
   );
 }
+
+/** Accept a recommended action: the backend makes the task. */
+export function acceptNbaCard(
+  studentId: string,
+  cardId: string,
+  due?: string,
+): Promise<{ card_id: string; status: string; task_id: string }> {
+  return nestRequest(`/cards//accept`, {
+    method: "POST",
+    body: due ? { due } : {},
+  });
+}
+
+export function rejectNbaCard(
+  studentId: string,
+  cardId: string,
+  reason?: string,
+): Promise<{ card_id: string; status: string }> {
+  return nestRequest(`/cards//reject`, {
+    method: "POST",
+    body: reason ? { reason } : {},
+  });
+}

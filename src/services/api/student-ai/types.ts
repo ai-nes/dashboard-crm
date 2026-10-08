@@ -46,6 +46,11 @@ export interface AiNbaItem {
   why: string;
   time: string;
   refs?: AiRef[];
+  /** Set by the backend: the card's decision and the task it made. */
+  card_id?: string;
+  status?: "pending" | "accepted" | "rejected" | "superseded";
+  task_id?: string | null;
+  task_status?: string | null;
 }
 
 export interface AiNba {
