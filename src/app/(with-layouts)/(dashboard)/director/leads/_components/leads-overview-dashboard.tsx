@@ -269,7 +269,7 @@ export default function LeadsOverviewDashboard() {
       {isError && (
         <Card className="border-error-200 bg-badge-error-background p-4 text-error-600">
           <p className="text-sm font-semibold">
-            Không thể tải danh sách Lead từ Frappe CRM
+            Không thể tải danh sách Lead từ máy chủ CRM
           </p>
           <p className="mt-1 text-xs">
             {error?.message || "Lỗi kết nối hoặc không có quyền truy cập."}

@@ -18,7 +18,6 @@ import DetailTabs, {
 } from "@/components/common/detail-tabs";
 import { Card } from "@/components/tailgrids/core/card";
 import { useLeadCallLogsQuery } from "@/hooks/use-lead-call-logs-query";
-import { isNestApiEnabled } from "@/services/api/nest/nest-client";
 import {
   useConvertLeadToStudentMutation,
   useDeleteLeadMutation,
@@ -74,9 +73,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const canAssignLead =
     !isAuthLoading && hasCrmCapability(user, "student.routing.operate");
   const canRecordCall =
-    !isAuthLoading &&
-    isNestApiEnabled() &&
-    hasCrmCapability(user, "interaction.record");
+    !isAuthLoading && hasCrmCapability(user, "interaction.record");
   const isLeadAssigned =
     normalizeLeadStageStatus(
       data?.lead.processingStatus ?? data?.lead.statusCode ?? data?.lead.status,
@@ -157,7 +154,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       <main id="main-content" className="min-w-0 p-6">
         <Card className="border-error-200 bg-badge-error-background p-5 text-error-600">
           <p className="text-base font-semibold">
-            Không thể tải chi tiết Lead từ Frappe CRM.
+            Không thể tải chi tiết Lead từ máy chủ CRM.
           </p>
           <p className="mt-1 text-sm">
             {error?.message || "Lỗi kết nối hoặc không có quyền truy cập."}

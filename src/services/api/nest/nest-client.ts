@@ -5,7 +5,7 @@
  */
 
 /** Origin of the Nest API, read on every call so tests can change it. */
-function readApiUrl(): string {
+export function readApiUrl(): string {
   return (process.env.NEXT_PUBLIC_CRM_API_URL ?? "").replace(/\/+$/, "");
 }
 
