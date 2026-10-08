@@ -14,7 +14,6 @@ import {
   runStudentNbaEvaluation,
   type NbaDecisionRequest,
   type NbaDecisionResponse,
-  type NbaApiRequestOptions,
   type NbaEvaluationRunResponse,
   type StudentNbaWorklistResponse,
 } from "@/services/api/nba";
@@ -39,30 +38,26 @@ export function useStudentNbaWorklistQuery(
   });
 }
 
-export function useDecideNbaRecommendation(
-  options: NbaApiRequestOptions = {},
-) {
+export function useDecideNbaRecommendation() {
   const queryClient = useQueryClient();
 
   return useMutation<NbaDecisionResponse, Error, NbaDecisionRequest>({
-    mutationFn: (request) => decideNbaRecommendation(request, options),
+    mutationFn: (request) => decideNbaRecommendation(request),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: studentNbaKeys.all });
     },
   });
 }
 
-export function useRunStudentNbaEvaluation(
-  options: NbaApiRequestOptions = {},
-) {
+export function useRunStudentNbaEvaluation() {
   const queryClient = useQueryClient();
 
   return useMutation<
     NbaEvaluationRunResponse,
     Error,
-    { studentId: string; idempotencyKey?: string }
+    { studentId: string; forceRerunReason?: string }
   >({
-    mutationFn: (request) => runStudentNbaEvaluation(request, options),
+    mutationFn: (request) => runStudentNbaEvaluation(request),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: studentNbaKeys.all });
     },
