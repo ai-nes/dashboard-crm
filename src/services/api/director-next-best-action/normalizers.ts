@@ -5,8 +5,6 @@ import {
   type NbaPackageSeed,
 } from "./types";
 import type {
-  ActionCommand,
-  ActionCommandResponse,
   DirectorNextBestActionData,
   DirectorNextBestActionItem,
   DirectorNextBestActionMeta,
@@ -447,38 +445,5 @@ export function normalizeDirectorNextBestAction(
     sla: normalizeSla(payload.sla),
     outcomes: normalizeOutcomes(payload.outcomes),
     controlPolicy: normalizeControlPolicy(payload.controlPolicy),
-  };
-}
-
-export function normalizeActionCommandResponse(
-  value: unknown,
-): ActionCommandResponse {
-  const payload = payloadFrom(value);
-  const audit = asRecord(payload.audit);
-  if (!audit) throw new Error("audit must be an object");
-  return {
-    actionId: requiredString(payload.actionId, "actionId"),
-    command: enumValue<ActionCommand>(
-      payload.command,
-      ["assign", "defer", "dismiss"],
-      "command",
-    ),
-    state: enumValue(
-      payload.state,
-      ["assigned", "deferred", "dismissed"],
-      "state",
-    ),
-    version: requiredNumber(payload.version, "version"),
-    appliedAt: requiredString(payload.appliedAt, "appliedAt"),
-    deferUntil: nullableString(payload.deferUntil, "deferUntil"),
-    replayed:
-      payload.replayed === undefined
-        ? false
-        : requiredBoolean(payload.replayed, "replayed"),
-    audit: {
-      eventId: nullableString(audit.eventId, "audit.eventId"),
-      actorId: requiredString(audit.actorId, "audit.actorId"),
-      occurredAt: requiredString(audit.occurredAt, "audit.occurredAt"),
-    },
   };
 }
