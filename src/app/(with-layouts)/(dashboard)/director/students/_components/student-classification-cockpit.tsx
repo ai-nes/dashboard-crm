@@ -12,7 +12,7 @@ import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
 import { formatTerminalReason } from "@/components/analysis-runs/analysis-run-meta";
 import DetailTabs from "@/components/common/detail-tabs";
 import { Button } from "@/components/tailgrids/core/button";
-import { useAnalysisRun } from "@/hooks/use-analysis-run";
+import { useStudentAnalysis } from "@/hooks/use-student-ai";
 import { cn } from "@/utils/cn";
 
 import StudentAskAIDialog from "./student-ask-ai-dialog";
@@ -21,7 +21,7 @@ import StudentContactInsightsCard from "./student-contact-insights-card";
 import StudentPositiveFeedbackCard from "./student-positive-feedback-card";
 import StudentRecentInteractionsCard from "./student-recent-interactions-card";
 import StudentSentimentGaugeCard from "./student-sentiment-gauge-card";
-import StudentNextBestActions from "./student-next-best-actions";
+import StudentAiPanel from "./student-ai-panel";
 import type { StudentScoreBreakdown } from "./student-score-breakdown";
 import type { Student360SectionProps } from "./types";
 
@@ -40,16 +40,15 @@ export default function StudentClassificationCockpit({
   const [isHealthOpen, setIsHealthOpen] = useState(true);
   const [isAskDialogOpen, setIsAskDialogOpen] = useState(false);
   const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
-  const [nbaCount, setNbaCount] = useState(0);
 
-  const { run, request, requestMutation, runQuery } = useAnalysisRun(
-    "student",
-    analysisTargetId,
-  );
-  const isAnalysisActive =
-    run?.status === "queued" ||
-    run?.status === "running" ||
-    requestMutation.isPending;
+  const {
+    run,
+    overview,
+    request,
+    requestMutation,
+    query: runQuery,
+    isActive: isAnalysisActive,
+  } = useStudentAnalysis(analysisTargetId);
   const analysisError = requestMutation.error ?? runQuery.error;
   const terminalReason =
     run?.terminalReason ??
@@ -73,13 +72,7 @@ export default function StudentClassificationCockpit({
   }, [terminalReasonLabel]);
 
   const handleAnalysisRequest = () => {
-    if (
-      !analysisTargetId.trim() ||
-      requestMutation.isPending ||
-      isAnalysisActive
-    )
-      return;
-    request({ kind: "student", studentId: analysisTargetId });
+    request();
   };
 
   const student360Stage = useMemo(
@@ -109,12 +102,13 @@ export default function StudentClassificationCockpit({
           {
             id: "next-actions",
             label: "Hành động tiếp theo",
-            badge: nbaCount || undefined,
+            badge: overview?.analysis?.nba.items.length || undefined,
             content: (
-              <StudentNextBestActions
-                data={data}
+              <StudentAiPanel
                 studentId={analysisTargetId}
-                onActionsCountChange={setNbaCount}
+                overview={overview}
+                isActive={isAnalysisActive}
+                onAnalyze={handleAnalysisRequest}
               />
             ),
           },
