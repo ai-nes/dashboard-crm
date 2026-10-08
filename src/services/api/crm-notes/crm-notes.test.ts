@@ -8,223 +8,189 @@ import {
   updateNote,
 } from "./index";
 
-describe("CRM Notes API Service", () => {
-  const originalFetch = globalThis.fetch;
-  const baseUrl = "http://crm-test.local:8000";
+const API = "http://localhost:3001";
+const fetchMock = vi.fn();
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
+
+describe("CRM Notes API Service", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", API);
+    vi.stubGlobal("fetch", fetchMock);
   });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
   });
 
   describe("listNotes", () => {
-    it("gọi crm.api.note.list_notes với tham số chuẩn xác và trả về danh sách đã chuẩn hóa", async () => {
-      const mockNotes = [
-        {
-          name: "NOTE-001",
-          content: "<p>Đã trao đổi về học bổng 30%</p>",
-          reference_doctype: "CRM Lead",
-          reference_docname: "STU-0001",
-          modified: "2026-09-04 10:00:00",
-          creation: "2026-09-04 09:30:00",
-          owner: "tu-van-vien@fpt.edu.vn",
-          owner_full_name: "Trần Quốc Bảo",
-        },
-      ];
-
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          message: {
-            total: 1,
-            start: 0,
-            page_length: 20,
-            notes: mockNotes,
-          },
+    it("gọi GET /notes với tham số chuẩn xác và trả về danh sách đã chuẩn hóa", async () => {
+      fetchMock.mockResolvedValue(
+        json({
+          total: 1,
+          start: 0,
+          page_length: 20,
+          notes: [
+            {
+              name: "NOTE-001",
+              content: "<p>Đã trao đổi về học bổng 30%</p>",
+              reference_doctype: "CRM Lead",
+              reference_docname: "STU-0001",
+              modified: "2026-09-04 10:00:00",
+              creation: "2026-09-04 09:30:00",
+              owner: "tu-van-vien@fpt.edu.vn",
+              owner_full_name: "Trần Quốc Bảo",
+            },
+          ],
         }),
+      );
+
+      const result = await listNotes({
+        referenceDoctype: "CRM Lead",
+        referenceDocname: "STU-0001",
+        search: "học bổng",
       });
 
-      const result = await listNotes(
-        {
-          referenceDoctype: "CRM Lead",
-          referenceDocname: "STU-0001",
-          search: "học bổng",
-        },
-        { baseUrl },
-      );
-
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        `${baseUrl}/api/method/crm.api.note.list_notes?reference_doctype=CRM+Lead&reference_docname=STU-0001&start=0&page_length=20&search=h%E1%BB%8Dc+b%E1%BB%95ng`,
-        expect.objectContaining({
-          method: "GET",
-        }),
-      );
-
+      const url = new URL(String(fetchMock.mock.calls[0]![0]));
+      expect(url.pathname).toBe("/api/v1/notes");
+      expect(Object.fromEntries(url.searchParams)).toEqual({
+        referenceDoctype: "CRM Lead",
+        referenceDocname: "STU-0001",
+        search: "học bổng",
+        start: "0",
+        pageLength: "20",
+      });
+      expect(fetchMock.mock.calls[0]![1]).toMatchObject({
+        method: "GET",
+        credentials: "include",
+      });
       expect(result.total).toBe(1);
-      expect(result.notes[0].name).toBe("NOTE-001");
-      expect(result.notes[0].ownerFullName).toBe("Trần Quốc Bảo");
-      expect(result.notes[0].referenceDoctype).toBe("CRM Lead");
+      expect(result.notes[0]?.name).toBe("NOTE-001");
+      expect(result.notes[0]?.ownerFullName).toBe("Trần Quốc Bảo");
+      expect(result.notes[0]?.referenceDoctype).toBe("CRM Lead");
     });
   });
 
   describe("createNote", () => {
-    it("gọi crm.api.note.create_note và trả về ghi chú mới được tạo", async () => {
-      const createdNote = {
-        name: "NOTE-002",
-        content: "<p>Phụ huynh đồng ý nộp hồ sơ</p>",
-        reference_doctype: "CRM Lead",
-        reference_docname: "STU-0001",
-      };
-
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          message: createdNote,
+    it("gọi POST /notes và trả về ghi chú mới được tạo", async () => {
+      fetchMock.mockResolvedValue(
+        json({
+          name: "NOTE-002",
+          content: "<p>Phụ huynh đồng ý nộp hồ sơ</p>",
+          reference_doctype: "CRM Lead",
+          reference_docname: "STU-0001",
         }),
+      );
+
+      const result = await createNote({
+        referenceDoctype: "CRM Lead",
+        referenceDocname: "STU-0001",
+        content: "<p>Phụ huynh đồng ý nộp hồ sơ</p>",
       });
 
-      const result = await createNote(
-        {
-          referenceDoctype: "CRM Lead",
-          referenceDocname: "STU-0001",
-          content: "<p>Phụ huynh đồng ý nộp hồ sơ</p>",
-        },
-        { baseUrl },
-      );
-
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        `${baseUrl}/api/method/crm.api.note.create_note`,
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({
-            reference_doctype: "CRM Lead",
-            reference_docname: "STU-0001",
-            content: "<p>Phụ huynh đồng ý nộp hồ sơ</p>",
-          }),
-        }),
-      );
-
+      const [url, init] = fetchMock.mock.calls[0]!;
+      expect(url).toBe(`${API}/api/v1/notes`);
+      expect(init).toMatchObject({ method: "POST" });
+      expect(JSON.parse(init.body)).toEqual({
+        referenceDoctype: "CRM Lead",
+        referenceDocname: "STU-0001",
+        content: "<p>Phụ huynh đồng ý nộp hồ sơ</p>",
+      });
       expect(result.name).toBe("NOTE-002");
     });
   });
 
   describe("updateNote", () => {
-    it("gọi crm.api.note.update_note để cập nhật content", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          message: {
-            name: "NOTE-002",
-            content: "<p>Đã nộp hồ sơ</p>",
-            reference_doctype: "CRM Lead",
-            reference_docname: "STU-0001",
-          },
-        }),
-      });
-
-      const result = await updateNote(
-        {
+    it("gọi PATCH /notes/{id} để cập nhật content", async () => {
+      fetchMock.mockResolvedValue(
+        json({
           name: "NOTE-002",
           content: "<p>Đã nộp hồ sơ</p>",
-        },
-        { baseUrl },
-      );
-
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        `${baseUrl}/api/method/crm.api.note.update_note`,
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({
-            name: "NOTE-002",
-            content: "<p>Đã nộp hồ sơ</p>",
-          }),
+          reference_doctype: "CRM Lead",
+          reference_docname: "STU-0001",
         }),
       );
 
+      const result = await updateNote({
+        name: "NOTE-002",
+        content: "<p>Đã nộp hồ sơ</p>",
+      });
+
+      const [url, init] = fetchMock.mock.calls[0]!;
+      expect(url).toBe(`${API}/api/v1/notes/NOTE-002`);
+      expect(init).toMatchObject({ method: "PATCH" });
+      expect(JSON.parse(init.body)).toEqual({ content: "<p>Đã nộp hồ sơ</p>" });
       expect(result.content).toBe("<p>Đã nộp hồ sơ</p>");
     });
   });
 
   describe("deleteNote", () => {
-    it("gọi crm.api.note.delete_note thành công", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          message: "ok",
-        }),
-      });
+    it("gọi DELETE /notes/{id} thành công", async () => {
+      fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 
-      const result = await deleteNote("NOTE-002", { baseUrl });
+      const result = await deleteNote("NOTE-002");
+
       expect(result.success).toBe(true);
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        `${baseUrl}/api/method/crm.api.note.delete_note`,
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({ name: "NOTE-002" }),
-        }),
-      );
+      expect(fetchMock.mock.calls[0]![0]).toBe(`${API}/api/v1/notes/NOTE-002`);
+      expect(fetchMock.mock.calls[0]![1]).toMatchObject({ method: "DELETE" });
     });
   });
 
   describe("getNote", () => {
     it("lấy chi tiết ghi chú theo name", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          message: {
-            name: "NOTE-001",
-            content: "Nội dung",
-            reference_doctype: "CRM Lead",
-            reference_docname: "STU-0001",
-          },
+      fetchMock.mockResolvedValue(
+        json({
+          name: "NOTE-001",
+          content: "Nội dung",
+          reference_doctype: "CRM Lead",
+          reference_docname: "STU-0001",
         }),
-      });
-
-      const result = await getNote("NOTE-001", { baseUrl });
-
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        `${baseUrl}/api/method/crm.api.note.get_note?name=NOTE-001`,
-        expect.objectContaining({ method: "GET" }),
       );
+
+      const result = await getNote("NOTE-001");
+
+      expect(fetchMock.mock.calls[0]![0]).toBe(`${API}/api/v1/notes/NOTE-001`);
       expect(result.name).toBe("NOTE-001");
       expect(result.content).toBe("Nội dung");
     });
   });
 
   describe("error handling", () => {
-    it("ném lỗi CrmNoteApiError khi server trả về mã lỗi 403 hoặc thông điệp lỗi", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: false,
-        status: 403,
-        json: async () => ({
-          error: {
-            code: "PERMISSION_DENIED",
-            message: "Không có quyền sửa ghi chú này.",
+    it("ném CrmNoteApiError mang mã lỗi của API khi bị từ chối quyền", async () => {
+      fetchMock.mockResolvedValue(
+        json(
+          {
+            error: {
+              code: "PERMISSION_DENIED",
+              message: "Không có quyền sửa ghi chú này.",
+            },
           },
-        }),
-      });
+          403,
+        ),
+      );
 
       await expect(
-        updateNote({ name: "NOTE-001", content: "Test" }, { baseUrl }),
-      ).rejects.toThrow(CrmNoteApiError);
+        updateNote({ name: "NOTE-001", content: "Test" }),
+      ).rejects.toEqual(
+        expect.objectContaining<Partial<CrmNoteApiError>>({
+          status: 403,
+          code: "PERMISSION_DENIED",
+          message: "Không có quyền sửa ghi chú này.",
+        }),
+      );
     });
 
-    it("ném lỗi CrmNoteApiError khi không thể kết nối mạng (fetch fail)", async () => {
-      globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network Error"));
+    it("ném CrmNoteApiError khi không thể kết nối mạng", async () => {
+      fetchMock.mockRejectedValue(new TypeError("Network Error"));
 
       await expect(
-        listNotes(
-          { referenceDoctype: "CRM Lead", referenceDocname: "STU-0001" },
-          { baseUrl },
-        ),
+        listNotes({
+          referenceDoctype: "CRM Lead",
+          referenceDocname: "STU-0001",
+        }),
       ).rejects.toThrow(CrmNoteApiError);
     });
   });
