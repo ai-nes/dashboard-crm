@@ -1,14 +1,30 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getAnalysisRun, normalizeAnalysisRun, requestAnalysisRun } from "./index";
+import {
+  getAnalysisRun,
+  normalizeAnalysisRun,
+  requestAnalysisRun,
+} from "./index";
+
+const API = "http://localhost:3001";
+const fetchMock = vi.fn();
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", API);
+  vi.stubGlobal("fetch", fetchMock);
+});
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
-  vi.restoreAllMocks();
+  fetchMock.mockReset();
 });
 
 describe("analysis run API contract", () => {
-  it("renders Frappe visible claims from its compact wire schema", () => {
+  it("renders visible claims from the compact wire schema", () => {
     const result = normalizeAnalysisRun(
       {
         message: {
@@ -92,7 +108,10 @@ describe("analysis run API contract", () => {
                   },
                 ],
                 recommended_actions: [
-                  { action: "Xác minh đầu mối liên hệ.", next_step: "Gọi cho hiệu phó." },
+                  {
+                    action: "Xác minh đầu mối liên hệ.",
+                    next_step: "Gọi cho hiệu phó.",
+                  },
                 ],
                 opportunities: [{ title: "Tổ chức Parent Session" }],
                 missing_evidence: ["Mối quan hệ liên kết"],
@@ -106,9 +125,16 @@ describe("analysis run API contract", () => {
 
     const report = result.stages[0]?.report;
     expect(report?.summary).toBe("Trường cần bổ sung dữ liệu nền.");
-    expect(report?.risks[0]).toMatchObject({ kind: "risk", headline: "Chuyển đổi chững lại" });
-    expect(report?.recommendations[0]).toMatchObject({ kind: "recommendation" });
-    expect(report?.recommendations.at(-1)).toMatchObject({ kind: "opportunity" });
+    expect(report?.risks[0]).toMatchObject({
+      kind: "risk",
+      headline: "Chuyển đổi chững lại",
+    });
+    expect(report?.recommendations[0]).toMatchObject({
+      kind: "recommendation",
+    });
+    expect(report?.recommendations.at(-1)).toMatchObject({
+      kind: "opportunity",
+    });
     expect(report?.missingEvidence).toEqual(["Mối quan hệ liên kết"]);
   });
 
@@ -143,246 +169,149 @@ describe("analysis run API contract", () => {
     );
   });
 
-  it("keeps a completed 360 stage from a partial HTTP 400 response", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            message: {
-              run_id: "partial-run",
-              run_type: "CRM Student Analysis Run",
-              status: "abstained",
-              stages: [
-                {
-                  stage_kind: "next_best_action",
-                  status: "abstained",
-                  claims: [],
-                },
-                {
-                  stage_kind: "student_360",
-                  status: "completed",
-                  claims: [],
-                  report: {
-                    summary: "Đã có báo cáo Student 360.",
-                  },
-                },
-              ],
+  const schoolRun = {
+    run_id: "run-school-1",
+    run_kind: "school",
+    status: "completed",
+    terminal_reason: null,
+    source_digest: "digest-1",
+    reused_existing_run: false,
+    stages: [
+      {
+        name: "stage-1",
+        stage_kind: "school_360",
+        status: "completed",
+        claims: [],
+        report: {
+          title: "Trường tiềm năng cao",
+          summary: "Trường cần bổ sung dữ liệu nền.",
+          risks: [
+            {
+              kind: "risk",
+              headline: "Chuyển đổi chững lại",
+              detail: "Hồ sơ dừng ở bước tương tác.",
+              confidence: 0.8,
+              provenance_ids: ["school:237-82"],
             },
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        ),
-      ),
+          ],
+          recommendations: [],
+          missing_evidence: ["Mối quan hệ liên kết"],
+        },
+        terminal_reason: null,
+      },
+    ],
+  };
+
+  it("starts a school analysis through the Nest endpoint", async () => {
+    fetchMock.mockResolvedValue(json(schoolRun, 202));
+
+    const result = await requestAnalysisRun({
+      kind: "school",
+      highSchool: "237-82",
+      admissionYear: 2026,
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${API}/api/v1/director/schools/237-82/ai-analysis`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ admissionYear: 2026 });
+    expect(result).toMatchObject({
+      runId: "run-school-1",
+      runKind: "school",
+      status: "completed",
+      reusedExistingRun: false,
+    });
+    expect(result.stages[0]).toMatchObject({
+      stageKind: "school_360",
+      report: { summary: "Trường cần bổ sung dữ liệu nền." },
+    });
+  });
+
+  it("keeps a failed run retryable with its terminal reason", async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        ...schoolRun,
+        status: "failed",
+        terminal_reason: "model_unavailable",
+        stages: [
+          {
+            stage_kind: "school_360",
+            status: "failed",
+            terminal_reason: "model_unavailable",
+            claims: [],
+          },
+        ],
+      }),
     );
 
     const result = await requestAnalysisRun({
-      kind: "student",
-      studentId: "ENR-2026-00299",
-    }, { baseUrl: "http://frappe.test" });
+      kind: "school",
+      highSchool: "237-82",
+    });
 
-    expect(result.runId).toBe("partial-run");
-    expect(result.stages[1]?.report?.summary).toBe(
-      "Đã có báo cáo Student 360.",
-    );
+    expect(result.status).toBe("failed");
+    expect(result.terminalReason).toBe("model_unavailable");
+    expect(result.stages[0]?.terminalReason).toBe("model_unavailable");
+    expect(JSON.parse(fetchMock.mock.calls[0]![1].body)).toEqual({});
   });
 
-  it("routes Student 360 through the Frappe BFF by default", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          run_id: "proxy-student-run",
-          student_id: "ENR-2026-00003",
-          status: "completed",
-          report: null,
-          terminal_reason: null,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    await requestAnalysisRun(
-      { kind: "student", studentId: "ENR-2026-00003" },
-      {
-        baseUrl: "http://frappe.test",
-        idempotencyKey: "dashboard-student:proxy-test",
-      },
-    );
-
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe(
-      "http://frappe.test/api/method/crm.api.copilot_delegation.run_student_analysis",
-    );
-    expect(init.headers).toMatchObject({
-      "Content-Type": "application/json",
-      "Idempotency-Key": "dashboard-student:proxy-test",
-    });
-    expect(init.headers).not.toHaveProperty("X-API-Key");
+  it("requires a school before calling the API", async () => {
+    await expect(
+      requestAnalysisRun({ kind: "school", highSchool: " " }),
+    ).rejects.toMatchObject({ status: 400, code: "INVALID_SCHOOL" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("calls the synchronous Student 360 endpoint and normalizes its flat report", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          run_id: "sync-student-run",
-          student_id: "ENR-2026-00003",
-          status: "completed",
-          report: {
-            advisory_signals: [
-              {
-                type: "Academic Readiness",
-                title: "Kết quả học tập lớp 12 đạt hạn cao",
-                summary: "Nền tảng học tập đang phù hợp với ngành đã chọn.",
-                confidence: "HIGH",
-                evidence_refs: ["score:SCH-2026-00003"],
-              },
-            ],
-            risks: [
-              {
-                code: "INCOMPLETE_DOCS",
-                severity: "LOW",
-                title: "Còn thiếu tài liệu hồ sơ",
-                summary: "Cần bổ sung giấy tờ trước khi chốt hồ sơ.",
-                evidence_refs: ["application:APP-2026-00001"],
-              },
-            ],
-            opportunity_signals: [
-              {
-                code: "HIGH_FIT_INTEREST",
-                strength: "HIGH",
-                title: "Mức độ phù hợp cao",
-                summary: "Có thể ưu tiên tư vấn bước tiếp theo.",
-                evidence_refs: ["score:SCH-2026-00003"],
-              },
-            ],
-            recent_changes: [
-              {
-                type: "Lifecycle Progression",
-                summary: "Hồ sơ đã chuyển sang Applicant.",
-                evidence_refs: ["lifecycle:run-1"],
-              },
-            ],
-          },
-          terminal_reason: null,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await requestAnalysisRun(
-      { kind: "student", studentId: "ENR-2026-00003" },
-      {
-        baseUrl: "http://agents.test",
-        transport: "agents",
-        apiKey: "api-key",
-        authorization: "oauth-token",
-        delegationProof: "delegation-proof",
-        idempotencyKey: "dashboard-student:sync-test",
-      },
-    );
-
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("http://agents.test/api/v1/analysis-runs/student/run");
-    expect(init.headers).toMatchObject({
-      "X-API-Key": "api-key",
-      Authorization: "Bearer oauth-token",
-      "X-Frappe-Delegation": "delegation-proof",
-      "Idempotency-Key": "dashboard-student:sync-test",
-    });
-    expect(JSON.parse(String(init.body))).toEqual({
-      student_id: "ENR-2026-00003",
-    });
-    expect(result.status).toBe("completed");
-    expect(result.stages[0]?.stageKind).toBe("student_360");
-    expect(result.stages[0]?.report?.advisorySignals?.[0]).toMatchObject({
-      type: "Academic Readiness",
-      confidence: "HIGH",
-      evidenceRefs: ["score:SCH-2026-00003"],
-    });
-    expect(result.stages[0]?.report?.risks[0]).toMatchObject({
-      code: "INCOMPLETE_DOCS",
-      severity: "LOW",
-    });
-    expect(result.stages[0]?.report?.opportunities?.[0]).toMatchObject({
-      code: "HIGH_FIT_INTEREST",
-      strength: "HIGH",
-    });
-    expect(result.stages[0]?.report?.recentChanges?.[0]?.type).toBe(
-      "Lifecycle Progression",
-    );
-  });
-
-  it("calls the synchronous School 360 endpoint and keeps terminal reasons retryable", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            run_id: "sync-school-run",
-            high_school: "01-001-062",
-            status: "abstained",
-            report: null,
-            terminal_reason: "insufficient_evidence",
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
+  it("maps API errors to an analysis run error", async () => {
+    fetchMock.mockResolvedValue(
+      json(
+        { error: { code: "RATE_LIMITED", message: "Quá nhiều yêu cầu." } },
+        429,
       ),
     );
 
-    const result = await requestAnalysisRun(
-      {
-        kind: "school",
-        highSchool: "01-001-062",
-        admissionYear: 2026,
-        forceRerunReason: "Dữ liệu quan hệ trường vừa được cập nhật",
-      },
-      { baseUrl: "http://agents.test", transport: "agents" },
-    );
-
-    const fetchMock = vi.mocked(fetch);
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("http://agents.test/api/v1/analysis-runs/school/run");
-    expect(JSON.parse(String(init.body))).toEqual({
-      high_school: "01-001-062",
-      admission_year: 2026,
-      force_rerun_reason: "Dữ liệu quan hệ trường vừa được cập nhật",
+    await expect(
+      requestAnalysisRun({ kind: "school", highSchool: "237-82" }),
+    ).rejects.toMatchObject({
+      name: "AnalysisRunApiError",
+      status: 429,
+      code: "RATE_LIMITED",
     });
-    expect(result.status).toBe("abstained");
-    expect(result.terminalReason).toBe("insufficient_evidence");
-    expect(result.stages[0]?.stageKind).toBe("school_360");
-    expect(result.stages[0]?.report).toBeNull();
   });
 
-  it("reads a settled run from the new history endpoint with run_kind", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          run_id: "history-school-run",
-          high_school: "01-001-062",
-          status: "completed",
-          report: {
-            advisory_signals: [],
-            risks: [],
-            opportunity_signals: [],
-            recent_changes: [],
-          },
-          terminal_reason: null,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+  it("rejects a response without a run", async () => {
+    fetchMock.mockResolvedValue(json({ status: "queued" }, 202));
 
-    const result = await getAnalysisRun("history-school-run", "school", {
-      baseUrl: "http://frappe.test",
+    await expect(
+      requestAnalysisRun({ kind: "school", highSchool: "237-82" }),
+    ).rejects.toMatchObject({
+      status: 502,
+      code: "INVALID_ANALYSIS_RUN_RESPONSE",
     });
+  });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://frappe.test/api/method/crm.api.copilot_delegation.get_analysis_run?run_kind=school&run_id=history-school-run",
-      expect.objectContaining({ cache: "no-store" }),
+  it("reads a settled run by id", async () => {
+    fetchMock.mockResolvedValue(json(schoolRun));
+
+    const result = await getAnalysisRun("run-school-1");
+
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      `${API}/api/v1/ai/analysis-runs/run-school-1`,
     );
-    expect(result.runKind).toBe("school");
-    expect(result.stages[0]?.stageKind).toBe("school_360");
+    expect(result.runId).toBe("run-school-1");
+    expect(result.stages[0]?.report?.missingEvidence).toEqual([
+      "Mối quan hệ liên kết",
+    ]);
+  });
+
+  it("reports a missing run", async () => {
+    fetchMock.mockResolvedValue(
+      json({ error: { code: "NOT_FOUND", message: "Không tìm thấy." } }, 404),
+    );
+
+    await expect(getAnalysisRun("missing")).rejects.toMatchObject({
+      status: 404,
+      code: "NOT_FOUND",
+    });
   });
 });

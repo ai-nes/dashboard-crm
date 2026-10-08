@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 
-import { useMutation, useQuery, type UseMutationResult, type UseQueryResult } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  type UseMutationResult,
+  type UseQueryResult,
+} from "@tanstack/react-query";
 
 import {
   getAnalysisRun,
@@ -14,7 +19,8 @@ import {
 
 export const analysisRunKeys = {
   all: ["analysis-runs"] as const,
-  run: (kind: AnalysisRunKind, runId: string) => ["analysis-runs", kind, runId] as const,
+  run: (kind: AnalysisRunKind, runId: string) =>
+    ["analysis-runs", kind, runId] as const,
 };
 
 interface AnalysisRunReference {
@@ -26,13 +32,21 @@ function storageKey(kind: AnalysisRunKind, targetId: string): string {
   return `dashboard-analysis-run:${kind}:${encodeURIComponent(targetId.trim())}`;
 }
 
-function readRunReference(kind: AnalysisRunKind, targetId: string): AnalysisRunReference | null {
+function readRunReference(
+  kind: AnalysisRunKind,
+  targetId: string,
+): AnalysisRunReference | null {
   if (typeof window === "undefined" || !targetId.trim()) return null;
   try {
-    const value: unknown = JSON.parse(window.sessionStorage.getItem(storageKey(kind, targetId)) ?? "null");
-    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const value: unknown = JSON.parse(
+      window.sessionStorage.getItem(storageKey(kind, targetId)) ?? "null",
+    );
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      return null;
     const reference = value as Partial<AnalysisRunReference>;
-    return reference.runKind === kind && typeof reference.runId === "string" && reference.runId
+    return reference.runKind === kind &&
+      typeof reference.runId === "string" &&
+      reference.runId
       ? { runId: reference.runId, runKind: kind }
       : null;
   } catch {
@@ -40,10 +54,17 @@ function readRunReference(kind: AnalysisRunKind, targetId: string): AnalysisRunR
   }
 }
 
-function persistRunReference(kind: AnalysisRunKind, targetId: string, runId: string): void {
+function persistRunReference(
+  kind: AnalysisRunKind,
+  targetId: string,
+  runId: string,
+): void {
   if (typeof window === "undefined" || !targetId.trim()) return;
   try {
-    window.sessionStorage.setItem(storageKey(kind, targetId), JSON.stringify({ runId, runKind: kind }));
+    window.sessionStorage.setItem(
+      storageKey(kind, targetId),
+      JSON.stringify({ runId, runKind: kind }),
+    );
   } catch {
     // Storage can be unavailable in private browsing; the current run remains available in mutation state.
   }
@@ -52,7 +73,11 @@ function persistRunReference(kind: AnalysisRunKind, targetId: string, runId: str
 interface UseAnalysisRunResult {
   run: AnalysisRunSnapshot | null;
   request: (request: AnalysisRunRequest) => void;
-  requestMutation: UseMutationResult<AnalysisRunSnapshot, Error, AnalysisRunRequest>;
+  requestMutation: UseMutationResult<
+    AnalysisRunSnapshot,
+    Error,
+    AnalysisRunRequest
+  >;
   runQuery: UseQueryResult<AnalysisRunSnapshot, Error>;
 }
 
@@ -60,8 +85,13 @@ function isActiveRun(run: AnalysisRunSnapshot | null | undefined): boolean {
   return run?.status === "queued" || run?.status === "running";
 }
 
-export function useAnalysisRun(kind: AnalysisRunKind, targetId: string): UseAnalysisRunResult {
-  const [runReference, setRunReference] = useState<AnalysisRunReference | null>(() => readRunReference(kind, targetId));
+export function useAnalysisRun(
+  kind: AnalysisRunKind,
+  targetId: string,
+): UseAnalysisRunResult {
+  const [runReference, setRunReference] = useState<AnalysisRunReference | null>(
+    () => readRunReference(kind, targetId),
+  );
 
   const requestMutation = useMutation({
     mutationFn: (request: AnalysisRunRequest) => requestAnalysisRun(request),
@@ -71,12 +101,16 @@ export function useAnalysisRun(kind: AnalysisRunKind, targetId: string): UseAnal
     },
   });
   const runQuery = useQuery({
-    queryKey: runReference ? analysisRunKeys.run(runReference.runKind, runReference.runId) : analysisRunKeys.all,
-    queryFn: () => getAnalysisRun(runReference!.runId, runReference!.runKind),
+    queryKey: runReference
+      ? analysisRunKeys.run(runReference.runKind, runReference.runId)
+      : analysisRunKeys.all,
+    queryFn: () => getAnalysisRun(runReference!.runId),
     // Synchronous runs are settled in the POST response. Legacy or delayed
     // runs still need a short status loop so each stage can move from queued
     // to running/completed after the triggering event has been recorded.
-    enabled: Boolean(runReference?.runId) && (!requestMutation.data || isActiveRun(requestMutation.data)),
+    enabled:
+      Boolean(runReference?.runId) &&
+      (!requestMutation.data || isActiveRun(requestMutation.data)),
     refetchInterval: (query) =>
       isActiveRun(query.state.data ?? requestMutation.data) ? 1500 : false,
     refetchOnWindowFocus: true,
