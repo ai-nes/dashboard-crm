@@ -1,32 +1,39 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createSchoolArea, createWard, listProvinces, listSchools } from ".";
+import {
+  createSchoolArea,
+  createWard,
+  listGeographyOptions,
+  listProvinces,
+  listSchools,
+  ReferenceCatalogApiError,
+} from ".";
+
+const API = "http://localhost:3001";
+const fetchMock = vi.fn();
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
 
 describe("reference catalog API", () => {
   beforeEach(() => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    vi.restoreAllMocks();
+    vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", API);
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
   });
 
   it("loads provinces with filters and pagination", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            provinces: [
-              {
-                id: "HCM",
-                code: "79",
-                name: "Thành phố Hồ Chí Minh",
-              },
-            ],
-            total: 1,
-            start: 0,
-            page_length: 8,
-          },
-        }),
-        { status: 200 },
-      ),
+    fetchMock.mockImplementation(async () =>
+      json({
+        provinces: [{ id: "HCM", code: "79", name: "Thành phố Hồ Chí Minh" }],
+        total: 1,
+        start: 0,
+        page_length: 8,
+      }),
     );
 
     await expect(
@@ -36,98 +43,77 @@ describe("reference catalog API", () => {
         start: 0,
         pageLength: 8,
       }),
-    ).resolves.toMatchObject({ provinces: [{ id: "HCM" }], total: 1 });
+    ).resolves.toMatchObject({
+      provinces: [{ id: "HCM" }],
+      total: 1,
+      pageLength: 8,
+    });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.geography_catalog.list_provinces?search=H%E1%BB%93+Ch%C3%AD+Minh&city_type=Centrally+Controlled+City&start=0&page_length=8",
-      expect.objectContaining({ credentials: "include" }),
-    );
+    const url = new URL(fetchMock.mock.calls[0]![0]);
+    expect(url.pathname).toBe("/api/v1/geography-catalog/provinces");
+    expect(url.searchParams.get("search")).toBe("Hồ Chí Minh");
+    expect(url.searchParams.get("city_type")).toBe("Centrally Controlled City");
+    expect(url.searchParams.get("page_length")).toBe("8");
   });
 
   it("filters schools by province and ward", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            schools: [
-              {
-                id: "school-1",
-                code: "001",
-                name: "THPT Test",
-                province: "HCM",
-                ward: "ward-1",
-                isActive: true,
-              },
-            ],
-          },
-        }),
-        { status: 200 },
-      ),
+    fetchMock.mockImplementation(async () =>
+      json({
+        schools: [{ id: "school-1", province: "HCM", ward: "ward-1" }],
+      }),
     );
 
     await expect(
       listSchools({ province: "HCM", ward: "ward-1" }),
-    ).resolves.toMatchObject({ schools: [{ province: "HCM", ward: "ward-1" }] });
+    ).resolves.toMatchObject({
+      schools: [{ province: "HCM", ward: "ward-1" }],
+    });
+    const url = new URL(fetchMock.mock.calls[0]![0]);
+    expect(url.pathname).toBe("/api/v1/geography-catalog/high-schools");
+    expect(url.searchParams.get("ward")).toBe("ward-1");
   });
 
-  it("sends school area mutations through the admission catalog RPC", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            id: "KV5",
-            code: "KV5",
-            name: "Khu vực 5",
-            enabled: true,
-            sortOrder: 50,
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it("rejects geography options without provinces and wards", async () => {
+    fetchMock.mockImplementation(async () => json({ provinces: [] }));
 
-    await createSchoolArea({
+    await expect(listGeographyOptions()).rejects.toMatchObject({
+      status: 502,
+      code: "INVALID_GEOGRAPHY_OPTIONS_RESPONSE",
+    });
+  });
+
+  it("creates a school area", async () => {
+    fetchMock.mockImplementation(async () => json({ id: "KV5", code: "KV5" }));
+    const data = {
       code: "KV5",
       display_name: "Khu vực 5",
       enabled: true,
       sort_order: 50,
-    });
+    };
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.geography_catalog.create_school_area",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          data: {
-            code: "KV5",
-            display_name: "Khu vực 5",
-            enabled: true,
-            sort_order: 50,
-          },
-        }),
-      }),
-    );
+    await createSchoolArea(data);
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${API}/api/v1/geography-catalog/school-areas`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ data });
   });
 
-  it("surfaces Frappe server validation messages for ward mutations", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          _server_messages: JSON.stringify([
-            JSON.stringify({ message: "Ward code đã tồn tại." }),
-          ]),
-        }),
-        { status: 417 },
+  it("surfaces API validation messages for ward mutations", async () => {
+    fetchMock.mockImplementation(async () =>
+      json(
+        { error: { code: "DUPLICATE", message: "Ward code đã tồn tại." } },
+        409,
       ),
     );
 
-    await expect(
-      createWard({
-        ward_code: "3213123",
-        ward_name: "Hàm Mỹ",
-        ward_type: "Commune",
-        province: "Quảng Trị",
-      }),
-    ).rejects.toThrow("Ward code đã tồn tại.");
+    const failure = createWard({
+      ward_code: "3213123",
+      ward_name: "Hàm Mỹ",
+      ward_type: "Commune",
+      province: "Quảng Trị",
+    });
+    await expect(failure).rejects.toThrow("Ward code đã tồn tại.");
+    await expect(failure).rejects.toBeInstanceOf(ReferenceCatalogApiError);
   });
 });
