@@ -11,7 +11,7 @@ export {
   TagSubtype,
 } from "./classification-types";
 
-// Backward-compatible alias; Frappe record names remain the IDs sent to the API.
+// Backward-compatible alias; the catalogue record names are the IDs sent to the API.
 export { TagSubtype as StudentTagCode } from "./classification-types";
 
 export const STUDENT_TAG_LABELS: Record<TagSubtype, string> = TAG_SUBTYPE_LABEL;

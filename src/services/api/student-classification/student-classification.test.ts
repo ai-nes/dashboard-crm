@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   addStudentTag,
@@ -10,213 +10,238 @@ import {
   updateStudentTag,
 } from "./index";
 
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllEnvs();
-});
+const API = "http://localhost:3001";
+const fetchMock = vi.fn();
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
 
 const classificationPayload = {
-  message: {
-    student: "CRM-STUDENT-1",
-    modified: "2026-09-09 10:00:00.000000",
-    admission_stage: "Attempting",
-    potential: "high",
-    intent: "warm",
-    needs: [],
-    tags: [{ name: "TAG-ROW-1", tag: "TAG-INTEREST", term: "TAG-INTEREST" }],
-  },
+  student: "CRM-STUDENT-1",
+  modified: "2026-09-09T10:00:00.000Z",
+  admission_stage: "Attempting",
+  potential: "high",
+  intent: "warm",
+  needs: [],
+  tags: [{ name: "TAG-ROW-1", tag: "TAG-INTEREST", term: "TAG-INTEREST" }],
 };
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", API);
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+});
 
 describe("student classification API contract", () => {
   it("loads every catalogue page, including historical tags, for label lookup", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
+    const tag = (name: string, status: string) => ({
+      name,
+      code: `CODE-${name}`,
+      label: `Label ${name}`,
+      status,
+    });
+    fetchMock
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            message: [
-              {
-                group_name: "ATTENTION",
-                tags: Array.from({ length: 100 }, (_, index) => ({
-                  name: `TAG-${index}`,
-                  code: `CODE-${index}`,
-                  label: `Label ${index}`,
-                  status: "active",
-                })),
-              },
-            ],
-          }),
-        ),
+        json([
+          {
+            group_name: "ATTENTION",
+            tags: Array.from({ length: 100 }, (_, index) =>
+              tag(`TAG-${index}`, "active"),
+            ),
+          },
+        ]),
       )
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            message: [
-              {
-                group_name: "ATTENTION",
-                tags: [
-                  {
-                    name: "old-tag",
-                    code: "SPECIAL_ATTENTION",
-                    label: "Special Attention",
-                    status: "inactive",
-                  },
-                ],
-              },
-            ],
-          }),
-        ),
+        json([
+          {
+            group_name: "ATTENTION",
+            tags: [tag("old-tag", "inactive")],
+          },
+        ]),
       );
+
     const groups = await getStudentTagCatalogue();
+
     expect(groups[0].tags).toHaveLength(101);
     expect(groups[0].tags[100].status).toBe("inactive");
-    expect(String(fetchSpy.mock.calls[1][0])).toContain(
-      "status=&start=100&page_length=100",
-    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(
+      new URL(fetchMock.mock.calls[0]![0]).searchParams.get("status"),
+    ).toBe("all");
   });
 
-  it("recognizes Frappe revision conflicts so the UI can reload instead of overwriting", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          exception:
-            "frappe.exceptions.ValidationError: REVISION_CONFLICT: Student changed; reload before retrying.",
-        }),
-        { status: 417 },
+  it("stops paging when the backend repeats a page", async () => {
+    const page = [
+      {
+        group_name: "ATTENTION",
+        tags: Array.from({ length: 100 }, (_, index) => ({
+          name: `TAG-${index}`,
+          code: `CODE-${index}`,
+          label: `Label ${index}`,
+        })),
+      },
+    ];
+    fetchMock.mockImplementation(async () => json(page));
+
+    const groups = await getStudentTagCatalogue();
+
+    expect(groups[0].tags).toHaveLength(100);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("surfaces a revision conflict so the UI can reload instead of overwriting", async () => {
+    fetchMock.mockResolvedValue(
+      json(
+        {
+          error: {
+            code: "REVISION_CONFLICT",
+            message: "Student changed; reload before retrying.",
+          },
+        },
+        409,
       ),
     );
+
     await expect(
-      addStudentTag(
-        { studentId: "STU-1", tag: "TAG-1", expectedModified: "old" },
-        { baseUrl: "http://frappe:8000" },
-      ),
-    ).rejects.toMatchObject({ code: "REVISION_CONFLICT", status: 417 });
+      addStudentTag({
+        studentId: "STU-1",
+        tag: "TAG-1",
+        expectedModified: "old",
+      }),
+    ).rejects.toMatchObject({ code: "REVISION_CONFLICT", status: 409 });
   });
+
   it("loads student tags and the optimistic-concurrency version", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(classificationPayload), { status: 200 }),
+    fetchMock.mockResolvedValue(json(classificationPayload));
+
+    const result = await getStudentClassifications("CRM-STUDENT-1");
+
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      `${API}/api/v1/students/CRM-STUDENT-1/classifications`,
     );
-
-    const result = await getStudentClassifications("CRM-STUDENT-1", {
-      baseUrl: "http://frappe:8000",
-    });
-
     expect(result).toMatchObject({
       student: "CRM-STUDENT-1",
-      modified: "2026-09-09 10:00:00.000000",
+      modified: "2026-09-09T10:00:00.000Z",
       tags: [{ tag: "TAG-INTEREST" }],
     });
   });
 
-  it("loads tag groups with the backend pagination contract", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: [
+  it("rejects a classification response without a version", async () => {
+    fetchMock.mockResolvedValue(json({ student: "CRM-STUDENT-1" }));
+
+    await expect(getStudentClassifications("CRM-STUDENT-1")).rejects.toEqual(
+      expect.objectContaining<Partial<StudentClassificationApiError>>({
+        status: 502,
+        code: "INVALID_STUDENT_CLASSIFICATIONS_RESPONSE",
+      }),
+    );
+  });
+
+  it("loads active tag groups", async () => {
+    fetchMock.mockResolvedValue(
+      json([
+        {
+          group_name: "Mối quan tâm",
+          tags: [
             {
+              name: "TAG-INTEREST",
+              code: "interest",
+              label: "Quan tâm ngành",
               group_name: "Mối quan tâm",
-              tags: [
-                {
-                  name: "TAG-INTEREST",
-                  code: "interest",
-                  label: "Quan tâm ngành",
-                  group_name: "Mối quan tâm",
-                  status: "active",
-                },
-              ],
+              status: "active",
             },
           ],
-        }),
-        { status: 200 },
-      ),
+        },
+      ]),
     );
 
-    const result = await listStudentTagGroups(
-      { start: 0, pageLength: 100 },
-      { baseUrl: "http://frappe:8000" },
-    );
+    const result = await listStudentTagGroups({ start: 0, pageLength: 100 });
 
+    const url = new URL(fetchMock.mock.calls[0]![0]);
+    expect(url.pathname).toMatch(/tag-groups$/);
+    expect(url.searchParams.get("status")).toBe("active");
+    expect(url.searchParams.get("page_length")).toBe("100");
     expect(result[0]?.tags[0]).toMatchObject({
       name: "TAG-INTEREST",
       label: "Quan tâm ngành",
     });
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_classification.list_tag_groups?status=active&start=0&page_length=100",
-      expect.objectContaining({ method: "GET", cache: "no-store" }),
+  });
+
+  it("posts the add-tag command with the modified token", async () => {
+    fetchMock.mockResolvedValue(json(classificationPayload));
+
+    await addStudentTag({
+      studentId: "CRM-STUDENT-1",
+      tag: "TAG-NEW",
+      expectedModified: "2026-09-09T10:00:00.000Z",
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${API}/api/v1/students/CRM-STUDENT-1/tags`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({
+      tag: "TAG-NEW",
+      expectedModified: "2026-09-09T10:00:00.000Z",
+    });
+  });
+
+  it("deletes a tag with the modified token", async () => {
+    fetchMock.mockResolvedValue(json(classificationPayload));
+
+    await removeStudentTag({
+      studentId: "CRM-STUDENT-1",
+      tag: "TAG-OLD",
+      expectedModified: "2026-09-09T10:00:00.000Z",
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(init.method).toBe("DELETE");
+    expect(new URL(url).pathname).toBe(
+      "/api/v1/students/CRM-STUDENT-1/tags/TAG-OLD",
+    );
+    expect(new URL(url).searchParams.get("expectedModified")).toBe(
+      "2026-09-09T10:00:00.000Z",
     );
   });
 
-  it.each([
-    [addStudentTag, "add_student_tag", { tag: "TAG-NEW" }],
-    [removeStudentTag, "remove_student_tag", { tag: "TAG-OLD" }],
-  ])(
-    "posts the %s student tag command with modified",
-    async (mutation, method, extra) => {
-      const fetchSpy = vi
-        .spyOn(globalThis, "fetch")
-        .mockResolvedValue(
-          new Response(JSON.stringify(classificationPayload), { status: 200 }),
-        );
+  it("replaces a tag in a single request", async () => {
+    fetchMock.mockResolvedValue(json(classificationPayload));
 
-      await mutation(
-        {
-          studentId: "CRM-STUDENT-1",
-          expectedModified: "2026-09-09 10:00:00.000000",
-          ...extra,
-        },
-        { baseUrl: "http://frappe:8000" },
-      );
+    await updateStudentTag({
+      studentId: "CRM-STUDENT-1",
+      tag: "TAG-OLD",
+      newTag: "TAG-NEW",
+      expectedModified: "2026-09-09T10:00:00.000Z",
+    });
 
-      const [url, init] = fetchSpy.mock.calls[0] ?? [];
-      expect(url).toBe(
-        `http://frappe:8000/api/method/crm.api.student_classification.${method}`,
-      );
-      expect(JSON.parse(String(init?.body))).toMatchObject({
-        student: "CRM-STUDENT-1",
-        expected_modified: "2026-09-09 10:00:00.000000",
-        tag: extra.tag,
-      });
-    },
-  );
-
-  it("posts a replacement tag with new_tag", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        new Response(JSON.stringify(classificationPayload), { status: 200 }),
-      );
-
-    await updateStudentTag(
-      {
-        studentId: "CRM-STUDENT-1",
-        tag: "TAG-OLD",
-        newTag: "TAG-NEW",
-        expectedModified: "2026-09-09 10:00:00.000000",
-      },
-      { baseUrl: "http://frappe:8000" },
-    );
-
-    expect(JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body))).toMatchObject(
-      {
-        student: "CRM-STUDENT-1",
-        tag: "TAG-OLD",
-        new_tag: "TAG-NEW",
-      },
-    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${API}/api/v1/students/CRM-STUDENT-1/tags/TAG-OLD`);
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({
+      newTagId: "TAG-NEW",
+      expectedModified: "2026-09-09T10:00:00.000Z",
+    });
   });
 
   it("rejects a command without a modified token before fetching", async () => {
     await expect(
-      addStudentTag(
-        { studentId: "CRM-STUDENT-1", tag: "TAG-NEW", expectedModified: "" },
-        { baseUrl: "http://frappe:8000" },
-      ),
+      addStudentTag({
+        studentId: "CRM-STUDENT-1",
+        tag: "TAG-NEW",
+        expectedModified: "",
+      }),
     ).rejects.toEqual(
       expect.objectContaining<Partial<StudentClassificationApiError>>({
         status: 400,
         code: "INVALID_MODIFIED",
       }),
     );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -212,16 +212,14 @@ export async function nestStudentClassificationRequest<T>(
         `/api/v1/students/${student}/tags/${encodeURIComponent(params.tag ?? "")}`,
         { method: "DELETE", query: { expectedModified: expected } },
       );
-    case "update_student_tag": {
-      const removed = (await send(
+    case "update_student_tag":
+      return send(
         `/api/v1/students/${student}/tags/${encodeURIComponent(params.tag ?? "")}`,
-        { method: "DELETE", query: { expectedModified: expected } },
-      )) as { modified: string };
-      return send(`/api/v1/students/${student}/tags`, {
-        method: "POST",
-        body: { tag: params.new_tag, expectedModified: removed.modified },
-      });
-    }
+        {
+          method: "PATCH",
+          body: { newTagId: params.new_tag, expectedModified: expected },
+        },
+      );
     default:
       throw new NestApiError(501, "NOT_PORTED", `${action} is not available.`);
   }
