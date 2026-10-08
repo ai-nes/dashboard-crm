@@ -13,7 +13,7 @@ import { AdminTableFrame } from "@/components/common/admin/admin-table";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
   hasCrmRole,
-  hasFrappeTechnicalRole,
+  hasTechnicalRole,
 } from "@/components/common/auth/rbac";
 import { Button } from "@/components/tailgrids/core/button";
 import { TabTrigger } from "@/components/tailgrids/core/tabs";
@@ -50,7 +50,7 @@ function errorMessage(error: unknown): string {
 export default function UserManagementAdminPage() {
   const { user } = useAuth();
   const canManageUsers =
-    hasFrappeTechnicalRole(user?.roles, "System Manager") ||
+    hasTechnicalRole(user?.roles, "System Manager") ||
     hasCrmRole(user?.roles, "Administrator");
 
   const [activeTab, setActiveTab] = useState("users");
