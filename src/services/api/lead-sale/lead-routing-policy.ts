@@ -15,6 +15,8 @@ export interface LeadRoutingLayer {
 }
 
 export interface LeadRoutingPolicy {
+  routingMode?: LeadRoutingLayerKey;
+  provinceTeamPriority?: Record<string, string>;
   enabled: boolean;
   layers: LeadRoutingLayer[];
   layerOrder: LeadRoutingLayerKey[];
@@ -36,6 +38,8 @@ export interface LeadRoutingPolicyResponse {
 }
 
 export interface UpdateLeadRoutingPolicyRequest {
+  routingMode?: LeadRoutingLayerKey;
+  provinceTeamPriority?: Record<string, string>;
   enabled: boolean;
   layerOrder: LeadRoutingLayerKey[];
   campaignLayerEnabled: boolean;
@@ -131,6 +135,15 @@ export function normalizeLeadRoutingPolicy(value: unknown): LeadRoutingPolicy {
       ? "round_robin"
       : "least_load";
   return {
+    routingMode:
+      normalizeLayerKey(source.routingMode) ??
+      layers.find((layer) => layer.enabled)?.key ??
+      "group",
+    provinceTeamPriority: Object.fromEntries(
+      Object.entries(asRecord(source.provinceTeamPriority) ?? {}).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    ),
     enabled: boolean(source.enabled),
     layers,
     layerOrder,
@@ -278,7 +291,7 @@ async function call<T>(
   return (asRecord(payload)?.message ?? payload) as T;
 }
 
-const useNest = (options: LeadRoutingPolicyRequestOptions) =>
+const nestBackendEnabled = (options: LeadRoutingPolicyRequestOptions) =>
   isNestApiEnabled() && !options.baseUrl;
 
 async function nestCall(
@@ -302,7 +315,7 @@ async function nestCall(
 export async function getLeadRoutingPolicy(
   options: LeadRoutingPolicyRequestOptions = {},
 ): Promise<LeadRoutingPolicyResponse> {
-  const raw = useNest(options)
+  const raw = nestBackendEnabled(options)
     ? await nestCall("GET")
     : await call<unknown>(METHODS.GET, "GET", options);
   const source = asRecord(unwrapMessage(raw));
@@ -325,7 +338,7 @@ export async function updateLeadRoutingPolicy(
   request: UpdateLeadRoutingPolicyRequest,
   options: LeadRoutingPolicyRequestOptions = {},
 ): Promise<LeadRoutingPolicyResponse> {
-  const raw = useNest(options)
+  const raw = nestBackendEnabled(options)
     ? await nestCall("PUT", {
         enabled: request.enabled,
         layerOrder: request.layerOrder.join(","),
@@ -334,6 +347,8 @@ export async function updateLeadRoutingPolicy(
         globalLayerEnabled: request.globalLayerEnabled,
         distributionStrategy: request.distributionStrategy,
         capacityRequired: request.capacityRequired,
+        routingMode: request.routingMode,
+        provinceTeamPriority: request.provinceTeamPriority,
         reason: request.reason,
       })
     : await call<unknown>(METHODS.UPDATE, "POST", options, {
@@ -344,6 +359,8 @@ export async function updateLeadRoutingPolicy(
         global_layer_enabled: request.globalLayerEnabled,
         distribution_strategy: request.distributionStrategy,
         capacity_required: request.capacityRequired,
+        routing_mode: request.routingMode,
+        province_team_priority: request.provinceTeamPriority,
         reason: request.reason,
       });
   const source = asRecord(unwrapMessage(raw));

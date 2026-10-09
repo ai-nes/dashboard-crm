@@ -27,6 +27,12 @@ export type LeadAssignmentWorkflowClassificationSettings = {
 };
 
 export type LeadAssignmentWorkflowMatchingSettings = {
+  teamOptions?: {
+    id: string;
+    label: string;
+    province: string;
+    provinceLabel: string;
+  }[];
   routingPolicy: LeadRoutingPolicy;
   noEligibleOutcome: "review";
 };
@@ -90,6 +96,8 @@ export type LeadAssignmentWorkflowReviewUpdate = Partial<
   Pick<LeadAssignmentWorkflowReviewSettings, "maxRetries">
 >;
 export type LeadAssignmentWorkflowMatchingUpdate = {
+  routingMode?: "global" | "group" | "campaign";
+  provinceTeamPriority?: Record<string, string>;
   enabled?: boolean;
   layerOrder?: string[];
   campaignLayerEnabled?: boolean;
@@ -208,6 +216,23 @@ function normalizeSettings(
       return { enabled: boolean(source.enabled, true) };
     case "matching":
       return {
+        teamOptions: Array.isArray(source.teamOptions)
+          ? source.teamOptions.flatMap((value) => {
+              const row = asRecord(value);
+              return row &&
+                typeof row.id === "string" &&
+                typeof row.province === "string"
+                ? [
+                    {
+                      id: row.id,
+                      label: text(row.label, row.id),
+                      province: row.province,
+                      provinceLabel: text(row.provinceLabel, row.province),
+                    },
+                  ]
+                : [];
+            })
+          : [],
         routingPolicy: policy,
         noEligibleOutcome: "review",
       };
@@ -425,7 +450,7 @@ async function call<T>(
   return (asRecord(payload)?.message ?? payload) as T;
 }
 
-const useNest = (options: LeadAssignmentWorkflowConfigRequestOptions) =>
+const nestBackendEnabled = (options: LeadAssignmentWorkflowConfigRequestOptions) =>
   isNestApiEnabled() && !options.baseUrl;
 
 async function nestCall(
@@ -450,7 +475,7 @@ async function nestCall(
 export async function getLeadAssignmentWorkflowConfig(
   options: LeadAssignmentWorkflowConfigRequestOptions = {},
 ): Promise<LeadAssignmentWorkflowConfigResponse> {
-  const raw = useNest(options)
+  const raw = nestBackendEnabled(options)
     ? await nestCall("/api/v1/lead-assignment-workflow", "GET")
     : await call<unknown>(METHODS.GET, "GET", options);
   const source = asRecord(unwrapMessage(raw));
@@ -475,7 +500,7 @@ export async function updateLeadAssignmentWorkflowStep(
   request: LeadAssignmentWorkflowStepUpdate,
   options: LeadAssignmentWorkflowConfigRequestOptions = {},
 ): Promise<LeadAssignmentWorkflowConfigResponse> {
-  const raw = useNest(options)
+  const raw = nestBackendEnabled(options)
     ? await nestCall(
         `/api/v1/lead-assignment-workflow/steps/${encodeURIComponent(request.stepId)}`,
         "PUT",
