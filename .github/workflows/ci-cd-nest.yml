@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NEXT_PUBLIC_CRM_API_URL: https://new-api.faip.pro
+  NEXT_PUBLIC_CRM_API_URL: https://api.faip.pro
 
 jobs:
   ci:
