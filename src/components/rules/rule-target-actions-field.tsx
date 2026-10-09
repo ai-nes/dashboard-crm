@@ -9,6 +9,7 @@ import { OverlayWrapper } from "@/components/tailgrids/core/overlay";
 import { Popover } from "@/components/tailgrids/core/popover";
 import { useNbaActionsQuery } from "@/hooks/use-nba-actions-queries";
 import { cn } from "@/utils/cn";
+import { useInfinityScroll } from "@/hooks/use-infinity-scroll";
 
 interface RuleTargetActionsFieldProps {
   value: string[];
@@ -40,6 +41,11 @@ export function RuleTargetActionsField({ value, onChange, disabled }: RuleTarget
   const toggle = (code: string) => {
     onChange(value.includes(code) ? value.filter((item) => item !== code) : [...value, code]);
   };
+  const { visibleItems, onScrollToLoadMore } = useInfinityScroll(filteredActions, {
+    enabled: isOpen,
+    getItemKey: (item) => item.code,
+    resetKey: `${isOpen}:${normalizedSearch}`,
+  });
 
   const remove = (code: string) => onChange(value.filter((item) => item !== code));
 
@@ -99,12 +105,12 @@ export function RuleTargetActionsField({ value, onChange, disabled }: RuleTarget
             </div>
           </div>
 
-          <div className="max-h-[min(24rem,calc(100dvh-7rem))] overflow-y-auto px-1.5 py-2">
+          <div className="max-h-[min(24rem,calc(100dvh-7rem))] overflow-y-auto px-1.5 py-2" onScroll={onScrollToLoadMore}>
             {actionsQuery.isPending ? (
               <p className="px-3 py-8 text-center text-sm text-text-tertiary">Đang tải danh mục action…</p>
             ) : filteredActions.length > 0 ? (
               <div className="space-y-0.5">
-                {filteredActions.map((item) => {
+                {visibleItems.map((item) => {
                   const selected = value.includes(item.code);
                   return (
                     <Button

@@ -288,6 +288,7 @@ export default function AssignmentHistoryItemDrawer({
                 isDisabled={isBusy}
                 label="Tỉnh/Thành phố"
                 onChange={setProvince}
+                pagination={provinceOptionsQuery.pagination}
                 options={toOptions(
                   provinceOptionsQuery.data?.options,
                   province,
@@ -301,6 +302,7 @@ export default function AssignmentHistoryItemDrawer({
                 isDisabled={isBusy}
                 label="Trường THPT"
                 onChange={setHighSchool}
+                pagination={highSchoolOptionsQuery.pagination}
                 options={toOptions(
                   highSchoolOptionsQuery.data?.options,
                   highSchool,
@@ -319,6 +321,7 @@ export default function AssignmentHistoryItemDrawer({
                   isError={majorOptionsQuery.isError}
                   isLoading={majorOptionsQuery.isLoading}
                   options={majorOptions}
+                  pagination={majorOptionsQuery.pagination}
                   allowClear
                   searchPlaceholder="Tìm ngành…"
                   value={major}
@@ -330,6 +333,7 @@ export default function AssignmentHistoryItemDrawer({
                 isDisabled={isBusy}
                 label="Campus"
                 onChange={setBranch}
+                pagination={branchOptionsQuery.pagination}
                 options={toOptions(branchOptionsQuery.data?.options, branch)}
                 searchable
                 searchPlaceholder="Tìm campus…"

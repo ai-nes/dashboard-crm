@@ -1,5 +1,7 @@
 "use client";
 
+import { InfiniteSelectInput } from "@/components/common/infinite-select-input";
+
 import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -324,7 +326,7 @@ function TermEditor({
             <span className="text-sm font-medium text-input-label-text-color">
               Nhóm
             </span>
-            <select
+            <InfiniteSelectInput
               value={form.group}
               onChange={(event) =>
                 setForm((current) => ({
@@ -340,7 +342,7 @@ function TermEditor({
                   {group.label} ({group.code})
                 </option>
               ))}
-            </select>
+            </InfiniteSelectInput>
           </label>
           <label className="block space-y-1.5">
             <span className="text-sm font-medium text-input-label-text-color">

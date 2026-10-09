@@ -3,7 +3,6 @@
 import { Check, ChevronDown, Search1 } from "@tailgrids/icons";
 import { useDeferredValue, useMemo, useRef, useState } from "react";
 import {
-  ListBox,
   ListBoxItem,
   Popover,
   type Key,
@@ -16,6 +15,7 @@ import {
   InputGroupInput,
 } from "@/components/tailgrids/core/input-group";
 import { cn } from "@/utils/cn";
+import { InfiniteListBox } from "@/components/common/infinite-list-box";
 
 import type { ChannelTypeOption, ChannelTypeValue } from "./channel-types";
 
@@ -105,7 +105,7 @@ export default function CampaignChannelTypeDropdown({
       {isOpen && (
         <Popover
           aria-label={`Danh sách ${ariaLabel.toLocaleLowerCase("vi-VN")}`}
-          className="z-50 w-(--trigger-width) overflow-hidden rounded-lg border border-card-border bg-background-white-secondary shadow-md"
+          className="z-50 flex w-(--trigger-width) flex-col overflow-hidden rounded-lg border border-card-border bg-background-white-secondary shadow-md"
           data-campaign-channel-type-dropdown
           isNonModal
           isOpen
@@ -113,7 +113,7 @@ export default function CampaignChannelTypeDropdown({
           placement="bottom start"
           triggerRef={triggerRef}
         >
-          <div className="border-b border-card-border p-1.5">
+          <div className="shrink-0 border-b border-card-border p-1.5">
             <InputGroup className="h-8 rounded-md">
               <InputGroupAddon className="px-2 text-text-tertiary">
                 <Search1 size={14} aria-hidden="true" />
@@ -129,7 +129,7 @@ export default function CampaignChannelTypeDropdown({
             </InputGroup>
           </div>
 
-          <ListBox
+          <InfiniteListBox
             aria-label={`Danh sách ${ariaLabel.toLocaleLowerCase("vi-VN")}`}
             className="max-h-64 overflow-auto p-1.5 outline-none"
             items={visibleOptions}
@@ -153,7 +153,7 @@ export default function CampaignChannelTypeDropdown({
                 )}
               </ListBoxItem>
             )}
-          </ListBox>
+          </InfiniteListBox>
 
           {visibleOptions.length === 0 && (
             <p className="px-3 py-4 text-center text-sm text-text-tertiary">

@@ -456,14 +456,16 @@ export async function updateStudentHighSchoolScore(
 
 export function getSchools(
   params: GetSchoolsParams = {},
+  signal?: AbortSignal,
 ): Promise<GetSchoolsResponse> {
-  return viaNest(() => nestSchools(params));
+  return viaNest(() => nestSchools(params, signal));
 }
 
 export function getFieldOptions(
   params: GetFieldOptionsParams,
+  signal?: AbortSignal,
 ): Promise<GetFieldOptionsResponse> {
-  return viaNest(() => nestFieldOptions(params));
+  return viaNest(() => nestFieldOptions(params, signal));
 }
 
 export async function getLeadOptions(

@@ -332,7 +332,6 @@ export default function LeadDetailsTab({
               provinceOptionsQuery.isLoading || provinceOptions.length === 0
             }
             dropdownClassName="!max-h-64"
-            optionsPageSize={10}
             searchable
             searchPlaceholder="Tìm tỉnh / thành phố..."
             label="Tỉnh / Thành phố"
@@ -345,6 +344,7 @@ export default function LeadDetailsTab({
               }))
             }
             options={provinceOptions}
+            pagination={provinceOptionsQuery.pagination}
             value={contactEditing ? contactForm.province : lead.province}
           />
           <EditableDetailField
@@ -355,6 +355,7 @@ export default function LeadDetailsTab({
               setContactForm((form) => ({ ...form, ward: value }))
             }
             options={wardOptions}
+            pagination={wardOptionsQuery.pagination}
             searchable
             searchPlaceholder="Tìm xã / phường..."
             value={contactEditing ? contactForm.ward : lead.ward}
@@ -412,6 +413,7 @@ export default function LeadDetailsTab({
                 isError={majorOptionsQuery.isError}
                 isLoading={majorOptionsQuery.isLoading}
                 options={majorOptions}
+                pagination={majorOptionsQuery.pagination}
                 allowClear
                 placeholder="Chưa có ngành quan tâm"
                 value={admissionForm.major}
@@ -435,6 +437,7 @@ export default function LeadDetailsTab({
               setAdmissionForm((form) => ({ ...form, aspiration: value }))
             }
             options={aspirationOptions}
+            pagination={aspirationOptionsQuery.pagination}
             value={
               admissionEditing ? admissionForm.aspiration : lead.fptAspiration
             }
@@ -450,6 +453,7 @@ export default function LeadDetailsTab({
               setAdmissionForm((form) => ({ ...form, admission_year: value }))
             }
             options={admissionYearOptions}
+            pagination={admissionYearOptionsQuery.pagination}
             value={
               admissionEditing
                 ? admissionForm.admission_year
@@ -468,6 +472,7 @@ export default function LeadDetailsTab({
               setAdmissionForm((form) => ({ ...form, branch: value }))
             }
             options={branchOptions}
+            pagination={branchOptionsQuery.pagination}
             value={admissionEditing ? admissionForm.branch : lead.branch}
           />
           <EditableDetailField
@@ -520,6 +525,7 @@ export default function LeadDetailsTab({
               setSourceForm((form) => ({ ...form, source: value }))
             }
             options={sourceOptions}
+            pagination={sourceOptionsQuery.pagination}
             value={sourceEditing ? sourceForm.source : lead.source}
           />
           <EditableDetailField

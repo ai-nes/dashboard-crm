@@ -1,5 +1,7 @@
 "use client";
 
+import { InfiniteSelectInput } from "@/components/common/infinite-select-input";
+
 import { useState } from "react";
 
 import { Close, Filter, Search1 } from "@tailgrids/icons";
@@ -106,7 +108,7 @@ export default function ActivityLogFilters({
         <div className="mt-4 grid gap-4 border-t border-card-border pt-4 md:grid-cols-2 xl:grid-cols-4">
           <label className="space-y-1.5 text-sm font-medium text-text-primary">
             Mức độ
-            <select
+            <InfiniteSelectInput
               value={value.severity ?? ""}
               onChange={(event) => update("severity", event.target.value)}
               className="h-10 w-full rounded-lg border border-input-border bg-input-background px-3 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
@@ -114,7 +116,7 @@ export default function ActivityLogFilters({
               <option value="">Tất cả mức độ</option>
               <option value="critical">Cần chú ý</option>
               <option value="info">Thông tin</option>
-            </select>
+            </InfiniteSelectInput>
           </label>
           <label className="space-y-1.5 text-sm font-medium text-text-primary">
             <span className="flex items-center gap-1">
@@ -127,7 +129,7 @@ export default function ActivityLogFilters({
                 i
               </span>
             </span>
-            <select
+            <InfiniteSelectInput
               value={value.role ?? ""}
               onChange={(event) => update("role", event.target.value)}
               className="h-10 w-full rounded-lg border border-input-border bg-input-background px-3 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
@@ -138,7 +140,7 @@ export default function ActivityLogFilters({
                   {role}
                 </option>
               ))}
-            </select>
+            </InfiniteSelectInput>
           </label>
           <label className="space-y-1.5 text-sm font-medium text-text-primary">
             Từ ngày

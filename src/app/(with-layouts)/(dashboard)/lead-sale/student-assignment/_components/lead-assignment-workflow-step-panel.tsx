@@ -1,5 +1,7 @@
 "use client";
 
+import { InfiniteSelectInput } from "@/components/common/infinite-select-input";
+
 import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react";
 import { InfoCircle, Locked3 } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -329,7 +331,7 @@ export default function LeadAssignmentWorkflowStepPanel({
             {canEdit ? (
               <label className="space-y-1.5">
                 <span className="text-xs font-medium text-input-label-text">Thuật toán</span>
-                <select
+                <InfiniteSelectInput
                   value={policy.distributionStrategy}
                   disabled={isSaving}
                   onChange={(event) =>
@@ -346,7 +348,7 @@ export default function LeadAssignmentWorkflowStepPanel({
                       {strategyLabels[strategy]}
                     </option>
                   ))}
-                </select>
+                </InfiniteSelectInput>
               </label>
             ) : (
               <ReadOnlySetting label="Thuật toán" value={strategyLabels[policy.distributionStrategy]} />

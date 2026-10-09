@@ -158,7 +158,7 @@ export default function StudentListToolbar({
               <SelectValue />
               <SelectIndicator />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent pagination={provinceOptionsQuery.pagination}>
               <SelectItem id="all" textValue="Tất cả các tỉnh">
                 Tất cả các tỉnh
               </SelectItem>

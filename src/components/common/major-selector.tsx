@@ -6,7 +6,6 @@ import {
   Dialog,
   DialogTrigger,
   Header as ListBoxHeader,
-  ListBox,
   ListBoxSection,
   type Key,
 } from "react-aria-components";
@@ -21,6 +20,8 @@ import { Popover } from "@/components/tailgrids/core/popover";
 import { SelectItem } from "@/components/tailgrids/core/select";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import { cn } from "@/utils/cn";
+import { InfiniteListBox } from "./infinite-list-box";
+import type { ScrollToLoadMoreOptions } from "@/hooks/use-scroll-to-load-more";
 
 const EMPTY_OPTION_ID = "__empty_major__";
 
@@ -48,6 +49,7 @@ export interface MajorSelectorProps {
   allowClear?: boolean;
   className?: string;
   contentClassName?: string;
+  pagination?: ScrollToLoadMoreOptions;
 }
 
 function normalizeSearchValue(value: string): string {
@@ -111,6 +113,7 @@ export function MajorSelector({
   allowClear = false,
   className,
   contentClassName,
+  pagination,
 }: MajorSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -139,6 +142,7 @@ export function MajorSelector({
     setIsOpen(open);
     if (!open) {
       setQuery("");
+      pagination?.onSearchChange?.("");
     }
   };
 
@@ -199,7 +203,10 @@ export function MajorSelector({
               className="h-8 py-1 text-xs"
               placeholder={searchPlaceholder}
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                pagination?.onSearchChange?.(event.target.value);
+              }}
             />
           </InputGroup>
           {isLoading ? (
@@ -220,7 +227,8 @@ export function MajorSelector({
               {errorMessage}
             </p>
           ) : (
-            <ListBox
+            <InfiniteListBox
+              pagination={pagination}
               aria-label={`Danh sách ${ariaLabel.toLocaleLowerCase("vi-VN")}`}
               className="mt-1 max-h-64 overflow-auto p-1 outline-none"
               selectedKeys={value ? new Set([value]) : new Set()}
@@ -280,7 +288,7 @@ export function MajorSelector({
                   Không tìm thấy ngành phù hợp
                 </SelectItem>
               )}
-            </ListBox>
+            </InfiniteListBox>
           )}
         </Dialog>
       </Popover>

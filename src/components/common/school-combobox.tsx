@@ -38,6 +38,7 @@ export function SchoolCombobox({
     data: schools = [],
     isError,
     isLoading,
+    pagination,
   } = useSchoolDirectoryQuery(
     deferredQuery,
     { province, ward },
@@ -92,6 +93,7 @@ export function SchoolCombobox({
       onOpenChange={handleOpenChange}
       onSearchChange={setQuery}
       options={schoolOptions}
+      pagination={pagination}
       placeholder="Chọn trường THPT"
       searchPlaceholder="Tìm theo tên, tỉnh hoặc mã trường…"
       selectedLabel={selectedSchoolLabel || value || undefined}

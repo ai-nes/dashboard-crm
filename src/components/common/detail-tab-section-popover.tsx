@@ -1,7 +1,8 @@
 "use client";
 
 import type { RefObject } from "react";
-import { ListBox, ListBoxItem, Popover, type Key } from "react-aria-components";
+import { ListBoxItem, Popover, type Key } from "react-aria-components";
+import { InfiniteListBox } from "./infinite-list-box";
 
 import type { DetailTabSection } from "./detail-tabs";
 
@@ -50,7 +51,7 @@ export default function DetailTabSectionPopover({
           }
         }}
       >
-        <ListBox
+        <InfiniteListBox
           aria-label="Các section trong thông tin học sinh"
           className="outline-none"
           selectedKeys={selectedSectionId ? [selectedSectionId] : []}
@@ -73,7 +74,7 @@ export default function DetailTabSectionPopover({
               </span>
             </ListBoxItem>
           ))}
-        </ListBox>
+        </InfiniteListBox>
       </div>
     </Popover>
   );

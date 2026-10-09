@@ -149,6 +149,7 @@ export default function StudentContactAddressMockup({
                   }));
                 }}
                 options={field.options}
+                pagination={editKey === "province" ? provinceOptionsQuery.pagination : editKey === "ward" ? wardOptionsQuery.pagination : undefined}
                 searchable={editKey === "province" || editKey === "ward"}
                 searchPlaceholder={
                   editKey === "province"

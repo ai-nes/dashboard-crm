@@ -10,12 +10,13 @@ export async function searchSchoolDirectory(
   query = "",
   limit = 20,
   filters: Pick<GetSchoolsParams, "province" | "ward"> = {},
+  signal?: AbortSignal,
 ): Promise<SchoolDirectoryRecord[]> {
   const response = await getSchools({
     search: query.trim() || undefined,
     limit,
     ...filters,
-  });
+  }, signal);
   return response.schools.map(toSchoolDirectoryRecord);
 }
 

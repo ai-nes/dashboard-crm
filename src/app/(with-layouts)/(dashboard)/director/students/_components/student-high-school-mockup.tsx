@@ -280,6 +280,7 @@ export default function StudentHighSchoolMockup({
             }))
           }
           options={provinceOptions}
+          pagination={provinceOptionsQuery.pagination}
           searchable
           searchPlaceholder="Tìm tỉnh / thành phố..."
           value={isEditing ? form.province : data.student.province || ""}
@@ -316,6 +317,7 @@ export default function StudentHighSchoolMockup({
             setForm((current) => ({ ...current, ward: value, high_school: "" }))
           }
           options={wardOptions}
+          pagination={wardOptionsQuery.pagination}
           searchable
           searchPlaceholder="Tìm phường / xã..."
           value={isEditing ? form.ward : data.student.ward || ""}
@@ -330,6 +332,7 @@ export default function StudentHighSchoolMockup({
           label="Khu Vực"
           onChange={() => undefined}
           options={areaOptions}
+          pagination={areaOptionsQuery.pagination}
           value={areaValue}
         />
         <EditableDetailField

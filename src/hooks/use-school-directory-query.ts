@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useLimitInfinityScroll } from "./use-limit-infinity-scroll";
 
 import { searchSchoolDirectory } from "@/services/api/schools/school-directory-client";
 
@@ -19,9 +19,10 @@ export function useSchoolDirectoryQuery(
   filters: SchoolDirectoryFilters,
   enabled: boolean,
 ) {
-  return useQuery({
+  return useLimitInfinityScroll({
     queryKey: schoolDirectoryKeys.suggestions(query, filters),
-    queryFn: () => searchSchoolDirectory(query, 20, filters),
+    fetchPage: ({ limit }, signal) => searchSchoolDirectory(query, limit, filters, signal),
+    getItems: (schools) => schools,
     enabled,
     staleTime: 5 * 60 * 1000,
   });

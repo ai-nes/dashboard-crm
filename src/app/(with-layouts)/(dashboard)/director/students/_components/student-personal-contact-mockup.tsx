@@ -211,6 +211,7 @@ export default function StudentPersonalContactMockup({
                     isError={majorOptionsQuery.isError}
                     isLoading={majorOptionsQuery.isLoading}
                     options={field.majorOptions ?? []}
+                    pagination={majorOptionsQuery.pagination}
                     allowClear
                     searchPlaceholder="Tìm ngành…"
                     value={form.major}
@@ -230,6 +231,7 @@ export default function StudentPersonalContactMockup({
                   setForm((current) => ({ ...current, [editKey]: value }))
                 }
                 options={field.options}
+                pagination={editKey === "birth_place" ? birthPlaceOptionsQuery.pagination : editKey === "admission_year" ? admissionYearOptionsQuery.pagination : editKey === "branch" ? branchOptionsQuery.pagination : undefined}
                 searchable={field.searchable}
                 searchPlaceholder={field.searchPlaceholder}
                 type={field.type}

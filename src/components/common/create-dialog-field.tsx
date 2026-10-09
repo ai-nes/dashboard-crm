@@ -74,6 +74,7 @@ export function CreateDialogTextArea({
 }
 
 interface CreateDialogSelectProps {
+  pagination?: import("@/hooks/use-scroll-to-load-more").ScrollToLoadMoreOptions;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -93,6 +94,7 @@ export function CreateDialogSelect({
   isDisabled = false,
   searchable = false,
   searchPlaceholder,
+  pagination,
 }: CreateDialogSelectProps) {
   const resolvedPlaceholder =
     placeholder ?? `Chọn ${label.toLocaleLowerCase("vi-VN")}`;
@@ -102,6 +104,7 @@ export function CreateDialogSelect({
       ariaLabel={label}
       className="w-full"
       options={options}
+      pagination={pagination}
       isDisabled={isDisabled}
       isSearchable={searchable}
       onChange={(nextValue) => onChange(nextValue ?? "")}

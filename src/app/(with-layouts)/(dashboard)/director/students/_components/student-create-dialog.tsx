@@ -282,6 +282,7 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Chiến dịch"
                     options={campaignOptions}
+                    pagination={campaignOptionsQuery.pagination}
                     searchable
                     searchPlaceholder="Tìm chiến dịch..."
                     value={form.campaign}
@@ -308,6 +309,7 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Tỉnh / thành phố"
                     options={provinceOptions}
+                    pagination={provinceOptionsQuery.pagination}
                     searchable
                     searchPlaceholder="Tìm tỉnh / thành phố..."
                     value={form.province}
@@ -321,6 +323,7 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Xã / phường"
                     options={wardOptions}
+                    pagination={wardOptionsQuery.pagination}
                     searchable
                     searchPlaceholder="Tìm xã / phường..."
                     value={form.ward}
@@ -347,6 +350,7 @@ export default function StudentCreateDialog({
                     isError={majorOptionsQuery.isError}
                     isLoading={majorOptionsQuery.isPending}
                     options={majorOptions}
+                    pagination={majorOptionsQuery.pagination}
                     searchPlaceholder="Tìm ngành quan tâm..."
                     value={form.major}
                     isDisabled={majorOptionsQuery.isPending}
@@ -358,6 +362,7 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Chi nhánh"
                     options={branchOptions}
+                    pagination={branchOptionsQuery.pagination}
                     searchable
                     searchPlaceholder="Tìm chi nhánh..."
                     value={form.branch}

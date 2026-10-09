@@ -8,7 +8,6 @@ import {
   type ComboBoxProps as AriaComboBoxProps,
   Button,
   type Key,
-  ListBox,
   ListBoxItem,
   type ListBoxItemProps,
   Popover,
@@ -16,6 +15,7 @@ import {
 } from "react-aria-components";
 
 import { Input } from "./input";
+import { InfiniteListBox } from "@/components/common/infinite-list-box";
 
 export interface ComboboxProps
   extends Omit<
@@ -75,20 +75,20 @@ export function Combobox({
       </div>
       <Popover
         className={cn(
-          "w-(--trigger-width) overflow-hidden rounded-lg border border-card-border bg-background-white-secondary shadow-md",
+          "flex w-(--trigger-width) flex-col overflow-hidden rounded-lg border border-card-border bg-background-white-secondary shadow-md",
           "entering:animate-in entering:fade-in-0 entering:zoom-in-95",
           "exiting:animate-out exiting:fade-out-0 exiting:zoom-out-95",
           contentClassName,
         )}
       >
-        <ListBox
+        <InfiniteListBox
           className="max-h-64 overflow-auto p-1.5 outline-none"
           renderEmptyState={() => (
             <div className="px-3 py-6 text-center text-xs text-text-tertiary">{emptyMessage}</div>
           )}
         >
           {children}
-        </ListBox>
+        </InfiniteListBox>
       </Popover>
     </AriaComboBox>
   );

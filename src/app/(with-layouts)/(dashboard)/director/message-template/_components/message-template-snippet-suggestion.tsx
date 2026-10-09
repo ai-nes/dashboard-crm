@@ -1,6 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { useInfinityScroll } from "@/hooks/use-infinity-scroll";
 
 import type { SnippetRecord } from "@/services/api/snippets";
 
@@ -41,6 +42,10 @@ export default function MessageTemplateSnippetSuggestion({
   onActiveChange,
   onSelect,
 }: MessageTemplateSnippetSuggestionProps) {
+  const { visibleItems, onScrollToLoadMore } = useInfinityScroll(snippets, {
+    getItemKey: (snippet) => snippet.id,
+    minimumVisibleCount: selectedIndex + 1,
+  });
   if (typeof document === "undefined") return null;
 
   const viewportWidth = window.innerWidth;
@@ -66,8 +71,8 @@ export default function MessageTemplateSnippetSuggestion({
           Không tìm thấy snippet phù hợp.
         </div>
       ) : (
-        <div className="max-h-72 overflow-y-auto p-1.5">
-          {snippets.map((snippet, index) => {
+        <div className="max-h-72 overflow-y-auto p-1.5" onScroll={onScrollToLoadMore}>
+          {visibleItems.map((snippet, index) => {
             const isSelected = index === selectedIndex;
             return (
               <button

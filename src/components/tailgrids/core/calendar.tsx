@@ -2,6 +2,7 @@
 
 import { buttonStyles } from "@/components/tailgrids/core/button";
 import { cn } from "@/utils/cn";
+import { InfiniteListBox } from "@/components/common/infinite-list-box";
 import {
   Check,
   ChevronDown,
@@ -28,7 +29,6 @@ import {
   CalendarCellRenderProps,
   CalendarHeaderCell,
   CalendarStateContext,
-  ListBox,
   ListBoxItem,
   Popover,
   useLocale,
@@ -230,7 +230,7 @@ export function CalendarMonthYearPicker({ className }: CalendarPickerProps) {
             <p className="px-3 py-2 text-xs font-semibold text-text-100">
               Tháng
             </p>
-            <ListBox
+            <InfiniteListBox
               ref={monthListboxRef}
               aria-label="Chọn tháng"
               autoFocus
@@ -275,12 +275,12 @@ export function CalendarMonthYearPicker({ className }: CalendarPickerProps) {
                   )}
                 </ListBoxItem>
               ))}
-            </ListBox>
+            </InfiniteListBox>
           </div>
 
           <div className="min-w-0">
             <p className="px-3 py-2 text-xs font-semibold text-text-100">Năm</p>
-            <ListBox
+            <InfiniteListBox
               ref={listboxRef}
               aria-label="Chọn năm"
               selectionMode="single"
@@ -325,7 +325,7 @@ export function CalendarMonthYearPicker({ className }: CalendarPickerProps) {
                   )}
                 </ListBoxItem>
               ))}
-            </ListBox>
+            </InfiniteListBox>
           </div>
         </div>
       </Popover>
