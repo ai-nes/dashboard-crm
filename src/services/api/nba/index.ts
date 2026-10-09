@@ -13,6 +13,11 @@ import type {
   StudentNbaWorklistResponse,
 } from "./types";
 import { actionLabel } from "./presentation";
+import {
+  isNestApiEnabled,
+  nestRequest,
+  NestApiError,
+} from "../nest/nest-client";
 
 export type * from "./types";
 
@@ -278,6 +283,13 @@ function normalizeRecommendation(
     permittedDecisions: stringArray(
       record.permitted_decisions ?? record.permittedDecisions,
     ),
+    ...(Array.isArray(record.editable_fields ?? record.editableFields)
+      ? {
+          editableFields: stringArray(
+            record.editable_fields ?? record.editableFields,
+          ),
+        }
+      : {}),
   };
 }
 
@@ -430,6 +442,49 @@ function throwResponseError(response: Response, payload: unknown): never {
   );
 }
 
+async function studentNbaRequest(
+  path: string,
+  frappeMethod: string,
+  options: NbaApiRequestOptions,
+  query?: URLSearchParams,
+  body?: Record<string, unknown>,
+  idempotencyKey?: string,
+): Promise<unknown> {
+  if (isNestApiEnabled() && !options.baseUrl) {
+    try {
+      return await nestRequest(`/api/v1/nba/${path}`, {
+        method: body ? "POST" : "GET",
+        query: query ? Object.fromEntries(query) : undefined,
+        body,
+        ...(idempotencyKey
+          ? { headers: { "Idempotency-Key": idempotencyKey } }
+          : {}),
+      });
+    } catch (error) {
+      if (error instanceof NestApiError)
+        throw new NbaApiError(error.status, error.code, error.message);
+      throw error;
+    }
+  }
+  const headers = await requestHeaders(options, Boolean(body));
+  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+  const response = await fetch(
+    `${resolveBaseUrl(options)}/api/method/${frappeMethod}${query ? `?${query}` : ""}`,
+    {
+      method: body ? "POST" : "GET",
+      headers,
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      ...(typeof window !== "undefined"
+        ? { credentials: "include" as RequestCredentials }
+        : {}),
+      cache: "no-store",
+    },
+  );
+  const payload = await parseResponse(response);
+  if (!response.ok) throwResponseError(response, payload);
+  return payload;
+}
+
 export async function getDirectorNbaRecommendations(
   params: DirectorNbaRecommendationsParams = {},
   options: NbaApiRequestOptions = {},
@@ -491,7 +546,6 @@ export async function getStudentNbaWorklist(
   params: { cursor?: string; pageSize?: number; studentId?: string } = {},
   options: NbaApiRequestOptions = {},
 ): Promise<StudentNbaWorklistResponse> {
-  const baseUrl = resolveBaseUrl(options);
   const query = new URLSearchParams({
     page_size: String(Math.min(Math.max(params.pageSize ?? 50, 1), 50)),
   });
@@ -499,28 +553,22 @@ export async function getStudentNbaWorklist(
   if (params.studentId?.trim())
     query.set("student_id", params.studentId.trim());
 
-  let response: Response;
+  let payload: unknown;
   try {
-    response = await fetch(
-      `${baseUrl}/api/method/${STUDENT_WORKLIST_METHOD}?${query.toString()}`,
-      {
-        headers: await requestHeaders(options),
-        ...(typeof window !== "undefined"
-          ? { credentials: "include" as RequestCredentials }
-          : {}),
-        cache: "no-store",
-      },
+    payload = await studentNbaRequest(
+      "worklist",
+      STUDENT_WORKLIST_METHOD,
+      options,
+      query,
     );
-  } catch {
+  } catch (error) {
+    if (error instanceof NbaApiError) throw error;
     throw new NbaApiError(
       503,
       "STUDENT_NBA_UNAVAILABLE",
       "Không thể kết nối tới hàng đợi đề xuất NBA.",
     );
   }
-
-  const payload = await parseResponse(response);
-  if (!response.ok) throwResponseError(response, payload);
 
   const root = unwrapMessage(payload);
   if (!Array.isArray(root.items)) {
@@ -561,38 +609,29 @@ export async function runStudentNbaEvaluation(
 
   const idempotencyKey =
     request.idempotencyKey ?? createIdempotencyKey(studentId);
-  const headers = await requestHeaders(options, true);
-  headers["Idempotency-Key"] = idempotencyKey;
-
-  let response: Response;
+  let payload: unknown;
   try {
-    response = await fetch(
-      `${resolveBaseUrl(options)}/api/method/${RUN_STUDENT_NBA_METHOD}`,
+    payload = await studentNbaRequest(
+      "evaluations",
+      RUN_STUDENT_NBA_METHOD,
+      options,
+      undefined,
       {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          student_id: studentId,
-          ...(request.forceRerunReason
-            ? { force_rerun_reason: request.forceRerunReason }
-            : {}),
-        }),
-        ...(typeof window !== "undefined"
-          ? { credentials: "include" as RequestCredentials }
+        student_id: studentId,
+        ...(request.forceRerunReason
+          ? { force_rerun_reason: request.forceRerunReason }
           : {}),
-        cache: "no-store",
       },
+      idempotencyKey,
     );
-  } catch {
+  } catch (error) {
+    if (error instanceof NbaApiError) throw error;
     throw new NbaApiError(
       503,
       "NBA_EVALUATION_UNAVAILABLE",
       "Không thể kết nối tới dịch vụ đánh giá NBA.",
     );
   }
-
-  const payload = await parseResponse(response);
-  if (!response.ok) throwResponseError(response, payload);
 
   const root = unwrapMessage(payload);
   const evaluation = text(root.evaluation);
@@ -634,10 +673,6 @@ export async function decideNbaRecommendation(
   request: NbaDecisionRequest,
   options: NbaApiRequestOptions = {},
 ): Promise<NbaDecisionResponse> {
-  const baseUrl = resolveBaseUrl(options);
-  const headers = await requestHeaders(options, true);
-  headers["Idempotency-Key"] = request.idempotencyKey;
-
   const body = {
     name: request.name,
     expected_revision: request.expectedRevision,
@@ -651,30 +686,24 @@ export async function decideNbaRecommendation(
     ...(request.correlationId ? { correlation_id: request.correlationId } : {}),
   };
 
-  let response: Response;
+  let payload: unknown;
   try {
-    response = await fetch(
-      `${baseUrl}/api/method/${DECIDE_RECOMMENDATION_METHOD}`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-        ...(typeof window !== "undefined"
-          ? { credentials: "include" as RequestCredentials }
-          : {}),
-        cache: "no-store",
-      },
+    payload = await studentNbaRequest(
+      "decisions",
+      DECIDE_RECOMMENDATION_METHOD,
+      options,
+      undefined,
+      body,
+      request.idempotencyKey,
     );
-  } catch {
+  } catch (error) {
+    if (error instanceof NbaApiError) throw error;
     throw new NbaApiError(
       503,
       "NBA_DECISION_UNAVAILABLE",
       "Không thể ghi nhận quyết định NBA.",
     );
   }
-
-  const payload = await parseResponse(response);
-  if (!response.ok) throwResponseError(response, payload);
 
   const root = unwrapMessage(payload);
   const status = root.status;

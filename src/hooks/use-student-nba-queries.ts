@@ -39,22 +39,19 @@ export function useStudentNbaWorklistQuery(
   });
 }
 
-export function useDecideNbaRecommendation(
-  options: NbaApiRequestOptions = {},
-) {
+export function useDecideNbaRecommendation(options: NbaApiRequestOptions = {}) {
   const queryClient = useQueryClient();
 
   return useMutation<NbaDecisionResponse, Error, NbaDecisionRequest>({
     mutationFn: (request) => decideNbaRecommendation(request, options),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: studentNbaKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["student-ai"] });
     },
   });
 }
 
-export function useRunStudentNbaEvaluation(
-  options: NbaApiRequestOptions = {},
-) {
+export function useRunStudentNbaEvaluation(options: NbaApiRequestOptions = {}) {
   const queryClient = useQueryClient();
 
   return useMutation<
@@ -65,6 +62,7 @@ export function useRunStudentNbaEvaluation(
     mutationFn: (request) => runStudentNbaEvaluation(request, options),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: studentNbaKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["student-ai"] });
     },
   });
 }

@@ -48,6 +48,12 @@ export default function StudentNbaDecisionForm({
     recommendation.priority,
   );
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const canEditPriority =
+    recommendation.editableFields?.includes("priority") ?? true;
+  const canEditChannel =
+    recommendation.editableFields?.includes("channel") ?? true;
+  const canEditDueAt =
+    recommendation.editableFields?.includes("due_at") ?? true;
   const needsReason = operation === "REJECT" || operation === "DISMISS";
   const needsRevisit = operation === "DEFER";
   const isValid =
@@ -63,9 +69,12 @@ export default function StudentNbaDecisionForm({
     void onSubmit({
       ...(reason.trim() ? { reason: reason.trim() } : {}),
       ...(revisitAt ? { revisitAt } : {}),
-      ...(dueAt ? { dueAt } : {}),
+      ...(canEditDueAt && dueAt ? { dueAt } : {}),
       ...(operation === "ACCEPT_WITH_CHANGES"
-        ? { priority, channel: channel.trim() }
+        ? {
+            ...(canEditPriority ? { priority } : {}),
+            ...(canEditChannel ? { channel: channel.trim() } : {}),
+          }
         : {}),
     });
   };
@@ -85,60 +94,66 @@ export default function StudentNbaDecisionForm({
     >
       {operation === "ACCEPT_WITH_CHANGES" && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-text-secondary">
-            Mức ưu tiên
-            <Select
-              value={priority}
-              isDisabled={isSubmitting}
-              onChange={(key) =>
-                setPriority(String(key) as NbaRecommendationPriority)
-              }
-              aria-label="Mức ưu tiên"
-            >
-              <SelectTrigger size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(
-                  Object.keys(
-                    NBA_PRIORITY_LABELS,
-                  ) as NbaRecommendationPriority[]
-                ).map((value) => (
-                  <SelectItem
-                    key={value}
-                    id={value}
-                    textValue={NBA_PRIORITY_LABELS[value]}
-                  >
-                    {NBA_PRIORITY_LABELS[value]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>
+          {canEditPriority && (
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-text-secondary">
+              Mức ưu tiên
+              <Select
+                value={priority}
+                isDisabled={isSubmitting}
+                onChange={(key) =>
+                  setPriority(String(key) as NbaRecommendationPriority)
+                }
+                aria-label="Mức ưu tiên"
+              >
+                <SelectTrigger size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(
+                    Object.keys(
+                      NBA_PRIORITY_LABELS,
+                    ) as NbaRecommendationPriority[]
+                  ).map((value) => (
+                    <SelectItem
+                      key={value}
+                      id={value}
+                      textValue={NBA_PRIORITY_LABELS[value]}
+                    >
+                      {NBA_PRIORITY_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+          )}
 
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-text-secondary">
-            Kênh xử lý
-            <Input
-              value={channel}
-              disabled={isSubmitting}
-              onChange={(event) => setChannel(event.target.value)}
-              aria-label="Kênh xử lý"
-              placeholder="Ví dụ: Điện thoại"
-              className="h-9 px-3 py-2 text-sm"
-            />
-          </label>
+          {canEditChannel && (
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-text-secondary">
+              Kênh xử lý
+              <Input
+                value={channel}
+                disabled={isSubmitting}
+                onChange={(event) => setChannel(event.target.value)}
+                aria-label="Kênh xử lý"
+                placeholder="Ví dụ: Điện thoại"
+                className="h-9 px-3 py-2 text-sm"
+              />
+            </label>
+          )}
 
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-text-secondary sm:col-span-2">
-            Hạn xử lý mới (không bắt buộc)
-            <Input
-              type="datetime-local"
-              value={dueAt}
-              disabled={isSubmitting}
-              onChange={(event) => setDueAt(event.target.value)}
-              aria-label="Hạn xử lý mới"
-              className="h-9 px-3 py-2 text-sm"
-            />
-          </label>
+          {canEditDueAt && (
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-text-secondary sm:col-span-2">
+              Hạn xử lý mới (không bắt buộc)
+              <Input
+                type="datetime-local"
+                value={dueAt}
+                disabled={isSubmitting}
+                onChange={(event) => setDueAt(event.target.value)}
+                aria-label="Hạn xử lý mới"
+                className="h-9 px-3 py-2 text-sm"
+              />
+            </label>
+          )}
         </div>
       )}
 

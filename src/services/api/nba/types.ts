@@ -104,6 +104,8 @@ export interface NbaRecommendation {
   expectedRevision: string | null;
   revision: string | null;
   permittedDecisions: string[];
+  /** When provided, only these recommendation fields can be changed on accept. */
+  editableFields?: string[];
 }
 
 export interface StudentNbaWorklistResponse {
