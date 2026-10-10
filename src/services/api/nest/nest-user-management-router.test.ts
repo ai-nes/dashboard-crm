@@ -47,6 +47,11 @@ describe("user management with the Nest backend", () => {
               crmProfile: "sales",
               emailVerified: true,
               status: "active",
+              campus: {
+                id: "hcm",
+                name: "FPTU Ho Chi Minh Campus",
+                code: "HCM",
+              },
             },
           ],
           meta: { pagination: { page: 2, pageSize: 8, total: 9 } },
@@ -84,6 +89,7 @@ describe("user management with the Nest backend", () => {
           full_name: "Sale One",
           role: "Sale",
           session_user: true,
+          campus: { id: "hcm", name: "FPTU Ho Chi Minh Campus", code: "HCM" },
         },
       ],
     });
@@ -97,6 +103,24 @@ describe("user management with the Nest backend", () => {
       ),
     ).toBe(false);
   });
+
+  it.each(["622f458f-aeb1-505b-b02f-a02cd8672f45", null])(
+    "maps inline campus changes without resetting the password (%s)",
+    async (campusId) => {
+      fetchMock.mockResolvedValue(json({ data: {} }));
+      await call(
+        "crm.api.user.update_crm_user_profile",
+        {},
+        { user: "u1", campus_id: campusId },
+      );
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
+        "http://api.test/api/v1/users/u1/profile",
+      );
+      const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+      expect(init.method).toBe("PATCH");
+      expect(JSON.parse(init.body as string)).toEqual({ campusId });
+    },
+  );
 
   it("maps profile mutations and account provisioning", async () => {
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {

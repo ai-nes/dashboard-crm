@@ -14,6 +14,7 @@ import { useAuth } from "@/components/common/auth/auth-provider";
 import { hasCrmRole, hasTechnicalRole } from "@/components/common/auth/rbac";
 import { Button } from "@/components/tailgrids/core/button";
 import { TabTrigger } from "@/components/tailgrids/core/tabs";
+import { useGovernedValuesQuery } from "@/hooks/use-admin-catalog-queries";
 import {
   useCreateCrmUserMutation,
   useCrmUsersQuery,
@@ -62,6 +63,20 @@ export default function UserManagementAdminPage() {
   const removeUserMutation = useRemoveUserMutation();
   const createUserMutation = useCreateCrmUserMutation();
   const updateUserProfileMutation = useUpdateCrmUserProfileMutation();
+  const updateCampusMutation = useUpdateCrmUserProfileMutation();
+  const campusesQuery = useGovernedValuesQuery("CRM Campus", {
+    pageLength: 100,
+    enabled: canManageUsers,
+  });
+  const campusOptions = useMemo(
+    () =>
+      campusesQuery.data?.records.flatMap((campus) =>
+        campus.id
+          ? [{ id: campus.id, name: campus.campus_name ?? campus.name }]
+          : [],
+      ) ?? [],
+    [campusesQuery.data],
+  );
 
   const allUsers = useMemo(
     () => usersQuery.data?.crmUsers ?? [],
@@ -72,7 +87,25 @@ export default function UserManagementAdminPage() {
   const totalPages = Math.max(1, Math.ceil(totalUsers / USERS_PAGE_SIZE));
 
   const isMutating =
-    updateRoleMutation.isPending || removeUserMutation.isPending;
+    updateRoleMutation.isPending ||
+    removeUserMutation.isPending ||
+    updateCampusMutation.isPending;
+
+  const handleChangeCampus = async (
+    targetUser: CrmUser,
+    campusId: string | null,
+  ) => {
+    if (!canManageUsers || (targetUser.campus?.id ?? null) === campusId) return;
+    try {
+      await updateCampusMutation.mutateAsync({
+        user: targetUser.name,
+        campusId,
+      });
+      toast.success(`Đã cập nhật Campus của ${targetUser.fullName}.`);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  };
 
   const handleChangeRole = async (targetUser: CrmUser, newRole: string) => {
     if (targetUser.role === newRole) return;
@@ -212,6 +245,11 @@ export default function UserManagementAdminPage() {
                 isLoading={usersQuery.isPending}
                 canManageUsers={canManageUsers}
                 isMutating={isMutating}
+                campusOptions={campusOptions}
+                isCampusLoading={
+                  campusesQuery.isPending || campusesQuery.isError
+                }
+                onChangeCampus={handleChangeCampus}
                 onChangeRole={handleChangeRole}
                 onEdit={openEditUser}
                 onRemove={setUserToRemove}
@@ -219,6 +257,22 @@ export default function UserManagementAdminPage() {
                 totalPages={totalPages}
                 onPageChange={setPage}
               />
+              {canManageUsers && campusesQuery.isError ? (
+                <div
+                  role="alert"
+                  className="flex items-center gap-2 px-5 py-3 text-sm text-text-secondary"
+                >
+                  Không tải được danh sách Campus.
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    appearance="ghost"
+                    onPress={() => void campusesQuery.refetch()}
+                  >
+                    Thử lại
+                  </Button>
+                </div>
+              ) : null}
             </AdminTableFrame>
           )}
         </AdminTabContent>

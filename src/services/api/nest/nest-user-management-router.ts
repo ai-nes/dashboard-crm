@@ -33,6 +33,7 @@ interface NestUser {
   crmProfile: string | null;
   emailVerified: boolean;
   status: "active" | "suspended";
+  campus?: { id: string; name: string; code: string | null } | null;
 }
 
 interface UsersPage {
@@ -81,6 +82,7 @@ function legacyUser(user: NestUser, currentEmail: string | null) {
     role: legacyRole(user),
     crm_role_state: user.crmProfile ? "assigned" : null,
     session_user: user.email === currentEmail,
+    campus: user.campus ?? null,
   };
 }
 
@@ -192,6 +194,7 @@ export const nestUserManagementHandler: MethodHandler = async (
         body: {
           fullName: body?.full_name,
           newPassword: body?.new_password,
+          campusId: body?.campus_id,
         },
       });
       return null;

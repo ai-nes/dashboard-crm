@@ -7,6 +7,7 @@ export interface CrmUser {
   role: string | null;
   crmRoleState: string | null;
   sessionUser: boolean;
+  campus: { id: string; name: string; code: string | null } | null;
 }
 
 export interface ListCrmUsersResponse {
@@ -44,6 +45,7 @@ export interface UpdateCrmUserProfilePayload {
   user: string;
   fullName?: string;
   newPassword?: string;
+  campusId?: string | null;
 }
 
 export type UserRoleLogAction = "role_changed" | "removed";

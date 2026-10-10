@@ -33,6 +33,7 @@ function booleanValue(value: unknown, fallback = false): boolean {
 export function normalizeCrmUser(value: unknown): CrmUser | null {
   const object = asRecord(value);
   if (!object || typeof object.name !== "string") return null;
+  const campus = asRecord(object.campus);
 
   return {
     name: object.name,
@@ -43,6 +44,14 @@ export function normalizeCrmUser(value: unknown): CrmUser | null {
     role: nullableString(object.role),
     crmRoleState: nullableString(object.crm_role_state),
     sessionUser: booleanValue(object.session_user, false),
+    campus:
+      campus && typeof campus.id === "string" && typeof campus.name === "string"
+        ? {
+            id: campus.id,
+            name: campus.name,
+            code: nullableString(campus.code),
+          }
+        : null,
   };
 }
 

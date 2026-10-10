@@ -181,6 +181,7 @@ export async function updateCrmUserProfile(
       user: payload.user,
       full_name: payload.fullName,
       new_password: payload.newPassword,
+      campus_id: payload.campusId,
     },
   );
 }

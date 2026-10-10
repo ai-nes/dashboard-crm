@@ -17,6 +17,9 @@ import { TableBody } from "@/components/tailgrids/core/table";
 import type { CrmUser } from "@/services/api/user-management";
 
 import RoleSelectDropdown from "./role-select-dropdown";
+import CampusSelectDropdown, {
+  type CampusOption,
+} from "./campus-select-dropdown";
 
 interface UsersTableProps {
   users: CrmUser[];
@@ -24,6 +27,9 @@ interface UsersTableProps {
   isLoading: boolean;
   canManageUsers: boolean;
   isMutating: boolean;
+  campusOptions: CampusOption[];
+  isCampusLoading: boolean;
+  onChangeCampus: (user: CrmUser, campusId: string | null) => void;
   onChangeRole: (user: CrmUser, newRole: string) => void;
   onEdit: (user: CrmUser) => void;
   onRemove: (user: CrmUser) => void;
@@ -44,6 +50,9 @@ export default function UsersTable({
   isLoading,
   canManageUsers,
   isMutating,
+  campusOptions,
+  isCampusLoading,
+  onChangeCampus,
   onChangeRole,
   onEdit,
   onRemove,
@@ -51,7 +60,7 @@ export default function UsersTable({
   totalPages,
   onPageChange,
 }: UsersTableProps) {
-  const columnCount = 3 + (canManageUsers ? 1 : 0);
+  const columnCount = 4 + (canManageUsers ? 1 : 0);
 
   return (
     <>
@@ -60,6 +69,7 @@ export default function UsersTable({
           <AdminTableRow>
             <AdminTableHead scope="col">Người dùng</AdminTableHead>
             <AdminTableHead scope="col">Email</AdminTableHead>
+            <AdminTableHead scope="col">Campus</AdminTableHead>
             <AdminTableHead scope="col">Vai trò</AdminTableHead>
             {canManageUsers ? (
               <AdminTableHead scope="col">Hành động</AdminTableHead>
@@ -117,6 +127,21 @@ export default function UsersTable({
                     </AdminTableCell>
                     <AdminTableCell className="py-3.5 text-text-secondary">
                       {user.email}
+                    </AdminTableCell>
+                    <AdminTableCell className="py-3.5 text-text-secondary">
+                      {canManageUsers ? (
+                        <CampusSelectDropdown
+                          campus={user.campus}
+                          options={campusOptions}
+                          userLabel={user.fullName}
+                          disabled={isMutating || isCampusLoading}
+                          onChange={(campusId) =>
+                            onChangeCampus(user, campusId)
+                          }
+                        />
+                      ) : (
+                        (user.campus?.name ?? "Chưa có Campus")
+                      )}
                     </AdminTableCell>
                     <AdminTableCell className="py-3.5">
                       {canManageUsers ? (

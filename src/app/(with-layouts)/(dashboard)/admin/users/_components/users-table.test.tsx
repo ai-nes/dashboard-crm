@@ -22,6 +22,7 @@ const systemManager: CrmUser = {
   role: "System Manager",
   crmRoleState: null,
   sessionUser: false,
+  campus: { id: "campus-hcm", name: "FPTU Ho Chi Minh Campus", code: "HCM" },
 };
 
 function renderTable(canManageUsers: boolean, isMutating = false) {
@@ -32,6 +33,9 @@ function renderTable(canManageUsers: boolean, isMutating = false) {
       isLoading={false}
       canManageUsers={canManageUsers}
       isMutating={isMutating}
+      campusOptions={[systemManager.campus!]}
+      isCampusLoading={false}
+      onChangeCampus={vi.fn()}
       onChangeRole={vi.fn()}
       onEdit={vi.fn()}
       onRemove={vi.fn()}
@@ -43,6 +47,20 @@ function renderTable(canManageUsers: boolean, isMutating = false) {
 }
 
 describe("System Manager role editing", () => {
+  it("shows the campus from the user record", () => {
+    const html = renderTable(true);
+    expect(html).toContain('scope="col">Campus');
+    expect(html).toContain("FPTU Ho Chi Minh Campus");
+  });
+  it("renders an editable Campus control for administrators", () => {
+    expect(renderTable(true)).toContain(
+      'aria-label="Đổi Campus của System Manager"',
+    );
+  });
+  it("hides the Campus control without management permission", () => {
+    expect(renderTable(false)).not.toContain('aria-label="Đổi Campus');
+    expect(renderTable(false)).toContain("FPTU Ho Chi Minh Campus");
+  });
   it("omits the retired capacity column", () => {
     expect(renderTable(true)).not.toContain("Capacity");
   });

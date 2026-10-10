@@ -114,6 +114,7 @@ export interface CampaignChannelType {
 export type GovernedDoctype = "CRM Campus" | "CRM Lead Source" | "CRM Platform";
 
 export interface GovernedRecord {
+  id?: string;
   name: string;
   approval_state?: string;
   owner_role?: string;
