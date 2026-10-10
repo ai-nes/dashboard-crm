@@ -36,12 +36,15 @@ interface StudentClassificationCockpitProps extends Student360SectionProps {
   analysisTargetId: string;
   scoreBreakdown?: StudentScoreBreakdown | null;
   canViewVisual?: boolean;
+  sessionUserId?: string;
 }
 
 export default function StudentClassificationCockpit({
   data,
   analysisTargetId,
   scoreBreakdown,
+  canViewVisual = false,
+  sessionUserId,
 }: StudentClassificationCockpitProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const crmPermissions = getCrmPermissions(user);
@@ -214,6 +217,7 @@ export default function StudentClassificationCockpit({
                               ? handleAnalysisRequest
                               : undefined
                           }
+                          canAskAI={canViewVisual && Boolean(data.student.studentId?.trim())}
                           onOpenAskAI={() => setIsAskDialogOpen(true)}
                         />
                       </div>
@@ -330,9 +334,11 @@ export default function StudentClassificationCockpit({
 
       {/* Modal Ask AI */}
       <StudentAskAIDialog
+        key={`${sessionUserId ?? "signed-out"}:${data.student.studentId ?? "missing"}`}
         isOpen={isAskDialogOpen}
         onClose={() => setIsAskDialogOpen(false)}
         data={data}
+        canReadStudent={canViewVisual}
       />
 
       {/* Optional Analysis Drawer for deep claims review */}
