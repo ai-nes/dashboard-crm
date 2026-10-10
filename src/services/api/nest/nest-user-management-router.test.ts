@@ -267,4 +267,26 @@ describe("user management with the Nest backend", () => {
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("persists the selected Campus when creating a CRM user", async () => {
+    fetchMock.mockImplementation((url: string) =>
+      json({ data: url.endsWith("/api/v1/users") ? { id: "u2" } : {} }),
+    );
+    const { createCrmUser } = await import("../user-management");
+    await createCrmUser({
+      email: "new@example.test",
+      fullName: "New User",
+      password: "long-enough-password",
+      role: "Sale",
+      campusId: "campus-hcm",
+    });
+    const campusRequest = fetchMock.mock.calls.find(([url]) =>
+      String(url).endsWith("/users/u2/profile"),
+    );
+    expect(campusRequest).toBeDefined();
+    expect(campusRequest?.[1]?.method).toBe("PATCH");
+    expect(JSON.parse(campusRequest?.[1]?.body as string)).toEqual({
+      campusId: "campus-hcm",
+    });
+  });
 });

@@ -158,7 +158,7 @@ export default function BigTeamOverviewDashboard() {
                     saveGroup({
                       groupId: bigTeam.id,
                       groupName: bigTeam.name,
-                      groupLeadStaff: leadId,
+                      groupLeadUser: leadId,
                       clearGroupLead: leadId === null,
                       expectedRevision: bigTeam.revision,
                     }),
@@ -200,7 +200,7 @@ export default function BigTeamOverviewDashboard() {
                 saveGroup({
                   groupName: name,
                   provinceId,
-                  groupLeadStaff: groupLeadId,
+                  groupLeadUser: groupLeadId,
                 }),
               `Đã tạo Group "${name}".`,
             ).finally(() => setIsCreating(false))

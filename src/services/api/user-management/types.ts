@@ -39,6 +39,7 @@ export interface CreateCrmUserPayload {
   fullName: string;
   password: string;
   role: string;
+  campusId?: string | null;
 }
 
 export interface UpdateCrmUserProfilePayload {

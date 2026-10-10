@@ -81,7 +81,7 @@ export default function BigTeamDetailDashboard({
       groupId: bigTeam.id,
       teamType: team.teamType ?? "Sales",
       campus: team.campusId,
-      teamLeadStaff: values.leadId === undefined ? team.leadId : values.leadId,
+      teamLeadUser: values.leadId === undefined ? team.leadId : values.leadId,
       isActive: values.isActive ?? team.isActive,
       expectedRevision: team.revision,
     });
@@ -174,7 +174,7 @@ export default function BigTeamDetailDashboard({
                   groupId: bigTeam.id,
                   teamType: "Sales",
                   campus: campusId,
-                  teamLeadStaff: teamLeadId,
+                  teamLeadUser: teamLeadId,
                   isActive: true,
                 }),
               `Đã tạo Team "${name}".`,

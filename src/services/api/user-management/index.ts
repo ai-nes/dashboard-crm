@@ -166,6 +166,7 @@ export async function createCrmUser(
       full_name: payload.fullName,
       password: payload.password,
       role: payload.role,
+      campus_id: payload.campusId,
     },
   );
   return typeof raw === "string" ? raw : payload.email;
