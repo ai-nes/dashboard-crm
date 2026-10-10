@@ -391,6 +391,103 @@ describe("Lead list/detail API contract", () => {
 });
 
 describe("Lead write API contract", () => {
+  it("retains reference IDs for catalog controls", () => {
+    const ids = {
+      provinceId: "province-uuid",
+      wardId: "ward-uuid",
+      highSchoolId: "school-uuid",
+      majorId: "major-uuid",
+      aspirationId: "aspiration-uuid",
+      admissionYearId: "year-uuid",
+      campusId: "campus-uuid",
+      sourceId: "source-uuid",
+    };
+    expect(
+      normalizeLeadDetail({
+        lead: { ...leadRecord, ...ids },
+        log: [],
+        meta: {},
+      }).lead,
+    ).toMatchObject(ids);
+  });
+
+  it("preserves field validation details and request ID on a failed save", async () => {
+    const details = [
+      {
+        field: "email",
+        code: "invalid_format",
+        message: "Invalid email address",
+      },
+    ];
+    mockRoutes({
+      "GET /api/v1/leads/LEAD-2026-00003": () => json({ data: leadRecord }),
+      "PATCH /api/v1/leads/LEAD-2026-00003": () =>
+        json(
+          {
+            error: {
+              code: "INVALID_INPUT",
+              message: "The request is invalid.",
+              details,
+              requestId: "request-1",
+            },
+          },
+          400,
+        ),
+    });
+    const error = await updateLead("LEAD-2026-00003", { email: "bad" }).catch(
+      (error: unknown) => error,
+    );
+    expect(error).toMatchObject({
+      status: 400,
+      code: "INVALID_INPUT",
+      details,
+      requestId: "request-1",
+    });
+    expect((error as Error).message).toContain("email: Invalid email address");
+  });
+
+  it("sends explicit clears and reads the saved result back", async () => {
+    let saved = false;
+    mockRoutes({
+      "GET /api/v1/leads/LEAD-2026-00003": () =>
+        json({
+          data: saved
+            ? {
+                ...leadRecord,
+                email: "",
+                source: "",
+                sourceId: null,
+                segments: [],
+              }
+            : leadRecord,
+        }),
+      "PATCH /api/v1/leads/LEAD-2026-00003": () => {
+        saved = true;
+        return json({ data: leadRecord });
+      },
+      "GET /api/v1/leads/LEAD-2026-00003/timeline": () => json({ data: [] }),
+    });
+    const result = await updateLead("LEAD-2026-00003", {
+      email: null,
+      source: null,
+      segments: null,
+    });
+    expect(
+      bodyOf(callKeys().indexOf("PATCH /api/v1/leads/LEAD-2026-00003")),
+    ).toEqual({
+      email: null,
+      sourceId: null,
+      segments: [],
+      expectedRevision: 4,
+    });
+    expect(result.lead).toMatchObject({
+      email: "",
+      source: "",
+      sourceId: null,
+      segments: [],
+    });
+  });
+
   it("creates a Lead and reads the new record back", async () => {
     mockRoutes({
       "POST /api/v1/leads": () =>

@@ -322,19 +322,7 @@ export default function StudentHighSchoolMockup({
           searchPlaceholder="Tìm phường / xã..."
           value={isEditing ? form.ward : data.student.ward || ""}
         />
-        <EditableDetailField
-          isDisabled={
-            !selectedSchool ||
-            areaOptionsQuery.isLoading ||
-            areaOptions.length === 0
-          }
-          isEditing={isEditing}
-          label="Khu Vực"
-          onChange={() => undefined}
-          options={areaOptions}
-          pagination={areaOptionsQuery.pagination}
-          value={areaValue}
-        />
+        <EditableDetailField readOnly label="Khu Vực" value={areaValue} />
         <EditableDetailField
           isDisabled={scoreQuery.isLoading}
           isEditing={isEditing}

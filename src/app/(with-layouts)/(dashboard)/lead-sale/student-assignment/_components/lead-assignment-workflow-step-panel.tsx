@@ -6,7 +6,12 @@ import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react";
 import { InfoCircle, Locked3 } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/tailgrids/core/card";
 import { Input } from "@/components/tailgrids/core/input";
 import { TextArea } from "@/components/tailgrids/core/text-area";
 import { Toggle } from "@/components/tailgrids/core/toggle";
@@ -20,7 +25,10 @@ import type {
   LeadRoutingPolicy,
   LeadRoutingStrategy,
 } from "@/services/api/lead-sale";
-import type { StepId, WorkflowStep } from "../../_shared/student-assignment/types";
+import type {
+  StepId,
+  WorkflowStep,
+} from "../../_shared/student-assignment/types";
 import LeadRoutingLayerRow from "./lead-routing-layer-row";
 
 type Props = {
@@ -47,7 +55,12 @@ const layerLabels: Record<LeadRoutingLayerKey, string> = {
 };
 
 function isEditable(stepId: StepId): boolean {
-  return stepId === "input" || stepId === "classification" || stepId === "matching" || stepId === "review";
+  return (
+    stepId === "input" ||
+    stepId === "classification" ||
+    stepId === "matching" ||
+    stepId === "review"
+  );
 }
 
 function ReadOnlySetting({ label, value }: { label: string; value: string }) {
@@ -75,7 +88,9 @@ function LockedNotice() {
   return (
     <div className="flex items-start gap-2 rounded-lg bg-badge-neutral-background px-3 py-2.5 text-xs leading-5 text-text-secondary">
       <Locked3 size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-      <span>Bước này luôn bật để bảo vệ dữ liệu và không làm thất lạc Lead.</span>
+      <span>
+        Bước này luôn bật để bảo vệ dữ liệu và không làm thất lạc Lead.
+      </span>
     </div>
   );
 }
@@ -94,7 +109,9 @@ export default function LeadAssignmentWorkflowStepPanel({
   const settings = configuration.settings;
   const editable = canEdit && isEditable(step.id);
 
-  const updateInput = (values: Partial<LeadAssignmentWorkflowInputSettings>) => {
+  const updateInput = (
+    values: Partial<LeadAssignmentWorkflowInputSettings>,
+  ) => {
     onSettingsChange({ ...settings, ...values });
   };
 
@@ -113,16 +130,25 @@ export default function LeadAssignmentWorkflowStepPanel({
   const layers = policy?.layers ?? [];
 
   const reorderLayers = (sourceKey: unknown, targetKey: unknown) => {
-    if (typeof sourceKey !== "string" || typeof targetKey !== "string" || !policy) return;
+    if (
+      typeof sourceKey !== "string" ||
+      typeof targetKey !== "string" ||
+      !policy
+    )
+      return;
     const sourceIndex = layers.findIndex((layer) => layer.key === sourceKey);
     const targetIndex = layers.findIndex((layer) => layer.key === targetKey);
-    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
+    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex)
+      return;
     const nextLayers = layers.slice();
     const [moved] = nextLayers.splice(sourceIndex, 1);
     nextLayers.splice(targetIndex, 0, moved);
     updateMatching({
       ...policy,
-      layers: nextLayers.map((layer, index) => ({ ...layer, priority: index + 1 })),
+      layers: nextLayers.map((layer, index) => ({
+        ...layer,
+        priority: index + 1,
+      })),
       layerOrder: nextLayers.map((layer) => layer.key),
     });
   };
@@ -151,7 +177,15 @@ export default function LeadAssignmentWorkflowStepPanel({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle className="text-lg">{step.title}</CardTitle>
-            <Badge color={configuration.canToggle ? (configuration.enabled ? "success" : "gray") : "primary"}>
+            <Badge
+              color={
+                configuration.canToggle
+                  ? configuration.enabled
+                    ? "success"
+                    : "gray"
+                  : "primary"
+              }
+            >
               {configuration.canToggle
                 ? configuration.enabled
                   ? "Đang bật"
@@ -159,7 +193,9 @@ export default function LeadAssignmentWorkflowStepPanel({
                 : "Bắt buộc bật"}
             </Badge>
           </div>
-          <CardDescription className="mt-1 text-sm">{step.detail}</CardDescription>
+          <CardDescription className="mt-1 text-sm">
+            {step.detail}
+          </CardDescription>
         </div>
       </CardHeader>
 
@@ -169,9 +205,13 @@ export default function LeadAssignmentWorkflowStepPanel({
             <>
               <Toggle
                 label="Cho phép hệ thống tiếp nhận Lead"
-                checked={(settings as LeadAssignmentWorkflowInputSettings).enabled}
+                checked={
+                  (settings as LeadAssignmentWorkflowInputSettings).enabled
+                }
                 disabled={isSaving}
-                onChange={(event) => updateInput({ enabled: event.target.checked })}
+                onChange={(event) =>
+                  updateInput({ enabled: event.target.checked })
+                }
               />
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="space-y-1.5">
@@ -182,10 +222,15 @@ export default function LeadAssignmentWorkflowStepPanel({
                     type="number"
                     min={0}
                     max={1440}
-                    value={String((settings as LeadAssignmentWorkflowInputSettings).scheduledMinAgeMinutes)}
+                    value={String(
+                      (settings as LeadAssignmentWorkflowInputSettings)
+                        .scheduledMinAgeMinutes,
+                    )}
                     disabled={isSaving}
                     onChange={(event) =>
-                      updateInput({ scheduledMinAgeMinutes: Number(event.target.value) || 0 })
+                      updateInput({
+                        scheduledMinAgeMinutes: Number(event.target.value) || 0,
+                      })
                     }
                     aria-label="Thời gian chờ job tự động"
                     className="h-10 w-full text-sm"
@@ -199,10 +244,15 @@ export default function LeadAssignmentWorkflowStepPanel({
                     type="number"
                     min={1}
                     max={1000}
-                    value={String((settings as LeadAssignmentWorkflowInputSettings).maxLeadsPerRun)}
+                    value={String(
+                      (settings as LeadAssignmentWorkflowInputSettings)
+                        .maxLeadsPerRun,
+                    )}
                     disabled={isSaving}
                     onChange={(event) =>
-                      updateInput({ maxLeadsPerRun: Number(event.target.value) || 1 })
+                      updateInput({
+                        maxLeadsPerRun: Number(event.target.value) || 1,
+                      })
                     }
                     aria-label="Giới hạn Lead mỗi lần chạy"
                     className="h-10 w-full text-sm"
@@ -214,7 +264,11 @@ export default function LeadAssignmentWorkflowStepPanel({
             <div className="grid gap-3 sm:grid-cols-3">
               <ReadOnlySetting
                 label="Trạng thái"
-                value={(settings as LeadAssignmentWorkflowInputSettings).enabled ? "Đang bật" : "Đang tắt"}
+                value={
+                  (settings as LeadAssignmentWorkflowInputSettings).enabled
+                    ? "Đang bật"
+                    : "Đang tắt"
+                }
               />
               <ReadOnlySetting
                 label="Chờ job nền"
@@ -227,8 +281,13 @@ export default function LeadAssignmentWorkflowStepPanel({
             </div>
           )}
           <p className="flex items-start gap-2 text-xs leading-5 text-text-tertiary">
-            <InfoCircle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-            Nút chạy thủ công quét ngay Lead đủ điều kiện; ngưỡng thời gian chỉ áp dụng cho job nền.
+            <InfoCircle
+              size={14}
+              className="mt-0.5 shrink-0"
+              aria-hidden="true"
+            />
+            Nút chạy thủ công quét ngay Lead đủ điều kiện; ngưỡng thời gian chỉ
+            áp dụng cho job nền.
           </p>
         </div>
       )}
@@ -237,12 +296,24 @@ export default function LeadAssignmentWorkflowStepPanel({
         <div className="space-y-4">
           <LockedNotice />
           <div className="space-y-3">
-            <ReadOnlySetting label="Trường bắt buộc" value="Họ và tên · Số điện thoại · Tỉnh/thành phố" />
+            <ReadOnlySetting
+              label="Trường bắt buộc"
+              value="Họ và tên · Số điện thoại · Tỉnh/thành phố"
+            />
             <div>
-              <p className="mb-2 text-xs text-text-tertiary">Trường bổ sung không chặn phân công</p>
-              <FieldChips fields={(settings as { optionalFields: string[] }).optionalFields} />
+              <p className="mb-2 text-xs text-text-tertiary">
+                Trường bổ sung không chặn phân công
+              </p>
+              <FieldChips
+                fields={
+                  (settings as { optionalFields: string[] }).optionalFields
+                }
+              />
             </div>
-            <ReadOnlySetting label="Khi thiếu dữ liệu" value="Chuyển sang Cần lưu ý" />
+            <ReadOnlySetting
+              label="Khi thiếu dữ liệu"
+              value="Chuyển sang Cần lưu ý"
+            />
           </div>
         </div>
       )}
@@ -254,18 +325,28 @@ export default function LeadAssignmentWorkflowStepPanel({
               label="Chạy lại bước xác định kết quả xử lý"
               checked={(settings as { enabled: boolean }).enabled}
               disabled={isSaving}
-              onChange={(event) => onSettingsChange({ enabled: event.target.checked })}
+              onChange={(event) =>
+                onSettingsChange({ enabled: event.target.checked })
+              }
             />
           ) : (
             <ReadOnlySetting
               label="Trạng thái xác định kết quả"
-              value={(settings as { enabled: boolean }).enabled ? "Đang bật" : "Đang tắt · dùng kết quả đã lưu"}
+              value={
+                (settings as { enabled: boolean }).enabled
+                  ? "Đang bật"
+                  : "Đang tắt · dùng kết quả đã lưu"
+              }
             />
           )}
           <p className="text-xs leading-5 text-text-tertiary">
-            Khi tắt, hệ thống dùng trạng thái xử lý đã lưu trên Lead và không chạy lại kiểm tra duplicate trong batch.
+            Khi tắt, hệ thống dùng trạng thái xử lý đã lưu trên Lead và không
+            chạy lại kiểm tra duplicate trong batch.
           </p>
-          <ReadOnlySetting label="Student" value="Không tạo Student ở bước này" />
+          <ReadOnlySetting
+            label="Student"
+            value="Không tạo Student ở bước này"
+          />
         </div>
       )}
 
@@ -274,9 +355,12 @@ export default function LeadAssignmentWorkflowStepPanel({
           <LockedNotice />
           <div className="space-y-3 rounded-lg border border-card-border p-3">
             <div>
-              <h4 className="text-sm font-semibold text-text-primary">Các lớp ưu tiên</h4>
+              <h4 className="text-sm font-semibold text-text-primary">
+                Các lớp ưu tiên
+              </h4>
               <p className="mt-1 text-xs leading-5 text-text-tertiary">
-                Kéo biểu tượng để đổi ưu tiên. Lớp đã khớp nhưng không có người đủ điều kiện sẽ đi vào Cần lưu ý.
+                Kéo biểu tượng để đổi ưu tiên. Lớp đã khớp nhưng không có người
+                đủ điều kiện sẽ đi vào Cần lưu ý.
               </p>
             </div>
             {canEdit ? (
@@ -284,7 +368,9 @@ export default function LeadAssignmentWorkflowStepPanel({
                 label="Cơ chế phân bổ Lead"
                 checked={policy.enabled}
                 disabled={isSaving}
-                onChange={(event) => updateMatching({ ...policy, enabled: event.target.checked })}
+                onChange={(event) =>
+                  updateMatching({ ...policy, enabled: event.target.checked })
+                }
               />
             ) : (
               <ReadOnlySetting
@@ -294,7 +380,11 @@ export default function LeadAssignmentWorkflowStepPanel({
             )}
             {canEdit ? (
               <DragDropProvider onDragEnd={handleDragEnd}>
-                <div className="space-y-2" role="list" aria-label="Thứ tự lớp phân tuyến">
+                <div
+                  className="space-y-2"
+                  role="list"
+                  aria-label="Thứ tự lớp phân tuyến"
+                >
                   {layers.map((layer: LeadRoutingLayer, index: number) => (
                     <LeadRoutingLayerRow
                       key={layer.key}
@@ -308,7 +398,11 @@ export default function LeadAssignmentWorkflowStepPanel({
                 </div>
               </DragDropProvider>
             ) : (
-              <div className="space-y-2" role="list" aria-label="Thứ tự lớp phân tuyến">
+              <div
+                className="space-y-2"
+                role="list"
+                aria-label="Thứ tự lớp phân tuyến"
+              >
                 {layers.map((layer: LeadRoutingLayer, index: number) => (
                   <div
                     key={layer.key}
@@ -321,7 +415,10 @@ export default function LeadAssignmentWorkflowStepPanel({
                     <span className="min-w-0 flex-1 text-sm font-medium text-text-primary">
                       {layerLabels[layer.key]}
                     </span>
-                    <Badge color={layer.enabled ? "success" : "gray"} className="text-[10px]">
+                    <Badge
+                      color={layer.enabled ? "success" : "gray"}
+                      className="text-[10px]"
+                    >
                       {layer.enabled ? "Bật" : "Tắt"}
                     </Badge>
                   </div>
@@ -330,44 +427,43 @@ export default function LeadAssignmentWorkflowStepPanel({
             )}
             {canEdit ? (
               <label className="space-y-1.5">
-                <span className="text-xs font-medium text-input-label-text">Thuật toán</span>
+                <span className="text-xs font-medium text-input-label-text">
+                  Thuật toán
+                </span>
                 <InfiniteSelectInput
                   value={policy.distributionStrategy}
                   disabled={isSaving}
                   onChange={(event) =>
                     updateMatching({
                       ...policy,
-                      distributionStrategy: event.target.value as LeadRoutingStrategy,
+                      distributionStrategy: event.target
+                        .value as LeadRoutingStrategy,
                     })
                   }
                   aria-label="Thuật toán phân bổ Lead"
                   className="h-10 w-full rounded-lg border border-card-border bg-input-background px-3 text-sm text-text-primary outline-none focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {(Object.keys(strategyLabels) as LeadRoutingStrategy[]).map((strategy) => (
-                    <option key={strategy} value={strategy}>
-                      {strategyLabels[strategy]}
-                    </option>
-                  ))}
+                  {(Object.keys(strategyLabels) as LeadRoutingStrategy[]).map(
+                    (strategy) => (
+                      <option key={strategy} value={strategy}>
+                        {strategyLabels[strategy]}
+                      </option>
+                    ),
+                  )}
                 </InfiniteSelectInput>
               </label>
             ) : (
-              <ReadOnlySetting label="Thuật toán" value={strategyLabels[policy.distributionStrategy]} />
-            )}
-            {canEdit ? (
-              <Toggle
-                label="Bắt buộc capacity trước khi nhận Lead"
-                checked={policy.capacityRequired}
-                disabled={isSaving}
-                onChange={(event) => updateMatching({ ...policy, capacityRequired: event.target.checked })}
-              />
-            ) : (
               <ReadOnlySetting
-                label="Capacity"
-                value={policy.capacityRequired ? "Bắt buộc trước khi nhận Lead" : "Không bắt buộc"}
+                label="Thuật toán"
+                value={strategyLabels[policy.distributionStrategy]}
               />
             )}
             <p className="text-xs text-text-tertiary">
-              Đang bật: {layers.filter((layer) => layer.enabled).map((layer) => layerLabels[layer.key]).join(" → ") || "Không có lớp nào"}
+              Đang bật:{" "}
+              {layers
+                .filter((layer) => layer.enabled)
+                .map((layer) => layerLabels[layer.key])
+                .join(" → ") || "Không có lớp nào"}
             </p>
           </div>
         </div>
@@ -379,14 +475,20 @@ export default function LeadAssignmentWorkflowStepPanel({
           <ReadOnlySetting label="Cách xử lý lại" value="Thủ công" />
           {canEdit ? (
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-input-label-text">Số lần xử lý lại tối đa</span>
+              <span className="text-xs font-medium text-input-label-text">
+                Số lần xử lý lại tối đa
+              </span>
               <Input
                 type="number"
                 min={0}
                 max={10}
-                value={String((settings as LeadAssignmentWorkflowReviewSettings).maxRetries)}
+                value={String(
+                  (settings as LeadAssignmentWorkflowReviewSettings).maxRetries,
+                )}
                 disabled={isSaving}
-                onChange={(event) => updateReview(Number(event.target.value) || 0)}
+                onChange={(event) =>
+                  updateReview(Number(event.target.value) || 0)
+                }
                 aria-label="Số lần xử lý lại tối đa"
                 className="h-10 w-full text-sm"
               />
@@ -398,7 +500,8 @@ export default function LeadAssignmentWorkflowStepPanel({
             />
           )}
           <p className="text-xs leading-5 text-text-tertiary">
-            Khi đạt giới hạn, hồ sơ vẫn được giữ trong lịch sử với lý do rõ ràng và không tự retry vô hạn.
+            Khi đạt giới hạn, hồ sơ vẫn được giữ trong lịch sử với lý do rõ ràng
+            và không tự retry vô hạn.
           </p>
         </div>
       )}
@@ -407,17 +510,26 @@ export default function LeadAssignmentWorkflowStepPanel({
         <div className="space-y-4">
           <LockedNotice />
           <div className="grid gap-3 sm:grid-cols-2">
-            <ReadOnlySetting label="Owner hiện có" value="Luôn được giữ nguyên" />
+            <ReadOnlySetting
+              label="Owner hiện có"
+              value="Luôn được giữ nguyên"
+            />
             <ReadOnlySetting label="Đối tượng nhận" value="Sale / CTV Sale" />
             <ReadOnlySetting label="Tạo Student" value="Không tạo tự động" />
-            <ReadOnlySetting label="Audit" value="Lưu Team, owner, tải và policy version" />
+            <ReadOnlySetting
+              label="Audit"
+              value="Lưu Team, owner, tải và policy version"
+            />
           </div>
         </div>
       )}
 
       {editable && (
         <div className="space-y-2 border-t border-card-border pt-4">
-          <label className="text-xs font-medium text-input-label-text" htmlFor={`workflow-reason-${step.id}`}>
+          <label
+            className="text-xs font-medium text-input-label-text"
+            htmlFor={`workflow-reason-${step.id}`}
+          >
             Lý do thay đổi
           </label>
           <TextArea
@@ -441,8 +553,14 @@ export default function LeadAssignmentWorkflowStepPanel({
       )}
 
       {!canEdit && (
-        <p className={cn("rounded-lg bg-badge-neutral-background px-3 py-2.5 text-xs leading-5 text-text-secondary", editable && "border-t border-card-border pt-4")}>
-          Bạn chỉ có quyền xem cấu hình workflow. Liên hệ quản trị hoặc Lead Sale có quyền vận hành để thay đổi.
+        <p
+          className={cn(
+            "rounded-lg bg-badge-neutral-background px-3 py-2.5 text-xs leading-5 text-text-secondary",
+            editable && "border-t border-card-border pt-4",
+          )}
+        >
+          Bạn chỉ có quyền xem cấu hình workflow. Liên hệ quản trị hoặc Lead
+          Sale có quyền vận hành để thay đổi.
         </p>
       )}
     </Card>

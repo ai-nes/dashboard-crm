@@ -2,6 +2,7 @@ import { NestApiError, nestRequest } from "../nest/nest-client";
 import { nestDirectorStudents } from "./students-nest";
 import { student360Data, studentListData } from "./data";
 import type {
+  StudentAdmissionProfile,
   DirectorStudentsActionSummary,
   DirectorStudentsMeta,
   DirectorStudentsParams,
@@ -854,6 +855,8 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
       ownerId: nullableText(student.ownerUserId),
       revision:
         typeof student.revision === "number" ? student.revision : undefined,
+      engagementRevision:
+        typeof student.revision === "number" ? student.revision : undefined,
       priority:
         qualityBucket === "Hot"
           ? "Cao"
@@ -865,6 +868,61 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
       lastUpdatedAt: modifiedAt,
       aspiration: nullableText(student.aspiration),
       aspirationId: nullableText(student.aspirationId),
+      profileDetails: {
+        personal: {
+          fullName: nullableText(student.fullName),
+          dateOfBirth: nullableText(student.dateOfBirth),
+          gender: nullableText(student.gender),
+          idNumber: nullableText(student.idNumber),
+          birthPlace: nullableText(student.birthPlace),
+          ethnicity: nullableText(student.ethnicity),
+          religion: nullableText(student.religion),
+          nationality: nullableText(student.nationality),
+          idIssuedDate: nullableText(student.idIssuedDate),
+          idIssuedPlace: nullableText(student.idIssuedPlace),
+          phone: nullableText(student.phone),
+          otherPhone: nullableText(student.otherPhone),
+          email: nullableText(student.email),
+          otherEmail: nullableText(student.otherEmail),
+          source: nullableText(student.source),
+          campaign: nullableText(student.campaign),
+          owner: nullableText(student.owner),
+          sourceLeadId: nullableText(student.sourceLeadId),
+          majorId: nullableText(student.majorId),
+          major: nullableText(student.major),
+          admissionYearId: nullableText(student.admissionYearId),
+          admissionYear: nullableText(student.admissionYear),
+          createdAt: nullableText(student.createdAt),
+          modifiedAt: nullableText(student.modifiedAt),
+          branchId: nullableText(student.campusId),
+          branch: nullableText(student.branch),
+          sourceLead: nullableText(student.sourceLeadId),
+        },
+        contact: {
+          name: nullableText(student.parentName),
+          phone: nullableText(student.parentPhone),
+          otherPhone: nullableText(student.parentOtherPhone),
+          email: nullableText(student.parentEmail),
+          bankName: nullableText(student.bankName),
+          accountNumber: nullableText(student.accountNumber),
+          accountHolder: nullableText(student.accountHolder),
+          fatherEmail: nullableText(student.fatherEmail),
+          fatherName: nullableText(student.fatherName),
+          fatherPhone: nullableText(student.fatherPhone),
+          fatherOccupation: nullableText(student.fatherOccupation),
+          motherName: nullableText(student.motherName),
+          motherPhone: nullableText(student.motherPhone),
+          motherEmail: nullableText(student.motherEmail),
+          motherOccupation: nullableText(student.motherOccupation),
+        },
+        address: {
+          province: nullableText(student.province),
+          provinceId: nullableText(student.provinceId),
+          ward: nullableText(student.ward),
+          wardId: nullableText(student.wardId),
+          fullAddress: nullableText(student.contactAddress),
+        },
+      },
     },
     readiness: [
       {
@@ -886,6 +944,9 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
       { label: "Cập nhật lần cuối", value: modifiedAt },
     ],
     academics: [],
+    admissionProfiles: Array.isArray(student.admissionProfiles)
+      ? (student.admissionProfiles as StudentAdmissionProfile[])
+      : [],
     family: parentName ? [{ label: "Người liên hệ", value: parentName }] : [],
     classification: {
       dimensions: [],
@@ -898,7 +959,7 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
       reviewedBy: "",
     },
     acquisition: {
-      firstTouch: source,
+      firstTouch: text(student.advertisingChannel) || source,
       sourceGroup: "Trực tuyến chủ động",
       campaign: text(student.campaign) || "—",
       capturedAt: text(student.createdAt) || modifiedAt,

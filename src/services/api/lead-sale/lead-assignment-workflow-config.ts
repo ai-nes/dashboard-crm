@@ -92,7 +92,6 @@ export type LeadAssignmentWorkflowMatchingUpdate = {
   groupLayerEnabled?: boolean;
   globalLayerEnabled?: boolean;
   distributionStrategy?: LeadRoutingStrategy;
-  capacityRequired?: boolean;
 };
 
 export type LeadAssignmentWorkflowStepUpdate = {

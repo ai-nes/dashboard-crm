@@ -94,6 +94,37 @@ describe("nestRequest", () => {
       code: "API_UNAVAILABLE",
     });
   });
+
+  it("preserves field validation details and the backend request id", async () => {
+    const details = [
+      {
+        field: "grade_12_gpa",
+        code: "too_big",
+        message: "Điểm TB lớp 12 phải là số từ 0 đến 10.",
+      },
+    ];
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        {
+          error: {
+            code: "INVALID_INPUT",
+            message: "The request is invalid.",
+            details,
+            requestId: "validation-request-1",
+          },
+        },
+        400,
+      ),
+    );
+    await expect(
+      nestRequest("/api/v1/students/1/high-school-score"),
+    ).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_INPUT",
+      details,
+      requestId: "validation-request-1",
+    });
+  });
 });
 
 describe("toServiceError", () => {

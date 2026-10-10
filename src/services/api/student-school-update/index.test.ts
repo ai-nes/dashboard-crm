@@ -134,7 +134,7 @@ describe("student and school update contract", () => {
     });
   });
 
-  it("omits an unresolved or incompatible study stage", async () => {
+  it("clears an incompatible study stage when the grade changes", async () => {
     mockRoutes({
       "GET /api/v1/students/STU-1": () => json({ data: studentDto() }),
       "PATCH /api/v1/students/STU-1": () =>
@@ -146,7 +146,11 @@ describe("student and school update contract", () => {
       study_stage: "grade_10",
     });
 
-    expect(sentBody(1)).toEqual({ expectedRevision: 4, currentGrade: "12" });
+    expect(sentBody(1)).toEqual({
+      expectedRevision: 4,
+      currentGrade: "12",
+      studyStage: null,
+    });
   });
 
   it("rejects an update without fields before calling the API", async () => {
@@ -227,6 +231,67 @@ describe("student high school score contract", () => {
       updateStudentHighSchoolScore("STU-1", {}),
     ).rejects.toMatchObject({ status: 400, code: "INVALID_FIELDS" });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reports every rejected score field and logs the request id", async () => {
+    const messages = [
+      ["grade_12_gpa", "Điểm TB lớp 12 phải là số từ 0 đến 10."],
+      [
+        "transcript_score",
+        "Điểm học bạ CRM tính (TB điểm) phải là số từ 0 đến 10.",
+      ],
+      ["encouragement_score", "Số điểm khuyến khích phải là số từ 0 đến 10."],
+      ["priority_score", "Điểm ưu tiên đối tượng phải là số từ 0 đến 10."],
+    ];
+    const details = messages.map(([field, message]) => ({
+      field,
+      code: "too_big",
+      message,
+    }));
+    mockRoutes({
+      "GET /api/v1/students/STU-1": () => json({ data: studentDto() }),
+      "PUT /api/v1/students/STU-1/high-school-score": () =>
+        json(
+          {
+            error: {
+              code: "INVALID_INPUT",
+              message: "The request is invalid.",
+              details,
+              requestId: "score-request-1",
+            },
+          },
+          400,
+        ),
+    });
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const error = await updateStudentHighSchoolScore("STU-1", {
+        grade_12_gpa: 12,
+        transcript_score: 12,
+        encouragement_score: 12,
+        priority_score: 12,
+      }).catch((failure: unknown) => failure);
+      expect(error).toBeInstanceOf(StudentSchoolUpdateApiError);
+      expect(error).toMatchObject({
+        status: 400,
+        code: "INVALID_INPUT",
+        details,
+        requestId: "score-request-1",
+      });
+      for (const [, message] of messages)
+        expect((error as Error).message).toContain(message);
+      expect(log).toHaveBeenCalledWith(
+        "[student-high-school-score:update]",
+        expect.objectContaining({
+          status: 400,
+          code: "INVALID_INPUT",
+          requestId: "score-request-1",
+          details,
+        }),
+      );
+    } finally {
+      log.mockRestore();
+    }
   });
 });
 

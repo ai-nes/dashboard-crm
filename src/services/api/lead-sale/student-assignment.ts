@@ -176,8 +176,8 @@ export type AssignmentCandidate = {
   id: string;
   displayName: string;
   activeStudents: number;
-  capacity: number;
-  remainingCapacity: number;
+  capacity: number | null;
+  remainingCapacity: number | null;
   matchScore: number;
   eligible: boolean;
   reasons: string[];
@@ -642,11 +642,18 @@ function normalizeDetail(value: unknown): AssignmentDetailResponse {
           candidate.activeStudents ?? candidate.active_students,
           `candidates[${index}].activeStudents`,
         ),
-        capacity: count(candidate.capacity, `candidates[${index}].capacity`),
-        remainingCapacity: count(
-          candidate.remainingCapacity ?? candidate.remaining_capacity,
-          `candidates[${index}].remainingCapacity`,
-        ),
+        capacity:
+          candidate.capacity == null
+            ? null
+            : count(candidate.capacity, `candidates[${index}].capacity`),
+        remainingCapacity:
+          candidate.remainingCapacity == null &&
+          candidate.remaining_capacity == null
+            ? null
+            : count(
+                candidate.remainingCapacity ?? candidate.remaining_capacity,
+                `candidates[${index}].remainingCapacity`,
+              ),
         matchScore: finiteNumber(
           candidate.matchScore ?? candidate.match_score,
           `candidates[${index}].matchScore`,

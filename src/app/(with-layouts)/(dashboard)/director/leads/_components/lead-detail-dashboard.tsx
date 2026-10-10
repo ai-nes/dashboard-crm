@@ -71,7 +71,9 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     !isAuthLoading &&
     canPerformStudentAction(permissions.lead, "delete", leadOwnership, user);
   const canAssignLead =
-    !isAuthLoading && hasCrmCapability(user, "student.routing.operate");
+    !isAuthLoading &&
+    permissions.lead.canAssign &&
+    hasCrmCapability(user, "student.routing.operate");
   const canRecordCall =
     !isAuthLoading && hasCrmCapability(user, "interaction.record");
   const isLeadAssigned =

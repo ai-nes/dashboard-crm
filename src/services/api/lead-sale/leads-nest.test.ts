@@ -24,11 +24,48 @@ describe("toNestLeadBody", () => {
     });
   });
 
-  it("accepts comma separated segments and ignores unknown fields", async () => {
+  it("accepts comma separated segments and persists source", async () => {
     const { toNestLeadBody } = await import("./leads-nest");
     expect(toNestLeadBody({ segments: "x, y", source: "Facebook" })).toEqual({
       segments: ["x", "y"],
+      sourceId: "Facebook",
     });
+  });
+
+  it("preserves explicit clears on update and leaves omitted fields untouched", async () => {
+    const { toNestLeadBody } = await import("./leads-nest");
+    expect(
+      toNestLeadBody(
+        {
+          email: null,
+          province: "",
+          source: null,
+          segments: null,
+          notes: "  ",
+        },
+        "update",
+      ),
+    ).toEqual({
+      email: null,
+      provinceId: null,
+      sourceId: null,
+      segments: [],
+      notes: null,
+    });
+  });
+
+  it("rejects fields and potential values it cannot persist", async () => {
+    const { toNestLeadBody } = await import("./leads-nest");
+    expect(() => toNestLeadBody({ unknown: "value" }, "update")).toThrow();
+    expect(() =>
+      toNestLeadBody({ conversion_potential: "invalid" }, "update"),
+    ).toThrow();
+    expect(() => toNestLeadBody({ notes: undefined }, "update")).toThrow();
+  });
+
+  it("rejects malformed segment arrays rather than silently dropping values", async () => {
+    const { toNestLeadBody } = await import("./leads-nest");
+    expect(() => toNestLeadBody({ segments: '["A", 12]' }, "update")).toThrow();
   });
 
   it("creates a lead timeline comment through Nest", async () => {

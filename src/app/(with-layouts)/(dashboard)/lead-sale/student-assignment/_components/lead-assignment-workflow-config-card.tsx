@@ -26,7 +26,10 @@ import type {
 } from "@/services/api/lead-sale";
 import { cn } from "@/utils/cn";
 import { workflowSteps } from "../../_shared/student-assignment/data";
-import { stepIcons, toneClasses } from "../../_shared/student-assignment/mappings";
+import {
+  stepIcons,
+  toneClasses,
+} from "../../_shared/student-assignment/mappings";
 import type { StepId } from "../../_shared/student-assignment/types";
 import LeadAssignmentWorkflowStepPanel from "./lead-assignment-workflow-step-panel";
 
@@ -53,7 +56,8 @@ function configMetric(snapshot: LeadAssignmentWorkflowStepSnapshot): string {
       const policy = settings.routingPolicy as {
         layers?: { enabled: boolean }[];
       };
-      const enabled = policy.layers?.filter((layer) => layer.enabled).length ?? 0;
+      const enabled =
+        policy.layers?.filter((layer) => layer.enabled).length ?? 0;
       return `${enabled} lớp phân tuyến · kéo để đổi ưu tiên`;
     }
     case "review":
@@ -89,15 +93,15 @@ export default function LeadAssignmentWorkflowConfigCard() {
   const activeSteps = draftSteps ?? serverSteps;
   const canEdit = Boolean(
     sourceResponse?.canManage &&
-      (hasCrmCapability(user, "system.configure") ||
-        hasCrmCapability(user, "student.routing.operate")),
+    (hasCrmCapability(user, "system.configure") ||
+      hasCrmCapability(user, "student.routing.operate")),
   );
   const selectedConfiguration = activeSteps?.[selectedStep];
   const selectedServerConfiguration = serverSteps?.[selectedStep];
   const isDirty = Boolean(
     selectedConfiguration &&
-      selectedServerConfiguration &&
-      !sameStep(selectedConfiguration, selectedServerConfiguration),
+    selectedServerConfiguration &&
+    !sameStep(selectedConfiguration, selectedServerConfiguration),
   );
   const selectedWorkflowStep = workflowSteps.find(
     (step) => step.id === selectedStep,
@@ -141,7 +145,6 @@ export default function LeadAssignmentWorkflowConfigCard() {
         layerOrder: string[];
         layers: { key: string; enabled: boolean }[];
         distributionStrategy: "least_load" | "round_robin";
-        capacityRequired: boolean;
       };
       requestSettings = {
         enabled: policy.enabled,
@@ -156,12 +159,12 @@ export default function LeadAssignmentWorkflowConfigCard() {
           policy.layers.find((layer) => layer.key === "global")?.enabled,
         ),
         distributionStrategy: policy.distributionStrategy,
-        capacityRequired: policy.capacityRequired,
       };
     } else if (selectedStep === "review") {
       requestSettings = { maxRetries: Number(settings.maxRetries) || 0 };
     } else {
-      requestSettings = settings as LeadAssignmentWorkflowStepUpdate["settings"];
+      requestSettings =
+        settings as LeadAssignmentWorkflowStepUpdate["settings"];
     }
 
     try {
@@ -207,7 +210,8 @@ export default function LeadAssignmentWorkflowConfigCard() {
   if (configQuery.isError && !sourceResponse) {
     return (
       <Card role="alert" className="text-sm text-badge-error-text">
-        Không thể tải cấu hình workflow phân công Lead: {configQuery.error.message}
+        Không thể tải cấu hình workflow phân công Lead:{" "}
+        {configQuery.error.message}
       </Card>
     );
   }
@@ -232,8 +236,8 @@ export default function LeadAssignmentWorkflowConfigCard() {
               <Badge color="gray">{sourceResponse.config.version}</Badge>
             </div>
             <CardDescription className="mt-1 max-w-3xl text-sm leading-6">
-              Chọn một bước để xem hoặc sửa. Cấu hình chỉ áp dụng cho quyết định mới;
-              Lead đã có người phụ trách không bị phân công lại.
+              Chọn một bước để xem hoặc sửa. Cấu hình chỉ áp dụng cho quyết định
+              mới; Lead đã có người phụ trách không bị phân công lại.
             </CardDescription>
           </div>
           {!canEdit && (
@@ -362,7 +366,9 @@ export default function LeadAssignmentWorkflowConfigCard() {
                         Sửa
                       </Button>
                     ) : (
-                      <span className="px-1 text-[11px] text-text-tertiary">Xem</span>
+                      <span className="px-1 text-[11px] text-text-tertiary">
+                        Xem
+                      </span>
                     )}
                   </div>
                 </div>

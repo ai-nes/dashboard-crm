@@ -1,12 +1,3 @@
-export interface CrmUserCapacity {
-  /** Max active Leads this Sale/CTV Sale may hold; null when not configured. */
-  limit: number | null;
-  active: number;
-  remaining: number | null;
-  /** False when this Sale/CTV Sale has never had a capacity period set — they cannot receive Leads until one is set. */
-  configured: boolean;
-}
-
 export interface CrmUser {
   name: string;
   email: string;
@@ -16,8 +7,6 @@ export interface CrmUser {
   role: string | null;
   crmRoleState: string | null;
   sessionUser: boolean;
-  /** Null when the user has no active CRM Staff record yet (never joined a Sales Team). */
-  capacity: CrmUserCapacity | null;
 }
 
 export interface ListCrmUsersResponse {
@@ -55,12 +44,6 @@ export interface UpdateCrmUserProfilePayload {
   user: string;
   fullName?: string;
   newPassword?: string;
-}
-
-export interface UpdateUserCapacityPayload {
-  user: string;
-  maxActiveStudents: number;
-  reason?: string;
 }
 
 export type UserRoleLogAction = "role_changed" | "removed";

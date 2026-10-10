@@ -422,7 +422,11 @@ function getStudentTabs(
       label: "Học tập và tuyển sinh",
       content: (
         <div className="space-y-6">
-          <StudentAdmissionInformationMockup data={data} />
+          <StudentAdmissionInformationMockup
+            canEdit={canUpdateStudent}
+            data={data}
+            studentId={analysisTargetId}
+          />
           <div
             className={
               showHighSchoolScore

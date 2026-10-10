@@ -3,7 +3,7 @@
  * shaped for the existing `normalizeLead*` helpers in `leads.ts`, so the UI
  * keeps its types and only the transport changes.
  */
-import { nestRequest } from "../nest/nest-client";
+import { nestRequest, NestApiError } from "../nest/nest-client";
 
 interface Envelope<T> {
   data: T;
@@ -34,7 +34,7 @@ const POTENTIAL_TO_API: Record<string, string> = {
   unknown: "unknown",
 };
 
-/** Snake_case lead fields -> Nest request body. Empty values are omitted. */
+/** Snake_case lead fields -> Nest request body. PATCH keeps explicit clears. */
 const FIELD_MAP: Record<string, string> = {
   student_name: "studentName",
   phone: "phone",
@@ -50,16 +50,25 @@ const FIELD_MAP: Record<string, string> = {
   advertising_channel: "advertisingChannel",
   notes: "notes",
   campaign: "campaignId",
+  source: "sourceId",
 };
 
 function parseSegments(value: string): string[] {
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(value);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((item): item is string => typeof item === "string");
-    }
+    parsed = JSON.parse(value);
   } catch {
     // Fall through to comma-separated text.
+  }
+  if (Array.isArray(parsed)) {
+    if (!parsed.every((item): item is string => typeof item === "string")) {
+      throw new NestApiError(
+        400,
+        "INVALID_FIELDS",
+        "Phân khúc Lead phải là danh sách chuỗi.",
+      );
+    }
+    return parsed;
   }
   return value
     .split(",")
@@ -69,19 +78,49 @@ function parseSegments(value: string): string[] {
 
 export function toNestLeadBody(
   fields: Record<string, string | null | undefined>,
+  mode: "create" | "update" = "create",
 ): Record<string, unknown> {
   const body: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fields)) {
-    if (value === null || value === undefined || value.trim() === "") continue;
+    if (value === undefined) continue;
+    const target =
+      key === "conversion_potential"
+        ? "conversionPotential"
+        : key === "segments"
+          ? "segments"
+          : FIELD_MAP[key];
+    if (!target || (mode === "update" && key === "campaign")) {
+      throw new NestApiError(
+        400,
+        "INVALID_FIELDS",
+        `Field Lead không hỗ trợ cập nhật: ${key}.`,
+      );
+    }
+    if (value === null || value.trim() === "") {
+      if (mode === "update") body[target] = key === "segments" ? [] : null;
+      continue;
+    }
     if (key === "conversion_potential") {
       const mapped = POTENTIAL_TO_API[value.trim().toLowerCase()];
-      if (mapped) body.conversionPotential = mapped;
+      if (!mapped)
+        throw new NestApiError(
+          400,
+          "INVALID_FIELDS",
+          "Tiềm năng chuyển đổi Lead không hợp lệ.",
+        );
+      body.conversionPotential = mapped;
     } else if (key === "segments") {
       body.segments = parseSegments(value);
     } else if (FIELD_MAP[key]) {
       body[FIELD_MAP[key]] = value.trim();
     }
   }
+  if (mode === "update" && Object.keys(body).length === 0)
+    throw new NestApiError(
+      400,
+      "INVALID_FIELDS",
+      "Cần ít nhất một field để cập nhật Lead.",
+    );
   return body;
 }
 
@@ -169,13 +208,14 @@ export async function nestUpdateLead(
   id: string,
   fields: Record<string, string | null | undefined>,
 ): Promise<unknown> {
+  const body = toNestLeadBody(fields, "update");
   const current = await nestRequest<Envelope<LeadRecord>>(
     `/api/v1/leads/${encodeURIComponent(id)}`,
   );
   await nestRequest(`/api/v1/leads/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: {
-      ...toNestLeadBody(fields),
+      ...body,
       expectedRevision: current.data.revision,
     },
   });

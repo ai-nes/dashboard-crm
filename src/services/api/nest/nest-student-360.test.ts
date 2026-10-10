@@ -47,6 +47,22 @@ describe("student 360 with the Nest backend", () => {
           admissionYear: "2026",
           currentGrade: "12",
           parentName: "Nguyen Minh",
+          dateOfBirth: "2008-02-03",
+          idNumber: "012345678901",
+          fatherEmail: "father@example.com",
+          bankName: "ACB",
+          majorId: "major-1",
+          campusId: "campus-1",
+          admissionYearId: "year-1",
+          contactAddress: "12 Street",
+          admissionProfiles: [
+            {
+              id: "profile-1",
+              application: "application-1",
+              admissionMethodCode: "THPT_SCORE",
+              requirements: [],
+            },
+          ],
           revision: 4,
           latestScore: "82",
           createdAt: "2026-10-01T00:00:00.000Z",
@@ -57,6 +73,27 @@ describe("student 360 with the Nest backend", () => {
 
     const { getStudent360 } = await import("../students");
     const result = await getStudent360("s1");
+    expect(result?.student.profileDetails).toMatchObject({
+      personal: {
+        dateOfBirth: "2008-02-03",
+        idNumber: "012345678901",
+        majorId: "major-1",
+        branchId: "campus-1",
+        admissionYearId: "year-1",
+      },
+      contact: {
+        name: "Nguyen Minh",
+        fatherEmail: "father@example.com",
+        bankName: "ACB",
+      },
+      address: { fullAddress: "12 Street" },
+    });
+    expect(result?.student.engagementRevision).toBe(4);
+    expect(result?.admissionProfiles?.[0]).toMatchObject({
+      id: "profile-1",
+      application: "application-1",
+      admissionMethodCode: "THPT_SCORE",
+    });
 
     expect(result).toMatchObject({
       student: {

@@ -1,7 +1,5 @@
 "use client";
 
-import { ArrowRight } from "@tailgrids/icons";
-
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { StudentAuditLog } from "@/services/api/student-audit";
 import { formatDateTime } from "@/utils/format-date";
@@ -10,16 +8,16 @@ import {
   formatStudentAuditRelativeTime,
   formatStudentAuditContent,
   formatStudentAuditSubject,
-  formatStudentAuditValue,
   getStudentAuditActor,
   getStudentAuditCategoryLabel,
   getStudentAuditDoctypeLabel,
   getStudentAuditSourceLabel,
   getStudentAuditStatus,
   getStudentAuditTone,
-  isStudentAuditFieldChange,
   StudentAuditMetadata,
 } from "./student-audit-event";
+import { getStudentAuditChanges } from "./student-audit-changes";
+import StudentAuditFieldChanges from "./student-audit-field-changes";
 
 interface StudentAuditItemProps {
   event: StudentAuditLog;
@@ -31,11 +29,19 @@ export default function StudentAuditItem({
   recordLabel = "hồ sơ học sinh",
 }: StudentAuditItemProps) {
   const actor = getStudentAuditActor(event);
-  const role = getStudentAuditActorRole(event);
   const tone = getStudentAuditTone(event);
   const status = getStudentAuditStatus(event);
   const categoryLabel = getStudentAuditCategoryLabel(event.category);
-  const isFieldChange = isStudentAuditFieldChange(event);
+  const changes = getStudentAuditChanges(event);
+  const target = event.subject || getStudentAuditDoctypeLabel(event.doctype);
+  const action =
+    event.action === "created"
+      ? "đã tạo"
+      : event.action === "deleted"
+        ? event.restored
+          ? "đã khôi phục"
+          : "đã xóa"
+        : "đã cập nhật";
   const fileUrl =
     typeof event.metadata?.file_url === "string"
       ? event.metadata.file_url
@@ -62,16 +68,11 @@ export default function StudentAuditItem({
         <span className={`size-2.5 rounded-full ${dotColorClass}`} />
       </span>
 
-      {/* Header: Actor, Role, Source & Timestamp */}
+      {/* Actor, action and timestamp */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-text-primary">
-            {actor}
-            {role ? (
-              <span className="ml-2 font-normal text-text-tertiary">
-                · {role}
-              </span>
-            ) : null}
+            {actor} <span className="font-normal">{action}</span> {target}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-tertiary">
             <span className="font-medium text-text-secondary">
@@ -91,52 +92,35 @@ export default function StudentAuditItem({
         </time>
       </div>
 
-      {/* Content Bubble Box */}
-      <div className="mt-3 w-full max-w-3xl rounded-xl border border-card-border/60 bg-background-gray-secondary/40 px-4 py-4 sm:px-5">
-        {isFieldChange ? (
-          <div className="space-y-2">
-            <p className="text-sm leading-6 text-text-primary">
-              Cập nhật trường{" "}
-              <span className="font-semibold text-text-primary">
-                {event.fieldLabel || "dữ liệu"}
-              </span>
-              :
-            </p>
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="rounded-lg border border-card-border/60 bg-card-background px-2.5 py-1 text-text-secondary line-through decoration-error-500/50">
-                {formatStudentAuditValue(event.oldValue)}
-              </span>
-              <ArrowRight size={13} className="shrink-0 text-text-tertiary" />
-              <span className="rounded-lg border border-success-500/30 bg-badge-success-background/40 px-2.5 py-1 font-semibold text-text-primary">
-                {formatStudentAuditValue(event.newValue)}
-              </span>
-            </div>
-          </div>
+      <div className="mt-3 w-full space-y-3">
+        {changes.length > 0 ? (
+          <StudentAuditFieldChanges changes={changes} action={event.action} />
         ) : (
           <div className="space-y-2">
             <p className="text-sm font-semibold leading-6 text-text-primary">
               {getAuditRecordTitle(event, recordLabel)}
             </p>
-            {subject && (
+            {subject && subject !== target && (
               <p className="text-xs font-medium text-text-primary">{subject}</p>
-            )}
-            {content && (
-              <p className="whitespace-pre-wrap break-words text-xs leading-5 text-text-secondary">
-                {content}
-              </p>
-            )}
-            {fileUrl && (
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex text-xs font-medium text-primary-600 underline-offset-2 hover:underline"
-              >
-                Mở tệp đính kèm
-              </a>
             )}
             <StudentAuditMetadata event={event} />
           </div>
+        )}
+        {content &&
+          !changes.some((change) => change.fieldname === "content") && (
+            <p className="whitespace-pre-wrap break-words text-xs leading-5 text-text-secondary">
+              {content}
+            </p>
+          )}
+        {fileUrl && (
+          <a
+            href={fileUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex text-xs font-medium text-primary-600 underline-offset-2 hover:underline"
+          >
+            Mở tệp đính kèm
+          </a>
         )}
       </div>
 
@@ -203,16 +187,4 @@ function getAuditRecordTitle(
   }
 
   return `Đã cập nhật thông tin ${recordLabel}.`;
-}
-
-function getStudentAuditActorRole(event: StudentAuditLog): string | null {
-  const actor = (event.ownerFullName || event.owner || "").toLowerCase();
-  if (actor.includes("admin")) return "Quản trị viên";
-  if (actor.includes("system")) return "Hệ thống";
-  if (actor.includes("trưởng nhóm") || actor.includes("tư vấn viên")) {
-    return null;
-  }
-  if (actor.includes("ctv")) return "CTV Sale";
-  if (actor.includes("sale")) return "Nhân viên Sale";
-  return "Tư vấn viên";
 }

@@ -40,6 +40,7 @@ import type {
   PermissionProfileRowScope,
   PermissionProfileViewMode,
 } from "@/services/api/user-management";
+import { permissionProfileUpdate } from "./permission-profile-update";
 
 const PERMISSION_COLUMNS: Array<{ key: PermissionFlag; label: string }> = [
   { key: "read", label: "Đọc" },
@@ -165,14 +166,7 @@ export default function UserPermissionPanel({
     setIsSaving(true);
 
     void updateMutation
-      .mutateAsync({
-        role: nextProfile.role,
-        rowScope: nextProfile.rowScope,
-        deleteRequiresOwnership: nextProfile.deleteRequiresOwnership,
-        applicableDoctypes: nextProfile.applicableDoctypes,
-        replaceApplicableDoctypes: false,
-        viewMode,
-      })
+      .mutateAsync(permissionProfileUpdate(activeDraft, nextProfile, viewMode))
       .then(() => {
         setIsSaving(false);
       })

@@ -33,7 +33,7 @@ import type {
   Student360Data,
   StudentAdmissionProfile,
 } from "@/services/api/students/types";
-import { studentsKeys } from "@/hooks/use-students-queries";
+import { refreshStudentAdmissionQueries } from "@/hooks/refresh-student-admission-queries";
 
 import StudentCardHeader from "./student-card-header";
 import { getSelectedAdmissionMethodCode } from "./student-admission-method";
@@ -42,6 +42,7 @@ import StudentProfileCardActions from "./student-profile-card-actions";
 interface StudentAdmissionInformationProps {
   data: Student360Data;
   canEdit?: boolean;
+  studentId?: string;
 }
 
 const preferenceOptions: EditableDetailOption[] = [
@@ -80,11 +81,18 @@ function sameSelection(left: string[], right: string[]): boolean {
 export default function StudentAdmissionInformationMockup({
   data,
   canEdit = true,
+  studentId,
 }: StudentAdmissionInformationProps) {
   const profile = latestProfile(data);
   const queryClient = useQueryClient();
   const canonicalStudent =
     data.student.studentId || data.student.id || data.student.code;
+  const refreshAdmission = () =>
+    refreshStudentAdmissionQueries(
+      queryClient,
+      canonicalStudent,
+      studentId || canonicalStudent,
+    );
   const [isEditing, setIsEditing] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState(
     getSelectedAdmissionMethodCode(data),
@@ -152,6 +160,7 @@ export default function StudentAdmissionInformationMockup({
   ].join("|");
 
   const createMutation = useMutation({
+    onSuccess: refreshAdmission,
     mutationFn: () => {
       if (!selectedMethod || !selectedTemplateRecord) {
         throw new Error(
@@ -177,6 +186,7 @@ export default function StudentAdmissionInformationMockup({
     },
   });
   const updateMutation = useMutation({
+    onSuccess: refreshAdmission,
     mutationFn: () => {
       if (!currentApplication || !selectedTemplateRecord) {
         throw new Error("Chưa xác định được hồ sơ xét tuyển cần cập nhật.");
@@ -228,9 +238,6 @@ export default function StudentAdmissionInformationMockup({
       } else {
         await createMutation.mutateAsync();
       }
-      await queryClient.invalidateQueries({
-        queryKey: studentsKeys.student360(canonicalStudent),
-      });
       setIsEditing(false);
       toast.success(
         hasExistingApplication

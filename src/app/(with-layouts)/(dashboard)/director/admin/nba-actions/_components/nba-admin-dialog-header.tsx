@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "@/utils/cn";
 
 import {
   DialogDescription,
@@ -7,6 +8,7 @@ import {
 } from "@/components/tailgrids/core/dialog";
 
 interface NbaAdminDialogHeaderProps {
+  className?: string;
   code: string;
   title: string;
   description: string;
@@ -16,6 +18,7 @@ interface NbaAdminDialogHeaderProps {
 }
 
 export default function NbaAdminDialogHeader({
+  className,
   code,
   title,
   description,
@@ -24,7 +27,12 @@ export default function NbaAdminDialogHeader({
   rightLabel,
 }: NbaAdminDialogHeaderProps) {
   return (
-    <DialogHeader className="gap-1.5 border-b border-card-border px-5 py-3.5 pr-12">
+    <DialogHeader
+      className={cn(
+        "gap-1.5 border-b border-card-border px-5 py-3.5 pr-12",
+        className,
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="font-mono text-[11px] font-semibold tracking-[0.06em] text-primary-500">
@@ -33,7 +41,10 @@ export default function NbaAdminDialogHeader({
           {status}
         </div>
         <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-text-tertiary">
-          <span className="size-1.5 rounded-full bg-primary-500" aria-hidden="true" />
+          <span
+            className="size-1.5 rounded-full bg-primary-500"
+            aria-hidden="true"
+          />
           {rightLabel ?? (canEdit ? "Có thể chỉnh sửa" : "Chỉ xem")}
         </span>
       </div>

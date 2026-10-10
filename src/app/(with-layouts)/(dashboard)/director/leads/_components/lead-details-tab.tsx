@@ -29,6 +29,15 @@ import LeadDetailSection from "./lead-detail-section";
 import { LeadDetailTags } from "./lead-detail-field";
 import LeadAssigneeField from "./lead-assignee-field";
 
+import {
+  getContactForm,
+  getAdmissionForm,
+  getSourceForm,
+  type ContactForm,
+  type AdmissionForm,
+  type SourceForm,
+} from "./lead-detail-form";
+
 type EditableLeadSection = "contact" | "admission" | "source";
 
 interface LeadDetailsTabProps {
@@ -36,31 +45,6 @@ interface LeadDetailsTabProps {
   leadId: string;
   canEdit?: boolean;
   canAssign?: boolean;
-}
-
-interface ContactForm {
-  student_name: string;
-  phone: string;
-  email: string;
-  other_email: string;
-  province: string;
-  ward: string;
-  high_school: string;
-}
-
-interface AdmissionForm {
-  major: string;
-  aspiration: string;
-  admission_year: string;
-  branch: string;
-  conversion_potential: string;
-}
-
-interface SourceForm {
-  source: string;
-  advertising_channel: string;
-  segments: string;
-  notes: string;
 }
 
 const emptyOption: EditableDetailOption = {
@@ -132,27 +116,49 @@ export default function LeadDetailsTab({
   const provinceOptions = toEditableOptions(
     provinceOptionsQuery.data?.options,
     contactForm.province,
+    contactForm.province === lead.provinceId ? lead.province : undefined,
   );
   const wardOptions = toEditableOptions(
     wardOptionsQuery.data?.options,
     contactForm.ward,
+    contactForm.ward === lead.wardId ? lead.ward : undefined,
   );
   const sourceOptions = toEditableOptions(
     sourceOptionsQuery.data?.options,
     sourceForm.source,
+    sourceForm.source === lead.sourceId ? lead.source : undefined,
   );
   const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
+  if (
+    admissionForm.major &&
+    !majorOptions.some((option) => option.id === admissionForm.major)
+  ) {
+    majorOptions.unshift({
+      id: admissionForm.major,
+      label:
+        admissionForm.major === lead.majorId
+          ? lead.interestedMajor
+          : admissionForm.major,
+    });
+  }
   const aspirationOptions = toEditableOptions(
     aspirationOptionsQuery.data?.options,
     admissionForm.aspiration,
+    admissionForm.aspiration === lead.aspirationId
+      ? lead.fptAspiration
+      : undefined,
   );
   const admissionYearOptions = toEditableOptions(
     admissionYearOptionsQuery.data?.options,
     admissionForm.admission_year,
+    admissionForm.admission_year === lead.admissionYearId && lead.enrollmentYear
+      ? String(lead.enrollmentYear)
+      : undefined,
   );
   const branchOptions = toEditableOptions(
     branchOptionsQuery.data?.options,
     admissionForm.branch,
+    admissionForm.branch === lead.campusId ? lead.branch : undefined,
   );
 
   const startEditing = (section: EditableLeadSection) => {
@@ -349,7 +355,11 @@ export default function LeadDetailsTab({
           />
           <EditableDetailField
             isEditing={contactEditing}
-            isDisabled={wardOptionsQuery.isLoading || wardOptions.length === 0}
+            isDisabled={
+              !contactForm.province ||
+              wardOptionsQuery.isLoading ||
+              wardOptions.length === 0
+            }
             label="Xã / phường"
             onChange={(value) =>
               setContactForm((form) => ({ ...form, ward: value }))
@@ -366,6 +376,11 @@ export default function LeadDetailsTab({
             </dt>
             {contactEditing ? (
               <SchoolCombobox
+                selectedSchoolLabel={
+                  contactForm.high_school === lead.highSchoolId
+                    ? lead.school
+                    : undefined
+                }
                 ariaLabel="Chọn trường THPT của Lead"
                 isDisabled={!contactForm.province}
                 province={contactForm.province}
@@ -588,55 +603,15 @@ export default function LeadDetailsTab({
   );
 }
 
-function getContactForm(lead: LeadDetail): ContactForm {
-  return {
-    student_name: lead.name || "",
-    phone: lead.phone || "",
-    email: lead.email || "",
-    other_email: lead.secondaryEmail || "",
-    province: lead.province || "",
-    ward: lead.ward || "",
-    high_school: lead.school || "",
-  };
-}
-
-function getAdmissionForm(lead: LeadDetail): AdmissionForm {
-  return {
-    major: lead.interestedMajor || "",
-    aspiration: lead.fptAspiration || "",
-    admission_year: lead.enrollmentYear ? String(lead.enrollmentYear) : "",
-    branch: lead.branch || "",
-    conversion_potential: toConversionPotentialCode(lead.conversionPotential),
-  };
-}
-
-function getSourceForm(lead: LeadDetail): SourceForm {
-  return {
-    source: lead.source || "",
-    advertising_channel: lead.adChannel || "",
-    segments: lead.segments.join(", "),
-    notes: lead.description || "",
-  };
-}
-
-function toConversionPotentialCode(
-  value: LeadDetail["conversionPotential"],
-): string {
-  if (value === "Cao") return "High";
-  if (value === "Trung bình") return "Medium";
-  if (value === "Thấp") return "Low";
-  if (value === "Chưa xác định") return "Unknown";
-  return "";
-}
-
 function toEditableOptions(
   options: Array<{ value: string; label: string }> | undefined,
   currentValue: string,
+  currentLabel?: string,
 ): EditableDetailOption[] {
   const mapped =
     options?.map(({ value, label }) => ({ id: value, label })) ?? [];
   if (currentValue && !mapped.some((option) => option.id === currentValue)) {
-    mapped.unshift({ id: currentValue, label: currentValue });
+    mapped.unshift({ id: currentValue, label: currentLabel || currentValue });
   }
   return [emptyOption, ...mapped];
 }

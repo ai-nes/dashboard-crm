@@ -34,7 +34,7 @@ describe("user management with the Nest backend", () => {
     vi.unstubAllGlobals();
   });
 
-  it("maps the paginated user directory and capacity snapshots", async () => {
+  it("maps the user directory without fetching retired capacity", async () => {
     fetchMock.mockImplementation((url: string) => {
       if (url.includes("/api/v1/users?")) {
         return json({
@@ -50,13 +50,6 @@ describe("user management with the Nest backend", () => {
             },
           ],
           meta: { pagination: { page: 2, pageSize: 8, total: 9 } },
-        });
-      }
-      if (url.endsWith("/api/v1/staff-capacity")) {
-        return json({
-          data: {
-            u1: { limit: 5, active: 2, remaining: 3, configured: true },
-          },
         });
       }
       if (url.endsWith("/api/v1/me")) {
@@ -91,7 +84,6 @@ describe("user management with the Nest backend", () => {
           full_name: "Sale One",
           role: "Sale",
           session_user: true,
-          capacity: { limit: 5, active: 2, remaining: 3, configured: true },
         },
       ],
     });
@@ -99,9 +91,14 @@ describe("user management with the Nest backend", () => {
       "http://api.test/api/v1/users?page=2&pageSize=8&search=sale&crmProfile=sales",
       expect.anything(),
     );
+    expect(
+      fetchMock.mock.calls.some(([url]) =>
+        String(url).includes("staff-capacity"),
+      ),
+    ).toBe(false);
   });
 
-  it("maps profile mutations, account provisioning, and capacity updates", async () => {
+  it("maps profile mutations and account provisioning", async () => {
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       if (url.endsWith("/api/v1/users/u1/crm-profile"))
         return json({ data: {} });
@@ -122,11 +119,6 @@ describe("user management with the Nest backend", () => {
       }
       if (url.endsWith("/api/v1/users/u2/crm-profile"))
         return json({ data: {} });
-      if (url.endsWith("/api/v1/staff-capacity/u1")) {
-        return json({
-          data: { limit: 8, active: 1, remaining: 7, configured: true },
-        });
-      }
       throw new Error(`Unexpected ${init?.method ?? "GET"} ${url}`);
     });
 
@@ -145,18 +137,6 @@ describe("user management with the Nest backend", () => {
         role: "Sale",
       },
     );
-    const capacity = await call(
-      "crm.api.assignment_control.upsert_user_capacity",
-      {},
-      { user: "u1", max_active_students: 8 },
-    );
-
-    expect(capacity).toEqual({
-      limit: 8,
-      active: 1,
-      remaining: 7,
-      configured: true,
-    });
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
       "http://api.test/api/v1/users/u1/crm-profile",
     );

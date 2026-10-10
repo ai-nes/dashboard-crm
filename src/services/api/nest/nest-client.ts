@@ -31,11 +31,19 @@ export const FEATURE_NOT_MIGRATED_CODE = "FEATURE_NOT_MIGRATED";
 export const FEATURE_NOT_MIGRATED_MESSAGE =
   "Tính năng này đang được chuyển sang hệ thống mới nên chưa khả dụng.";
 
+export interface NestValidationIssue {
+  field: string;
+  code: string;
+  message: string;
+}
+
 export class NestApiError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
     message: string,
+    readonly details: NestValidationIssue[] = [],
+    readonly requestId?: string,
   ) {
     super(message);
     this.name = "NestApiError";
@@ -94,14 +102,42 @@ function buildUrl(path: string, query: NestRequestOptions["query"]): string {
 function errorFrom(status: number, payload: unknown): NestApiError {
   const error =
     payload && typeof payload === "object" && "error" in payload
-      ? (payload as { error?: { code?: unknown; message?: unknown } }).error
+      ? (
+          payload as {
+            error?: {
+              code?: unknown;
+              message?: unknown;
+              details?: unknown;
+              requestId?: unknown;
+            };
+          }
+        ).error
       : undefined;
   const code = typeof error?.code === "string" ? error.code : `HTTP_${status}`;
   const message =
     typeof error?.message === "string"
       ? error.message
       : "Không thể xử lý yêu cầu.";
-  return new NestApiError(status, code, message);
+  const details = Array.isArray(error?.details)
+    ? error.details
+        .filter((issue): issue is NestValidationIssue =>
+          Boolean(
+            issue &&
+            typeof issue === "object" &&
+            typeof issue.field === "string" &&
+            typeof issue.code === "string" &&
+            typeof issue.message === "string",
+          ),
+        )
+        .map(({ field, code, message }) => ({ field, code, message }))
+    : [];
+  return new NestApiError(
+    status,
+    code,
+    message,
+    details,
+    typeof error?.requestId === "string" ? error.requestId : undefined,
+  );
 }
 
 /** JSON request to the Nest API. Resolves with the parsed body (null for 204). */

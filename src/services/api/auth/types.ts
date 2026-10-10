@@ -21,6 +21,7 @@ export interface CurrentUser {
 }
 
 export interface CurrentUserDocTypePermission {
+  delete_requires_ownership?: boolean;
   row_scope?: string | null;
   read: boolean;
   write: boolean;

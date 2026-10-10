@@ -21,7 +21,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data, isPending, refetch } = useQuery({
     queryKey: AUTH_QUERY_KEY,
     queryFn: getCurrentUser,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchInterval: 30_000,
     retry: false,
   });
 

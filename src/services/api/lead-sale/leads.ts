@@ -1,4 +1,4 @@
-import { NestApiError } from "../nest/nest-client";
+import { NestApiError, type NestValidationIssue } from "../nest/nest-client";
 import {
   nestAssignLead,
   nestAssignmentTargets,
@@ -79,6 +79,14 @@ export type ConversionPotential =
 export type FptAspiration = string;
 
 export interface LeadDetail extends LeadListItem {
+  provinceId?: string | null;
+  wardId?: string | null;
+  highSchoolId?: string | null;
+  majorId?: string | null;
+  aspirationId?: string | null;
+  admissionYearId?: string | null;
+  campusId?: string | null;
+  sourceId?: string | null;
   lifecycleStatus?: string | null;
   lifecycleStatusCode?: string | null;
   email: string;
@@ -412,6 +420,8 @@ export class LeadApiError extends Error {
     public status: number,
     public code: string,
     message: string,
+    public details: NestValidationIssue[] = [],
+    public requestId?: string,
   ) {
     super(message);
     this.name = "LeadApiError";
@@ -425,13 +435,31 @@ export class LeadApiError extends Error {
 async function viaNest<T>(
   call: () => Promise<unknown>,
   normalize: (payload: unknown) => T,
+  operation?: "create" | "update",
 ): Promise<T> {
   let payload: unknown;
   try {
     payload = await call();
   } catch (error) {
     if (error instanceof NestApiError) {
-      throw new LeadApiError(error.status, error.code, error.message);
+      const message = error.details.length
+        ? `${error.message}\n${error.details.map((issue) => `${issue.field}: ${issue.message}`).join("\n")}`
+        : error.message;
+      if (operation)
+        console.error(`[lead:${operation}]`, {
+          status: error.status,
+          code: error.code,
+          requestId: error.requestId,
+          details: error.details,
+          message,
+        });
+      throw new LeadApiError(
+        error.status,
+        error.code,
+        message,
+        error.details,
+        error.requestId,
+      );
     }
     throw error;
   }
@@ -859,6 +887,14 @@ function normalizeDetail(value: unknown): LeadDetail {
 
   return {
     ...normalizeListItem(row),
+    provinceId: nullableText(row.provinceId),
+    wardId: nullableText(row.wardId),
+    highSchoolId: nullableText(row.highSchoolId),
+    majorId: nullableText(row.majorId),
+    aspirationId: nullableText(row.aspirationId),
+    admissionYearId: nullableText(row.admissionYearId),
+    campusId: nullableText(row.campusId),
+    sourceId: nullableText(row.sourceId),
     lifecycleStatus:
       firstText([
         row.lifecycleStatus,
@@ -1213,7 +1249,7 @@ export async function createLead(
       "Họ và tên Lead không được để trống.",
     );
   }
-  return viaNest(() => nestCreateLead(fields), normalizeLeadDetail);
+  return viaNest(() => nestCreateLead(fields), normalizeLeadDetail, "create");
 }
 
 export async function inspectLeadImport(
@@ -1316,6 +1352,7 @@ export async function updateLead(
   return viaNest(
     () => nestUpdateLead(normalizedLeadId, fields),
     normalizeLeadDetail,
+    "update",
   );
 }
 

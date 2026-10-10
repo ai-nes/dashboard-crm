@@ -1,4 +1,8 @@
-import { NestApiError, nestRequest } from "../nest/nest-client";
+import {
+  NestApiError,
+  nestRequest,
+  type NestValidationIssue,
+} from "../nest/nest-client";
 import { NOT_HANDLED, type Body, type Params } from "../nest/nest-handler";
 import { nestFieldOptions, nestSchools } from "../nest/nest-directory";
 import { nestStudentSchoolHandler } from "../nest/nest-student-school-router";
@@ -268,6 +272,8 @@ export class StudentSchoolUpdateApiError extends Error {
     public status: number,
     public code: string,
     message: string,
+    readonly details: NestValidationIssue[] = [],
+    readonly requestId?: string,
   ) {
     super(message);
     this.name = "StudentSchoolUpdateApiError";
@@ -277,7 +283,7 @@ export class StudentSchoolUpdateApiError extends Error {
 /**
  * Keeps the CRUD payload aligned with CRM Student's grade/study-stage contract.
  * The backend deliberately does not infer study_stage, so the client must
- * remove an unknown or incompatible stage instead of sending a wrong value.
+ * clear an unknown or incompatible stage instead of retaining an old value.
  */
 export function normalizeStudentFields<TFields extends StudentUpdateFields>(
   fields: TFields,
@@ -293,6 +299,11 @@ export function normalizeStudentFields<TFields extends StudentUpdateFields>(
     );
     if (normalizedStage) {
       normalizedFields.study_stage = normalizedStage;
+    } else if (
+      normalizedFields.study_stage === null ||
+      normalizedFields.study_stage === ""
+    ) {
+      normalizedFields.study_stage = null;
     } else {
       delete normalizedFields.study_stage;
     }
@@ -315,7 +326,7 @@ export function normalizeStudentFields<TFields extends StudentUpdateFields>(
     if (studyStage) {
       normalizedFields.study_stage = studyStage;
     } else {
-      delete normalizedFields.study_stage;
+      normalizedFields.study_stage = null;
     }
   }
 
@@ -335,6 +346,8 @@ async function viaNest<T>(call: () => Promise<T>): Promise<T> {
         error.status,
         error.code,
         error.message,
+        error.details,
+        error.requestId,
       );
     }
     throw error;
@@ -451,6 +464,22 @@ export async function updateStudentHighSchoolScore(
       },
     );
     return result.data;
+  }).catch((error: unknown) => {
+    if (error instanceof StudentSchoolUpdateApiError) {
+      if (error.code === "INVALID_INPUT" && error.details.length) {
+        error.message = error.details
+          .map((issue) => `${issue.field}: ${issue.message}`)
+          .join("\n");
+      }
+      console.error("[student-high-school-score:update]", {
+        status: error.status,
+        code: error.code,
+        requestId: error.requestId,
+        details: error.details,
+        message: error.message,
+      });
+    }
+    throw error;
   });
 }
 

@@ -38,7 +38,6 @@ export interface UpdateLeadRoutingPolicyRequest {
   groupLayerEnabled: boolean;
   globalLayerEnabled: boolean;
   distributionStrategy: LeadRoutingStrategy;
-  capacityRequired: boolean;
   reason: string;
 }
 
@@ -116,7 +115,7 @@ export function normalizeLeadRoutingPolicy(value: unknown): LeadRoutingPolicy {
     layers,
     layerOrder,
     distributionStrategy: strategy,
-    capacityRequired: boolean(source.capacityRequired, true),
+    capacityRequired: false,
     revision: integer(source.revision),
     version: text(source.version, "lead-routing-v0"),
     applyScope: "new_decisions",
@@ -177,7 +176,6 @@ export async function updateLeadRoutingPolicy(
       groupLayerEnabled: request.groupLayerEnabled,
       globalLayerEnabled: request.globalLayerEnabled,
       distributionStrategy: request.distributionStrategy,
-      capacityRequired: request.capacityRequired,
       reason: request.reason,
     }),
   );

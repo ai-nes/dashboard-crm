@@ -37,7 +37,6 @@ import {
   assignmentActionCategory,
   assignmentActionLinks,
   assignmentReasonLabel,
-  extractUnconfiguredStaffEntries,
   itemStatusColors,
   itemStatusLabels,
 } from "./batch-assignment-mappings";
@@ -106,24 +105,18 @@ export default function AssignmentHistoryItemDrawer({
   // earlier manual_review reason), while `item.status` reflects the Lead's
   // live, current outcome; once assigned, the old reason is no longer relevant.
   const isAssigned = item.status === "assigned";
-  // What actually fixes this failure — a Team/capacity problem is never
+  // What actually fixes this failure — a Team problem is never
   // resolved by editing the Lead's own phone/province/school, so the drawer
   // must not show that form (or imply it's the fix) for those categories.
   const actionCategory = assignmentActionCategory(item);
   const actionLink =
-    actionCategory === "team-config" || actionCategory === "staff-capacity"
+    actionCategory === "team-config"
       ? assignmentActionLinks[actionCategory]
       : null;
-  // Quản lý người dùng is Admin/System Manager-only — a Sale/CTV Sale viewer
-  // can never open it, so a clickable link would be a dead end. Point them
-  // at an Admin instead of a route their own role can't reach.
+  // Show settings links only to roles that can open the destination.
   const canOpenActionLink = Boolean(
     actionLink && canAccessDashboardPath(actionLink.href, user?.roles),
   );
-  const unconfiguredStaff =
-    actionCategory === "staff-capacity"
-      ? extractUnconfiguredStaffEntries(item.reason)
-      : [];
   const isLiveReview = !item.batchId;
   const isDirty =
     phone !== (item.phone ?? "") ||
@@ -215,23 +208,9 @@ export default function AssignmentHistoryItemDrawer({
             <InfoTriangle size={17} aria-hidden="true" />
             {isClosed ? "Lý do hồ sơ đã bị loại" : "Lý do chưa phân công được"}
           </p>
-          {unconfiguredStaff.length > 0 ? (
-            <>
-              <p className="mt-2 text-sm leading-6">Chưa thiết lập capacity:</p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm leading-6">
-                {unconfiguredStaff.map((entry) => (
-                  <li key={`${entry.name}-${entry.team}`}>
-                    <span className="font-semibold">{entry.name}</span> —{" "}
-                    {entry.team}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <p className="mt-2 text-sm leading-6">
-              {assignmentReasonLabel(item)}
-            </p>
-          )}
+          <p className="mt-2 text-sm leading-6">
+            {assignmentReasonLabel(item)}
+          </p>
           {!isClosed && actionLink && (
             <p className="mt-2 text-sm leading-6">
               {canOpenActionLink ? (

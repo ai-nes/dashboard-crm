@@ -83,7 +83,6 @@ describe("Lead routing policy API contract", () => {
       groupLayerEnabled: true,
       globalLayerEnabled: true,
       distributionStrategy: "round_robin",
-      capacityRequired: false,
       reason: "Mở chia đều campus",
     });
 
@@ -97,7 +96,6 @@ describe("Lead routing policy API contract", () => {
       groupLayerEnabled: true,
       globalLayerEnabled: true,
       distributionStrategy: "round_robin",
-      capacityRequired: false,
       reason: "Mở chia đều campus",
     });
   });

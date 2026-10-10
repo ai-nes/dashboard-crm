@@ -37,7 +37,6 @@ interface LeadListToolbarProps {
   campaign: string;
   campaigns: LeadSaleCampaign[];
   campaignLoading: boolean;
-  campaignError?: string;
   resultCount: number;
   onQueryChange: (value: string) => void;
   onStatusChange: (value: LeadStageStatus | "all") => void;
@@ -55,7 +54,6 @@ export default function LeadListToolbar({
   campaign,
   campaigns,
   campaignLoading,
-  campaignError,
   resultCount,
   onQueryChange,
   onStatusChange,
@@ -189,11 +187,6 @@ export default function LeadListToolbar({
         isLoading={campaignLoading}
         onChange={onCampaignChange}
       />
-      {campaignError ? (
-        <p className="text-xs text-error-600" role="status">
-          Không thể tải danh sách campaign để lọc.
-        </p>
-      ) : null}
     </div>
   );
 }

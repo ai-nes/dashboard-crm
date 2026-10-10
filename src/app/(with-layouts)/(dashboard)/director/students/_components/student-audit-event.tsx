@@ -17,6 +17,7 @@ export function getStudentAuditSourceLabel(source?: string | null): string {
     case "document":
       return "Hồ sơ học sinh";
     case "version":
+    case "student audit event":
       return "Lịch sử cập nhật";
     case "deleted document":
       return "Hồ sơ đã xóa";
@@ -58,6 +59,18 @@ export function getStudentAuditSourceLabel(source?: string | null): string {
 }
 
 export function getStudentAuditDoctypeLabel(doctype?: string | null): string {
+  const labels: Record<string, string> = {
+    "CRM Student Admission Profile": "Hồ sơ xét tuyển",
+    "CRM Student Academic Result": "Kết quả học tập",
+    "CRM Student Language Certificate": "Chứng chỉ ngoại ngữ",
+    "CRM Admission Application": "Đăng ký xét tuyển",
+    "CRM Student Document": "Giấy tờ xét tuyển",
+    "CRM Note": "Ghi chú",
+    "CRM Task": "Công việc",
+    File: "Tệp đính kèm",
+    "CRM Interaction": "Tương tác",
+  };
+  if (doctype && labels[doctype]) return labels[doctype];
   if (doctype === "CRM Segment") return "Segment";
   return doctype === "CRM Lead" || doctype === "CRM Student"
     ? "Hồ sơ học sinh"
@@ -579,6 +592,9 @@ export function StudentAuditMetadata({ event }: { event: StudentAuditLog }) {
 
   const entries = Object.entries(event.metadata).filter(
     ([key, value]) =>
+      !["before", "after", "changes", "fieldLabels", "valueLabels"].includes(
+        key,
+      ) &&
       !isStudentAuditIdentifierKey(key) &&
       value !== null &&
       value !== undefined &&

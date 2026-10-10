@@ -16,7 +16,6 @@ import type {
   ListUserRoleLogsResponse,
   RemoveUserPayload,
   UpdateCrmUserProfilePayload,
-  UpdateUserCapacityPayload,
   UpdatePermissionProfilePayload,
   UpdateUserRolePayload,
 } from "./types";
@@ -36,12 +35,7 @@ const METHODS = {
     "crm.api.permission_profile.update_permission_profile",
   CREATE_USER: "crm.api.user.create_crm_user",
   UPDATE_PROFILE: "crm.api.user.update_crm_user_profile",
-  LIST_USER_CAPACITY: "crm.api.assignment_control.list_user_capacity",
-  UPDATE_USER_CAPACITY: "crm.api.assignment_control.upsert_user_capacity",
 } as const;
-
-const DEFAULT_CAPACITY_UPDATE_REASON =
-  "Cập nhật capacity từ trang Quản lý người dùng CRM.";
 
 export class UserManagementApiError extends Error {
   constructor(
@@ -62,7 +56,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-/** Runs one user-management operation against the Nest users, profiles and capacity resources. */
+/** Runs one user-management operation against the Nest users and profiles resources. */
 async function call<T>(
   method: string,
   query: Query = {},
@@ -99,35 +93,17 @@ export async function listCrmUsers(
   const listMethod = hasServerParams
     ? METHODS.LIST_USERS
     : METHODS.LEGACY_LIST_USERS;
-  const [raw, capacitySettled] = await Promise.all([
-    call<unknown>(
-      listMethod,
-      hasServerParams
-        ? {
-            search: params.search?.trim(),
-            role:
-              params.role && params.role !== "all" ? params.role : undefined,
-            start: params.start ?? 0,
-            page_length: params.pageLength ?? 20,
-          }
-        : {},
-    ),
-    // Capacity requires system.configure; a non-admin viewer of this page must
-    // still see the user list, just without capacity data. A real failure
-    // (not that expected permission gap) still shouldn't take down the whole
-    // user list, but it must not look identical to "you're not an admin" —
-    // log it so it doesn't disappear silently for a caller who does qualify.
-    call<unknown>(METHODS.LIST_USER_CAPACITY).catch((error: unknown) => {
-      const isPermissionDenied =
-        error instanceof UserManagementApiError &&
-        (error.status === 403 || /permission/i.test(error.code));
-      if (!isPermissionDenied) {
-        console.error("Không tải được dữ liệu capacity người dùng.", error);
-      }
-      return null;
-    }),
-  ]);
-  const capacityByUser = asRecord(capacitySettled) ?? {};
+  const raw = await call<unknown>(
+    listMethod,
+    hasServerParams
+      ? {
+          search: params.search?.trim(),
+          role: params.role && params.role !== "all" ? params.role : undefined,
+          start: params.start ?? 0,
+          page_length: params.pageLength ?? 20,
+        }
+      : {},
+  );
   const payload = asRecord(raw);
   const legacyUsers = Array.isArray(raw) ? raw : [];
   const pageUsers = Array.isArray(payload?.users)
@@ -135,7 +111,7 @@ export async function listCrmUsers(
     : (legacyUsers[1] ?? legacyUsers[0] ?? []);
   const normalizeUserList = (value: unknown) =>
     (Array.isArray(value) ? value : []).flatMap(
-      (user: unknown) => normalizeCrmUser(user, capacityByUser) ?? [],
+      (user: unknown) => normalizeCrmUser(user) ?? [],
     );
   const normalizedAllUsers = Array.isArray(raw)
     ? normalizeUserList(legacyUsers[0])
@@ -205,20 +181,6 @@ export async function updateCrmUserProfile(
       user: payload.user,
       full_name: payload.fullName,
       new_password: payload.newPassword,
-    },
-  );
-}
-
-export async function updateUserCapacity(
-  payload: UpdateUserCapacityPayload,
-): Promise<void> {
-  await call(
-    METHODS.UPDATE_USER_CAPACITY,
-    {},
-    {
-      user: payload.user,
-      max_active_students: payload.maxActiveStudents,
-      reason: payload.reason?.trim() || DEFAULT_CAPACITY_UPDATE_REASON,
     },
   );
 }

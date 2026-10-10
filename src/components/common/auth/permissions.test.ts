@@ -22,7 +22,9 @@ const makeUser = (overrides: Partial<CurrentUser> = {}): CurrentUser => ({
 });
 
 const makeDoctypePermission = (
-  overrides: Partial<NonNullable<CurrentUser["crm_doctype_permissions"]>[string]> = {},
+  overrides: Partial<
+    NonNullable<CurrentUser["crm_doctype_permissions"]>[string]
+  > = {},
 ) => ({
   row_scope: "assigned",
   read: true,
@@ -56,6 +58,49 @@ describe("CRM Rule administration permissions", () => {
 });
 
 describe("CRM sales permissions", () => {
+  it("hides mutations when Lead read access is denied", () => {
+    const permissions = getCrmPermissions(
+      makeUser({
+        crm_capabilities: ["student.ownership.manage"],
+        crm_doctype_permissions: {
+          "CRM Lead": makeDoctypePermission({ read: false }),
+        },
+      }),
+    ).lead;
+    expect(permissions).toMatchObject({
+      canCreate: false,
+      canUpdate: false,
+      canDelete: false,
+      canAssign: false,
+    });
+  });
+  it("requires ownership to delete even when the configured row scope is all", () => {
+    const user = makeUser({
+      crm_doctype_permissions: {
+        "CRM Lead": {
+          ...makeDoctypePermission({ row_scope: "all" }),
+          delete_requires_ownership: true,
+        },
+      },
+    });
+    const permissions = getCrmPermissions(user).lead;
+    expect(
+      canPerformStudentAction(
+        permissions,
+        "delete",
+        { owner: "other@example.com" },
+        user,
+      ),
+    ).toBe(false);
+    expect(
+      canPerformStudentAction(
+        permissions,
+        "delete",
+        { owner: user.email },
+        user,
+      ),
+    ).toBe(true);
+  });
   it("gives Lead Sale CRUD on every student", () => {
     const permissions = getCrmPermissions(
       makeUser({
@@ -84,10 +129,7 @@ describe("CRM sales permissions", () => {
       email: "sale@example.com",
       full_name: "Nguyễn Văn Sale",
       roles: ["Sale"],
-      crm_capabilities: [
-        "student.ownership.manage",
-        "student.routing.read",
-      ],
+      crm_capabilities: ["student.ownership.manage", "student.routing.read"],
       crm_doctype_permissions: {
         "CRM Lead": makeDoctypePermission({ delete: false }),
         "CRM Student": makeDoctypePermission({ delete: false }),

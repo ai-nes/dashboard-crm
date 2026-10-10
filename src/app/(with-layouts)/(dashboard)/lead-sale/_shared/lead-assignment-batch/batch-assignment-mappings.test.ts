@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   assignmentActionCategory,
   assignmentReasonLabel,
-  extractUnconfiguredStaffEntries,
 } from "./batch-assignment-mappings";
 import type { LeadAssignmentBatchItem } from "@/services/api/lead-sale";
 
@@ -105,9 +104,8 @@ describe("assignmentReasonLabel", () => {
 
     const label = assignmentReasonLabel(item);
 
-    expect(label).toContain("đã đạt giới hạn nhận Lead");
-    expect(label).toContain("Quản lý người dùng");
-    expect(label).toContain("tăng capacity");
+    expect(label).toContain("hạn mức cũ đã được bỏ");
+    expect(label).not.toContain("Quản lý người dùng");
   });
 
   it("tells a non-technical operator to set up capacity when a Sale/CTV has none configured", () => {
@@ -125,10 +123,8 @@ describe("assignmentReasonLabel", () => {
 
     const label = assignmentReasonLabel(item);
 
-    expect(label).toContain("chưa ai được thiết lập capacity");
-    expect(label).toContain("Quản lý người dùng");
-    expect(label).toContain("thiết lập capacity");
-    expect(label).not.toContain("tăng capacity");
+    expect(label).toContain("hạn mức cũ đã được bỏ");
+    expect(label).not.toContain("Quản lý người dùng");
   });
 
   it("tells a non-technical operator to staff the team when no team is ready at all", () => {
@@ -137,7 +133,8 @@ describe("assignmentReasonLabel", () => {
     // capacity — the old fixed sentence claimed "no active staff" for both.
     const item = {
       errorCode: "NO_ELIGIBLE_RECIPIENT",
-      reason: "Không có Team đủ điều kiện: Đội Bắc: Team chưa có Sale hoặc CTV Sale đang hoạt động.",
+      reason:
+        "Không có Team đủ điều kiện: Đội Bắc: Team chưa có Sale hoặc CTV Sale đang hoạt động.",
       team: "Đội Bắc",
     } as LeadAssignmentBatchItem;
 
@@ -158,10 +155,11 @@ describe("assignmentActionCategory", () => {
   it("routes a missing-capacity-setup failure to Quản lý người dùng", () => {
     const item = {
       errorCode: "STAFF_CAPACITY_NOT_CONFIGURED",
-      reason: "Team có Sale/CTV nhưng chưa ai được thiết lập capacity: Nguyễn Minh Khôi.",
+      reason:
+        "Team có Sale/CTV nhưng chưa ai được thiết lập capacity: Nguyễn Minh Khôi.",
     } as LeadAssignmentBatchItem;
 
-    expect(assignmentActionCategory(item)).toBe("staff-capacity");
+    expect(assignmentActionCategory(item)).toBe("system");
   });
 
   it("routes a capacity-full NO_ELIGIBLE_RECIPIENT failure to Quản lý người dùng", () => {
@@ -170,13 +168,14 @@ describe("assignmentActionCategory", () => {
       reason: "Team có Sale/CTV nhưng tất cả đã đạt giới hạn nhận Lead.",
     } as LeadAssignmentBatchItem;
 
-    expect(assignmentActionCategory(item)).toBe("staff-capacity");
+    expect(assignmentActionCategory(item)).toBe("system");
   });
 
   it("routes a no-active-staff NO_ELIGIBLE_RECIPIENT failure to Quản lý Team", () => {
     const item = {
       errorCode: "NO_ELIGIBLE_RECIPIENT",
-      reason: "Không có Team đủ điều kiện: Đội Bắc: Team chưa có Sale hoặc CTV Sale đang hoạt động.",
+      reason:
+        "Không có Team đủ điều kiện: Đội Bắc: Team chưa có Sale hoặc CTV Sale đang hoạt động.",
     } as LeadAssignmentBatchItem;
 
     expect(assignmentActionCategory(item)).toBe("team-config");
@@ -193,65 +192,30 @@ describe("assignmentActionCategory", () => {
 
   it("keeps the Lead-data edit form for missing province, not campus", () => {
     expect(
-      assignmentActionCategory({ errorCode: "MISSING_PROVINCE" } as LeadAssignmentBatchItem),
+      assignmentActionCategory({
+        errorCode: "MISSING_PROVINCE",
+      } as LeadAssignmentBatchItem),
     ).toBe("lead-data");
     expect(
-      assignmentActionCategory({ errorCode: "MISSING_CAMPUS" } as LeadAssignmentBatchItem),
+      assignmentActionCategory({
+        errorCode: "MISSING_CAMPUS",
+      } as LeadAssignmentBatchItem),
     ).toBe("unknown");
   });
 
   it("treats a stale/transient routing code as system-level, not a data or admin fix", () => {
     expect(
-      assignmentActionCategory({ errorCode: "LEASE_LOST" } as LeadAssignmentBatchItem),
+      assignmentActionCategory({
+        errorCode: "LEASE_LOST",
+      } as LeadAssignmentBatchItem),
     ).toBe("system");
   });
 
   it("falls back to unknown (keeps the edit form as a safety net) for an unrecognized code", () => {
     expect(
-      assignmentActionCategory({ errorCode: "SOME_FUTURE_CODE" } as LeadAssignmentBatchItem),
+      assignmentActionCategory({
+        errorCode: "SOME_FUTURE_CODE",
+      } as LeadAssignmentBatchItem),
     ).toBe("unknown");
-  });
-});
-
-describe("extractUnconfiguredStaffEntries", () => {
-  // The drawer lists each unconfigured Sale/CTV one per line (name, team,
-  // what to set up) instead of one dense sentence — this locks the parsing
-  // of team_routing.py's two exact message shapes to those per-person rows.
-  it("parses the pure not-configured message (colon-introduced list)", () => {
-    const reason =
-      "Team có Sale/CTV nhưng chưa ai được thiết lập capacity (số Lead tối đa nhận cùng lúc): " +
-      "Đặng Ngọc Hà (Đội Tư vấn Biên Hòa - Đồng Nai), " +
-      "Trần Anh Khoa (Đội Tư vấn Long Thành - Đồng Nai), " +
-      "Võ Thành Đạt (Đội Tư vấn Trảng Bom - Đồng Nai).";
-
-    expect(extractUnconfiguredStaffEntries(reason)).toEqual([
-      { name: "Đặng Ngọc Hà", team: "Đội Tư vấn Biên Hòa - Đồng Nai" },
-      { name: "Trần Anh Khoa", team: "Đội Tư vấn Long Thành - Đồng Nai" },
-      { name: "Võ Thành Đạt", team: "Đội Tư vấn Trảng Bom - Đồng Nai" },
-    ]);
-  });
-
-  it("parses the mixed over-capacity + not-configured message (paren-wrapped list)", () => {
-    const reason =
-      "Team có Sale/CTV nhưng không ai đủ điều kiện nhận Lead: 1 người đã đạt giới hạn, " +
-      "2 người chưa thiết lập capacity (Đặng Ngọc Hà (Đội Tư vấn Biên Hòa - Đồng Nai), " +
-      "Trần Anh Khoa (Đội Tư vấn Long Thành - Đồng Nai)).";
-
-    expect(extractUnconfiguredStaffEntries(reason)).toEqual([
-      { name: "Đặng Ngọc Hà", team: "Đội Tư vấn Biên Hòa - Đồng Nai" },
-      { name: "Trần Anh Khoa", team: "Đội Tư vấn Long Thành - Đồng Nai" },
-    ]);
-  });
-
-  it("returns nothing for a message that never names anyone", () => {
-    expect(
-      extractUnconfiguredStaffEntries("Team có Sale/CTV nhưng tất cả đã đạt giới hạn nhận Lead."),
-    ).toEqual([]);
-  });
-
-  it("returns nothing for null/undefined/empty input", () => {
-    expect(extractUnconfiguredStaffEntries(null)).toEqual([]);
-    expect(extractUnconfiguredStaffEntries(undefined)).toEqual([]);
-    expect(extractUnconfiguredStaffEntries("")).toEqual([]);
   });
 });

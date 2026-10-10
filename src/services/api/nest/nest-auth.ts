@@ -14,6 +14,7 @@ interface NestMe {
     crmProfile: string | null;
     crmCapabilities: { key: string }[];
     leadScope?: "all" | "own" | null;
+    crmDoctypePermissions?: Record<string, CurrentUserDocTypePermission>;
   };
 }
 
@@ -96,10 +97,13 @@ export async function nestGetCurrentUser(): Promise<CurrentUser | null> {
       crm_capabilities: data.crmCapabilities.map(
         (capability) => capability.key,
       ),
-      crm_doctype_permissions: doctypePermissions(
-        data.leadScope,
-        data.crmCapabilities.map((capability) => capability.key),
-      ),
+      crm_doctype_permissions: {
+        ...doctypePermissions(
+          data.leadScope,
+          data.crmCapabilities.map((capability) => capability.key),
+        ),
+        ...data.crmDoctypePermissions,
+      },
     };
   } catch (error) {
     if (

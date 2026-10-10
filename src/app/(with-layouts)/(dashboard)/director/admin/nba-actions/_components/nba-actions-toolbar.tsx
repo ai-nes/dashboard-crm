@@ -101,11 +101,12 @@ export default function NbaActionsToolbar({
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <InputGroup className="min-w-0 lg:max-w-[60rem] lg:flex-1">
+        <InputGroup className="h-8.5 min-w-0 lg:max-w-[60rem] lg:flex-1">
           <InputGroupAddon align="inline-start">
             <Search1 size={18} aria-hidden="true" />
           </InputGroupAddon>
           <InputGroupInput
+            className="h-full py-0 text-sm"
             aria-label="Tìm hành động theo mã hoặc tên"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}

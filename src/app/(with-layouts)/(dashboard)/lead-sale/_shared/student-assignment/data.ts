@@ -98,12 +98,12 @@ export const workflowSteps: WorkflowStep[] = [
     title: "Bước 4 · Điều phối theo 4 tầng",
     description: "School owner · Zone team · Queue",
     detail:
-      "Áp policy, capacity và chiến lược chọn người; deferred không tự động rơi xuống tầng khác.",
+      "Áp policy và chiến lược chọn người; deferred không tự động rơi xuống tầng khác.",
     rules: [
-      "Tier 1 ưu tiên school owner và kiểm tra capacity direct.",
+      "Tier 1 ưu tiên school owner đang hoạt động.",
       "Tier 2 route vào Zone Team Pool rồi chọn member.",
       "Tier 3 vào MANUAL_QUEUE; Tier 4 vào ENRICHMENT_QUEUE.",
-      "Capacity blocked, stale mapping và thiếu policy tạo deferred.",
+      "Stale mapping và thiếu policy tạo deferred.",
     ],
     tone: "primary",
     position: workflowPositions.matching,

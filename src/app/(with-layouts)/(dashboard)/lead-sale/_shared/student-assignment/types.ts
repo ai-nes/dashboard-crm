@@ -29,8 +29,8 @@ export interface Candidate {
   name: string;
   initials: string;
   workload: number;
-  capacity: number;
-  remainingCapacity: number;
+  capacity: number | null;
+  remainingCapacity: number | null;
   score: number;
   eligible: boolean;
   reasons: string[];
