@@ -84,11 +84,7 @@ export default function AssignmentBatchItemDrawer() {
           <dt className="text-text-tertiary">Tư vấn viên</dt>
           <dd className="text-text-primary">{item.ownerStaff ?? "Chưa có"}</dd>
           <dt className="text-text-tertiary">Tải hiện tại</dt>
-          <dd className="text-text-primary">
-            {item.activeLoad !== null && item.capacityLimit !== null
-              ? `${item.activeLoad}/${item.capacityLimit} · còn ${item.remainingCapacity ?? "—"}`
-              : "—"}
-          </dd>
+          <dd className="text-text-primary">{item.activeLoad ?? "—"}</dd>
           <dt className="text-text-tertiary">Lý do chọn</dt>
           <dd className="text-text-primary">{assignmentReasonLabel(item)}</dd>
         </dl>

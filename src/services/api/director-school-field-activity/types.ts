@@ -34,7 +34,12 @@ export type FieldActivityKpiId =
   | "field-conversion"
   | "unsynced-records";
 
-export type FieldActivityKpiUnit = "activities" | "leads" | "million_vnd" | "percent" | "records";
+export type FieldActivityKpiUnit =
+  | "activities"
+  | "leads"
+  | "million_vnd"
+  | "percent"
+  | "records";
 export type FieldActivityKpiTone = "primary" | "success" | "warning" | "error";
 
 export interface FieldActivityKpi {
@@ -44,7 +49,11 @@ export interface FieldActivityKpi {
   unit: FieldActivityKpiUnit;
   change: number | null;
   changeUnit: "percent" | "percentage_points" | "absolute" | null;
-  comparison: "same_period_previous_year" | "previous_period" | "benchmark" | null;
+  comparison:
+    | "same_period_previous_year"
+    | "previous_period"
+    | "benchmark"
+    | null;
   shareOfProspects: number | null;
   benchmark: {
     id: string;
@@ -102,7 +111,11 @@ export interface UpcomingFieldActivity {
   confidence: number | null;
   historicalSampleSize: number | null;
   status: "planned" | "confirmed" | "cancelled";
-  source: "market-and-student-priority" | "historical-activity" | "manual" | "mixed";
+  source:
+    | "market-and-student-priority"
+    | "historical-activity"
+    | "manual"
+    | "mixed";
   evidence: string[];
 }
 

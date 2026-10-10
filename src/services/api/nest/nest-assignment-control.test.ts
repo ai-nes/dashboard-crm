@@ -58,7 +58,6 @@ describe("lead assignment control with the Nest backend", () => {
       groupLayerEnabled: true,
       globalLayerEnabled: false,
       distributionStrategy: "round_robin",
-      capacityRequired: false,
       reason: "Đổi thứ tự",
     });
     const [, init] = fetchMock.mock.calls[1] as [string, RequestInit];

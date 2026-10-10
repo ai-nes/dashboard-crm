@@ -11,31 +11,23 @@ import {
 } from "@/components/common/admin/admin-tabs";
 import { AdminTableFrame } from "@/components/common/admin/admin-table";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import {
-  hasCrmRole,
-  hasFrappeTechnicalRole,
-} from "@/components/common/auth/rbac";
+import { hasCrmRole, hasTechnicalRole } from "@/components/common/auth/rbac";
 import { Button } from "@/components/tailgrids/core/button";
 import { TabTrigger } from "@/components/tailgrids/core/tabs";
+import { useGovernedValuesQuery } from "@/hooks/use-admin-catalog-queries";
 import {
   useCreateCrmUserMutation,
   useCrmUsersQuery,
   useRemoveUserMutation,
   useUpdateCrmUserProfileMutation,
-  useUpdateUserCapacityMutation,
   useUpdateUserRoleMutation,
 } from "@/hooks/use-user-management-queries";
 import type { CrmUser } from "@/services/api/user-management";
 import { UserManagementApiError } from "@/services/api/user-management";
 
-import BulkActionResultDialog, {
-  type BulkActionResultRow,
-} from "./bulk-action-result-dialog";
-import BulkActionsToolbar from "./bulk-actions-toolbar";
 import RemoveUserConfirmDialog from "./remove-user-confirm-dialog";
 import UserFormDialog from "./user-form-dialog";
 import UserPermissionPanel from "./user-permission-panel";
-import { isUserSelectable } from "./users-table";
 import UserSearchFilterBar from "./user-search-filter-bar";
 import UsersTable from "./users-table";
 
@@ -50,7 +42,7 @@ function errorMessage(error: unknown): string {
 export default function UserManagementAdminPage() {
   const { user } = useAuth();
   const canManageUsers =
-    hasFrappeTechnicalRole(user?.roles, "System Manager") ||
+    hasTechnicalRole(user?.roles, "System Manager") ||
     hasCrmRole(user?.roles, "Administrator");
 
   const [activeTab, setActiveTab] = useState("users");
@@ -58,14 +50,6 @@ export default function UserManagementAdminPage() {
   const [role, setRole] = useState("all");
   const [page, setPage] = useState(1);
   const [userToRemove, setUserToRemove] = useState<CrmUser | null>(null);
-  const [bulkUserToRemove, setBulkUserToRemove] = useState(false);
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
-    new Set(),
-  );
-  const [bulkResults, setBulkResults] = useState<BulkActionResultRow[] | null>(
-    null,
-  );
-  const [isBulkRunning, setIsBulkRunning] = useState(false);
   const [userFormTarget, setUserFormTarget] = useState<CrmUser | null>(null);
   const [isUserFormOpen, setIsUserFormOpen] = useState(false);
 
@@ -79,7 +63,20 @@ export default function UserManagementAdminPage() {
   const removeUserMutation = useRemoveUserMutation();
   const createUserMutation = useCreateCrmUserMutation();
   const updateUserProfileMutation = useUpdateCrmUserProfileMutation();
-  const updateUserCapacityMutation = useUpdateUserCapacityMutation();
+  const updateCampusMutation = useUpdateCrmUserProfileMutation();
+  const campusesQuery = useGovernedValuesQuery("CRM Campus", {
+    pageLength: 100,
+    enabled: canManageUsers,
+  });
+  const campusOptions = useMemo(
+    () =>
+      campusesQuery.data?.records.flatMap((campus) =>
+        campus.id
+          ? [{ id: campus.id, name: campus.campus_name ?? campus.name }]
+          : [],
+      ) ?? [],
+    [campusesQuery.data],
+  );
 
   const allUsers = useMemo(
     () => usersQuery.data?.crmUsers ?? [],
@@ -89,15 +86,26 @@ export default function UserManagementAdminPage() {
   const totalUsers = usersQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalUsers / USERS_PAGE_SIZE));
 
-  const selectedUsers = useMemo(
-    () => allUsers.filter((u) => selectedUserIds.has(u.name)),
-    [allUsers, selectedUserIds],
-  );
-
   const isMutating =
     updateRoleMutation.isPending ||
     removeUserMutation.isPending ||
-    isBulkRunning;
+    updateCampusMutation.isPending;
+
+  const handleChangeCampus = async (
+    targetUser: CrmUser,
+    campusId: string | null,
+  ) => {
+    if (!canManageUsers || (targetUser.campus?.id ?? null) === campusId) return;
+    try {
+      await updateCampusMutation.mutateAsync({
+        user: targetUser.name,
+        campusId,
+      });
+      toast.success(`Đã cập nhật Campus của ${targetUser.fullName}.`);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  };
 
   const handleChangeRole = async (targetUser: CrmUser, newRole: string) => {
     if (targetUser.role === newRole) return;
@@ -118,55 +126,6 @@ export default function UserManagementAdminPage() {
     } catch (error) {
       toast.error(errorMessage(error));
     }
-  };
-
-  const handleToggleUser = (targetUser: CrmUser, checked: boolean) => {
-    setSelectedUserIds((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(targetUser.name);
-      else next.delete(targetUser.name);
-      return next;
-    });
-  };
-
-  const handleToggleAll = (checked: boolean) => {
-    setSelectedUserIds(() => {
-      if (!checked) return new Set();
-      return new Set(users.filter(isUserSelectable).map((u) => u.name));
-    });
-  };
-
-  const runBulkAction = async (
-    action: (targetUser: CrmUser) => Promise<void>,
-  ) => {
-    setIsBulkRunning(true);
-    const targets = selectedUsers;
-    const settled = await Promise.allSettled(
-      targets.map((targetUser) => action(targetUser)),
-    );
-    const rows: BulkActionResultRow[] = settled.map((result, index) => ({
-      userName: targets[index].name,
-      fullName: targets[index].fullName,
-      success: result.status === "fulfilled",
-      message:
-        result.status === "rejected" ? errorMessage(result.reason) : undefined,
-    }));
-    setIsBulkRunning(false);
-    setSelectedUserIds(new Set());
-    setBulkResults(rows);
-  };
-
-  const handleBulkChangeRole = (newRole: string) => {
-    void runBulkAction((targetUser) =>
-      updateRoleMutation.mutateAsync({ user: targetUser.name, newRole }),
-    );
-  };
-
-  const handleBulkRemove = async () => {
-    setBulkUserToRemove(false);
-    await runBulkAction((targetUser) =>
-      removeUserMutation.mutateAsync({ user: targetUser.name }),
-    );
   };
 
   const openCreateUser = () => {
@@ -193,7 +152,6 @@ export default function UserManagementAdminPage() {
   const handleUpdateUser = async (fields: {
     fullName: string;
     newPassword: string;
-    capacity: number | null;
   }) => {
     if (!userFormTarget) return;
     await updateUserProfileMutation.mutateAsync({
@@ -201,15 +159,6 @@ export default function UserManagementAdminPage() {
       fullName: fields.fullName,
       newPassword: fields.newPassword || undefined,
     });
-    if (
-      fields.capacity != null &&
-      fields.capacity !== userFormTarget.capacity?.limit
-    ) {
-      await updateUserCapacityMutation.mutateAsync({
-        user: userFormTarget.name,
-        maxActiveStudents: fields.capacity,
-      });
-    }
     toast.success(`Đã cập nhật ${fields.fullName}.`);
     setIsUserFormOpen(false);
   };
@@ -283,43 +232,47 @@ export default function UserManagementAdminPage() {
                 onSearchChange={(value) => {
                   setSearch(value);
                   setPage(1);
-                  setSelectedUserIds(new Set());
                 }}
                 role={role}
                 onRoleChange={(value) => {
                   setRole(value);
                   setPage(1);
-                  setSelectedUserIds(new Set());
                 }}
               />
-              {canManageUsers ? (
-                <BulkActionsToolbar
-                  selectedCount={selectedUserIds.size}
-                  isBusy={isMutating}
-                  onChangeRole={handleBulkChangeRole}
-                  onRemove={() => setBulkUserToRemove(true)}
-                  onClearSelection={() => setSelectedUserIds(new Set())}
-                />
-              ) : null}
               <UsersTable
                 users={users}
                 total={totalUsers}
                 isLoading={usersQuery.isPending}
                 canManageUsers={canManageUsers}
                 isMutating={isMutating}
-                selectedUserIds={selectedUserIds}
-                onToggleUser={handleToggleUser}
-                onToggleAll={handleToggleAll}
+                campusOptions={campusOptions}
+                isCampusLoading={
+                  campusesQuery.isPending || campusesQuery.isError
+                }
+                onChangeCampus={handleChangeCampus}
                 onChangeRole={handleChangeRole}
                 onEdit={openEditUser}
                 onRemove={setUserToRemove}
                 currentPage={page}
                 totalPages={totalPages}
-                onPageChange={(nextPage) => {
-                  setPage(nextPage);
-                  setSelectedUserIds(new Set());
-                }}
+                onPageChange={setPage}
               />
+              {canManageUsers && campusesQuery.isError ? (
+                <div
+                  role="alert"
+                  className="flex items-center gap-2 px-5 py-3 text-sm text-text-secondary"
+                >
+                  Không tải được danh sách Campus.
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    appearance="ghost"
+                    onPress={() => void campusesQuery.refetch()}
+                  >
+                    Thử lại
+                  </Button>
+                </div>
+              ) : null}
             </AdminTableFrame>
           )}
         </AdminTabContent>
@@ -342,29 +295,12 @@ export default function UserManagementAdminPage() {
         onConfirm={handleConfirmRemove}
       />
 
-      <RemoveUserConfirmDialog
-        isOpen={bulkUserToRemove}
-        targetLabel={`${selectedUserIds.size} người dùng`}
-        isRemoving={isBulkRunning}
-        onOpenChange={(open) => {
-          if (!open && !isBulkRunning) setBulkUserToRemove(false);
-        }}
-        onConfirm={handleBulkRemove}
-      />
-
-      <BulkActionResultDialog
-        results={bulkResults}
-        onClose={() => setBulkResults(null)}
-      />
-
       <UserFormDialog
         key={userFormTarget?.name ?? "create"}
         isOpen={isUserFormOpen}
         user={userFormTarget}
         isSubmitting={
-          createUserMutation.isPending ||
-          updateUserProfileMutation.isPending ||
-          updateUserCapacityMutation.isPending
+          createUserMutation.isPending || updateUserProfileMutation.isPending
         }
         onOpenChange={setIsUserFormOpen}
         onCreate={handleCreateUser}

@@ -161,10 +161,7 @@ export default function CampaignDetailDashboard({
         queryKey: isSessionScopedStudentView
           ? studentsKeys.assignedStudents(countParams, user?.user)
           : studentsKeys.directorStudents(countParams),
-        queryFn: () =>
-          getDirectorStudents(countParams, {
-            sessionRequired: isSessionScopedStudentView,
-          }),
+        queryFn: () => getDirectorStudents(countParams),
         enabled:
           recordView === "students" &&
           studentPermissions.student.canRead &&

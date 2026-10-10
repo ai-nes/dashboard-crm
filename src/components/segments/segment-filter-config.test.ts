@@ -174,7 +174,7 @@ describe("segment filter field mapping", () => {
     expect(getStudentStageBadgeColor("unknown")).toBe("gray");
   });
 
-  it("maps each dashboard property to its Frappe field", () => {
+  it("maps each dashboard property to its API field", () => {
     const filters = toBackendSegmentFilters([
       {
         id: "group-1",

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CtvSaleOverviewApiError,
@@ -6,7 +6,18 @@ import {
   normalizeCtvSaleOverview,
 } from "./index";
 
-afterEach(() => vi.restoreAllMocks());
+const fetchMock = vi.fn();
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://localhost:3001");
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+});
 
 function overviewFixture() {
   const range = {
@@ -108,21 +119,16 @@ function overviewFixture() {
 }
 
 describe("CTV Sale overview API contract", () => {
-  it("serializes the overview query, unwraps message, and normalizes data", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: overviewFixture() }), {
-        status: 200,
-      }),
+  it("serializes the overview query and normalizes data", async () => {
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(JSON.stringify(overviewFixture()), { status: 200 }),
     );
 
-    const result = await getCtvSaleOverview(
-      {},
-      { baseUrl: "http://frappe:8000" },
-    );
+    const result = await getCtvSaleOverview();
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.ctv_sale.get_ctv_sale_overview?trendRange=7d&outcomeRange=30d&priorityLimit=3",
-      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      "http://localhost:3001/api/v1/ctv-sale/overview?trendRange=7d&outcomeRange=30d&priorityLimit=3",
     );
     expect(result.meta.viewer.displayName).toBe("CTV Sale");
     expect(result.kpis).toHaveLength(4);
@@ -130,18 +136,17 @@ describe("CTV Sale overview API contract", () => {
   });
 
   it("maps authorization failures to a stable typed error", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          error: { code: "FORBIDDEN", message: "Not permitted" },
-        }),
-        { status: 403 },
-      ),
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: { code: "FORBIDDEN", message: "Not permitted" },
+          }),
+          { status: 403 },
+        ),
     );
 
-    await expect(
-      getCtvSaleOverview({}, { baseUrl: "http://frappe:8000" }),
-    ).rejects.toEqual(
+    await expect(getCtvSaleOverview()).rejects.toEqual(
       expect.objectContaining<Partial<CtvSaleOverviewApiError>>({
         status: 403,
         code: "FORBIDDEN",

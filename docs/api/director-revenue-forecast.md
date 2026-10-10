@@ -29,33 +29,31 @@ Nguồn tham chiếu:
 
 ## 2. Tình trạng tích hợp hiện tại
 
-Route chưa gọi API. Các component import fixture trực tiếp từ `_components/data.ts` hoặc khai báo constant ngay trong component. Chưa có service trong `src/services/api/revenue-forecast`, hook query hay mock handler riêng.
-
-Contract bên dưới là contract production đề xuất. Tất cả section phải dùng một snapshot, cùng kỳ, scope, timezone và currency; không để KPI, chart và decision card đọc các mốc dữ liệu khác nhau.
+Route gọi `getRevenueForecast()` (`src/services/api/director-revenue-forecast`) một lần với query mặc định của backend (dashboard chưa gửi `period`, `scope`, `from`, `to`). Tất cả section phải dùng một snapshot, cùng kỳ, scope, timezone và currency; không để KPI, chart và decision card đọc các mốc dữ liệu khác nhau.
 
 ## 3. Endpoint và quyền truy cập
 
 ```http
-GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.director_revenue_forecast.get_director_revenue_forecast
-Cookie: sid=<Frappe session cookie>
+GET {NEXT_PUBLIC_CRM_API_URL}/api/v1/director/revenue-forecast
+Cookie: <Better Auth session cookie>   (credentials: "include")
 Accept: application/json
 ```
 
-Frappe bọc response thành công trong `message`. Endpoint chỉ trả aggregate tài chính/tuyển sinh và giao dịch đã được phép hiển thị; không trả PII của học sinh.
+Response được trả trực tiếp (không bọc `message`). Endpoint chỉ trả aggregate tài chính/tuyển sinh và giao dịch đã được phép hiển thị; không trả PII của học sinh.
 
-Quyền tối thiểu: profile `Admissions Director`, `Marketing` (chỉ aggregate), Finance Director hoặc role revenue được cấp; `Administrator`/`System Manager` có quyền phù hợp. `scope` và `campus` phải nằm trong phạm vi user được cấp; backend không được tin query string của client.
+Quyền: quản trị viên hoặc user có lead scope `all`; còn lại `403 FORBIDDEN`. Backend không tin query string của client để mở rộng phạm vi.
 
 ## 4. Request
 
 ```http
-GET /api/method/crm.api.director_revenue_forecast.get_director_revenue_forecast?admissionYear=2026&period=admission-year&scope=all
+GET /api/v1/director/revenue-forecast?admissionYear=2026&period=admission-year
 ```
 
 | Tên | Kiểu | Bắt buộc | Mặc định | Ràng buộc / mô tả |
 |---|---|---:|---|---|
 | `admissionYear` | integer | Không | Kỳ active duy nhất | Năm 4 chữ số trong `2000..2100` |
 | `period` | enum | Không | `admission-year` | `this-month`, `this-quarter`, `admission-year` |
-| `scope` | string | Không | `all` | Scope/campus/territory được cấp quyền; UI hiện có `all`, `hcm`, `dong-nai`, `north` |
+| `scope` | string | Không | `all` | Backend hiện chưa lọc theo scope; tham số này bị bỏ qua |
 | `from` | date `YYYY-MM-DD` | Không | Suy ra từ `period` | Bao gồm ngày bắt đầu |
 | `to` | date `YYYY-MM-DD` | Không | Suy ra từ `period` | Bao gồm ngày kết thúc; không nhỏ hơn `from` |
 | `timezone` | IANA timezone | Không | `Asia/Ho_Chi_Minh` | Dùng để cắt ngày/kỳ và format giao dịch |
@@ -65,7 +63,7 @@ Filter áp dụng đồng thời cho toàn bộ response. `scenarioSimulation` l
 
 ## 5. Response `200 OK`
 
-Shape Frappe:
+Shape:
 
 ```text
 { message: RevenueForecastResponse }
@@ -75,73 +73,71 @@ Ví dụ response rút gọn:
 
 ```json
 {
-  "message": {
-    "meta": {
-      "admissionYear": 2026,
-      "period": "admission-year",
-      "scope": "all",
-      "scopeLabel": "Tất cả khu vực",
-      "from": "2026-01-01",
-      "to": "2026-10-31",
-      "asOf": "2026-08-29T09:30:00+07:00",
-      "timezone": "Asia/Ho_Chi_Minh",
-      "currency": "VND",
-      "status": "available",
-      "warnings": []
-    },
-    "summary": {
-      "forecastRevenue": 468000000000,
-      "actualRevenue": 382000000000,
-      "revenueTarget": 520000000000,
-      "forecastEnrollment": 4680,
-      "enrollmentTarget": 5000,
-      "revenueGap": 52000000000,
-      "modelConfidence": 72,
-      "changeVsPrevious": 11.5
-    },
-    "forecast": {
-      "forecastStart": "2026-08-01",
-      "points": [
-        { "label": "T1", "periodStart": "2026-01-01", "actual": 42000000000, "forecast": null, "target": 52000000000 },
-        { "label": "T8", "periodStart": "2026-08-01", "actual": 382000000000, "forecast": 382000000000, "target": 418000000000 },
-        { "label": "T10", "periodStart": "2026-10-01", "actual": null, "forecast": 468000000000, "target": 520000000000 }
-      ]
-    },
-    "model": {
-      "grossRevenue": 520000000000,
-      "scholarship": 18000000000,
-      "discount": 34000000000,
-      "netRevenue": 468000000000
-    },
-    "regions": [
-      { "id": "hcm", "label": "TP. Hồ Chí Minh", "actual": 82000000000, "forecast": 98000000000, "share": 21 }
-    ],
-    "targetPlan": [
-      { "id": "tuition", "label": "Thu học phí", "actual": 346000000000, "target": 420000000000, "progress": 82.4 }
-    ],
-    "signals": { "positive": [], "negative": [], "primaryRisk": null },
-    "collectionHealth": {
-      "status": "stable",
-      "onTimeRate": 96.4,
-      "reconciledCount": 1284,
-      "transactionCount": 1320,
-      "outstandingAmount": 14800000000,
-      "processingOnTimeRate": 92.8,
-      "warnings": []
-    },
-    "transactions": [],
-    "activities": [],
-    "channelMix": { "totalLeads": 11400, "items": [], "topChannelId": null },
-    "cashflow": { "points": [], "grossTotal": 325000000000, "reductionTotal": 35000000000, "netTotal": 290000000000, "changeVsPrevious": 8.1 },
-    "decisions": [],
-    "scenarioSimulation": { "targetRevenue": 520000000000, "defaultScenarioId": "conversion-3", "scenarios": [] },
-    "aiExplanation": {
-      "confidence": 72,
-      "conclusion": { "title": "Xu hướng đang tích cực", "description": "Tốc độ nhập học hiện tại vẫn đủ để duy trì đà tăng trưởng." },
-      "expectedEnrollment": 4680,
-      "drivers": [],
-      "primaryRisk": null
-    }
+  "meta": {
+    "admissionYear": 2026,
+    "period": "admission-year",
+    "scope": "all",
+    "scopeLabel": "Tất cả khu vực",
+    "from": "2026-01-01",
+    "to": "2026-10-31",
+    "asOf": "2026-08-29T09:30:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "currency": "VND",
+    "status": "available",
+    "warnings": []
+  },
+  "summary": {
+    "forecastRevenue": 468000000000,
+    "actualRevenue": 382000000000,
+    "revenueTarget": 520000000000,
+    "forecastEnrollment": 4680,
+    "enrollmentTarget": 5000,
+    "revenueGap": 52000000000,
+    "modelConfidence": 72,
+    "changeVsPrevious": 11.5
+  },
+  "forecast": {
+    "forecastStart": "2026-08-01",
+    "points": [
+      { "label": "T1", "periodStart": "2026-01-01", "actual": 42000000000, "forecast": null, "target": 52000000000 },
+      { "label": "T8", "periodStart": "2026-08-01", "actual": 382000000000, "forecast": 382000000000, "target": 418000000000 },
+      { "label": "T10", "periodStart": "2026-10-01", "actual": null, "forecast": 468000000000, "target": 520000000000 }
+    ]
+  },
+  "model": {
+    "grossRevenue": 520000000000,
+    "scholarship": 18000000000,
+    "discount": 34000000000,
+    "netRevenue": 468000000000
+  },
+  "regions": [
+    { "id": "hcm", "label": "TP. Hồ Chí Minh", "actual": 82000000000, "forecast": 98000000000, "share": 21 }
+  ],
+  "targetPlan": [
+    { "id": "tuition", "label": "Thu học phí", "actual": 346000000000, "target": 420000000000, "progress": 82.4 }
+  ],
+  "signals": { "positive": [], "negative": [], "primaryRisk": null },
+  "collectionHealth": {
+    "status": "stable",
+    "onTimeRate": 96.4,
+    "reconciledCount": 1284,
+    "transactionCount": 1320,
+    "outstandingAmount": 14800000000,
+    "processingOnTimeRate": 92.8,
+    "warnings": []
+  },
+  "transactions": [],
+  "activities": [],
+  "channelMix": { "totalLeads": 11400, "items": [], "topChannelId": null },
+  "cashflow": { "points": [], "grossTotal": 325000000000, "reductionTotal": 35000000000, "netTotal": 290000000000, "changeVsPrevious": 8.1 },
+  "decisions": [],
+  "scenarioSimulation": { "targetRevenue": 520000000000, "defaultScenarioId": "conversion-3", "scenarios": [] },
+  "aiExplanation": {
+    "confidence": 72,
+    "conclusion": { "title": "Xu hướng đang tích cực", "description": "Tốc độ nhập học hiện tại vẫn đủ để duy trì đà tăng trưởng." },
+    "expectedEnrollment": 4680,
+    "drivers": [],
+    "primaryRisk": null
   }
 }
 ```
@@ -350,9 +346,9 @@ summary.modelConfidence ∈ [0, 100]
 
 Không bắt buộc tổng `regions[].forecast` bằng summary nếu có vùng “khác” hoặc scope subset; nếu là full scope thì phải công bố và kiểm tra reconciliation.
 
-## 9. Việc backend cần làm để khớp UI
+## 9. Yêu cầu backend để khớp UI
 
-1. Tạo Frappe method production và service adapter cho overview revenue forecast.
+1. Endpoint `GET /api/v1/director/revenue-forecast` và service `getRevenueForecast()` đã có.
 2. Trả một snapshot có meta, summary, forecast, model, region, target, collection, transaction, activity, channel mix, cashflow, decision và scenario.
 3. Nối filter header vào query; không để scope/period thay đổi label nhưng giữ nguyên data.
 4. Thay các constant trong target plan, cashflow, channel mix, collection health, transactions, activity và decision card bằng payload API.

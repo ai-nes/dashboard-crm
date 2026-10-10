@@ -1,8 +1,8 @@
 # API `/sale` — Tổng quan Sale
 
-`crm.api.sale.get_sale_overview` trả về một snapshot duy nhất cho dashboard Sale.
-Dashboard chỉ dùng dữ liệu của các DocType core CRM và không tạo số liệu thay thế
-khi nguồn không có dữ liệu.
+`GET /api/v1/sale/overview` trả về một snapshot duy nhất cho dashboard Sale.
+Dashboard chỉ dùng dữ liệu lõi của CRM và không tạo số liệu thay thế khi nguồn
+không có dữ liệu.
 
 ## Phạm vi dữ liệu
 
@@ -20,8 +20,8 @@ Các section legacy như `kpis`, `pipeline`, `studentStatus`, `attention`,
 ## Endpoint
 
 ```http
-GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.sale.get_sale_overview
-Cookie: sid=<Frappe session cookie>
+GET {NEXT_PUBLIC_CRM_API_URL}/api/v1/sale/overview
+Cookie: <Better Auth session cookie>   (credentials: "include")
 Accept: application/json
 ```
 
@@ -40,72 +40,70 @@ một trạng thái nhập học.
 
 ## Response
 
-Frappe bọc payload thành công trong `message`:
+Payload thành công được trả trực tiếp (không bọc `message`):
 
 ```json
 {
-  "message": {
-    "meta": {
-      "viewer": { "id": "sale@example.com", "displayName": "Nguyễn Văn A" },
-      "admissionYear": 2026,
-      "date": "2026-09-05",
-      "asOf": "2026-09-05T09:15:00+07:00",
-      "timezone": "Asia/Ho_Chi_Minh",
-      "status": "available",
-      "warnings": []
-    },
-    "tasks": {
-      "priority": { "overdueCount": 1, "items": [] },
-      "summary": {
-        "today": { "total": 3, "pending": 2, "completed": 1 },
-        "overdue": { "count": 1 },
-        "upcoming": { "count": 2, "horizonDays": 7 }
-      }
-    },
-    "conversionTrend": {
-      "defaultRange": "4w",
-      "ranges": {
-        "4w": {
-          "from": "2026-08-10",
-          "to": "2026-09-05",
-          "points": [
-            {
-              "label": "Tuần 1",
-              "periodStart": "2026-08-10",
-              "periodEnd": "2026-08-16",
-              "consulted": 22
-            }
-          ]
-        },
-        "12w": { "from": "2026-06-15", "to": "2026-09-05", "points": [] }
-      }
-    },
-    "studentStages": {
-      "total": 128,
-      "items": [
-        { "stage": "New", "label": "Mới", "count": 24, "share": 18.8 },
-        { "stage": "Attempting", "label": "Đang liên hệ", "count": 35, "share": 27.3 },
-        { "stage": "Connected", "label": "Đã kết nối", "count": 42, "share": 32.8 },
-        { "stage": "Qualified", "label": "Đủ điều kiện", "count": 18, "share": 14.1 },
-        { "stage": "Registration", "label": "Đăng ký", "count": 0, "share": 0.0 },
-        { "stage": "New Enter", "label": "Nhập học", "count": 0, "share": 0.0 },
-        { "stage": "Disqualified", "label": "Không đủ điều kiện", "count": 9, "share": 7.0 }
-      ]
-    },
-    "studentActions": [],
-    "recentLeads": [],
-    "recentStudents": [],
-    "health": {
-      "followUpDue": 2,
-      "overdue": 1,
-      "noActivity": 4,
-      "agingBuckets": [
-        { "id": "0-2d", "label": "0–2 ngày", "count": 8 },
-        { "id": "3-5d", "label": "3–5 ngày", "count": 4 },
-        { "id": "6-10d", "label": "6–10 ngày", "count": 2 },
-        { "id": "10d-plus", "label": "Trên 10 ngày", "count": 1 }
-      ]
+  "meta": {
+    "viewer": { "id": "sale@example.com", "displayName": "Nguyễn Văn A" },
+    "admissionYear": 2026,
+    "date": "2026-09-05",
+    "asOf": "2026-09-05T09:15:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "status": "available",
+    "warnings": []
+  },
+  "tasks": {
+    "priority": { "overdueCount": 1, "items": [] },
+    "summary": {
+      "today": { "total": 3, "pending": 2, "completed": 1 },
+      "overdue": { "count": 1 },
+      "upcoming": { "count": 2, "horizonDays": 7 }
     }
+  },
+  "conversionTrend": {
+    "defaultRange": "4w",
+    "ranges": {
+      "4w": {
+        "from": "2026-08-10",
+        "to": "2026-09-05",
+        "points": [
+          {
+            "label": "Tuần 1",
+            "periodStart": "2026-08-10",
+            "periodEnd": "2026-08-16",
+            "consulted": 22
+          }
+        ]
+      },
+      "12w": { "from": "2026-06-15", "to": "2026-09-05", "points": [] }
+    }
+  },
+  "studentStages": {
+    "total": 128,
+    "items": [
+      { "stage": "New", "label": "Mới", "count": 24, "share": 18.8 },
+      { "stage": "Attempting", "label": "Đang liên hệ", "count": 35, "share": 27.3 },
+      { "stage": "Connected", "label": "Đã kết nối", "count": 42, "share": 32.8 },
+      { "stage": "Qualified", "label": "Đủ điều kiện", "count": 18, "share": 14.1 },
+      { "stage": "Registration", "label": "Đăng ký", "count": 0, "share": 0.0 },
+      { "stage": "New Enter", "label": "Nhập học", "count": 0, "share": 0.0 },
+      { "stage": "Disqualified", "label": "Không đủ điều kiện", "count": 9, "share": 7.0 }
+    ]
+  },
+  "studentActions": [],
+  "recentLeads": [],
+  "recentStudents": [],
+  "health": {
+    "followUpDue": 2,
+    "overdue": 1,
+    "noActivity": 4,
+    "agingBuckets": [
+      { "id": "0-2d", "label": "0–2 ngày", "count": 8 },
+      { "id": "3-5d", "label": "3–5 ngày", "count": 4 },
+      { "id": "6-10d", "label": "6–10 ngày", "count": 2 },
+      { "id": "10d-plus", "label": "Trên 10 ngày", "count": 1 }
+    ]
   }
 }
 ```
@@ -179,7 +177,7 @@ type SaleOverviewResponse = {
 |---:|---|---|
 | `400` | `INVALID_QUERY` | Query param không hợp lệ |
 | `401` | `UNAUTHENTICATED` | Session không tồn tại hoặc hết hạn |
-| `403` | `FORBIDDEN` | User không có quyền Sale |
+| `403` | `FORBIDDEN` | Chỉ profile `sales` và quản trị viên được xem |
 | `404` | `ADMISSION_YEAR_NOT_FOUND` | Không tìm thấy năm tuyển sinh được chọn |
 
 `meta.status = "partial"` phải đi kèm `warnings` chỉ rõ nguồn bị thiếu. Frontend

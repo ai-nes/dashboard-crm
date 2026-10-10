@@ -25,7 +25,7 @@ export async function nestFieldOptions(params: {
   province?: string;
   filters?: Record<string, unknown>;
   limit?: number;
-}) {
+}, signal?: AbortSignal) {
   const filters = params.filters ?? {};
   const text = (value: unknown) =>
     typeof value === "string" && value ? value : undefined;
@@ -33,6 +33,7 @@ export async function nestFieldOptions(params: {
     fieldtype: "Link" | "Select";
     options: NestFieldOption[];
   }>(`/api/v1/options/${encodeURIComponent(params.fieldname)}`, {
+    signal,
     query: {
       search: params.search,
       limit: params.limit,
@@ -54,11 +55,12 @@ export async function nestSchools(params: {
   ward?: string;
   search?: string;
   limit?: number;
-}) {
+}, signal?: AbortSignal) {
   const result = await nestRequest<{ schools: NestSchool[] }>(
     "/api/v1/schools",
     {
       query: params,
+      signal,
     },
   );
   return {

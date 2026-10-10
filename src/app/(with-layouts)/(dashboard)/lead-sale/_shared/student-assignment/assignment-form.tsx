@@ -67,7 +67,7 @@ export default function AssignmentForm({
           options={candidates.map((person) => ({
             id: person.id,
             label: person.displayName,
-            description: `Đang phụ trách ${person.activeStudents} học sinh · còn ${person.remainingCapacity} chỗ`,
+            description: `Đang phụ trách ${person.activeStudents} học sinh`,
           }))}
           placeholder={
             candidates.length

@@ -36,7 +36,7 @@ export default function RoleSelectDropdown({ value, disabled = false, onChange }
         <SelectValue />
         <SelectIndicator />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="[&_[role=listbox]]:max-h-96">
         {ASSIGNABLE_CRM_ROLES.map((role) => (
           <SelectItem key={role} id={role} textValue={role}>
             {role}

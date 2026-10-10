@@ -8,6 +8,7 @@ import { Input } from "@/components/tailgrids/core/input";
 import { OverlayWrapper } from "@/components/tailgrids/core/overlay";
 import { Popover } from "@/components/tailgrids/core/popover";
 import { cn } from "@/utils/cn";
+import { useInfinityScroll } from "@/hooks/use-infinity-scroll";
 
 import {
   getOptionsForSelectedClassificationGroup,
@@ -58,6 +59,11 @@ export function SegmentFilterValuePicker({
   );
 
   const selectedLabels = getSelectedOptionLabels(selectedValues, options);
+  const { visibleItems, onScrollToLoadMore } = useInfinityScroll(filteredOptions, {
+    enabled: isOpen,
+    getItemKey: (option) => option.value,
+    resetKey: `${isOpen}:${normalizedSearch}`,
+  });
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     setIsOpen(nextIsOpen);
@@ -123,9 +129,9 @@ export function SegmentFilterValuePicker({
           </div>
         </div>
 
-        <div className="max-h-64 overflow-y-auto p-2">
+        <div className="max-h-64 overflow-y-auto p-2" onScroll={onScrollToLoadMore}>
           {filteredOptions.length > 0 ? (
-            filteredOptions.map((option) => {
+            visibleItems.map((option) => {
               const isSelected = selectedValues.includes(option.value);
 
               return (

@@ -4,13 +4,9 @@
  * served by the NestJS students, directory and geography modules.
  */
 import { nestRequest } from "./nest-client";
-import {
-  NOT_HANDLED,
-  type Body,
-  type MethodHandler,
-} from "./nest-method-router";
+import { NOT_HANDLED, type Body, type MethodHandler } from "./nest-handler";
 
-/** Form field (Frappe name) to the student intake API field. */
+/** Form field (service name) to the student intake API field. */
 const STUDENT_FIELDS: Record<string, string> = {
   student_name: "studentName",
   full_name: "studentName",

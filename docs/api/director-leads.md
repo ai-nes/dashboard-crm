@@ -1,85 +1,79 @@
-# Director Lead list API
+# Director lead list API
 
-Endpoint: `GET /api/method/crm.api.director_leads.get_director_leads`
+Endpoint: `GET /api/v1/leads`
 
-The endpoint returns the existing `{ data, meta }` envelope and keeps the
-current authentication, search, processing status, resolution, campaign, sorting, and pagination
-parameters.
+The endpoint answers `{ data, meta }` and is limited to the leads inside the caller's lead access scope.
 
-Rows are grouped by the processing workflow in this order: `NEW`, `PROCESSING`,
-`PROCESSED`, `ASSIGNED`, then `CLOSED`. Within each status, the requested `order`
-is applied to `modified`, followed by `name` as a stable tie-breaker. Grouping is
-performed by the backend before pagination so statuses do not become mixed between pages.
+## Query
 
-Each `data` row includes the fields used by the Lead list:
+| Parameter | Type | Default | Semantics |
+| --- | --- | --- | --- |
+| `page` | integer | `1` | 1-based page. |
+| `pageSize` | integer | `20` | 1–100. |
+| `q` | string | — | Searches lead code, student name, phone and email. |
+| `status` | `NEW \| PROCESSING \| PROCESSED \| ASSIGNED \| CLOSED` | — | Filters the processing status. |
+| `resolution` | `PENDING \| MATCHED \| CREATED \| DUPLICATE \| INVALID \| SPAM \| FAILED` | — | Filters the resolution. |
+| `campaign` | string | — | Campaign id, title or stable code. |
+| `admissionYear` | `YYYY` | — | Restricts to one admission year. |
+| `order` | `asc \| desc` | `desc` | Sort direction on creation time (then id). |
+
+Rows are ordered by creation time in the requested direction; there is no
+grouping by status, so a status filter is the way to see one workflow stage.
+
+## Row
 
 | Field | Meaning |
 | --- | --- |
-| `status` / `statusCode` | Lead processing status enum, sourced from `CRM Lead.processing_status`: `NEW`, `PROCESSING`, `PROCESSED`, `ASSIGNED`, or `CLOSED`. |
-| `result` | Lead resolution from `CRM Lead.resolution`: `MATCHED`, `CREATED`, `DUPLICATE`, `INVALID`, `SPAM`, `FAILED`, or `""` while pending. |
-| `processingStatus` | Backward-compatible alias of the server-managed status value. |
-| `contactNoAnswer` | Number of failed/no-answer call attempts. |
-| `contactSuccess` | Number of connected call attempts. |
-| `createdAt` | Lead creation timestamp in ISO-8601 format. |
+| `id`, `leadCode` | Lead identifiers. |
+| `name`, `phone`, `school`, `source` | Student name, phone, high school, source or campaign title. |
+| `status` / `processingStatus` | Processing status enum (`NEW` … `CLOSED`); both keys hold the same value. |
+| `result` | Resolution: `MATCHED`, `CREATED`, `DUPLICATE`, `INVALID`, `SPAM`, `FAILED` or `PENDING`. |
+| `owner`, `ownerUserId`, `owningTeam`, `owningTeamId` | Current assignee and team. |
+| `revision`, `ownershipRevision` | Version to send back with state changes. |
+| `createdAt` | Creation time, ISO-8601. |
 
-Contact counts are assembled in batch from Call Logs linked to the Lead and
-CRM Interaction phone-call records. Interactions referencing an already
-counted Call Log are ignored to avoid double counting. Missing optional call
-history returns zero counts and does not make the Lead list unavailable.
-
-List filters:
-
-- `q`: searches Lead id/code, student name, phone, email, high school, owner, and source.
-- `status`: filters `CRM Lead.processing_status` by `NEW`, `PROCESSING`, `PROCESSED`, `ASSIGNED`, or `CLOSED`.
-- `resolution`: filters `CRM Lead.resolution` by `PENDING`, `MATCHED`, `CREATED`, `DUPLICATE`, `INVALID`, `SPAM`, or `FAILED`.
+`meta` carries `total` (rows matching the filters), `totalAll` (all rows in
+scope), `pendingNew`, `readyToAssign`, `page`, `pageSize`, `totalPages`,
+`hasNextPage`, the echoed filters, and `statusOptions` / `resolutionOptions`
+for the filter controls. Contact counters are not part of the list row.
 
 ## Lead detail activity
 
-The Lead detail page loads activity tabs lazily with these permission-scoped
-endpoints:
+The detail page loads its tabs lazily from permission-scoped endpoints:
 
-- Calls: `GET /api/method/crm.api.director_students.get_lead_call_logs?lead_id=<id>`
-  The endpoint resolves the Lead directly, so it also works before conversion to
-  `CRM Student`. It accepts the internal Lead name or public `lead_id`, returns
-  an empty `calls` list for an existing Lead without call history, and merges
-  Lead- and Student-referenced records after conversion with duplicate protection.
-- Notes: the dashboard uses the permission-scoped generic methods
-  `crm.api.note.list_notes`, `create_note`, `update_note`, and `delete_note`
-  with `reference_doctype=CRM Lead`; the Lead-specific aliases
-  `list_lead_notes`, `get_lead_note`, `create_lead_note`, `update_lead_note`,
-  and `delete_lead_note` are available for integrations.
-- Audit: `GET /api/method/crm.api.audit.get_lead_audit_logs?lead_id=<id>&start=0&page_length=100`
+| Tab | Endpoint |
+| --- | --- |
+| Overview | `GET /api/v1/leads/{id}` and `GET /api/v1/leads/{id}/timeline` |
+| Calls | `GET /api/v1/leads/{id}/calls` (and `POST` to log a call). Works before conversion; after conversion calls linked to the student are included. |
+| Notes | The shared note resource `/api/v1/notes` (`GET`, `POST`, `GET/PATCH/DELETE /{id}`) with `referenceDoctype=CRM Lead` and `referenceDocname=<lead id>`; `POST /api/v1/leads/{id}/notes` also adds one. |
+| Comments | `POST /api/v1/leads/{id}/comments` |
+| Audit | `GET /api/v1/leads/{id}/audit-logs?start=0&pageLength=100` — see [student-audit](student-audit.md). |
 
-Notes require non-empty text content up to 20,000 characters. The audit
-response is read-only and includes creation, tracked field changes, lifecycle,
-assignment, processing, and deletion events for the Lead.
+Notes need non-empty text up to 20,000 characters. The audit response is read-only.
 
-## Convert Lead to Student
+## Lead commands
 
-Endpoint: `POST /api/method/crm.api.lead_processing.convert_to_student`
+`POST /api/v1/leads/{id}/process`, `/status`, `/reopen`, `/assign`,
+`GET /api/v1/leads/{id}/assignment-targets`, `POST /api/v1/leads/auto-assign`,
+`POST /api/v1/leads/process-new` and `/process-new/preview`. Bodies carry the
+`revision` read earlier; a stale value answers `409`.
 
-Request body:
+## Convert lead to student
 
-```json
-{ "lead": "HS-2026-HCM-000091" }
-```
+`POST /api/v1/leads/{id}/convert` (no body).
 
-Only `Sale`, `CTV Sale`, and `Lead Sale` may call this endpoint. `Sale` and `CTV Sale`
-may convert only their assigned Leads; `Lead Sale` may convert any Lead in scope. The
-backend also accepts only a Lead with `processing_status=ASSIGNED` and complete
-conversion data, including `high_school` and `major`. It creates a new `CRM Student`
-with `student_stage=New`, then closes the Lead with `resolution=CREATED`. The operation
-is transactional: a failed conversion leaves the Lead assigned and does not leave a
-partial Student.
+Only `Sale`, `CTV Sale` and `Lead Sale` may call it. Sale and CTV Sale may convert
+only their own leads; Lead Sale may convert any lead in scope. The lead must be
+`ASSIGNED` with complete conversion data (including high school and major). The
+conversion is transactional and idempotent: a failed conversion leaves the lead
+assigned and creates no partial student, and converting an already converted lead
+answers the existing student with `meta.replayed: true`.
 
-Successful response (inside Frappe's `message` envelope):
+Success answers `{ data: <student>, meta: { requestId, replayed? } }`. The dashboard
+(`convertLeadToStudent`) maps it back to the summary the screen shows (`student_stage` defaults to `New`):
 
 ```json
-{
-  "status": "CLOSED",
-  "resolution": "CREATED",
-  "lead": "HS-2026-HCM-000091",
-  "student": "STU-2026-000001",
-  "student_stage": "New"
-}
+{ "status": "CLOSED", "resolution": "CREATED", "lead": "HS-2026-HCM-000091", "student": "STU-2026-000001", "student_stage": "New" }
 ```
+
+Errors: `403 FORBIDDEN` (profile), `404 LEAD_NOT_FOUND`, `409 LEAD_NOT_ASSIGNED`.

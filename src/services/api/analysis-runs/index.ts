@@ -1,9 +1,4 @@
-import {
-  FEATURE_NOT_MIGRATED_CODE,
-  FEATURE_NOT_MIGRATED_MESSAGE,
-  FEATURE_NOT_MIGRATED_STATUS,
-  frappeUnavailable,
-} from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 import type {
   AnalysisAdvisorySignal,
   AnalysisClaim,
@@ -23,27 +18,6 @@ import type {
 import type { Coverage, EvidenceRef, FindingRef } from "../intelligence-refs";
 
 export type * from "./types";
-
-const FRAPPE_STUDENT_RUN_METHOD =
-  "crm.api.copilot_delegation.run_student_analysis";
-const FRAPPE_SCHOOL_RUN_METHOD =
-  "crm.api.copilot_delegation.run_school_analysis";
-const FRAPPE_GET_RUN_METHOD = "crm.api.copilot_delegation.get_analysis_run";
-const AGENTS_STUDENT_RUN_PATH = "/api/v1/analysis-runs/student/run";
-const AGENTS_SCHOOL_RUN_PATH = "/api/v1/analysis-runs/school/run";
-const ANALYSIS_RUN_REQUEST_TIMEOUT_MS = 65_000;
-
-export type AnalysisRunTransport = "frappe-proxy" | "agents";
-
-export type AnalysisRunRequestOptions = {
-  baseUrl?: string;
-  transport?: AnalysisRunTransport;
-  apiKey?: string;
-  authorization?: string;
-  delegationProof?: string;
-  idempotencyKey?: string;
-};
-
 const RUN_STATUSES: AnalysisRunStatus[] = [
   "queued",
   "running",
@@ -92,213 +66,6 @@ function text(value: unknown): string | null {
 
 function numberValue(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function getErrorDetails(payload: unknown): {
-  code?: string;
-  message?: string;
-} {
-  const root = asRecord(payload);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-
-  return {
-    code:
-      text(error?.code) ??
-      text(root?.code) ??
-      text(root?.exception) ??
-      text(message?.exception) ??
-      undefined,
-    message:
-      text(error?.message) ??
-      text(root?.detail) ??
-      text(message?.message) ??
-      text(root?.message) ??
-      text(root?.exception) ??
-      undefined,
-  };
-}
-
-function resolveTransport(
-  options: AnalysisRunRequestOptions,
-): AnalysisRunTransport {
-  return options.transport ?? "frappe-proxy";
-}
-
-function resolveBaseUrl(options: AnalysisRunRequestOptions): string {
-  const transport = resolveTransport(options);
-  if (transport !== "agents" && frappeUnavailable(options.baseUrl)) {
-    throw new AnalysisRunApiError(
-      FEATURE_NOT_MIGRATED_STATUS,
-      FEATURE_NOT_MIGRATED_CODE,
-      FEATURE_NOT_MIGRATED_MESSAGE,
-    );
-  }
-  const baseUrl = (
-    options.baseUrl ??
-    (transport === "agents"
-      ? (process.env.CRM_AGENTS_URL ??
-        process.env.NEXT_PUBLIC_CRM_AGENTS_URL ??
-        "http://localhost:7999")
-      : (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "http://localhost:8000"))
-  ).replace(/\/+$/, "");
-  if (!baseUrl || !/^https?:\/\//i.test(baseUrl)) {
-    throw new AnalysisRunApiError(
-      0,
-      "CRM_AGENTS_URL_INVALID",
-      "Chưa cấu hình địa chỉ dịch vụ phân tích AI.",
-    );
-  }
-  return baseUrl;
-}
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-async function requestHeaders(
-  options: AnalysisRunRequestOptions,
-  contentType = false,
-): Promise<Record<string, string>> {
-  const headers: Record<string, string> = { Accept: "application/json" };
-  if (contentType) headers["Content-Type"] = "application/json";
-  const transport = resolveTransport(options);
-
-  const apiKey =
-    transport === "agents"
-      ? (options.apiKey ??
-        (typeof window !== "undefined"
-          ? process.env.NEXT_PUBLIC_CRM_AGENTS_API_KEY
-          : process.env.CRM_AGENTS_API_KEY))
-      : undefined;
-  const authorization =
-    transport === "agents"
-      ? (options.authorization ??
-        (typeof window !== "undefined"
-          ? (process.env.NEXT_PUBLIC_CRM_AGENTS_AUTHORIZATION ??
-            process.env.NEXT_PUBLIC_CRM_AGENTS_OAUTH_TOKEN)
-          : (process.env.CRM_AGENTS_AUTHORIZATION ??
-            process.env.CRM_AGENTS_OAUTH_TOKEN)))
-      : undefined;
-  const delegationProof =
-    transport === "agents"
-      ? (options.delegationProof ??
-        (typeof window !== "undefined"
-          ? process.env.NEXT_PUBLIC_CRM_AGENTS_DELEGATION_PROOF
-          : process.env.CRM_AGENTS_DELEGATION_PROOF))
-      : undefined;
-
-  if (apiKey) headers["X-API-Key"] = apiKey;
-  if (authorization) {
-    headers.Authorization = authorization.startsWith("Bearer ")
-      ? authorization
-      : `Bearer ${authorization}`;
-  }
-  if (delegationProof) headers["X-Frappe-Delegation"] = delegationProof;
-
-  if (transport === "frappe-proxy" && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) headers.Cookie = cookieHeader;
-    } catch {
-      // Contract tests can call this service outside a Next request context.
-    }
-  }
-
-  if (
-    transport === "frappe-proxy" &&
-    typeof window !== "undefined" &&
-    contentType
-  ) {
-    const csrfToken = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith("csrf_token="))
-      ?.split("=")
-      .slice(1)
-      .join("=");
-
-    if (csrfToken) {
-      headers["X-Frappe-CSRF-Token"] = decodeURIComponent(csrfToken);
-    } else {
-      try {
-        const sessionResponse = await fetch(
-          `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
-          { credentials: "include", headers: { Accept: "application/json" } },
-        );
-        const sessionPayload = (await sessionResponse
-          .json()
-          .catch(() => null)) as { message?: { csrf_token?: unknown } } | null;
-        const sessionCsrfToken = sessionPayload?.message?.csrf_token;
-        if (typeof sessionCsrfToken === "string" && sessionCsrfToken) {
-          headers["X-Frappe-CSRF-Token"] = sessionCsrfToken;
-        }
-      } catch {
-        // The proxy returns the authoritative CSRF error if needed.
-      }
-    }
-  }
-
-  return headers;
-}
-
-function analysisRunPath(
-  kind: AnalysisRunKind,
-  options: AnalysisRunRequestOptions,
-): string {
-  if (resolveTransport(options) === "agents") {
-    return kind === "student"
-      ? AGENTS_STUDENT_RUN_PATH
-      : AGENTS_SCHOOL_RUN_PATH;
-  }
-  return `/api/method/${
-    kind === "student" ? FRAPPE_STUDENT_RUN_METHOD : FRAPPE_SCHOOL_RUN_METHOD
-  }`;
-}
-
-async function parseResponse(response: Response): Promise<unknown> {
-  return response.json().catch(() => ({}));
-}
-
-async function fetchWithTimeout(
-  input: RequestInfo | URL,
-  init: RequestInit,
-  timeoutMs?: number,
-): Promise<Response> {
-  if (!timeoutMs || typeof AbortController === "undefined") {
-    return fetch(input, init);
-  }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(input, { ...init, signal: controller.signal });
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new AnalysisRunApiError(
-        504,
-        "ANALYSIS_RUN_TIMEOUT",
-        "Phân tích mất nhiều thời gian hơn dự kiến. Bạn có thể thử lại với một yêu cầu mới.",
-      );
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-function throwResponseError(response: Response, payload: unknown): never {
-  const details = getErrorDetails(payload);
-  throw new AnalysisRunApiError(
-    response.status,
-    details.code ?? "ANALYSIS_RUN_UNAVAILABLE",
-    details.message ?? `Lỗi HTTP ${response.status}: ${response.statusText}`,
-  );
 }
 
 function unwrap(value: unknown): Record<string, unknown> {
@@ -352,7 +119,7 @@ function parseClaims(value: unknown): AnalysisClaim[] {
 
   return claimsValue.flatMap((item): AnalysisClaim[] => {
     const claim = asRecord(item);
-    // Frappe's visible_claims response uses the compact wire names
+    // The compact wire names
     // (kind/text/visibility); accept the dashboard's camelCase and the
     // agent's snake_case aliases as well so a valid completed run is not
     // rendered as an empty result set.
@@ -638,7 +405,6 @@ function normalizeStage(
 function normalizeStages(
   value: unknown,
   kind: AnalysisRunKind,
-  root: Record<string, unknown>,
 ): AnalysisRunStage[] {
   const fallbacks: AnalysisStageKind[] =
     kind === "student" ? ["student_360", "next_best_action"] : ["school_360"];
@@ -648,23 +414,7 @@ function normalizeStages(
     );
   }
 
-  // The synchronous crm-agents endpoint returns one settled, flat envelope
-  // instead of the legacy Frappe stages[] envelope. Adapt it into the same
-  // internal stage model so the existing drawer and report cards stay useful.
-  const runId = text(root.runId ?? root.run_id);
-  if (!runId) return [];
-  return [
-    {
-      id: runId,
-      stageKind: fallbacks[0],
-      status: normalizeStatus(root.status),
-      claims: [],
-      report: parseReport(root.report),
-      terminalReason: text(root.terminalReason ?? root.terminal_reason),
-      policyRevision: text(root.policyRevision ?? root.policy_revision),
-      modelRevision: text(root.modelRevision ?? root.model_revision),
-    },
-  ];
+  return [];
 }
 
 export function normalizeAnalysisRun(
@@ -683,7 +433,7 @@ export function normalizeAnalysisRun(
       text(root.receiptId ?? root.receipt_id ?? root.receipt) ?? undefined,
     status: normalizeStatus(root.status),
     terminalReason: text(root.terminalReason ?? root.terminal_reason),
-    stages: normalizeStages(root.stages, runKind, root),
+    stages: normalizeStages(root.stages, runKind),
     sourceRevision: numberValue(root.sourceRevision ?? root.source_revision),
     sourceDigest: text(root.sourceDigest ?? root.source_digest),
     expiresAt: text(root.expiresAt ?? root.expires_at),
@@ -692,87 +442,43 @@ export function normalizeAnalysisRun(
   };
 }
 
-function createIdempotencyKey(kind: AnalysisRunKind, targetId: string): string {
-  const target = targetId
-    .trim()
-    .replace(/[^A-Za-z0-9._:-]+/g, "-")
-    .slice(0, 96);
-  const random =
-    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return `dashboard-${kind}-${target}-${random}`;
+function toRunError(error: unknown): unknown {
+  if (error instanceof NestApiError) {
+    return new AnalysisRunApiError(error.status, error.code, error.message);
+  }
+  return error;
 }
 
+/** Starts (or reuses) the AI analysis run of one school. */
 export async function requestAnalysisRun(
   request: AnalysisRunRequest,
-  options: AnalysisRunRequestOptions = {},
 ): Promise<AnalysisRunSnapshot> {
-  const baseUrl = resolveBaseUrl(options);
-  const payload =
-    request.kind === "student"
-      ? {
-          student_id: request.studentId.trim(),
-          ...(request.forceRerunReason
-            ? { force_rerun_reason: request.forceRerunReason }
-            : {}),
-        }
-      : {
-          high_school: request.highSchool.trim(),
-          ...(request.admissionYear !== undefined
-            ? { admission_year: request.admissionYear }
-            : {}),
-          ...(request.forceRerunReason
-            ? { force_rerun_reason: request.forceRerunReason }
-            : {}),
-        };
-  const headers = await requestHeaders(options, true);
-  headers["Idempotency-Key"] =
-    options.idempotencyKey ??
-    createIdempotencyKey(
-      request.kind,
-      request.kind === "student" ? request.studentId : request.highSchool,
+  const schoolId = request.highSchool.trim();
+  if (!schoolId) {
+    throw new AnalysisRunApiError(
+      400,
+      "INVALID_SCHOOL",
+      "Thiếu mã trường cần phân tích.",
     );
-  const path = analysisRunPath(request.kind, options);
+  }
 
-  let response: Response;
+  let result: unknown;
   try {
-    response = await fetchWithTimeout(
-      `${baseUrl}${path}`,
+    result = await nestRequest<unknown>(
+      `/api/v1/director/schools/${encodeURIComponent(schoolId)}/ai-analysis`,
       {
         method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-        ...(typeof window !== "undefined"
-          ? { credentials: "include" as RequestCredentials }
-          : {}),
-        cache: "no-store",
+        body:
+          request.admissionYear !== undefined
+            ? { admissionYear: request.admissionYear }
+            : {},
       },
-      ANALYSIS_RUN_REQUEST_TIMEOUT_MS,
     );
   } catch (error) {
-    if (error instanceof AnalysisRunApiError) throw error;
-    throw new AnalysisRunApiError(
-      503,
-      "ANALYSIS_RUN_UNAVAILABLE",
-      "Không thể kết nối tới dịch vụ phân tích.",
-    );
+    throw toRunError(error);
   }
 
-  const result = await parseResponse(response);
-  const normalized = normalizeAnalysisRun(result, request.kind);
-  // Frappe may settle one 360 stage while the downstream NBA stage abstains;
-  // older gateway responses surfaced that partial run with HTTP 400. Preserve
-  // the completed, report-bearing stage so the dashboard can still render the
-  // useful analysis instead of replacing it with a generic error state.
-  if (!response.ok) {
-    const hasCompletedStage = normalized.stages.some(
-      (stage) => stage.status === "completed",
-    );
-    if (normalized.runId && hasCompletedStage) return normalized;
-    throwResponseError(response, result);
-  }
-
+  const normalized = normalizeAnalysisRun(result, "school");
   if (!normalized.runId || !normalized.stages.length) {
     throw new AnalysisRunApiError(
       502,
@@ -785,42 +491,17 @@ export async function requestAnalysisRun(
 
 export async function getAnalysisRun(
   runId: string,
-  runKind: AnalysisRunKind,
-  options: AnalysisRunRequestOptions = {},
 ): Promise<AnalysisRunSnapshot> {
-  const baseUrl = resolveBaseUrl(options);
-  const query = new URLSearchParams({
-    run_kind: runKind,
-  });
-  const headers = await requestHeaders(options);
-
-  const transport = resolveTransport(options);
-  const url =
-    transport === "agents"
-      ? `${baseUrl}/api/v1/analysis-runs/${encodeURIComponent(runId)}?${query.toString()}`
-      : `${baseUrl}/api/method/${FRAPPE_GET_RUN_METHOD}?${query.toString()}&run_id=${encodeURIComponent(runId)}`;
-
-  let response: Response;
+  let result: unknown;
   try {
-    response = await fetch(url, {
-      headers,
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new AnalysisRunApiError(
-      503,
-      "ANALYSIS_RUN_UNAVAILABLE",
-      "Không thể tải trạng thái phân tích.",
+    result = await nestRequest<unknown>(
+      `/api/v1/ai/analysis-runs/${encodeURIComponent(runId)}`,
     );
+  } catch (error) {
+    throw toRunError(error);
   }
 
-  const result = await parseResponse(response);
-  if (!response.ok) throwResponseError(response, result);
-
-  const normalized = normalizeAnalysisRun(result, runKind);
+  const normalized = normalizeAnalysisRun(result, "school");
   if (!normalized.runId || !normalized.stages.length) {
     throw new AnalysisRunApiError(
       502,

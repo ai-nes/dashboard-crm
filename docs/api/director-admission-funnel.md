@@ -25,34 +25,26 @@ Nguồn tham chiếu trực tiếp:
 
 ## 2. Tình trạng API hiện tại
 
-Route chưa gọi API. Các component đang import dữ liệu mock trực tiếp từ `data.ts`; header và priority actions còn có một số nội dung hard-code. Hiện chưa có service tương ứng trong `src/services/api` hoặc mock handler riêng cho route này.
-
-Contract bên dưới là contract production đề xuất. Khi tích hợp, nên thay toàn bộ dataset cục bộ bằng một snapshot từ cùng request để các tỷ lệ và số lượng không lệch nhau.
+Route gọi `getDirectorAdmissionFunnel()` (`src/services/api/director-admission-funnel`) và render một snapshot duy nhất từ cùng request để các tỷ lệ và số lượng không lệch nhau. Service chuẩn hóa response; payload sai schema trả lỗi `502 INVALID_FUNNEL_RESPONSE`.
 
 ## 3. Endpoint và quyền truy cập
 
 ```http
-GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.director_admission_funnel.get_director_admission_funnel
-Cookie: sid=<Frappe session cookie>
+GET {NEXT_PUBLIC_CRM_API_URL}/api/v1/director/admission-funnel
+Cookie: <Better Auth session cookie>   (credentials: "include")
 Accept: application/json
 ```
 
-Frappe bọc response thành công trong `message`.
+Response thành công được trả trực tiếp (không bọc `message`).
 
-Endpoint chỉ đọc và không trả PII. Backend phải kiểm tra quyền Director hoặc Marketing (chỉ aggregate) trước khi áp dụng `scope`; không được để client tự quyết định phạm vi dữ liệu.
-
-Quyền tối thiểu:
-
-- `Administrator` hoặc `System Manager` có quyền phù hợp;
-- profile nghiệp vụ `Admissions Director` hoặc `Marketing` cho snapshot aggregate;
-- scope được yêu cầu phải nằm trong phạm vi user được cấp.
+Endpoint chỉ đọc và không trả PII. Quyền: quản trị viên hoặc user có lead scope `all` (quản lý); còn lại `403 FORBIDDEN`. Client không tự quyết định phạm vi dữ liệu.
 
 ## 4. Request
 
 Ví dụ:
 
 ```http
-GET /api/method/crm.api.director_admission_funnel.get_director_admission_funnel?admissionYear=2026&scope=all
+GET /api/v1/director/admission-funnel?admissionYear=2026
 ```
 
 ### Query parameters
@@ -60,7 +52,7 @@ GET /api/method/crm.api.director_admission_funnel.get_director_admission_funnel?
 | Tên | Kiểu | Bắt buộc | Mặc định | Ràng buộc / mô tả |
 |---|---|---:|---|---|
 | `admissionYear` | integer | Không | Kỳ active duy nhất | Năm 4 chữ số trong khoảng `2000..2100` |
-| `scope` | string | Không | `all` | `all`, campus ID hoặc territory ID được user cấp quyền |
+| `scope` | string | Không | `all` | Dashboard chưa gửi tham số này; snapshot luôn là toàn bộ phạm vi `all` của người xem |
 
 Không cần `stage`, `source` hoặc `cohort` cho lần tải đầu. Các bảng/biểu đồ trên màn hình dùng chung một snapshot và hiện không có bộ lọc độc lập.
 
@@ -89,68 +81,66 @@ Ví dụ response rút gọn:
 
 ```json
 {
-  "message": {
-    "meta": {
-      "admissionYear": 2026,
-      "scope": "all",
-      "scopeLabel": "Toàn bộ cơ sở",
-      "asOf": "2026-08-31T10:00:00+07:00",
-      "timezone": "Asia/Ho_Chi_Minh",
-      "status": "available"
-    },
-    "summary": {
-      "prospects": 58420,
-      "enrolled": 3820,
-      "enrollmentRate": 6.5,
-      "priorityStageId": "prospect",
-      "priorityNextStageId": "engaged",
-      "priorityDropRate": 55.2,
-      "priorityDropCount": 32240
-    },
-    "stages": [
-      { "id": "prospect", "label": "Hồ sơ tiềm năng", "description": "Có định danh và đồng ý nhận tư vấn", "count": 58420, "remainingRate": 100, "stepRate": 100 },
-      { "id": "engaged", "label": "Đã tương tác", "description": "Đã phản hồi hai chiều", "count": 26180, "remainingRate": 44.8, "stepRate": 44.8 },
-      { "id": "qualified", "label": "Đủ điều kiện", "description": "Đúng nhóm tuyển sinh mục tiêu", "count": 12640, "remainingRate": 21.6, "stepRate": 48.3 },
-      { "id": "counselling", "label": "Đã tư vấn", "description": "Đã có ít nhất một phiên tư vấn", "count": 8920, "remainingRate": 15.3, "stepRate": 70.6 },
-      { "id": "application", "label": "Đã đăng ký", "description": "Đã khởi tạo hồ sơ đăng ký", "count": 6240, "remainingRate": 10.7, "stepRate": 70.0 },
-      { "id": "accepted", "label": "Đã trúng tuyển", "description": "Đủ điều kiện nhập học", "count": 4910, "remainingRate": 8.4, "stepRate": 78.7 },
-      { "id": "enrolled", "label": "Đã nhập học", "description": "Đã hoàn tất xác nhận nhập học", "count": 3820, "remainingRate": 6.5, "stepRate": 77.8 }
-    ],
-    "dropOffs": [
-      { "fromStageId": "prospect", "toStageId": "engaged", "fromLabel": "Hồ sơ tiềm năng", "toLabel": "Đã tương tác", "dropCount": 32240, "dropRate": 55.2 },
-      { "fromStageId": "engaged", "toStageId": "qualified", "fromLabel": "Đã tương tác", "toLabel": "Đủ điều kiện", "dropCount": 13540, "dropRate": 51.7 },
-      { "fromStageId": "qualified", "toStageId": "counselling", "fromLabel": "Đủ điều kiện", "toLabel": "Đã tư vấn", "dropCount": 3720, "dropRate": 29.4 }
-    ],
-    "aging": {
-      "totalOverFourteenDays": 7272,
-      "rows": [
-        { "stageId": "prospect", "stage": "Hồ sơ tiềm năng", "underThreeDays": 12480, "threeToSevenDays": 8940, "sevenToFourteenDays": 6120, "overFourteenDays": 4680, "medianDays": 2.1 },
-        { "stageId": "engaged", "stage": "Đã tương tác", "underThreeDays": 5240, "threeToSevenDays": 3810, "sevenToFourteenDays": 2960, "overFourteenDays": 1420, "medianDays": 4.8 },
-        { "stageId": "qualified", "stage": "Đủ điều kiện", "underThreeDays": 1980, "threeToSevenDays": 1240, "sevenToFourteenDays": 810, "overFourteenDays": 692, "medianDays": 6.2 },
-        { "stageId": "counselling", "stage": "Đã tư vấn", "underThreeDays": 1140, "threeToSevenDays": 820, "sevenToFourteenDays": 460, "overFourteenDays": 340, "medianDays": 5.1 },
-        { "stageId": "application", "stage": "Đã đăng ký", "underThreeDays": 980, "threeToSevenDays": 610, "sevenToFourteenDays": 310, "overFourteenDays": 100, "medianDays": 3.4 },
-        { "stageId": "accepted", "stage": "Đã trúng tuyển", "underThreeDays": 420, "threeToSevenDays": 280, "sevenToFourteenDays": 190, "overFourteenDays": 40, "medianDays": 2.2 }
-      ]
-    },
-    "sourcePerformance": [
-      { "id": "digital", "label": "Kênh số", "stepRates": [44.1, 46.2, 68.4, 69.1, 77.8, 76.2], "finalRate": 5.7 },
-      { "id": "field", "label": "Thực địa", "stepRates": [58.2, 54.8, 74.1, 78.6, 81.2, 82.4], "finalRate": 12.4 }
-    ],
-    "cohorts": {
-      "targetStageId": "application",
-      "followUpWeeks": [1, 2, 3, 4, 5, 6],
-      "completeCohortCount": 3,
-      "rows": [
-        { "id": "week-24", "label": "Tuần 24", "values": [41, 24, 18, 14, 11, 9.2] },
-        { "id": "week-27", "label": "Tuần 27", "values": [46, 28, 21, 16, 12.4, null] }
-      ]
-    },
-    "priorityActions": [
-      { "id": "improve-first-transition", "title": "Cải thiện bước Tiềm năng → Tương tác", "detail": "32.240 hồ sơ chưa chuyển bước.", "tone": "error" },
-      { "id": "clear-aging-backlog", "title": "Xử lý hồ sơ chờ trên 14 ngày", "detail": "7.272 hồ sơ đang tồn đọng.", "tone": "warning" },
-      { "id": "scale-best-source", "title": "Nhân rộng nguồn có tỷ lệ nhập học cao", "detail": "Nguồn hiệu quả nhất cần được ưu tiên mở rộng.", "tone": "success" }
+  "meta": {
+    "admissionYear": 2026,
+    "scope": "all",
+    "scopeLabel": "Toàn bộ cơ sở",
+    "asOf": "2026-08-31T10:00:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "status": "available"
+  },
+  "summary": {
+    "prospects": 58420,
+    "enrolled": 3820,
+    "enrollmentRate": 6.5,
+    "priorityStageId": "prospect",
+    "priorityNextStageId": "engaged",
+    "priorityDropRate": 55.2,
+    "priorityDropCount": 32240
+  },
+  "stages": [
+    { "id": "prospect", "label": "Hồ sơ tiềm năng", "description": "Có định danh và đồng ý nhận tư vấn", "count": 58420, "remainingRate": 100, "stepRate": 100 },
+    { "id": "engaged", "label": "Đã tương tác", "description": "Đã phản hồi hai chiều", "count": 26180, "remainingRate": 44.8, "stepRate": 44.8 },
+    { "id": "qualified", "label": "Đủ điều kiện", "description": "Đúng nhóm tuyển sinh mục tiêu", "count": 12640, "remainingRate": 21.6, "stepRate": 48.3 },
+    { "id": "counselling", "label": "Đã tư vấn", "description": "Đã có ít nhất một phiên tư vấn", "count": 8920, "remainingRate": 15.3, "stepRate": 70.6 },
+    { "id": "application", "label": "Đã đăng ký", "description": "Đã khởi tạo hồ sơ đăng ký", "count": 6240, "remainingRate": 10.7, "stepRate": 70.0 },
+    { "id": "accepted", "label": "Đã trúng tuyển", "description": "Đủ điều kiện nhập học", "count": 4910, "remainingRate": 8.4, "stepRate": 78.7 },
+    { "id": "enrolled", "label": "Đã nhập học", "description": "Đã hoàn tất xác nhận nhập học", "count": 3820, "remainingRate": 6.5, "stepRate": 77.8 }
+  ],
+  "dropOffs": [
+    { "fromStageId": "prospect", "toStageId": "engaged", "fromLabel": "Hồ sơ tiềm năng", "toLabel": "Đã tương tác", "dropCount": 32240, "dropRate": 55.2 },
+    { "fromStageId": "engaged", "toStageId": "qualified", "fromLabel": "Đã tương tác", "toLabel": "Đủ điều kiện", "dropCount": 13540, "dropRate": 51.7 },
+    { "fromStageId": "qualified", "toStageId": "counselling", "fromLabel": "Đủ điều kiện", "toLabel": "Đã tư vấn", "dropCount": 3720, "dropRate": 29.4 }
+  ],
+  "aging": {
+    "totalOverFourteenDays": 7272,
+    "rows": [
+      { "stageId": "prospect", "stage": "Hồ sơ tiềm năng", "underThreeDays": 12480, "threeToSevenDays": 8940, "sevenToFourteenDays": 6120, "overFourteenDays": 4680, "medianDays": 2.1 },
+      { "stageId": "engaged", "stage": "Đã tương tác", "underThreeDays": 5240, "threeToSevenDays": 3810, "sevenToFourteenDays": 2960, "overFourteenDays": 1420, "medianDays": 4.8 },
+      { "stageId": "qualified", "stage": "Đủ điều kiện", "underThreeDays": 1980, "threeToSevenDays": 1240, "sevenToFourteenDays": 810, "overFourteenDays": 692, "medianDays": 6.2 },
+      { "stageId": "counselling", "stage": "Đã tư vấn", "underThreeDays": 1140, "threeToSevenDays": 820, "sevenToFourteenDays": 460, "overFourteenDays": 340, "medianDays": 5.1 },
+      { "stageId": "application", "stage": "Đã đăng ký", "underThreeDays": 980, "threeToSevenDays": 610, "sevenToFourteenDays": 310, "overFourteenDays": 100, "medianDays": 3.4 },
+      { "stageId": "accepted", "stage": "Đã trúng tuyển", "underThreeDays": 420, "threeToSevenDays": 280, "sevenToFourteenDays": 190, "overFourteenDays": 40, "medianDays": 2.2 }
     ]
-  }
+  },
+  "sourcePerformance": [
+    { "id": "digital", "label": "Kênh số", "stepRates": [44.1, 46.2, 68.4, 69.1, 77.8, 76.2], "finalRate": 5.7 },
+    { "id": "field", "label": "Thực địa", "stepRates": [58.2, 54.8, 74.1, 78.6, 81.2, 82.4], "finalRate": 12.4 }
+  ],
+  "cohorts": {
+    "targetStageId": "application",
+    "followUpWeeks": [1, 2, 3, 4, 5, 6],
+    "completeCohortCount": 3,
+    "rows": [
+      { "id": "week-24", "label": "Tuần 24", "values": [41, 24, 18, 14, 11, 9.2] },
+      { "id": "week-27", "label": "Tuần 27", "values": [46, 28, 21, 16, 12.4, null] }
+    ]
+  },
+  "priorityActions": [
+    { "id": "improve-first-transition", "title": "Cải thiện bước Tiềm năng → Tương tác", "detail": "32.240 hồ sơ chưa chuyển bước.", "tone": "error" },
+    { "id": "clear-aging-backlog", "title": "Xử lý hồ sơ chờ trên 14 ngày", "detail": "7.272 hồ sơ đang tồn đọng.", "tone": "warning" },
+    { "id": "scale-best-source", "title": "Nhân rộng nguồn có tỷ lệ nhập học cao", "detail": "Nguồn hiệu quả nhất cần được ưu tiên mở rộng.", "tone": "success" }
+  ]
 }
 ```
 
@@ -319,15 +309,13 @@ Action phải được tạo từ snapshot hiện tại và sắp xếp theo ưu
 
 ```json
 {
-  "message": {
-    "error": {
-      "code": "DIRECTOR_ADMISSION_FUNNEL_UNAVAILABLE",
-      "message": "Không thể tải dữ liệu phễu tuyển sinh.",
-      "details": {}
-    },
-    "meta": {
-      "requestId": "req_01J..."
-    }
+  "error": {
+    "code": "DIRECTOR_ADMISSION_FUNNEL_UNAVAILABLE",
+    "message": "Không thể tải dữ liệu phễu tuyển sinh.",
+    "details": {}
+  },
+  "meta": {
+    "requestId": "req_01J..."
   }
 }
 ```
@@ -347,18 +335,12 @@ Action phải được tạo từ snapshot hiện tại và sắp xếp theo ưu
 
 Nút `Xem kế hoạch can thiệp` chỉ điều hướng sang `/director/ai/next-best-action`, không cần thêm command vào request initial.
 
-Nút `Xuất báo cáo` hiện chỉ hiển thị toast. Nếu triển khai backend, dùng endpoint riêng với cùng snapshot/filter:
-
-```http
-GET /api/method/crm.api.director_admission_funnel.export_director_admission_funnel?admissionYear=2026&scope=all
-```
-
-Endpoint export nên trả file CSV/XLSX hoặc job export có `requestId`; không đưa dữ liệu export lớn vào response JSON của endpoint overview.
+Nút `Xuất báo cáo` hiện chỉ hiển thị toast; chưa có endpoint export. Nếu triển khai, dùng route riêng dưới `/api/v1/director` và không đưa dữ liệu export lớn vào response JSON của endpoint overview.
 
 ## 10. Request tối thiểu để tích hợp
 
 ```http
-GET /api/method/crm.api.director_admission_funnel.get_director_admission_funnel?admissionYear=2026&scope=all
+GET /api/v1/director/admission-funnel?admissionYear=2026
 ```
 
 Response tối thiểu để render đúng route:

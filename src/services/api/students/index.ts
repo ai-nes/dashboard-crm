@@ -1,11 +1,8 @@
-import {
-  isNestApiEnabled,
-  NestApiError,
-  nestRequest,
-} from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 import { nestDirectorStudents } from "./students-nest";
 import { student360Data, studentListData } from "./data";
 import type {
+  StudentAdmissionProfile,
   DirectorStudentsActionSummary,
   DirectorStudentsMeta,
   DirectorStudentsParams,
@@ -30,86 +27,6 @@ export class DirectorStudentsApiError extends Error {
     super(message);
     this.name = "DirectorStudentsApiError";
   }
-}
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-function hasStudentsEnvelope(value: unknown): boolean {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const root = value as Record<string, unknown>;
-  const payload =
-    "message" in root && root.message && typeof root.message === "object"
-      ? (root.message as Record<string, unknown>)
-      : root;
-
-  return (
-    Array.isArray(payload.data) &&
-    payload.data.every(hasStudentListRevision) &&
-    !!payload.summary &&
-    typeof payload.summary === "object" &&
-    !!payload.actionSummary &&
-    typeof payload.actionSummary === "object" &&
-    !!payload.meta &&
-    typeof payload.meta === "object" &&
-    typeof (payload.meta as Record<string, unknown>).total === "number"
-  );
-}
-
-function hasStudentListRevision(value: unknown): boolean {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const revision = (value as Record<string, unknown>).revision;
-  return (
-    typeof revision === "number" && Number.isInteger(revision) && revision >= 0
-  );
-}
-
-function hasStudent360Envelope(value: unknown): boolean {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const root = value as Record<string, unknown>;
-  const payload =
-    "message" in root && root.message && typeof root.message === "object"
-      ? (root.message as Record<string, unknown>)
-      : root;
-
-  return (
-    !!payload.student &&
-    typeof payload.student === "object" &&
-    typeof (payload.student as Record<string, unknown>).name === "string" &&
-    !!payload.classification &&
-    typeof payload.classification === "object" &&
-    Array.isArray(
-      (payload.classification as Record<string, unknown>).dimensions,
-    ) &&
-    Array.isArray(payload.readiness) &&
-    Array.isArray(payload.family) &&
-    Array.isArray(payload.journey) &&
-    Array.isArray(payload.application)
-  );
-}
-
-function hasStudentChatwootInteractionsEnvelope(value: unknown): boolean {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const root = value as Record<string, unknown>;
-  const payload =
-    "message" in root && root.message && typeof root.message === "object"
-      ? (root.message as Record<string, unknown>)
-      : root;
-  const meta = payload.meta;
-
-  return (
-    typeof payload.student_id === "string" &&
-    Array.isArray(payload.data) &&
-    Array.isArray(payload.zalo_messages) &&
-    !!meta &&
-    typeof meta === "object" &&
-    typeof (meta as Record<string, unknown>).total === "number"
-  );
 }
 
 function normalizeNestStudentCall(value: unknown): StudentCallRecord | null {
@@ -842,120 +759,34 @@ export function computeStudent360(
 
 export async function getStudent360(
   studentId = "nguyen-minh-an",
-  options: { baseUrl?: string } = {},
 ): Promise<Student360Data | null> {
-  if (!options.baseUrl && isNestApiEnabled()) {
-    try {
-      const result = await nestRequest<{
-        data?: Record<string, unknown>;
-      }>(`/api/v1/students/${encodeURIComponent(studentId)}`);
-      const student = result.data;
-      if (!student || typeof student !== "object") {
-        throw new DirectorStudentsApiError(
-          502,
-          "INVALID_STUDENT_RESPONSE",
-          "Phản hồi hồ sơ học sinh không hợp lệ.",
-        );
-      }
-      return toNestStudent360(student);
-    } catch (error) {
-      if (error instanceof DirectorStudentsApiError) throw error;
-      if (error instanceof NestApiError) {
-        if (error.status === 404 || error.code === "STUDENT_NOT_FOUND") {
-          return null;
-        }
-        throw new DirectorStudentsApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
+  try {
+    const result = await nestRequest<{
+      data?: Record<string, unknown>;
+    }>(`/api/v1/students/${encodeURIComponent(studentId)}`);
+    const student = result.data;
+    if (!student || typeof student !== "object") {
+      throw new DirectorStudentsApiError(
+        502,
+        "INVALID_STUDENT_RESPONSE",
+        "Phản hồi hồ sơ học sinh không hợp lệ.",
+      );
     }
-  }
-
-  const frappeBase = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-
-  if (!frappeBase) {
-    throw new DirectorStudentsApiError(
-      503,
-      "STUDENT_API_UNAVAILABLE",
-      "Không thể tải hồ sơ học sinh vì chưa cấu hình Frappe CRM API.",
-    );
-  }
-
-  const url = `${frappeBase}/api/method/crm.api.director_students.get_director_student?student_id=${encodeURIComponent(studentId)}`;
-
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-  };
-
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) {
-        headers.Cookie = cookieHeader;
+    return toNestStudent360(student);
+  } catch (error) {
+    if (error instanceof DirectorStudentsApiError) throw error;
+    if (error instanceof NestApiError) {
+      if (error.status === 404 || error.code === "STUDENT_NOT_FOUND") {
+        return null;
       }
-    } catch {
-      // Ignored outside request context (e.g., tests)
+      throw new DirectorStudentsApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
     }
+    throw error;
   }
-
-  const response = await fetch(url, {
-    headers,
-    ...(typeof window !== "undefined"
-      ? { credentials: "include" as RequestCredentials }
-      : {}),
-    cache: "no-store",
-  });
-
-  const payload = await response.json().catch(() => ({}));
-  const error = payload?.error ?? {};
-
-  if (
-    response.status === 404 &&
-    (error.code === "STUDENT_NOT_FOUND" || !error.code)
-  ) {
-    return null;
-  }
-
-  if (!response.ok) {
-    const errorCode =
-      typeof error.code === "string"
-        ? error.code
-        : typeof payload?.exception === "string"
-          ? payload.exception
-          : "STUDENT_DATA_UNAVAILABLE";
-    const errorMessage =
-      typeof error.message === "string"
-        ? error.message
-        : typeof payload?.message === "string"
-          ? payload.message
-          : typeof payload?.exception === "string"
-            ? payload.exception
-            : `Lỗi HTTP ${response.status}: ${response.statusText}`;
-
-    throw new DirectorStudentsApiError(
-      response.status,
-      errorCode,
-      errorMessage,
-    );
-  }
-
-  if (!hasStudent360Envelope(payload)) {
-    throw new DirectorStudentsApiError(
-      502,
-      "INVALID_STUDENT_RESPONSE",
-      "Phản hồi hồ sơ học sinh không hợp lệ.",
-    );
-  }
-
-  return (payload.message || payload) as Student360Data;
 }
 
 function toNestStudent360(student: Record<string, unknown>): Student360Data {
@@ -1024,6 +855,8 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
       ownerId: nullableText(student.ownerUserId),
       revision:
         typeof student.revision === "number" ? student.revision : undefined,
+      engagementRevision:
+        typeof student.revision === "number" ? student.revision : undefined,
       priority:
         qualityBucket === "Hot"
           ? "Cao"
@@ -1035,12 +868,72 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
       lastUpdatedAt: modifiedAt,
       aspiration: nullableText(student.aspiration),
       aspirationId: nullableText(student.aspirationId),
+      profileDetails: {
+        personal: {
+          fullName: nullableText(student.fullName),
+          dateOfBirth: nullableText(student.dateOfBirth),
+          gender: nullableText(student.gender),
+          idNumber: nullableText(student.idNumber),
+          birthPlace: nullableText(student.birthPlace),
+          ethnicity: nullableText(student.ethnicity),
+          religion: nullableText(student.religion),
+          nationality: nullableText(student.nationality),
+          idIssuedDate: nullableText(student.idIssuedDate),
+          idIssuedPlace: nullableText(student.idIssuedPlace),
+          phone: nullableText(student.phone),
+          otherPhone: nullableText(student.otherPhone),
+          email: nullableText(student.email),
+          otherEmail: nullableText(student.otherEmail),
+          source: nullableText(student.source),
+          campaign: nullableText(student.campaign),
+          owner: nullableText(student.owner),
+          sourceLeadId: nullableText(student.sourceLeadId),
+          majorId: nullableText(student.majorId),
+          major: nullableText(student.major),
+          admissionYearId: nullableText(student.admissionYearId),
+          admissionYear: nullableText(student.admissionYear),
+          createdAt: nullableText(student.createdAt),
+          modifiedAt: nullableText(student.modifiedAt),
+          branchId: nullableText(student.campusId),
+          branch: nullableText(student.branch),
+          sourceLead: nullableText(student.sourceLeadId),
+        },
+        contact: {
+          name: nullableText(student.parentName),
+          phone: nullableText(student.parentPhone),
+          otherPhone: nullableText(student.parentOtherPhone),
+          email: nullableText(student.parentEmail),
+          bankName: nullableText(student.bankName),
+          accountNumber: nullableText(student.accountNumber),
+          accountHolder: nullableText(student.accountHolder),
+          fatherEmail: nullableText(student.fatherEmail),
+          fatherName: nullableText(student.fatherName),
+          fatherPhone: nullableText(student.fatherPhone),
+          fatherOccupation: nullableText(student.fatherOccupation),
+          motherName: nullableText(student.motherName),
+          motherPhone: nullableText(student.motherPhone),
+          motherEmail: nullableText(student.motherEmail),
+          motherOccupation: nullableText(student.motherOccupation),
+        },
+        address: {
+          province: nullableText(student.province),
+          provinceId: nullableText(student.provinceId),
+          ward: nullableText(student.ward),
+          wardId: nullableText(student.wardId),
+          fullAddress: nullableText(student.contactAddress),
+        },
+      },
     },
     readiness: [
       {
         label: "Mức sẵn sàng",
         value: readinessValue,
-        tone: readinessValue >= 75 ? "success" : readinessValue >= 50 ? "warning" : "error",
+        tone:
+          readinessValue >= 75
+            ? "success"
+            : readinessValue >= 50
+              ? "warning"
+              : "error",
         detail: readinessLevel || "Chưa có dữ liệu đánh giá",
       },
     ],
@@ -1051,6 +944,9 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
       { label: "Cập nhật lần cuối", value: modifiedAt },
     ],
     academics: [],
+    admissionProfiles: Array.isArray(student.admissionProfiles)
+      ? (student.admissionProfiles as StudentAdmissionProfile[])
+      : [],
     family: parentName ? [{ label: "Người liên hệ", value: parentName }] : [],
     classification: {
       dimensions: [],
@@ -1063,7 +959,7 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
       reviewedBy: "",
     },
     acquisition: {
-      firstTouch: source,
+      firstTouch: text(student.advertisingChannel) || source,
       sourceGroup: "Trực tuyến chủ động",
       campaign: text(student.campaign) || "—",
       capturedAt: text(student.createdAt) || modifiedAt,
@@ -1100,7 +996,8 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
         stage ? `Trạng thái: ${stage}` : "Chưa có trạng thái",
         source !== "Chưa xác định" ? `Nguồn: ${source}` : "Chưa có nguồn",
       ],
-      recommendation: "Bổ sung tương tác và cập nhật hồ sơ trước bước tiếp theo.",
+      recommendation:
+        "Bổ sung tương tác và cập nhật hồ sơ trước bước tiếp theo.",
     },
     journey: [],
     engagement: [],
@@ -1112,266 +1009,120 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
 
 export async function getStudentChatwootInteractions(
   studentId: string,
-  options: { baseUrl?: string; page?: number; pageSize?: number } = {},
+  options: { page?: number; pageSize?: number } = {},
 ): Promise<StudentChatwootInteractionsResponse | null> {
-  if (isNestApiEnabled()) {
-    try {
-      const result = await nestRequest<{
-        data?: Array<Record<string, unknown>>;
-      }>(`/api/v1/students/${encodeURIComponent(studentId)}/timeline`, {
-        query: { limit: 200 },
-      });
-      if (!Array.isArray(result.data)) {
-        throw new DirectorStudentsApiError(
-          502,
-          "INVALID_CHATWOOT_INTERACTIONS_RESPONSE",
-          "Phản hồi tương tác Chatwoot không hợp lệ.",
-        );
-      }
-      const interactions = result.data
-        .filter((entry) => entry.type === "interaction")
-        .map((entry) => ({
-          name: typeof entry.id === "string" ? entry.id : "",
-          student: studentId,
-          crm_contact: null,
-          interaction_type:
-            typeof entry.channel === "string" && entry.channel
-              ? entry.channel
-              : "interaction",
-          interaction_datetime:
-            typeof entry.occurredAt === "string" ? entry.occurredAt : "",
-          summary: typeof entry.title === "string" ? entry.title : null,
-          notes: typeof entry.content === "string" ? entry.content : null,
-          channel: typeof entry.channel === "string" ? entry.channel : null,
-          direction:
-            entry.direction === "inbound" || entry.direction === "outbound"
-              ? (entry.direction as "inbound" | "outbound")
-              : null,
-          conversation_id: null,
-          agent_id: null,
-          outcome: typeof entry.outcome === "string" ? entry.outcome : null,
-          actor: typeof entry.author === "string" ? entry.author : null,
-          source_namespace: "nest.timeline",
-          source_record_id: typeof entry.id === "string" ? entry.id : null,
-          creation:
-            typeof entry.occurredAt === "string" ? entry.occurredAt : null,
-        }))
-        .filter((entry) => entry.name && entry.interaction_datetime);
-      const page = Math.max(1, options.page ?? 1);
-      const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 50));
-      const start = (page - 1) * pageSize;
-      return {
-        student_id: studentId,
-        data: interactions.slice(start, start + pageSize),
-        zalo_messages: [],
-        meta: {
-          page,
-          page_size: pageSize,
-          total: interactions.length,
-          has_next_page: start + pageSize < interactions.length,
-        },
-      };
-    } catch (error) {
-      if (error instanceof DirectorStudentsApiError) throw error;
-      if (error instanceof NestApiError) {
-        throw new DirectorStudentsApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
+  try {
+    const result = await nestRequest<{
+      data?: Array<Record<string, unknown>>;
+    }>(`/api/v1/students/${encodeURIComponent(studentId)}/timeline`, {
+      query: { limit: 200 },
+    });
+    if (!Array.isArray(result.data)) {
+      throw new DirectorStudentsApiError(
+        502,
+        "INVALID_CHATWOOT_INTERACTIONS_RESPONSE",
+        "Phản hồi tương tác Chatwoot không hợp lệ.",
+      );
     }
-  }
-
-  const frappeBase = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-
-  if (!frappeBase) return null;
-
-  const query = new URLSearchParams({
-    student_id: studentId,
-    page: String(options.page ?? 1),
-    page_size: String(options.pageSize ?? 50),
-  });
-  const url = `${frappeBase}/api/method/crm.api.director_students.get_student_chatwoot_interactions?${query}`;
-
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-  };
-
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) {
-        headers.Cookie = cookieHeader;
-      }
-    } catch {
-      // Ignored outside request context
+    const interactions = result.data
+      .filter((entry) => entry.type === "interaction")
+      .map((entry) => ({
+        name: typeof entry.id === "string" ? entry.id : "",
+        student: studentId,
+        crm_contact: null,
+        interaction_type:
+          typeof entry.channel === "string" && entry.channel
+            ? entry.channel
+            : "interaction",
+        interaction_datetime:
+          typeof entry.occurredAt === "string" ? entry.occurredAt : "",
+        summary: typeof entry.title === "string" ? entry.title : null,
+        notes: typeof entry.content === "string" ? entry.content : null,
+        channel: typeof entry.channel === "string" ? entry.channel : null,
+        direction:
+          entry.direction === "inbound" || entry.direction === "outbound"
+            ? (entry.direction as "inbound" | "outbound")
+            : null,
+        conversation_id: null,
+        agent_id: null,
+        outcome: typeof entry.outcome === "string" ? entry.outcome : null,
+        actor: typeof entry.author === "string" ? entry.author : null,
+        source_namespace: "nest.timeline",
+        source_record_id: typeof entry.id === "string" ? entry.id : null,
+        creation:
+          typeof entry.occurredAt === "string" ? entry.occurredAt : null,
+      }))
+      .filter((entry) => entry.name && entry.interaction_datetime);
+    const page = Math.max(1, options.page ?? 1);
+    const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 50));
+    const start = (page - 1) * pageSize;
+    return {
+      student_id: studentId,
+      data: interactions.slice(start, start + pageSize),
+      zalo_messages: [],
+      meta: {
+        page,
+        page_size: pageSize,
+        total: interactions.length,
+        has_next_page: start + pageSize < interactions.length,
+      },
+    };
+  } catch (error) {
+    if (error instanceof DirectorStudentsApiError) throw error;
+    if (error instanceof NestApiError) {
+      throw new DirectorStudentsApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
     }
+    throw error;
   }
-
-  const response = await fetch(url, {
-    headers,
-    ...(typeof window !== "undefined"
-      ? { credentials: "include" as RequestCredentials }
-      : {}),
-    cache: "no-store",
-  });
-
-  const payload = await response.json().catch(() => ({}));
-  const error = payload?.error ?? {};
-  if (
-    response.status === 404 &&
-    (error.code === "STUDENT_NOT_FOUND" || !error.code)
-  ) {
-    return null;
-  }
-
-  if (!response.ok) {
-    const errorCode =
-      typeof error.code === "string"
-        ? error.code
-        : typeof payload?.exception === "string"
-          ? payload.exception
-          : "CHATWOOT_INTERACTIONS_FETCH_FAILED";
-    const errorMessage =
-      typeof error.message === "string"
-        ? error.message
-        : typeof payload?.message === "string"
-          ? payload.message
-          : `Không thể lấy tin nhắn Chatwoot (${response.status}).`;
-    throw new DirectorStudentsApiError(
-      response.status,
-      errorCode,
-      errorMessage,
-    );
-  }
-
-  if (!hasStudentChatwootInteractionsEnvelope(payload)) {
-    throw new DirectorStudentsApiError(
-      502,
-      "INVALID_CHATWOOT_INTERACTIONS_RESPONSE",
-      "Phản hồi tin nhắn Chatwoot không hợp lệ.",
-    );
-  }
-
-  return (payload.message || payload) as StudentChatwootInteractionsResponse;
 }
 
 export async function getStudentInteractions(
   studentId: string,
-  options: { baseUrl?: string } = {},
 ): Promise<StudentInteractionsResponse | null> {
-  if (isNestApiEnabled()) {
-    try {
-      const result = await nestRequest<{
-        data?: Array<Record<string, unknown>>;
-      }>(`/api/v1/students/${encodeURIComponent(studentId)}/timeline`, {
-        query: { limit: 100 },
-      });
-      if (!Array.isArray(result.data)) {
-        throw new DirectorStudentsApiError(
-          502,
-          "INVALID_INTERACTIONS_RESPONSE",
-          "Phản hồi lịch sử tương tác không hợp lệ.",
-        );
-      }
-      const calls = result.data
-        .filter((entry) => entry.type === "call")
-        .map(normalizeNestStudentCall);
-      if (calls.some((call) => call === null)) {
-        throw new DirectorStudentsApiError(
-          502,
-          "INVALID_INTERACTIONS_RESPONSE",
-          "Phản hồi lịch sử tương tác không hợp lệ.",
-        );
-      }
-      return {
-        student_id: studentId,
-        zalo_messages: [],
-        calls: calls as StudentCallRecord[],
-        total_interactions: calls.length,
-      };
-    } catch (error) {
-      if (error instanceof DirectorStudentsApiError) throw error;
-      if (error instanceof NestApiError) {
-        throw new DirectorStudentsApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
+  try {
+    const result = await nestRequest<{
+      data?: Array<Record<string, unknown>>;
+    }>(`/api/v1/students/${encodeURIComponent(studentId)}/timeline`, {
+      query: { limit: 100 },
+    });
+    if (!Array.isArray(result.data)) {
+      throw new DirectorStudentsApiError(
+        502,
+        "INVALID_INTERACTIONS_RESPONSE",
+        "Phản hồi lịch sử tương tác không hợp lệ.",
+      );
     }
-  }
-
-  const frappeBase = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-
-  if (!frappeBase) {
+    const calls = result.data
+      .filter((entry) => entry.type === "call")
+      .map(normalizeNestStudentCall);
+    if (calls.some((call) => call === null)) {
+      throw new DirectorStudentsApiError(
+        502,
+        "INVALID_INTERACTIONS_RESPONSE",
+        "Phản hồi lịch sử tương tác không hợp lệ.",
+      );
+    }
     return {
       student_id: studentId,
       zalo_messages: [],
-      calls: [],
-      total_interactions: 0,
+      calls: calls as StudentCallRecord[],
+      total_interactions: calls.length,
     };
-  }
-
-  const url = `${frappeBase}/api/method/crm.api.director_students.get_student_interactions?student_id=${encodeURIComponent(studentId)}`;
-
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-  };
-
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) {
-        headers.Cookie = cookieHeader;
-      }
-    } catch {
-      // Ignored outside request context
+  } catch (error) {
+    if (error instanceof DirectorStudentsApiError) throw error;
+    if (error instanceof NestApiError) {
+      throw new DirectorStudentsApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
     }
+    throw error;
   }
-
-  const response = await fetch(url, {
-    headers,
-    ...(typeof window !== "undefined"
-      ? { credentials: "include" as RequestCredentials }
-      : {}),
-    cache: "no-store",
-  });
-
-  const payload = await response.json().catch(() => ({}));
-  if (response.status === 404) {
-    return null;
-  }
-
-  if (!response.ok) {
-    const error = payload?.error ?? {};
-    const errorCode =
-      typeof error.code === "string" ? error.code : "INTERACTIONS_FETCH_FAILED";
-    const errorMessage =
-      typeof error.message === "string"
-        ? error.message
-        : "Không thể lấy lịch sử tương tác.";
-    throw new DirectorStudentsApiError(
-      response.status,
-      errorCode,
-      errorMessage,
-    );
-  }
-
-  return (payload.message || payload) as StudentInteractionsResponse;
 }
 
 function normalizeSearchValue(value: string): string {
@@ -1535,121 +1286,17 @@ export function computeDirectorStudents(
 
 export async function getDirectorStudents(
   params?: DirectorStudentsParams,
-  options: { baseUrl?: string; sessionRequired?: boolean } = {},
 ): Promise<DirectorStudentsResponse> {
-  if (isNestApiEnabled()) {
-    try {
-      return await nestDirectorStudents(params);
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        throw new DirectorStudentsApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
+  try {
+    return await nestDirectorStudents(params);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new DirectorStudentsApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
     }
+    throw error;
   }
-  const searchParams = new URLSearchParams();
-  if (params?.admissionYear)
-    searchParams.set("admissionYear", String(params.admissionYear));
-  if (params?.page) searchParams.set("page", String(params.page));
-  if (params?.pageSize) searchParams.set("pageSize", String(params.pageSize));
-  if (params?.q) searchParams.set("q", params.q);
-  if (params?.stage && params.stage !== "all")
-    searchParams.set("stage", params.stage);
-  if (params?.province && params.province !== "all")
-    searchParams.set("province", params.province);
-  if (params?.provinceId) searchParams.set("provinceId", params.provinceId);
-  if (params?.campaign && params.campaign !== "all")
-    searchParams.set("campaign", params.campaign);
-  if (params?.ownerId) searchParams.set("ownerId", params.ownerId);
-  if (params?.assignmentStatus && params.assignmentStatus !== "all")
-    searchParams.set("assignmentStatus", params.assignmentStatus);
-  if (params?.lifecycleStatus && params.lifecycleStatus !== "all")
-    searchParams.set("lifecycleStatus", params.lifecycleStatus);
-  if (params?.sort) searchParams.set("sort", params.sort);
-  if (params?.order) searchParams.set("order", params.order);
-
-  const queryStr = searchParams.toString();
-  const frappeBase = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-
-  if (!frappeBase) {
-    throw new DirectorStudentsApiError(
-      503,
-      options.sessionRequired
-        ? "STUDENTS_SESSION_API_UNAVAILABLE"
-        : "STUDENTS_API_UNAVAILABLE",
-      options.sessionRequired
-        ? "Không thể tải danh sách học sinh theo session."
-        : "Không thể tải danh sách học sinh vì chưa cấu hình Frappe CRM API.",
-    );
-  }
-
-  const url = `${frappeBase}/api/method/crm.api.director_students.get_director_students${queryStr ? `?${queryStr}` : ""}`;
-
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-  };
-
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) {
-        headers.Cookie = cookieHeader;
-      }
-    } catch {
-      // Ignored outside request context (e.g., tests)
-    }
-  }
-
-  const response = await fetch(url, {
-    headers,
-    ...(typeof window !== "undefined"
-      ? { credentials: "include" as RequestCredentials }
-      : {}),
-    cache: "no-store",
-  });
-
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const error = payload?.error ?? {};
-    const errorCode =
-      typeof error.code === "string"
-        ? error.code
-        : typeof payload?.exception === "string"
-          ? payload.exception
-          : "STUDENTS_DATA_UNAVAILABLE";
-    const errorMessage =
-      typeof error.message === "string"
-        ? error.message
-        : typeof payload?.message === "string"
-          ? payload.message
-          : typeof payload?.exception === "string"
-            ? payload.exception
-            : `Lỗi HTTP ${response.status}: ${response.statusText}`;
-
-    throw new DirectorStudentsApiError(
-      response.status,
-      errorCode,
-      errorMessage,
-    );
-  }
-
-  if (!hasStudentsEnvelope(payload)) {
-    throw new DirectorStudentsApiError(
-      502,
-      "INVALID_STUDENTS_RESPONSE",
-      "Phản hồi danh sách học sinh không hợp lệ.",
-    );
-  }
-
-  return (payload.message || payload) as DirectorStudentsResponse;
 }

@@ -85,7 +85,7 @@ export default function StudentNextBestActions({
   }, [query.error]);
 
   const worklistActions = useMemo(
-    // The Frappe endpoint applies the student filter and resolves legacy Lead
+    // The endpoint applies the student filter and resolves legacy Lead
     // ids to the canonical CRM Student id before returning this list.
     () => (nbaBlocked ? [] : (query.data?.items ?? [])),
     [query.data?.items, nbaBlocked],

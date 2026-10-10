@@ -1,21 +1,11 @@
-import {
-  FEATURE_NOT_MIGRATED_CODE,
-  FEATURE_NOT_MIGRATED_MESSAGE,
-  FEATURE_NOT_MIGRATED_STATUS,
-  frappeUnavailable,
-  isNestApiEnabled,
-  NestApiError,
-  nestRequest,
-} from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 import type {
   CreateInteractionInput,
   InteractionCatalog,
   InteractionCatalogItem,
   InteractionDetailResponse,
-  InteractionEvidence,
   InteractionFeedFilters,
   InteractionFeedResponse,
-  InteractionRequestOptions,
   InteractionNpsPoint,
   InteractionNpsPointResponse,
   NpsSaleSummaryResponse,
@@ -27,26 +17,6 @@ import type {
 } from "./types";
 
 export type * from "./types";
-
-const METHODS = {
-  LIST: "crm.api.interaction_read.list_interactions",
-  DETAIL: "crm.api.interaction_read.get_interaction_detail",
-  EVIDENCE: "crm.api.interaction_read.get_interaction_evidence",
-  NPS_POINT: "crm.api.interaction_nps.get_interaction_nps_point",
-  NPS_SUMMARY: "crm.api.interaction_nps.get_nps_sale_summary",
-  GET_LIST: "frappe.client.get_list",
-  INSERT: "frappe.client.insert",
-} as const;
-
-const INTERACTION_FIELDS = [
-  "name",
-  "code",
-  "display_name",
-  "enabled",
-  "sort_order",
-  "description",
-];
-
 export class InteractionIntelligenceApiError extends Error {
   constructor(
     public status: number,
@@ -62,204 +32,6 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
-}
-
-function unwrapMessage(value: unknown): unknown {
-  const root = asRecord(value);
-  return root && root.message !== undefined ? root.message : value;
-}
-
-function resolveBaseUrl(options: InteractionRequestOptions = {}): string {
-  if (frappeUnavailable(options.baseUrl)) {
-    throw new InteractionIntelligenceApiError(
-      FEATURE_NOT_MIGRATED_STATUS,
-      FEATURE_NOT_MIGRATED_CODE,
-      FEATURE_NOT_MIGRATED_MESSAGE,
-    );
-  }
-  const baseUrl = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-
-  if (!baseUrl) {
-    throw new InteractionIntelligenceApiError(
-      0,
-      "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
-    );
-  }
-
-  return baseUrl;
-}
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-async function requestHeaders(
-  options: InteractionRequestOptions = {},
-  includeCsrfToken = false,
-): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(options.headers ?? {}),
-  };
-
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) headers.Cookie = cookieHeader;
-    } catch {
-      // Tests and non-request contexts do not have a Next headers context.
-    }
-  }
-
-  if (includeCsrfToken && typeof window !== "undefined") {
-    const csrfToken = await browserCsrfToken(options);
-    if (csrfToken) headers["X-Frappe-CSRF-Token"] = csrfToken;
-  }
-
-  return headers;
-}
-
-async function browserCsrfToken(
-  options: InteractionRequestOptions,
-): Promise<string | null> {
-  const cookieToken = document.cookie
-    .split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith("csrf_token="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (cookieToken) return decodeURIComponent(cookieToken);
-
-  try {
-    const response = await fetch(
-      `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
-      { credentials: "include", headers: { Accept: "application/json" } },
-    );
-    const payload = (await response.json().catch(() => null)) as {
-      message?: { csrf_token?: unknown };
-    } | null;
-    return typeof payload?.message?.csrf_token === "string"
-      ? payload.message.csrf_token
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function readError(
-  value: unknown,
-  status: number,
-): { code: string; message: string } {
-  const root = asRecord(value);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-
-  return {
-    code:
-      (typeof error?.code === "string" && error.code) ||
-      (typeof root?.exception === "string" && root.exception) ||
-      `HTTP_${status}`,
-    message:
-      (typeof error?.message === "string" && error.message) ||
-      (typeof message?.message === "string" && message.message) ||
-      (typeof root?.message === "string" && root.message) ||
-      `Không thể tải dữ liệu tương tác (${status}).`,
-  };
-}
-
-async function callFrappeRpc<T>(
-  method: string,
-  params: Record<string, string>,
-  options: InteractionRequestOptions = {},
-): Promise<T> {
-  const baseUrl = resolveBaseUrl(options);
-  const endpoint = `${baseUrl}/api/method/${method}`;
-  const query = new URLSearchParams(params);
-  const headers = await requestHeaders(options);
-
-  let response: Response;
-  try {
-    response = await fetch(`${endpoint}?${query.toString()}`, {
-      headers,
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new InteractionIntelligenceApiError(
-      503,
-      "INTERACTION_API_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ Interaction Intelligence.",
-    );
-  }
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = readError(payload, response.status);
-    throw new InteractionIntelligenceApiError(
-      response.status,
-      error.code,
-      error.message,
-    );
-  }
-
-  return unwrapMessage(payload) as T;
-}
-
-async function callFrappeRpcPost<T>(
-  method: string,
-  body: Record<string, unknown>,
-  options: InteractionRequestOptions = {},
-): Promise<T> {
-  const baseUrl = resolveBaseUrl(options);
-  const endpoint = `${baseUrl}/api/method/${method}`;
-  const headers = {
-    ...(await requestHeaders(options, true)),
-    "Content-Type": "application/json",
-  };
-
-  let response: Response;
-  try {
-    response = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new InteractionIntelligenceApiError(
-      503,
-      "INTERACTION_API_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ Interaction Intelligence.",
-    );
-  }
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = readError(payload, response.status);
-    throw new InteractionIntelligenceApiError(
-      response.status,
-      error.code,
-      error.message,
-    );
-  }
-
-  return unwrapMessage(payload) as T;
 }
 
 function normalizeString(value: unknown): string | null {
@@ -411,7 +183,7 @@ function normalizeCatalog<T extends InteractionCatalogItem>(
   value: unknown,
   normalizeItem: (value: unknown) => T | null,
 ): T[] {
-  const payload = unwrapMessage(value);
+  const payload = value;
   if (!Array.isArray(payload)) return [];
   return payload
     .map(normalizeItem)
@@ -453,19 +225,24 @@ async function nestInteractionRequest<T>(
     throw error;
   }
 }
+
 export async function listInteractions(
   target: InteractionTarget,
   filters: InteractionFeedFilters = {},
-  options: InteractionRequestOptions = {},
 ): Promise<InteractionFeedResponse> {
   assertSingleTarget(target);
 
-  const params: Record<string, string> = {
-    ...(target.student ? { student: target.student.trim() } : {}),
-    ...(target.contact ? { contact: target.contact.trim() } : {}),
+  if (!target.student) {
+    throw new InteractionIntelligenceApiError(
+      501,
+      "FEATURE_NOT_MIGRATED",
+      "Chức năng này chưa có trên máy chủ CRM.",
+    );
+  }
+
+  const query: Record<string, string> = {
     limit: String(Math.min(Math.max(Math.floor(filters.limit ?? 20), 1), 100)),
   };
-
   for (const key of [
     "channel",
     "direction",
@@ -481,31 +258,19 @@ export async function listInteractions(
     "cursor",
   ] as const) {
     const value = filters[key];
-    if (typeof value === "string" && value.trim()) params[key] = value.trim();
+    if (typeof value === "string" && value.trim()) query[key] = value.trim();
   }
 
-  if (frappeUnavailable(options.baseUrl)) {
-    if (!target.student) {
-      throw new InteractionIntelligenceApiError(
-        FEATURE_NOT_MIGRATED_STATUS,
-        FEATURE_NOT_MIGRATED_CODE,
-        FEATURE_NOT_MIGRATED_MESSAGE,
-      );
-    }
-    const { student, ...query } = params;
-    return normalizeFeed(
-      await nestInteractionRequest(
-        `/api/v1/students/${encodeURIComponent(student!)}/interactions`,
-        { query },
-      ),
-    );
-  }
-  return normalizeFeed(await callFrappeRpc(METHODS.LIST, params, options));
+  return normalizeFeed(
+    await nestInteractionRequest(
+      `/api/v1/students/${encodeURIComponent(target.student.trim())}/interactions`,
+      { query },
+    ),
+  );
 }
 
 export async function getInteractionDetail(
   interaction: string,
-  options: InteractionRequestOptions = {},
 ): Promise<InteractionDetailResponse> {
   const id = interaction.trim();
   if (!id) {
@@ -516,16 +281,11 @@ export async function getInteractionDetail(
     );
   }
 
-  const raw = frappeUnavailable(options.baseUrl)
-    ? await nestInteractionRequest<unknown>(
-        `/api/v1/interactions/${encodeURIComponent(id)}`,
-      )
-    : await callFrappeRpc<unknown>(
-        METHODS.DETAIL,
-        { interaction: id },
-        options,
-      );
-  const payload = asRecord(raw);
+  const payload = asRecord(
+    await nestInteractionRequest<unknown>(
+      `/api/v1/interactions/${encodeURIComponent(id)}`,
+    ),
+  );
   const summary = normalizeSummary(payload?.interaction);
   if (!summary) {
     throw new InteractionIntelligenceApiError(
@@ -557,40 +317,8 @@ export async function getInteractionDetail(
   };
 }
 
-export async function getInteractionEvidence(
-  evidence: string,
-  includeContent = false,
-  options: InteractionRequestOptions = {},
-): Promise<InteractionEvidence> {
-  const id = evidence.trim();
-  if (!id) {
-    throw new InteractionIntelligenceApiError(
-      400,
-      "INVALID_EVIDENCE_ID",
-      "Thiếu mã evidence.",
-    );
-  }
-
-  const raw = await callFrappeRpc<unknown>(
-    METHODS.EVIDENCE,
-    { evidence: id, include_content: includeContent ? "1" : "0" },
-    options,
-  );
-  const payload = asRecord(raw);
-  if (!normalizeString(payload?.id)) {
-    throw new InteractionIntelligenceApiError(
-      502,
-      "INVALID_INTERACTION_EVIDENCE_RESPONSE",
-      "Phản hồi evidence không hợp lệ.",
-    );
-  }
-
-  return payload as unknown as InteractionEvidence;
-}
-
 export async function getInteractionNpsPoint(
   interaction: string,
-  options: InteractionRequestOptions = {},
 ): Promise<InteractionNpsPointResponse> {
   const id = interaction.trim();
   if (!id) {
@@ -600,12 +328,11 @@ export async function getInteractionNpsPoint(
       "Thiếu mã tương tác.",
     );
   }
-  const raw = await callFrappeRpc<unknown>(
-    METHODS.NPS_POINT,
-    { interaction: id },
-    options,
+  const payload = asRecord(
+    await nestInteractionRequest<unknown>(
+      `/api/v1/interactions/${encodeURIComponent(id)}/nps-point`,
+    ),
   );
-  const payload = asRecord(raw);
   if (payload?.point === null || payload?.point === undefined)
     return { point: null };
   const point = normalizeNpsPoint(payload?.point);
@@ -621,33 +348,17 @@ export async function getInteractionNpsPoint(
 
 export async function getNpsSaleSummary(
   filters: { sale?: string; from_date?: string; to_date?: string } = {},
-  options: InteractionRequestOptions = {},
 ): Promise<NpsSaleSummaryResponse> {
-  const params: Record<string, string> = {};
+  const query: Record<string, string> = {};
   for (const key of ["sale", "from_date", "to_date"] as const) {
     const value = filters[key];
-    if (value?.trim()) params[key] = value.trim();
+    if (value?.trim()) query[key] = value.trim();
   }
-  let raw: unknown;
-  if (isNestApiEnabled()) {
-    try {
-      raw = await nestRequest<unknown>("/api/v1/interactions/nps-summary", {
-        query: params,
-      });
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        throw new InteractionIntelligenceApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
-    }
-  } else {
-    raw = await callFrappeRpc<unknown>(METHODS.NPS_SUMMARY, params, options);
-  }
-  const payload = asRecord(raw);
+  const payload = asRecord(
+    await nestInteractionRequest<unknown>("/api/v1/interactions/nps-summary", {
+      query,
+    }),
+  );
   const records = Array.isArray(payload?.records)
     ? payload.records
         .map((value) => {
@@ -677,7 +388,6 @@ export async function getNpsSaleSummary(
 
 export async function createInteraction(
   input: CreateInteractionInput,
-  options: InteractionRequestOptions = {},
 ): Promise<Record<string, unknown>> {
   const student = input.student.trim();
   const interactionType = input.interaction_type.trim();
@@ -689,37 +399,28 @@ export async function createInteraction(
     );
   }
 
-  const doc: Record<string, unknown> = {
-    doctype: "CRM Interaction",
-    student,
-    interaction_type: interactionType,
-  };
+  const interactionDatetime = input.interaction_datetime?.trim();
+  const outcome = input.outcome?.trim();
+  const summary = input.summary?.trim();
+  const notes = input.notes?.trim();
 
-  if (input.interaction_datetime?.trim()) {
-    doc.interaction_datetime = input.interaction_datetime.trim();
-  }
-  if (input.outcome?.trim()) doc.outcome = input.outcome.trim();
-  if (input.summary?.trim()) doc.summary = input.summary.trim();
-  if (input.notes?.trim()) doc.notes = input.notes.trim();
-
-  const raw = frappeUnavailable(options.baseUrl)
-    ? await nestInteractionRequest<unknown>(
-        `/api/v1/students/${encodeURIComponent(student)}/interactions`,
-        {
-          method: "POST",
-          body: {
-            interaction_type: interactionType,
-            ...(doc.interaction_datetime
-              ? { interaction_datetime: doc.interaction_datetime }
-              : {}),
-            ...(doc.outcome ? { outcome: doc.outcome } : {}),
-            ...(doc.summary ? { summary: doc.summary } : {}),
-            ...(doc.notes ? { notes: doc.notes } : {}),
-          },
+  const created = asRecord(
+    await nestInteractionRequest<unknown>(
+      `/api/v1/students/${encodeURIComponent(student)}/interactions`,
+      {
+        method: "POST",
+        body: {
+          interaction_type: interactionType,
+          ...(interactionDatetime
+            ? { interaction_datetime: interactionDatetime }
+            : {}),
+          ...(outcome ? { outcome } : {}),
+          ...(summary ? { summary } : {}),
+          ...(notes ? { notes } : {}),
         },
-      )
-    : await callFrappeRpcPost<unknown>(METHODS.INSERT, { doc }, options);
-  const created = asRecord(raw);
+      },
+    ),
+  );
   if (!created?.name || typeof created.name !== "string") {
     throw new InteractionIntelligenceApiError(
       502,
@@ -730,7 +431,6 @@ export async function createInteraction(
 
   return created;
 }
-
 const NEST_CATALOG_PATHS = {
   "CRM Interaction Type": "/api/v1/reference-data/interaction-types",
   "CRM Intent Type": "/api/v1/reference-data/intent-types",
@@ -773,34 +473,10 @@ async function getNestCatalogItems<T extends InteractionCatalogItem>(
   );
 }
 
-async function getCatalogItems<T extends InteractionCatalogItem>(
-  doctype: "CRM Interaction Type" | "CRM Intent Type",
-  normalizeItem: (value: unknown) => T | null,
-  options: InteractionRequestOptions = {},
-): Promise<T[]> {
-  if (frappeUnavailable(options.baseUrl)) {
-    return getNestCatalogItems(doctype, normalizeItem);
-  }
-  const raw = await callFrappeRpc<unknown>(
-    METHODS.GET_LIST,
-    {
-      doctype,
-      fields: JSON.stringify(INTERACTION_FIELDS),
-      filters: JSON.stringify([["enabled", "=", 1]]),
-      order_by: "sort_order asc",
-      limit_page_length: "100",
-    },
-    options,
-  );
-  return normalizeCatalog(raw, normalizeItem);
-}
-
-export async function getInteractionCatalog(
-  options: InteractionRequestOptions = {},
-): Promise<InteractionCatalog> {
+export async function getInteractionCatalog(): Promise<InteractionCatalog> {
   const [interactionTypes, intentTypes] = await Promise.all([
-    getCatalogItems("CRM Interaction Type", normalizeInteractionType, options),
-    getCatalogItems("CRM Intent Type", normalizeIntentType, options),
+    getNestCatalogItems("CRM Interaction Type", normalizeInteractionType),
+    getNestCatalogItems("CRM Intent Type", normalizeIntentType),
   ]);
 
   return {

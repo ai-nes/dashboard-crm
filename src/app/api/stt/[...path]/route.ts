@@ -35,7 +35,7 @@ function isProxyEnabled(): boolean {
   if (configured) return configured === "true";
 
   // This bridge is intentionally opt-in for production until the dashboard's
-  // cross-origin Frappe session can be enforced at this server boundary.
+  // cross-origin API session can be enforced at this server boundary.
   return process.env.NODE_ENV !== "production";
 }
 

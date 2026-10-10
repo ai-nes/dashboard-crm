@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil1, Plus } from "@tailgrids/icons";
+import { ArrowLeft } from "@tailgrids/icons";
 import { Pie, PieChart, Cell, Label, Tooltip } from "recharts";
 import type {
   NameType,
@@ -12,8 +12,10 @@ import type { TooltipContentProps } from "recharts";
 import { toast } from "sonner";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
-import { CreateDialogSelect } from "@/components/common/create-dialog-field";
-import { EditableCard } from "@/components/common/editable-card";
+import { DropdownField } from "@/components/common/dropdown-field";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { canEditScoreTemplates } from "./score-template-permissions";
+import ScoreRulesInlineEditor from "./score-rules-inline-editor";
 import { EditableDetailField } from "@/components/common/editable-detail-field";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { ChartContainer } from "@/components/tailgrids/core/chart";
@@ -30,22 +32,14 @@ import {
 import { cn } from "@/utils/cn";
 
 import {
-  CatalogPagination,
-  DateTimePickerField,
   EmptyState,
   ErrorState,
   Field,
   LoadingState,
   StatusBadge,
-  TextInput,
 } from "./admin-catalog-ui";
-import ScoreRuleEditDialog from "./score-rule-edit-dialog";
-import {
-  formatScoreRuleEffect,
-  getScoreRuleKindMeta,
-  getScoreRuleValidationMessage,
-  normalizeScoreRuleKind,
-} from "./score-rule-model";
+
+import { getScoreRuleValidationMessage } from "./score-rule-model";
 import ScoreTemplateCreateDialog from "./score-template-create-dialog";
 import {
   DEFAULT_SCORE_WEIGHT_VALUES,
@@ -55,9 +49,6 @@ import {
 } from "./score-template-weight-model";
 
 const SCORE_TEMPLATE_LIST_PATH = "/director/admin/catalogs";
-const SCORE_RULE_PAGE_SIZE = 5;
-
-type ScoreEditSection = "details" | "weights";
 
 type ScoreForm = {
   template_name: string;
@@ -124,6 +115,17 @@ function toScorePayload(form: ScoreForm): Partial<ScoreTemplate> {
 
 function getScoreValidationMessage(form: ScoreForm): string | null {
   if (!form.template_name.trim()) return "Tên template không được để trống.";
+  for (const dimension of SCORE_WEIGHT_DIMENSIONS) {
+    const value = Number(form[dimension.field]);
+    if (
+      !form[dimension.field].trim() ||
+      !Number.isFinite(value) ||
+      value < 0 ||
+      value > 1
+    ) {
+      return `${dimension.label}: nhập trọng số từ 0 đến 100%.`;
+    }
+  }
   if (form.rules.length === 0) {
     return "Thêm ít nhất một rubric cho template.";
   }
@@ -205,53 +207,51 @@ function ScoreTemplateIdentityFields({
   isDisabled: boolean;
 }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <div className="md:col-span-2 xl:col-span-3">
-        <Field
-          label="Tên template"
-          hint="Tên hiển thị cho đội tuyển sinh khi chọn policy."
-        >
-          <TextInput
-            required
-            value={form.template_name}
-            disabled={isDisabled}
-            onChange={(event) =>
-              updateForm({ template_name: event.target.value })
-            }
-          />
-        </Field>
-      </div>
-      <Field label="Trạng thái" hint="Chỉ template đang dùng mới được áp dụng.">
-        <CreateDialogSelect
-          label="Trạng thái"
+    <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 [&_label>span:first-child]:text-xs [&_label>span:first-child]:text-text-tertiary">
+      <Field label="Tên template">
+        <input
+          aria-label="Tên template"
+          required
+          value={form.template_name}
+          disabled={isDisabled}
+          className="-ml-2 h-8 w-full rounded-md border border-transparent bg-transparent px-2 text-sm font-medium text-text-primary outline-none hover:border-card-border focus:border-primary-500 focus:bg-card-background focus:ring-2 focus:ring-primary-500/15"
+          onChange={(event) =>
+            updateForm({ template_name: event.target.value })
+          }
+        />
+      </Field>
+      <Field label="Trạng thái">
+        <DropdownField
+          ariaLabel="Trạng thái"
           value={form.status}
           options={statusOptions}
           isDisabled={isDisabled}
+          triggerClassName="-ml-2 h-8 border-transparent bg-transparent px-2 text-sm shadow-none hover:border-card-border"
           onChange={(value) =>
             updateForm({ status: value as ScoreForm["status"] })
           }
         />
       </Field>
-      <div className="xl:col-span-2">
-        <Field label="Bắt đầu">
-          <DateTimePickerField
-            value={form.start_time}
-            onChange={(value) => updateForm({ start_time: value })}
-            ariaLabel="Thời điểm bắt đầu mẫu chấm điểm"
-            disabled={isDisabled}
-          />
-        </Field>
-      </div>
-      <div className="xl:col-span-2">
-        <Field label="Kết thúc">
-          <DateTimePickerField
-            value={form.end_time}
-            onChange={(value) => updateForm({ end_time: value })}
-            ariaLabel="Thời điểm kết thúc mẫu chấm điểm"
-            disabled={isDisabled}
-          />
-        </Field>
-      </div>
+      <Field label="Bắt đầu">
+        <input
+          type="datetime-local"
+          aria-label="Bắt đầu"
+          value={form.start_time}
+          disabled={isDisabled}
+          className="-ml-2 h-8 min-w-0 w-full rounded-md border border-transparent bg-transparent px-2 text-sm text-text-primary outline-none hover:border-card-border focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15"
+          onChange={(event) => updateForm({ start_time: event.target.value })}
+        />
+      </Field>
+      <Field label="Kết thúc">
+        <input
+          type="datetime-local"
+          aria-label="Kết thúc"
+          value={form.end_time}
+          disabled={isDisabled}
+          className="-ml-2 h-8 min-w-0 w-full rounded-md border border-transparent bg-transparent px-2 text-sm text-text-primary outline-none hover:border-card-border focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15"
+          onChange={(event) => updateForm({ end_time: event.target.value })}
+        />
+      </Field>
     </div>
   );
 }
@@ -271,74 +271,51 @@ function ScoreWeightFields({
   };
 
   return (
-    <div className="grid items-start gap-5 md:grid-cols-[minmax(180px,0.9fr)_minmax(0,1.1fr)]">
-      <WeightChart data={data} emptyHint="Nhập tỷ trọng ở các thẻ bên cạnh." />
+    <div className="grid items-center gap-5 md:grid-cols-[minmax(180px,0.9fr)_minmax(0,1.1fr)]">
+      <WeightChart data={data} emptyHint="Nhập tỷ trọng ở các ô bên cạnh." />
       <div className="space-y-3">
         {SCORE_WEIGHT_DIMENSIONS.map((dimension) => (
-          <div
+          <label
             key={dimension.id}
-            className="rounded-lg border border-card-border bg-background-gray-secondary/20 p-3"
+            className="flex items-center justify-between gap-3 rounded-lg border border-card-border bg-background-gray-secondary/20 px-3 py-2.5"
           >
-            <Field label={dimension.label} hint={dimension.hint}>
-              <div className="relative">
-                <TextInput
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={formatWeightInput(
-                    parseScoreNumber(form[dimension.field]),
-                  )}
-                  disabled={isDisabled}
-                  aria-label={`${dimension.label} trọng số`}
-                  className="pr-10"
-                  onChange={(event) =>
-                    updateWeight(dimension.field, event.target.value)
-                  }
-                />
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-text-tertiary">
-                  %
+            <span className="flex min-w-0 items-center gap-2.5">
+              <span
+                className="size-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: dimension.color }}
+                aria-hidden="true"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-text-primary">
+                  {dimension.label}
                 </span>
-              </div>
-            </Field>
-          </div>
+                <span className="block text-xs text-text-tertiary">
+                  {dimension.description}
+                </span>
+              </span>
+            </span>
+            <span className="flex items-center text-sm font-semibold text-text-primary">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                aria-label={`${dimension.label} trọng số`}
+                value={formatWeightInput(
+                  parseScoreNumber(form[dimension.field]),
+                )}
+                disabled={isDisabled}
+                className="h-8 w-16 rounded-md border border-transparent bg-transparent px-1 text-right tabular-nums outline-none hover:border-card-border focus:border-primary-500 focus:bg-card-background focus:ring-2 focus:ring-primary-500/15"
+                onChange={(event) =>
+                  updateWeight(dimension.field, event.target.value)
+                }
+              />
+              <span>%</span>
+            </span>
+          </label>
         ))}
         <WeightTotalHint data={data} />
       </div>
-    </div>
-  );
-}
-
-function ScoreDateTimeField({
-  label,
-  value,
-  isEditing,
-  onChange,
-  isDisabled,
-}: {
-  label: string;
-  value: string;
-  isEditing: boolean;
-  onChange: (value: string) => void;
-  isDisabled: boolean;
-}) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs text-text-tertiary">{label}</dt>
-      {isEditing ? (
-        <div className="mt-1.5">
-          <DateTimePickerField
-            value={value}
-            onChange={onChange}
-            ariaLabel={label}
-            disabled={isDisabled}
-          />
-        </div>
-      ) : (
-        <dd className="mt-1 text-sm font-medium text-text-primary">
-          {formatScoreDateTime(value)}
-        </dd>
-      )}
     </div>
   );
 }
@@ -376,7 +353,7 @@ type WeightChartData = ReturnType<typeof getWeightChartData>;
 
 function WeightChart({
   data,
-  emptyHint = "Nhấn nút chỉnh sửa để nhập tỷ trọng.",
+  emptyHint = "Chưa có tỷ trọng được thiết lập.",
 }: {
   data: WeightChartData;
   emptyHint?: string;
@@ -566,165 +543,24 @@ function WeightSummaryTooltip({
   );
 }
 
-function ScoreRulesSummary({
-  rules,
-  isDisabled,
-  onAddRule,
-  onEditRule,
-}: {
-  rules: ScoreRule[];
-  isDisabled: boolean;
-  onAddRule: () => void;
-  onEditRule: (index: number) => void;
-}) {
-  const [page, setPage] = useState(1);
-  const totalPages = Math.max(
-    1,
-    Math.ceil(rules.length / SCORE_RULE_PAGE_SIZE),
-  );
-  const safePage = Math.min(page, totalPages);
-  const pageStart = (safePage - 1) * SCORE_RULE_PAGE_SIZE;
-  const visibleRules = rules.slice(pageStart, pageStart + SCORE_RULE_PAGE_SIZE);
-
-  if (rules.length === 0) {
-    return (
-      <div className="flex flex-col items-center rounded-lg border border-dashed border-card-border bg-background-gray-secondary/20 px-4 py-6 text-center">
-        <p className="text-sm font-medium text-text-primary">
-          Chưa có rubric nào.
-        </p>
-        <p className="mt-1 max-w-md text-xs leading-5 text-text-tertiary">
-          Tạo từng thành phần điểm riêng để template bắt đầu có cấu hình.
-        </p>
-        <Button
-          type="button"
-          size="sm"
-          appearance="outline"
-          className="mt-4"
-          isDisabled={isDisabled}
-          onPress={onAddRule}
-        >
-          <Plus size={15} aria-hidden="true" />
-          Thêm rubric
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
-          <span>Chọn biểu tượng bút để chỉnh sửa từng rubric.</span>
-          <span>Revision/hash do server quản lý.</span>
-        </div>
-        <Button
-          type="button"
-          size="sm"
-          appearance="outline"
-          isDisabled={isDisabled}
-          onPress={onAddRule}
-        >
-          <Plus size={15} aria-hidden="true" />
-          Thêm rubric
-        </Button>
-      </div>
-      <div className="overflow-x-auto rounded-lg border border-card-border">
-        <table className="w-full min-w-[640px] text-left">
-          <thead className="bg-background-gray-secondary/60">
-            <tr className="border-b border-card-border text-xs text-text-secondary">
-              <th className="px-4 py-3 font-semibold">Tín hiệu</th>
-              <th className="px-4 py-3 font-semibold">Loại</th>
-              <th className="px-4 py-3 font-semibold">Cách tính</th>
-              <th className="px-4 py-3 font-semibold">Trạng thái</th>
-              <th className="px-4 py-3 text-right font-semibold">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-card-border">
-            {visibleRules.map((rule, index) => {
-              const ruleIndex = pageStart + index;
-              const kind = normalizeScoreRuleKind(rule.rule_kind);
-              const kindMeta = getScoreRuleKindMeta(kind);
-              const signalLabel =
-                kind === "time_decay"
-                  ? "Theo thời gian"
-                  : rule.signal || "Chưa chọn tín hiệu";
-              return (
-                <tr key={`score-rule-summary-${ruleIndex}`}>
-                  <td className="max-w-[16rem] px-4 py-3">
-                    <p
-                      className="truncate text-sm font-medium text-text-primary"
-                      title={signalLabel}
-                    >
-                      {signalLabel}
-                    </p>
-                    {kind === "time_decay" ? (
-                      <p className="mt-0.5 text-xs text-text-tertiary">
-                        Không cần Signal
-                      </p>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-md bg-badge-primary-background px-2 py-1 text-xs font-semibold text-badge-primary-text">
-                      {kindMeta.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm tabular-nums text-text-secondary">
-                    {formatScoreRuleEffect(rule)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge
-                      tone={rule.is_active === false ? "gray" : "success"}
-                    >
-                      {rule.is_active === false ? "Đã tắt" : "Đang dùng"}
-                    </StatusBadge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button
-                      type="button"
-                      iconOnly
-                      size="sm"
-                      appearance="ghost"
-                      aria-label={`Chỉnh sửa rubric ${signalLabel}`}
-                      isDisabled={isDisabled}
-                      onPress={() => onEditRule(ruleIndex)}
-                    >
-                      <Pencil1 size={15} aria-hidden="true" />
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      {totalPages > 1 ? (
-        <CatalogPagination
-          page={safePage}
-          total={rules.length}
-          pageSize={SCORE_RULE_PAGE_SIZE}
-          onPageChange={setPage}
-        />
-      ) : null}
-    </div>
-  );
-}
-
 export default function ScoreTemplateDetailPage({
   templateName,
 }: {
   templateName?: string;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const canEdit = canEditScoreTemplates(user);
   const isCreate = !templateName;
   const detailQuery = useScoreTemplateDetailQuery(templateName ?? null);
   const save = useScoreTemplateMutation();
   const initializedTemplateRef = useRef<string | null>(null);
-  const savedFormRef = useRef<ScoreForm>(emptyForm);
+  const [savedForm, setSavedForm] = useState<ScoreForm>(emptyForm);
   const [form, setForm] = useState<ScoreForm>(emptyForm);
-  const [editingSection, setEditingSection] = useState<ScoreEditSection | null>(
-    null,
-  );
-  const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null);
+  const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
+  const lastAttemptRef = useRef<string | null>(null);
+  const modifiedRef = useRef<string | undefined>(undefined);
+  const { mutateAsync, isPending } = save;
   const [showCreateErrors, setShowCreateErrors] = useState(false);
 
   useEffect(() => {
@@ -732,10 +568,11 @@ export default function ScoreTemplateDetailPage({
     if (initializedTemplateRef.current === templateName) return;
 
     const nextForm = toScoreForm(detailQuery.data);
-    savedFormRef.current = nextForm;
+    setSavedForm(nextForm);
     setForm(nextForm);
-    setEditingSection(null);
-    setEditingRuleIndex(null);
+    modifiedRef.current = detailQuery.data.modified;
+    lastAttemptRef.current = null;
+    setAutoSaveError(null);
     initializedTemplateRef.current = templateName;
   }, [detailQuery.data, templateName]);
 
@@ -747,6 +584,7 @@ export default function ScoreTemplateDetailPage({
 
   const createTemplate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canEdit || save.isPending) return;
     setShowCreateErrors(true);
     const templateNameValue = form.template_name.trim();
     if (!templateNameValue) {
@@ -778,85 +616,61 @@ export default function ScoreTemplateDetailPage({
     }
   };
 
-  const startEditing = (section: ScoreEditSection) => {
-    if (save.isPending || !detailQuery.data) return;
-    setForm(savedFormRef.current);
-    setEditingSection(section);
-  };
+  const isDirty = JSON.stringify(form) !== JSON.stringify(savedForm);
+  const validationMessage = getScoreValidationMessage(form);
 
-  const cancelEditing = () => {
-    if (save.isPending) return;
-    setForm(savedFormRef.current);
-    setEditingSection(null);
-  };
-
-  const saveRule = async (nextRule: ScoreRule) => {
-    if (editingRuleIndex === null || !detailQuery.data || save.isPending) {
+  useEffect(() => {
+    if (
+      isCreate ||
+      !canEdit ||
+      !isDirty ||
+      isPending ||
+      validationMessage ||
+      initializedTemplateRef.current !== templateName
+    )
       return;
-    }
-
-    const nextRules =
-      editingRuleIndex === -1
-        ? [...form.rules, nextRule]
-        : form.rules.map((rule, index) =>
-            index === editingRuleIndex ? nextRule : rule,
-          );
-    const nextForm = { ...form, rules: nextRules };
-    const validationMessage = getScoreValidationMessage(nextForm);
-    if (validationMessage) {
-      toast.error(validationMessage);
-      return;
-    }
-
-    try {
-      const saved = await save.mutateAsync({
-        name: templateName,
-        data: toScorePayload(nextForm),
-        expectedModified: detailQuery.data.modified,
-      });
-      const savedForm = toScoreForm(saved);
-      savedFormRef.current = savedForm;
-      setForm(savedForm);
-      setEditingRuleIndex(null);
-      toast.success(
-        editingRuleIndex === -1 ? "Đã thêm rubric." : "Đã cập nhật rubric.",
-      );
-    } catch (error) {
-      toast.error(normalizeCatalogError(error, "Không thể lưu rubric."));
-    }
-  };
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const validationMessage = getScoreValidationMessage(form);
-    if (validationMessage) {
-      toast.error(validationMessage);
-      return;
-    }
-
-    try {
-      const saved = await save.mutateAsync({
+    const snapshot = JSON.stringify(form);
+    if (lastAttemptRef.current === snapshot) return;
+    const timer = window.setTimeout(() => {
+      lastAttemptRef.current = snapshot;
+      setAutoSaveError(null);
+      void mutateAsync({
         name: templateName,
         data: toScorePayload(form),
-        expectedModified: detailQuery.data?.modified,
-      });
-      const nextForm = toScoreForm(saved);
-      savedFormRef.current = nextForm;
-      setForm(nextForm);
-      setEditingSection(null);
-      toast.success("Đã cập nhật Score Template.");
-    } catch (error) {
-      toast.error(
-        normalizeCatalogError(error, "Không thể lưu Score Template."),
-      );
-    }
-  };
+        expectedModified: modifiedRef.current,
+      })
+        .then((saved) => {
+          if (initializedTemplateRef.current !== templateName) return;
+          const nextForm = toScoreForm(saved);
+          modifiedRef.current = saved.modified;
+          setSavedForm(nextForm);
+          setForm((current) =>
+            JSON.stringify(current) === snapshot ? nextForm : current,
+          );
+          lastAttemptRef.current = null;
+        })
+        .catch((error: unknown) => {
+          const message = normalizeCatalogError(
+            error,
+            "Không thể tự động lưu. Dữ liệu đang nhập vẫn được giữ lại.",
+          );
+          setAutoSaveError(message);
+          toast.error(message);
+        });
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [
+    canEdit,
+    form,
+    isCreate,
+    isDirty,
+    isPending,
+    mutateAsync,
+    templateName,
+    validationMessage,
+  ]);
 
   const detail = detailQuery.data;
-  const editingRule =
-    editingRuleIndex === null || editingRuleIndex < 0
-      ? null
-      : (form.rules[editingRuleIndex] ?? null);
   const isLoading = !isCreate && detailQuery.isPending;
   const title = isCreate
     ? "Thêm Score Template"
@@ -873,7 +687,7 @@ export default function ScoreTemplateDetailPage({
         description={
           isCreate
             ? "Tạo template trước, sau đó thêm từng rubric ở trang chi tiết."
-            : "Xem cấu hình điểm tiềm năng và chỉnh sửa từng nhóm thông tin khi cần."
+            : "Chỉnh sửa trực tiếp. Thay đổi hợp lệ được tự động lưu."
         }
         before={
           <Button
@@ -903,6 +717,36 @@ export default function ScoreTemplateDetailPage({
                 {statusLabel(detail.status)}
               </StatusBadge>
               <span>Revision {detail.policy_revision ?? "—"}</span>
+              {canEdit ? (
+                <span
+                  role="status"
+                  className={
+                    autoSaveError ? "text-input-error" : "text-text-tertiary"
+                  }
+                >
+                  {isPending
+                    ? "Đang lưu…"
+                    : autoSaveError
+                      ? autoSaveError
+                      : isDirty
+                        ? validationMessage || "Chờ tự động lưu…"
+                        : "Đã lưu"}
+                  {autoSaveError ? (
+                    <button
+                      type="button"
+                      className="ml-2 underline"
+                      onClick={() => {
+                        lastAttemptRef.current = null;
+                        setAutoSaveError(null);
+                        setForm((current) => ({ ...current }));
+                      }}
+                    >
+                      Thử lại
+                    </button>
+                  ) : null}
+                </span>
+              ) : null}
+
               <span>
                 Cập nhật lần cuối: {formatScoreDateTime(detail.modified)}
               </span>
@@ -934,127 +778,73 @@ export default function ScoreTemplateDetailPage({
             </EmptyState>
           </section>
         ) : (
-          <div className="grid items-stretch gap-5 lg:grid-cols-2">
-            <EditableCard
-              className="h-full"
-              title="Thông tin template"
-              editLabel="Chỉnh sửa thông tin template"
-              headerContent={
-                <StatusBadge
-                  tone={
-                    form.status === "Active"
-                      ? "success"
-                      : form.status === "Inactive"
-                        ? "danger"
-                        : "gray"
-                  }
-                >
-                  {statusLabel(form.status)}
-                </StatusBadge>
-              }
-              isEditing={editingSection === "details"}
-              isSaving={save.isPending}
-              onEdit={() => startEditing("details")}
-              onCancel={cancelEditing}
-              onSave={submit}
-            >
-              {editingSection === "details" ? (
-                <ScoreTemplateIdentityFields
-                  form={form}
-                  updateForm={updateForm}
-                  isDisabled={save.isPending}
-                />
-              ) : (
-                <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <EditableDetailField
-                    label="Tên template"
-                    value={form.template_name}
+          <div className="space-y-5">
+            <div className="grid items-stretch gap-5 lg:grid-cols-2">
+              <Card className="h-full p-5">
+                <CardHeader className="mb-5">
+                  <CardTitle>Thông tin template</CardTitle>
+                </CardHeader>
+                {canEdit ? (
+                  <ScoreTemplateIdentityFields
+                    form={form}
+                    updateForm={updateForm}
+                    isDisabled={save.isPending}
                   />
-                  <EditableDetailField
-                    label="Trạng thái"
-                    value={statusLabel(form.status)}
-                  />
-                  <ScoreDateTimeField
-                    label="Bắt đầu"
-                    value={form.start_time}
-                    isEditing={false}
-                    onChange={() => undefined}
-                    isDisabled={false}
-                  />
-                  <ScoreDateTimeField
-                    label="Kết thúc"
-                    value={form.end_time}
-                    isEditing={false}
-                    onChange={() => undefined}
-                    isDisabled={false}
-                  />
-                </dl>
-              )}
-            </EditableCard>
-
-            <EditableCard
-              className="h-full"
-              title="Trọng số"
-              editLabel="Chỉnh sửa trọng số"
-              headerContent={
-                <span className="text-xs text-text-tertiary">
-                  Tác động đến tổng điểm
-                </span>
-              }
-              isEditing={editingSection === "weights"}
-              isSaving={save.isPending}
-              onEdit={() => startEditing("weights")}
-              onCancel={cancelEditing}
-              onSave={submit}
-            >
-              {editingSection === "weights" ? (
-                <>
+                ) : (
+                  <dl className="grid gap-5 sm:grid-cols-2">
+                    <EditableDetailField
+                      label="Tên template"
+                      value={form.template_name}
+                    />
+                    <EditableDetailField
+                      label="Trạng thái"
+                      value={statusLabel(form.status)}
+                    />
+                    <EditableDetailField
+                      label="Bắt đầu"
+                      value={formatScoreDateTime(form.start_time)}
+                    />
+                    <EditableDetailField
+                      label="Kết thúc"
+                      value={formatScoreDateTime(form.end_time)}
+                    />
+                  </dl>
+                )}
+              </Card>
+              <Card className="h-full p-5">
+                <CardHeader className="mb-5">
+                  <CardTitle>Trọng số</CardTitle>
+                </CardHeader>
+                {canEdit ? (
                   <ScoreWeightFields
                     form={form}
                     updateForm={updateForm}
                     isDisabled={save.isPending}
                   />
-                  <p className="mt-4 text-xs leading-5 text-text-tertiary">
-                    Tổng điểm cuối cùng được tính từ các trọng số và rubric của
-                    template.
-                  </p>
-                </>
-              ) : (
-                <WeightSummary form={form} />
-              )}
-            </EditableCard>
-
-            <Card className="p-5 lg:col-span-2">
-              <CardHeader className="mb-5">
-                <CardTitle>Rubric</CardTitle>
-                <span className="rounded-md bg-background-gray-secondary px-2 py-1 text-xs font-medium tabular-nums text-text-secondary">
-                  {form.rules.length} rubric
-                </span>
-              </CardHeader>
-              <ScoreRulesSummary
-                rules={form.rules}
-                isDisabled={save.isPending}
-                onAddRule={() => {
-                  if (!save.isPending) setEditingRuleIndex(-1);
-                }}
-                onEditRule={(index) => {
-                  if (!save.isPending) setEditingRuleIndex(index);
-                }}
-              />
-            </Card>
+                ) : (
+                  <WeightSummary form={form} />
+                )}
+              </Card>
+              <Card className="p-5 lg:col-span-2">
+                <CardHeader className="mb-5">
+                  <CardTitle>Rubric</CardTitle>
+                  <span className="text-xs text-text-secondary">
+                    {form.rules.length} rubric
+                  </span>
+                </CardHeader>
+                <ScoreRulesInlineEditor
+                  rules={form.rules}
+                  canEdit={canEdit}
+                  isDisabled={save.isPending}
+                  onChange={(rules) => updateForm({ rules })}
+                />
+              </Card>
+            </div>
           </div>
         )}
       </div>
-      <ScoreRuleEditDialog
-        key={editingRuleIndex ?? "closed"}
-        rule={editingRule}
-        isOpen={editingRuleIndex !== null}
-        isSaving={save.isPending}
-        onClose={() => setEditingRuleIndex(null)}
-        onSave={saveRule}
-      />
       <ScoreTemplateCreateDialog
-        isOpen={isCreate}
+        isOpen={canEdit && isCreate}
         isSaving={save.isPending}
         templateName={form.template_name}
         status={form.status}

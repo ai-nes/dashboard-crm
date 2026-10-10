@@ -1,15 +1,4 @@
-import {
-  frappeUnavailable,
-  NestApiError,
-  nestRequest,
-} from "../nest/nest-client";
-import {
-  ensureRoot,
-  FrappeApiError,
-  getBaseUrl,
-  queryString,
-  request as frappeRequest,
-} from "../frappe-request";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 
 import type {
   StudentScoreContext,
@@ -21,15 +10,13 @@ import type {
 
 export type * from "./types";
 
-const METHOD = "crm.api.student_dashboard.get_student_score_context";
-
-export interface StudentScoreContextRequestOptions {
-  baseUrl?: string;
-}
-
-export class StudentScoreContextApiError extends FrappeApiError {
-  constructor(status: number, code: string, message: string) {
-    super(status, code, message);
+export class StudentScoreContextApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
     this.name = "StudentScoreContextApiError";
   }
 }
@@ -53,16 +40,6 @@ function optionalNumber(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
-}
-
-function rootFor(options: StudentScoreContextRequestOptions): string {
-  const root = getBaseUrl(options.baseUrl);
-  ensureRoot(
-    root,
-    "Chưa cấu hình API Frappe CRM cho dữ liệu điểm học sinh.",
-    StudentScoreContextApiError,
-  );
-  return root;
 }
 
 function normalizeHistoryDetail(value: unknown): StudentScoreHistoryDetail {
@@ -171,7 +148,6 @@ function normalizeContext(value: unknown): StudentScoreContext {
 
 export async function getStudentScoreContext(
   studentId: string,
-  options: StudentScoreContextRequestOptions = {},
 ): Promise<StudentScoreContext> {
   const normalizedStudentId = studentId.trim();
   if (!normalizedStudentId) {
@@ -182,37 +158,21 @@ export async function getStudentScoreContext(
     );
   }
 
-  if (frappeUnavailable(options.baseUrl)) {
-    try {
-      return normalizeContext(
-        await nestRequest(
-          `/api/v1/students/${encodeURIComponent(normalizedStudentId)}/score-context`,
-          { query: { limit: 1 } },
-        ),
+  try {
+    return normalizeContext(
+      await nestRequest(
+        `/api/v1/students/${encodeURIComponent(normalizedStudentId)}/score-context`,
+        { query: { limit: 1 } },
+      ),
+    );
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new StudentScoreContextApiError(
+        error.status,
+        error.code,
+        error.message,
       );
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        throw new StudentScoreContextApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
     }
+    throw error;
   }
-
-  const root = rootFor(options);
-  const params = new URLSearchParams({
-    student: normalizedStudentId,
-    limit: "1",
-  });
-  const payload = await frappeRequest(
-    `${root}/api/method/${METHOD}${queryString(params)}`,
-    { method: "GET" },
-    root,
-    StudentScoreContextApiError,
-  );
-
-  return normalizeContext(payload);
 }

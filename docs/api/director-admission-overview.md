@@ -28,23 +28,21 @@ Nguồn tham chiếu:
 
 ## 2. Tình trạng API hiện tại
 
-Trang `/` hiện chưa gọi API. `DirectorDashboard` import dữ liệu trực tiếp từ `director-dashboard/data.ts`.
+Trang `/` gọi `getDirectorOverview()` (`src/services/api/director-overview`) và render đúng một snapshot. Dữ liệu mô phỏng `director-dashboard/data.ts` / `compute*` chỉ phục vụ route demo `src/app/api/method|mock`, không dùng khi chạy thật.
 
-Các API trong `src/services/api/home` là contract của dashboard generic khác và chưa được dùng bởi route `/`. Mock handler `src/app/api/mock/[...resource]/route.ts` cũng chưa có endpoint riêng cho Director overview.
+## 3. Endpoint và quyền truy cập
 
-## 3. Endpoint production đề xuất
-
-Nên dùng một Frappe RPC method cho lần tải đầu, trả toàn bộ dữ liệu cần render:
+Một endpoint cho lần tải đầu, trả toàn bộ dữ liệu cần render. Chỉ quản trị viên hoặc user có lead scope `all` được xem; còn lại `403 FORBIDDEN`.
 
 ```http
-GET /api/method/crm.api.director_dashboard.get_director_overview
+GET /api/v1/director/overview
 ```
 
 Ví dụ:
 
 ```http
-GET /api/method/crm.api.director_dashboard.get_director_overview?admissionYear=2026&scope=all&trendRange=30d
-Authorization: Bearer <access-token>
+GET {NEXT_PUBLIC_CRM_API_URL}/api/v1/director/overview?admissionYear=2026&scope=all&trendRange=30d
+Cookie: <Better Auth session cookie>   (credentials: "include")
 Accept: application/json
 ```
 
@@ -62,21 +60,19 @@ Không nên tách mỗi card thành một request riêng. Các phần trend có 
 
 ## 4. Response `200 OK`
 
-Frappe trả payload qua wrapper `message`:
+Payload được trả trực tiếp (không bọc `message`):
 
 ```text
 {
-  message: {
-    meta: OverviewMeta,
-    kpis: DirectorKpi[],
-    forecast: EnrollmentForecast,
-    briefing: DirectorBriefing,
-    pipeline: AdmissionsPipeline,
-    admissionsTrend: AdmissionsTrend,
-    marketOverview: MarketOverviewItem[],
-    sourcePerformance: SourcePerformance[],
-    weeklyActivity: WeeklyActivity
-  }
+  meta: OverviewMeta,
+  kpis: DirectorKpi[],
+  forecast: EnrollmentForecast,
+  briefing: DirectorBriefing,
+  pipeline: AdmissionsPipeline,
+  admissionsTrend: AdmissionsTrend,
+  marketOverview: MarketOverviewItem[],
+  sourcePerformance: SourcePerformance[],
+  weeklyActivity: WeeklyActivity
 }
 ```
 
@@ -84,199 +80,197 @@ Response mẫu rút gọn:
 
 ```json
 {
-  "message": {
-    "meta": {
-      "admissionYear": 2026,
-      "scope": "all",
-      "scopeLabel": "Toàn bộ cơ sở",
-      "asOf": "2026-06-06T10:00:00+07:00",
-      "freshnessLabel": "Dữ liệu cập nhật 2 phút trước",
-      "timezone": "Asia/Ho_Chi_Minh"
+  "meta": {
+    "admissionYear": 2026,
+    "scope": "all",
+    "scopeLabel": "Toàn bộ cơ sở",
+    "asOf": "2026-06-06T10:00:00+07:00",
+    "freshnessLabel": "Dữ liệu cập nhật 2 phút trước",
+    "timezone": "Asia/Ho_Chi_Minh"
+  },
+  "kpis": [
+    {
+      "id": "prospects",
+      "label": "Tổng hồ sơ tiềm năng",
+      "value": "24.860",
+      "target": "30.000",
+      "achievement": "82,9%",
+      "change": "+9,8%",
+      "helper": "so với kỳ trước",
+      "tone": "primary"
     },
-    "kpis": [
-      {
-        "id": "prospects",
-        "label": "Tổng hồ sơ tiềm năng",
-        "value": "24.860",
-        "target": "30.000",
-        "achievement": "82,9%",
-        "change": "+9,8%",
-        "helper": "so với kỳ trước",
-        "tone": "primary"
-      },
-      {
-        "id": "qualified",
-        "label": "Hồ sơ đủ điều kiện",
-        "value": "14.420",
-        "target": "18.000",
-        "achievement": "80,1%",
-        "change": "+12,4%",
-        "helper": "so với tuần trước",
-        "tone": "info"
-      },
-      {
-        "id": "applicants",
-        "label": "Đã nộp hồ sơ",
-        "value": "6.980",
-        "target": "8.200",
-        "achievement": "85,1%",
-        "change": "+8,6%",
-        "helper": "so với kỳ trước",
-        "tone": "warning"
-      },
-      {
-        "id": "accepted",
-        "label": "Đã trúng tuyển",
-        "value": "4.820",
-        "target": "6.000",
-        "achievement": "80,3%",
-        "change": "+10,1%",
-        "helper": "so với kỳ trước",
-        "tone": "info"
-      },
-      {
-        "id": "enrollment",
-        "label": "Đã nhập học",
-        "value": "3.820",
-        "target": "5.000",
-        "achievement": "76,4%",
-        "change": "+6,8%",
-        "helper": "so với kỳ trước",
-        "tone": "success"
-      }
-    ],
-    "forecast": {
-      "summary": {
-        "actual": 3820,
-        "forecast": 4680,
-        "target": 5000,
-        "confidence": 72,
-        "gapToTarget": 320
-      },
-      "points": [
-        { "label": "T1", "actual": 420, "forecast": 420, "target": 520 },
-        { "label": "T8", "actual": 3820, "forecast": 3820, "target": 4180 },
-        { "label": "T9", "actual": null, "forecast": 4180, "target": 4560 },
-        { "label": "T10", "actual": null, "forecast": 4680, "target": 5000 }
-      ]
+    {
+      "id": "qualified",
+      "label": "Hồ sơ đủ điều kiện",
+      "value": "14.420",
+      "target": "18.000",
+      "achievement": "80,1%",
+      "change": "+12,4%",
+      "helper": "so với tuần trước",
+      "tone": "info"
     },
-    "briefing": {
-      "alert": {
-        "id": "dong-nai-risk",
-        "type": "risk",
-        "title": "Chuyển đổi tại Đồng Nai giảm 14%",
-        "description": "Tỷ lệ từ nộp hồ sơ đến nhập học giảm liên tục trong 14 ngày gần đây.",
-        "evidence": "4 trường có quy mô lớn chưa có hoạt động tuyển sinh mới.",
-        "metric": "-14%",
-        "href": "/director/regional-performance"
-      },
-      "priorityAction": {
-        "id": "school-event",
-        "title": "Tổ chức sự kiện tại Đồng Nai",
-        "description": "Kích hoạt tư vấn hướng nghiệp cho 4 trường chưa có hoạt động trong 45 ngày.",
-        "impact": "+3.0% chuyển đổi",
-        "href": "/director/schools"
-      }
+    {
+      "id": "applicants",
+      "label": "Đã nộp hồ sơ",
+      "value": "6.980",
+      "target": "8.200",
+      "achievement": "85,1%",
+      "change": "+8,6%",
+      "helper": "so với kỳ trước",
+      "tone": "warning"
     },
-    "pipeline": {
-      "stages": [
-        { "id": "prospect", "label": "Hồ sơ tiềm năng", "value": "24.860", "percentage": 100, "conversion": "100%" },
-        { "id": "engaged", "label": "Đã tương tác", "value": "18.840", "percentage": 76, "conversion": "75,8%" },
-        { "id": "qualified", "label": "Đủ điều kiện", "value": "14.420", "percentage": 58, "conversion": "76,5%" },
-        { "id": "counselling", "label": "Đang tư vấn", "value": "10.240", "percentage": 41, "conversion": "71,0%" },
-        { "id": "application", "label": "Đã nộp hồ sơ", "value": "6.980", "percentage": 28, "conversion": "68,2%" },
-        { "id": "accepted", "label": "Đã trúng tuyển", "value": "4.820", "percentage": 19, "conversion": "69,1%" },
-        { "id": "enrolled", "label": "Đã nhập học", "value": "3.820", "percentage": 15, "conversion": "79,3%" }
-      ],
-      "summary": {
-        "prospects": 24860,
-        "accepted": 4820,
-        "enrolled": 3820,
-        "enrollmentRate": 15.4
-      },
-      "biggestDrop": {
-        "fromStageId": "prospect",
-        "fromLabel": "Hồ sơ tiềm năng",
-        "toStageId": "engaged",
-        "toLabel": "Đã tương tác",
-        "differencePoints": 24
-      }
+    {
+      "id": "accepted",
+      "label": "Đã trúng tuyển",
+      "value": "4.820",
+      "target": "6.000",
+      "achievement": "80,3%",
+      "change": "+10,1%",
+      "helper": "so với kỳ trước",
+      "tone": "info"
     },
-    "admissionsTrend": {
-      "defaultRange": "30d",
-      "ranges": {
-        "7d": {
-          "points": [
-            { "label": "T2", "newLeads": 310, "applicants": 112, "enrolled": 42 },
-            { "label": "CN", "newLeads": 486, "applicants": 176, "enrolled": 68 }
-          ],
-          "totals": { "newLeads": 2727, "applicants": 980, "enrolled": 384 }
-        },
-        "30d": {
-          "points": [
-            { "label": "Tuần 1", "newLeads": 1220, "applicants": 438, "enrolled": 174 },
-            { "label": "Tuần 4", "newLeads": 1852, "applicants": 706, "enrolled": 288 }
-          ],
-          "totals": { "newLeads": 6246, "applicants": 2284, "enrolled": 926 }
-        },
-        "year": {
-          "points": [
-            { "label": "T1", "newLeads": 12400, "applicants": 2900, "enrolled": 1240 },
-            { "label": "T8", "newLeads": 24860, "applicants": 6980, "enrolled": 3820 }
-          ],
-          "totals": { "newLeads": 143940, "applicants": 39050, "enrolled": 19690 }
-        }
-      }
-    },
-    "marketOverview": [
-      {
-        "id": "southeast",
-        "name": "Đông Nam Bộ",
-        "prospects": "8,420",
-        "enrolled": "1,286",
-        "conversion": "15.3%",
-        "growth": "+18.4%",
-        "coverage": 86,
-        "tone": "primary"
-      },
-      {
-        "id": "mekong",
-        "name": "Đồng bằng sông Cửu Long",
-        "prospects": "4,860",
-        "enrolled": "612",
-        "conversion": "12.6%",
-        "growth": "-8.2%",
-        "coverage": 62,
-        "tone": "danger"
-      }
-    ],
-    "sourcePerformance": [
-      {
-        "id": "facebook",
-        "label": "Quảng cáo Facebook",
-        "leads": "3,920",
-        "applicants": "684",
-        "enrolled": "318",
-        "share": 31
-      },
-      {
-        "id": "school-tour",
-        "label": "Tư vấn tại trường",
-        "leads": "2,486",
-        "applicants": "524",
-        "enrolled": "286",
-        "share": 24
-      }
-    ],
-    "weeklyActivity": {
-      "points": [
-        { "label": "T2", "interactions": 680, "sla": 94 },
-        { "label": "CN", "interactions": 512, "sla": 98 }
-      ],
-      "totalInteractions": 5240,
-      "averageSla": 94.1,
-      "changePercent": 12.6
+    {
+      "id": "enrollment",
+      "label": "Đã nhập học",
+      "value": "3.820",
+      "target": "5.000",
+      "achievement": "76,4%",
+      "change": "+6,8%",
+      "helper": "so với kỳ trước",
+      "tone": "success"
     }
+  ],
+  "forecast": {
+    "summary": {
+      "actual": 3820,
+      "forecast": 4680,
+      "target": 5000,
+      "confidence": 72,
+      "gapToTarget": 320
+    },
+    "points": [
+      { "label": "T1", "actual": 420, "forecast": 420, "target": 520 },
+      { "label": "T8", "actual": 3820, "forecast": 3820, "target": 4180 },
+      { "label": "T9", "actual": null, "forecast": 4180, "target": 4560 },
+      { "label": "T10", "actual": null, "forecast": 4680, "target": 5000 }
+    ]
+  },
+  "briefing": {
+    "alert": {
+      "id": "dong-nai-risk",
+      "type": "risk",
+      "title": "Chuyển đổi tại Đồng Nai giảm 14%",
+      "description": "Tỷ lệ từ nộp hồ sơ đến nhập học giảm liên tục trong 14 ngày gần đây.",
+      "evidence": "4 trường có quy mô lớn chưa có hoạt động tuyển sinh mới.",
+      "metric": "-14%",
+      "href": "/director/regional-performance"
+    },
+    "priorityAction": {
+      "id": "school-event",
+      "title": "Tổ chức sự kiện tại Đồng Nai",
+      "description": "Kích hoạt tư vấn hướng nghiệp cho 4 trường chưa có hoạt động trong 45 ngày.",
+      "impact": "+3.0% chuyển đổi",
+      "href": "/director/schools"
+    }
+  },
+  "pipeline": {
+    "stages": [
+      { "id": "prospect", "label": "Hồ sơ tiềm năng", "value": "24.860", "percentage": 100, "conversion": "100%" },
+      { "id": "engaged", "label": "Đã tương tác", "value": "18.840", "percentage": 76, "conversion": "75,8%" },
+      { "id": "qualified", "label": "Đủ điều kiện", "value": "14.420", "percentage": 58, "conversion": "76,5%" },
+      { "id": "counselling", "label": "Đang tư vấn", "value": "10.240", "percentage": 41, "conversion": "71,0%" },
+      { "id": "application", "label": "Đã nộp hồ sơ", "value": "6.980", "percentage": 28, "conversion": "68,2%" },
+      { "id": "accepted", "label": "Đã trúng tuyển", "value": "4.820", "percentage": 19, "conversion": "69,1%" },
+      { "id": "enrolled", "label": "Đã nhập học", "value": "3.820", "percentage": 15, "conversion": "79,3%" }
+    ],
+    "summary": {
+      "prospects": 24860,
+      "accepted": 4820,
+      "enrolled": 3820,
+      "enrollmentRate": 15.4
+    },
+    "biggestDrop": {
+      "fromStageId": "prospect",
+      "fromLabel": "Hồ sơ tiềm năng",
+      "toStageId": "engaged",
+      "toLabel": "Đã tương tác",
+      "differencePoints": 24
+    }
+  },
+  "admissionsTrend": {
+    "defaultRange": "30d",
+    "ranges": {
+      "7d": {
+        "points": [
+          { "label": "T2", "newLeads": 310, "applicants": 112, "enrolled": 42 },
+          { "label": "CN", "newLeads": 486, "applicants": 176, "enrolled": 68 }
+        ],
+        "totals": { "newLeads": 2727, "applicants": 980, "enrolled": 384 }
+      },
+      "30d": {
+        "points": [
+          { "label": "Tuần 1", "newLeads": 1220, "applicants": 438, "enrolled": 174 },
+          { "label": "Tuần 4", "newLeads": 1852, "applicants": 706, "enrolled": 288 }
+        ],
+        "totals": { "newLeads": 6246, "applicants": 2284, "enrolled": 926 }
+      },
+      "year": {
+        "points": [
+          { "label": "T1", "newLeads": 12400, "applicants": 2900, "enrolled": 1240 },
+          { "label": "T8", "newLeads": 24860, "applicants": 6980, "enrolled": 3820 }
+        ],
+        "totals": { "newLeads": 143940, "applicants": 39050, "enrolled": 19690 }
+      }
+    }
+  },
+  "marketOverview": [
+    {
+      "id": "southeast",
+      "name": "Đông Nam Bộ",
+      "prospects": "8,420",
+      "enrolled": "1,286",
+      "conversion": "15.3%",
+      "growth": "+18.4%",
+      "coverage": 86,
+      "tone": "primary"
+    },
+    {
+      "id": "mekong",
+      "name": "Đồng bằng sông Cửu Long",
+      "prospects": "4,860",
+      "enrolled": "612",
+      "conversion": "12.6%",
+      "growth": "-8.2%",
+      "coverage": 62,
+      "tone": "danger"
+    }
+  ],
+  "sourcePerformance": [
+    {
+      "id": "facebook",
+      "label": "Quảng cáo Facebook",
+      "leads": "3,920",
+      "applicants": "684",
+      "enrolled": "318",
+      "share": 31
+    },
+    {
+      "id": "school-tour",
+      "label": "Tư vấn tại trường",
+      "leads": "2,486",
+      "applicants": "524",
+      "enrolled": "286",
+      "share": 24
+    }
+  ],
+  "weeklyActivity": {
+    "points": [
+      { "label": "T2", "interactions": 680, "sla": 94 },
+      { "label": "CN", "interactions": 512, "sla": 98 }
+    ],
+    "totalInteractions": 5240,
+    "averageSla": 94.1,
+    "changePercent": 12.6
   }
 }
 ```
@@ -524,19 +518,17 @@ Nếu bật các block này, nên mở rộng cùng endpoint bằng các object 
 
 ```json
 {
-  "message": {
-    "error": {
-      "code": "DIRECTOR_OVERVIEW_UNAVAILABLE",
-      "message": "Không thể tải dữ liệu tổng quan tuyển sinh."
-    },
-    "meta": {
-      "requestId": "req_01J..."
-    }
+  "error": {
+    "code": "DIRECTOR_OVERVIEW_UNAVAILABLE",
+    "message": "Không thể tải dữ liệu tổng quan tuyển sinh."
+  },
+  "meta": {
+    "requestId": "req_01J..."
   }
 }
 ```
 
-Status nên thống nhất:
+Status:
 
 | Status | Code | Khi dùng |
 |---:|---|---|
@@ -565,16 +557,12 @@ Các link trong overview chỉ điều hướng sang màn hình khác, không c�
 /director/students
 ```
 
-Nút export/action nếu triển khai sau nên dùng API riêng, ví dụ:
-
-```http
-GET /api/method/crm.api.director_dashboard.export_overview?admissionYear=2026&scope=all
-```
+Nút export chưa có endpoint; nếu triển khai sau sẽ dùng một route riêng dưới `/api/v1/director`.
 
 ## 10. Tóm tắt request tối thiểu
 
 ```http
-GET /api/method/crm.api.director_dashboard.get_director_overview?admissionYear=2026&scope=all&trendRange=30d
+GET /api/v1/director/overview?admissionYear=2026&scope=all&trendRange=30d
 ```
 
 Để render đúng route `/`, response bắt buộc phải có:

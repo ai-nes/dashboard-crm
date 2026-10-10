@@ -183,49 +183,36 @@ function useBatchMutation<
 
 export function useImportLeadAssignmentBatchMutation() {
   return useBatchMutation<ImportLeadAssignmentBatchRequest>((request) =>
-    importLeadsToAssignmentBatch(request, {
-      idempotencyKey: `lead-import:${Date.now()}`,
-    }),
+    importLeadsToAssignmentBatch(request),
   );
 }
 
 export function useCreateLeadAssignmentBatchMutation() {
   return useBatchMutation<CreateLeadAssignmentBatchRequest>((request) =>
-    createLeadAssignmentBatch(request, {
-      idempotencyKey: `lead-create:${Date.now()}`,
-    }),
+    createLeadAssignmentBatch(request),
   );
 }
 
 export function usePreviewLeadAssignmentBatchMutation() {
   return useBatchMutation<LeadAssignmentBatchActionRequest>((request) =>
-    previewLeadAssignmentBatch(request, {
-      idempotencyKey: `lead-preview:${request.batchId}`,
-    }),
+    previewLeadAssignmentBatch(request),
   );
 }
 
 export function useRunLeadAssignmentBatchMutation() {
   return useBatchMutation<LeadAssignmentBatchActionRequest>((request) =>
-    runLeadAssignmentBatch(request, {
-      idempotencyKey: `lead-run:${request.batchId}`,
-    }),
+    runLeadAssignmentBatch(request),
   );
 }
 
 export function useRunUnassignedLeadAssignmentMutation() {
   return useBatchMutation<Record<string, never>, LeadAssignmentAutoRunResponse>(
-    () =>
-      runUnassignedLeadAssignment({
-        idempotencyKey: `lead-run-unassigned:${Date.now()}`,
-      }),
+    () => runUnassignedLeadAssignment(),
   );
 }
 
 export function useRetryLeadAssignmentBatchMutation() {
   return useBatchMutation<RetryLeadAssignmentBatchRequest>((request) =>
-    retryLeadAssignmentBatch(request, {
-      idempotencyKey: `lead-retry:${request.batchId}:${request.itemIds?.join(",") ?? "all"}`,
-    }),
+    retryLeadAssignmentBatch(request),
   );
 }

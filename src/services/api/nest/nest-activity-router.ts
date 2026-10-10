@@ -1,6 +1,6 @@
 /**
  * Notes (`crm.api.note.*`) and tasks (`crm.api.task.*`) served by the Nest API.
- * Parameters arrive in the Frappe snake_case form and leave as REST calls.
+ * Parameters arrive in snake_case form and leave as REST calls.
  */
 import { NestApiError, nestRequest } from "./nest-client";
 

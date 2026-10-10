@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { nestNbaHandler } from "./nest-nba-router";
+import { operationCaller } from "./nest-test-support";
+
 const fetchMock = vi.fn();
-const FRAPPE = "http://frappe.test/api/method";
+const OPS = "http://ops.test/operations";
 
 function json(body: unknown, status = 200) {
   return Promise.resolve(
@@ -26,11 +29,9 @@ describe("next-best-action catalog routed to Nest", () => {
   });
 
   it("lists and updates actions through the nba endpoints", async () => {
-    const { request } = await import("../frappe-request");
-    await request(
-      `${FRAPPE}/crm.api.action.list_actions?search=a&page_length=5`,
-    );
-    await request(`${FRAPPE}/crm.api.action.update_action`, {
+    const request = operationCaller(nestNbaHandler);
+    await request(`${OPS}/crm.api.action.list_actions?search=a&page_length=5`);
+    await request(`${OPS}/crm.api.action.update_action`, {
       method: "POST",
       body: JSON.stringify({ name: "ADD_TAG", enabled: 0 }),
     });
@@ -45,20 +46,25 @@ describe("next-best-action catalog routed to Nest", () => {
     expect(JSON.parse(update[1].body as string)).toEqual({ enabled: 0 });
   });
 
-  it("answers timing policies with an empty page", async () => {
-    const { request } = await import("../frappe-request");
+  it("leaves timing policies to the dedicated endpoints", async () => {
+    const { nestNbaHandler } = await import("./nest-nba-router");
+    const { NOT_HANDLED } = await import("./nest-handler");
     await expect(
-      request(`${FRAPPE}/crm.api.timing_policy.list_timing_policies`),
-    ).resolves.toMatchObject({ policies: [], total: 0 });
+      nestNbaHandler(
+        "crm.api.timing_policy.list_timing_policies",
+        {},
+        undefined,
+      ),
+    ).resolves.toBe(NOT_HANDLED);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("serves the recommendation queue and decisions through the nba endpoints", async () => {
-    const { request } = await import("../frappe-request");
+    const request = operationCaller(nestNbaHandler);
     await request(
-      `${FRAPPE}/crm.api.student_worklist.list_student_worklist?student_id=HS-1&page_size=50`,
+      `${OPS}/crm.api.student_worklist.list_student_worklist?student_id=HS-1&page_size=50`,
     );
-    await request(`${FRAPPE}/crm.api.student_decision.decide_recommendation`, {
+    await request(`${OPS}/crm.api.student_decision.decide_recommendation`, {
       method: "POST",
       body: JSON.stringify({ name: "C1", operation: "ACCEPT" }),
     });
@@ -71,4 +77,5 @@ describe("next-best-action catalog routed to Nest", () => {
       name: "C1",
       operation: "ACCEPT",
     });
-  });});
+  });
+});

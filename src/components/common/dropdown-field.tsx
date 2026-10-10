@@ -3,7 +3,6 @@
 import { Check, ChevronDown, Search1 } from "@tailgrids/icons";
 import {
   DialogTrigger,
-  ListBox,
   ListBoxItem,
   Popover,
   type Key,
@@ -17,6 +16,8 @@ import {
   InputGroupInput,
 } from "@/components/tailgrids/core/input-group";
 import { cn } from "@/utils/cn";
+import { InfiniteListBox } from "./infinite-list-box";
+import type { ScrollToLoadMoreOptions } from "@/hooks/use-scroll-to-load-more";
 
 export interface DropdownOption {
   id: string;
@@ -27,6 +28,7 @@ export interface DropdownOption {
 }
 
 export interface DropdownFieldProps {
+  id?: string;
   options: readonly DropdownOption[];
   value?: string | null;
   onChange: (value: string | null) => void;
@@ -52,6 +54,7 @@ export interface DropdownFieldProps {
   triggerClassName?: string;
   contentClassName?: string;
   optionClassName?: string;
+  pagination?: ScrollToLoadMoreOptions;
   appearance?: ButtonProps["appearance"];
   renderValue?: (option: DropdownOption | undefined) => ReactNode;
   renderOption?: (
@@ -72,6 +75,7 @@ function normalizeSearchValue(value: string): string {
 }
 
 export function DropdownField({
+  id,
   options,
   value,
   onChange,
@@ -97,6 +101,7 @@ export function DropdownField({
   triggerClassName,
   contentClassName,
   optionClassName,
+  pagination,
   appearance = "outline",
   renderValue,
   renderOption,
@@ -125,6 +130,7 @@ export function DropdownField({
     if (!nextIsOpen) {
       setQuery("");
       onSearchChange?.("");
+      pagination?.onSearchChange?.("");
     }
     onOpenChange?.(nextIsOpen);
   };
@@ -132,6 +138,7 @@ export function DropdownField({
   const handleSearchChange = (nextQuery: string) => {
     setQuery(nextQuery);
     onSearchChange?.(nextQuery);
+    pagination?.onSearchChange?.(nextQuery);
   };
 
   const handleSelectionChange = (keys: "all" | Set<Key>) => {
@@ -146,6 +153,7 @@ export function DropdownField({
   return (
     <DialogTrigger isOpen={isOpen} onOpenChange={handleOpenChange}>
       <Button
+        id={id}
         type="button"
         appearance={appearance}
         aria-label={ariaLabel}
@@ -175,15 +183,16 @@ export function DropdownField({
       </Button>
       <Popover
         placement="bottom start"
+        maxHeight={256}
         className={cn(
-          "w-(--trigger-width) overflow-hidden rounded-lg border border-card-border bg-background-white-secondary shadow-md",
+          "flex w-(--trigger-width) flex-col overflow-hidden rounded-lg border border-card-border bg-background-white-secondary shadow-md",
           "entering:animate-in entering:fade-in-0 entering:zoom-in-95",
           "exiting:animate-out exiting:fade-out-0 exiting:zoom-out-95",
           contentClassName,
         )}
       >
         {isSearchable && (
-          <div className="border-b border-card-border p-1.5">
+          <div className="shrink-0 border-b border-card-border p-1.5">
             <InputGroup className="h-8 rounded-md">
               <InputGroupAddon className="px-2 text-text-tertiary">
                 <Search1 size={14} aria-hidden="true" />
@@ -199,10 +208,11 @@ export function DropdownField({
             </InputGroup>
           </div>
         )}
-        <ListBox
+        <InfiniteListBox
           aria-label={`Danh sách ${ariaLabel.toLocaleLowerCase("vi-VN")}`}
-          className="max-h-64 overflow-auto p-1.5 outline-none"
+          className="min-h-0 max-h-64 overflow-auto p-1.5 outline-none"
           items={visibleOptions}
+          pagination={pagination}
           selectedKeys={value ? new Set([value]) : new Set()}
           selectionMode="single"
           onSelectionChange={handleSelectionChange}
@@ -224,7 +234,7 @@ export function DropdownField({
                     renderOption(option, { isSelected })
                   ) : (
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate text-text-primary">
+                      <span className={cn("truncate text-text-primary", isSelected && "font-medium")}>
                         {option.label}
                       </span>
                       {option.description && (
@@ -243,7 +253,7 @@ export function DropdownField({
               )}
             </ListBoxItem>
           )}
-        </ListBox>
+        </InfiniteListBox>
         {isLoading && (
           <p
             className="px-3 py-4 text-center text-sm text-text-tertiary"

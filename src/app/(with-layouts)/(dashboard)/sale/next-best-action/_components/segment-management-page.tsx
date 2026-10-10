@@ -6,7 +6,7 @@ import { SegmentList } from "@/components/segments/segment-list";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
+import { hasTechnicalRole } from "@/components/common/auth/rbac";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 
@@ -21,7 +21,7 @@ export default function SegmentManagementPage({
   const pathname = usePathname();
   const { user } = useAuth();
   const canManage = Boolean(
-    hasFrappeTechnicalRole(user?.roles, "System Manager") ||
+    hasTechnicalRole(user?.roles, "System Manager") ||
     user?.roles.includes("Administrator"),
   );
 
@@ -48,7 +48,7 @@ export default function SegmentManagementPage({
               </Button>
             ) : null
           }
-          metaLabel="Dữ liệu từ Frappe CRM"
+          metaLabel="Dữ liệu từ máy chủ CRM"
           metaValue="Nhóm dùng chung"
         />
       ) : (

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   computeDirectorOverview,
@@ -7,11 +7,26 @@ import {
   normalizeDirectorOverview,
 } from "./index";
 
-afterEach(() => vi.restoreAllMocks());
+const fetchMock = vi.fn();
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://localhost:3001");
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+});
 
 describe("director admission overview API contract", () => {
   it("computes an empty overview with correct structure when offline (no backend configured)", () => {
-    const data = computeDirectorOverview({ admissionYear: 2026, scope: "all", trendRange: "30d" });
+    const data = computeDirectorOverview({
+      admissionYear: 2026,
+      scope: "all",
+      trendRange: "30d",
+    });
 
     expect(data.meta.admissionYear).toBe(2026);
     expect(data.meta.scope).toBe("all");
@@ -65,49 +80,59 @@ describe("director admission overview API contract", () => {
 
     expect(result.marketOverview).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ prospects: "2", enrolled: "0", conversion: "0%", growth: "0%", coverage: 0 }),
-        expect.objectContaining({ prospects: "0", enrolled: "0", conversion: "0%", growth: "0%", coverage: 0 }),
+        expect.objectContaining({
+          prospects: "2",
+          enrolled: "0",
+          conversion: "0%",
+          growth: "0%",
+          coverage: 0,
+        }),
+        expect.objectContaining({
+          prospects: "0",
+          enrolled: "0",
+          conversion: "0%",
+          growth: "0%",
+          coverage: 0,
+        }),
       ]),
     );
   });
 
-  it("calls Frappe endpoint with proper query parameters and parses envelope", async () => {
-    const mockPayload = computeDirectorOverview({ admissionYear: 2026 });
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: mockPayload }), { status: 200 }),
+  it("calls the overview endpoint with query parameters and parses the payload", async () => {
+    const payload = computeDirectorOverview({ admissionYear: 2026 });
+    fetchMock.mockImplementation(
+      async () => new Response(JSON.stringify(payload), { status: 200 }),
     );
 
-    const result = await getDirectorOverview(
-      { admissionYear: 2026, scope: "all", trendRange: "30d" },
-      { baseUrl: "http://frappe:8000" },
-    );
+    const result = await getDirectorOverview({
+      admissionYear: 2026,
+      scope: "all",
+      trendRange: "30d",
+    });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.director_dashboard.get_director_overview?admissionYear=2026&scope=all&trendRange=30d",
-      expect.objectContaining({ cache: "no-store" }),
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      "http://localhost:3001/api/v1/director/overview?admissionYear=2026&scope=all&trendRange=30d",
     );
     expect(result.meta.admissionYear).toBe(2026);
-    expect(result.kpis.length).toBe(mockPayload.kpis.length);
+    expect(result.kpis.length).toBe(payload.kpis.length);
   });
 
-  it("handles Frappe error responses correctly", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          error: {
-            code: "FORBIDDEN",
-            message: "Không có quyền xem phạm vi này.",
-          },
-        }),
-        { status: 403 },
-      ),
+  it("handles API error responses correctly", async () => {
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              code: "FORBIDDEN",
+              message: "Không có quyền xem phạm vi này.",
+            },
+          }),
+          { status: 403 },
+        ),
     );
 
     await expect(
-      getDirectorOverview(
-        { admissionYear: 2026, scope: "secret" },
-        { baseUrl: "http://frappe:8000" },
-      ),
+      getDirectorOverview({ admissionYear: 2026, scope: "secret" }),
     ).rejects.toEqual(
       expect.objectContaining<Partial<DirectorOverviewApiError>>({
         status: 403,
@@ -118,16 +143,12 @@ describe("director admission overview API contract", () => {
   });
 
   it("rejects an invalid response body with 502 INVALID_OVERVIEW_RESPONSE", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: { invalid: true } }), { status: 200 }),
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ invalid: true }), { status: 200 }),
     );
 
-    await expect(
-      getDirectorOverview(
-        { admissionYear: 2026 },
-        { baseUrl: "http://frappe:8000" },
-      ),
-    ).rejects.toEqual(
+    await expect(getDirectorOverview({ admissionYear: 2026 })).rejects.toEqual(
       expect.objectContaining<Partial<DirectorOverviewApiError>>({
         status: 502,
         code: "INVALID_OVERVIEW_RESPONSE",

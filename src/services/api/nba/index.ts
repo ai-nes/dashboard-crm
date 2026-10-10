@@ -1,5 +1,5 @@
+import { NestApiError, nestRequest } from "../nest/nest-client";
 import type {
-  NbaApiRequestOptions,
   NbaDecisionRequest,
   NbaDecisionResponse,
   NbaEvaluationRunResponse,
@@ -13,22 +13,8 @@ import type {
   StudentNbaWorklistResponse,
 } from "./types";
 import { actionLabel } from "./presentation";
-import {
-  isNestApiEnabled,
-  nestRequest,
-  NestApiError,
-} from "../nest/nest-client";
 
 export type * from "./types";
-
-const STUDENT_WORKLIST_METHOD =
-  "crm.api.student_worklist.list_student_worklist";
-const DECIDE_RECOMMENDATION_METHOD =
-  "crm.api.student_decision.decide_recommendation";
-const RUN_STUDENT_NBA_METHOD =
-  "crm.api.copilot_delegation.run_student_nba_evaluation";
-const DIRECTOR_RECOMMENDATIONS_METHOD =
-  "crm.api.director_next_best_action.get_director_recommendations";
 
 export class NbaApiError extends Error {
   constructor(
@@ -47,9 +33,8 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function unwrapMessage(value: unknown): Record<string, unknown> {
-  const root = asRecord(value) ?? {};
-  return asRecord(root.message) ?? root;
+function asObject(value: unknown): Record<string, unknown> {
+  return asRecord(value) ?? {};
 }
 
 function text(value: unknown): string | null {
@@ -58,18 +43,6 @@ function text(value: unknown): string | null {
 
 function number(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function createIdempotencyKey(studentId: string): string {
-  const target = studentId
-    .trim()
-    .replace(/[^A-Za-z0-9._:-]+/g, "-")
-    .slice(0, 96);
-  const random =
-    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return `run-nba:${target}:${random}`;
 }
 
 function stringArray(value: unknown): string[] {
@@ -330,198 +303,55 @@ function normalizeDirectorRecommendationsMeta(
   };
 }
 
-function resolveBaseUrl(options: NbaApiRequestOptions): string {
-  const baseUrl = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-  if (!baseUrl) {
-    throw new NbaApiError(
-      0,
-      "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
-    );
-  }
-  return baseUrl;
-}
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-async function requestHeaders(
-  options: NbaApiRequestOptions,
-  contentType = false,
-): Promise<Record<string, string>> {
-  const headers: Record<string, string> = { Accept: "application/json" };
-  if (contentType) headers["Content-Type"] = "application/json";
-
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) headers.Cookie = cookieHeader;
-    } catch {
-      // Contract tests can call this service outside a Next request context.
-    }
-  }
-
-  if (typeof window !== "undefined" && contentType) {
-    const csrfToken = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith("csrf_token="))
-      ?.split("=")
-      .slice(1)
-      .join("=");
-
-    if (csrfToken) {
-      headers["X-Frappe-CSRF-Token"] = decodeURIComponent(csrfToken);
-    } else {
-      try {
-        const sessionResponse = await fetch(
-          `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
-          { credentials: "include", headers: { Accept: "application/json" } },
-        );
-        const sessionPayload = (await sessionResponse
-          .json()
-          .catch(() => null)) as { message?: { csrf_token?: unknown } } | null;
-        const sessionCsrfToken = sessionPayload?.message?.csrf_token;
-        if (typeof sessionCsrfToken === "string" && sessionCsrfToken) {
-          headers["X-Frappe-CSRF-Token"] = sessionCsrfToken;
-        }
-      } catch {
-        // The write request returns the authoritative CSRF error if needed.
-      }
-    }
-  }
-
-  return headers;
-}
-
-function getErrorDetails(payload: unknown): {
-  code?: string;
-  message?: string;
-} {
-  const root = asRecord(payload);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-  const exception = text(root?.exception);
-  const exceptionCode = exception?.match(/(?:^|:\s)([A-Z][A-Z0-9_]+):/)?.[1];
-  return {
-    code:
-      text(error?.code) ??
-      text(message?.code) ??
-      exceptionCode ??
-      exception ??
-      undefined,
-    message:
-      text(error?.message) ??
-      text(message?.message) ??
-      text(root?.message) ??
-      text(root?.exception) ??
-      undefined,
-  };
-}
-
-async function parseResponse(response: Response): Promise<unknown> {
-  return response.json().catch(() => ({}));
-}
-
-function throwResponseError(response: Response, payload: unknown): never {
-  const details = getErrorDetails(payload);
-  throw new NbaApiError(
-    response.status,
-    details.code ?? "NBA_UNAVAILABLE",
-    details.message ?? `Lỗi HTTP ${response.status}: ${response.statusText}`,
-  );
-}
-
-async function studentNbaRequest(
+/** Runs one NBA operation through the Nest API. */
+async function callNba(
   path: string,
-  frappeMethod: string,
-  options: NbaApiRequestOptions,
-  query?: URLSearchParams,
-  body?: Record<string, unknown>,
+  params: Record<string, string | undefined>,
+  body: Record<string, unknown> | undefined,
+  unavailable: { code: string; message: string },
   idempotencyKey?: string,
-): Promise<unknown> {
-  if (isNestApiEnabled() && !options.baseUrl) {
-    try {
-      return await nestRequest(`/api/v1/nba/${path}`, {
-        method: body ? "POST" : "GET",
-        query: query ? Object.fromEntries(query) : undefined,
-        body,
-        ...(idempotencyKey
-          ? { headers: { "Idempotency-Key": idempotencyKey } }
-          : {}),
-      });
-    } catch (error) {
-      if (error instanceof NestApiError)
-        throw new NbaApiError(error.status, error.code, error.message);
-      throw error;
-    }
-  }
-  const headers = await requestHeaders(options, Boolean(body));
-  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
-  const response = await fetch(
-    `${resolveBaseUrl(options)}/api/method/${frappeMethod}${query ? `?${query}` : ""}`,
-    {
+): Promise<Record<string, unknown>> {
+  try {
+    const result = await nestRequest(`/api/v1/nba/${path}`, {
       method: body ? "POST" : "GET",
-      headers,
-      ...(body ? { body: JSON.stringify(body) } : {}),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
+      query: params,
+      body,
+      ...(idempotencyKey
+        ? { headers: { "Idempotency-Key": idempotencyKey } }
         : {}),
-      cache: "no-store",
-    },
-  );
-  const payload = await parseResponse(response);
-  if (!response.ok) throwResponseError(response, payload);
-  return payload;
+    });
+    return asObject(result);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new NbaApiError(
+        error.status,
+        error.status === 503 ? unavailable.code : error.code,
+        error.status === 503 ? unavailable.message : error.message,
+      );
+    }
+    throw error;
+  }
 }
 
 export async function getDirectorNbaRecommendations(
   params: DirectorNbaRecommendationsParams = {},
-  options: NbaApiRequestOptions = {},
 ): Promise<DirectorNbaRecommendationsResponse> {
-  const baseUrl = resolveBaseUrl(options);
-  const searchParams = new URLSearchParams();
-  if (params.admissionYear !== undefined) {
-    searchParams.set("admissionYear", String(params.admissionYear));
-  }
-  searchParams.set(
-    "limit",
-    String(Math.min(Math.max(params.limit ?? 50, 1), 200)),
+  const root = await callNba(
+    "director-recommendations",
+    {
+      ...(params.admissionYear !== undefined
+        ? { admissionYear: String(params.admissionYear) }
+        : {}),
+      limit: String(Math.min(Math.max(params.limit ?? 50, 1), 200)),
+    },
+    undefined,
+    {
+      code: "DIRECTOR_NBA_RECOMMENDATIONS_UNAVAILABLE",
+      message: "Không thể kết nối tới hàng đợi đề xuất NBA.",
+    },
   );
 
-  const url = `${baseUrl}/api/method/${DIRECTOR_RECOMMENDATIONS_METHOD}?${searchParams.toString()}`;
-  let response: Response;
   try {
-    response = await fetch(url, {
-      headers: await requestHeaders(options),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new NbaApiError(
-      503,
-      "DIRECTOR_NBA_RECOMMENDATIONS_UNAVAILABLE",
-      "Không thể kết nối tới hàng đợi đề xuất NBA.",
-    );
-  }
-
-  const payload = await parseResponse(response);
-  if (!response.ok) throwResponseError(response, payload);
-
-  try {
-    const root = unwrapMessage(payload);
     if (!Array.isArray(root.recommendations)) {
       throw new Error("recommendations must be an array");
     }
@@ -544,33 +374,17 @@ export async function getDirectorNbaRecommendations(
 
 export async function getStudentNbaWorklist(
   params: { cursor?: string; pageSize?: number; studentId?: string } = {},
-  options: NbaApiRequestOptions = {},
 ): Promise<StudentNbaWorklistResponse> {
-  const query = new URLSearchParams({
+  const query: Record<string, string> = {
     page_size: String(Math.min(Math.max(params.pageSize ?? 50, 1), 50)),
+  };
+  if (params.cursor) query.cursor = params.cursor;
+  if (params.studentId?.trim()) query.student_id = params.studentId.trim();
+
+  const root = await callNba("worklist", query, undefined, {
+    code: "STUDENT_NBA_UNAVAILABLE",
+    message: "Không thể kết nối tới hàng đợi đề xuất NBA.",
   });
-  if (params.cursor) query.set("cursor", params.cursor);
-  if (params.studentId?.trim())
-    query.set("student_id", params.studentId.trim());
-
-  let payload: unknown;
-  try {
-    payload = await studentNbaRequest(
-      "worklist",
-      STUDENT_WORKLIST_METHOD,
-      options,
-      query,
-    );
-  } catch (error) {
-    if (error instanceof NbaApiError) throw error;
-    throw new NbaApiError(
-      503,
-      "STUDENT_NBA_UNAVAILABLE",
-      "Không thể kết nối tới hàng đợi đề xuất NBA.",
-    );
-  }
-
-  const root = unwrapMessage(payload);
   if (!Array.isArray(root.items)) {
     throw new NbaApiError(
       502,
@@ -590,14 +404,11 @@ export async function getStudentNbaWorklist(
   };
 }
 
-export async function runStudentNbaEvaluation(
-  request: {
-    studentId: string;
-    idempotencyKey?: string;
-    forceRerunReason?: string;
-  },
-  options: NbaApiRequestOptions = {},
-): Promise<NbaEvaluationRunResponse> {
+export async function runStudentNbaEvaluation(request: {
+  studentId: string;
+  idempotencyKey?: string;
+  forceRerunReason?: string;
+}): Promise<NbaEvaluationRunResponse> {
   const studentId = request.studentId.trim();
   if (!studentId) {
     throw new NbaApiError(
@@ -607,33 +418,21 @@ export async function runStudentNbaEvaluation(
     );
   }
 
-  const idempotencyKey =
-    request.idempotencyKey ?? createIdempotencyKey(studentId);
-  let payload: unknown;
-  try {
-    payload = await studentNbaRequest(
-      "evaluations",
-      RUN_STUDENT_NBA_METHOD,
-      options,
-      undefined,
-      {
-        student_id: studentId,
-        ...(request.forceRerunReason
-          ? { force_rerun_reason: request.forceRerunReason }
-          : {}),
-      },
-      idempotencyKey,
-    );
-  } catch (error) {
-    if (error instanceof NbaApiError) throw error;
-    throw new NbaApiError(
-      503,
-      "NBA_EVALUATION_UNAVAILABLE",
-      "Không thể kết nối tới dịch vụ đánh giá NBA.",
-    );
-  }
-
-  const root = unwrapMessage(payload);
+  const root = await callNba(
+    "evaluations",
+    {},
+    {
+      student_id: studentId,
+      ...(request.forceRerunReason
+        ? { force_rerun_reason: request.forceRerunReason }
+        : {}),
+    },
+    {
+      code: "NBA_EVALUATION_UNAVAILABLE",
+      message: "Không thể kết nối tới dịch vụ đánh giá NBA.",
+    },
+    request.idempotencyKey ?? createIdempotencyKey(studentId),
+  );
   const evaluation = text(root.evaluation);
   if (!evaluation) {
     throw new NbaApiError(
@@ -671,41 +470,30 @@ export async function runStudentNbaEvaluation(
 
 export async function decideNbaRecommendation(
   request: NbaDecisionRequest,
-  options: NbaApiRequestOptions = {},
 ): Promise<NbaDecisionResponse> {
-  const body = {
-    name: request.name,
-    expected_revision: request.expectedRevision,
-    operation: request.operation,
-    idempotency_key: request.idempotencyKey,
-    ...(request.delta ? { delta: request.delta } : {}),
-    ...(request.decisionReason
-      ? { decision_reason: request.decisionReason }
-      : {}),
-    ...(request.revisitAt ? { revisit_at: request.revisitAt } : {}),
-    ...(request.correlationId ? { correlation_id: request.correlationId } : {}),
-  };
-
-  let payload: unknown;
-  try {
-    payload = await studentNbaRequest(
-      "decisions",
-      DECIDE_RECOMMENDATION_METHOD,
-      options,
-      undefined,
-      body,
-      request.idempotencyKey,
-    );
-  } catch (error) {
-    if (error instanceof NbaApiError) throw error;
-    throw new NbaApiError(
-      503,
-      "NBA_DECISION_UNAVAILABLE",
-      "Không thể ghi nhận quyết định NBA.",
-    );
-  }
-
-  const root = unwrapMessage(payload);
+  const root = await callNba(
+    "decisions",
+    {},
+    {
+      name: request.name,
+      expected_revision: request.expectedRevision,
+      operation: request.operation,
+      idempotency_key: request.idempotencyKey,
+      ...(request.delta ? { delta: request.delta } : {}),
+      ...(request.decisionReason
+        ? { decision_reason: request.decisionReason }
+        : {}),
+      ...(request.revisitAt ? { revisit_at: request.revisitAt } : {}),
+      ...(request.correlationId
+        ? { correlation_id: request.correlationId }
+        : {}),
+    },
+    {
+      code: "NBA_DECISION_UNAVAILABLE",
+      message: "Không thể ghi nhận quyết định NBA.",
+    },
+    request.idempotencyKey,
+  );
   const status = root.status;
   if (
     status !== "accepted" &&
@@ -728,4 +516,16 @@ export async function decideNbaRecommendation(
     event: text(root.event),
     receipt: text(root.receipt),
   };
+}
+
+function createIdempotencyKey(studentId: string): string {
+  const target = studentId
+    .trim()
+    .replace(/[^A-Za-z0-9._:-]+/g, "-")
+    .slice(0, 96);
+  const random =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `run-nba:${target}:${random}`;
 }

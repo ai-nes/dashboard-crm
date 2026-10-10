@@ -24,19 +24,19 @@ Nguồn tham chiếu:
 
 ## 2. Tình trạng tích hợp hiện tại
 
-Route `/ctv-sale` hiện chưa gọi API. Các component đang import fixture trực tiếp từ `_components/data.ts`; chưa có service trong `src/services/api/ctv-sale`, hook query hoặc mock handler riêng.
+Route `/ctv-sale` gọi `GET /api/v1/ctv-sale/overview` qua `getCtvSaleOverview()` trong `src/services/api/ctv-sale`. Service chuẩn hóa response và đổi lỗi thành `CtvSaleOverviewApiError`.
 
-Contract bên dưới là contract production đề xuất. Khi tích hợp, toàn bộ section phải dùng cùng `meta.asOf`, CTV, timezone và phạm vi dữ liệu. Không để KPI, biểu đồ và task đọc từ các snapshot khác nhau.
+Toàn bộ section dùng cùng một snapshot: toàn bộ section phải dùng cùng `meta.asOf`, CTV, timezone và phạm vi dữ liệu. Không để KPI, biểu đồ và task đọc từ các snapshot khác nhau.
 
 ## 3. Endpoint và quyền truy cập
 
 ~~~
-GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.ctv_sale.get_ctv_sale_overview
-Cookie: sid=<Frappe session cookie>
+GET {NEXT_PUBLIC_CRM_API_URL}/api/v1/ctv-sale/overview
+Cookie: <Better Auth session cookie>   (credentials: "include")
 Accept: application/json
 ~~~
 
-Frappe bọc response thành công trong `message`.
+Response thành công được trả trực tiếp (không bọc `message`). Quyền xem: profile `ctv_sale`, `lead_sales` và quản trị viên; `ctvId` chỉ dành cho `lead_sales` và quản trị viên.
 
 Quy tắc scope:
 
@@ -50,7 +50,7 @@ Quy tắc scope:
 Ví dụ tải overview cho CTV đang đăng nhập:
 
 ~~~
-GET /api/method/crm.api.ctv_sale.get_ctv_sale_overview?date=2026-09-05&trendRange=7d&outcomeRange=30d&timezone=Asia%2FHo_Chi_Minh
+GET /api/v1/ctv-sale/overview?date=2026-09-05&trendRange=7d&outcomeRange=30d&timezone=Asia%2FHo_Chi_Minh
 ~~~
 
 | Tên | Kiểu | Bắt buộc | Mặc định | Ràng buộc / mô tả |
@@ -66,7 +66,7 @@ GET /api/method/crm.api.ctv_sale.get_ctv_sale_overview?date=2026-09-05&trendRang
 
 ## 5. Response `200 OK`
 
-Shape Frappe:
+Shape:
 
 ~~~
 { message: CtvSaleOverviewResponse }
@@ -76,153 +76,151 @@ Ví dụ response:
 
 ~~~json
 {
-  "message": {
-    "meta": {
-      "viewer": {
-        "id": "USR-CTV-001",
-        "displayName": "Nguyễn Văn A"
-      },
-      "date": "2026-09-05",
-      "asOf": "2026-09-05T09:15:00+07:00",
-      "timezone": "Asia/Ho_Chi_Minh",
-      "status": "available",
-      "warnings": []
+  "meta": {
+    "viewer": {
+      "id": "USR-CTV-001",
+      "displayName": "Nguyễn Văn A"
     },
-    "kpis": [
-      {
-        "id": "assigned",
-        "value": 48,
-        "deltaValue": 6,
-        "deltaUnit": "count",
-        "comparisonPeriod": "current-week",
-        "direction": "up",
-        "ratioOfAssigned": 1,
-        "tone": "primary"
-      },
-      {
-        "id": "uncontacted",
-        "value": 5,
-        "deltaValue": null,
-        "deltaUnit": "count",
-        "comparisonPeriod": null,
-        "direction": null,
-        "ratioOfAssigned": 0.1042,
-        "tone": "warning"
-      },
-      {
-        "id": "follow-up",
-        "value": 14,
-        "deltaValue": null,
-        "deltaUnit": "count",
-        "comparisonPeriod": null,
-        "direction": null,
-        "ratioOfAssigned": 0.2917,
-        "tone": "info"
-      },
-      {
-        "id": "transfer",
-        "value": 8,
-        "deltaValue": 2,
-        "deltaUnit": "count",
-        "comparisonPeriod": "previous-week",
-        "direction": "up",
-        "ratioOfAssigned": 0.1667,
-        "tone": "success"
-      }
-    ],
-    "tasks": {
-      "priority": {
-        "overdueCount": 2,
-        "items": [
-          {
-            "id": "TASK-2026-0001",
-            "studentId": "STU-2026-00042",
-            "studentName": "Nguyễn Minh An",
-            "taskType": "call",
-            "taskTypeLabel": "Gọi lại",
-            "dueAt": "2026-09-05T10:30:00+07:00",
-            "detail": "Quan tâm ngành Công nghệ thông tin",
-            "priority": "high",
-            "status": "todo",
-            "isOverdue": false
-          }
-        ]
-      },
-      "summary": {
-        "today": {
-          "total": 6,
-          "pending": 2,
-          "completed": 4
-        },
-        "overdue": {
-          "count": 2
-        },
-        "upcoming": {
-          "count": 4,
-          "horizonDays": 7
-        },
-        "completion": {
-          "completed": 4,
-          "total": 6,
-          "rate": 66.7
-        }
-      }
+    "date": "2026-09-05",
+    "asOf": "2026-09-05T09:15:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "status": "available",
+    "warnings": []
+  },
+  "kpis": [
+    {
+      "id": "assigned",
+      "value": 48,
+      "deltaValue": 6,
+      "deltaUnit": "count",
+      "comparisonPeriod": "current-week",
+      "direction": "up",
+      "ratioOfAssigned": 1,
+      "tone": "primary"
     },
-    "studentStatus": {
-      "total": 48,
+    {
+      "id": "uncontacted",
+      "value": 5,
+      "deltaValue": null,
+      "deltaUnit": "count",
+      "comparisonPeriod": null,
+      "direction": null,
+      "ratioOfAssigned": 0.1042,
+      "tone": "warning"
+    },
+    {
+      "id": "follow-up",
+      "value": 14,
+      "deltaValue": null,
+      "deltaUnit": "count",
+      "comparisonPeriod": null,
+      "direction": null,
+      "ratioOfAssigned": 0.2917,
+      "tone": "info"
+    },
+    {
+      "id": "transfer",
+      "value": 8,
+      "deltaValue": 2,
+      "deltaUnit": "count",
+      "comparisonPeriod": "previous-week",
+      "direction": "up",
+      "ratioOfAssigned": 0.1667,
+      "tone": "success"
+    }
+  ],
+  "tasks": {
+    "priority": {
+      "overdueCount": 2,
       "items": [
-        { "id": "new", "label": "Mới nhận", "count": 16, "share": 33.3 },
-        { "id": "consulting", "label": "Đang tư vấn", "count": 18, "share": 37.5 },
-        { "id": "connected", "label": "Đã kết nối", "count": 10, "share": 20.8 },
-        { "id": "transferred", "label": "Đã chuyển Sale", "count": 4, "share": 8.3 }
+        {
+          "id": "TASK-2026-0001",
+          "studentId": "STU-2026-00042",
+          "studentName": "Nguyễn Minh An",
+          "taskType": "call",
+          "taskTypeLabel": "Gọi lại",
+          "dueAt": "2026-09-05T10:30:00+07:00",
+          "detail": "Quan tâm ngành Công nghệ thông tin",
+          "priority": "high",
+          "status": "todo",
+          "isOverdue": false
+        }
       ]
     },
-    "contacts": {
-      "trend": {
-        "defaultRange": "7d",
-        "ranges": {
-          "7d": {
-            "from": "2026-08-30",
-            "to": "2026-09-05",
-            "points": [
-              {
-                "label": "T2",
-                "periodStart": "2026-08-31",
-                "periodEnd": "2026-08-31",
-                "contacts": 8,
-                "connected": 5
-              }
-            ],
-            "totals": { "contacts": 87, "connected": 60 }
-          },
-          "30d": {
-            "from": "2026-08-07",
-            "to": "2026-09-05",
-            "points": [
-              {
-                "label": "Tuần 1",
-                "periodStart": "2026-08-07",
-                "periodEnd": "2026-08-13",
-                "contacts": 48,
-                "connected": 31
-              }
-            ],
-            "totals": { "contacts": 239, "connected": 163 }
-          }
-        }
+    "summary": {
+      "today": {
+        "total": 6,
+        "pending": 2,
+        "completed": 4
       },
-      "outcomes": {
-        "from": "2026-08-07",
-        "to": "2026-09-05",
-        "total": 77,
-        "connectedRate": 41.6,
-        "items": [
-          { "id": "connected", "label": "Đã kết nối", "count": 32, "share": 41.6 },
-          { "id": "missed", "label": "Không bắt máy", "count": 18, "share": 23.4 },
-          { "id": "follow-up", "label": "Follow-up", "count": 16, "share": 20.8 },
-          { "id": "qualified", "label": "Có nhu cầu", "count": 11, "share": 14.3 }
-        ]
+      "overdue": {
+        "count": 2
+      },
+      "upcoming": {
+        "count": 4,
+        "horizonDays": 7
+      },
+      "completion": {
+        "completed": 4,
+        "total": 6,
+        "rate": 66.7
       }
+    }
+  },
+  "studentStatus": {
+    "total": 48,
+    "items": [
+      { "id": "new", "label": "Mới nhận", "count": 16, "share": 33.3 },
+      { "id": "consulting", "label": "Đang tư vấn", "count": 18, "share": 37.5 },
+      { "id": "connected", "label": "Đã kết nối", "count": 10, "share": 20.8 },
+      { "id": "transferred", "label": "Đã chuyển Sale", "count": 4, "share": 8.3 }
+    ]
+  },
+  "contacts": {
+    "trend": {
+      "defaultRange": "7d",
+      "ranges": {
+        "7d": {
+          "from": "2026-08-30",
+          "to": "2026-09-05",
+          "points": [
+            {
+              "label": "T2",
+              "periodStart": "2026-08-31",
+              "periodEnd": "2026-08-31",
+              "contacts": 8,
+              "connected": 5
+            }
+          ],
+          "totals": { "contacts": 87, "connected": 60 }
+        },
+        "30d": {
+          "from": "2026-08-07",
+          "to": "2026-09-05",
+          "points": [
+            {
+              "label": "Tuần 1",
+              "periodStart": "2026-08-07",
+              "periodEnd": "2026-08-13",
+              "contacts": 48,
+              "connected": 31
+            }
+          ],
+          "totals": { "contacts": 239, "connected": 163 }
+        }
+      }
+    },
+    "outcomes": {
+      "from": "2026-08-07",
+      "to": "2026-09-05",
+      "total": 77,
+      "connectedRate": 41.6,
+      "items": [
+        { "id": "connected", "label": "Đã kết nối", "count": 32, "share": 41.6 },
+        { "id": "missed", "label": "Không bắt máy", "count": 18, "share": 23.4 },
+        { "id": "follow-up", "label": "Follow-up", "count": 16, "share": 20.8 },
+        { "id": "qualified", "label": "Có nhu cầu", "count": 11, "share": 14.3 }
+      ]
     }
   }
 }
@@ -418,11 +416,11 @@ Các outcome trong response phải là các bucket mutually exclusive và exhaus
 | `502` | `INVALID_CTV_SALE_OVERVIEW_RESPONSE` | Upstream thiếu field bắt buộc hoặc sai kiểu |
 | `503` | `CTV_SALE_OVERVIEW_UNAVAILABLE` | Không đọc được nguồn task, student hoặc interaction |
 
-## 9. Việc cần làm khi tích hợp
+## 9. Ghi chú tích hợp
 
-1. Tạo Frappe method `crm.api.ctv_sale.get_ctv_sale_overview` và áp dụng scope từ session.
-2. Tạo service adapter trong `src/services/api/ctv-sale` để gọi endpoint, unwrap `message`, validate response và chuẩn hóa lỗi.
-3. Thay fixture trong `ctv-sale/_components/data.ts` bằng một query overview duy nhất; giữ label/màu/icon ở presentation layer.
+1. Endpoint `GET /api/v1/ctv-sale/overview` áp dụng scope từ session (đã triển khai trong `crm-backend`).
+2. Service `src/services/api/ctv-sale` gọi endpoint, validate response và chuẩn hóa lỗi (đã có).
+3. Giữ label/màu/icon ở presentation layer; dữ liệu đến từ một query overview duy nhất.
 4. Nối `trendRange` với dữ liệu `contacts.trend.ranges`; không gọi API riêng cho từng card.
 5. Persist thao tác hoàn thành task bằng task API hiện có, sau đó invalidate/refetch overview.
 6. Bổ sung test cho query serialization, permission error, empty data, partial snapshot và các invariant count/rate.
@@ -430,7 +428,7 @@ Các outcome trong response phải là các bucket mutually exclusive và exhaus
 ## 10. Request tối thiểu
 
 ~~~
-GET /api/method/crm.api.ctv_sale.get_ctv_sale_overview?trendRange=7d&outcomeRange=30d
+GET /api/v1/ctv-sale/overview?trendRange=7d&outcomeRange=30d
 ~~~
 
 Response tối thiểu để render đúng `/ctv-sale` phải có `meta.viewer`, `meta.date`, `meta.asOf`, đủ 4 KPI, `tasks.priority`, `tasks.summary`, `studentStatus`, cả hai range trong `contacts.trend` và `contacts.outcomes`.

@@ -1,13 +1,11 @@
 /**
  * The NBA package copy is drafted server-side and can carry internal system
- * nouns ("do Frappe xác định", "Bedrock", …). The director workspace is an
+ * nouns ("Bedrock", "LLM", …). The director workspace is an
  * end-user surface, so every prose/list field is passed through `scrubCopy`
  * before it is rendered — internal identifiers never reach the screen.
  */
 
 const INTERNAL_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
-  [/\s*do\s+Frappe(?:\/[^\s.,;]+)*\s+(?:xác định|định tuyến|xác nhận)/gi, ""],
-  [/\bFrappe(?:-CRM)?\b/gi, "hệ thống"],
   [/\bBedrock\b/gi, "hệ thống"],
   [/\bpackage[_ -]?seed\b/gi, "nội dung gợi ý"],
   [/\bCRM\s+Action\b/gi, "hành động"],

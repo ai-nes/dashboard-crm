@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Faithful port of crm/www/login.html (Frappe CRM login page).
+// Sign-in page: email/password form plus the Google entry point.
 const systemFont =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 

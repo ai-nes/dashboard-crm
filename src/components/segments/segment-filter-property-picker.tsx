@@ -8,6 +8,7 @@ import { Input } from "@/components/tailgrids/core/input";
 import { OverlayWrapper } from "@/components/tailgrids/core/overlay";
 import { Popover } from "@/components/tailgrids/core/popover";
 import { cn } from "@/utils/cn";
+import { useInfinityScroll } from "@/hooks/use-infinity-scroll";
 
 import {
   CLASSIFICATION_PROPERTIES,
@@ -91,6 +92,16 @@ export function SegmentFilterPropertyPicker({
 
   const hasResults =
     filteredProperties.length > 0 || classificationSections.length > 0;
+  const entries = useMemo(() => [
+    ...filteredProperties.map((property) => property),
+    ...classificationSections.flatMap((section) => section.groups.map((group) => `${section.property}:${group.groupName}`)),
+  ], [filteredProperties, classificationSections]);
+  const { visibleItems, onScrollToLoadMore } = useInfinityScroll(entries, {
+    enabled: isOpen,
+    getItemKey: (key) => key,
+    resetKey: `${isOpen}:${normalizedSearch}`,
+  });
+  const visibleKeys = new Set(visibleItems);
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     setIsOpen(nextIsOpen);
@@ -147,10 +158,10 @@ export function SegmentFilterPropertyPicker({
           </div>
         </div>
 
-        <div className="max-h-[min(24rem,calc(100dvh-7rem))] overflow-y-auto px-1.5 py-2">
+        <div className="max-h-[min(24rem,calc(100dvh-7rem))] overflow-y-auto px-1.5 py-2" onScroll={onScrollToLoadMore}>
           {hasResults ? (
             <div className="space-y-0.5">
-              {filteredProperties.map((property) => (
+              {filteredProperties.filter((property) => visibleKeys.has(property)).map((property) => (
                 <Button
                   key={property}
                   variant="primary"
@@ -168,7 +179,7 @@ export function SegmentFilterPropertyPicker({
                 </Button>
               ))}
 
-              {classificationSections.map((section) => (
+              {classificationSections.filter((section) => section.groups.some((group) => visibleKeys.has(`${section.property}:${group.groupName}`))).map((section) => (
                 <section
                   key={section.property}
                   aria-labelledby={`segment-classification-${section.property}`}
@@ -179,7 +190,7 @@ export function SegmentFilterPropertyPicker({
                   >
                     {section.label}
                   </h3>
-                  {section.groups.map((group) => (
+                  {section.groups.filter((group) => visibleKeys.has(`${section.property}:${group.groupName}`)).map((group) => (
                     <Button
                       key={group.groupName}
                       variant="primary"

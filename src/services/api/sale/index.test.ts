@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   SaleOverviewApiError,
@@ -6,7 +6,18 @@ import {
   normalizeSaleOverview,
 } from "./index";
 
-afterEach(() => vi.restoreAllMocks());
+const fetchMock = vi.fn();
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://localhost:3001");
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+});
 
 function overviewFixture() {
   return {
@@ -58,26 +69,26 @@ function overviewFixture() {
 }
 
 describe("Sale overview API contract", () => {
-  it("serializes the query, unwraps message, and normalizes the core snapshot", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: overviewFixture() }), { status: 200 }),
+  it("serializes the query and normalizes the core snapshot", async () => {
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(JSON.stringify(overviewFixture()), { status: 200 }),
     );
 
-    const result = await getSaleOverview(
-      { admissionYear: 2026, date: "2026-09-05", timezone: "Asia/Ho_Chi_Minh" },
-      { baseUrl: "http://frappe:8000" },
-    );
+    const result = await getSaleOverview({
+      admissionYear: 2026,
+      date: "2026-09-05",
+      timezone: "Asia/Ho_Chi_Minh",
+    });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.sale.get_sale_overview?admissionYear=2026&date=2026-09-05&trendRange=4w&timezone=Asia%2FHo_Chi_Minh&priorityLimit=4",
-      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      "http://localhost:3001/api/v1/sale/overview?admissionYear=2026&date=2026-09-05&trendRange=4w&timezone=Asia%2FHo_Chi_Minh&priorityLimit=4",
     );
     expect(result.meta.viewer.displayName).toBe("Sale");
     expect(result.studentStages.items).toHaveLength(2);
     expect(result.health.agingBuckets).toHaveLength(3);
     expect(result.conversionTrend.ranges["4w"].points).toEqual([]);
   });
-
   it("normalizes canonical CRM stages and a compact NBA student projection", () => {
     const fixture = overviewFixture();
     const result = normalizeSaleOverview({
@@ -192,7 +203,15 @@ describe("Sale overview API contract", () => {
             ...fixture.conversionTrend.ranges,
             "4w": {
               ...fixture.conversionTrend.ranges["4w"],
-              points: [{ label: "Tuần 1", periodStart: "2026-08-10", periodEnd: "2026-08-16", consulted: 1, admitted: 1 }],
+              points: [
+                {
+                  label: "Tuần 1",
+                  periodStart: "2026-08-10",
+                  periodEnd: "2026-08-16",
+                  consulted: 1,
+                  admitted: 1,
+                },
+              ],
             },
           },
         },
@@ -206,15 +225,17 @@ describe("Sale overview API contract", () => {
   });
 
   it("maps authorization failures to a stable typed error", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ error: { code: "FORBIDDEN", message: "Not permitted" } }), {
-        status: 403,
-      }),
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: { code: "FORBIDDEN", message: "Not permitted" },
+          }),
+          { status: 403 },
+        ),
     );
 
-    await expect(
-      getSaleOverview({}, { baseUrl: "http://frappe:8000" }),
-    ).rejects.toEqual(
+    await expect(getSaleOverview()).rejects.toEqual(
       expect.objectContaining<Partial<SaleOverviewApiError>>({
         status: 403,
         code: "FORBIDDEN",
@@ -223,8 +244,8 @@ describe("Sale overview API contract", () => {
   });
 
   it("rejects an incomplete response instead of rendering fixture data", () => {
-    expect(() => normalizeSaleOverview({ message: { meta: {}, tasks: {} } })).toThrow(
-      "Invalid Sale overview response",
-    );
+    expect(() =>
+      normalizeSaleOverview({ message: { meta: {}, tasks: {} } }),
+    ).toThrow("Invalid Sale overview response");
   });
 });

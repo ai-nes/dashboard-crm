@@ -1,5 +1,7 @@
 "use client";
 
+import { InfiniteSelectInput } from "@/components/common/infinite-select-input";
+
 import { useRef, useState } from "react";
 import { ArrowLeft, ChevronDown, Plus } from "@tailgrids/icons";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -230,7 +232,7 @@ export default function RulesConfigAdminPage({
         <label className="flex items-center gap-2 text-sm font-medium text-text-secondary">
           Version
           <span className="relative inline-flex">
-            <select
+            <InfiniteSelectInput
               aria-label="Chọn Version CRM Rule"
               className="h-9 min-w-48 appearance-none rounded-lg border border-card-border bg-input-background py-0 pr-9 pl-3 text-sm text-title-50 outline-none focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20"
               disabled={versionsQuery.isPending || versions.length === 0}
@@ -245,7 +247,7 @@ export default function RulesConfigAdminPage({
                   {version.versionName} · {version.status}
                 </option>
               ))}
-            </select>
+            </InfiniteSelectInput>
             <ChevronDown
               size={16}
               aria-hidden="true"
@@ -522,7 +524,7 @@ export default function RulesConfigAdminPage({
               }}
             />
           }
-          metaLabel="Đồng bộ từ Frappe CRM"
+          metaLabel="Đồng bộ từ máy chủ CRM"
           metaValue={
             <>
               <span className="font-semibold text-text-primary">
@@ -561,7 +563,7 @@ export default function RulesConfigAdminPage({
             </Button>
           ) : null
         }
-        metaLabel="Đồng bộ từ Frappe CRM"
+        metaLabel="Đồng bộ từ máy chủ CRM"
         metaValue={
           <>
             <span className="font-semibold text-text-primary">

@@ -1,6 +1,5 @@
 import type {
   CrmUser,
-  CrmUserCapacity,
   PermissionProfile,
   PermissionProfileDoctype,
   PermissionProfileRowScope,
@@ -31,34 +30,10 @@ function booleanValue(value: unknown, fallback = false): boolean {
   return fallback;
 }
 
-export function unwrapMethodPayload(value: unknown): unknown {
-  const root = asRecord(value);
-  return root?.message ?? value;
-}
-
-function numberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-export function normalizeCrmUserCapacity(
-  value: unknown,
-): CrmUserCapacity | null {
-  const object = asRecord(value);
-  if (!object) return null;
-  return {
-    limit: numberOrNull(object.limit),
-    active: numberOrNull(object.active) ?? 0,
-    remaining: numberOrNull(object.remaining),
-    configured: booleanValue(object.configured, false),
-  };
-}
-
-export function normalizeCrmUser(
-  value: unknown,
-  capacityByUser?: Record<string, unknown>,
-): CrmUser | null {
+export function normalizeCrmUser(value: unknown): CrmUser | null {
   const object = asRecord(value);
   if (!object || typeof object.name !== "string") return null;
+  const campus = asRecord(object.campus);
 
   return {
     name: object.name,
@@ -69,7 +44,14 @@ export function normalizeCrmUser(
     role: nullableString(object.role),
     crmRoleState: nullableString(object.crm_role_state),
     sessionUser: booleanValue(object.session_user, false),
-    capacity: normalizeCrmUserCapacity(capacityByUser?.[object.name]),
+    campus:
+      campus && typeof campus.id === "string" && typeof campus.name === "string"
+        ? {
+            id: campus.id,
+            name: campus.name,
+            code: nullableString(campus.code),
+          }
+        : null,
   };
 }
 

@@ -5,7 +5,9 @@
  */
 import { nestRequest } from "./nest-client";
 
-export const NOT_HANDLED = Symbol("not-handled");
+import { NOT_HANDLED } from "./nest-handler";
+
+export { NOT_HANDLED };
 
 type Params = Record<string, string | undefined>;
 type Body = Record<string, unknown> | undefined;

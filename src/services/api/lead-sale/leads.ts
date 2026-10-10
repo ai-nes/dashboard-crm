@@ -1,8 +1,8 @@
-import { getCsrfToken } from "../auth";
-import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import { NestApiError, type NestValidationIssue } from "../nest/nest-client";
 import {
   nestAssignLead,
   nestAssignmentTargets,
+  nestConvertLead,
   nestCreateLead,
   nestDeleteLead,
   nestImportLeadFile,
@@ -11,10 +11,13 @@ import {
   nestPreviewLeadImport,
   nestLeadDetail,
   nestLeadList,
+  nestPreviewNewLeads,
   nestProcessLead,
+  nestProcessNewLeads,
   nestReopenLead,
   nestSetLeadStatus,
   nestUpdateLead,
+  type NestNewLeadScan,
 } from "./leads-nest";
 
 export type LeadStatus = string;
@@ -76,6 +79,14 @@ export type ConversionPotential =
 export type FptAspiration = string;
 
 export interface LeadDetail extends LeadListItem {
+  provinceId?: string | null;
+  wardId?: string | null;
+  highSchoolId?: string | null;
+  majorId?: string | null;
+  aspirationId?: string | null;
+  admissionYearId?: string | null;
+  campusId?: string | null;
+  sourceId?: string | null;
   lifecycleStatus?: string | null;
   lifecycleStatusCode?: string | null;
   email: string;
@@ -296,10 +307,6 @@ export interface LeadProcessingPreviewResponse {
   admissionYear: string | null;
 }
 
-export interface LeadApiRequestOptions {
-  baseUrl?: string;
-}
-
 export type LeadUpdateFieldValue = string | null;
 
 export type LeadUpdateFields = Partial<{
@@ -413,44 +420,60 @@ export class LeadApiError extends Error {
     public status: number,
     public code: string,
     message: string,
+    public details: NestValidationIssue[] = [],
+    public requestId?: string,
   ) {
     super(message);
     this.name = "LeadApiError";
   }
 }
 
-/** Run a Nest call, normalize its payload, and surface failures as `LeadApiError`. */
+/**
+ * Run a Nest call, normalize its payload, and surface failures as `LeadApiError`.
+ * A payload the normalizer rejects becomes a 502 so screens get a typed error.
+ */
 async function viaNest<T>(
   call: () => Promise<unknown>,
   normalize: (payload: unknown) => T,
+  operation?: "create" | "update",
 ): Promise<T> {
+  let payload: unknown;
   try {
-    return normalize(await call());
+    payload = await call();
   } catch (error) {
     if (error instanceof NestApiError) {
-      throw new LeadApiError(error.status, error.code, error.message);
+      const message = error.details.length
+        ? `${error.message}\n${error.details.map((issue) => `${issue.field}: ${issue.message}`).join("\n")}`
+        : error.message;
+      if (operation)
+        console.error(`[lead:${operation}]`, {
+          status: error.status,
+          code: error.code,
+          requestId: error.requestId,
+          details: error.details,
+          message,
+        });
+      throw new LeadApiError(
+        error.status,
+        error.code,
+        message,
+        error.details,
+        error.requestId,
+      );
     }
     throw error;
   }
+  try {
+    return normalize(payload);
+  } catch {
+    throw new LeadApiError(
+      502,
+      "INVALID_LEAD_RESPONSE",
+      "Phản hồi từ máy chủ Lead không hợp lệ.",
+    );
+  }
 }
 
-const LIST_METHOD = "crm.api.director_leads.get_director_leads";
-const DETAIL_METHOD = "crm.api.director_leads.get_director_lead";
-const CREATE_METHOD = "crm.api.lead.create_lead";
-const INSPECT_IMPORT_METHOD = "crm.api.lead_mapping.inspect_lead_import";
-const PREVIEW_IMPORT_METHOD = "crm.api.lead_mapping.preview_lead_import";
-const IMPORT_METHOD = "crm.api.lead_mapping.import_leads";
-const UPDATE_METHOD = "crm.api.lead.update_lead";
-const DELETE_METHOD = "crm.api.lead.delete_lead";
-const CONVERT_METHOD = "crm.api.lead_processing.convert_to_student";
-const ASSIGNMENT_TARGETS_METHOD =
-  "crm.api.lead_processing.list_lead_assignment_targets";
-const ASSIGN_METHOD = "crm.api.lead_processing.assign_lead";
-const PROCESS_METHOD = "crm.api.lead_processing.process_lead";
-const PROCESS_SCAN_METHOD = "crm.api.lead_processing.process_new_leads";
-const PREVIEW_SCAN_METHOD = "crm.api.lead_processing.preview_new_leads";
-const STATUS_UPDATE_METHOD = "crm.api.lead_processing.update_processing_status";
-const REOPEN_METHOD = "crm.api.lead_processing.reopen_lead";
 const LEAD_PROCESS_STATUSES = new Set<LeadProcessStatus>([
   "NEW",
   "PROCESSING",
@@ -513,7 +536,7 @@ function normalizeResolution(value: unknown): LeadResolution | "" {
 }
 
 function normalizeProcessResponse(value: unknown): LeadProcessResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   const status = text(payload?.status).toUpperCase() as LeadProcessStatus;
   const resolution = text(
     payload?.resolution,
@@ -541,7 +564,7 @@ function normalizeProcessResponse(value: unknown): LeadProcessResponse {
 }
 
 function normalizeConversionResponse(value: unknown): LeadConversionResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   const conversion = asRecord(payload?.conversion);
   const status = text(payload?.status).toUpperCase() as LeadProcessStatus;
   const resolution = text(
@@ -615,7 +638,7 @@ function normalizeAssignmentTarget(
 function normalizeAssignmentTargets(
   value: unknown,
 ): LeadAssignmentTargetsResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   const rawTargets = Array.isArray(payload?.targets) ? payload.targets : [];
   const targets = rawTargets
     .map(normalizeAssignmentTarget)
@@ -634,7 +657,7 @@ function normalizeAssignmentTargets(
 }
 
 function normalizeAssignmentResponse(value: unknown): LeadAssignmentResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   const ownership = asRecord(payload?.ownership) ?? {};
   if (
     !payload ||
@@ -656,11 +679,6 @@ function normalizeAssignmentResponse(value: unknown): LeadAssignmentResponse {
       revision: integerOrNull(ownership.revision) ?? 0,
     },
   };
-}
-
-function unwrapMessage(value: unknown): unknown {
-  const root = asRecord(value);
-  return root?.message !== undefined ? root.message : value;
 }
 
 function stringArray(value: unknown): string[] {
@@ -852,7 +870,7 @@ function normalizeMeta(value: unknown): LeadListMeta {
 }
 
 export function normalizeLeadList(value: unknown): LeadListResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   if (!payload || !Array.isArray(payload.data) || !asRecord(payload.meta)) {
     throw new Error("Invalid Lead list response");
   }
@@ -869,6 +887,14 @@ function normalizeDetail(value: unknown): LeadDetail {
 
   return {
     ...normalizeListItem(row),
+    provinceId: nullableText(row.provinceId),
+    wardId: nullableText(row.wardId),
+    highSchoolId: nullableText(row.highSchoolId),
+    majorId: nullableText(row.majorId),
+    aspirationId: nullableText(row.aspirationId),
+    admissionYearId: nullableText(row.admissionYearId),
+    campusId: nullableText(row.campusId),
+    sourceId: nullableText(row.sourceId),
     lifecycleStatus:
       firstText([
         row.lifecycleStatus,
@@ -955,7 +981,7 @@ function normalizeLogEntry(value: unknown): LeadLogEntry {
 }
 
 export function normalizeLeadDetail(value: unknown): LeadDetailResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   if (!payload) {
     throw new Error("Invalid Lead detail response");
   }
@@ -988,303 +1014,6 @@ export function normalizeLeadDetail(value: unknown): LeadDetailResponse {
   };
 }
 
-function resolveBaseUrl(options: LeadApiRequestOptions): string {
-  return (options.baseUrl ?? process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
-    /\/+$/,
-    "",
-  );
-}
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-async function requestHeaders(
-  options: LeadApiRequestOptions,
-  includeJsonContentType = false,
-): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(includeJsonContentType ? { "Content-Type": "application/json" } : {}),
-  };
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) headers.Cookie = cookieHeader;
-    } catch {
-      // Contract tests and non-request contexts do not have Next headers.
-    }
-  }
-  if (typeof window !== "undefined" && includeJsonContentType) {
-    const csrfToken = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith("csrf_token="))
-      ?.split("=")
-      .slice(1)
-      .join("=");
-    if (csrfToken) {
-      headers["X-Frappe-CSRF-Token"] = decodeURIComponent(csrfToken);
-    } else {
-      try {
-        const sessionCsrfToken = await getCsrfToken(resolveBaseUrl(options));
-        if (sessionCsrfToken) {
-          headers["X-Frappe-CSRF-Token"] = sessionCsrfToken;
-        }
-      } catch {
-        // The write request returns the authoritative CSRF error if needed.
-      }
-    }
-  }
-  return headers;
-}
-
-function errorDetails(
-  value: unknown,
-  status: number,
-): { code: string; message: string } {
-  const root = asRecord(value);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-  const serverMessage = parseFrappeServerMessage(root?._server_messages);
-  const rawMessage =
-    [
-      text(error?.message),
-      text(message?.message),
-      serverMessage,
-      text(root?.message),
-      text(root?.exception),
-    ].find(Boolean) ?? "";
-  const serverCode = extractErrorCode([
-    text(error?.code),
-    serverMessage,
-    text(root?.message),
-    text(root?.exception),
-  ]);
-  const code =
-    text(error?.code) ||
-    serverCode ||
-    (status === 401
-      ? "UNAUTHENTICATED"
-      : status === 403
-        ? "FORBIDDEN"
-        : `HTTP_${status}`);
-  return {
-    code,
-    message: humanizeLeadApiErrorMessage(
-      code,
-      rawMessage || `Không thể tải dữ liệu Lead (${status}).`,
-    ),
-  };
-}
-
-const LEAD_IMPORT_ERROR_MESSAGES: Record<string, string> = {
-  INVALID_SOURCE_INDEX:
-    "Cấu hình mapping không khớp với file. Vui lòng chọn lại file và map lại các cột.",
-  CAMPAIGN_REQUIRED:
-    "Vui lòng chọn chiến dịch trước khi kiểm tra hoặc nhập Lead.",
-  CAMPAIGN_PERMISSION_DENIED: "Bạn không có quyền sử dụng chiến dịch này.",
-  CAMPAIGN_STATUS_NOT_ALLOWED:
-    "Chiến dịch phải ở trạng thái đang hoạt động hoặc đã đóng mới được dùng để nhập Lead.",
-  INVALID_COLUMN_MAPPING:
-    "Cấu hình mapping cột không hợp lệ. Vui lòng kiểm tra lại.",
-  MAPPING_TARGET_REQUIRED: "Mỗi cột đang bật phải được chọn trường CRM.",
-  DUPLICATE_SOURCE_INDEX:
-    "Một cột trong file đang bị chọn trùng. Vui lòng map lại.",
-  DUPLICATE_TARGET_FIELD: "Mỗi trường CRM chỉ được map một lần.",
-  UNKNOWN_FIELD: "Trường CRM được chọn không được hỗ trợ.",
-  SERVER_MANAGED_FIELD: "Trường này do hệ thống tự quản lý và không cần map.",
-  MISSING_REQUIRED_MAPPING: "Vui lòng map đầy đủ các trường bắt buộc.",
-};
-
-function extractErrorCode(values: unknown[]): string {
-  for (const value of values) {
-    const candidate = text(value);
-    const match = candidate.match(/\b([A-Z][A-Z0-9_]+):\s/);
-    if (match?.[1]) return match[1];
-  }
-  return "";
-}
-
-function cleanFrappeErrorMessage(value: string, code: string): string {
-  let message = value.replace(/<[^>]*>/g, "").trim();
-  message = message.replace(
-    /^(?:[A-Za-z_][A-Za-z0-9_]*\.)+[A-Za-z_][A-Za-z0-9_]*:\s*/,
-    "",
-  );
-  if (code && message.toUpperCase().startsWith(`${code}:`)) {
-    message = message.slice(code.length + 1).trim();
-  }
-  return message.replace(/^[A-Z][A-Z0-9_]*:\s*/, "").trim();
-}
-
-function humanizeLeadApiErrorMessage(code: string, value: string): string {
-  const message = cleanFrappeErrorMessage(value, code);
-  if (LEAD_IMPORT_ERROR_MESSAGES[code]) return LEAD_IMPORT_ERROR_MESSAGES[code];
-  if (code === "INVALID_CAMPAIGN_CODE") {
-    if (/không tìm thấy campaign/i.test(message)) {
-      return message
-        .replace(/\bCampaign\b/g, "chiến dịch")
-        .replace(/\bcode\b/gi, "mã");
-    }
-    return "Mã chiến dịch không hợp lệ. Vui lòng chọn lại chiến dịch.";
-  }
-  if (code === "REQUIRED_FIELD" && /campaign_code/i.test(message)) {
-    return "Vui lòng chọn chiến dịch trước khi kiểm tra hoặc nhập Lead.";
-  }
-  return message || "Không thể xử lý yêu cầu Lead.";
-}
-
-function parseFrappeServerMessage(value: unknown): string {
-  if (typeof value !== "string") return "";
-
-  try {
-    const messages = JSON.parse(value);
-    if (!Array.isArray(messages)) return "";
-    const message = messages.find(
-      (item): item is Record<string, unknown> =>
-        item && typeof item === "object" && typeof item.message === "string",
-    )?.message;
-    return typeof message === "string"
-      ? message.replace(/<[^>]*>/g, "").trim()
-      : "";
-  } catch {
-    return "";
-  }
-}
-
-async function request(
-  method: string,
-  params: URLSearchParams,
-  options: LeadApiRequestOptions,
-): Promise<unknown> {
-  const baseUrl = resolveBaseUrl(options);
-  if (!baseUrl) {
-    throw new LeadApiError(
-      503,
-      "LEAD_API_UNAVAILABLE",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
-    );
-  }
-
-  const query = params.toString();
-  const url = `${baseUrl}/api/method/${method}${query ? `?${query}` : ""}`;
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      method: "GET",
-      headers: await requestHeaders(options),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new LeadApiError(
-      503,
-      "LEAD_API_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ Lead.",
-    );
-  }
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = errorDetails(payload, response.status);
-    throw new LeadApiError(response.status, details.code, details.message);
-  }
-  return payload;
-}
-
-async function mutationRequest(
-  method: string,
-  httpMethod: "DELETE" | "POST",
-  body: Record<string, unknown>,
-  options: LeadApiRequestOptions,
-): Promise<unknown> {
-  const baseUrl = resolveBaseUrl(options);
-  if (!baseUrl) {
-    throw new LeadApiError(
-      503,
-      "LEAD_API_UNAVAILABLE",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
-    );
-  }
-
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl}/api/method/${method}`, {
-      method: httpMethod,
-      headers: await requestHeaders(options, true),
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      body: JSON.stringify(body),
-      cache: "no-store",
-    });
-  } catch {
-    throw new LeadApiError(
-      503,
-      "LEAD_API_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ Lead.",
-    );
-  }
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = errorDetails(payload, response.status);
-    throw new LeadApiError(response.status, details.code, details.message);
-  }
-  return payload;
-}
-
-async function fileMutationRequest(
-  method: string,
-  body: FormData,
-  options: LeadApiRequestOptions,
-): Promise<unknown> {
-  const baseUrl = resolveBaseUrl(options);
-  if (!baseUrl) {
-    throw new LeadApiError(
-      503,
-      "LEAD_API_UNAVAILABLE",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
-    );
-  }
-
-  let response: Response;
-  try {
-    const headers = await requestHeaders(options, true);
-    delete headers["Content-Type"];
-    response = await fetch(`${baseUrl}/api/method/${method}`, {
-      method: "POST",
-      headers,
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      body,
-      cache: "no-store",
-    });
-  } catch {
-    throw new LeadApiError(
-      503,
-      "LEAD_API_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ Lead.",
-    );
-  }
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const details = errorDetails(payload, response.status);
-    throw new LeadApiError(response.status, details.code, details.message);
-  }
-  return payload;
-}
-
 function normalizeImportError(
   value: unknown,
   fallbackRow = 0,
@@ -1298,7 +1027,7 @@ function normalizeImportError(
 }
 
 function normalizeLeadImportInspect(value: unknown): LeadImportInspectResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   const fieldCatalog = Array.isArray(payload?.fieldCatalog)
     ? payload.fieldCatalog
         .map((item): LeadImportFieldDefinition | null => {
@@ -1378,7 +1107,7 @@ function normalizeLeadImportInspect(value: unknown): LeadImportInspectResponse {
 }
 
 function normalizeLeadImportPreview(value: unknown): LeadImportPreviewResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   const rawRows = Array.isArray(payload?.rows) ? payload.rows : [];
   const rows = rawRows.map((item) => {
     const row = asRecord(item) ?? {};
@@ -1450,7 +1179,7 @@ function normalizeLeadImportPreview(value: unknown): LeadImportPreviewResponse {
 }
 
 function normalizeLeadImportResponse(value: unknown): LeadImportResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   const rawErrors = Array.isArray(payload?.errors) ? payload.errors : [];
   const students = Array.isArray(payload?.students)
     ? payload.students.filter((student): student is Record<string, unknown> =>
@@ -1478,74 +1207,23 @@ function normalizeLeadImportResponse(value: unknown): LeadImportResponse {
 
 export async function getLeadList(
   params: LeadListParams = {},
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadListResponse> {
-  if (isNestApiEnabled()) {
-    return viaNest(() => nestLeadList(params), normalizeLeadList);
-  }
-  const searchParams = new URLSearchParams();
-  if (params.admissionYear !== undefined)
-    searchParams.set("admissionYear", String(params.admissionYear));
-  if (params.page !== undefined) searchParams.set("page", String(params.page));
-  if (params.pageSize !== undefined)
-    searchParams.set("pageSize", String(params.pageSize));
-  if (params.q) searchParams.set("q", params.q);
-  if (params.status && params.status !== "all")
-    searchParams.set("status", params.status);
-  if (params.resolution && params.resolution !== "all")
-    searchParams.set("resolution", params.resolution);
-  if (params.campaign && params.campaign !== "all")
-    searchParams.set("campaign", params.campaign);
-  if (params.order) searchParams.set("order", params.order);
-
-  const payload = await request(LIST_METHOD, searchParams, options);
-  try {
-    return normalizeLeadList(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_LIST_RESPONSE",
-      "Phản hồi danh sách Lead không hợp lệ.",
-    );
-  }
+  return viaNest(() => nestLeadList(params), normalizeLeadList);
 }
 
 export async function getLeadDetail(
   leadId: string,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadDetailResponse | null> {
-  if (isNestApiEnabled()) {
-    try {
-      return await viaNest(() => nestLeadDetail(leadId), normalizeLeadDetail);
-    } catch (error) {
-      if (error instanceof LeadApiError && error.status === 404) return null;
-      throw error;
-    }
-  }
-  const searchParams = new URLSearchParams({ lead_id: leadId });
   try {
-    const payload = await request(DETAIL_METHOD, searchParams, options);
-    return normalizeLeadDetail(payload);
+    return await viaNest(() => nestLeadDetail(leadId), normalizeLeadDetail);
   } catch (error) {
-    if (
-      error instanceof LeadApiError &&
-      error.status === 404 &&
-      (error.code === "LEAD_NOT_FOUND" || error.code.startsWith("HTTP_"))
-    ) {
-      return null;
-    }
-    if (error instanceof LeadApiError) throw error;
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_DETAIL_RESPONSE",
-      "Phản hồi chi tiết Lead không hợp lệ.",
-    );
+    if (error instanceof LeadApiError && error.status === 404) return null;
+    throw error;
   }
 }
 
 export async function getLeadAssignmentTargets(
   leadId: string,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadAssignmentTargetsResponse> {
   const normalizedLeadId = leadId.trim();
   if (!normalizedLeadId) {
@@ -1555,33 +1233,14 @@ export async function getLeadAssignmentTargets(
       "Thiếu mã Lead cần tải danh sách phân công.",
     );
   }
-  if (isNestApiEnabled()) {
-    return viaNest(
-      () => nestAssignmentTargets(normalizedLeadId),
-      normalizeAssignmentTargets,
-    );
-  }
-
-  try {
-    const payload = await request(
-      ASSIGNMENT_TARGETS_METHOD,
-      new URLSearchParams({ lead: normalizedLeadId }),
-      options,
-    );
-    return normalizeAssignmentTargets(payload);
-  } catch (error) {
-    if (error instanceof LeadApiError) throw error;
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_ASSIGNMENT_TARGETS_RESPONSE",
-      "Danh sách Sale/CTV phân công Lead không hợp lệ.",
-    );
-  }
+  return viaNest(
+    () => nestAssignmentTargets(normalizedLeadId),
+    normalizeAssignmentTargets,
+  );
 }
 
 export async function createLead(
   fields: LeadCreateFields,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadDetailResponse> {
   if (!fields || !fields.student_name?.trim()) {
     throw new LeadApiError(
@@ -1590,117 +1249,36 @@ export async function createLead(
       "Họ và tên Lead không được để trống.",
     );
   }
-
-  if (isNestApiEnabled()) {
-    return viaNest(() => nestCreateLead(fields), normalizeLeadDetail);
-  }
-
-  const payload = await mutationRequest(
-    CREATE_METHOD,
-    "POST",
-    { fields },
-    options,
-  );
-  try {
-    return normalizeLeadDetail(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_CREATE_RESPONSE",
-      "Phản hồi tạo Lead không hợp lệ.",
-    );
-  }
+  return viaNest(() => nestCreateLead(fields), normalizeLeadDetail, "create");
 }
 
 export async function inspectLeadImport(
   file: File,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadImportInspectResponse> {
   if (!file || !file.name) {
     throw new LeadApiError(400, "INVALID_FILE", "Vui lòng chọn file import.");
   }
-
-  if (isNestApiEnabled()) {
-    return viaNest(
-      () => nestInspectLeadImport(file),
-      normalizeLeadImportInspect,
-    );
-  }
-
-  const body = new FormData();
-  body.append("file", file, file.name);
-  const payload = await fileMutationRequest(
-    INSPECT_IMPORT_METHOD,
-    body,
-    options,
-  );
-  try {
-    return normalizeLeadImportInspect(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_IMPORT_INSPECT_RESPONSE",
-      "Phản hồi kiểm tra file import không hợp lệ.",
-    );
-  }
+  return viaNest(() => nestInspectLeadImport(file), normalizeLeadImportInspect);
 }
 
 export async function previewLeadImport(
   file: File,
   campaignCode?: string,
-  mappingOrOptions: LeadImportMapping[] | LeadApiRequestOptions = {},
-  options: LeadApiRequestOptions = {},
+  mapping?: LeadImportMapping[],
 ): Promise<LeadImportPreviewResponse> {
   if (!file || !file.name) {
     throw new LeadApiError(400, "INVALID_FILE", "Vui lòng chọn file import.");
   }
-
-  if (isNestApiEnabled()) {
-    const nestMapping = Array.isArray(mappingOrOptions)
-      ? mappingOrOptions
-      : undefined;
-    return viaNest(
-      () => nestPreviewLeadImport(file, campaignCode?.trim(), nestMapping),
-      normalizeLeadImportPreview,
-    );
-  }
-
-  const body = new FormData();
-  body.append("file", file, file.name);
-  const normalizedCampaignCode = campaignCode?.trim();
-  if (normalizedCampaignCode) {
-    body.append("campaign_code", normalizedCampaignCode);
-  }
-  const mapping = Array.isArray(mappingOrOptions)
-    ? mappingOrOptions
-    : undefined;
-  const requestOptions = Array.isArray(mappingOrOptions)
-    ? options
-    : mappingOrOptions;
-  if (mapping) {
-    body.append("column_mapping", JSON.stringify(mapping));
-  }
-  const payload = await fileMutationRequest(
-    PREVIEW_IMPORT_METHOD,
-    body,
-    requestOptions,
+  return viaNest(
+    () => nestPreviewLeadImport(file, campaignCode?.trim(), mapping),
+    normalizeLeadImportPreview,
   );
-  try {
-    return normalizeLeadImportPreview(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_IMPORT_PREVIEW_RESPONSE",
-      "Phản hồi xem trước file import không hợp lệ.",
-    );
-  }
 }
 
 export async function importLeadFile(
   file: File,
   campaignCode: string,
   mapping: LeadImportMapping[],
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadImportResponse> {
   if (!file || !file.name) {
     throw new LeadApiError(400, "INVALID_FILE", "Vui lòng chọn file import.");
@@ -1720,36 +1298,16 @@ export async function importLeadFile(
       "Chưa có mapping cột để nhập Lead.",
     );
   }
-
-  if (isNestApiEnabled()) {
-    return viaNest(
-      () => nestImportLeadFile(file, normalizedCampaignCode, mapping),
-      normalizeLeadImportResponse,
-    );
-  }
-
-  const body = new FormData();
-  body.append("file", file, file.name);
-  body.append("campaign_code", normalizedCampaignCode);
-  body.append("import_mode", "quick_create");
-  body.append("column_mapping", JSON.stringify(mapping));
-  const payload = await fileMutationRequest(IMPORT_METHOD, body, options);
-  try {
-    return normalizeLeadImportResponse(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_IMPORT_RESPONSE",
-      "Phản hồi nhập Lead không hợp lệ.",
-    );
-  }
+  return viaNest(
+    () => nestImportLeadFile(file, normalizedCampaignCode, mapping),
+    normalizeLeadImportResponse,
+  );
 }
 
 export async function importLeadRows(
   rows: Record<string, unknown>[],
   filename: string,
   campaignCode: string,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadImportResponse> {
   if (!Array.isArray(rows) || rows.length === 0) {
     throw new LeadApiError(
@@ -1766,40 +1324,15 @@ export async function importLeadRows(
       "Vui lòng chọn campaign trước khi nhập Lead.",
     );
   }
-
-  if (isNestApiEnabled()) {
-    return viaNest(
-      () => nestImportLeadRows(rows, filename, normalizedCampaignCode),
-      normalizeLeadImportResponse,
-    );
-  }
-
-  const payload = await mutationRequest(
-    IMPORT_METHOD,
-    "POST",
-    {
-      rows,
-      filename,
-      import_mode: "quick_create",
-      campaign_code: normalizedCampaignCode,
-    },
-    options,
+  return viaNest(
+    () => nestImportLeadRows(rows, filename, normalizedCampaignCode),
+    normalizeLeadImportResponse,
   );
-  try {
-    return normalizeLeadImportResponse(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_IMPORT_RESPONSE",
-      "Phản hồi nhập Lead không hợp lệ.",
-    );
-  }
 }
 
 export async function updateLead(
   leadId: string,
   fields: LeadUpdateFields,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadDetailResponse> {
   const normalizedLeadId = leadId.trim();
   if (!normalizedLeadId) {
@@ -1816,42 +1349,15 @@ export async function updateLead(
       "Vui lòng thay đổi ít nhất một trường.",
     );
   }
-
-  if (isNestApiEnabled()) {
-    return viaNest(
-      () => nestUpdateLead(normalizedLeadId, fields),
-      normalizeLeadDetail,
-    );
-  }
-
-  const payload = await mutationRequest(
-    UPDATE_METHOD,
-    "POST",
-    { name: normalizedLeadId, fields },
-    options,
+  return viaNest(
+    () => nestUpdateLead(normalizedLeadId, fields),
+    normalizeLeadDetail,
+    "update",
   );
-  try {
-    return normalizeLeadDetail(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_UPDATE_RESPONSE",
-      "Phản hồi cập nhật Lead không hợp lệ.",
-    );
-  }
-}
-
-function createAssignmentIdempotencyKey(lead: string): string {
-  const suffix =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return `lead-detail-assignment:${lead}:${suffix}`;
 }
 
 export async function assignLeadToStaff(
   request: LeadAssignmentRequest,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadAssignmentResponse> {
   const lead = request.lead.trim();
   const ownerStaff = request.ownerStaff.trim();
@@ -1873,50 +1379,21 @@ export async function assignLeadToStaff(
       "Thông tin phân công đã cũ, vui lòng tải lại Lead.",
     );
   }
-
-  if (isNestApiEnabled()) {
-    return viaNest(
-      () =>
-        nestAssignLead({
-          lead,
-          ownerStaff,
-          targetTeamId,
-          expectedRevision: request.expectedRevision,
-          reason: request.reason?.trim(),
-        }),
-      normalizeAssignmentResponse,
-    );
-  }
-
-  const body: Record<string, unknown> = {
-    lead,
-    owner_staff: ownerStaff,
-    target_team_id: targetTeamId,
-    reason:
-      request.reason?.trim() || "Phân công thủ công từ màn hình chi tiết Lead.",
-    idempotency_key:
-      request.idempotencyKey?.trim() || createAssignmentIdempotencyKey(lead),
-    expected_revision: request.expectedRevision,
-  };
-  if (request.correlationId?.trim()) {
-    body.correlation_id = request.correlationId.trim();
-  }
-
-  const payload = await mutationRequest(ASSIGN_METHOD, "POST", body, options);
-  try {
-    return normalizeAssignmentResponse(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_ASSIGNMENT_RESPONSE",
-      "Phản hồi phân công Lead không hợp lệ.",
-    );
-  }
+  return viaNest(
+    () =>
+      nestAssignLead({
+        lead,
+        ownerStaff,
+        targetTeamId,
+        expectedRevision: request.expectedRevision,
+        reason: request.reason?.trim(),
+      }),
+    normalizeAssignmentResponse,
+  );
 }
 
 export async function convertLeadToStudent(
   leadId: string,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadConversionResponse> {
   const normalizedLeadId = leadId.trim();
   if (!normalizedLeadId) {
@@ -1926,27 +1403,14 @@ export async function convertLeadToStudent(
       "Thiếu mã Lead cần chuyển đổi.",
     );
   }
-
-  const payload = await mutationRequest(
-    CONVERT_METHOD,
-    "POST",
-    { lead: normalizedLeadId },
-    options,
+  return viaNest(
+    () => nestConvertLead(normalizedLeadId),
+    normalizeConversionResponse,
   );
-  try {
-    return normalizeConversionResponse(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_CONVERSION_RESPONSE",
-      "Phản hồi chuyển Lead thành Student không hợp lệ.",
-    );
-  }
 }
 
 export async function processLead(
   request: LeadProcessRequest,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadProcessResponse> {
   const lead = request.lead.trim();
   const requestedResolution = request.resolution as string | undefined;
@@ -1964,29 +1428,11 @@ export async function processLead(
       "Không truyền PENDING khi gọi API xử lý Lead.",
     );
   }
-
-  if (isNestApiEnabled()) {
-    return viaNest(() => nestProcessLead(lead), normalizeProcessResponse);
-  }
-
-  const body: Record<string, unknown> = { lead };
-  if (request.resolution) body.resolution = request.resolution;
-  if (request.reason?.trim()) body.reason = request.reason.trim();
-
-  const payload = await mutationRequest(PROCESS_METHOD, "POST", body, options);
-  try {
-    return normalizeProcessResponse(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_PROCESS_RESPONSE",
-      "Phản hồi xử lý Lead không hợp lệ.",
-    );
-  }
+  return viaNest(() => nestProcessLead(lead), normalizeProcessResponse);
 }
 
 function normalizeProcessScanResponse(value: unknown): LeadProcessScanResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   const summary = asRecord(payload?.summary);
   if (!payload || !summary) {
     throw new Error("Invalid Lead processing scan response");
@@ -2053,7 +1499,7 @@ function normalizeProcessingPreviewItem(
 function normalizeProcessingPreview(
   value: unknown,
 ): LeadProcessingPreviewResponse {
-  const payload = asRecord(unwrapMessage(value));
+  const payload = asRecord(value);
   const summary = asRecord(payload?.summary);
   const rawItems = Array.isArray(payload?.items) ? payload.items : [];
   if (!payload || !summary || !Array.isArray(payload.items)) {
@@ -2076,10 +1522,8 @@ function normalizeProcessingPreview(
   };
 }
 
-export async function previewNewLeads(
-  request: LeadProcessScanRequest = {},
-  options: LeadApiRequestOptions = {},
-): Promise<LeadProcessingPreviewResponse> {
+/** Validate the admission year and shape the bulk-processing request. */
+function toNewLeadScan(request: LeadProcessScanRequest): NestNewLeadScan {
   const admissionYear = String(request.admissionYear ?? "").trim();
   if (admissionYear && !/^\d{4}$/.test(admissionYear)) {
     throw new LeadApiError(
@@ -2088,65 +1532,28 @@ export async function previewNewLeads(
       "Kỳ tuyển sinh phải là năm gồm bốn chữ số.",
     );
   }
+  return {
+    ...(admissionYear ? { admissionYear: Number(admissionYear) } : {}),
+    ...(typeof request.limit === "number" ? { limit: request.limit } : {}),
+  };
+}
 
-  const body: Record<string, unknown> = {};
-  if (admissionYear) body.admission_year = admissionYear;
-  if (typeof request.limit === "number") body.limit = request.limit;
-
-  const payload = await mutationRequest(
-    PREVIEW_SCAN_METHOD,
-    "POST",
-    body,
-    options,
-  );
-  try {
-    return normalizeProcessingPreview(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_PROCESSING_PREVIEW_RESPONSE",
-      "Phản hồi xem trước xử lý Lead không hợp lệ.",
-    );
-  }
+export async function previewNewLeads(
+  request: LeadProcessScanRequest = {},
+): Promise<LeadProcessingPreviewResponse> {
+  const scan = toNewLeadScan(request);
+  return viaNest(() => nestPreviewNewLeads(scan), normalizeProcessingPreview);
 }
 
 export async function processNewLeads(
   request: LeadProcessScanRequest = {},
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadProcessScanResponse> {
-  const admissionYear = String(request.admissionYear ?? "").trim();
-  if (admissionYear && !/^\d{4}$/.test(admissionYear)) {
-    throw new LeadApiError(
-      400,
-      "INVALID_ADMISSION_YEAR",
-      "Kỳ tuyển sinh phải là năm gồm bốn chữ số.",
-    );
-  }
-
-  const body: Record<string, unknown> = {};
-  if (admissionYear) body.admission_year = admissionYear;
-  if (typeof request.limit === "number") body.limit = request.limit;
-
-  const payload = await mutationRequest(
-    PROCESS_SCAN_METHOD,
-    "POST",
-    body,
-    options,
-  );
-  try {
-    return normalizeProcessScanResponse(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_PROCESS_SCAN_RESPONSE",
-      "Phản hồi xử lý Lead hàng loạt không hợp lệ.",
-    );
-  }
+  const scan = toNewLeadScan(request);
+  return viaNest(() => nestProcessNewLeads(scan), normalizeProcessScanResponse);
 }
 
 export async function updateLeadProcessingStatus(
   request: LeadStatusUpdateRequest,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadProcessResponse> {
   const lead = request.lead.trim();
   const status = String(request.status ?? "")
@@ -2166,37 +1573,14 @@ export async function updateLeadProcessingStatus(
       "Trạng thái xử lý Lead không hợp lệ.",
     );
   }
-
-  if (isNestApiEnabled()) {
-    return viaNest(
-      () => nestSetLeadStatus(lead, status, request.reason?.trim()),
-      normalizeProcessResponse,
-    );
-  }
-
-  const body: Record<string, unknown> = { lead, status };
-  if (request.reason?.trim()) body.reason = request.reason.trim();
-
-  const payload = await mutationRequest(
-    STATUS_UPDATE_METHOD,
-    "POST",
-    body,
-    options,
+  return viaNest(
+    () => nestSetLeadStatus(lead, status, request.reason?.trim()),
+    normalizeProcessResponse,
   );
-  try {
-    return normalizeProcessResponse(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_STATUS_UPDATE_RESPONSE",
-      "Phản hồi cập nhật trạng thái Lead không hợp lệ.",
-    );
-  }
 }
 
 export async function reopenLead(
   request: LeadReopenRequest,
-  options: LeadApiRequestOptions = {},
 ): Promise<LeadProcessResponse> {
   const lead = request.lead.trim();
   if (!lead) {
@@ -2206,59 +1590,20 @@ export async function reopenLead(
       "Thiếu mã Lead cần mở lại.",
     );
   }
-
-  if (isNestApiEnabled()) {
-    return viaNest(
-      () => nestReopenLead(lead, request.reason?.trim()),
-      normalizeProcessResponse,
-    );
-  }
-
-  const body: Record<string, unknown> = { lead };
-  if (request.reason?.trim()) body.reason = request.reason.trim();
-
-  const payload = await mutationRequest(REOPEN_METHOD, "POST", body, options);
-  try {
-    return normalizeProcessResponse(payload);
-  } catch {
-    throw new LeadApiError(
-      502,
-      "INVALID_LEAD_REOPEN_RESPONSE",
-      "Phản hồi mở lại Lead không hợp lệ.",
-    );
-  }
+  return viaNest(
+    () => nestReopenLead(lead, request.reason?.trim()),
+    normalizeProcessResponse,
+  );
 }
 
-export async function deleteLead(
-  leadId: string,
-  options: LeadApiRequestOptions = {},
-): Promise<LeadDeleteResponse> {
+export async function deleteLead(leadId: string): Promise<LeadDeleteResponse> {
   const normalizedLeadId = leadId.trim();
   if (!normalizedLeadId) {
     throw new LeadApiError(400, "INVALID_LEAD_NAME", "Thiếu mã Lead cần xóa.");
   }
-
-  if (isNestApiEnabled()) {
-    await viaNest(
-      () => nestDeleteLead(normalizedLeadId),
-      () => null,
-    );
-    return { deleted: normalizedLeadId };
-  }
-
-  const payload = await mutationRequest(
-    DELETE_METHOD,
-    "DELETE",
-    { name: normalizedLeadId },
-    options,
+  await viaNest(
+    () => nestDeleteLead(normalizedLeadId),
+    () => null,
   );
-  const message = asRecord(unwrapMessage(payload));
-  if (message && message.deleted === normalizedLeadId) {
-    return { deleted: normalizedLeadId };
-  }
-  throw new LeadApiError(
-    502,
-    "INVALID_LEAD_DELETE_RESPONSE",
-    "Phản hồi xóa Lead không hợp lệ.",
-  );
+  return { deleted: normalizedLeadId };
 }

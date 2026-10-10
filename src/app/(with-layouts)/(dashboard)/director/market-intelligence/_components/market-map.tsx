@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Input } from "@/components/tailgrids/core/input";
+import { useInfinityScroll } from "@/hooks/use-infinity-scroll";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -258,8 +259,13 @@ export default function MarketMap({
         .filter((p) =>
           p.name.toLowerCase().includes(query.trim().toLowerCase()),
         )
-        .slice(0, 5)
     : [];
+  const { visibleItems: visibleSearchResults, onScrollToLoadMore } = useInfinityScroll(searchResults, {
+    enabled: isSearchFocused,
+    pageSize: 5,
+    getItemKey: (province) => province.code,
+    resetKey: `${isSearchFocused}:${query}`,
+  });
   const selectedPriorityProvince = PRIORITY_PROVINCES.find(
     (province) => province.code === selectedCode,
   );
@@ -392,8 +398,8 @@ export default function MarketMap({
             />
 
             {isSearchFocused && searchResults.length > 0 && (
-              <div className="absolute top-full right-0 z-50 mt-1 max-h-48 w-48 overflow-y-auto rounded-xl bg-card-background p-1 shadow-theme-md">
-                {searchResults.map((p) => {
+              <div className="absolute top-full right-0 z-50 mt-1 max-h-48 w-48 overflow-y-auto rounded-xl bg-card-background p-1 shadow-theme-md" onScroll={onScrollToLoadMore}>
+                {visibleSearchResults.map((p) => {
                   const heatScore = getProvinceMapValue(p, "opportunity");
                   return (
                     <button

@@ -103,7 +103,12 @@ export function workflowResultLabel(
 ): string {
   if (!hasData || !summary?.total) return "Chưa có dữ liệu";
   if (summary.pending) return "Chờ phân công";
-  if (summary.skipped + summary.manualReview + summary.deferred + summary.failed) {
+  if (
+    summary.skipped +
+    summary.manualReview +
+    summary.deferred +
+    summary.failed
+  ) {
     return "Cần lưu ý";
   }
   if (summary.assigned) return "Đã phân công";
@@ -118,7 +123,8 @@ const reasonLabels: Record<string, string> = {
 
   // Chưa tìm được Team hoặc người phụ trách
   TEAM_NOT_FOUND_FOR_PROVINCE: "Chưa có Team đang phụ trách tỉnh của Lead.",
-  TEAM_NOT_FOUND: "Không tìm thấy Team nhận hồ sơ hoặc Team đã ngừng hoạt động.",
+  TEAM_NOT_FOUND:
+    "Không tìm thấy Team nhận hồ sơ hoặc Team đã ngừng hoạt động.",
   MULTIPLE_INPUT_QUEUES:
     "Team đang có nhiều hàng chờ hoạt động, cần quản trị viên kiểm tra cấu hình.",
   MISSING_INPUT_QUEUE: "Team chưa có hàng chờ hoạt động để nhận hồ sơ.",
@@ -129,9 +135,9 @@ const reasonLabels: Record<string, string> = {
   TEAM_PROVINCE_MISMATCH: "Team được chọn không phụ trách tỉnh của Lead.",
   TEAM_SCOPE_MISMATCH: "Lead nằm ngoài phạm vi tỉnh của Team.",
   NO_ELIGIBLE_RECIPIENT:
-    "Team đã xác định nhưng chưa có Sale/CTV đủ điều kiện nhận Lead (đã hết capacity hoặc chưa có nhân sự đang hoạt động). Vào Quản lý người dùng để tăng capacity hoặc bổ sung Sale/CTV cho Team.",
+    "Team chưa có Sale/CTV đang hoạt động phù hợp. Kiểm tra nhân sự trong Quản lý Team.",
   STAFF_CAPACITY_NOT_CONFIGURED:
-    "Team có Sale/CTV nhưng chưa ai được thiết lập capacity (số Lead tối đa nhận cùng lúc). Vào Quản lý người dùng để thiết lập — Lead sẽ tự động phân công lại sau khi thiết lập xong.",
+    "Hạn mức cũ đã được bỏ. Chạy lại phân công để cập nhật kết quả.",
   TEAM_NOT_READY: "Team chưa sẵn sàng nhận Lead.",
   NO_ACTIVE_POLICY: "Chưa có chính sách phân công đang hoạt động.",
   OVERLAPPING_POLICY: "Có nhiều chính sách phân công bị chồng lấn.",
@@ -147,7 +153,8 @@ const reasonLabels: Record<string, string> = {
     "Tỉnh của Lead chưa có Team Sales đang hoạt động để nhận Lead.",
   NO_ROUTING_LAYER:
     "Không có lớp phân bổ nào đang bật và phù hợp với Lead này.",
-  CAPACITY_BLOCKED: "Nhân sự phù hợp đã hết sức chứa nhận hồ sơ.",
+  CAPACITY_BLOCKED:
+    "Lý do hạn mức cũ đã được bỏ. Chạy lại phân công để cập nhật kết quả.",
   AMBIGUOUS_POOL: "Có nhiều hàng chờ phù hợp, chưa thể chọn chính xác.",
   CTV_BATCH_UNAVAILABLE_OR_LEAD_COMPLEX:
     "Hồ sơ chưa phù hợp để phân công theo nhóm CTV.",
@@ -226,8 +233,13 @@ type AssignmentReasonContext = Pick<
 >;
 
 /** The bare code driving this item's routing failure, however it was stored. */
-function assignmentErrorCode(item: Pick<AssignmentReasonContext, "reason" | "errorCode">): string {
-  return item.errorCode || (item.reason && isInternalCode(item.reason) ? item.reason : "");
+function assignmentErrorCode(
+  item: Pick<AssignmentReasonContext, "reason" | "errorCode">,
+): string {
+  return (
+    item.errorCode ||
+    (item.reason && isInternalCode(item.reason) ? item.reason : "")
+  );
 }
 
 // Codes actually fixed by editing the Lead's own fields (province or by
@@ -256,8 +268,11 @@ const TEAM_CONFIG_CODES = new Set([
   "CTV_BATCH_UNAVAILABLE_OR_LEAD_COMPLEX",
 ]);
 
-// Codes an admin resolves in Quản lý người dùng (capacity setup/limit).
-const STAFF_CAPACITY_CODES = new Set(["STAFF_CAPACITY_NOT_CONFIGURED", "CAPACITY_BLOCKED"]);
+// Historical failures from the retired capacity policy.
+const RETIRED_CAPACITY_CODES = new Set([
+  "STAFF_CAPACITY_NOT_CONFIGURED",
+  "CAPACITY_BLOCKED",
+]);
 
 // Transient/system codes: the reason text already says what to do (reload,
 // retry, open detail) — no Lead field and no admin settings page fixes these.
@@ -270,24 +285,29 @@ const SYSTEM_RETRY_CODES = new Set([
   "PREVIEW_FAILED",
 ]);
 
-export type AssignmentActionCategory = "lead-data" | "team-config" | "staff-capacity" | "system" | "unknown";
+export type AssignmentActionCategory =
+  | "lead-data"
+  | "team-config"
+  | "system"
+  | "unknown";
 
 /**
  * Which kind of fix actually resolves this failure, so the "process" drawer
- * can show a form/link that matches the real cause — a Team or capacity
+ * can show a form/link that matches the real cause — a Team
  * problem is never fixed by editing the Lead's own phone/province/school.
  */
-export function assignmentActionCategory(item: AssignmentReasonContext): AssignmentActionCategory {
+export function assignmentActionCategory(
+  item: AssignmentReasonContext,
+): AssignmentActionCategory {
   const code = assignmentErrorCode(item);
-  if (STAFF_CAPACITY_CODES.has(code)) return "staff-capacity";
+  if (RETIRED_CAPACITY_CODES.has(code)) return "system";
   if (code === "NO_ELIGIBLE_RECIPIENT") {
-    // team_routing.py raises this single code for two distinct causes — tell
-    // them apart the same way contextualReasonLabel does, by sniffing the
-    // backend's own prose for "đã đạt giới hạn" (capacity full) vs. "no
-    // active staff at all" (team-config).
+    // Historical capacity failures should be retried instead of opening settings.
     const reason = item.reason?.trim();
-    const isCapacityBlocked = Boolean(reason && !isInternalCode(reason) && reason.includes("giới hạn"));
-    return isCapacityBlocked ? "staff-capacity" : "team-config";
+    const isCapacityBlocked = Boolean(
+      reason && !isInternalCode(reason) && /giới hạn|capacity/i.test(reason),
+    );
+    return isCapacityBlocked ? "system" : "team-config";
   }
   if (TEAM_CONFIG_CODES.has(code)) return "team-config";
   if (SYSTEM_RETRY_CODES.has(code)) return "system";
@@ -295,57 +315,12 @@ export function assignmentActionCategory(item: AssignmentReasonContext): Assignm
   return "unknown";
 }
 
-export const assignmentActionLinks: Record<"team-config" | "staff-capacity", { href: string; label: string }> = {
+export const assignmentActionLinks: Record<
+  "team-config",
+  { href: string; label: string }
+> = {
   "team-config": { href: "/lead-sale/team-management", label: "Quản lý Team" },
-  "staff-capacity": { href: "/admin/users", label: "Quản lý người dùng" },
 };
-
-export interface UnconfiguredStaffEntry {
-  name: string;
-  team: string;
-}
-
-/**
- * Pull the "Name (Team)" entries out of a STAFF_CAPACITY_NOT_CONFIGURED (or
- * capacity-related NO_ELIGIBLE_RECIPIENT) reason string, so the drawer can
- * list who needs capacity set up one per line instead of one dense sentence.
- * team_routing.py generates exactly two shapes:
- *   - "...capacity (số Lead tối đa nhận cùng lúc): Name (Team), Name (Team)."
- *   - "...người chưa thiết lập capacity (Name (Team), Name (Team))."
- * Returns [] for any other shape (e.g. a pure "everyone is full" message,
- * which never names anyone) — the caller keeps showing the plain reason
- * text, so an unrecognized message never breaks the drawer.
- */
-export function extractUnconfiguredStaffEntries(
-  reason: string | null | undefined,
-): UnconfiguredStaffEntry[] {
-  if (!reason) return [];
-  const afterColonMarker = "cùng lúc): ";
-  const afterParenMarker = "chưa thiết lập capacity (";
-
-  let list: string | null = null;
-  const colonIdx = reason.indexOf(afterColonMarker);
-  if (colonIdx !== -1) {
-    list = reason.slice(colonIdx + afterColonMarker.length);
-  } else {
-    const parenIdx = reason.indexOf(afterParenMarker);
-    if (parenIdx !== -1) {
-      list = reason.slice(parenIdx + afterParenMarker.length);
-    }
-  }
-  if (!list) return [];
-  list = list.replace(/\.$/, "");
-
-  const entries: UnconfiguredStaffEntry[] = [];
-  const entryPattern = /([^,()]+?)\s*\(([^()]+)\)/g;
-  let match: RegExpExecArray | null;
-  while ((match = entryPattern.exec(list)) !== null) {
-    const name = match[1].trim();
-    const team = match[2].trim();
-    if (name && team) entries.push({ name, team });
-  }
-  return entries;
-}
 
 function contextualReasonLabel(
   item: AssignmentReasonContext,
@@ -365,42 +340,25 @@ function contextualReasonLabel(
       ? `Chưa có Team nào được cấu hình phụ trách tỉnh ${item.province}. Vui lòng gán tỉnh này cho một Team đang hoạt động.`
       : reasonLabels.MISSING_PROVINCE;
   }
-  if (code === "STAFF_CAPACITY_NOT_CONFIGURED") {
-    // Distinct backend code (not NO_ELIGIBLE_RECIPIENT): the Team has active
-    // Sale/CTV, but at least one has never had a capacity period set up, so
-    // the batch deliberately did NOT fall back to the Trưởng nhóm — this
-    // Lead is waiting for an admin to configure capacity, then it re-routes
-    // to the right person on the next run instead of staying with a stand-in.
-    const backendReason = item.reason?.trim();
-    const nextStep =
-      "Vào Quản lý người dùng để thiết lập capacity cho (các) Sale/CTV này — Lead sẽ tự động phân công lại ở lượt chạy tiếp theo sau khi thiết lập xong.";
-    return backendReason && !isInternalCode(backendReason)
-      ? `${backendReason} ${nextStep}`
-      : `Team ${item.team ?? ""} có Sale/CTV nhưng chưa ai được thiết lập capacity. ${nextStep}`.trim();
+  if (
+    RETIRED_CAPACITY_CODES.has(code) ||
+    (code === "NO_ELIGIBLE_RECIPIENT" &&
+      /giới hạn|capacity/i.test(item.reason ?? ""))
+  ) {
+    return "Lý do này thuộc hạn mức cũ đã được bỏ. Chạy lại phân công để cập nhật kết quả.";
   }
   if (code === "NO_ELIGIBLE_RECIPIENT") {
-    // The backend tells the two remaining causes apart (capacity full vs. no
-    // active Sale/CTV) and names the Team involved — surface that text
-    // instead of one fixed sentence that always implies "no active staff",
-    // which is wrong when the real cause is a full capacity limit.
     const backendReason = item.reason?.trim();
-    if (backendReason && !isInternalCode(backendReason)) {
-      const isCapacityBlocked = backendReason.includes("giới hạn");
-      const nextStep = isCapacityBlocked
-        ? "Vào Quản lý người dùng để tăng capacity cho Sale/CTV phụ trách."
-        : "Vào Quản lý Team để bổ sung Sale/CTV hoặc Trưởng nhóm đang hoạt động.";
-      return `${backendReason} ${nextStep}`;
-    }
-    return item.team
-      ? `Team ${item.team} đã được tìm thấy nhưng chưa có Sale/CTV đủ điều kiện nhận Lead (đã hết capacity hoặc chưa có nhân sự đang hoạt động). Vào Quản lý người dùng để kiểm tra capacity.`
-      : reasonLabels.NO_ELIGIBLE_RECIPIENT;
+    const nextStep =
+      "Vào Quản lý Team để bổ sung Sale/CTV hoặc Trưởng nhóm đang hoạt động.";
+    return backendReason && !isInternalCode(backendReason)
+      ? `${backendReason} ${nextStep}`
+      : nextStep;
   }
   return null;
 }
 
-export function assignmentReasonLabel(
-  item: AssignmentReasonContext,
-): string {
+export function assignmentReasonLabel(item: AssignmentReasonContext): string {
   const code = assignmentErrorCode(item);
   const contextualReason = contextualReasonLabel(item, code);
   if (contextualReason) return contextualReason;

@@ -1,6 +1,5 @@
-import { getCsrfToken } from "../auth";
 import { nestContentRequest } from "../nest/nest-content-router";
-import { isNestApiEnabled, NestApiError } from "../nest/nest-client";
+import { NestApiError } from "../nest/nest-client";
 import type {
   DeleteMessageTemplateResponse,
   ListMessageTemplatesParams,
@@ -33,8 +32,6 @@ const METHODS = {
   PREVIEW: "crm.api.message_templates.preview_message_template",
 } as const;
 
-const DEFAULT_FRAPPE_URL = "http://localhost:8001";
-
 export class MessageTemplatesApiError extends Error {
   constructor(
     public status: number,
@@ -46,110 +43,31 @@ export class MessageTemplatesApiError extends Error {
   }
 }
 
-function baseUrl(value?: string): string {
-  return (
-    value ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    DEFAULT_FRAPPE_URL
-  ).replace(/\/+$/, "");
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function unwrapMessage(value: unknown): unknown {
-  const root = asRecord(value);
-  return root?.message ?? value;
-}
-
-function errorMessage(payload: unknown, status: number): string {
-  const root = asRecord(payload);
-  const error = asRecord(root?.error);
-  const message = asRecord(root?.message);
-  const directMessage =
-    (typeof error?.message === "string" && error.message) ||
-    (typeof message?.message === "string" && message.message) ||
-    (typeof root?.message === "string" && root.message) ||
-    (typeof root?.exception === "string" && root.exception);
-
-  return directMessage || `Thao tác mẫu email thất bại (HTTP ${status}).`;
-}
-
 async function request<T>(
   method: string,
   options: {
-    baseUrl?: string;
     query?: Record<string, string | undefined>;
     body?: Record<string, unknown>;
   } = {},
 ): Promise<T> {
-  if (isNestApiEnabled()) {
-    try {
-      return await nestContentRequest<T>(method, options);
-    } catch (error) {
-      if (error instanceof NestApiError) {
-        throw new MessageTemplatesApiError(
-          error.status,
-          error.code,
-          error.message,
-        );
-      }
-      throw error;
-    }
-  }
-  const root = baseUrl(options.baseUrl);
-  const url = new URL(`${root}/api/method/${method}`);
-  Object.entries(options.query ?? {}).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") url.searchParams.set(key, value);
-  });
-
-  const isWrite = Boolean(options.body);
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(isWrite ? { "Content-Type": "application/json" } : {}),
-  };
-  if (isWrite) {
-    const csrfToken = await getCsrfToken(root);
-    if (csrfToken) headers["X-Frappe-CSRF-Token"] = csrfToken;
-  }
-
-  let response: Response;
   try {
-    response = await fetch(url.toString(), {
-      method: isWrite ? "POST" : "GET",
-      credentials: "include",
-      headers,
-      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new MessageTemplatesApiError(
-      503,
-      "MESSAGE_TEMPLATES_UNAVAILABLE",
-      "Không thể kết nối đến máy chủ CRM.",
-    );
+    return await nestContentRequest<T>(method, options);
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new MessageTemplatesApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
   }
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new MessageTemplatesApiError(
-      response.status,
-      `HTTP_${response.status}`,
-      errorMessage(payload, response.status),
-    );
-  }
-  return unwrapMessage(payload) as T;
 }
 
 export async function listMessageTemplates(
   params: ListMessageTemplatesParams = {},
-  options: { baseUrl?: string } = {},
 ): Promise<ListMessageTemplatesResponse> {
   return request<ListMessageTemplatesResponse>(METHODS.LIST, {
-    ...options,
     query: {
       search: params.search?.trim(),
       owner: params.owner?.trim(),
@@ -157,27 +75,20 @@ export async function listMessageTemplates(
   });
 }
 
-export async function listMessageTemplateLibrary(
-  options: { baseUrl?: string } = {},
-): Promise<ListMessageTemplatesResponse> {
-  return request<ListMessageTemplatesResponse>(METHODS.LIBRARY, options);
+export async function listMessageTemplateLibrary(): Promise<ListMessageTemplatesResponse> {
+  return request<ListMessageTemplatesResponse>(METHODS.LIBRARY);
 }
 
-export async function listMessageTemplateTokens(
-  options: { baseUrl?: string } = {},
-): Promise<ListMessageTemplateTokensResponse> {
-  return request<ListMessageTemplateTokensResponse>(METHODS.TOKENS, options);
+export async function listMessageTemplateTokens(): Promise<ListMessageTemplateTokensResponse> {
+  return request<ListMessageTemplateTokensResponse>(METHODS.TOKENS);
 }
 
 export async function listAdminMessageTemplateLibrary(
-  params: ListMessageTemplatesParams & { baseUrl?: string } = {},
-  options: { baseUrl?: string } = {},
+  params: ListMessageTemplatesParams = {},
 ): Promise<ListMessageTemplatesResponse> {
-  const requestOptions = params.baseUrl ? { baseUrl: params.baseUrl } : options;
   const result = await request<ListMessageTemplatesResponse>(
     METHODS.ADMIN_LIBRARY,
     {
-      ...requestOptions,
       query: {
         search: params.search?.trim(),
         owner: params.owner?.trim(),
@@ -212,12 +123,10 @@ export async function listMessageTemplatePreviewContacts(
     pageLength?: number;
     context?: MessageTemplatePreviewContext;
   } = {},
-  options: { baseUrl?: string } = {},
 ): Promise<ListMessageTemplatePreviewContactsResponse> {
   return request<ListMessageTemplatePreviewContactsResponse>(
     METHODS.PREVIEW_CONTACTS,
     {
-      ...options,
       query: {
         search: params.search?.trim(),
         page_length: params.pageLength ? String(params.pageLength) : undefined,
@@ -230,14 +139,10 @@ export async function listMessageTemplatePreviewContacts(
 export async function previewMessageTemplate(
   recordId: string,
   draft: Pick<MessageTemplateDraft, "subject" | "body" | "customValues">,
-  options: {
-    baseUrl?: string;
-    context?: MessageTemplatePreviewContext;
-  } = {},
+  options: { context?: MessageTemplatePreviewContext } = {},
 ): Promise<MessageTemplatePreviewResponse> {
-  const { context, ...requestOptions } = options;
+  const { context } = options;
   return request<MessageTemplatePreviewResponse>(METHODS.PREVIEW, {
-    ...requestOptions,
     body: context
       ? { record_id: recordId, context, data: draft }
       : { lead_id: recordId, data: draft },
@@ -246,30 +151,24 @@ export async function previewMessageTemplate(
 
 export async function getMessageTemplate(
   name: string,
-  options: { baseUrl?: string } = {},
 ): Promise<MessageTemplateRecord> {
   return request<MessageTemplateRecord>(METHODS.GET, {
-    ...options,
     query: { name },
   });
 }
 
 export async function createMessageTemplate(
   draft: MessageTemplateDraft,
-  options: { baseUrl?: string } = {},
 ): Promise<MessageTemplateRecord> {
   return request<MessageTemplateRecord>(METHODS.CREATE, {
-    ...options,
     body: { data: draft },
   });
 }
 
 export async function createMessageTemplateLibrary(
   draft: MessageTemplateDraft,
-  options: { baseUrl?: string } = {},
 ): Promise<MessageTemplateRecord> {
   return request<MessageTemplateRecord>(METHODS.CREATE_LIBRARY, {
-    ...options,
     body: {
       data: {
         name: draft.name,
@@ -285,10 +184,8 @@ export async function updateMessageTemplate(
   name: string,
   draft: MessageTemplateDraft,
   expectedModified?: string,
-  options: { baseUrl?: string } = {},
 ): Promise<MessageTemplateRecord> {
   return request<MessageTemplateRecord>(METHODS.UPDATE, {
-    ...options,
     body: { name, data: draft, expected_modified: expectedModified },
   });
 }
@@ -297,10 +194,8 @@ export async function updateMessageTemplateLibrary(
   name: string,
   draft: MessageTemplateDraft,
   expectedModified?: string,
-  options: { baseUrl?: string } = {},
 ): Promise<MessageTemplateRecord> {
   return request<MessageTemplateRecord>(METHODS.UPDATE_LIBRARY, {
-    ...options,
     body: {
       name,
       data: {
@@ -317,10 +212,8 @@ export async function updateMessageTemplateLibrary(
 export async function deleteMessageTemplate(
   name: string,
   expectedModified?: string,
-  options: { baseUrl?: string } = {},
 ): Promise<DeleteMessageTemplateResponse> {
   return request<DeleteMessageTemplateResponse>(METHODS.DELETE, {
-    ...options,
     body: { name, expected_modified: expectedModified },
   });
 }
@@ -328,10 +221,8 @@ export async function deleteMessageTemplate(
 export async function deleteMessageTemplateLibrary(
   name: string,
   expectedModified?: string,
-  options: { baseUrl?: string } = {},
 ): Promise<DeleteMessageTemplateResponse> {
   return request<DeleteMessageTemplateResponse>(METHODS.DELETE_LIBRARY, {
-    ...options,
     body: { name, expected_modified: expectedModified },
   });
 }

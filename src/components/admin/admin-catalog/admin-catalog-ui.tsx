@@ -1,5 +1,7 @@
 "use client";
 
+import { InfiniteSelectInput } from "@/components/common/infinite-select-input";
+
 import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
 import type {
   FormEvent,
@@ -81,7 +83,7 @@ export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
 
 export function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select
+    <InfiniteSelectInput
       {...props}
       className={`${fieldClassName} ${props.className ?? ""}`}
     />

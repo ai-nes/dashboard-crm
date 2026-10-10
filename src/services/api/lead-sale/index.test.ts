@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   LeadSaleOverviewApiError,
@@ -6,7 +6,18 @@ import {
   normalizeLeadSaleOverview,
 } from "./index";
 
-afterEach(() => vi.restoreAllMocks());
+const fetchMock = vi.fn();
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://localhost:3001");
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+});
 
 function overviewFixture() {
   return {
@@ -87,12 +98,7 @@ function overviewFixture() {
         { id: "aging", value: 0, longestAgeDays: 0 },
       ],
       priorityQueue: [],
-      stages: [
-        "new",
-        "attempting",
-        "connected",
-        "qualified",
-      ].map((id) => ({
+      stages: ["new", "attempting", "connected", "qualified"].map((id) => ({
         id,
         label: id,
         volume: 0,
@@ -114,21 +120,20 @@ function overviewFixture() {
 }
 
 describe("Lead Sale overview API contract", () => {
-  it("serializes the query, unwraps message, and normalizes the snapshot", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: overviewFixture() }), {
-        status: 200,
-      }),
+  it("serializes the query and normalizes the snapshot", async () => {
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(JSON.stringify(overviewFixture()), { status: 200 }),
     );
 
-    const result = await getLeadSaleOverview(
-      { admissionYear: 2026, date: "2026-09-05", timezone: "Asia/Ho_Chi_Minh" },
-      { baseUrl: "http://frappe:8000" },
-    );
+    const result = await getLeadSaleOverview({
+      admissionYear: 2026,
+      date: "2026-09-05",
+      timezone: "Asia/Ho_Chi_Minh",
+    });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.lead_sale.get_lead_sale_overview?admissionYear=2026&date=2026-09-05&trendRange=4w&timezone=Asia%2FHo_Chi_Minh&teamMemberLimit=20",
-      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      "http://localhost:3001/api/v1/lead-sale/overview?admissionYear=2026&date=2026-09-05&trendRange=4w&timezone=Asia%2FHo_Chi_Minh&teamMemberLimit=20",
     );
     expect(result.meta.team.name).toBe("Đội Sale");
     expect(result.kpis).toHaveLength(6);
@@ -136,27 +141,23 @@ describe("Lead Sale overview API contract", () => {
   });
 
   it("maps authorization failures to a stable typed error", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          error: { code: "FORBIDDEN", message: "Not permitted" },
-        }),
-        {
-          status: 403,
-        },
-      ),
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: { code: "FORBIDDEN", message: "Not permitted" },
+          }),
+          { status: 403 },
+        ),
     );
 
-    await expect(
-      getLeadSaleOverview({}, { baseUrl: "http://frappe:8000" }),
-    ).rejects.toEqual(
+    await expect(getLeadSaleOverview()).rejects.toEqual(
       expect.objectContaining<Partial<LeadSaleOverviewApiError>>({
         status: 403,
         code: "FORBIDDEN",
       }),
     );
   });
-
   it("rejects a response that breaks the status-to-active invariant", () => {
     const fixture = overviewFixture();
     fixture.studentStatus.total = 1;

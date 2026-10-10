@@ -10,17 +10,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const FRAPPE_URL = (
-  process.env.NEXT_PUBLIC_FRAPPE_URL ?? "http://localhost:8001"
-).replace(/\/+$/, "");
-
-// Field wrapper — mirrors `.field-inner` in crm/www/login.html.
+// Field wrapper for the sign-in inputs.
 const fieldInner =
   "flex items-center rounded-[8px] border border-[#e5e7eb] bg-[#fafafa] px-3.5 transition-colors focus-within:border-[#6b7280] focus-within:bg-white";
 const fieldInput =
   "min-w-0 flex-1 border-none bg-transparent py-3 text-[14px] leading-4 text-[#111] outline-none placeholder:text-[#9ca3af]";
 
-/** Email/password sign-in — a faithful port of the Frappe CRM login form. */
+/** Email/password sign-in through Better Auth. */
 export function LoginForm() {
   const { user, refetch } = useAuth();
   const router = useRouter();
@@ -38,12 +34,12 @@ export function LoginForm() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const usr = String(form.get("usr") ?? "").trim();
-    const pwd = String(form.get("pwd") ?? "");
+    const email = String(form.get("email") ?? "").trim();
+    const password = String(form.get("password") ?? "");
 
     setError(null);
     setSubmitting(true);
-    const result = await loginWithPassword(usr, pwd);
+    const result = await loginWithPassword(email, password);
     if (!result.ok) {
       setError(result.error ?? "Đăng nhập thất bại.");
       setSubmitting(false);
@@ -86,11 +82,11 @@ export function LoginForm() {
           </svg>
           <input
             className={fieldInput}
-            type="text"
-            name="usr"
+            type="email"
+            name="email"
             autoComplete="username"
-            placeholder="jane@example.com / Administrator"
-            aria-label="Email hoặc tên đăng nhập"
+            placeholder="jane@example.com"
+            aria-label="Email"
             required
           />
         </div>
@@ -117,7 +113,7 @@ export function LoginForm() {
           <input
             className={fieldInput}
             type={showPwd ? "text" : "password"}
-            name="pwd"
+            name="password"
             autoComplete="current-password"
             placeholder="••••••"
             aria-label="Mật khẩu"
@@ -131,15 +127,6 @@ export function LoginForm() {
             {showPwd ? "Ẩn" : "Hiện"}
           </button>
         </div>
-      </div>
-
-      <div className="mb-4 text-right">
-        <a
-          href={`${FRAPPE_URL}/update-password`}
-          className="text-[13px] text-[#6b7280] no-underline hover:text-[#111]"
-        >
-          Quên mật khẩu?
-        </a>
       </div>
 
       <button

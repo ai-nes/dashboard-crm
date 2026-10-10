@@ -5,14 +5,12 @@ import type {
   CRMTaskStatus,
 } from "@/services/api/crm-tasks";
 
-const priorityToApi: Record<
-  TaskCreateFormValues["priority"],
-  CRMTaskPriority
-> = {
-  Cao: "High",
-  "Trung bình": "Medium",
-  Thấp: "Low",
-};
+const priorityToApi: Record<TaskCreateFormValues["priority"], CRMTaskPriority> =
+  {
+    Cao: "High",
+    "Trung bình": "Medium",
+    Thấp: "Low",
+  };
 
 const statusToApi: Record<TaskCreateFormValues["status"], CRMTaskStatus> = {
   todo: "Todo",
@@ -21,7 +19,7 @@ const statusToApi: Record<TaskCreateFormValues["status"], CRMTaskStatus> = {
   canceled: "Canceled",
 };
 
-function toFrappeDateTime(date: string, time: string): string | undefined {
+function toApiDateTime(date: string, time: string): string | undefined {
   if (!date) return undefined;
   return `${date} ${time || "23:59"}:00`;
 }
@@ -42,6 +40,6 @@ export function taskCreateFormValuesToSegmentPayload(
     ...(values.actionCode ? { actionCode: values.actionCode } : {}),
     priority: priorityToApi[values.priority],
     status: statusToApi[values.status],
-    dueDate: toFrappeDateTime(values.dueDate, values.dueTime),
+    dueDate: toApiDateTime(values.dueDate, values.dueTime),
   };
 }

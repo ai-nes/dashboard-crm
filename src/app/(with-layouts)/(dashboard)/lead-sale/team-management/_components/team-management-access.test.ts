@@ -189,7 +189,6 @@ function user(
     crm_role: null,
     crm_capabilities: [],
     crm_team_memberships: memberships,
-    csrf_token: null,
   };
 }
 

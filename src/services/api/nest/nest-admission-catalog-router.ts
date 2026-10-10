@@ -1,19 +1,16 @@
 /**
  * Admission catalog calls (`crm.api.admission_catalog.*` and
  * `crm.api.admission_profile_templates.*`) served by the NestJS API. The Nest
- * payloads keep the shapes Frappe returned, so results pass straight through.
+ * payloads keep the shapes the dashboard types expect, so results pass straight through.
  */
 import { nestRequest } from "./nest-client";
-import { NOT_HANDLED } from "./nest-admin-catalog-router";
-
-type Params = Record<string, string | undefined>;
-type Body = Record<string, unknown> | undefined;
+import { NOT_HANDLED, type Body, type Params } from "./nest-handler";
 
 const BASE = "/api/v1/admission-catalog";
 
 const MODULES = ["admission_catalog", "admission_profile_templates"] as const;
 
-/** Frappe action -> Nest resource. */
+/** Operation name -> Nest resource. */
 const RESOURCES: Record<string, string> = {
   admission_document_type: "document-types",
   admission_document_types: "document-types",

@@ -16,7 +16,6 @@ import {
   type Key,
   Label,
   type LabelProps,
-  ListBox,
   ListBoxItem,
   type ListBoxItemProps,
   ListBoxSection,
@@ -30,6 +29,8 @@ import {
   type TextProps,
 } from "react-aria-components";
 import { ButtonProps, buttonStyles } from "./button";
+import { InfiniteListBox } from "@/components/common/infinite-list-box";
+import type { ScrollToLoadMoreOptions } from "@/hooks/use-scroll-to-load-more";
 
 interface SelectContextValue {
   selectionMode?: "single" | "multiple";
@@ -219,9 +220,10 @@ function SelectIndicator({ className, children, ...props }: ComponentProps<"span
 
 type SelectContentProps = PopoverProps & {
   header?: React.ReactNode;
+  pagination?: ScrollToLoadMoreOptions;
 };
 
-function SelectContent({ children, className, header, ...props }: SelectContentProps) {
+function SelectContent({ children, className, header, pagination, ...props }: SelectContentProps) {
   const context = useContext(SelectContext);
 
   if (context) {
@@ -229,7 +231,7 @@ function SelectContent({ children, className, header, ...props }: SelectContentP
     return (
       <Popover
         className={cn(
-          "w-(--trigger-width) overflow-auto rounded-lg bg-dropdowns-background shadow-md",
+          "flex w-(--trigger-width) flex-col overflow-hidden rounded-lg bg-dropdowns-background shadow-md",
           "entering:animate-in entering:fade-in-0 entering:zoom-in-95",
           "exiting:animate-out exiting:fade-out-0 exiting:zoom-out-95",
           className,
@@ -237,7 +239,8 @@ function SelectContent({ children, className, header, ...props }: SelectContentP
         {...props}
       >
         {header}
-        <ListBox
+        <InfiniteListBox
+          pagination={pagination}
           className="bg-background-white-secondary p-1.5 outline-none"
           selectionMode={context.selectionMode}
           selectedKeys={
@@ -252,7 +255,7 @@ function SelectContent({ children, className, header, ...props }: SelectContentP
           }}
         >
           {children}
-        </ListBox>
+        </InfiniteListBox>
       </Popover>
     );
   }
@@ -261,7 +264,7 @@ function SelectContent({ children, className, header, ...props }: SelectContentP
   return (
     <Popover
       className={cn(
-        "w-(--trigger-width) overflow-auto rounded-lg border border-card-border bg-background-white-secondary",
+        "flex w-(--trigger-width) flex-col overflow-hidden rounded-lg border border-card-border bg-background-white-secondary",
         "entering:animate-in entering:fade-in-0 entering:zoom-in-95",
         "exiting:animate-out exiting:fade-out-0 exiting:zoom-out-95",
         className,
@@ -269,7 +272,7 @@ function SelectContent({ children, className, header, ...props }: SelectContentP
       {...props}
     >
       {header}
-      <ListBox className="p-1.5 outline-none">{children}</ListBox>
+      <InfiniteListBox className="p-1.5 outline-none" pagination={pagination}>{children}</InfiniteListBox>
     </Popover>
   );
 }

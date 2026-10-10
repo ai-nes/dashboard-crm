@@ -1,5 +1,5 @@
 /**
- * Student ownership against the Nest backend, keeping the Frappe-shaped
+ * Student ownership against the Nest backend, keeping the service-shaped
  * request/response the owner picker already understands.
  */
 import { nestRequest } from "./nest-client";

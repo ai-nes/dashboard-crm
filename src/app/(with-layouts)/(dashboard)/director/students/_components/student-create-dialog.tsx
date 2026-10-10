@@ -47,7 +47,6 @@ interface StudentCreateForm {
   major: string;
   campaign: string;
   assigned_to: string;
-  advertising_channel: string;
   admission_year: string;
   branch: string;
   description: string;
@@ -67,7 +66,6 @@ const initialForm: StudentCreateForm = {
   major: "",
   campaign: "",
   assigned_to: "",
-  advertising_channel: "",
   admission_year: "2026",
   branch: "",
   description: "",
@@ -282,6 +280,7 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Chiến dịch"
                     options={campaignOptions}
+                    pagination={campaignOptionsQuery.pagination}
                     searchable
                     searchPlaceholder="Tìm chiến dịch..."
                     value={form.campaign}
@@ -308,6 +307,7 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Tỉnh / thành phố"
                     options={provinceOptions}
+                    pagination={provinceOptionsQuery.pagination}
                     searchable
                     searchPlaceholder="Tìm tỉnh / thành phố..."
                     value={form.province}
@@ -321,6 +321,7 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Xã / phường"
                     options={wardOptions}
+                    pagination={wardOptionsQuery.pagination}
                     searchable
                     searchPlaceholder="Tìm xã / phường..."
                     value={form.ward}
@@ -347,6 +348,7 @@ export default function StudentCreateDialog({
                     isError={majorOptionsQuery.isError}
                     isLoading={majorOptionsQuery.isPending}
                     options={majorOptions}
+                    pagination={majorOptionsQuery.pagination}
                     searchPlaceholder="Tìm ngành quan tâm..."
                     value={form.major}
                     isDisabled={majorOptionsQuery.isPending}
@@ -358,22 +360,12 @@ export default function StudentCreateDialog({
                   <CreateDialogSelect
                     label="Chi nhánh"
                     options={branchOptions}
+                    pagination={branchOptionsQuery.pagination}
                     searchable
                     searchPlaceholder="Tìm chi nhánh..."
                     value={form.branch}
                     isDisabled={branchOptionsQuery.isPending}
                     onChange={(value) => setField("branch", value)}
-                  />
-                </CreateDialogField>
-
-                <CreateDialogField label="Kênh quảng cáo">
-                  <CreateDialogInput
-                    label="Kênh quảng cáo"
-                    placeholder="Facebook Ads, Google…"
-                    value={form.advertising_channel}
-                    onChange={(event) =>
-                      setField("advertising_channel", event.target.value)
-                    }
                   />
                 </CreateDialogField>
 
@@ -451,7 +443,6 @@ function toStudentCreateFields(
       ward: form.ward,
       high_school: form.high_school,
       major: form.major,
-      advertising_channel: form.advertising_channel,
       admission_year: form.admission_year,
       branch: form.branch,
       description: form.description,

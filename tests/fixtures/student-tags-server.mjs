@@ -24,7 +24,7 @@ const server = await createServer({
     holdUntilCrawlEnd: false,
   },
   resolve: { alias: { "@": path.resolve("src") } },
-  define: { "process.env.NEXT_PUBLIC_FRAPPE_URL": "window.location.origin" },
+  define: { "process.env.NEXT_PUBLIC_CRM_API_URL": "window.location.origin" },
   server: { host: "127.0.0.1", port: 0 },
   plugins: [
     {

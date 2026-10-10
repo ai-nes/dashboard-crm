@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
 interface AuthContextValue {
-  /** Current Frappe user, or null when not authenticated. */
+  /** Current user, or null when not authenticated. */
   user: CurrentUser | null;
   /** True while the initial session check is in flight. */
   isLoading: boolean;
@@ -21,7 +21,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data, isPending, refetch } = useQuery({
     queryKey: AUTH_QUERY_KEY,
     queryFn: getCurrentUser,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchInterval: 30_000,
     retry: false,
   });
 

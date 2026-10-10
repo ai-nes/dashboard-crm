@@ -7,34 +7,34 @@ import {
   getSegmentByCode,
   getSegmentFilterOptions,
   previewSegment,
+  SegmentApiError,
 } from "./index";
 
-describe("Segment API service", () => {
-  const originalFetch = globalThis.fetch;
-  const baseUrl = "http://crm-test.local:8000";
+const API = "http://localhost:3001";
+const fetchMock = vi.fn();
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
 
+describe("Segment API service", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", API);
+    vi.stubGlobal("fetch", fetchMock);
   });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    fetchMock.mockReset();
   });
 
-  it("creates a segment with the Frappe data envelope", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            name: "a1b2c3d4",
-            segment_code: "SEG-260909-7K4P2Q",
-            title: "Tiềm năng cao",
-          },
-        }),
-        { status: 200 },
-      ),
+  it("creates a segment with the data envelope", async () => {
+    fetchMock.mockImplementation(async () =>
+      json({
+        name: "a1b2c3d4",
+        segment_code: "SEG-260909-7K4P2Q",
+        title: "Tiềm năng cao",
+      }),
     );
-
     const filters = {
       logic: "OR" as const,
       groups: [
@@ -51,54 +51,35 @@ describe("Segment API service", () => {
         },
       ],
     };
-    const result = await createSegment(
-      {
-        title: "Tiềm năng cao",
-        purpose: "Ưu tiên chăm sóc",
-        category: "potential",
-        segment_type: "dynamic",
-        is_public: 0,
-        filters,
-      },
-      { baseUrl },
-    );
+    const data = {
+      title: "Tiềm năng cao",
+      purpose: "Ưu tiên chăm sóc",
+      category: "potential" as const,
+      segment_type: "dynamic" as const,
+      is_public: 0 as const,
+      filters,
+    };
+
+    const result = await createSegment(data);
 
     expect(result.name).toBe("a1b2c3d4");
     expect(result.segment_code).toBe("SEG-260909-7K4P2Q");
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      `${baseUrl}/api/method/crm.api.student_segment.create_segment`,
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          data: {
-            title: "Tiềm năng cao",
-            purpose: "Ưu tiên chăm sóc",
-            category: "potential",
-            segment_type: "dynamic",
-            is_public: 0,
-            filters,
-          },
-        }),
-      }),
-    );
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${API}/api/v1/segments`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ data });
   });
 
-  it("previews draft filters through the Frappe query contract", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            total: 2,
-            total_students: 12,
-            start: 0,
-            page_length: 25,
-            students: [],
-          },
-        }),
-        { status: 200 },
-      ),
+  it("previews draft filters", async () => {
+    fetchMock.mockImplementation(async () =>
+      json({
+        total: 2,
+        total_students: 12,
+        start: 0,
+        page_length: 25,
+        students: [],
+      }),
     );
-
     const filters = {
       logic: "OR" as const,
       groups: [
@@ -114,141 +95,114 @@ describe("Segment API service", () => {
         },
       ],
     };
-    const result = await previewSegment(
-      { filters, search: "Classification", pageLength: 25 },
-      { baseUrl },
-    );
+
+    const result = await previewSegment({
+      filters,
+      search: "Classification",
+      pageLength: 25,
+    });
 
     expect(result.total).toBe(2);
     expect(result.total_students).toBe(12);
-    const requestUrl = new URL(
-      String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]),
-    );
-    expect(requestUrl.pathname).toBe(
-      "/api/method/crm.api.student_segment.preview_segment",
-    );
-    expect(JSON.parse(requestUrl.searchParams.get("filters") ?? "{}")).toEqual(
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(new URL(url).pathname).toBe("/api/v1/segments/preview");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toMatchObject({
       filters,
-    );
-    expect(requestUrl.searchParams.get("search")).toBe("Classification");
+      search: "Classification",
+      pageLength: 25,
+    });
   });
 
   it("loads a segment directly by its immutable segment code", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            name: "a1b2c3d4",
-            segment_code: "SEG-260909-7K4P2Q",
-            title: "Tiềm năng cao",
-            revision: 0,
-          },
-        }),
-        { status: 200 },
-      ),
+    fetchMock.mockImplementation(async () =>
+      json({
+        name: "a1b2c3d4",
+        segment_code: "SEG-260909-7K4P2Q",
+        title: "Tiềm năng cao",
+        revision: 0,
+      }),
     );
 
-    const result = await getSegmentByCode("SEG-260909-7K4P2Q", { baseUrl });
+    const result = await getSegmentByCode("SEG-260909-7K4P2Q");
 
     expect(result.name).toBe("a1b2c3d4");
-    const requestUrl = new URL(
-      String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]),
-    );
-    expect(requestUrl.pathname).toBe(
-      "/api/method/crm.api.student_segment.get_segment_by_code",
-    );
-    expect(requestUrl.searchParams.get("segment_code")).toBe(
-      "SEG-260909-7K4P2Q",
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      `${API}/api/v1/segments/by-code/SEG-260909-7K4P2Q`,
     );
   });
 
   it("loads permission-scoped segment analysis with selected codes", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            summary: { total: 2, active: 1, inactive: 0, archive: 0, draft: 1 },
-            segments: [],
-            selected_segments: [],
-            overlap: { cells: [] },
-            attention: [],
-          },
-        }),
-        { status: 200 },
-      ),
+    fetchMock.mockImplementation(async () =>
+      json({
+        summary: { total: 2, active: 1, inactive: 0, archive: 0, draft: 1 },
+        segments: [],
+        selected_segments: [],
+        overlap: { cells: [] },
+        attention: [],
+      }),
     );
 
-    const result = await getSegmentAnalysis(["SEG-260909-7K4P2Q"], { baseUrl });
+    const result = await getSegmentAnalysis(["SEG-260909-7K4P2Q"]);
 
     expect(result.summary.total).toBe(2);
-    const requestUrl = new URL(
-      String(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]),
-    );
-    expect(requestUrl.pathname).toBe(
-      "/api/method/crm.api.student_segment.get_segment_analysis",
-    );
-    expect(
-      JSON.parse(requestUrl.searchParams.get("selected_segment_codes") ?? "[]"),
-    ).toEqual(["SEG-260909-7K4P2Q"]);
+    const url = new URL(fetchMock.mock.calls[0]![0]);
+    expect(url.pathname).toBe("/api/v1/segments/analysis");
+    expect(url.searchParams.get("selectedCodes")).toBe("SEG-260909-7K4P2Q");
   });
 
-  it("loads fields and live Need/Tag dictionaries", async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            message: [
-              {
-                fieldname: "potential",
-                label: "Potential",
-                fieldtype: "Select",
-                options: "HIGH\nMEDIUM\nLOW",
-                operators: ["=", "in"],
-              },
-            ],
-          }),
-          { status: 200 },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ message: [] }), { status: 200 }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ message: [] }), { status: 200 }),
-      );
+  it("loads fields and live need/tag dictionaries", async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith("/segments/fields")
+        ? json([
+            {
+              fieldname: "potential",
+              label: "Potential",
+              fieldtype: "Select",
+              options: "HIGH\nMEDIUM\nLOW",
+              operators: ["=", "in"],
+            },
+          ])
+        : json({ terms: [], total: 0 }),
+    );
 
-    const result = await getSegmentFilterOptions({ baseUrl });
+    const result = await getSegmentFilterOptions();
 
     expect(result.fields[0]?.fieldname).toBe("potential");
     expect(result.needs).toEqual([]);
     expect(result.tags).toEqual([]);
-    expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it("surfaces a readable Frappe validation reason for delete failures", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          exception:
-            "frappe.exceptions.ValidationError: INVALID_INPUT: Need đang được học sinh sử dụng; hãy lưu trữ thay vì xoá.",
-        }),
-        { status: 417 },
+  it("surfaces the API reason for delete failures", async () => {
+    fetchMock.mockImplementation(async () =>
+      json(
+        {
+          error: {
+            code: "INVALID_INPUT",
+            message:
+              "Need đang được học sinh sử dụng; hãy lưu trữ thay vì xoá.",
+          },
+        },
+        409,
       ),
     );
 
-    await expect(
-      deleteClassificationTerm(
-        "need",
-        {
-          name: "NEED_TEST",
-          expectedRevision: 1,
-        },
-        { baseUrl },
-      ),
-    ).rejects.toMatchObject({
-      status: 417,
+    const failure = deleteClassificationTerm("need", {
+      name: "NEED_TEST",
+      expectedRevision: 1,
+    });
+
+    await expect(failure).rejects.toBeInstanceOf(SegmentApiError);
+    await expect(failure).rejects.toMatchObject({
+      status: 409,
       message: "Need đang được học sinh sử dụng; hãy lưu trữ thay vì xoá.",
     });
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(init.method).toBe("DELETE");
+    expect(new URL(url).pathname).toBe(
+      "/api/v1/classification/terms/need/NEED_TEST",
+    );
+    expect(new URL(url).searchParams.get("expectedRevision")).toBe("1");
   });
 });

@@ -8,7 +8,7 @@ import {
   type Body,
   type MethodHandler,
   type Params,
-} from "./nest-method-router";
+} from "./nest-handler";
 
 const BASE = "/api/v1/major-catalog";
 

@@ -13,26 +13,13 @@ import {
 } from "@/components/common/admin/admin-table";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { TableBody } from "@/components/tailgrids/core/table";
 import type { CrmUser } from "@/services/api/user-management";
 
 import RoleSelectDropdown from "./role-select-dropdown";
-
-export function isUserSelectable(user: CrmUser): boolean {
-  return user.role !== "System Manager" && !user.sessionUser;
-}
-
-/** Only Sale/CTV Sale receive Leads, so only they have a meaningful capacity. */
-export const LEAD_RECIPIENT_ROLES = new Set(["Sale", "CTV Sale"]);
-
-export function capacityDisplay(user: CrmUser): string {
-  if (!LEAD_RECIPIENT_ROLES.has(user.role ?? "")) return "—";
-  if (!user.capacity) return "Chưa vào Team";
-  const { active, limit, configured } = user.capacity;
-  if (!configured) return "Chưa thiết lập";
-  return limit ? `${active}/${limit}` : `${active}`;
-}
+import CampusSelectDropdown, {
+  type CampusOption,
+} from "./campus-select-dropdown";
 
 interface UsersTableProps {
   users: CrmUser[];
@@ -40,9 +27,9 @@ interface UsersTableProps {
   isLoading: boolean;
   canManageUsers: boolean;
   isMutating: boolean;
-  selectedUserIds: Set<string>;
-  onToggleUser: (user: CrmUser, checked: boolean) => void;
-  onToggleAll: (checked: boolean) => void;
+  campusOptions: CampusOption[];
+  isCampusLoading: boolean;
+  onChangeCampus: (user: CrmUser, campusId: string | null) => void;
   onChangeRole: (user: CrmUser, newRole: string) => void;
   onEdit: (user: CrmUser) => void;
   onRemove: (user: CrmUser) => void;
@@ -63,9 +50,9 @@ export default function UsersTable({
   isLoading,
   canManageUsers,
   isMutating,
-  selectedUserIds,
-  onToggleUser,
-  onToggleAll,
+  campusOptions,
+  isCampusLoading,
+  onChangeCampus,
   onChangeRole,
   onEdit,
   onRemove,
@@ -73,31 +60,17 @@ export default function UsersTable({
   totalPages,
   onPageChange,
 }: UsersTableProps) {
-  const columnCount = 4 + (canManageUsers ? 2 : 0);
-  const selectableUsers = users.filter(isUserSelectable);
-  const isAllSelected =
-    selectableUsers.length > 0 &&
-    selectableUsers.every((u) => selectedUserIds.has(u.name));
+  const columnCount = 4 + (canManageUsers ? 1 : 0);
 
   return (
     <>
       <AdminTableRoot aria-label="Danh sách người dùng CRM">
         <AdminTableHeader>
           <AdminTableRow>
-            {canManageUsers ? (
-              <AdminTableHead scope="col" className="w-10">
-                <Checkbox
-                  aria-label="Chọn tất cả người dùng"
-                  isSelected={isAllSelected}
-                  isDisabled={selectableUsers.length === 0}
-                  onChange={onToggleAll}
-                />
-              </AdminTableHead>
-            ) : null}
             <AdminTableHead scope="col">Người dùng</AdminTableHead>
             <AdminTableHead scope="col">Email</AdminTableHead>
+            <AdminTableHead scope="col">Campus</AdminTableHead>
             <AdminTableHead scope="col">Vai trò</AdminTableHead>
-            <AdminTableHead scope="col">Capacity</AdminTableHead>
             {canManageUsers ? (
               <AdminTableHead scope="col">Hành động</AdminTableHead>
             ) : null}
@@ -130,16 +103,6 @@ export default function UsersTable({
                 const isSystemManager = user.role === "System Manager";
                 return (
                   <AdminTableRow key={user.name}>
-                    {canManageUsers ? (
-                      <AdminTableCell className="py-3.5">
-                        <Checkbox
-                          aria-label={`Chọn ${user.fullName}`}
-                          isSelected={selectedUserIds.has(user.name)}
-                          isDisabled={!isUserSelectable(user) || isMutating}
-                          onChange={(checked) => onToggleUser(user, checked)}
-                        />
-                      </AdminTableCell>
-                    ) : null}
                     <AdminTableCell className="py-3.5">
                       <div className="flex min-w-0 items-center gap-2.5">
                         <Avatar size="sm">
@@ -165,21 +128,35 @@ export default function UsersTable({
                     <AdminTableCell className="py-3.5 text-text-secondary">
                       {user.email}
                     </AdminTableCell>
+                    <AdminTableCell className="py-3.5 text-text-secondary">
+                      {canManageUsers ? (
+                        <CampusSelectDropdown
+                          campus={user.campus}
+                          options={campusOptions}
+                          userLabel={user.fullName}
+                          disabled={isMutating || isCampusLoading}
+                          onChange={(campusId) =>
+                            onChangeCampus(user, campusId)
+                          }
+                        />
+                      ) : (
+                        (user.campus?.name ?? "Chưa có Campus")
+                      )}
+                    </AdminTableCell>
                     <AdminTableCell className="py-3.5">
-                      {canManageUsers && !isSystemManager ? (
+                      {canManageUsers ? (
                         <RoleSelectDropdown
                           value={user.role ?? ""}
                           disabled={isMutating}
                           onChange={(newRole) => onChangeRole(user, newRole)}
                         />
+                      ) : isSystemManager ? (
+                        <span className="text-text-secondary">{user.role}</span>
                       ) : (
-                        <Badge color={isSystemManager ? "primary" : "gray"}>
+                        <Badge color="gray">
                           {user.role ?? "Chưa có vai trò"}
                         </Badge>
                       )}
-                    </AdminTableCell>
-                    <AdminTableCell className="py-3.5 whitespace-nowrap text-text-secondary">
-                      {capacityDisplay(user)}
                     </AdminTableCell>
                     {canManageUsers ? (
                       <AdminTableCell className="py-3.5">

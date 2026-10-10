@@ -86,8 +86,6 @@ export default function LeadsOverviewDashboard() {
   };
   const {
     data: response,
-    isError,
-    error,
     isPending,
     isPlaceholderData,
   } = useLeadSaleLeadsQuery(listParams, {
@@ -266,17 +264,6 @@ export default function LeadsOverviewDashboard() {
       id="main-content"
       className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6"
     >
-      {isError && (
-        <Card className="border-error-200 bg-badge-error-background p-4 text-error-600">
-          <p className="text-sm font-semibold">
-            Không thể tải danh sách Lead từ Frappe CRM
-          </p>
-          <p className="mt-1 text-xs">
-            {error?.message || "Lỗi kết nối hoặc không có quyền truy cập."}
-          </p>
-        </Card>
-      )}
-
       <header className="flex flex-col gap-5 rounded-xl border border-card-border bg-card-background p-5 lg:flex-row lg:items-center lg:justify-between lg:p-6">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -372,7 +359,6 @@ export default function LeadsOverviewDashboard() {
         campaign={campaign}
         campaigns={availableCampaigns}
         campaignLoading={campaignsQuery.isPending}
-        campaignError={campaignsQuery.error?.message}
         resultCount={totalCount}
         onQueryChange={handleQueryChange}
         onStatusChange={handleStatusChange}

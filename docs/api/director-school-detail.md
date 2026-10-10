@@ -1,22 +1,22 @@
 # Director School Detail API
 
-Contract đang được dùng bởi `/director/schools/{schoolId}`. Server page gọi Frappe trực tiếp; route detail không còn đọc directory CSV hoặc gọi `buildSchoolIntelligence()`.
+Contract đang được dùng bởi `/director/schools/{schoolId}`. Server page gọi API Nest (chuyển tiếp cookie phiên); route detail không còn đọc directory CSV hoặc gọi `buildSchoolIntelligence()`.
 
 ## Endpoint và quyền truy cập
 
 ```http
-GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.director_school_detail.get_director_school_detail?school_id=01-01-062&admissionYear=2026
-Cookie: sid=<Frappe session cookie>
+GET {NEXT_PUBLIC_CRM_API_URL}/api/v1/director/schools/01-01-062?admissionYear=2026
+Cookie: <Better Auth session cookie>
 Accept: application/json
 ```
 
-Method chỉ nhận `GET`; Frappe bọc kết quả thành công trong `message`. Quyền hợp lệ: `Administrator`, profile chuẩn `Admissions Director`, hoặc `System Manager` không đồng thời mang business role bị cấm.
+Endpoint chỉ nhận `GET` và trả kết quả trực tiếp (không bọc `message`). Quyền: quản trị viên hoặc user có lead scope `all`.
 
 ## Parameters và school ID
 
 | Tên | Kiểu | Bắt buộc | Mô tả |
 |---|---|---:|---|
-| `school_id` | string | Có | ID ngoài hệ thống theo một trong hai dạng dưới đây |
+| `schoolId` (path) | string | Có | ID ngoài hệ thống theo một trong hai dạng dưới đây |
 | `admissionYear` | integer/string | Không | Năm `2000..2100`; mặc định kỳ active duy nhất |
 
 - Canonical `{provinceCode}-{wardCode}-{schoolCode}`: ward code có 5 chữ số, ví dụ `01-00001-062`; resolver khớp tỉnh + ward + trường.
@@ -28,132 +28,130 @@ ID sai shape, không tồn tại, trùng hoặc ngoài row permission đều tr�
 
 ```json
 {
-  "message": {
-    "status": "partial",
-    "school": {
-      "id": "01-00001-062",
-      "provinceCode": "01",
-      "province": "Hà Nội",
-      "districtCode": "00001",
-      "district": "Phường Ba Đình",
-      "schoolCode": "062",
+  "status": "partial",
+  "school": {
+    "id": "01-00001-062",
+    "provinceCode": "01",
+    "province": "Hà Nội",
+    "districtCode": "00001",
+    "district": "Phường Ba Đình",
+    "schoolCode": "062",
+    "name": "THPT Nguyễn Trãi",
+    "address": "Hà Nội",
+    "area": "KV3",
+    "isBoardingSchool": false
+  },
+  "potentialScore": null,
+  "potentialIndicators": [],
+  "potentialState": null,
+  "grade12Students": null,
+  "availableStudents": null,
+  "prospects": 5,
+  "applications": 2,
+  "enrollment": 1,
+  "changes": { "prospects": null, "applications": null, "enrollment": null },
+  "performance": { "6m": [], "year": [] },
+  "geography": null,
+  "locality": {
+    "source": {
       "name": "THPT Nguyễn Trãi",
       "address": "Hà Nội",
-      "area": "KV3",
-      "isBoardingSchool": false
+      "coordinates": { "latitude": 21.03, "longitude": 105.81 }
     },
-    "potentialScore": null,
-    "potentialIndicators": [],
-    "potentialState": null,
-    "grade12Students": null,
-    "availableStudents": null,
-    "prospects": 5,
-    "applications": 2,
-    "enrollment": 1,
-    "changes": { "prospects": null, "applications": null, "enrollment": null },
-    "performance": { "6m": [], "year": [] },
-    "geography": null,
-    "locality": {
-      "source": {
-        "name": "THPT Nguyễn Trãi",
-        "address": "Hà Nội",
-        "coordinates": { "latitude": 21.03, "longitude": 105.81 }
-      },
-      "province": "Hà Nội",
-      "ward": "Phường Ba Đình",
-      "travelTime": null,
-      "distanceKm": null,
-      "marketStats": {
-        "schools": null,
-        "grade12Students": null,
-        "outOfProvinceRate": null,
-        "fptInterestRate": null
-      }
-    },
-    "demographics": null,
-    "subjectMix": null,
-    "earlyForecast": null,
-    "activityStats": [],
-    "relationship": {
-      "level": "Hợp tác thường xuyên",
-      "score": 80,
-      "contact": "Nguyễn Văn A",
-      "contactRole": "Ban giám hiệu",
+    "province": "Hà Nội",
+    "ward": "Phường Ba Đình",
+    "travelTime": null,
+    "distanceKm": null,
+    "marketStats": {
+      "schools": null,
+      "grade12Students": null,
+      "outOfProvinceRate": null,
+      "fptInterestRate": null
+    }
+  },
+  "demographics": null,
+  "subjectMix": null,
+  "earlyForecast": null,
+  "activityStats": [],
+  "relationship": {
+    "level": "Hợp tác thường xuyên",
+    "score": 80,
+    "contact": "Nguyễn Văn A",
+    "contactRole": "Ban giám hiệu",
+    "lastTouch": "2026-08-01",
+    "nextTouch": "2026-09-01"
+  },
+  "classification": {
+    "group": "Trọng điểm",
+    "isKeyAccount": true,
+    "label": null,
+    "action": null
+  },
+  "quadrantPeers": [],
+  "scoreBands": [],
+  "examScoreBands": [],
+  "academicGap": null,
+  "postGraduationChoices": [],
+  "competitionContext": null,
+  "contacts": [
+    {
+      "role": "Ban giám hiệu",
+      "hasContact": true,
+      "full_name": "Nguyễn Văn A",
+      "position": "Phó hiệu trưởng",
+      "relationshipStatus": "Active",
       "lastTouch": "2026-08-01",
       "nextTouch": "2026-09-01"
-    },
-    "classification": {
-      "group": "Trọng điểm",
-      "isKeyAccount": true,
-      "label": null,
-      "action": null
-    },
-    "quadrantPeers": [],
-    "scoreBands": [],
-    "examScoreBands": [],
-    "academicGap": null,
-    "postGraduationChoices": [],
-    "competitionContext": null,
-    "contacts": [
-      {
-        "role": "Ban giám hiệu",
-        "hasContact": true,
-        "full_name": "Nguyễn Văn A",
-        "position": "Phó hiệu trưởng",
-        "relationshipStatus": "Active",
-        "lastTouch": "2026-08-01",
-        "nextTouch": "2026-09-01"
-      }
-    ],
-    "activities": [
-      {
-        "type": "Tư vấn hướng nghiệp",
-        "date": "2026-08-20",
-        "scheduledAt": null,
-        "status": "completed",
-        "outcome": "Positive",
-        "attendance": 120
-      }
-    ],
-    "dataFreshness": "2026-08-30",
-    "dataSources": {
-      "directory": "CRM High School",
-      "snapshot": "CRM High School Annual Snapshot",
-      "relationship": "CRM School Stakeholder",
-      "activities": "CRM School Activity",
-      "examScore": null,
-      "reportCard": null
-    },
-    "dataAvailability": {
-      "sections": {
-        "identity": "available",
-        "snapshot": "available",
-        "relationship": "available",
-        "activities": "available",
-        "locality": "available",
-        "demographics": "unavailable",
-        "subjectMix": "unavailable",
-        "outcomes": "unavailable"
-      },
-      "fields": {
-        "potentialScore": "unavailable",
-        "potentialIndicators": "unavailable",
-        "grade12Students": "unavailable",
-        "availableStudents": "unavailable",
-        "demographics": "unavailable",
-        "subjectMix": "unavailable",
-        "postGraduationChoices": "unavailable",
-        "examScoreBands": "unavailable",
-        "competitionContext": "unavailable",
-        "locality.travelTime": "unavailable"
-      }
-    },
-    "meta": {
-      "admissionYear": 2026,
-      "asOf": "2026-08-30",
-      "scope": "director",
-      "sourceDataRevision": "0123456789abcdef"
     }
+  ],
+  "activities": [
+    {
+      "type": "Tư vấn hướng nghiệp",
+      "date": "2026-08-20",
+      "scheduledAt": null,
+      "status": "completed",
+      "outcome": "Positive",
+      "attendance": 120
+    }
+  ],
+  "dataFreshness": "2026-08-30",
+  "dataSources": {
+    "directory": "CRM High School",
+    "snapshot": "CRM High School Annual Snapshot",
+    "relationship": "CRM School Stakeholder",
+    "activities": "CRM School Activity",
+    "examScore": null,
+    "reportCard": null
+  },
+  "dataAvailability": {
+    "sections": {
+      "identity": "available",
+      "snapshot": "available",
+      "relationship": "available",
+      "activities": "available",
+      "locality": "available",
+      "demographics": "unavailable",
+      "subjectMix": "unavailable",
+      "outcomes": "unavailable"
+    },
+    "fields": {
+      "potentialScore": "unavailable",
+      "potentialIndicators": "unavailable",
+      "grade12Students": "unavailable",
+      "availableStudents": "unavailable",
+      "demographics": "unavailable",
+      "subjectMix": "unavailable",
+      "postGraduationChoices": "unavailable",
+      "examScoreBands": "unavailable",
+      "competitionContext": "unavailable",
+      "locality.travelTime": "unavailable"
+    }
+  },
+  "meta": {
+    "admissionYear": 2026,
+    "asOf": "2026-08-30",
+    "scope": "director",
+    "sourceDataRevision": "0123456789abcdef"
   }
 }
 ```

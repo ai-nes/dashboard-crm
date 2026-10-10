@@ -1,11 +1,14 @@
 "use client";
 
+import { leadSaleOverviewKeys } from "./use-lead-sale-overview-query";
+
 import {
   useMutation,
   useQuery,
   useQueryClient,
   type UseQueryOptions,
   type UseQueryResult,
+  type QueryClient,
 } from "@tanstack/react-query";
 
 import {
@@ -52,6 +55,13 @@ export const leadSaleLeadsKeys = {
   assignmentTargets: (leadId: string) =>
     ["lead-sale-leads", "assignment-targets", leadId] as const,
 };
+
+export function refreshLeadFieldQueries(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+    queryClient.invalidateQueries({ queryKey: leadSaleOverviewKeys.all }),
+  ]);
+}
 
 export function useLeadSaleLeadsQuery<TData = LeadListResponse>(
   params?: LeadListParams,
@@ -121,13 +131,7 @@ export function useUpdateLeadMutation() {
     { leadId: string; fields: LeadUpdateFields }
   >({
     mutationFn: ({ leadId, fields }) => updateLead(leadId, fields),
-    onSuccess: (_data, variables) =>
-      Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: leadSaleLeadsKeys.detail(variables.leadId),
-        }),
-        queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
-      ]),
+    onSuccess: () => refreshLeadFieldQueries(queryClient),
   });
 }
 
@@ -204,8 +208,7 @@ export function useCreateLeadMutation() {
 
   return useMutation<LeadDetailResponse, Error, LeadCreateFields>({
     mutationFn: (fields) => createLead(fields),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+    onSuccess: () => refreshLeadFieldQueries(queryClient),
   });
 }
 

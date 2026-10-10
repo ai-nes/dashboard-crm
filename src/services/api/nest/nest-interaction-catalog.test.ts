@@ -24,7 +24,6 @@ describe("interaction catalog with the Nest backend", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://api.test");
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe.test");
     vi.stubGlobal("fetch", fetchMock);
     fetchMock.mockReset();
   });
@@ -33,7 +32,7 @@ describe("interaction catalog with the Nest backend", () => {
     vi.unstubAllGlobals();
   });
 
-  it("reads both catalogs from reference data and never calls Frappe", async () => {
+  it("reads both catalogs from reference data", async () => {
     fetchMock.mockImplementation((url: string) =>
       json({
         data: String(url).includes("interaction-types")

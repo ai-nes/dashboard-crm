@@ -32,15 +32,20 @@ import {
 
 export const nbaAdminKeys = {
   all: ["nba-admin"] as const,
-  actionTypes: (params: ListActionTypesParams) => ["nba-admin", "action-types", params] as const,
+  actionTypes: (params: ListActionTypesParams) =>
+    ["nba-admin", "action-types", params] as const,
   actionType: (name: string) => ["nba-admin", "action-type", name] as const,
-  timingPolicies: (params: ListTimingPoliciesParams) => ["nba-admin", "timing-policies", params] as const,
+  timingPolicies: (params: ListTimingPoliciesParams) =>
+    ["nba-admin", "timing-policies", params] as const,
   timingPolicy: (name: string) => ["nba-admin", "timing-policy", name] as const,
 };
 
 export function useNbaAdminActionTypesQuery(
   params: ListActionTypesParams = {},
-  options?: Omit<UseQueryOptions<ListActionTypesResponse, Error>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<ListActionTypesResponse, Error>,
+    "queryKey" | "queryFn"
+  >,
 ): UseQueryResult<ListActionTypesResponse, Error> {
   return useQuery({
     queryKey: nbaAdminKeys.actionTypes(params),
@@ -51,7 +56,10 @@ export function useNbaAdminActionTypesQuery(
 }
 export function useNbaActionTypeQuery(
   name: string,
-  options?: Omit<UseQueryOptions<NbaAdminActionType, Error>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<NbaAdminActionType, Error>,
+    "queryKey" | "queryFn"
+  >,
 ): UseQueryResult<NbaAdminActionType, Error> {
   return useQuery({
     queryKey: nbaAdminKeys.actionType(name),
@@ -63,7 +71,10 @@ export function useNbaActionTypeQuery(
 
 export function useNbaTimingPoliciesQuery(
   params: ListTimingPoliciesParams = {},
-  options?: Omit<UseQueryOptions<ListTimingPoliciesResponse, Error>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<ListTimingPoliciesResponse, Error>,
+    "queryKey" | "queryFn"
+  >,
 ): UseQueryResult<ListTimingPoliciesResponse, Error> {
   return useQuery({
     queryKey: nbaAdminKeys.timingPolicies(params),
@@ -75,7 +86,10 @@ export function useNbaTimingPoliciesQuery(
 
 export function useNbaTimingPolicyQuery(
   name: string,
-  options?: Omit<UseQueryOptions<NbaTimingPolicy, Error>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<NbaTimingPolicy, Error>,
+    "queryKey" | "queryFn"
+  >,
 ): UseQueryResult<NbaTimingPolicy, Error> {
   return useQuery({
     queryKey: nbaAdminKeys.timingPolicy(name),
@@ -88,16 +102,20 @@ export function useNbaTimingPolicyQuery(
 export function useUpdateNbaActionTypeMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateActionTypePayload) => updateAdminActionType(payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
+    mutationFn: (payload: UpdateActionTypePayload) =>
+      updateAdminActionType(payload),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
   });
 }
 
 export function useCreateNbaActionTypeMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateActionTypePayload) => createAdminActionType(payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
+    mutationFn: (payload: CreateActionTypePayload) =>
+      createAdminActionType(payload),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
   });
 }
 
@@ -105,7 +123,8 @@ export function useDeleteNbaActionTypeMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (name: string) => deleteAdminActionType(name),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
   });
 }
 
@@ -113,22 +132,39 @@ export function useCreateNbaTimingPolicyMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: TimingPolicyPayload) => createTimingPolicy(payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
   });
 }
 
 export function useUpdateNbaTimingPolicyMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, payload }: { name: string; payload: TimingPolicyPayload }) => updateTimingPolicy(name, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
+    mutationFn: ({
+      name,
+      payload,
+      expectedModified,
+    }: {
+      name: string;
+      payload: TimingPolicyPayload;
+      expectedModified: string | null;
+    }) => updateTimingPolicy(name, payload, expectedModified),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
   });
 }
 
 export function useDeleteNbaTimingPolicyMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) => deleteTimingPolicy(name),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
+    mutationFn: ({
+      name,
+      expectedModified,
+    }: {
+      name: string;
+      expectedModified: string | null;
+    }) => deleteTimingPolicy(name, expectedModified),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: nbaAdminKeys.all }),
   });
 }

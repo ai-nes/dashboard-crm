@@ -199,7 +199,12 @@ export function useCampaignChannelTypesAdminQuery(
 
 export function useGovernedValuesQuery(
   doctype: GovernedDoctype,
-  options: { search?: string; start?: number; pageLength?: number } = {},
+  options: {
+    search?: string;
+    start?: number;
+    pageLength?: number;
+    enabled?: boolean;
+  } = {},
 ) {
   const search = options.search?.trim() ?? "";
   return useQuery({
@@ -208,6 +213,7 @@ export function useGovernedValuesQuery(
       start: options.start,
       pageLength: options.pageLength,
     }),
+    enabled: options.enabled,
     queryFn: () =>
       listGovernedValues(doctype, {
         search,

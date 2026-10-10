@@ -4,57 +4,45 @@ API này phục vụ trang `/director/students/{studentId}`, ví dụ `/director
 
 ## 1. Endpoint
 
-### RPC Method Frappe / CRM
-
 ```http
-GET /api/method/crm.api.director_students.get_director_student
+GET /api/v1/students/{id}
 ```
 
 Ví dụ:
 
 ```http
-GET /api/method/crm.api.director_students.get_director_student?student_id=ENR-2026-00005
+GET /api/v1/students/ENR-2026-00005
 ```
 
-Hoặc theo ID slug:
+Dịch vụ phía dashboard nằm ở `src/services/api/students/index.ts`: gọi backend NestJS bằng `NEXT_PUBLIC_CRM_API_URL`, gửi cookie phiên Better Auth (`credentials: "include"` ở browser; forward cookie ở server) và `cache: no-store`. Dữ liệu được ánh xạ sang `Student360Data`.
 
-```http
-GET /api/method/crm.api.director_students.get_director_student?student_id=nguyen-minh-an
-```
+Các endpoint liên quan của cùng trang:
 
-Handler hiện có tại [route.ts](../../src/app/api/method/[...method]/route.ts) và [mock route.ts](../../src/app/api/mock/[...resource]/route.ts). Handler gọi `getStudent360(student_id)` và trả về object `Student360Data` trong `message`; mock method đồng thời trải phẳng các field ra root để tương thích với client cũ.
+| Mục đích | Endpoint |
+| --- | --- |
+| Dòng thời gian | `GET /api/v1/students/{id}/timeline` |
+| Tương tác / tab Zalo | `GET /api/v1/students/{id}/interactions` |
+| Điểm THPT | `GET` / `PATCH /api/v1/students/{id}/high-school-score` |
+| Cập nhật hồ sơ | `PATCH /api/v1/students/{id}` |
+| Hồ sơ tuyển sinh | `PATCH /api/v1/admission-profile/applications/{applicationId}` |
 
-Khi `NEXT_PUBLIC_FRAPPE_URL` không được cấu hình, service dùng `computeStudent360()` từ fixture nội bộ. Khi đã cấu hình Frappe, service gọi backend thật với `cache: no-store`, forward cookie `sid` ở server và gửi `credentials: include` ở browser.
-
-### Mock local
-
-```http
-GET /api/mock/students/nguyen-minh-an
-```
-
-Mock method tương đương với RPC thật:
-
-```http
-GET /api/method/crm.api.director_students.get_director_student?student_id=nguyen-minh-an
-```
-
-Mock trả cả `message` và payload trực tiếp. Đây là dữ liệu minh họa cho local development, không phải nguồn production.
+> Route mô phỏng `/api/mock/students/...` chỉ phục vụ phát triển local, không phải nguồn production.
 
 ## 2. Request
 
 ```http
-GET /api/method/crm.api.director_students.get_director_student?student_id=ENR-2026-00005
-Cookie: sid=<Frappe session cookie>
+GET /api/v1/students/ENR-2026-00005
+Cookie: <Better Auth session cookie>
 Accept: application/json
 ```
 
 Request không có body.
 
-### Query parameters
+### Path parameters
 
-| Tên          | Kiểu   | Bắt buộc | Mô tả                                                                               |
-| ------------ | ------ | -------: | ----------------------------------------------------------------------------------- |
-| `student_id` | string |       Có | Mã hoặc ID học sinh, ví dụ `ENR-2026-00005`, `STU-2026-04821` hoặc `nguyen-minh-an` |
+| Tên  | Kiểu   | Bắt buộc | Mô tả                                                                               |
+| ---- | ------ | -------: | ----------------------------------------------------------------------------------- |
+| `id` | string |       Có | Mã hoặc ID học sinh, ví dụ `ENR-2026-00005`, `STU-2026-04821` hoặc `nguyen-minh-an` |
 
 Mock ID / Code hiện có:
 
@@ -72,7 +60,7 @@ bui-thanh-ha
 
 ## 3. Response `200 OK`
 
-Response thành công là `Student360Data` trong `message` theo chuẩn Frappe RPC. Client cũng chấp nhận payload trực tiếp để tương thích mock:
+Response thành công là JSON trực tiếp, được dashboard ánh xạ sang `Student360Data` có shape sau:
 
 ```text
 {
@@ -101,7 +89,7 @@ Response thành công là `Student360Data` trong `message` theo chuẩn Frappe R
 
 ## 4. Response example
 
-Ví dụ rút gọn cho `GET /api/method/crm.api.director_students.get_director_student?student_id=ENR-2026-00005`:
+Ví dụ rút gọn cho `GET /api/v1/students/ENR-2026-00005`:
 
 ```json
 {
@@ -498,57 +486,43 @@ address: { province, provinceId, ward, wardId, fullAddress },
 }
 ```
 
-Khu vực của trường THPT không lưu lặp trên hồ sơ học sinh. Dashboard lấy từ
-`CRM High School.school_area` qua API field options:
+Khu vực của trường THPT không lưu lặp trên hồ sơ học sinh. Dashboard lấy từ danh mục trường THPT:
 
 ```http
-GET /api/method/crm.api.student_school.get_field_options
-  ?doctype=CRM%20High%20School&fieldname=school_area&high_school=<school_name>&limit=1
+GET /api/v1/geography-catalog/school-areas
+GET /api/v1/geography-catalog/high-schools
 ```
 
-Tab `Hồ sơ học sinh` dùng projection GET ở trên để hiển thị nguyên ba card hiện có. API PUT cập nhật từng phần vẫn dùng contract sau:
+Tab `Hồ sơ học sinh` dùng projection GET ở trên để hiển thị nguyên ba card hiện có. Cập nhật từng phần dùng:
 
 ```http
-PUT /api/method/crm.api.student_school.update_student
+PATCH /api/v1/students/{id}
 Content-Type: application/json
 
-{"name":"<crm_student_name>","fields":{"phone":"0900000000","current_grade":"12"}}
+{"fields":{"phone":"0900000000","current_grade":"12"}}
 ```
 
 `fields` phải là object không rỗng và chỉ được chứa các field trong allowlist của backend.
 Các field thông tin người liên hệ gồm `alt_name`, `alt_phone`, `parent_other_phone`,
 `parent_email`, `bank_name`, `account_number`, `account_holder`, `father_name`,
 `father_phone`, `father_email`, `father_occupation`, `mother_name`, `mother_phone`,
-`mother_email`, `mother_occupation`. Backend kiểm tra quyền `write`; response trả `name`
-và `updated_fields`. Frontend dùng ID canonical của `CRM Student`, không dùng label
-tỉnh/phường để gửi update.
+`mother_email`, `mother_occupation`. Backend kiểm tra quyền ghi; lỗi trả
+`{ "error": { "code", "message" } }`. Frontend dùng ID canonical của học sinh, không dùng
+label tỉnh/phường để gửi update.
 
-`Nguyện vọng FPT` trên card tuyển sinh là `CRM Admission Application.preference`.
-Giá trị hợp lệ là `Primary` hoặc `Alternative`; hồ sơ đã tạo có thể cập nhật bằng:
-
-```http
-PUT /api/method/crm.api.admission_application.update_preference
-Content-Type: application/json
-
-{"application":"APP-2026-00001","preference":"Alternative"}
-```
-
-Khi chỉnh sửa card tuyển sinh, Dashboard cập nhật cùng một hồ sơ hiện tại bằng
-API dưới đây. Backend giữ nguyên mã hồ sơ và materialize lại
-`CRM Student Admission Profile` cùng checklist theo Profile Template mới:
+`Nguyện vọng FPT` trên card tuyển sinh là `preference` của hồ sơ tuyển sinh. Giá trị hợp lệ là
+`Primary` hoặc `Alternative`. Khi chỉnh sửa card tuyển sinh, Dashboard cập nhật cùng một hồ sơ
+hiện tại; backend giữ nguyên mã hồ sơ và tạo lại checklist theo Profile Template mới:
 
 ```http
-PUT /api/method/crm.api.admission_application.update_application
+PATCH /api/v1/admission-profile/applications/{applicationId}
 Content-Type: application/json
 
 {
-  "application": "APP-2026-00001",
-  "values": {
-    "admission_method": "THPT_SCORE",
-    "profile_template": "STANDARD",
-    "special_profile_options": ["FIRST_GENERATION", "SCHOLARSHIP"],
-    "preference": "Primary"
-  }
+  "admission_method": "THPT_SCORE",
+  "profile_template": "STANDARD",
+  "special_profile_options": ["FIRST_GENERATION", "SCHOLARSHIP"],
+  "preference": "Primary"
 }
 ```
 
@@ -828,70 +802,43 @@ Vì response có phone, email và thông tin phụ huynh, server phải filter q
 ## 9. Tóm tắt tích hợp
 
 ```http
-GET /api/method/crm.api.director_students.get_director_student?student_id=ENR-2026-00005
+GET /api/v1/students/{id}
 ```
 
 Frontend cần:
 
-1. Gửi `student_id` (ví dụ `ENR-2026-00005` hoặc `studentId` từ URL `/director/students/{studentId}`).
-2. Nhận object `Student360Data` bọc trong `response.message` (chuẩn Frappe) hoặc JSON trực tiếp.
+1. Gửi `id` của học sinh (mã hồ sơ hoặc `studentId` từ URL `/director/students/{studentId}`) kèm cookie phiên Better Auth (`credentials: "include"`).
+2. Nhận JSON trực tiếp (không bọc trong `message`) và ánh xạ sang `Student360Data`.
 3. Hiển thị `student`, `classification`, `acquisition`, `segmentation`, `parentProfile`, `insight`, `journey`, `engagement` và `application`.
-4. Xử lý `404 STUDENT_NOT_FOUND` bằng trạng thái không tìm thấy hồ sơ; lỗi `401/403/5xx` phải hiển thị lỗi đồng bộ rõ ràng.
+4. Xử lý `404` bằng trạng thái không tìm thấy hồ sơ; lỗi `401/403/5xx` phải hiển thị lỗi đồng bộ rõ ràng. Lỗi có dạng `{ "error": { "code", "message" } }`.
 5. Trả `probabilityTrend`, `channelPerformance`, `documents`, `notes` và `auditEvents` khi có dữ liệu thật. Nếu chưa có nguồn, trả `[]` hoặc bỏ field tùy chọn; không trả số minh họa và không dùng `0` thay cho dữ liệu thiếu.
 
-## 10. Tin nhắn Chatwoot cho tab Zalo
+## 10. Tin nhắn cho tab Zalo
 
-Tab Zalo lấy dữ liệu từ endpoint chuyên biệt:
+Tab Zalo lấy dữ liệu từ danh sách tương tác của học sinh:
 
 ```http
-GET /api/method/crm.api.director_students.get_student_chatwoot_interactions?student_id=ENR-2026-00005&page=1&page_size=50
-Cookie: sid=<Frappe session cookie>
+GET /api/v1/students/{id}/interactions?page=1&pageSize=50
+Cookie: <Better Auth session cookie>
 ```
 
-Endpoint lọc chính xác `student_id` và `interaction_type = "Tin nhắn Chatwoot"`.
-Vì vậy message có `channel=webchat` vẫn được hiển thị trong tab Zalo. Response
-được bọc trong `message` theo chuẩn Frappe:
-
-```typescript
-{
-  student_id: string;
-  data: StudentChatwootInteraction[];
-  zalo_messages: StudentZaloMessage[];
-  meta: {
-    page: number;
-    page_size: number;
-    total: number;
-    has_next_page: boolean;
-  };
-}
-```
-
-Trang detail gọi endpoint này ở server và hook TanStack Query tiếp tục đồng bộ
-khi component hoạt động ở browser. Nếu API chưa cấu hình hoặc trả `404`, tab
-Zalo dùng `data.zaloMessages` từ Student360 để giữ tương thích với fixture và
-backend cũ; không thay đổi giao diện, bộ lọc hoặc thao tác tạo dữ liệu.
+Dashboard lọc các tương tác có loại tin nhắn chat (kể cả `channel=webchat`) và dựng `zaloMessages` từ đó. Tab chỉ đọc; không thay đổi giao diện, bộ lọc hoặc thao tác tạo dữ liệu. Chi tiết shape tương tác xem [260906-fe-interaction-intelligence-handoff.md](260906-fe-interaction-intelligence-handoff.md).
 
 ## 11. Card Điểm THPT
 
-Card `Điểm THPT` dùng hai RPC riêng để đọc/cập nhật dữ liệu thật. Các field thuộc
-`CRM Student Admission Profile` được đọc từ hồ sơ của Student trong năm tuyển sinh
-được truyền vào; nếu không truyền năm, backend dùng `CRM Student.admission_year`.
+Card `Điểm THPT` đọc và cập nhật qua một cặp endpoint riêng. Backend dùng hồ sơ tuyển sinh hiện tại của học sinh; không có tham số năm tuyển sinh.
 
 ### Đọc điểm
 
 ```http
-GET /api/method/crm.api.student_school.get_student_high_school_score?name=HS-2026-HCM-000001&admission_year=2026
-Cookie: sid=<Frappe session cookie>
+GET /api/v1/students/{id}/high-school-score
+Cookie: <Better Auth session cookie>
 ```
 
-Response trong `message`:
+Response:
 
 ```typescript
 {
-  doctype: "CRM Student";
-  name: string;
-  admission_profile: string | null;
-  admission_year: string | null;
   fields: {
     graduation_score: number | null;
     transcript_score: number | null;
@@ -913,19 +860,13 @@ Response trong `message`:
 }
 ```
 
-`graduation_score`, `transcript_score` và `total_score` được đọc từ `CRM Student`.
-Các trường thông tin hồ sơ được đọc từ `CRM Student Admission Profile`; riêng
-`academic_rank` được đọc từ dòng lớp 12 trong bảng `academic_results` của Student.
-
 ### Cập nhật điểm
 
 ```http
-PUT /api/method/crm.api.student_school.update_student_high_school_score
+PATCH /api/v1/students/{id}/high-school-score
 Content-Type: application/json
 
 {
-  "name": "HS-2026-HCM-000001",
-  "admission_year": "2026",
   "fields": {
     "grade_12_gpa": 8.75,
     "transcript_score": 8.5,
@@ -934,9 +875,4 @@ Content-Type: application/json
 }
 ```
 
-API cập nhật một phần. Các trường điểm phải là số không âm; `graduation_year` phải
-là số nguyên; `score_details` phải là JSON object/array hợp lệ. Các trường thuộc
-Student được lưu trên `CRM Student`, các trường hồ sơ được lưu trên admission
-profile, còn `academic_rank` được lưu ở dòng lớp 12. Nếu cập nhật field profile khi
-Student chưa có admission profile tương ứng, API trả `404`. Backend luôn kiểm tra
-quyền `read` hoặc `write` trên các document trước khi trả/lưu dữ liệu.
+API cập nhật một phần. Các trường điểm phải là số không âm; `graduation_year` phải là số nguyên; `score_details` phải là JSON object/array hợp lệ. Lỗi trả `{ "error": { "code", "message" } }` với `400` (dữ liệu sai), `403` (không đủ quyền) hoặc `404` (học sinh/hồ sơ không tồn tại).

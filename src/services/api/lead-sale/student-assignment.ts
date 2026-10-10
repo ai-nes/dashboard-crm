@@ -1,13 +1,5 @@
-import {
-  NestApiError,
-  isNestApiEnabled,
-  nestRequest,
-} from "../nest/nest-client";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 
-const WORKSPACE_METHOD = "crm.api.lead_sale.get_student_assignment_workspace";
-const DETAIL_METHOD = "crm.api.lead_sale.get_student_assignment_detail";
-const RESOLVE_METHOD = "crm.api.lead_sale.resolve_student_assignment";
-const RUN_PIPELINE_METHOD = "crm.api.lead_sale.run_student_assignment_pipeline";
 const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
 
 const WORKFLOW_STEP_IDS = [
@@ -52,11 +44,6 @@ export type StudentAssignmentWorkspaceParams = {
   pageSize?: number;
   sort?: "receivedAt" | "name" | "status" | "owner" | "matchScore";
   order?: "asc" | "desc";
-};
-
-export type StudentAssignmentRequestOptions = {
-  baseUrl?: string;
-  headers?: Record<string, string>;
 };
 
 export type AssignmentOwner = { id: string; displayName: string };
@@ -189,8 +176,8 @@ export type AssignmentCandidate = {
   id: string;
   displayName: string;
   activeStudents: number;
-  capacity: number;
-  remainingCapacity: number;
+  capacity: number | null;
+  remainingCapacity: number | null;
   matchScore: number;
   eligible: boolean;
   reasons: string[];
@@ -298,11 +285,6 @@ function count(value: unknown, field: string): number {
 function nullableNumber(value: unknown, field: string): number | null {
   if (value === null || value === undefined) return null;
   return finiteNumber(value, field);
-}
-
-function unwrapMessage(value: unknown): unknown {
-  const root = asRecord(value);
-  return root?.message !== undefined ? root.message : value;
 }
 
 function oneOf<T extends string>(
@@ -660,11 +642,18 @@ function normalizeDetail(value: unknown): AssignmentDetailResponse {
           candidate.activeStudents ?? candidate.active_students,
           `candidates[${index}].activeStudents`,
         ),
-        capacity: count(candidate.capacity, `candidates[${index}].capacity`),
-        remainingCapacity: count(
-          candidate.remainingCapacity ?? candidate.remaining_capacity,
-          `candidates[${index}].remainingCapacity`,
-        ),
+        capacity:
+          candidate.capacity == null
+            ? null
+            : count(candidate.capacity, `candidates[${index}].capacity`),
+        remainingCapacity:
+          candidate.remainingCapacity == null &&
+          candidate.remaining_capacity == null
+            ? null
+            : count(
+                candidate.remainingCapacity ?? candidate.remaining_capacity,
+                `candidates[${index}].remainingCapacity`,
+              ),
         matchScore: finiteNumber(
           candidate.matchScore ?? candidate.match_score,
           `candidates[${index}].matchScore`,
@@ -863,25 +852,25 @@ function normalizePipelineResult(
 export function normalizeStudentAssignmentWorkspace(
   value: unknown,
 ): AssignmentWorkspaceResponse {
-  return normalizeWorkspace(unwrapMessage(value));
+  return normalizeWorkspace(value);
 }
 
 export function normalizeStudentAssignmentDetail(
   value: unknown,
 ): AssignmentDetailResponse {
-  return normalizeDetail(unwrapMessage(value));
+  return normalizeDetail(value);
 }
 
 export function normalizeResolvedStudentAssignment(
   value: unknown,
 ): ResolveStudentAssignmentResponse {
-  return normalizeResolve(unwrapMessage(value));
+  return normalizeResolve(value);
 }
 
 export function normalizeRunStudentAssignmentPipeline(
   value: unknown,
 ): RunStudentAssignmentPipelineResponse {
-  const source = asRecord(unwrapMessage(value));
+  const source = asRecord(value);
   if (!source || !Array.isArray(source.results)) {
     throw new Error("pipeline response is incomplete");
   }
@@ -892,142 +881,6 @@ export function normalizeRunStudentAssignmentPipeline(
     ),
   };
 }
-
-function resolveBaseUrl(options: StudentAssignmentRequestOptions): string {
-  const baseUrl = (
-    options.baseUrl ??
-    process.env.NEXT_PUBLIC_FRAPPE_URL ??
-    ""
-  ).replace(/\/+$/, "");
-  if (!baseUrl) {
-    throw new StudentAssignmentApiError(
-      0,
-      "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
-    );
-  }
-  return baseUrl;
-}
-
-function frappeCookieHeader(cookieHeader: string): string {
-  return cookieHeader
-    .split(";")
-    .map((part) => part.trim())
-    .filter((part) => part.split("=", 1)[0] === "sid")
-    .join("; ");
-}
-
-async function requestHeaders(
-  options: StudentAssignmentRequestOptions,
-  contentType = false,
-): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    ...(options.headers ?? {}),
-  };
-  if (contentType) headers["Content-Type"] = "application/json";
-
-  if (!options.baseUrl && typeof window === "undefined") {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieHeader = frappeCookieHeader((await cookies()).toString());
-      if (cookieHeader) headers.Cookie = cookieHeader;
-    } catch {
-      // Service tests and non-request contexts do not have Next headers.
-    }
-  }
-
-  if (typeof window !== "undefined" && contentType) {
-    const csrfToken = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith("csrf_token="))
-      ?.split("=")
-      .slice(1)
-      .join("=");
-    if (csrfToken) {
-      headers["X-Frappe-CSRF-Token"] = decodeURIComponent(csrfToken);
-    } else {
-      try {
-        const sessionResponse = await fetch(
-          `${resolveBaseUrl(options)}/api/method/crm.api.session.me`,
-          { credentials: "include", headers: { Accept: "application/json" } },
-        );
-        const payload = (await sessionResponse.json().catch(() => null)) as {
-          message?: { csrf_token?: unknown };
-        } | null;
-        if (typeof payload?.message?.csrf_token === "string") {
-          headers["X-Frappe-CSRF-Token"] = payload.message.csrf_token;
-        }
-      } catch {
-        // The write request returns the authoritative CSRF error if needed.
-      }
-    }
-  }
-  return headers;
-}
-
-function errorDetails(
-  value: unknown,
-  status: number,
-): { code: string; message: string } {
-  const root = asRecord(value);
-  const message = asRecord(root?.message);
-  const error = asRecord(root?.error) ?? asRecord(message?.error);
-  return {
-    code:
-      text(error?.code) ||
-      text(message?.code) ||
-      (status === 401
-        ? "UNAUTHENTICATED"
-        : status === 403
-          ? "FORBIDDEN"
-          : `HTTP_${status}`),
-    message:
-      text(error?.message) ||
-      text(message?.message) ||
-      text(root?.message) ||
-      text(root?.exception) ||
-      `Không thể gọi API phân công học sinh (${status}).`,
-  };
-}
-
-async function parseResponse(response: Response): Promise<unknown> {
-  return response.json().catch(() => ({}));
-}
-
-async function request(url: string, init: RequestInit): Promise<unknown> {
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      ...init,
-      ...(typeof window !== "undefined"
-        ? { credentials: "include" as RequestCredentials }
-        : {}),
-      cache: "no-store",
-    });
-  } catch {
-    throw new StudentAssignmentApiError(
-      503,
-      "STUDENT_ASSIGNMENT_UNAVAILABLE",
-      "Không thể kết nối tới dịch vụ phân công học sinh.",
-    );
-  }
-
-  const payload = await parseResponse(response);
-  if (!response.ok) {
-    const details = errorDetails(payload, response.status);
-    throw new StudentAssignmentApiError(
-      response.status,
-      details.code,
-      details.message,
-    );
-  }
-  return payload;
-}
-
-const shouldUseNest = (options: StudentAssignmentRequestOptions) =>
-  isNestApiEnabled() && !options.baseUrl;
 
 /** Nest call whose failures surface as `StudentAssignmentApiError`. */
 async function nestCall(
@@ -1048,64 +901,40 @@ async function nestCall(
   }
 }
 
+function invalid(message: string): StudentAssignmentApiError {
+  return new StudentAssignmentApiError(
+    502,
+    "INVALID_ASSIGNMENT_RESPONSE",
+    message,
+  );
+}
+
 export async function getStudentAssignmentWorkspace(
   params: StudentAssignmentWorkspaceParams = {},
-  options: StudentAssignmentRequestOptions = {},
 ): Promise<AssignmentWorkspaceResponse> {
-  if (shouldUseNest(options)) {
-    const payload = await nestCall("/api/v1/student-assignment/workspace", {
-      query: {
-        admissionYear: params.admissionYear,
-        date: params.date,
-        timezone: params.timezone,
-        filter: params.filter ?? "all",
-        q: params.q ?? "",
-        page: params.page ?? 1,
-        pageSize: params.pageSize ?? 20,
-        sort: params.sort ?? "receivedAt",
-        order: params.order ?? "desc",
-      },
-    });
-    try {
-      return normalizeStudentAssignmentWorkspace(payload);
-    } catch {
-      throw new StudentAssignmentApiError(
-        502,
-        "INVALID_ASSIGNMENT_RESPONSE",
-        "Phản hồi workspace phân công học sinh không hợp lệ.",
-      );
-    }
-  }
-  const query = new URLSearchParams();
-  if (params.admissionYear !== undefined)
-    query.set("admissionYear", String(params.admissionYear));
-  if (params.date) query.set("date", params.date);
-  if (params.timezone) query.set("timezone", params.timezone);
-  query.set("filter", params.filter ?? "all");
-  query.set("q", params.q ?? "");
-  query.set("page", String(params.page ?? 1));
-  query.set("pageSize", String(params.pageSize ?? 20));
-  query.set("sort", params.sort ?? "receivedAt");
-  query.set("order", params.order ?? "desc");
-  const payload = await request(
-    `${resolveBaseUrl(options)}/api/method/${WORKSPACE_METHOD}?${query.toString()}`,
-    { method: "GET", headers: await requestHeaders(options) },
-  );
+  const payload = await nestCall("/api/v1/student-assignment/workspace", {
+    query: {
+      admissionYear: params.admissionYear,
+      date: params.date,
+      timezone: params.timezone,
+      filter: params.filter ?? "all",
+      q: params.q ?? "",
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 20,
+      sort: params.sort ?? "receivedAt",
+      order: params.order ?? "desc",
+    },
+  });
   try {
     return normalizeStudentAssignmentWorkspace(payload);
   } catch {
-    throw new StudentAssignmentApiError(
-      502,
-      "INVALID_ASSIGNMENT_RESPONSE",
-      "Phản hồi workspace phân công học sinh không hợp lệ.",
-    );
+    throw invalid("Phản hồi workspace phân công học sinh không hợp lệ.");
   }
 }
 
 export async function getStudentAssignmentDetail(
   studentId: string,
   admissionYear?: number,
-  options: StudentAssignmentRequestOptions = {},
 ): Promise<AssignmentDetailResponse> {
   const normalizedStudentId = studentId.trim();
   if (!normalizedStudentId) {
@@ -1115,92 +944,38 @@ export async function getStudentAssignmentDetail(
       "studentId là bắt buộc.",
     );
   }
-  if (shouldUseNest(options)) {
-    const nestPayload = await nestCall("/api/v1/student-assignment/detail", {
-      query: { studentId: normalizedStudentId, admissionYear },
-    });
-    try {
-      return normalizeStudentAssignmentDetail(nestPayload);
-    } catch {
-      throw new StudentAssignmentApiError(
-        502,
-        "INVALID_ASSIGNMENT_RESPONSE",
-        "Phản hồi chi tiết phân công học sinh không hợp lệ.",
-      );
-    }
-  }
-  const query = new URLSearchParams({ studentId: normalizedStudentId });
-  if (admissionYear !== undefined)
-    query.set("admissionYear", String(admissionYear));
-  const payload = await request(
-    `${resolveBaseUrl(options)}/api/method/${DETAIL_METHOD}?${query.toString()}`,
-    { method: "GET", headers: await requestHeaders(options) },
-  );
+  const payload = await nestCall("/api/v1/student-assignment/detail", {
+    query: { studentId: normalizedStudentId, admissionYear },
+  });
   try {
     return normalizeStudentAssignmentDetail(payload);
   } catch {
-    throw new StudentAssignmentApiError(
-      502,
-      "INVALID_ASSIGNMENT_RESPONSE",
-      "Phản hồi chi tiết phân công học sinh không hợp lệ.",
-    );
+    throw invalid("Phản hồi chi tiết phân công học sinh không hợp lệ.");
   }
 }
 
 export async function runStudentAssignmentPipeline(
   params: RunStudentAssignmentPipelineRequest = {},
-  options: StudentAssignmentRequestOptions = {},
 ): Promise<RunStudentAssignmentPipelineResponse> {
-  if (shouldUseNest(options)) {
-    const nestPayload = await nestCall("/api/v1/student-assignment/pipeline", {
-      method: "POST",
-      body: {
-        ...(params.admissionYear !== undefined
-          ? { admissionYear: params.admissionYear }
-          : {}),
-        timezone: params.timezone ?? DEFAULT_TIMEZONE,
-        limit: params.limit ?? 50,
-      },
-    });
-    try {
-      return normalizeRunStudentAssignmentPipeline(nestPayload);
-    } catch {
-      throw new StudentAssignmentApiError(
-        502,
-        "INVALID_ASSIGNMENT_RESPONSE",
-        "Phản hồi chạy pipeline phân công học sinh không hợp lệ.",
-      );
-    }
-  }
-  const headers = await requestHeaders(options, true);
-  const payload = await request(
-    `${resolveBaseUrl(options)}/api/method/${RUN_PIPELINE_METHOD}`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        ...(params.admissionYear !== undefined
-          ? { admissionYear: params.admissionYear }
-          : {}),
-        timezone: params.timezone ?? DEFAULT_TIMEZONE,
-        limit: params.limit ?? 50,
-      }),
+  const payload = await nestCall("/api/v1/student-assignment/pipeline", {
+    method: "POST",
+    body: {
+      ...(params.admissionYear !== undefined
+        ? { admissionYear: params.admissionYear }
+        : {}),
+      timezone: params.timezone ?? DEFAULT_TIMEZONE,
+      limit: params.limit ?? 50,
     },
-  );
+  });
   try {
     return normalizeRunStudentAssignmentPipeline(payload);
   } catch {
-    throw new StudentAssignmentApiError(
-      502,
-      "INVALID_ASSIGNMENT_RESPONSE",
-      "Phản hồi chạy pipeline phân công học sinh không hợp lệ.",
-    );
+    throw invalid("Phản hồi chạy pipeline phân công học sinh không hợp lệ.");
   }
 }
 
 export async function resolveStudentAssignment(
   requestBody: ResolveStudentAssignmentRequest,
-  options: StudentAssignmentRequestOptions = {},
 ): Promise<ResolveStudentAssignmentResponse> {
   const idempotencyKey = requestBody.idempotencyKey.trim();
   if (!/^[A-Za-z0-9._:-]{8,140}$/.test(idempotencyKey)) {
@@ -1210,51 +985,20 @@ export async function resolveStudentAssignment(
       "Idempotency-Key không hợp lệ.",
     );
   }
-  if (shouldUseNest(options)) {
-    const nestPayload = await nestCall("/api/v1/student-assignment/resolve", {
-      method: "POST",
-      headers: { "Idempotency-Key": idempotencyKey },
-      body: {
-        studentId: requestBody.studentId,
-        ownerId: requestBody.ownerId,
-        region: requestBody.region,
-        reason: requestBody.reason,
-        expectedRevision: requestBody.expectedRevision,
-      },
-    });
-    try {
-      return normalizeResolvedStudentAssignment(nestPayload);
-    } catch {
-      throw new StudentAssignmentApiError(
-        502,
-        "INVALID_ASSIGNMENT_RESPONSE",
-        "Phản hồi xử lý phân công học sinh không hợp lệ.",
-      );
-    }
-  }
-  const headers = await requestHeaders(options, true);
-  headers["Idempotency-Key"] = idempotencyKey;
-  const payload = await request(
-    `${resolveBaseUrl(options)}/api/method/${RESOLVE_METHOD}`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        studentId: requestBody.studentId,
-        ownerId: requestBody.ownerId,
-        region: requestBody.region,
-        reason: requestBody.reason,
-        expectedRevision: requestBody.expectedRevision,
-      }),
+  const payload = await nestCall("/api/v1/student-assignment/resolve", {
+    method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
+    body: {
+      studentId: requestBody.studentId,
+      ownerId: requestBody.ownerId,
+      region: requestBody.region,
+      reason: requestBody.reason,
+      expectedRevision: requestBody.expectedRevision,
     },
-  );
+  });
   try {
     return normalizeResolvedStudentAssignment(payload);
   } catch {
-    throw new StudentAssignmentApiError(
-      502,
-      "INVALID_ASSIGNMENT_RESPONSE",
-      "Phản hồi xử lý phân công học sinh không hợp lệ.",
-    );
+    throw invalid("Phản hồi xử lý phân công học sinh không hợp lệ.");
   }
 }

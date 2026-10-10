@@ -157,10 +157,8 @@ describe("nestSegmentRequest", () => {
     });
   });
 
-  it("maps per-student tag calls, replacing a tag as remove then add", async () => {
-    fetchMock.mockImplementation((_url: string, init?: RequestInit) =>
-      json(init?.method === "DELETE" ? { modified: "m2" } : { ok: true }),
-    );
+  it("replaces a student tag with one atomic request", async () => {
+    fetchMock.mockImplementation(() => json({ ok: true }));
     const { nestStudentClassificationRequest } =
       await import("./nest-segment-router");
     await nestStudentClassificationRequest(
@@ -172,21 +170,15 @@ describe("nestSegmentRequest", () => {
         expected_modified: "m1",
       },
     );
-    const [removeUrl, removeInit] = fetchMock.mock.calls[0] as [
-      string,
-      RequestInit,
-    ];
-    expect(removeInit.method).toBe("DELETE");
-    expect(removeUrl).toBe(
-      "http://api.test/api/v1/students/s1/tags/old?expectedModified=m1",
-    );
-    const [, addInit] = fetchMock.mock.calls[1] as [string, RequestInit];
-    expect(JSON.parse(addInit.body as string)).toEqual({
-      tag: "new",
-      expectedModified: "m2",
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://api.test/api/v1/students/s1/tags/old");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({
+      newTagId: "new",
+      expectedModified: "m1",
     });
   });
-
   it("rejects methods without a Nest equivalent", async () => {
     await expect(
       call("crm.api.student_classification.unknown_thing"),

@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/tailgrids/core/dropdown";
-import { frappeAsset, logout } from "@/services/api/auth";
+import { logout } from "@/services/api/auth";
 import { AltArrowDownIcon } from "@/utils/icon";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -46,7 +46,7 @@ export function UserProfileButton() {
 
   const displayName = user?.full_name || user?.email || "Người dùng";
   const email = user?.email ?? "";
-  const avatarUrl = frappeAsset(user?.user_image);
+  const avatarUrl = user?.user_image ?? undefined;
   const initial = displayName.charAt(0).toUpperCase();
 
   const handleLogout = async () => {

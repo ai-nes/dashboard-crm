@@ -11,13 +11,11 @@ import {
 import {
   getInteractionCatalog,
   getInteractionDetail,
-  getInteractionEvidence,
   getInteractionNpsPoint,
   getNpsSaleSummary,
   listInteractions,
   type InteractionCatalog,
   type InteractionDetailResponse,
-  type InteractionEvidence,
   type InteractionFeedFilters,
   type InteractionFeedResponse,
   type InteractionNpsPointResponse,
@@ -30,8 +28,6 @@ export const interactionIntelligenceKeys = {
     ["interaction-intelligence", "feed", studentId, filters] as const,
   detail: (interactionId: string) =>
     ["interaction-intelligence", "detail", interactionId] as const,
-  evidence: (evidenceId: string) =>
-    ["interaction-intelligence", "evidence", evidenceId] as const,
   catalog: () => ["interaction-intelligence", "catalog"] as const,
   npsPoint: (interactionId: string) =>
     ["interaction-intelligence", "nps-point", interactionId] as const,
@@ -66,18 +62,6 @@ export function useInteractionDetailQuery(
     queryFn: () => getInteractionDetail(interactionId ?? ""),
     enabled: Boolean(interactionId) && enabled,
     staleTime: 30_000,
-  });
-}
-
-export function useInteractionEvidenceQuery(
-  evidenceId: string | null,
-  enabled = false,
-): UseQueryResult<InteractionEvidence, Error> {
-  return useQuery({
-    queryKey: interactionIntelligenceKeys.evidence(evidenceId ?? ""),
-    queryFn: () => getInteractionEvidence(evidenceId ?? "", true),
-    enabled: Boolean(evidenceId) && enabled,
-    staleTime: 60_000,
   });
 }
 

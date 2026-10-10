@@ -1,6 +1,6 @@
 /**
- * `crm.api.action.*`, `crm.api.action_type.*` and the timing policy list served
- * by the NestJS next-best-action catalog. Responses keep Frappe's snake_case.
+ * `crm.api.action.*`, `crm.api.action_type.*` and the recommendation queues served
+ * by the NestJS next-best-action catalog. Responses keep snake_case.
  */
 import { nestRequest } from "./nest-client";
 import {
@@ -8,7 +8,7 @@ import {
   type Body,
   type MethodHandler,
   type Params,
-} from "./nest-method-router";
+} from "./nest-handler";
 
 const BASE = "/api/v1/nba";
 
@@ -40,21 +40,9 @@ const nestQueueHandler: MethodHandler = async (method, params, body) => {
 export const nestNbaHandler: MethodHandler = async (method, params, body) => {
   const queued = await nestQueueHandler(method, params, body);
   if (queued !== NOT_HANDLED) return queued;
-  const match =
-    /^crm\.api\.(action|action_type|timing_policy)\.([a-z_]+)$/.exec(method);
+  const match = /^crm\.api\.(action|action_type)\.([a-z_]+)$/.exec(method);
   if (!match) return NOT_HANDLED;
   const [, module, fn] = match;
-
-  if (module === "timing_policy") {
-    if (fn !== "list_timing_policies") return NOT_HANDLED;
-    // No timing policies exist in the migrated data.
-    return {
-      policies: [],
-      total: 0,
-      start: Number(params.start ?? 0),
-      page_length: Number(params.page_length ?? 20),
-    };
-  }
 
   const resource = module === "action" ? "actions" : "action-types";
   switch (fn) {

@@ -86,7 +86,7 @@ function toIsoDate(value: string): string {
   return trimmed;
 }
 
-function toFrappeDateTime(date: string, time?: string): string | undefined {
+function toApiDateTime(date: string, time?: string): string | undefined {
   if (!date) return undefined;
   return `${toIsoDate(date)} ${time || "23:59"}:00`;
 }
@@ -130,7 +130,7 @@ export function studentTaskToCreatePayload(
     actionCode: task.actionCode,
     priority: priorityToApi[task.priority],
     status: studentTaskStatusToCrmStatus(task.status),
-    dueDate: toFrappeDateTime(task.dueDate, task.dueTime),
+    dueDate: toApiDateTime(task.dueDate, task.dueTime),
     ...(assignedTo ? { assignedTo } : {}),
   };
 }
@@ -153,7 +153,7 @@ export function studentTaskToUpdatePayload(
 
   if (updates.dueDate !== undefined || updates.dueTime !== undefined) {
     const nextTask = { ...currentTask, ...updates };
-    payload.dueDate = toFrappeDateTime(nextTask.dueDate, nextTask.dueTime);
+    payload.dueDate = toApiDateTime(nextTask.dueDate, nextTask.dueTime);
   }
 
   return payload;

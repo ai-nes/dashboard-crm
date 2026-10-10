@@ -93,8 +93,3 @@ export interface ListTimingPoliciesResponse {
   pageLength: number;
   policies: NbaTimingPolicy[];
 }
-
-export type RequestOptions = {
-  baseUrl?: string;
-  headers?: Record<string, string>;
-};

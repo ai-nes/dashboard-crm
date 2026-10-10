@@ -32,38 +32,28 @@ Nguồn tham chiếu trực tiếp:
 
 ## 2. Tình trạng tích hợp hiện tại
 
-Service `getCampaignIntelligence()` gọi endpoint Frappe thật với query filters
-và không fallback im lặng về fixture khi request production lỗi.
-Campaign Intelligence có thêm service `getCampaignLeads()` để tải danh sách
-lead phân trang cho campaign được chọn. Response thành công của Frappe vẫn
-được bọc trong `message`.
+Service `getCampaignIntelligence()` gọi API Nest với query filters và không fallback im lặng về fixture khi request lỗi.
+`getCampaignLeads()` tải danh sách lead phân trang cho campaign được chọn.
+Response thành công được trả trực tiếp (không bọc `message`).
 
-## 3. Endpoint production và quyền truy cập
-
-Endpoint production đề xuất:
+## 3. Endpoint và quyền truy cập
 
 ```http
-GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.director_campaign_intelligence.get_director_campaign_intelligence
-Cookie: sid=<Frappe session cookie>
+GET {NEXT_PUBLIC_CRM_API_URL}/api/v1/director/campaign-intelligence
+Cookie: <Better Auth session cookie>   (credentials: "include")
 Accept: application/json
 ```
 
-Frappe bọc response thành công trong `message`. Endpoint chỉ trả aggregate theo campaign/kênh, không trả tên, email, số điện thoại hoặc PII của học sinh.
+Endpoint chỉ trả aggregate theo campaign/kênh, không trả tên, email, số điện thoại hoặc PII của học sinh.
 
-Quyền tối thiểu:
-
-- profile nghiệp vụ `Admissions Director` hoặc role marketing được cấp quyền;
-- `Administrator`/`System Manager` có quyền phù hợp;
-- `scope`, `campus` và các campaign trong response phải nằm trong phạm vi user được cấp.
-
-Không để client tự mở rộng scope bằng cách sửa query string. Backend phải resolve scope trước khi tổng hợp metric.
+Quyền: quản trị viên, profile `admissions_director` hoặc `marketing`; còn lại `403 FORBIDDEN`. Client không tự mở rộng scope bằng query string.
 
 ## 4. Request
 
 Ví dụ:
 
 ```http
-GET /api/method/crm.api.director_campaign_intelligence.get_director_campaign_intelligence?admissionYear=2026&from=2026-04-01&to=2026-04-30&granularity=week&channel=all&campus=all&scope=all
+GET /api/v1/director/campaign-intelligence?admissionYear=2026&from=2026-04-01&to=2026-04-30&granularity=week&channel=all&campus=all&scope=all
 ```
 
 ### Query parameters
@@ -84,77 +74,69 @@ Nếu không truyền `admissionYear`, backend chỉ được tự chọn kỳ k
 
 ## 5. Response `200 OK`
 
-Shape Frappe:
-
-```text
-{
-  message: CampaignIntelligenceResponse
-}
-```
+Shape: `CampaignIntelligenceResponse` (trực tiếp, không bọc `message`).
 
 Ví dụ response:
 
 ```json
 {
-  "message": {
-    "generatedAt": "2026-08-29T09:30:00.000Z",
-    "summary": {
-      "spend": 1250000000,
-      "qualifiedLeads": 1125,
-      "applications": 312,
-      "enrollments": 78,
-      "confirmedRevenue": 4620000000,
-      "roas": 3.7
-    },
-    "trend": [
-      { "label": "Tuần 1", "spend": 270000000, "confirmedRevenue": 840000000 },
-      { "label": "Tuần 2", "spend": 310000000, "confirmedRevenue": 1030000000 }
-    ],
-    "funnel": [
-      { "label": "Impressions", "count": 3645210 },
-      { "label": "Clicks", "count": 68432, "conversionRate": 1.88 },
-      { "label": "Landing visits", "count": 42168, "conversionRate": 61.62 },
-      { "label": "Leads", "count": 4062, "conversionRate": 9.63 },
-      { "label": "Qualified", "count": 1125, "conversionRate": 27.7 },
-      { "label": "Applications", "count": 312, "conversionRate": 27.73 },
-      { "label": "Enrollments", "count": 78, "conversionRate": 25 }
-    ],
-    "campaigns": [
-      {
-        "id": "school-event",
-        "name": "School Event — Khối 12",
-        "channel": "School Event",
-        "leadCount": 264,
-        "statusBreakdown": [
-          { "code": "new", "label": "Mới", "count": 42, "share": 15.9 },
-          { "code": "in_progress", "label": "Đang xử lý", "count": 116, "share": 43.9 },
-          { "code": "no_response", "label": "Chưa kết nối", "count": 38, "share": 14.4 },
-          { "code": "disqualified", "label": "Không phù hợp", "count": 46, "share": 17.4 },
-          { "code": "converted", "label": "Đã chuyển đổi", "count": 22, "share": 8.3 }
-        ],
-        "qualityCount": 0,
-        "spend": 180000000,
-        "qualifiedLeads": 168,
-        "applications": 67,
-        "enrollments": 22,
-        "confirmedRevenue": 1320000000,
-        "pipelineRevenue": 360000000,
-        "roas": 7.33,
-        "cpql": 1071429,
-        "enrollmentRate": 13.1,
-        "attributionConfidence": "high",
-        "health": "on_track"
-      }
-    ],
-    "recommendation": {
-      "title": "Chuyển 15% ngân sách từ TikTok sang School Event",
-      "impact": 192000000,
-      "confidence": "high",
-      "evidence": [
-        "School Event có ROAS 7,33x, cao gấp 6,1 lần TikTok.",
-        "Tỷ lệ Enrollment của School Event đạt 13,1%; TikTok là 4,37%."
-      ]
+  "generatedAt": "2026-08-29T09:30:00.000Z",
+  "summary": {
+    "spend": 1250000000,
+    "qualifiedLeads": 1125,
+    "applications": 312,
+    "enrollments": 78,
+    "confirmedRevenue": 4620000000,
+    "roas": 3.7
+  },
+  "trend": [
+    { "label": "Tuần 1", "spend": 270000000, "confirmedRevenue": 840000000 },
+    { "label": "Tuần 2", "spend": 310000000, "confirmedRevenue": 1030000000 }
+  ],
+  "funnel": [
+    { "label": "Impressions", "count": 3645210 },
+    { "label": "Clicks", "count": 68432, "conversionRate": 1.88 },
+    { "label": "Landing visits", "count": 42168, "conversionRate": 61.62 },
+    { "label": "Leads", "count": 4062, "conversionRate": 9.63 },
+    { "label": "Qualified", "count": 1125, "conversionRate": 27.7 },
+    { "label": "Applications", "count": 312, "conversionRate": 27.73 },
+    { "label": "Enrollments", "count": 78, "conversionRate": 25 }
+  ],
+  "campaigns": [
+    {
+      "id": "school-event",
+      "name": "School Event — Khối 12",
+      "channel": "School Event",
+      "leadCount": 264,
+      "statusBreakdown": [
+        { "code": "new", "label": "Mới", "count": 42, "share": 15.9 },
+        { "code": "in_progress", "label": "Đang xử lý", "count": 116, "share": 43.9 },
+        { "code": "no_response", "label": "Chưa kết nối", "count": 38, "share": 14.4 },
+        { "code": "disqualified", "label": "Không phù hợp", "count": 46, "share": 17.4 },
+        { "code": "converted", "label": "Đã chuyển đổi", "count": 22, "share": 8.3 }
+      ],
+      "qualityCount": 0,
+      "spend": 180000000,
+      "qualifiedLeads": 168,
+      "applications": 67,
+      "enrollments": 22,
+      "confirmedRevenue": 1320000000,
+      "pipelineRevenue": 360000000,
+      "roas": 7.33,
+      "cpql": 1071429,
+      "enrollmentRate": 13.1,
+      "attributionConfidence": "high",
+      "health": "on_track"
     }
+  ],
+  "recommendation": {
+    "title": "Chuyển 15% ngân sách từ TikTok sang School Event",
+    "impact": 192000000,
+    "confidence": "high",
+    "evidence": [
+      "School Event có ROAS 7,33x, cao gấp 6,1 lần TikTok.",
+      "Tỷ lệ Enrollment của School Event đạt 13,1%; TikTok là 4,37%."
+    ]
   }
 }
 ```
@@ -294,41 +276,39 @@ statuses.
 ### 6.8. Campaign lead detail
 
 ```http
-GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.director_campaign_intelligence.get_campaign_leads?campaignId=school-event&admissionYear=2026&page=1&pageSize=20&statusGroup=all
+GET /api/v1/director/campaign-intelligence/leads?campaignId=school-event&admissionYear=2026&page=1&pageSize=20&statusGroup=all
 ```
 
-Response Frappe:
+Response:
 
 ```json
 {
-  "message": {
-    "meta": {
-      "admissionYear": 2026,
-      "from": "2026-01-01",
-      "to": "2026-12-31",
-      "scope": "all",
-      "attributionRule": "first_touch_weight_confidence_earliest_v1",
-      "warnings": []
-    },
-    "campaignId": "school-event",
-    "items": [
-      {
-        "id": "ENR-2026-06661",
-        "leadCode": "LD-2026-06661",
-        "name": "Võ Bá Bảo",
-        "school": "THPT Hòa Hội",
-        "status": "Mới",
-        "statusCode": "NEW",
-        "statusGroup": "new",
-        "owner": "Sale Demo",
-        "source": "Mass Mailing",
-        "contactAttemptCount": 0,
-        "lastContactAt": null,
-        "modifiedAt": "2026-09-06T15:10:45+07:00"
-      }
-    ],
-    "pagination": { "page": 1, "pageSize": 20, "total": 1, "totalPages": 1 }
-  }
+  "meta": {
+    "admissionYear": 2026,
+    "from": "2026-01-01",
+    "to": "2026-12-31",
+    "scope": "all",
+    "attributionRule": "first_touch_weight_confidence_earliest_v1",
+    "warnings": []
+  },
+  "campaignId": "school-event",
+  "items": [
+    {
+      "id": "ENR-2026-06661",
+      "leadCode": "LD-2026-06661",
+      "name": "Võ Bá Bảo",
+      "school": "THPT Hòa Hội",
+      "status": "Mới",
+      "statusCode": "NEW",
+      "statusGroup": "new",
+      "owner": "Sale Demo",
+      "source": "Mass Mailing",
+      "contactAttemptCount": 0,
+      "lastContactAt": null,
+      "modifiedAt": "2026-09-06T15:10:45+07:00"
+    }
+  ],
+  "pagination": { "page": 1, "pageSize": 20, "total": 1, "totalPages": 1 }
 }
 ```
 
@@ -379,8 +359,8 @@ Các invariant trên chỉ áp dụng khi `campaigns[]` là full result của fi
 
 ## 9. Việc backend cần làm để khớp UI
 
-1. Cung cấp method production với query `admissionYear`, `from`, `to`, `granularity`, `channel`, `campus` và `scope`.
-2. Trả Frappe envelope `{ message: ... }`, `generatedAt` ISO-8601 và thêm `meta` gồm filter, timezone, status, source revision và warnings.
+1. Endpoint nhận query `admissionYear`, `from`, `to`, `granularity`, `channel`, `campus` và `scope`.
+2. Trả payload trực tiếp với `generatedAt` ISO-8601 và thêm `meta` gồm filter, timezone, status, source revision và warnings.
 3. Tổng hợp tất cả section từ cùng snapshot; không trộn kỳ hoặc denominator.
 4. Trả `campaigns[]` đầy đủ nếu frontend tiếp tục tính Channel Mix từ danh sách campaign.
 5. Công bố attribution model, quy tắc dedupe và threshold của `attributionConfidence`/`health`.

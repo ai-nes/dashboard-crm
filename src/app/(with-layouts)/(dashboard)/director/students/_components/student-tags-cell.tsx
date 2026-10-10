@@ -7,13 +7,13 @@ import {
   Dialog,
   DialogTrigger,
   Header as ListBoxHeader,
-  ListBox,
   ListBoxSection,
   type Selection,
 } from "react-aria-components";
 import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
+import { InfiniteListBox } from "@/components/common/infinite-list-box";
 import { Badge } from "@/components/tailgrids/core/badge";
 import {
   InputGroup,
@@ -348,7 +348,7 @@ export default function StudentTagsCell({
             {tagGroupsQuery.isFetching && !tagGroupsQuery.data ? (
               <TagOptionsSkeleton />
             ) : (
-              <ListBox
+              <InfiniteListBox
                 aria-label={`Danh sách tag của ${studentId}`}
                 className="mt-1 max-h-64 overflow-auto p-1 outline-none"
                 selectionMode="multiple"
@@ -409,7 +409,7 @@ export default function StudentTagsCell({
                     Không tìm thấy tag
                   </SelectItem>
                 )}
-              </ListBox>
+              </InfiniteListBox>
             )}
             <p className="px-1.5 pt-1 text-[11px] leading-4 text-text-tertiary">
               {isMutating

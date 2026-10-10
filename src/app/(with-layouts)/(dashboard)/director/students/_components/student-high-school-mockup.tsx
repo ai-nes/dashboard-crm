@@ -98,11 +98,7 @@ export default function StudentHighSchoolMockup({
   });
   const scoreUpdateMutation = useMutation({
     mutationFn: (fields: StudentHighSchoolScoreUpdateFields) =>
-      updateStudentHighSchoolScore(
-        studentId,
-        fields,
-        data.student.admissionYear || undefined,
-      ),
+      updateStudentHighSchoolScore(studentId, fields),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
@@ -284,6 +280,7 @@ export default function StudentHighSchoolMockup({
             }))
           }
           options={provinceOptions}
+          pagination={provinceOptionsQuery.pagination}
           searchable
           searchPlaceholder="Tìm tỉnh / thành phố..."
           value={isEditing ? form.province : data.student.province || ""}
@@ -320,22 +317,12 @@ export default function StudentHighSchoolMockup({
             setForm((current) => ({ ...current, ward: value, high_school: "" }))
           }
           options={wardOptions}
+          pagination={wardOptionsQuery.pagination}
           searchable
           searchPlaceholder="Tìm phường / xã..."
           value={isEditing ? form.ward : data.student.ward || ""}
         />
-        <EditableDetailField
-          isDisabled={
-            !selectedSchool ||
-            areaOptionsQuery.isLoading ||
-            areaOptions.length === 0
-          }
-          isEditing={isEditing}
-          label="Khu Vực"
-          onChange={() => undefined}
-          options={areaOptions}
-          value={areaValue}
-        />
+        <EditableDetailField readOnly label="Khu Vực" value={areaValue} />
         <EditableDetailField
           isDisabled={scoreQuery.isLoading}
           isEditing={isEditing}

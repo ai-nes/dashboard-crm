@@ -1,14 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
-  applyActionCommand,
   camelizeKeys,
-  getDirectorNextBestAction,
   normalizeDirectorNextBestAction,
   normalizePackageSeed,
 } from "./index";
-
-afterEach(() => vi.restoreAllMocks());
 
 const snapshot = {
   meta: {
@@ -121,79 +117,12 @@ const snapshot = {
 };
 
 describe("director next best action API contract", () => {
-  it("normalizes the Frappe snapshot envelope", () => {
+  it("normalizes the snapshot envelope", () => {
     const result = normalizeDirectorNextBestAction({ message: snapshot });
 
     expect(result.meta.status).toBe("available");
     expect(result.queue.actions[0]?.version).toBe(0);
     expect(result.sla.statusBuckets[0]?.count).toBe(1);
-  });
-
-  it("passes queue parameters to GET and idempotency data to POST", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ message: snapshot }), { status: 200 }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            message: {
-              actionId: "REC-001",
-              command: "assign",
-              state: "assigned",
-              version: 1,
-              appliedAt: "2026-09-01T09:00:00+07:00",
-              deferUntil: null,
-              replayed: false,
-              audit: {
-                eventId: "EVT-001",
-                actorId: "staff-1",
-                occurredAt: "2026-09-01T09:00:00+07:00",
-              },
-            },
-          }),
-          { status: 200 },
-        ),
-      );
-
-    await getDirectorNextBestAction(
-      { queueFilter: "urgent", page: 1, pageSize: 20, outcomePeriod: "30d" },
-      { baseUrl: "http://frappe:8000" },
-    );
-    await applyActionCommand(
-      {
-        actionId: "REC-001",
-        command: "assign",
-        assigneeId: "STAFF-001",
-        expectedVersion: 0,
-        idempotencyKey: "director-nba:test-1",
-      },
-      { baseUrl: "http://frappe:8000" },
-    );
-
-    expect(fetchSpy).toHaveBeenNthCalledWith(
-      1,
-      "http://frappe:8000/api/method/crm.api.director_next_best_action.get_director_next_best_action?queueFilter=urgent&page=1&pageSize=20&outcomePeriod=30d",
-      expect.objectContaining({ cache: "no-store" }),
-    );
-    expect(fetchSpy.mock.calls[1]?.[1]).toEqual(
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          actionId: "REC-001",
-          command: "assign",
-          assigneeId: "STAFF-001",
-          expectedVersion: 0,
-          idempotencyKey: "director-nba:test-1",
-        }),
-      }),
-    );
-    expect((fetchSpy.mock.calls[1]?.[1] as RequestInit).headers).toEqual(
-      expect.objectContaining({
-        "Idempotency-Key": "director-nba:test-1",
-      }),
-    );
   });
 });
 

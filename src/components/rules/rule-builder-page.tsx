@@ -1,5 +1,7 @@
 "use client";
 
+import { InfiniteSelectInput } from "@/components/common/infinite-select-input";
+
 import { ArrowLeft, Pencil1 } from "@tailgrids/icons";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -11,6 +13,7 @@ import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { canEditRuleInVersion } from "@/components/rules/rule-admin-edit-policy";
 import { Button } from "@/components/tailgrids/core/button";
 import { Input } from "@/components/tailgrids/core/input";
+import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/tailgrids/core/tooltip";
 import {
   useCreateCrmRuleMutation,
@@ -379,12 +382,12 @@ export default function RuleBuilderPage({
           <section className="space-y-3 rounded-2xl border border-card-border bg-card-surface-area p-4 shadow-xs sm:p-5">
             <div>
               <h3 className="text-sm font-semibold text-title-50">Phân loại và action</h3>
-              <p className="text-xs text-text-tertiary">Enum phải khớp schema Rule Engine trên Frappe.</p>
+              <p className="text-xs text-text-tertiary">Enum phải khớp schema Rule Engine trên máy chủ CRM.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1.5 text-sm font-medium text-title-50">
                 Feature scope
-                <select
+                <InfiniteSelectInput
                   className={selectClass}
                   disabled={!editable}
                   value={form.featureScope}
@@ -396,11 +399,11 @@ export default function RuleBuilderPage({
                   <option value="school_360">school_360</option>
                   <option value="nba">nba</option>
                   <option value="copilot">copilot</option>
-                </select>
+                </InfiniteSelectInput>
               </label>
               <label className="space-y-1.5 text-sm font-medium text-title-50">
                 Rule type
-                <select
+                <InfiniteSelectInput
                   className={selectClass}
                   disabled={!editable}
                   value={form.ruleType}
@@ -411,11 +414,11 @@ export default function RuleBuilderPage({
                       {value}
                     </option>
                   ))}
-                </select>
+                </InfiniteSelectInput>
               </label>
               <label className="space-y-1.5 text-sm font-medium text-title-50">
                 Gate outcome
-                <select
+                <InfiniteSelectInput
                   className={selectClass}
                   disabled={!editable}
                   value={form.gateOutcome}
@@ -426,7 +429,7 @@ export default function RuleBuilderPage({
                       {value}
                     </option>
                   ))}
-                </select>
+                </InfiniteSelectInput>
               </label>
               <label className="space-y-1.5 text-sm font-medium text-title-50">
                 Ưu tiên
@@ -442,19 +445,22 @@ export default function RuleBuilderPage({
               </label>
               <label className="space-y-1.5 text-sm font-medium text-title-50 sm:col-span-2">
                 Action
-                <input
-                  className={inputClass}
-                  disabled={!editable}
-                  value={form.action}
-                  onChange={(event) => updateForm("action", event.target.value.toUpperCase())}
+                <Combobox
+                  aria-label="Action"
+                  triggerClassName={inputClass}
+                  isDisabled={!editable}
+                  allowsCustomValue
+                  inputValue={form.action}
+                  onInputChange={(value) => updateForm("action", value.toUpperCase())}
+                  onChange={(value) => {
+                    if (value !== null) updateForm("action", String(value).toUpperCase());
+                  }}
                   placeholder="ALLOW_ASSIGNMENT"
-                  list="rule-action-suggestions"
-                />
-                <datalist id="rule-action-suggestions">
+                >
                   {actionSuggestions.map((code) => (
-                    <option key={code} value={code} />
+                    <ComboboxItem key={code} id={code} textValue={code}>{code}</ComboboxItem>
                   ))}
-                </datalist>
+                </Combobox>
                 <p className="text-xs font-normal text-text-tertiary">
                   Mã nghiệp vụ tự do (không thuộc catalog CRM) — gợi ý lấy từ các Action đã dùng trong Version này.
                 </p>

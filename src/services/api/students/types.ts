@@ -598,6 +598,6 @@ export interface DirectorStudentsResponse {
   meta: DirectorStudentsMeta;
 }
 
-export interface FrappeMethodResponse<T> {
+export interface MessageResponse<T> {
   message: T;
 }

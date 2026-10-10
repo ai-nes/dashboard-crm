@@ -106,22 +106,9 @@ export interface AnalysisRunSnapshot {
   reusedExistingRun?: boolean;
 }
 
-export interface StudentAnalysisRunRequest {
-  studentId: string;
-  forceRerunReason?: string;
-}
-
-export interface SchoolAnalysisRunRequest {
+export interface AnalysisRunRequest {
+  kind: "school";
+  /** School identifier as used by the school detail endpoint. */
   highSchool: string;
   admissionYear?: number;
-  forceRerunReason?: string;
 }
-
-export type AnalysisRunRequest =
-  | { kind: "student"; studentId: string; forceRerunReason?: string }
-  | {
-      kind: "school";
-      highSchool: string;
-      admissionYear?: number;
-      forceRerunReason?: string;
-    };

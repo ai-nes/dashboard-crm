@@ -1,18 +1,27 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getLeadCallLogs } from "./call-logs";
 
+const fetchMock = vi.fn();
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://localhost:3001");
+  vi.stubGlobal("fetch", fetchMock);
+});
+
 afterEach(() => {
-  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
 });
 
 describe("lead call logs API", () => {
-  it("maps the Lead-aware Frappe interaction response to dashboard fields", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+  it("maps the Nest call history to dashboard fields", async () => {
+    fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({
-          message: {
-            lead_id: "LEAD-1",
+          data: {
+            leadId: "LEAD-1",
             calls: [
               {
                 id: "CALL-1",
@@ -27,8 +36,7 @@ describe("lead call logs API", () => {
                 durationSeconds: 120,
                 summary: "Quan tâm học phí",
                 transcript: "TƯ VẤN VIÊN: Em quan tâm học phí.",
-                recordingUrl:
-                  "/api/method/crm.integrations.api.get_recording_url?call_log_name=CALL-1",
+                recordingUrl: "/api/v1/calls/CALL-1/recording",
               },
             ],
             total: 1,
@@ -38,9 +46,7 @@ describe("lead call logs API", () => {
       ),
     );
 
-    await expect(
-      getLeadCallLogs(" LEAD-1 ", { baseUrl: "http://frappe:8000" }),
-    ).resolves.toMatchObject({
+    await expect(getLeadCallLogs(" LEAD-1 ")).resolves.toMatchObject({
       leadId: "LEAD-1",
       total: 1,
       calls: [
@@ -52,28 +58,30 @@ describe("lead call logs API", () => {
         },
       ],
     });
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.director_students.get_lead_call_logs?lead_id=LEAD-1",
-      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      "http://localhost:3001/api/v1/leads/LEAD-1/calls",
     );
+    expect(fetchMock.mock.calls[0]![1]).toMatchObject({
+      method: "GET",
+      credentials: "include",
+    });
   });
 
-  it("does not call Frappe for an empty Lead id", async () => {
-    await expect(
-      getLeadCallLogs("  ", { baseUrl: "http://frappe:8000" }),
-    ).resolves.toBeNull();
+  it("does not call the API for an empty Lead id", async () => {
+    await expect(getLeadCallLogs("  ")).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("does not turn an unknown Lead 404 into an empty history", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({ error: { message: "Không tìm thấy Lead." } }),
         { status: 404 },
       ),
     );
 
-    await expect(
-      getLeadCallLogs("LEAD-MISSING", { baseUrl: "http://frappe:8000" }),
-    ).rejects.toThrow("Không tìm thấy Lead.");
+    await expect(getLeadCallLogs("LEAD-MISSING")).rejects.toThrow(
+      "Không tìm thấy Lead.",
+    );
   });
 });

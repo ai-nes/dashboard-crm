@@ -187,7 +187,3 @@ export interface NbaDecisionResponse {
   event: string | null;
   receipt: string | null;
 }
-
-export interface NbaApiRequestOptions {
-  baseUrl?: string;
-}

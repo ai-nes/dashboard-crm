@@ -20,15 +20,15 @@ export const CRM_ROLES = [
 
 export type CrmRole = (typeof CRM_ROLES)[number];
 
-/** Frappe roles used for technical access, not CRM permission profiles. */
-export const FRAPPE_TECHNICAL_ROLES = ["System Manager"] as const;
+/** Roles used for technical access, not CRM permission profiles. */
+export const TECHNICAL_ROLES = ["System Manager"] as const;
 
-export type FrappeTechnicalRole = (typeof FRAPPE_TECHNICAL_ROLES)[number];
-export type DashboardRole = CrmRole | FrappeTechnicalRole;
+export type TechnicalRole = (typeof TECHNICAL_ROLES)[number];
+export type DashboardRole = CrmRole | TechnicalRole;
 
 const DASHBOARD_ROLES = [
   ...CRM_ROLES,
-  ...FRAPPE_TECHNICAL_ROLES,
+  ...TECHNICAL_ROLES,
 ] as const satisfies readonly DashboardRole[];
 
 const CUSTOMER_DATA_ROLES = [
@@ -364,7 +364,7 @@ export function getRecognizedDashboardRoles(
 
   return [
     ...getRecognizedRoles(roles),
-    ...FRAPPE_TECHNICAL_ROLES.filter((role) => roles.includes(role)),
+    ...TECHNICAL_ROLES.filter((role) => roles.includes(role)),
   ];
 }
 
@@ -390,9 +390,9 @@ export function hasCrmRole(
   return roles?.includes(role) ?? false;
 }
 
-export function hasFrappeTechnicalRole(
+export function hasTechnicalRole(
   roles: readonly string[] | null | undefined,
-  role: FrappeTechnicalRole,
+  role: TechnicalRole,
 ): boolean {
   return roles?.includes(role) ?? false;
 }

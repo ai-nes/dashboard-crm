@@ -1,255 +1,221 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   CampaignApiError,
   createCampaign,
+  deleteCampaign,
   getCampaign,
   getCampaignList,
   normalizeCampaignList,
   updateCampaign,
 } from "./campaigns";
 
-afterEach(() => vi.restoreAllMocks());
+const API = "http://localhost:3001";
+const fetchMock = vi.fn();
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
+
+const nestCampaign = {
+  id: "CAM-1",
+  title: "Tuyển sinh mùa thu 2026",
+  stableCode: "CAM-2026-00001",
+  status: "ACTIVE",
+  campusId: "CAMPUS-A",
+  startDate: "2026-09-01T00:00:00.000Z",
+  endDate: "2026-09-30T00:00:00.000Z",
+  channelBoundary: "Digital",
+  channelUrl: "https://example.com/lead-form",
+  owningTeamId: null,
+};
+
+/** Answers the reference-data endpoints the campaign adapter reads. */
+function mockReferenceData(overrides: Record<string, () => Response> = {}) {
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    const key = `${init?.method ?? "GET"} ${new URL(url).pathname}`;
+    const override = overrides[key];
+    if (override) return override();
+    switch (key) {
+      case "GET /api/v1/reference-data/campuses":
+        return json({
+          data: [{ id: "CAMPUS-A", name: "Campus A" }],
+          meta: { pagination: { total: 1 } },
+        });
+      case "GET /api/v1/reference-data/teams":
+        return json({ data: [], meta: { pagination: { total: 0 } } });
+      case "GET /api/v1/reference-data/campaigns":
+        return json({
+          data: [nestCampaign],
+          meta: { pagination: { total: 1 } },
+        });
+      case "GET /api/v1/reference-data/campaigns/CAM-1":
+        return json({ data: nestCampaign });
+      default:
+        return json({ error: { code: "NOT_FOUND", message: "?" } }, 404);
+    }
+  });
+}
+
+const calls = () =>
+  fetchMock.mock.calls.map(
+    ([url, init]) => `${init?.method ?? "GET"} ${new URL(url).pathname}`,
+  );
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", API);
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
+});
 
 describe("Lead Sale campaign API contract", () => {
-  it("loads and normalizes campaigns from the Frappe message envelope", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            total: 1,
-            start: 0,
-            page_length: 100,
-            campaigns: [
-              {
-                name: "Tuyen sinh mua thu 2026",
-                stable_code: "CAM-2026-00001",
-                title: "Tuyển sinh mùa thu 2026",
-                status: "ACTIVE",
-              },
-            ],
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it("loads campaigns with campus names resolved", async () => {
+    mockReferenceData();
 
-    const result = await getCampaignList({}, { baseUrl: "http://frappe:8000" });
+    const result = await getCampaignList({ search: "thu" });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.campaign.list_campaigns?start=0&page_length=100",
-      expect.objectContaining({ method: "GET", cache: "no-store" }),
-    );
+    const listCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/reference-data/campaigns"),
+    )!;
+    expect(String(listCall[0])).toContain("q=thu");
     expect(result).toEqual({
       total: 1,
       campaigns: [
         {
-          name: "Tuyen sinh mua thu 2026",
+          name: "CAM-1",
           stableCode: "CAM-2026-00001",
           title: "Tuyển sinh mùa thu 2026",
           status: "ACTIVE",
+          campus: "Campus A",
+          startDate: "2026-09-01",
+          endDate: "2026-09-30",
+          channelBoundary: "Digital",
+          channelUrl: "https://example.com/lead-form",
+          leadRoutingEnabled: false,
+          leadRoutingTargetType: "",
         },
       ],
     });
   });
 
-  it("gets one campaign through the detail endpoint", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            name: "Tuyen sinh mua thu 2026",
-            stable_code: "CAM-2026-00001",
-            title: "Tuyển sinh mùa thu 2026",
-            status: "ACTIVE",
-            start_date: "2026-09-01",
-            end_date: "2026-09-30",
-            channel_boundary: "Digital",
-            channel_type: "FACEBOOK_LEAD_FORM",
-            channel_url: "https://example.com/lead-form",
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it("gets one campaign by id", async () => {
+    mockReferenceData();
 
-    await expect(
-      getCampaign(" CAM-2026-00001 ", {
-        baseUrl: "http://frappe:8000",
-      }),
-    ).resolves.toMatchObject({
-      name: "Tuyen sinh mua thu 2026",
-      stableCode: "CAM-2026-00001",
-      channelType: "FACEBOOK_LEAD_FORM",
-    });
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.campaign.get_campaign?code=CAM-2026-00001",
-      expect.objectContaining({ method: "GET", cache: "no-store" }),
-    );
-  });
-
-  it("serializes the campaign search parameter", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ message: { total: 0, campaigns: [] } }), {
-        status: 200,
-      }),
-    );
-
-    await getCampaignList(
-      {
-        search: " Học bổng & 2026 ",
-        start: 10,
-        pageLength: 25,
-        leadOnly: true,
-      },
-      { baseUrl: "http://frappe:8000" },
-    );
-
-    expect(fetch).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.campaign.list_campaigns?start=10&page_length=25&search=H%E1%BB%8Dc+b%E1%BB%95ng+%26+2026&lead_only=1",
-      expect.anything(),
-    );
-  });
-
-  it("creates a campaign through the Frappe write endpoint", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            name: "Tuyen sinh mua thu 2026",
-            stable_code: "CAM-2026-00001",
-            title: "Tuyển sinh mùa thu 2026",
-            campus: "Campus A",
-            status: "UPCOMING",
-            start_date: "2026-09-01",
-            end_date: "2026-09-30",
-            channel_boundary: "Digital",
-            channel_type: "FACEBOOK_LEAD_FORM",
-            channel_url: "https://example.com/lead-form",
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    const result = await createCampaign(
-      {
-        title: "Tuyển sinh mùa thu 2026",
-        campus: "Campus A",
-        status: "UPCOMING",
-        startDate: "2026-09-01",
-        endDate: "2026-09-30",
-        channelBoundary: "Digital",
-        channelType: "FACEBOOK_LEAD_FORM",
-        channelUrl: "https://example.com/lead-form",
-      },
-      { baseUrl: "http://frappe:8000" },
-    );
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.campaign.create_campaign",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          title: "Tuyển sinh mùa thu 2026",
-          campus: "Campus A",
-          status: "UPCOMING",
-          start_date: "2026-09-01",
-          end_date: "2026-09-30",
-          channel_boundary: "Digital",
-          channel_type: "FACEBOOK_LEAD_FORM",
-          channel_url: "https://example.com/lead-form",
-        }),
-        headers: expect.objectContaining({
-          "Content-Type": "application/json",
-        }),
-      }),
-    );
-    expect(result).toMatchObject({
-      name: "Tuyen sinh mua thu 2026",
+    await expect(getCampaign(" CAM-1 ")).resolves.toMatchObject({
+      name: "CAM-1",
       stableCode: "CAM-2026-00001",
       campus: "Campus A",
+    });
+    expect(calls()).toContain("GET /api/v1/reference-data/campaigns/CAM-1");
+  });
+
+  it("returns null when the campaign does not exist", async () => {
+    mockReferenceData({
+      "GET /api/v1/reference-data/campaigns": () =>
+        json({ data: [], meta: { pagination: { total: 0 } } }),
+    });
+
+    await expect(getCampaign("MISSING")).resolves.toBeNull();
+  });
+
+  it("rejects an empty campaign code without calling the API", async () => {
+    await expect(getCampaign("  ")).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_CAMPAIGN_CODE",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("creates a campaign and reads it back", async () => {
+    mockReferenceData({
+      "POST /api/v1/reference-data/campaigns": () =>
+        json({ data: nestCampaign }, 201),
+    });
+
+    const result = await createCampaign({
+      title: "Tuyển sinh mùa thu 2026",
+      campus: "Campus A",
+      status: "UPCOMING",
+      startDate: "2026-09-01",
+      endDate: "2026-09-30",
       channelBoundary: "Digital",
-      channelType: "FACEBOOK_LEAD_FORM",
       channelUrl: "https://example.com/lead-form",
+    });
+
+    const create = fetchMock.mock.calls.find(
+      ([, init]) => init?.method === "POST",
+    )!;
+    expect(JSON.parse(create[1].body)).toEqual({
+      title: "Tuyển sinh mùa thu 2026",
+      status: "UPCOMING",
+      startDate: "2026-09-01",
+      endDate: "2026-09-30",
+      channelBoundary: "Digital",
+      channelUrl: "https://example.com/lead-form",
+      campusId: "CAMPUS-A",
+    });
+    expect(result).toMatchObject({ name: "CAM-1", campus: "Campus A" });
+  });
+
+  it("updates a campaign with a PATCH", async () => {
+    mockReferenceData({
+      "PATCH /api/v1/reference-data/campaigns/CAM-1": () =>
+        json({ data: nestCampaign }),
+    });
+
+    await updateCampaign({
+      name: "CAM-1",
+      stableCode: "CAM-2026-00001",
+      title: "Đợt 2",
+      endDate: "2026-10-15",
+    });
+
+    const patch = fetchMock.mock.calls.find(
+      ([, init]) => init?.method === "PATCH",
+    )!;
+    expect(JSON.parse(patch[1].body)).toEqual({
+      title: "Đợt 2",
+      endDate: "2026-10-15",
+      stableCode: "CAM-2026-00001",
     });
   });
 
-  it("updates a campaign through the Frappe write endpoint", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            name: "Tuyen sinh mua thu 2026",
-            stable_code: "CAM-2026-00001",
-            title: "Tuyển sinh mùa thu 2026 - Đợt 2",
-            status: "ACTIVE",
-            channel_type: "EXPERIENCE_DAY",
-            channel_url: "https://example.com/experience-day",
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it("deletes a campaign", async () => {
+    mockReferenceData({
+      "DELETE /api/v1/reference-data/campaigns/CAM-1": () =>
+        new Response(null, { status: 204 }),
+    });
 
-    await updateCampaign(
-      {
-        name: "Tuyen sinh mua thu 2026",
-        stableCode: "CAM-2026-00001",
-        title: "Tuyển sinh mùa thu 2026 - Đợt 2",
-        status: "ACTIVE",
-        startDate: "2026-09-01",
-        endDate: "2026-10-15",
-        channelBoundary: "Field",
-        channelType: "EXPERIENCE_DAY",
-        channelUrl: "https://example.com/experience-day",
-      },
-      { baseUrl: "http://frappe:8000" },
-    );
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.campaign.update_campaign",
-      expect.objectContaining({
-        method: "PUT",
-        body: JSON.stringify({
-          name: "Tuyen sinh mua thu 2026",
-          stable_code: "CAM-2026-00001",
-          title: "Tuyển sinh mùa thu 2026 - Đợt 2",
-          status: "ACTIVE",
-          start_date: "2026-09-01",
-          end_date: "2026-10-15",
-          channel_boundary: "Field",
-          channel_type: "EXPERIENCE_DAY",
-          channel_url: "https://example.com/experience-day",
-        }),
-      }),
-    );
+    await expect(deleteCampaign("CAM-1")).resolves.toEqual({
+      deleted: "CAM-1",
+    });
   });
 
   it("normalizes fields used by the campaigns overview", () => {
     expect(
       normalizeCampaignList({
-        message: {
-          total: 1,
-          campaigns: [
-            {
-              name: "Tuyen sinh mua thu 2026",
-              stable_code: "CAM-2026-00001",
-              title: "Tuyển sinh mùa thu 2026",
-              status: "ACTIVE",
-              start_date: "2026-09-01",
-              end_date: "2026-09-30",
-              channel_boundary: "Digital",
-            },
-          ],
-        },
+        total: 1,
+        campaigns: [
+          {
+            name: "CAM-1",
+            stableCode: "CAM-2026-00001",
+            title: "Tuyển sinh mùa thu 2026",
+            status: "ACTIVE",
+            start_date: "2026-09-01",
+            end_date: "2026-09-30",
+            channel_boundary: "Digital",
+          },
+        ],
       }),
     ).toEqual({
       total: 1,
       campaigns: [
         {
-          name: "Tuyen sinh mua thu 2026",
+          name: "CAM-1",
           stableCode: "CAM-2026-00001",
           title: "Tuyển sinh mùa thu 2026",
           status: "ACTIVE",
@@ -261,129 +227,22 @@ describe("Lead Sale campaign API contract", () => {
     });
   });
 
-  it("loads all campaign pages when the result is larger than one page", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            message: {
-              total: 2,
-              campaigns: [
-                { name: "Campaign A", title: "Campaign A", status: "ACTIVE" },
-              ],
-            },
-          }),
-          { status: 200 },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            message: {
-              total: 2,
-              campaigns: [
-                { name: "Campaign B", title: "Campaign B", status: "DRAFT" },
-              ],
-            },
-          }),
-          { status: 200 },
-        ),
-      );
-
-    const result = await getCampaignList(
-      { pageLength: 1 },
-      { baseUrl: "http://frappe:8000" },
+  it("rejects an invalid campaign list envelope", () => {
+    expect(() => normalizeCampaignList({})).toThrow(
+      "Invalid Campaign list response",
     );
-
-    expect(fetchSpy).toHaveBeenNthCalledWith(
-      2,
-      "http://frappe:8000/api/method/crm.api.campaign.list_campaigns?start=1&page_length=1",
-      expect.anything(),
-    );
-    expect(result.campaigns.map((campaign) => campaign.name)).toEqual([
-      "Campaign A",
-      "Campaign B",
-    ]);
-  });
-
-  it("rejects an invalid campaign list envelope", async () => {
-    await expect(
-      Promise.resolve().then(() => normalizeCampaignList({ message: {} })),
-    ).rejects.toThrow("Invalid Campaign list response");
   });
 
   it("exposes the upstream error code", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          error: { code: "FORBIDDEN", message: "Không có quyền." },
-        }),
-        { status: 403 },
-      ),
+    fetchMock.mockImplementation(async () =>
+      json({ error: { code: "FORBIDDEN", message: "Không có quyền." } }, 403),
     );
 
-    await expect(
-      getCampaignList({}, { baseUrl: "http://frappe:8000" }),
-    ).rejects.toEqual(
+    await expect(getCampaignList()).rejects.toEqual(
       expect.objectContaining<Partial<CampaignApiError>>({
         status: 403,
         code: "FORBIDDEN",
         message: "Không có quyền.",
-      }),
-    );
-  });
-
-  it("normalizes a raw Frappe permission error", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          exception: "frappe.exceptions.PermissionError",
-          _server_messages: JSON.stringify([
-            { message: "Người dùng không có quyền truy cập loại tài liệu." },
-          ]),
-          _error_message: "Không được phép đối với Chiến dịch",
-        }),
-        { status: 403 },
-      ),
-    );
-
-    await expect(
-      updateCampaign(
-        { name: "Campaign A", title: "Campaign A" },
-        { baseUrl: "http://frappe:8000" },
-      ),
-    ).rejects.toEqual(
-      expect.objectContaining<Partial<CampaignApiError>>({
-        status: 403,
-        code: "FORBIDDEN",
-        message: "Bạn không có quyền thực hiện thao tác này với chiến dịch.",
-      }),
-    );
-  });
-
-  it("normalizes Frappe validation messages without exposing raw exceptions", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          exception: "frappe.exceptions.ValidationError",
-          _server_messages: JSON.stringify([
-            { message: "<strong>Tên chiến dịch</strong> đã tồn tại." },
-          ]),
-        }),
-        { status: 417 },
-      ),
-    );
-
-    await expect(
-      updateCampaign(
-        { name: "Campaign A", title: "Campaign A" },
-        { baseUrl: "http://frappe:8000" },
-      ),
-    ).rejects.toEqual(
-      expect.objectContaining<Partial<CampaignApiError>>({
-        status: 417,
-        message: "Tên chiến dịch đã tồn tại.",
       }),
     );
   });

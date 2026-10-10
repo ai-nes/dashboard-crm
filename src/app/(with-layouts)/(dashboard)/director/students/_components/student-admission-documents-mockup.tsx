@@ -7,25 +7,31 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type ReactNode,
 } from "react";
 
 import { FileText, UploadCloud } from "@tailgrids/icons";
 import { Radio, RadioGroup } from "react-aria-components";
 import { toast } from "sonner";
 
-import { DatePickerField } from "@/components/common/date-picker-field";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
-import { Input } from "@/components/tailgrids/core/input";
 import { studentsKeys } from "@/hooks/use-students-queries";
 import { uploadStudentAdmissionDocument } from "@/services/api/admission-profile-catalog";
+import { readApiUrl } from "@/services/api/nest/nest-client";
 import type {
   StudentAdmissionDocument,
   StudentAdmissionProfile,
   StudentAdmissionRequirement,
 } from "@/services/api/students/types";
 
+import StudentEnglishCertificateFields from "./student-english-certificate-fields";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  getCrmPermissions,
+  canPerformStudentAction,
+} from "@/components/common/auth/permissions";
 import StudentCardHeader from "./student-card-header";
 import type { Student360SectionProps } from "./types";
 
@@ -37,20 +43,6 @@ interface RequirementGroup {
   minimumRequired: number;
   requirements: StudentAdmissionRequirement[];
 }
-
-interface AdmissionDocumentField {
-  label: string;
-  type?: "date" | "number" | "text";
-  value?: string;
-  placeholder?: string;
-}
-
-const englishCertificateFields: AdmissionDocumentField[] = [
-  { label: "Loại chứng chỉ", placeholder: "Ví dụ: IELTS, TOEIC" },
-  { label: "Điểm chứng chỉ", type: "number" },
-  { label: "Ngày cấp", type: "date" },
-  { label: "Ngày hết hạn", type: "date" },
-];
 
 type DocumentUploadHandler = (
   requirement: StudentAdmissionRequirement,
@@ -130,10 +122,19 @@ export default function StudentAdmissionDocumentsMockup({
   const [uploadingDocumentType, setUploadingDocumentType] = useState<
     string | null
   >(null);
-  const [fieldValues, setFieldValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      englishCertificateFields.map((field) => [field.label, field.value ?? ""]),
-    ),
+  const { user } = useAuth();
+  const canEdit = canPerformStudentAction(
+    getCrmPermissions(user).student,
+    "update",
+    { owner: data.student.counselor, ownerId: data.student.ownerId },
+    user,
+  );
+  const certificateFields = (
+    <StudentEnglishCertificateFields
+      key={data.student.studentId || data.student.code}
+      studentId={data.student.studentId || data.student.code}
+      canEdit={canEdit}
+    />
   );
   const uploadMutation = useMutation({
     mutationFn: ({
@@ -154,7 +155,7 @@ export default function StudentAdmissionDocumentsMockup({
   });
 
   const handleUpload: DocumentUploadHandler = async (requirement, file) => {
-    if (!profile) return;
+    if (!profile || !canEdit) return;
     setUploadingDocumentType(requirement.documentType);
     try {
       await uploadMutation.mutateAsync({ requirement, file });
@@ -186,15 +187,9 @@ export default function StudentAdmissionDocumentsMockup({
       ) : (
         <>
           <AdmissionProfileChecklist
-            certificateValues={fieldValues}
+            certificateFields={certificateFields}
             isUploading={uploadingDocumentType}
-            onCertificateChange={(label, value) =>
-              setFieldValues((current) => ({
-                ...current,
-                [label]: value,
-              }))
-            }
-            onUpload={handleUpload}
+            onUpload={canEdit ? handleUpload : undefined}
             profile={profile}
           />
         </>
@@ -219,16 +214,14 @@ function EmptyAdmissionProfile() {
 
 function AdmissionProfileChecklist({
   profile,
-  certificateValues,
+  certificateFields,
   isUploading,
-  onCertificateChange,
   onUpload,
 }: {
   profile: StudentAdmissionProfile;
-  certificateValues: Record<string, string>;
+  certificateFields: ReactNode;
   isUploading: string | null;
-  onCertificateChange: (label: string, value: string) => void;
-  onUpload: DocumentUploadHandler;
+  onUpload?: DocumentUploadHandler;
 }) {
   const groups = getGroups(profile);
   const standardGroups = groups.filter(
@@ -371,9 +364,8 @@ function AdmissionProfileChecklist({
                 <tr>
                   <td className="align-top border border-card-border p-4">
                     <AdmissionChecklistItemList
-                      certificateValues={certificateValues}
+                      certificateFields={certificateFields}
                       isUploading={isUploading}
-                      onCertificateChange={onCertificateChange}
                       onUpload={onUpload}
                       requirements={supplementaryLeft}
                     />
@@ -397,25 +389,22 @@ function AdmissionProfileChecklist({
 
 function AdmissionChecklistItemList({
   requirements,
-  certificateValues,
+  certificateFields,
   isUploading,
-  onCertificateChange,
   onUpload,
 }: {
   requirements: StudentAdmissionRequirement[];
-  certificateValues?: Record<string, string>;
+  certificateFields?: ReactNode;
   isUploading: string | null;
-  onCertificateChange?: (label: string, value: string) => void;
-  onUpload: DocumentUploadHandler;
+  onUpload?: DocumentUploadHandler;
 }) {
   return (
     <div className="space-y-3">
       {requirements.map((requirement) => (
         <AdmissionChecklistItem
-          certificateValues={certificateValues}
+          certificateFields={certificateFields}
           isUploading={isUploading}
           key={requirement.documentType}
-          onCertificateChange={onCertificateChange}
           onUpload={onUpload}
           requirement={requirement}
         />
@@ -426,16 +415,14 @@ function AdmissionChecklistItemList({
 
 function AdmissionChecklistItem({
   requirement,
-  certificateValues,
+  certificateFields,
   isUploading,
-  onCertificateChange,
   onUpload,
 }: {
   requirement: StudentAdmissionRequirement;
-  certificateValues?: Record<string, string>;
+  certificateFields?: ReactNode;
   isUploading: string | null;
-  onCertificateChange?: (label: string, value: string) => void;
-  onUpload: DocumentUploadHandler;
+  onUpload?: DocumentUploadHandler;
 }) {
   return (
     <div>
@@ -457,13 +444,7 @@ function AdmissionChecklistItem({
           requirement={requirement}
         />
         {requirement.documentCode === "ENGLISH_EXEMPTION_CERTIFICATE" &&
-          certificateValues &&
-          onCertificateChange && (
-            <AdmissionCertificateFields
-              onChange={onCertificateChange}
-              values={certificateValues}
-            />
-          )}
+          certificateFields}
       </div>
     </div>
   );
@@ -477,7 +458,7 @@ function AdmissionAlternativeGroup({
 }: {
   group: RequirementGroup;
   isUploading: string | null;
-  onUpload: DocumentUploadHandler;
+  onUpload?: DocumentUploadHandler;
   showTitle?: boolean;
 }) {
   const selected = group.requirements.find(
@@ -523,7 +504,7 @@ function RequirementDetails({
 }: {
   requirement: StudentAdmissionRequirement;
   isUploading: string | null;
-  onUpload: DocumentUploadHandler;
+  onUpload?: DocumentUploadHandler;
 }) {
   return (
     <div className="mt-2 space-y-1">
@@ -543,66 +524,6 @@ function RequirementDetails({
   );
 }
 
-function AdmissionDocumentField({
-  field,
-  value,
-  onChange,
-}: {
-  field: AdmissionDocumentField;
-  value: string;
-  onChange: (label: string, value: string) => void;
-}) {
-  return (
-    <label className="block min-w-0">
-      <span className="block text-xs leading-5 font-medium text-text-primary">
-        {field.label}
-      </span>
-      {field.type === "date" ? (
-        <div className="mt-1">
-          <DatePickerField
-            ariaLabel={field.label}
-            className="h-8 px-2 text-xs"
-            onChange={(nextValue) => onChange(field.label, nextValue)}
-            value={value}
-          />
-        </div>
-      ) : (
-        <Input
-          aria-label={field.label}
-          className="mt-1 h-8 w-full px-2 text-xs"
-          inputMode={field.type === "number" ? "decimal" : undefined}
-          min={field.type === "number" ? 0 : undefined}
-          onChange={(event) => onChange(field.label, event.target.value)}
-          placeholder={field.placeholder ?? "Nhấn để nhập thông tin"}
-          type={field.type ?? "text"}
-          value={value}
-        />
-      )}
-    </label>
-  );
-}
-
-function AdmissionCertificateFields({
-  values,
-  onChange,
-}: {
-  values: Record<string, string>;
-  onChange: (label: string, value: string) => void;
-}) {
-  return (
-    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
-      {englishCertificateFields.map((field) => (
-        <AdmissionDocumentField
-          field={field}
-          key={field.label}
-          onChange={onChange}
-          value={values[field.label] ?? ""}
-        />
-      ))}
-    </div>
-  );
-}
-
 function AdmissionDocumentUpload({
   requirement,
   isUploading,
@@ -610,7 +531,7 @@ function AdmissionDocumentUpload({
 }: {
   requirement: StudentAdmissionRequirement;
   isUploading: string | null;
-  onUpload: DocumentUploadHandler;
+  onUpload?: DocumentUploadHandler;
 }) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -619,8 +540,10 @@ function AdmissionDocumentUpload({
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
-    if (file) void onUpload(requirement, file);
+    if (file && onUpload) void onUpload(requirement, file);
   };
+
+  if (!onUpload) return null;
 
   return (
     <div className="mt-2">
@@ -685,12 +608,9 @@ function resolveAdmissionDocumentUrl(file: string): string {
     return normalizedFile;
   }
 
-  const frappeBaseUrl = (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
-    /\/+$/,
-    "",
-  );
-  return frappeBaseUrl
-    ? `${frappeBaseUrl}/${normalizedFile.replace(/^\/+/, "")}`
+  const apiUrl = readApiUrl();
+  return apiUrl
+    ? `${apiUrl}/${normalizedFile.replace(/^\/+/, "")}`
     : normalizedFile;
 }
 

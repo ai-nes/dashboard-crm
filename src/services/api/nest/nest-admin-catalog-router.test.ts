@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { nestAdminCatalogRequest } from "./nest-admin-catalog-router";
+import { nestGeographyHandler } from "./nest-geography-router";
+import { operationCaller } from "./nest-test-support";
+
 const fetchMock = vi.fn();
 
 function json(body: unknown, status = 200) {
@@ -11,9 +15,9 @@ function json(body: unknown, status = 200) {
   );
 }
 
-const FRAPPE = "http://frappe.test/api/method";
+const OPS = "http://ops.test/operations";
 
-describe("frappe request with the Nest backend enabled", () => {
+describe("admin catalog operations routed to Nest", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://api.test");
@@ -25,7 +29,7 @@ describe("frappe request with the Nest backend enabled", () => {
     vi.unstubAllGlobals();
   });
 
-  it("serves admission years from reference data in the Frappe shape", async () => {
+  it("serves admission years from reference data in the dashboard shape", async () => {
     fetchMock.mockImplementation(() =>
       json({
         data: [
@@ -40,9 +44,12 @@ describe("frappe request with the Nest backend enabled", () => {
         meta: { pagination: { total: 1 } },
       }),
     );
-    const { request } = await import("../frappe-request");
+    const request = operationCaller(
+      nestAdminCatalogRequest,
+      nestGeographyHandler,
+    );
     const result = await request(
-      `${FRAPPE}/crm.api.admin_catalog.list_admission_years?search=26&page_length=10`,
+      `${OPS}/crm.api.admin_catalog.list_admission_years?search=26&page_length=10`,
     );
     expect(result).toMatchObject({
       total: 1,
@@ -62,9 +69,12 @@ describe("frappe request with the Nest backend enabled", () => {
 
   it("maps offering approval to the transition endpoint", async () => {
     fetchMock.mockImplementation(() => json({ name: "o1", status: "Active" }));
-    const { request } = await import("../frappe-request");
+    const request = operationCaller(
+      nestAdminCatalogRequest,
+      nestGeographyHandler,
+    );
     await request(
-      `${FRAPPE}/crm.api.admin_catalog.transition_admission_offering`,
+      `${OPS}/crm.api.admin_catalog.transition_admission_offering`,
       {
         method: "POST",
         body: JSON.stringify({
@@ -84,13 +94,16 @@ describe("frappe request with the Nest backend enabled", () => {
     });
   });
 
-  it("turns Nest errors into the caller's error class", async () => {
+  it("keeps the Nest error status and code", async () => {
     fetchMock.mockImplementation(() =>
       json({ error: { code: "ACTIVE_IMMUTABLE", message: "No." } }, 409),
     );
-    const { request } = await import("../frappe-request");
+    const request = operationCaller(
+      nestAdminCatalogRequest,
+      nestGeographyHandler,
+    );
     await expect(
-      request(`${FRAPPE}/crm.api.admin_catalog.delete_admission_offering`, {
+      request(`${OPS}/crm.api.admin_catalog.delete_admission_offering`, {
         method: "POST",
         body: JSON.stringify({ name: "o1" }),
       }),
@@ -98,9 +111,12 @@ describe("frappe request with the Nest backend enabled", () => {
   });
 
   it("fails fast with 501 for methods the Nest backend lacks", async () => {
-    const { request } = await import("../frappe-request");
+    const request = operationCaller(
+      nestAdminCatalogRequest,
+      nestGeographyHandler,
+    );
     await expect(
-      request(`${FRAPPE}/crm.api.admin_catalog.list_unknown_catalog`),
+      request(`${OPS}/crm.api.admin_catalog.list_unknown_catalog`),
     ).rejects.toMatchObject({ status: 501, code: "FEATURE_NOT_MIGRATED" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -109,12 +125,15 @@ describe("frappe request with the Nest backend enabled", () => {
     fetchMock.mockImplementation(() =>
       json({ provinces: [], total: 0, channelTypes: [], start: 0 }),
     );
-    const { request } = await import("../frappe-request");
-    await request(
-      `${FRAPPE}/crm.api.geography_catalog.list_provinces?search=a&page_length=5`,
+    const request = operationCaller(
+      nestAdminCatalogRequest,
+      nestGeographyHandler,
     );
     await request(
-      `${FRAPPE}/crm.api.campaign_channel_type.list_campaign_channel_types`,
+      `${OPS}/crm.api.geography_catalog.list_provinces?search=a&page_length=5`,
+    );
+    await request(
+      `${OPS}/crm.api.campaign_channel_type.list_campaign_channel_types`,
     );
     expect(String(fetchMock.mock.calls[0][0])).toBe(
       "http://api.test/api/v1/geography-catalog/provinces?search=a&page_length=5",
@@ -125,14 +144,17 @@ describe("frappe request with the Nest backend enabled", () => {
   });
   it("routes the score template and signal calls to the score config", async () => {
     fetchMock.mockImplementation(() => json({ templates: [], total: 0 }));
-    const { request } = await import("../frappe-request");
-    await request(
-      `${FRAPPE}/crm.api.admin_catalog.list_score_templates?search=a&start=0&page_length=20`,
+    const request = operationCaller(
+      nestAdminCatalogRequest,
+      nestGeographyHandler,
     );
     await request(
-      `${FRAPPE}/crm.api.admin_catalog.list_score_signals?active_only=true`,
+      `${OPS}/crm.api.admin_catalog.list_score_templates?search=a&start=0&page_length=20`,
     );
-    await request(`${FRAPPE}/crm.api.admin_catalog.update_score_template`, {
+    await request(
+      `${OPS}/crm.api.admin_catalog.list_score_signals?active_only=true`,
+    );
+    await request(`${OPS}/crm.api.admin_catalog.update_score_template`, {
       method: "POST",
       body: JSON.stringify({
         name: "SCT-1",
@@ -155,18 +177,21 @@ describe("frappe request with the Nest backend enabled", () => {
   });
   it("serves governed values and their change workflow from Nest", async () => {
     fetchMock.mockImplementation(() => json({ records: [], changes: [] }));
-    const { request } = await import("../frappe-request");
-    await request(
-      `${FRAPPE}/crm.api.admin_catalog.list_governed_values?doctype=CRM%20Lead%20Source&include_retired=true&page_length=20`,
+    const request = operationCaller(
+      nestAdminCatalogRequest,
+      nestGeographyHandler,
     );
-    await request(`${FRAPPE}/crm.api.admin_catalog.create_governed_value`, {
+    await request(
+      `${OPS}/crm.api.admin_catalog.list_governed_values?doctype=CRM%20Lead%20Source&include_retired=true&page_length=20`,
+    );
+    await request(`${OPS}/crm.api.admin_catalog.create_governed_value`, {
       method: "POST",
       body: JSON.stringify({
         doctype: "CRM Platform",
         data: { platform_name: "Zalo OA", lead_source: "Social" },
       }),
     });
-    await request(`${FRAPPE}/crm.api.admin_catalog.propose_governed_change`, {
+    await request(`${OPS}/crm.api.admin_catalog.propose_governed_change`, {
       method: "POST",
       body: JSON.stringify({
         doctype: "CRM Campus",
@@ -177,9 +202,9 @@ describe("frappe request with the Nest backend enabled", () => {
       }),
     });
     await request(
-      `${FRAPPE}/crm.api.admin_catalog.list_governed_changes?doctype=CRM%20Campus`,
+      `${OPS}/crm.api.admin_catalog.list_governed_changes?doctype=CRM%20Campus`,
     );
-    await request(`${FRAPPE}/crm.api.admin_catalog.approve_governed_change`, {
+    await request(`${OPS}/crm.api.admin_catalog.approve_governed_change`, {
       method: "POST",
       body: JSON.stringify({ change_log_name: "MDC-2026-00015" }),
     });
@@ -211,21 +236,21 @@ describe("frappe request with the Nest backend enabled", () => {
 
   it("serves the academic year config from Nest", async () => {
     fetchMock.mockImplementation(() => json({ configs: [], total: 0 }));
-    const { request } = await import("../frappe-request");
-    await request(
-      `${FRAPPE}/crm.api.admin_catalog.list_academic_year_configs?search=26`,
+    const request = operationCaller(
+      nestAdminCatalogRequest,
+      nestGeographyHandler,
     );
     await request(
-      `${FRAPPE}/crm.api.admin_catalog.update_academic_year_config`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          name: "cfg-1",
-          data: { notes: "x" },
-          expected_modified: "2026-01-01T00:00:00.000Z",
-        }),
-      },
+      `${OPS}/crm.api.admin_catalog.list_academic_year_configs?search=26`,
     );
+    await request(`${OPS}/crm.api.admin_catalog.update_academic_year_config`, {
+      method: "POST",
+      body: JSON.stringify({
+        name: "cfg-1",
+        data: { notes: "x" },
+        expected_modified: "2026-01-01T00:00:00.000Z",
+      }),
+    });
     const calls = fetchMock.mock.calls.map((call) => [
       String(call[0]),
       (call[1] as RequestInit | undefined)?.method ?? "GET",
@@ -235,7 +260,7 @@ describe("frappe request with the Nest backend enabled", () => {
       ["http://api.test/api/v1/academic-year-configs/cfg-1", "PATCH"],
     ]);
   });
-  it("writes channel types through the Nest endpoint and answers in Frappe's shape", async () => {
+  it("writes channel types through the Nest endpoint and answers in the dashboard shape", async () => {
     fetchMock.mockImplementation(() =>
       json({
         code: "ZALO",
@@ -246,9 +271,12 @@ describe("frappe request with the Nest backend enabled", () => {
         description: "",
       }),
     );
-    const { request } = await import("../frappe-request");
+    const request = operationCaller(
+      nestAdminCatalogRequest,
+      nestGeographyHandler,
+    );
     const created = await request(
-      `${FRAPPE}/crm.api.campaign_channel_type.create_campaign_channel_type`,
+      `${OPS}/crm.api.campaign_channel_type.create_campaign_channel_type`,
       {
         method: "POST",
         body: JSON.stringify({ data: { code: "ZALO", display_name: "Zalo" } }),
@@ -262,7 +290,7 @@ describe("frappe request with the Nest backend enabled", () => {
       enabled: 1,
     });
     await request(
-      `${FRAPPE}/crm.api.campaign_channel_type.delete_campaign_channel_type`,
+      `${OPS}/crm.api.campaign_channel_type.delete_campaign_channel_type`,
       { method: "POST", body: JSON.stringify({ name: "ZALO" }) },
     );
     expect(

@@ -41,7 +41,6 @@ interface QuickCreateLeadForm {
   high_school: string;
   major: string;
   campaign: string;
-  advertising_channel: string;
   admission_year: string;
   branch: string;
   notes: string;
@@ -59,7 +58,6 @@ const initialForm: QuickCreateLeadForm = {
   high_school: "",
   major: "",
   campaign: "",
-  advertising_channel: "",
   admission_year: "2026",
   branch: "",
   notes: "",
@@ -240,6 +238,7 @@ export default function QuickCreateLeadDialog({
                 <CreateDialogSelect
                   label="Chiến dịch"
                   options={campaignOptions}
+                  pagination={campaignOptionsQuery.pagination}
                   searchable
                   searchPlaceholder="Tìm chiến dịch..."
                   value={form.campaign}
@@ -253,6 +252,7 @@ export default function QuickCreateLeadDialog({
                 <CreateDialogSelect
                   label="Tỉnh / thành phố"
                   options={provinceOptions}
+                  pagination={provinceOptionsQuery.pagination}
                   searchable
                   searchPlaceholder="Tìm tỉnh / thành phố..."
                   value={form.province}
@@ -265,6 +265,7 @@ export default function QuickCreateLeadDialog({
                 <CreateDialogSelect
                   label="Xã / phường"
                   options={wardOptions}
+                  pagination={wardOptionsQuery.pagination}
                   searchable
                   searchPlaceholder="Tìm xã / phường..."
                   value={form.ward}
@@ -291,6 +292,7 @@ export default function QuickCreateLeadDialog({
                   isError={majorOptionsQuery.isError}
                   isLoading={majorOptionsQuery.isPending}
                   options={majorOptions}
+                  pagination={majorOptionsQuery.pagination}
                   value={form.major}
                   isDisabled={majorOptionsQuery.isPending}
                   onChange={(value) => setField("major", value)}
@@ -301,20 +303,10 @@ export default function QuickCreateLeadDialog({
                 <CreateDialogSelect
                   label="Chi nhánh"
                   options={branchOptions}
+                  pagination={branchOptionsQuery.pagination}
                   value={form.branch}
                   isDisabled={branchOptionsQuery.isPending}
                   onChange={(value) => setField("branch", value)}
-                />
-              </CreateDialogField>
-
-              <CreateDialogField label="Kênh quảng cáo">
-                <CreateDialogInput
-                  label="Kênh quảng cáo"
-                  placeholder="Facebook Ads, Google…"
-                  value={form.advertising_channel}
-                  onChange={(event) =>
-                    setField("advertising_channel", event.target.value)
-                  }
                 />
               </CreateDialogField>
 
@@ -384,7 +376,6 @@ function toLeadCreateFields(form: QuickCreateLeadForm): LeadCreateFields {
       ward: form.ward,
       high_school: form.high_school,
       major: form.major,
-      advertising_channel: form.advertising_channel,
       admission_year: form.admission_year,
       branch: form.branch,
       notes: form.notes,

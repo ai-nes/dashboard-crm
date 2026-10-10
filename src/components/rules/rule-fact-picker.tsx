@@ -11,6 +11,7 @@ import { cn } from "@/utils/cn";
 import type { CrmFactMetadata } from "@/services/api/rules-config";
 
 import { factLabel } from "./rule-condition-model";
+import { useInfinityScroll } from "@/hooks/use-infinity-scroll";
 
 interface RuleFactPickerProps {
   facts: CrmFactMetadata[];
@@ -49,6 +50,11 @@ export function RuleFactPicker({
     setIsOpen(nextIsOpen);
     if (!nextIsOpen) setSearch("");
   };
+  const { visibleItems, onScrollToLoadMore } = useInfinityScroll(filteredFacts, {
+    enabled: isOpen,
+    getItemKey: (item) => item.fact,
+    resetKey: `${isOpen}:${normalizedSearch}`,
+  });
 
   const handleSelect = (fact: string) => {
     onSelect(fact);
@@ -93,10 +99,10 @@ export function RuleFactPicker({
           </div>
         </div>
 
-        <div className="max-h-[min(24rem,calc(100dvh-7rem))] overflow-y-auto px-1.5 py-2">
+        <div className="max-h-[min(24rem,calc(100dvh-7rem))] overflow-y-auto px-1.5 py-2" onScroll={onScrollToLoadMore}>
           {filteredFacts.length > 0 ? (
             <div className="space-y-0.5">
-              {filteredFacts.map((item) => (
+              {visibleItems.map((item) => (
                 <Button
                   key={item.fact}
                   variant="primary"

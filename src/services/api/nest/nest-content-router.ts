@@ -1,5 +1,5 @@
 /**
- * Translates the Frappe whitelisted method calls used by the message template
+ * Translates the operation ids used by the message template
  * and snippet screens into NestJS REST calls, so those services keep their
  * own request shape and only swap transport.
  */

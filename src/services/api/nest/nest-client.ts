@@ -1,31 +1,40 @@
 /**
- * Transport for the NestJS CRM backend (`crm-backend`). Enabled by setting
- * `NEXT_PUBLIC_CRM_API_URL`; when unset the dashboard keeps talking to Frappe.
- * Auth is a Better Auth session cookie, so every call sends credentials.
+ * Transport for the NestJS CRM backend (`crm-backend`). `NEXT_PUBLIC_CRM_API_URL`
+ * is its origin. Auth is a Better Auth session cookie, so every call sends
+ * credentials.
  */
 
-export const NEST_API_URL = (process.env.NEXT_PUBLIC_CRM_API_URL ?? "").replace(
-  /\/+$/,
-  "",
-);
+/** Origin of the Nest API, read on every call so tests can change it. */
+export function readApiUrl(): string {
+  return (process.env.NEXT_PUBLIC_CRM_API_URL ?? "").replace(/\/+$/, "");
+}
 
-export function isNestApiEnabled(): boolean {
-  return NEST_API_URL !== "";
+/** Origin of the Nest API; fails loudly when the dashboard is not configured. */
+export function getApiUrl(): string {
+  const url = readApiUrl();
+  if (!url) {
+    throw new NestApiError(
+      503,
+      "API_URL_MISSING",
+      "Chưa cấu hình NEXT_PUBLIC_CRM_API_URL cho máy chủ CRM.",
+    );
+  }
+  return url;
 }
 
 /**
- * Features the Nest backend does not serve yet. Calling Frappe for them would
- * only return 403 (there is no Frappe session), which redirects the whole app
- * to the access-denied page, so callers fail fast with this status instead.
+ * Features the Nest backend does not serve yet fail fast with this status so a
+ * screen shows an honest message instead of empty data.
  */
 export const FEATURE_NOT_MIGRATED_STATUS = 501;
 export const FEATURE_NOT_MIGRATED_CODE = "FEATURE_NOT_MIGRATED";
 export const FEATURE_NOT_MIGRATED_MESSAGE =
   "Tính năng này đang được chuyển sang hệ thống mới nên chưa khả dụng.";
 
-/** True when a request must not go to Frappe because Nest is the backend. */
-export function frappeUnavailable(explicitBaseUrl?: string): boolean {
-  return !explicitBaseUrl && isNestApiEnabled();
+export interface NestValidationIssue {
+  field: string;
+  code: string;
+  message: string;
 }
 
 export class NestApiError extends Error {
@@ -33,10 +42,40 @@ export class NestApiError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    readonly details: NestValidationIssue[] = [],
+    readonly requestId?: string,
   ) {
     super(message);
     this.name = "NestApiError";
   }
+}
+
+/**
+ * Throws the 501 for a function whose Nest endpoint is still being built, so a
+ * screen shows an honest message instead of empty data.
+ */
+export function notMigrated(): never {
+  throw new NestApiError(
+    FEATURE_NOT_MIGRATED_STATUS,
+    FEATURE_NOT_MIGRATED_CODE,
+    FEATURE_NOT_MIGRATED_MESSAGE,
+  );
+}
+
+type ServiceErrorConstructor<E extends Error> = new (
+  status: number,
+  code: string,
+  message: string,
+) => E;
+
+/** Re-throws a Nest failure as the service's own error class; other errors pass through. */
+export function toServiceError<E extends Error>(
+  error: unknown,
+  ErrorClass: ServiceErrorConstructor<E>,
+): unknown {
+  return error instanceof NestApiError
+    ? new ErrorClass(error.status, error.code, error.message)
+    : error;
 }
 
 export interface NestRequestOptions {
@@ -48,7 +87,7 @@ export interface NestRequestOptions {
 }
 
 function buildUrl(path: string, query: NestRequestOptions["query"]): string {
-  const url = `${NEST_API_URL}${path}`;
+  const url = `${getApiUrl()}${path}`;
   if (!query) return url;
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
@@ -63,14 +102,42 @@ function buildUrl(path: string, query: NestRequestOptions["query"]): string {
 function errorFrom(status: number, payload: unknown): NestApiError {
   const error =
     payload && typeof payload === "object" && "error" in payload
-      ? (payload as { error?: { code?: unknown; message?: unknown } }).error
+      ? (
+          payload as {
+            error?: {
+              code?: unknown;
+              message?: unknown;
+              details?: unknown;
+              requestId?: unknown;
+            };
+          }
+        ).error
       : undefined;
   const code = typeof error?.code === "string" ? error.code : `HTTP_${status}`;
   const message =
     typeof error?.message === "string"
       ? error.message
       : "Không thể xử lý yêu cầu.";
-  return new NestApiError(status, code, message);
+  const details = Array.isArray(error?.details)
+    ? error.details
+        .filter((issue): issue is NestValidationIssue =>
+          Boolean(
+            issue &&
+            typeof issue === "object" &&
+            typeof issue.field === "string" &&
+            typeof issue.code === "string" &&
+            typeof issue.message === "string",
+          ),
+        )
+        .map(({ field, code, message }) => ({ field, code, message }))
+    : [];
+  return new NestApiError(
+    status,
+    code,
+    message,
+    details,
+    typeof error?.requestId === "string" ? error.requestId : undefined,
+  );
 }
 
 /** JSON request to the Nest API. Resolves with the parsed body (null for 204). */

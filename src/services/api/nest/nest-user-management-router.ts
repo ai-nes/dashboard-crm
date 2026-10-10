@@ -1,19 +1,13 @@
 /**
- * Transitional adapter for the user-management Frappe methods. The admin
- * screen keeps its existing client contract while these calls use the Nest
- * user, permission-profile, and staff-capacity resources.
+ * Adapter for the user-management operations. The admin screen keeps its
+ * client contract while these calls use the Nest user, permission-profile resources.
  */
 import { nestGetCurrentUser } from "./nest-auth";
 import { NestApiError, nestRequest } from "./nest-client";
-import {
-  NOT_HANDLED,
-  type MethodHandler,
-  type Params,
-} from "./nest-method-router";
+import { NOT_HANDLED, type MethodHandler, type Params } from "./nest-handler";
 
 const USERS = "/api/v1/users";
 const PERMISSION_PROFILES = "/api/v1/permission-profiles";
-const STAFF_CAPACITY = "/api/v1/staff-capacity";
 
 const PROFILE_BY_LABEL: Record<string, string> = {
   Sale: "sales",
@@ -39,18 +33,12 @@ interface NestUser {
   crmProfile: string | null;
   emailVerified: boolean;
   status: "active" | "suspended";
+  campus?: { id: string; name: string; code: string | null } | null;
 }
 
 interface UsersPage {
   data: NestUser[];
   meta: { pagination: { page: number; pageSize: number; total: number } };
-}
-
-interface CapacitySnapshot {
-  limit: number | null;
-  active: number;
-  remaining: number | null;
-  configured: boolean;
 }
 
 function profileOf(label: unknown): string {
@@ -84,11 +72,7 @@ function legacyRole(user: NestUser): string | null {
   );
 }
 
-function legacyUser(
-  user: NestUser,
-  capacity: CapacitySnapshot | undefined,
-  currentEmail: string | null,
-) {
+function legacyUser(user: NestUser, currentEmail: string | null) {
   return {
     name: user.id,
     email: user.email,
@@ -98,7 +82,7 @@ function legacyUser(
     role: legacyRole(user),
     crm_role_state: user.crmProfile ? "assigned" : null,
     session_user: user.email === currentEmail,
-    ...(capacity ? { capacity } : {}),
+    campus: user.campus ?? null,
   };
 }
 
@@ -139,7 +123,7 @@ async function listUsers(params: Params) {
   const page = Math.floor(start / pageLength) + 1;
   const role =
     params.role && params.role !== "all" ? profileOf(params.role) : undefined;
-  const [users, capacityResponse, current] = await Promise.all([
+  const [users, current] = await Promise.all([
     nestRequest<UsersPage>(USERS, {
       query: {
         page,
@@ -148,21 +132,12 @@ async function listUsers(params: Params) {
         crmProfile: role,
       },
     }),
-    nestRequest<{ data: Record<string, CapacitySnapshot> }>(
-      STAFF_CAPACITY,
-    ).catch((error: unknown) => {
-      if (error instanceof NestApiError && error.status === 403) return null;
-      throw error;
-    }),
     nestGetCurrentUser().catch(() => null),
   ]);
-  const capacityByUser = capacityResponse?.data ?? {};
   const currentEmail = current?.email ?? null;
 
   return {
-    users: users.data.map((user) =>
-      legacyUser(user, capacityByUser[user.id], currentEmail),
-    ),
+    users: users.data.map((user) => legacyUser(user, currentEmail)),
     total: users.meta.pagination.total,
     start,
     page_length: pageLength,
@@ -219,30 +194,10 @@ export const nestUserManagementHandler: MethodHandler = async (
         body: {
           fullName: body?.full_name,
           newPassword: body?.new_password,
+          campusId: body?.campus_id,
         },
       });
       return null;
-
-    case "crm.api.assignment_control.list_user_capacity": {
-      const result = await nestRequest<{
-        data: Record<string, CapacitySnapshot>;
-      }>(STAFF_CAPACITY);
-      return result.data;
-    }
-
-    case "crm.api.assignment_control.upsert_user_capacity": {
-      const result = await nestRequest<{ data: CapacitySnapshot }>(
-        `${STAFF_CAPACITY}/${userIdOf(body?.user)}`,
-        {
-          method: "PUT",
-          body: {
-            maxActiveStudents: Number(body?.max_active_students),
-            reason: body?.reason,
-          },
-        },
-      );
-      return result.data;
-    }
 
     case "crm.api.user.list_user_role_logs": {
       const result = await nestRequest<{

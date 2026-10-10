@@ -1,403 +1,179 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  createLead,
   createSchool,
   createStudent,
   createStudentWithLead,
   deleteSchool,
+  deleteStudent,
   getFieldOptions,
   getLeadOptions,
-  getSchool,
   getSchools,
-  importLeads,
   getStudent,
   getStudentHighSchoolScore,
-  StudentSchoolUpdateApiError,
   requestStudentStageTransition,
+  StudentSchoolUpdateApiError,
   updateSchool,
   updateStudent,
   updateStudentHighSchoolScore,
 } from ".";
 
+const API = "http://localhost:3001";
+const fetchMock = vi.fn();
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
+
+/** Answers each request from a `"METHOD /path"` table and records the calls. */
+function mockRoutes(routes: Record<string, (body: unknown) => Response>) {
+  fetchMock.mockImplementation(async (input: string, init?: RequestInit) => {
+    const url = new URL(input);
+    const key = `${init?.method ?? "GET"} ${url.pathname}`;
+    const route = routes[key];
+    if (!route) throw new Error(`Unexpected request ${key}`);
+    return route(init?.body ? JSON.parse(String(init.body)) : undefined);
+  });
+}
+
+const sentBody = (index: number) =>
+  JSON.parse(String(fetchMock.mock.calls[index]![1].body));
+
+const studentDto = (overrides: Record<string, unknown> = {}) => ({
+  id: "STU-1",
+  revision: 4,
+  fullName: "Nguyễn Minh An",
+  phone: "0900000000",
+  currentGrade: "10",
+  studyStage: "grade_10",
+  ...overrides,
+});
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", API);
+  vi.stubGlobal("fetch", fetchMock);
+});
+
 afterEach(() => {
-  vi.restoreAllMocks();
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  fetchMock.mockReset();
 });
 
 describe("student and school update contract", () => {
-  it("requests a documented student stage transition", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            student: "CRMC-2026-00001",
-            target_stage: "Attempting",
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it("requests a student stage transition", async () => {
+    mockRoutes({
+      "POST /api/v1/students/STU-1/stage": () => json({ data: {} }),
+    });
 
+    await requestStudentStageTransition({
+      student: "STU-1",
+      target_stage: "Qualified",
+    });
+
+    expect(sentBody(0)).toEqual({ stage: "Qualified" });
+  });
+
+  it("rejects a stage transition without a student", async () => {
     await expect(
       requestStudentStageTransition({
-        student: "CRMC-2026-00001",
-        target_stage: "Attempting",
+        student: " ",
+        target_stage: "Qualified",
       }),
-    ).resolves.toBeUndefined();
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_stage.request_transition",
-      expect.objectContaining({
-        method: "POST",
-        credentials: "include",
-        body: JSON.stringify({
-          student: "CRMC-2026-00001",
-          target_stage: "Attempting",
-        }),
-      }),
-    );
+    ).rejects.toMatchObject({ status: 400, code: "INVALID_STUDENT" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("reads a student through the documented RPC", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM Student",
-            name: "ENR-2026-00001",
-            fields: { student_name: "Nguyễn Văn An" },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it("reads a student profile as record fields", async () => {
+    mockRoutes({
+      "GET /api/v1/students/STU-1": () => json({ data: studentDto() }),
+    });
 
-    await expect(getStudent("ENR-2026-00001")).resolves.toMatchObject({
+    await expect(getStudent("STU-1")).resolves.toMatchObject({
       doctype: "CRM Student",
-      name: "ENR-2026-00001",
-      fields: { student_name: "Nguyễn Văn An" },
+      name: "STU-1",
+      fields: { student_name: "Nguyễn Minh An", phone: "0900000000" },
+    });
+  });
+
+  it("requires a name before reading a student", async () => {
+    await expect(getStudent("  ")).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_NAME",
+    });
+  });
+
+  it("patches only the requested student fields with the current revision", async () => {
+    mockRoutes({
+      "GET /api/v1/students/STU-1": () => json({ data: studentDto() }),
+      "PATCH /api/v1/students/STU-1": () =>
+        json({ data: studentDto({ phone: "0911111111" }) }),
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.get_student?name=ENR-2026-00001",
-      expect.objectContaining({
-        method: "GET",
-        credentials: "include",
-      }),
-    );
-  });
-
-  it("reads the Student Detail high-school score fields", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const payload = {
-      doctype: "CRM Student",
-      name: "STU-2026-00001",
-      admission_profile: "SAP-2026-00001",
-      admission_year: "2026",
-      fields: {
-        graduation_score: 8.6,
-        transcript_score: 8.5,
-        total_score: 27.25,
-        is_high_school_graduate: true,
-        graduation_year: 2026,
-        academic_rank: "Giỏi",
-        priority_group: "KV1",
-        graduation_classification: "Khá",
-        conduct_rank: "Tốt",
-        grade_12_gpa: 8.75,
-        exam_candidate_number: "012345",
-        score_details: { toan: 9 },
-        encouragement_type: "HSG",
-        encouragement_score: 1,
-        priority_type: "KV1",
-        priority_score: 0.25,
-      },
-    };
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        new Response(JSON.stringify({ message: payload }), { status: 200 }),
-      );
-
     await expect(
-      getStudentHighSchoolScore(" STU-2026-00001 ", "2026"),
-    ).resolves.toEqual(payload);
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.get_student_high_school_score?name=STU-2026-00001&admission_year=2026",
-      expect.objectContaining({ method: "GET", credentials: "include" }),
-    );
-  });
-
-  it("updates the Student Detail high-school score fields", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fields = {
-      transcript_score: 8.5,
-      score_details: { toan: 9 },
-    };
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM Student",
-            name: "STU-2026-00001",
-            admission_profile: "SAP-2026-00001",
-            admission_year: "2026",
-            fields: {
-              graduation_score: 8.6,
-              transcript_score: 8.5,
-              total_score: null,
-              is_high_school_graduate: true,
-              graduation_year: 2026,
-              academic_rank: "Giỏi",
-              priority_group: "KV1",
-              graduation_classification: "Khá",
-              conduct_rank: "Tốt",
-              grade_12_gpa: null,
-              exam_candidate_number: null,
-              score_details: { toan: 9 },
-              encouragement_type: null,
-              encouragement_score: null,
-              priority_type: null,
-              priority_score: null,
-            },
-            updated_fields: fields,
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await expect(
-      updateStudentHighSchoolScore("STU-2026-00001", fields, "2026"),
+      updateStudent("STU-1", { phone: "0911111111" }),
     ).resolves.toMatchObject({
-      name: "STU-2026-00001",
-      updated_fields: fields,
+      name: "STU-1",
+      updated_fields: { phone: "0911111111" },
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.update_student_high_school_score",
-      expect.objectContaining({
-        method: "PUT",
-        credentials: "include",
-        body: JSON.stringify({
-          name: "STU-2026-00001",
-          admission_year: "2026",
-          fields,
-        }),
-      }),
-    );
-  });
-
-  it("reads schools with the documented filters", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM High School",
-            filters: { province: "PROVINCE-001", ward: "WARD-001" },
-            schools: [
-              {
-                name: "SCHOOL-001",
-                fields: { school_name: "THPT Nguyễn Huệ" },
-              },
-            ],
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await expect(
-      getSchools({
-        province: "PROVINCE-001",
-        ward: "WARD-001",
-        search: "Nguyen",
-        limit: 20,
-      }),
-    ).resolves.toMatchObject({ schools: [{ name: "SCHOOL-001" }] });
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.get_schools?province=PROVINCE-001&ward=WARD-001&search=Nguyen&limit=20",
-      expect.objectContaining({ credentials: "include" }),
-    );
-  });
-
-  it("loads dependent field options from the documented RPC", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM High School",
-            fieldname: "school_area",
-            fieldtype: "Link",
-            target_doctype: "CRM School Area",
-            options: [{ value: "KV3", label: "Khu vực 3" }],
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await expect(
-      getFieldOptions({
-        doctype: "CRM High School",
-        fieldname: "school_area",
-        high_school: "SCHOOL-001",
-        limit: 1,
-      }),
-    ).resolves.toMatchObject({
-      fieldname: "school_area",
-      options: [{ value: "KV3", label: "Khu vực 3" }],
-    });
-
-    const [url] = fetchSpy.mock.calls[0] as [string, RequestInit];
-    expect(url).toContain(
-      "http://frappe:8000/api/method/crm.api.student_school.get_field_options?",
-    );
-    expect(url).toContain("doctype=CRM+High+School");
-    expect(url).toContain("fieldname=school_area");
-    expect(url).toContain("high_school=SCHOOL-001");
-  });
-
-  it("puts only the requested student fields to the documented RPC", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM Student",
-            name: "ENR-2026-00001",
-            updated_fields: { phone: "0900000000" },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await expect(
-      updateStudent("ENR-2026-00001", { phone: "0900000000" }),
-    ).resolves.toMatchObject({
-      name: "ENR-2026-00001",
-      updated_fields: { phone: "0900000000" },
-    });
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.update_student",
-      expect.objectContaining({
-        method: "PUT",
-        credentials: "include",
-        body: JSON.stringify({
-          name: "ENR-2026-00001",
-          fields: { phone: "0900000000" },
-        }),
-      }),
-    );
+    expect(sentBody(1)).toEqual({ expectedRevision: 4, phone: "0911111111" });
   });
 
   it("maps a deterministic grade to the matching study stage", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM Student",
-            name: "ENR-2026-00001",
-            updated_fields: {
-              current_grade: "10",
-              study_stage: "grade_10",
-            },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+    mockRoutes({
+      "GET /api/v1/students/STU-1": () => json({ data: studentDto() }),
+      "PATCH /api/v1/students/STU-1": () => json({ data: studentDto() }),
+    });
 
-    await updateStudent("ENR-2026-00001", { current_grade: "10" });
+    await updateStudent("STU-1", { current_grade: "10" });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.update_student",
-      expect.objectContaining({
-        body: JSON.stringify({
-          name: "ENR-2026-00001",
-          fields: { current_grade: "10", study_stage: "grade_10" },
-        }),
-      }),
-    );
+    expect(sentBody(1)).toEqual({
+      expectedRevision: 4,
+      currentGrade: "10",
+      studyStage: "grade_10",
+    });
   });
 
-  it("omits an unresolved or incompatible study stage", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM Lead",
-            name: "ENR-2026-00001",
-            updated_fields: { current_grade: "12" },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it("clears an incompatible study stage when the grade changes", async () => {
+    mockRoutes({
+      "GET /api/v1/students/STU-1": () => json({ data: studentDto() }),
+      "PATCH /api/v1/students/STU-1": () =>
+        json({ data: studentDto({ currentGrade: "12" }) }),
+    });
 
-    await updateStudent("ENR-2026-00001", {
+    await updateStudent("STU-1", {
       current_grade: "12",
       study_stage: "grade_10",
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.update_student",
-      expect.objectContaining({
-        body: JSON.stringify({
-          name: "ENR-2026-00001",
-          fields: { current_grade: "12" },
-        }),
-      }),
-    );
-  });
-
-  it("uses the school RPC and preserves numeric coordinates", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM High School",
-            name: "01-001-062",
-            updated_fields: { latitude: 10.123, longitude: 105.456 },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await expect(
-      updateSchool("01-001-062", { latitude: 10.123, longitude: 105.456 }),
-    ).resolves.toMatchObject({
-      updated_fields: { latitude: 10.123, longitude: 105.456 },
+    expect(sentBody(1)).toEqual({
+      expectedRevision: 4,
+      currentGrade: "12",
+      studyStage: null,
     });
   });
 
-  it("surfaces backend validation errors", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          error: { code: "VALIDATION_ERROR", message: "Email không hợp lệ." },
-        }),
-        { status: 422 },
-      ),
-    );
+  it("rejects an update without fields before calling the API", async () => {
+    await expect(updateStudent("STU-1", {})).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_FIELDS",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
-    await expect(
-      updateStudent("ENR-2026-00001", { email: "invalid" }),
-    ).rejects.toEqual(
+  it("surfaces backend validation errors", async () => {
+    mockRoutes({
+      "GET /api/v1/students/STU-1": () => json({ data: studentDto() }),
+      "PATCH /api/v1/students/STU-1": () =>
+        json(
+          {
+            error: { code: "VALIDATION_ERROR", message: "Email không hợp lệ." },
+          },
+          422,
+        ),
+    });
+
+    await expect(updateStudent("STU-1", { email: "invalid" })).rejects.toEqual(
       expect.objectContaining<Partial<StudentSchoolUpdateApiError>>({
         status: 422,
         code: "VALIDATION_ERROR",
@@ -406,344 +182,348 @@ describe("student and school update contract", () => {
     );
   });
 
-  it("reads a school through the documented RPC", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM High School",
-            name: "SCHOOL-001",
-            fields: { school_name: "THPT Nguyễn Huệ" },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it("reports a missing API URL", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "");
 
-    await expect(getSchool("SCHOOL-001")).resolves.toMatchObject({
-      doctype: "CRM High School",
-      name: "SCHOOL-001",
+    await expect(getStudent("STU-1")).rejects.toMatchObject({ status: 503 });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("student high school score contract", () => {
+  const score = {
+    doctype: "CRM Student",
+    name: "STU-1",
+    admission_profile: null,
+    admission_year: "2026",
+    fields: { graduation_score: 8.6 },
+  };
+
+  it("reads the score for an admission year", async () => {
+    mockRoutes({
+      "GET /api/v1/students/STU-1/high-school-score": () =>
+        json({ data: score }),
+    });
+
+    await expect(getStudentHighSchoolScore("STU-1", "2026")).resolves.toEqual(
+      score,
+    );
+    expect(new URL(fetchMock.mock.calls[0]![0]).search).toBe(
+      "?admission_year=2026",
+    );
+  });
+
+  it("updates the score with the current revision", async () => {
+    mockRoutes({
+      "GET /api/v1/students/STU-1": () => json({ data: studentDto() }),
+      "PUT /api/v1/students/STU-1/high-school-score": () =>
+        json({ data: { ...score, updated_fields: { graduation_score: 9 } } }),
+    });
+
+    await expect(
+      updateStudentHighSchoolScore("STU-1", { graduation_score: 9 }),
+    ).resolves.toMatchObject({ updated_fields: { graduation_score: 9 } });
+    expect(sentBody(1)).toEqual({ graduation_score: 9, expectedRevision: 4 });
+  });
+
+  it("rejects an empty score update", async () => {
+    await expect(
+      updateStudentHighSchoolScore("STU-1", {}),
+    ).rejects.toMatchObject({ status: 400, code: "INVALID_FIELDS" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reports every rejected score field and logs the request id", async () => {
+    const messages = [
+      ["grade_12_gpa", "Điểm TB lớp 12 phải là số từ 0 đến 10."],
+      [
+        "transcript_score",
+        "Điểm học bạ CRM tính (TB điểm) phải là số từ 0 đến 10.",
+      ],
+      ["encouragement_score", "Số điểm khuyến khích phải là số từ 0 đến 10."],
+      ["priority_score", "Điểm ưu tiên đối tượng phải là số từ 0 đến 10."],
+    ];
+    const details = messages.map(([field, message]) => ({
+      field,
+      code: "too_big",
+      message,
+    }));
+    mockRoutes({
+      "GET /api/v1/students/STU-1": () => json({ data: studentDto() }),
+      "PUT /api/v1/students/STU-1/high-school-score": () =>
+        json(
+          {
+            error: {
+              code: "INVALID_INPUT",
+              message: "The request is invalid.",
+              details,
+              requestId: "score-request-1",
+            },
+          },
+          400,
+        ),
+    });
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const error = await updateStudentHighSchoolScore("STU-1", {
+        grade_12_gpa: 12,
+        transcript_score: 12,
+        encouragement_score: 12,
+        priority_score: 12,
+      }).catch((failure: unknown) => failure);
+      expect(error).toBeInstanceOf(StudentSchoolUpdateApiError);
+      expect(error).toMatchObject({
+        status: 400,
+        code: "INVALID_INPUT",
+        details,
+        requestId: "score-request-1",
+      });
+      for (const [, message] of messages)
+        expect((error as Error).message).toContain(message);
+      expect(log).toHaveBeenCalledWith(
+        "[student-high-school-score:update]",
+        expect.objectContaining({
+          status: 400,
+          code: "INVALID_INPUT",
+          requestId: "score-request-1",
+          details,
+        }),
+      );
+    } finally {
+      log.mockRestore();
+    }
+  });
+});
+
+describe("school and option lookups", () => {
+  it("lists schools with the documented filters", async () => {
+    mockRoutes({
+      "GET /api/v1/schools": () =>
+        json({
+          schools: [
+            {
+              id: "SCHOOL-1",
+              schoolCode: "S1",
+              schoolName: "THPT Nguyễn Huệ",
+              province: "Hà Nội",
+              ward: "Ba Đình",
+              address: null,
+              phone: null,
+              email: null,
+              schoolTier: null,
+            },
+          ],
+        }),
+    });
+
+    const result = await getSchools({ province: "P1", ward: "W1", limit: 20 });
+
+    const url = new URL(fetchMock.mock.calls[0]![0]);
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      province: "P1",
+      ward: "W1",
+      limit: "20",
+    });
+    expect(result.schools[0]).toMatchObject({
+      name: "SCHOOL-1",
+      fields: { school_name: "THPT Nguyễn Huệ" },
+    });
+  });
+
+  it("loads field options with the search term", async () => {
+    mockRoutes({
+      "GET /api/v1/options/province": () =>
+        json({
+          fieldtype: "Link",
+          options: [{ value: "P1", label: "Hà Nội" }],
+        }),
+    });
+
+    await expect(
+      getFieldOptions({
+        doctype: "CRM Student",
+        fieldname: "province",
+        search: "ha",
+      }),
+    ).resolves.toMatchObject({
+      fieldtype: "Link",
+      options: [{ value: "P1", label: "Hà Nội" }],
+    });
+    expect(
+      new URL(fetchMock.mock.calls[0]![0]).searchParams.get("search"),
+    ).toBe("ha");
+  });
+
+  it("loads lead options and validates their shape", async () => {
+    const option = { value: "A", label: "A" };
+    mockRoutes({
+      "GET /api/v1/directory/lead-options": () =>
+        json({
+          staff: [{ ...option, user: "u1" }],
+          segments: [option],
+          events: [],
+          advertising_channel: [option],
+        }),
+    });
+
+    await expect(getLeadOptions(50)).resolves.toMatchObject({
+      staff: [{ value: "A", user: "u1" }],
+    });
+    expect(new URL(fetchMock.mock.calls[0]![0]).searchParams.get("limit")).toBe(
+      "50",
+    );
+  });
+
+  it("rejects malformed lead options with 502", async () => {
+    mockRoutes({
+      "GET /api/v1/directory/lead-options": () => json({ staff: "nope" }),
+    });
+
+    await expect(getLeadOptions()).rejects.toMatchObject({
+      status: 502,
+      code: "INVALID_LEAD_OPTIONS_RESPONSE",
     });
   });
 });
 
-describe("student and school create/delete contract", () => {
-  it("creates a CSV-compatible Lead through the lead mapping RPC", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM Lead",
-            name: "ENR-2026-00004",
-            created_fields: {
-              student_name: "Nguyễn Văn An",
-              phone: "0900000000",
-              province: "PROVINCE-001",
-              campaign: "Campaign 1",
-              assigned_to: "STAFF-001",
-            },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await expect(
-      createLead({
-        student_name: "Nguyễn Văn An",
-        phone: "0900000000",
-        id_number: "012345678901",
-        province: "PROVINCE-001",
-        campaign: "Campaign 1",
-        assigned_to: "sales@example.com",
-      }),
-    ).resolves.toMatchObject({ name: "ENR-2026-00004" });
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.lead_mapping.create_lead",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          fields: {
-            student_name: "Nguyễn Văn An",
-            phone: "0900000000",
-            id_number: "012345678901",
-            province: "PROVINCE-001",
-            campaign: "Campaign 1",
-            assigned_to: "sales@example.com",
-          },
-        }),
-      }),
-    );
-  });
-
-  it("loads Lead mapping options", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            staff: [
-              {
-                value: "sales@example.com",
-                label: "Sales",
-                user: "sales@example.com",
-              },
-            ],
-            segments: [],
-            events: [],
-            advertising_channel: [{ value: "Facebook", label: "Facebook" }],
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await expect(getLeadOptions()).resolves.toMatchObject({
-      staff: [{ user: "sales@example.com" }],
+describe("school write contract", () => {
+  it("patches a school and keeps numeric coordinates", async () => {
+    mockRoutes({
+      "PATCH /api/v1/geography-catalog/high-schools/01-001-062": () =>
+        json({ id: "01-001-062" }),
     });
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.lead_mapping.get_lead_options?limit=100",
-      expect.objectContaining({ method: "GET", credentials: "include" }),
-    );
-  });
-
-  it("imports CSV content through the lead mapping RPC", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            filename: "leads.csv",
-            total: 2,
-            created: 1,
-            failed: 1,
-            students: [{ row: 2, name: "ENR-2026-00005" }],
-            errors: [
-              { row: 3, code: "INVALID_PHONE", message: "Invalid phone" },
-            ],
-          },
-        }),
-        { status: 200 },
-      ),
-    );
 
     await expect(
-      importLeads("Họ và Tên,Di động\nNguyễn Văn An,0900000000", "leads.csv"),
-    ).resolves.toMatchObject({ total: 2, created: 1, failed: 1 });
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.lead_mapping.import_leads",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          csv_content: "Họ và Tên,Di động\nNguyễn Văn An,0900000000",
-          filename: "leads.csv",
-        }),
-      }),
-    );
-  });
-
-  it("creates a student through the documented RPC", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM Lead",
-            name: "ENR-2026-00002",
-            created_fields: { student_name: "Nguyễn Văn An" },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await expect(
-      createStudent({ student_name: "Nguyễn Văn An", phone: "0900000000" }),
+      updateSchool("01-001-062", { latitude: 10.123, longitude: 105.456 }),
     ).resolves.toMatchObject({
-      name: "ENR-2026-00002",
-      created_fields: { student_name: "Nguyễn Văn An" },
+      name: "01-001-062",
+      updated_fields: { latitude: 10.123, longitude: 105.456 },
     });
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.create_student",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          fields: { student_name: "Nguyễn Văn An", phone: "0900000000" },
-        }),
-      }),
-    );
+    expect(sentBody(0)).toEqual({
+      data: { latitude: 10.123, longitude: 105.456 },
+    });
   });
 
-  it("creates a CRM Student and linked Lead through the combined RPC", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM Student",
-            name: "STU-2026-00002",
-            created_fields: {
-              student_name: "Nguyễn Văn An",
-              phone: "0901234567",
-              province: "PROVINCE-001",
-              campaign: "Campaign 1",
-              assigned_to: "CRM-STAFF-001",
-            },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
+  it("creates a school", async () => {
+    mockRoutes({
+      "POST /api/v1/geography-catalog/high-schools": () =>
+        json({ id: "SCHOOL-9" }),
+    });
 
     await expect(
-      createStudentWithLead({
-        student_name: " Nguyễn Văn An ",
-        phone: " 0901234567 ",
-        id_number: "012345678901",
-        province: "PROVINCE-001",
-        ward: "WARD-001",
-        high_school: "HIGH-SCHOOL-001",
-        admission_year: "2026",
-        campaign: "Campaign 1",
-        assigned_to: "CRM-STAFF-001",
+      createSchool({
+        school_name: "THPT Mới",
+        school_code: "S9",
+        province: "P1",
+        ward: "W1",
       }),
-    ).resolves.toMatchObject({ name: "STU-2026-00002" });
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.create_student_with_lead",
-      expect.objectContaining({
-        method: "POST",
-      }),
-    );
-    const requestInit = fetchSpy.mock.calls[0]?.[1];
-    expect(JSON.parse(String(requestInit?.body))).toEqual({
-      fields: {
-        student_name: "Nguyễn Văn An",
-        phone: "0901234567",
-        id_number: "012345678901",
-        province: "PROVINCE-001",
-        ward: "WARD-001",
-        high_school: "HIGH-SCHOOL-001",
-        admission_year: "2026",
-        campaign: "Campaign 1",
-        assigned_to: "CRM-STAFF-001",
-      },
+    ).resolves.toMatchObject({
+      name: "SCHOOL-9",
+      created_fields: { school_name: "THPT Mới" },
     });
   });
 
-  it("sends the selected semester for a grade 12 student", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM Lead",
-            name: "ENR-2026-00003",
-            created_fields: {
-              student_name: "Nguyễn Văn An",
-              current_grade: "12",
-              study_stage: "grade_12_h1",
-            },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await createStudent({
-      student_name: "Nguyễn Văn An",
-      current_grade: "12",
-      study_stage: "grade_12_h1",
+  it("deletes a school", async () => {
+    mockRoutes({
+      "DELETE /api/v1/geography-catalog/high-schools/SCHOOL-9": () =>
+        json({ id: "SCHOOL-9" }),
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.create_student",
-      expect.objectContaining({
-        body: JSON.stringify({
-          fields: {
-            student_name: "Nguyễn Văn An",
-            current_grade: "12",
-            study_stage: "grade_12_h1",
-          },
-        }),
-      }),
-    );
-  });
-
-  it("creates a school and sends the required identity fields", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM High School",
-            name: "8b7f2c1a9d",
-            created_fields: {
-              school_name: "THPT Nguyễn Huệ",
-              school_code: "NH-001",
-              province: "PROVINCE-001",
-              ward: "WARD-001",
-            },
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await createSchool({
-      school_name: "THPT Nguyễn Huệ",
-      school_code: "NH-001",
-      province: "PROVINCE-001",
-      ward: "WARD-001",
-      latitude: 10.123,
-    });
-
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.create_school",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          fields: {
-            school_name: "THPT Nguyễn Huệ",
-            school_code: "NH-001",
-            province: "PROVINCE-001",
-            ward: "WARD-001",
-            latitude: 10.123,
-          },
-        }),
-      }),
-    );
-  });
-
-  it("deletes a school with HTTP DELETE and the record name", async () => {
-    vi.stubEnv("NEXT_PUBLIC_FRAPPE_URL", "http://frappe:8000");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          message: {
-            doctype: "CRM High School",
-            name: "8b7f2c1a9d",
-            deleted: true,
-          },
-        }),
-        { status: 200 },
-      ),
-    );
-
-    await expect(deleteSchool("8b7f2c1a9d")).resolves.toMatchObject({
-      name: "8b7f2c1a9d",
+    await expect(deleteSchool("SCHOOL-9")).resolves.toEqual({
+      doctype: "CRM High School",
+      name: "SCHOOL-9",
       deleted: true,
     });
+  });
+});
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "http://frappe:8000/api/method/crm.api.student_school.delete_school",
-      expect.objectContaining({
-        method: "DELETE",
-        body: JSON.stringify({ name: "8b7f2c1a9d" }),
+describe("student create and delete contract", () => {
+  const created = {
+    studentCode: "HS-2026-000001",
+    leadCode: "LEAD-1",
+    fullName: "Nguyễn Minh An",
+    phone: "0900000000",
+    email: null,
+    studentStage: "New",
+    ownerUserId: "user-1",
+  };
+
+  it("creates a student from the intake form", async () => {
+    mockRoutes({ "POST /api/v1/students": () => json(created) });
+
+    await expect(
+      createStudent({ student_name: "Nguyễn Minh An", phone: "0900000000" }),
+    ).resolves.toMatchObject({
+      name: "HS-2026-000001",
+      created_fields: { full_name: "Nguyễn Minh An", phone: "0900000000" },
+    });
+    expect(sentBody(0)).toEqual({
+      studentName: "Nguyễn Minh An",
+      phone: "0900000000",
+    });
+  });
+
+  it("trims and compacts the student-with-lead payload", async () => {
+    mockRoutes({ "POST /api/v1/students": () => json(created) });
+
+    await createStudentWithLead({
+      student_name: " Nguyễn Minh An ",
+      phone: " 0900000000 ",
+      province: " P1 ",
+      campaign: " CAM-1 ",
+      assigned_to: " user-1 ",
+      email: "  ",
+    });
+
+    expect(sentBody(0)).toEqual({
+      studentName: "Nguyễn Minh An",
+      phone: "0900000000",
+      provinceId: "P1",
+      campaignId: "CAM-1",
+      assignedToUserId: "user-1",
+    });
+  });
+
+  it("rejects a create without fields", async () => {
+    await expect(
+      createStudent({} as Parameters<typeof createStudent>[0]),
+    ).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_FIELDS",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reports a malformed create response with 502", async () => {
+    mockRoutes({ "POST /api/v1/students": () => json({}) });
+
+    await expect(
+      createStudent({ student_name: "An", phone: "0900000000" }),
+    ).rejects.toMatchObject({
+      status: 502,
+    });
+  });
+
+  it("deletes a student", async () => {
+    mockRoutes({ "DELETE /api/v1/students/STU-1": () => json({}) });
+
+    await expect(deleteStudent("STU-1")).resolves.toEqual({
+      doctype: "CRM Student",
+      name: "STU-1",
+      deleted: true,
+    });
+  });
+
+  it("surfaces a delete refusal", async () => {
+    mockRoutes({
+      "DELETE /api/v1/students/STU-1": () =>
+        json({ error: { code: "FORBIDDEN", message: "Không có quyền." } }, 403),
+    });
+
+    await expect(deleteStudent("STU-1")).rejects.toEqual(
+      expect.objectContaining<Partial<StudentSchoolUpdateApiError>>({
+        status: 403,
+        code: "FORBIDDEN",
       }),
     );
   });

@@ -7,7 +7,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from "react-aria-components";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasFrappeTechnicalRole } from "@/components/common/auth/rbac";
+import { hasTechnicalRole } from "@/components/common/auth/rbac";
 import {
   useDeleteSegmentMutation,
   useSegmentDetailQuery,
@@ -46,7 +46,7 @@ export function SegmentDetailPage({
 }) {
   const router = useRouter();
   const { user } = useAuth();
-  const canManage = hasFrappeTechnicalRole(user?.roles, "System Manager");
+  const canManage = hasTechnicalRole(user?.roles, "System Manager");
   const [studentSearch, setStudentSearch] = useState("");
   const [studentPage, setStudentPage] = useState(1);
   const segmentQuery = useSegmentDetailQuery(segmentId);
@@ -89,7 +89,7 @@ export function SegmentDetailPage({
     return (
       <main id="main-content" className="px-2 py-4 lg:px-6">
         <section className="rounded-2xl border border-card-border bg-card-background p-6 text-sm text-text-secondary">
-          Đang tải segment từ Frappe CRM…
+          Đang tải segment từ máy chủ CRM…
         </section>
       </main>
     );

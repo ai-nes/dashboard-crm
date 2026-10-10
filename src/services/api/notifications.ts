@@ -1,4 +1,4 @@
-import { isNestApiEnabled, nestRequest } from "@/services/api/nest/nest-client";
+import { nestRequest, readApiUrl } from "@/services/api/nest/nest-client";
 
 export interface CrmNotification {
   id: string;
@@ -21,7 +21,7 @@ export async function getCrmNotifications(options?: {
   unreadOnly?: boolean;
   limit?: number;
 }): Promise<CrmNotificationsResponse | null> {
-  if (!isNestApiEnabled()) return null;
+  if (!readApiUrl()) return null;
   const result = await nestRequest<{
     data: CrmNotificationsResponse;
   }>("/api/v1/notifications", {
@@ -37,13 +37,13 @@ export async function getCrmNotifications(options?: {
 }
 
 export async function markCrmNotificationRead(id: string): Promise<void> {
-  if (!isNestApiEnabled()) return;
+  if (!readApiUrl()) return;
   await nestRequest(`/api/v1/notifications/${encodeURIComponent(id)}/read`, {
     method: "POST",
   });
 }
 
 export async function markAllCrmNotificationsRead(): Promise<void> {
-  if (!isNestApiEnabled()) return;
+  if (!readApiUrl()) return;
   await nestRequest("/api/v1/notifications/read-all", { method: "POST" });
 }

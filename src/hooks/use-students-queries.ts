@@ -78,7 +78,7 @@ export function useStudent360Query<TData = Student360Data | null>(
 }
 
 /**
- * Loads the students visible to the authenticated Frappe user.
+ * Loads the students visible to the authenticated user.
  * The user id is only a cache scope; the backend derives the allowed
  * assigned/pool/team scope from the session and its capabilities.
  */
@@ -95,7 +95,7 @@ export function useAssignedStudentsQuery(
   return useQuery({
     ...queryOptions,
     queryKey: studentsKeys.assignedStudents(params, sessionUser),
-    queryFn: () => getDirectorStudents(params, { sessionRequired: true }),
+    queryFn: () => getDirectorStudents(params),
     enabled: Boolean(sessionUser) && enabled,
   });
 }

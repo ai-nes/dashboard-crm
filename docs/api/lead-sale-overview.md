@@ -5,7 +5,7 @@ Màn hình dành cho trưởng nhóm Sale, dùng để theo dõi phân công, c�
 can thiệp, hiệu suất từng thành viên, trạng thái hồ sơ và kết quả của cả team.
 
 > Trạng thái: **đã triển khai**. Backend cung cấp snapshot tại
-> `crm.api.lead_sale.get_lead_sale_overview`; route `/lead-sale` tải dữ liệu qua
+> `GET /api/v1/lead-sale/overview`; route `/lead-sale` tải dữ liệu qua
 > service/query hook và không còn đọc fixture số liệu.
 
 ## 1. Phạm vi màn hình
@@ -42,15 +42,15 @@ class, CSS variable, tên icon hoặc đường dẫn UI.
 
 ## 3. Endpoint và quyền truy cập
 
-Endpoint production đề xuất:
+Endpoint:
 
 ```http
-GET {NEXT_PUBLIC_FRAPPE_URL}/api/method/crm.api.lead_sale.get_lead_sale_overview
-Cookie: sid=<Frappe session cookie>
+GET {NEXT_PUBLIC_CRM_API_URL}/api/v1/lead-sale/overview
+Cookie: <Better Auth session cookie>   (credentials: "include")
 Accept: application/json
 ```
 
-Frappe bọc payload thành công trong key `message`.
+Payload thành công được trả trực tiếp (không bọc `message`).
 
 Quy tắc scope bắt buộc:
 
@@ -75,7 +75,7 @@ và ma trận nghiệp vụ mô tả Lead Sales là quyền **Team** tại
 Ví dụ tải overview cho team của Lead Sales đang đăng nhập:
 
 ```http
-GET /api/method/crm.api.lead_sale.get_lead_sale_overview?admissionYear=2026&date=2026-09-05&trendRange=4w&timezone=Asia%2FHo_Chi_Minh&teamMemberLimit=20
+GET /api/v1/lead-sale/overview?admissionYear=2026&date=2026-09-05&trendRange=4w&timezone=Asia%2FHo_Chi_Minh&teamMemberLimit=20
 ```
 
 | Tên | Kiểu | Bắt buộc | Mặc định | Ràng buộc / mô tả |
@@ -107,90 +107,88 @@ Ví dụ rút gọn:
 
 ```json
 {
-  "message": {
-    "meta": {
-      "viewer": {
-        "id": "USR-LEAD-SALE-001",
-        "displayName": "Nguyễn Minh Anh"
+  "meta": {
+    "viewer": {
+      "id": "USR-LEAD-SALE-001",
+      "displayName": "Nguyễn Minh Anh"
+    },
+    "team": {
+      "id": "TEAM-SALE-01",
+      "name": "Đội Sale Hà Nội"
+    },
+    "admissionYear": 2026,
+    "date": "2026-09-05",
+    "asOf": "2026-09-05T09:15:00+07:00",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "status": "available",
+    "warnings": []
+  },
+  "kpis": [
+    { "id": "active", "value": 184 },
+    { "id": "new", "value": 24 },
+    { "id": "unassigned", "value": 18 },
+    { "id": "needs-action", "value": 27 },
+    { "id": "overdue", "value": 6 },
+    { "id": "documents", "value": 14 }
+  ],
+  "interventions": {
+    "items": [
+      { "id": "unassigned", "count": 18 },
+      { "id": "not-contacted", "count": 12 },
+      { "id": "at-risk", "count": 8 },
+      { "id": "blocked", "count": 5 }
+    ]
+  },
+  "teamPerformance": {
+    "items": [
+      {
+        "id": "USR-SALE-001",
+        "displayName": "Nguyễn Minh Anh",
+        "activeStudents": 46,
+        "consulted": 31,
+        "admitted": 8,
+        "status": "on-track"
+      }
+    ]
+  },
+  "studentStatus": {
+    "total": 184,
+    "items": [
+      { "id": "consulting", "label": "Đang tư vấn", "count": 72, "share": 39.1 },
+      { "id": "waiting", "label": "Chờ phản hồi", "count": 48, "share": 26.1 },
+      { "id": "documents", "label": "Đang làm hồ sơ", "count": 29, "share": 15.8 },
+      { "id": "admission", "label": "Chờ nhập học", "count": 17, "share": 9.2 },
+      { "id": "new", "label": "Mới nhận", "count": 18, "share": 9.8 }
+    ]
+  },
+  "resultTrend": {
+    "defaultRange": "4w",
+    "ranges": {
+      "4w": {
+        "from": "2026-08-10",
+        "to": "2026-09-05",
+        "points": [
+          {
+            "label": "Tuần 1",
+            "periodStart": "2026-08-10",
+            "periodEnd": "2026-08-16",
+            "consulted": 68,
+            "admitted": 9
+          }
+        ]
       },
-      "team": {
-        "id": "TEAM-SALE-01",
-        "name": "Đội Sale Hà Nội"
-      },
-      "admissionYear": 2026,
-      "date": "2026-09-05",
-      "asOf": "2026-09-05T09:15:00+07:00",
-      "timezone": "Asia/Ho_Chi_Minh",
-      "status": "available",
-      "warnings": []
-    },
-    "kpis": [
-      { "id": "active", "value": 184 },
-      { "id": "new", "value": 24 },
-      { "id": "unassigned", "value": 18 },
-      { "id": "needs-action", "value": 27 },
-      { "id": "overdue", "value": 6 },
-      { "id": "documents", "value": 14 }
-    ],
-    "interventions": {
-      "items": [
-        { "id": "unassigned", "count": 18 },
-        { "id": "not-contacted", "count": 12 },
-        { "id": "at-risk", "count": 8 },
-        { "id": "blocked", "count": 5 }
-      ]
-    },
-    "teamPerformance": {
-      "items": [
-        {
-          "id": "USR-SALE-001",
-          "displayName": "Nguyễn Minh Anh",
-          "activeStudents": 46,
-          "consulted": 31,
-          "admitted": 8,
-          "status": "on-track"
-        }
-      ]
-    },
-    "studentStatus": {
-      "total": 184,
-      "items": [
-        { "id": "consulting", "label": "Đang tư vấn", "count": 72, "share": 39.1 },
-        { "id": "waiting", "label": "Chờ phản hồi", "count": 48, "share": 26.1 },
-        { "id": "documents", "label": "Đang làm hồ sơ", "count": 29, "share": 15.8 },
-        { "id": "admission", "label": "Chờ nhập học", "count": 17, "share": 9.2 },
-        { "id": "new", "label": "Mới nhận", "count": 18, "share": 9.8 }
-      ]
-    },
-    "resultTrend": {
-      "defaultRange": "4w",
-      "ranges": {
-        "4w": {
-          "from": "2026-08-10",
-          "to": "2026-09-05",
-          "points": [
-            {
-              "label": "Tuần 1",
-              "periodStart": "2026-08-10",
-              "periodEnd": "2026-08-16",
-              "consulted": 68,
-              "admitted": 9
-            }
-          ]
-        },
-        "3m": {
-          "from": "2026-06-05",
-          "to": "2026-09-05",
-          "points": [
-            {
-              "label": "Tháng 1",
-              "periodStart": "2026-06-05",
-              "periodEnd": "2026-07-04",
-              "consulted": 214,
-              "admitted": 42
-            }
-          ]
-        }
+      "3m": {
+        "from": "2026-06-05",
+        "to": "2026-09-05",
+        "points": [
+          {
+            "label": "Tháng 1",
+            "periodStart": "2026-06-05",
+            "periodEnd": "2026-07-04",
+            "consulted": 214,
+            "admitted": 42
+          }
+        ]
       }
     }
   }
@@ -488,12 +486,12 @@ Các route con phải dùng cùng team scope của Lead Sales. Không dùng quy�
 
 | Route | API | Trạng thái / yêu cầu |
 |---|---|---|
-| `/lead-sale/students` | `crm.api.director_students.get_director_students`, `get_director_student` | Có thể dùng adapter chung nhưng backend bắt buộc lọc hồ sơ theo team Lead Sales |
-| `/lead-sale/tasks` | `crm.api.task.list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task` | CRUD chỉ trong team scope; tham khảo [crm-tasks/index.ts](<../../src/services/api/crm-tasks/index.ts>) |
-| `/lead-sale/next-best-action` | NBA read/action APIs hiện có | Recommendation và mutation chỉ dành cho hồ sơ thuộc team |
-| `/lead-sale/demographics` | `director_demographics` overview/segment | Nếu cho phép xem, aggregate phải lọc team trước khi tính |
-| `/lead-sale/student-assignment` | get_student_assignment_workspace, get_student_assignment_detail, resolve_student_assignment | Contract chi tiết tại [lead-sale-student-assignment.md](./lead-sale-student-assignment.md); route hiện vẫn đang dùng fixture |
-| `/lead-sale/sales-team` | get_sales_team_workspace, get_sales_team_member_detail | Contract chi tiết tại [lead-sale-sales-team.md](./lead-sale-sales-team.md); route hiện vẫn đang dùng fixture |
+| `/lead-sale/students` | `GET /api/v1/students`, `GET /api/v1/students/{id}` | Có thể dùng adapter chung nhưng backend bắt buộc lọc hồ sơ theo team Lead Sales |
+| `/lead-sale/tasks` | `/api/v1/tasks` (`GET`, `POST`, `GET/PATCH/DELETE /{id}`) | CRUD chỉ trong team scope; tham khảo [crm-tasks/index.ts](<../../src/services/api/crm-tasks/index.ts>) |
+| `/lead-sale/next-best-action` | `/api/v1/nba/worklist`, `/api/v1/nba/decisions`, `/api/v1/nba/evaluations` | Recommendation và mutation chỉ dành cho hồ sơ thuộc team |
+| `/lead-sale/demographics` | `GET /api/v1/director/demographics` và `/segments/{segmentId}` | Nếu cho phép xem, aggregate phải lọc team trước khi tính |
+| `/lead-sale/student-assignment` | `/api/v1/student-assignment/workspace`, `/detail`, `/resolve` | Contract chi tiết tại [lead-sale-student-assignment.md](./lead-sale-student-assignment.md) |
+| `/lead-sale/sales-team` | `/api/v1/team-management/*` | Contract chi tiết tại [lead-sale-sales-team.md](./lead-sale-sales-team.md) |
 
 Thao tác gán/chuyển hồ sơ là mutation, không thực hiện qua GET. Mutation cần
 kiểm tra team scope, optimistic concurrency nếu hồ sơ có thể bị gán đồng thời,
@@ -501,10 +499,8 @@ ghi audit và invalidate/refetch overview sau khi thành công.
 
 ## 9. Checklist tích hợp
 
-1. [x] Tạo Frappe method `crm.api.lead_sale.get_lead_sale_overview` với team
-   scope lấy từ session.
-2. [x] Tạo adapter tại `src/services/api/lead-sale` để serialize query, unwrap
-   `message`, validate response và chuẩn hóa lỗi.
+1. [x] Endpoint `GET /api/v1/lead-sale/overview` với team scope lấy từ session.
+2. [x] Tạo adapter tại `src/services/api/lead-sale` để serialize query, validate response và chuẩn hóa lỗi.
 3. [x] Tạo query hook với query key gồm `admissionYear`, `date`, `timezone` và
    `trendRange`.
 4. [x] Thay fixture trong `lead-sale/_components` bằng một overview query duy nhất;
@@ -517,7 +513,7 @@ ghi audit và invalidate/refetch overview sau khi thành công.
 Request tối thiểu để render đúng dashboard:
 
 ```http
-GET /api/method/crm.api.lead_sale.get_lead_sale_overview?admissionYear=2026&trendRange=4w
+GET /api/v1/lead-sale/overview?admissionYear=2026&trendRange=4w
 ```
 
 Response tối thiểu phải có `meta.viewer`, `meta.team`, `meta.date`, `meta.asOf`,

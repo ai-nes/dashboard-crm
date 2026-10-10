@@ -187,6 +187,7 @@ export default function LeadConversionDialog({
                       isDisabled={provinceOptionsQuery.isPending}
                       label={leadConversionFieldLabels.province}
                       options={provinceOptions}
+                      pagination={provinceOptionsQuery.pagination}
                       placeholder="Chọn tỉnh / thành phố"
                       searchable
                       searchPlaceholder="Tìm tỉnh / thành phố..."
@@ -229,6 +230,7 @@ export default function LeadConversionDialog({
                       isError={majorOptionsQuery.isError}
                       isLoading={majorOptionsQuery.isPending}
                       options={majorOptions}
+                      pagination={majorOptionsQuery.pagination}
                       searchPlaceholder="Tìm ngành quan tâm..."
                       value={form.major}
                       onChange={(value) => setField("major", value)}

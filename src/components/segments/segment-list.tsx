@@ -145,7 +145,7 @@ export function SegmentList({
   if (isLoading) {
     return (
       <section className="rounded-2xl border border-card-border bg-card-background p-8 text-center text-sm text-text-secondary">
-        Đang tải danh sách segment từ Frappe CRM…
+        Đang tải danh sách segment từ máy chủ CRM…
       </section>
     );
   }

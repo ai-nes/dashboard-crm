@@ -1,5 +1,7 @@
 "use client";
 
+import { InfiniteSelectInput } from "@/components/common/infinite-select-input";
+
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -125,7 +127,7 @@ export default function LeadCreateCallDialog({
                 <span className="mb-1.5 block text-xs font-semibold">
                   Hướng cuộc gọi
                 </span>
-                <select
+                <InfiniteSelectInput
                   className={fieldClassName}
                   value={direction}
                   onChange={(event) =>
@@ -137,13 +139,13 @@ export default function LeadCreateCallDialog({
                   <option value="outbound">Cuộc gọi đi</option>
                   <option value="inbound">Cuộc gọi đến</option>
                   <option value="missed">Cuộc gọi nhỡ</option>
-                </select>
+                </InfiniteSelectInput>
               </label>
               <label className="block text-sm text-text-primary">
                 <span className="mb-1.5 block text-xs font-semibold">
                   Kết quả
                 </span>
-                <select
+                <InfiniteSelectInput
                   className={fieldClassName}
                   value={outcome}
                   onChange={(event) =>
@@ -156,7 +158,7 @@ export default function LeadCreateCallDialog({
                   <option value="missed">Cuộc gọi nhỡ</option>
                   <option value="no-answer">Không nghe máy</option>
                   <option value="callback">Hẹn gọi lại</option>
-                </select>
+                </InfiniteSelectInput>
               </label>
             </div>
             <label className="block text-sm text-text-primary">

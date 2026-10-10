@@ -1,5 +1,5 @@
 /**
- * Maps the Frappe segment and need/tag classification methods onto the NestJS
+ * Maps the segment and need/tag classification methods onto the NestJS
  * API, including the per-student classification calls.
  */
 import { NestApiError, nestRequest } from "./nest-client";
@@ -94,7 +94,7 @@ export async function nestSegmentRequest<T>(
 type Kind = "need" | "tag";
 const CLASSIFICATION = "/api/v1/classification";
 
-/** `""` means "any status" to the Frappe API; Nest spells it `all`. */
+/** `""` means "any status" to the legacy operations; Nest spells it `all`. */
 const statusOf = (value: unknown) => (value ? String(value) : "all");
 
 function kindOf(method: string): Kind | null {
@@ -212,16 +212,14 @@ export async function nestStudentClassificationRequest<T>(
         `/api/v1/students/${student}/tags/${encodeURIComponent(params.tag ?? "")}`,
         { method: "DELETE", query: { expectedModified: expected } },
       );
-    case "update_student_tag": {
-      const removed = (await send(
+    case "update_student_tag":
+      return send(
         `/api/v1/students/${student}/tags/${encodeURIComponent(params.tag ?? "")}`,
-        { method: "DELETE", query: { expectedModified: expected } },
-      )) as { modified: string };
-      return send(`/api/v1/students/${student}/tags`, {
-        method: "POST",
-        body: { tag: params.new_tag, expectedModified: removed.modified },
-      });
-    }
+        {
+          method: "PATCH",
+          body: { newTagId: params.new_tag, expectedModified: expected },
+        },
+      );
     default:
       throw new NestApiError(501, "NOT_PORTED", `${action} is not available.`);
   }

@@ -1,10 +1,6 @@
-import {
-  ensureRoot,
-  FrappeApiError,
-  getBaseUrl,
-  queryString,
-  request as frappeRequest,
-} from "../frappe-request";
+import { NestApiError } from "../nest/nest-client";
+import { NOT_HANDLED } from "../nest/nest-handler";
+import { nestGeographyHandler } from "../nest/nest-geography-router";
 
 import type {
   DeleteCatalogInput,
@@ -29,15 +25,18 @@ import type {
 
 export type * from "./types";
 
-export class ReferenceCatalogApiError extends FrappeApiError {
-  constructor(status: number, code: string, message: string) {
-    super(status, code, message);
+export class ReferenceCatalogApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
     this.name = "ReferenceCatalogApiError";
   }
 }
 
 type PaginationOptions = {
-  baseUrl?: string;
   search?: string;
   start?: number;
   pageLength?: number;
@@ -45,45 +44,73 @@ type PaginationOptions = {
 
 type ListOptions = PaginationOptions & Record<string, unknown>;
 
-function normalizePagination<T extends { total?: number; start?: number; pageLength?: number }>(
-  result: T,
-  options: PaginationOptions,
-): T {
-  if (options.start === undefined && options.pageLength === undefined) return result;
+function normalizePagination<
+  T extends { total?: number; start?: number; pageLength?: number },
+>(result: T, options: PaginationOptions): T {
+  if (options.start === undefined && options.pageLength === undefined)
+    return result;
   const raw = result as T & { page_length?: number };
   return {
     ...result,
     total: Number(result.total ?? 0),
     start: Number(result.start ?? options.start ?? 0),
-    pageLength: Number(result.pageLength ?? raw.page_length ?? options.pageLength ?? 20),
+    pageLength: Number(
+      result.pageLength ?? raw.page_length ?? options.pageLength ?? 20,
+    ),
   };
 }
 
-function buildListParams(options: ListOptions): URLSearchParams {
-  const params = new URLSearchParams();
-  if (options.search?.trim()) params.set("search", options.search.trim());
+function buildListParams(
+  options: ListOptions,
+): Record<string, string | undefined> {
+  const params: Record<string, string | undefined> = {};
+  if (options.search?.trim()) params.search = options.search.trim();
   for (const [key, value] of Object.entries(options)) {
-    if (key === "baseUrl" || key === "search" || value === undefined) continue;
-    const apiKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-    params.set(apiKey, String(value));
+    if (key === "search" || value === undefined) continue;
+    const apiKey = key.replace(
+      /[A-Z]/g,
+      (letter) => `_${letter.toLowerCase()}`,
+    );
+    params[apiKey] = String(value);
   }
   return params;
 }
 
-async function listRequest<T extends { total?: number; start?: number; pageLength?: number }>(
+async function call(
   method: string,
-  options: ListOptions,
-  responseKey: string,
-  unavailableMessage: string,
-): Promise<T> {
-  const root = getBaseUrl(options.baseUrl);
-  ensureRoot(root, unavailableMessage, ReferenceCatalogApiError);
-  const result = await frappeRequest(
-    `${root}/api/method/crm.api.geography_catalog.${method}${queryString(buildListParams(options))}`,
-    {},
-    root,
-    ReferenceCatalogApiError,
-  );
+  params: Record<string, string | undefined>,
+  body?: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  try {
+    const result = await nestGeographyHandler(
+      `crm.api.geography_catalog.${method}`,
+      params,
+      body,
+    );
+    if (result === NOT_HANDLED) {
+      throw new ReferenceCatalogApiError(
+        501,
+        "FEATURE_NOT_MIGRATED",
+        "Chức năng này chưa có trên máy chủ CRM.",
+      );
+    }
+    return (result ?? {}) as Record<string, unknown>;
+  } catch (error) {
+    if (error instanceof NestApiError) {
+      throw new ReferenceCatalogApiError(
+        error.status,
+        error.code,
+        error.message,
+      );
+    }
+    throw error;
+  }
+}
+
+async function listRequest<
+  T extends { total?: number; start?: number; pageLength?: number },
+>(method: string, options: ListOptions, responseKey: string): Promise<T> {
+  const result = await call(method, buildListParams(options));
   if (!Array.isArray(result[responseKey])) {
     throw new ReferenceCatalogApiError(
       502,
@@ -93,88 +120,65 @@ async function listRequest<T extends { total?: number; start?: number; pageLengt
   }
   return normalizePagination(result as T, options);
 }
-
-export function listProvinces(options: {
-  baseUrl?: string;
-  search?: string;
-  region?: string;
-  cityType?: string;
-  start?: number;
-  pageLength?: number;
-} = {}): Promise<ProvinceCatalog> {
-  return listRequest(
-    "list_provinces",
-    options,
-    "provinces",
-    "Chưa cấu hình API Frappe CRM để tải tỉnh/thành.",
-  );
+export function listProvinces(
+  options: {
+    search?: string;
+    region?: string;
+    cityType?: string;
+    start?: number;
+    pageLength?: number;
+  } = {},
+): Promise<ProvinceCatalog> {
+  return listRequest("list_provinces", options, "provinces");
 }
 
-export function listWards(options: {
-  baseUrl?: string;
-  search?: string;
-  province?: string;
-  zone?: string;
-  wardType?: string;
-  start?: number;
-  pageLength?: number;
-} = {}): Promise<WardCatalog> {
-  return listRequest(
-    "list_wards",
-    options,
-    "wards",
-    "Chưa cấu hình API Frappe CRM để tải xã/phường.",
-  );
+export function listWards(
+  options: {
+    search?: string;
+    province?: string;
+    zone?: string;
+    wardType?: string;
+    start?: number;
+    pageLength?: number;
+  } = {},
+): Promise<WardCatalog> {
+  return listRequest("list_wards", options, "wards");
 }
 
-export function listSchools(options: {
-  baseUrl?: string;
-  search?: string;
-  province?: string;
-  ward?: string;
-  schoolArea?: string;
-  isActive?: boolean;
-  start?: number;
-  pageLength?: number;
-} = {}): Promise<SchoolCatalog> {
-  return listRequest(
-    "list_high_schools",
-    options,
-    "schools",
-    "Chưa cấu hình API Frappe CRM để tải trường học.",
-  );
+export function listSchools(
+  options: {
+    search?: string;
+    province?: string;
+    ward?: string;
+    schoolArea?: string;
+    isActive?: boolean;
+    start?: number;
+    pageLength?: number;
+  } = {},
+): Promise<SchoolCatalog> {
+  return listRequest("list_high_schools", options, "schools");
 }
 
-export function listSchoolAreas(options: {
-  baseUrl?: string;
-  search?: string;
-  includeDisabled?: boolean;
-  enabled?: boolean;
-  start?: number;
-  pageLength?: number;
-} = {}): Promise<SchoolAreaCatalog> {
-  return listRequest(
-    "list_school_areas",
-    options,
-    "schoolAreas",
-    "Chưa cấu hình API Frappe CRM để tải khu vực trường.",
-  );
+export function listSchoolAreas(
+  options: {
+    search?: string;
+    includeDisabled?: boolean;
+    enabled?: boolean;
+    start?: number;
+    pageLength?: number;
+  } = {},
+): Promise<SchoolAreaCatalog> {
+  return listRequest("list_school_areas", options, "schoolAreas");
 }
 
-export async function listGeographyOptions(options: {
-  baseUrl?: string;
-  province?: string;
-} = {}): Promise<GeographyOptions> {
-  const root = getBaseUrl(options.baseUrl);
-  ensureRoot(root, "Chưa cấu hình API Frappe CRM để tải tùy chọn địa bàn.", ReferenceCatalogApiError);
-  const params = new URLSearchParams();
-  if (options.province) params.set("province", options.province);
-  const result = await frappeRequest(
-    `${root}/api/method/crm.api.geography_catalog.list_geography_options${queryString(params)}`,
-    {},
-    root,
-    ReferenceCatalogApiError,
-  );
+export async function listGeographyOptions(
+  options: {
+    province?: string;
+  } = {},
+): Promise<GeographyOptions> {
+  const result = await call("list_geography_options", {
+    province: options.province,
+  });
   if (!Array.isArray(result.provinces) || !Array.isArray(result.wards)) {
     throw new ReferenceCatalogApiError(
       502,
@@ -188,144 +192,98 @@ export async function listGeographyOptions(options: {
 async function mutate<T>(
   method: string,
   data: Record<string, unknown>,
-  message: string,
-  options: { baseUrl?: string } = {},
 ): Promise<T> {
-  const root = getBaseUrl(options.baseUrl);
-  ensureRoot(root, message, ReferenceCatalogApiError);
-  return (await frappeRequest(
-    `${root}/api/method/crm.api.geography_catalog.${method}`,
-    { method: "POST", body: JSON.stringify(data) },
-    root,
-    ReferenceCatalogApiError,
-  )) as unknown as T;
+  return (await call(method, {}, data)) as unknown as T;
 }
 
 export function createProvince(
   data: ProvinceMutationInput,
-  options: { baseUrl?: string } = {},
 ): Promise<ProvinceOption> {
-  return mutate("create_province", { data }, "Chưa cấu hình API Frappe CRM để tạo tỉnh/thành.", options);
+  return mutate("create_province", { data });
 }
 
 export function updateProvince(
   input: UpdateProvinceInput,
-  options: { baseUrl?: string } = {},
 ): Promise<ProvinceOption> {
-  return mutate(
-    "update_province",
-    { name: input.name, data: input.data, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để sửa tỉnh/thành.",
-    options,
-  );
+  return mutate("update_province", {
+    name: input.name,
+    data: input.data,
+    expected_modified: input.expectedModified,
+  });
 }
 
 export function deleteProvince(
   input: DeleteCatalogInput,
-  options: { baseUrl?: string } = {},
 ): Promise<{ deleted: string }> {
-  return mutate(
-    "delete_province",
-    { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để xóa tỉnh/thành.",
-    options,
-  );
+  return mutate("delete_province", {
+    name: input.name,
+    expected_modified: input.expectedModified,
+  });
 }
 
-export function createWard(
-  data: WardMutationInput,
-  options: { baseUrl?: string } = {},
-): Promise<WardOption> {
-  return mutate("create_ward", { data }, "Chưa cấu hình API Frappe CRM để tạo xã/phường.", options);
+export function createWard(data: WardMutationInput): Promise<WardOption> {
+  return mutate("create_ward", { data });
 }
 
-export function updateWard(
-  input: UpdateWardInput,
-  options: { baseUrl?: string } = {},
-): Promise<WardOption> {
-  return mutate(
-    "update_ward",
-    { name: input.name, data: input.data, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để sửa xã/phường.",
-    options,
-  );
+export function updateWard(input: UpdateWardInput): Promise<WardOption> {
+  return mutate("update_ward", {
+    name: input.name,
+    data: input.data,
+    expected_modified: input.expectedModified,
+  });
 }
 
 export function deleteWard(
   input: DeleteCatalogInput,
-  options: { baseUrl?: string } = {},
 ): Promise<{ deleted: string }> {
-  return mutate(
-    "delete_ward",
-    { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để xóa xã/phường.",
-    options,
-  );
+  return mutate("delete_ward", {
+    name: input.name,
+    expected_modified: input.expectedModified,
+  });
 }
 
-export function createSchool(
-  data: SchoolMutationInput,
-  options: { baseUrl?: string } = {},
-): Promise<SchoolOption> {
-  return mutate("create_high_school", { data }, "Chưa cấu hình API Frappe CRM để tạo trường học.", options);
+export function createSchool(data: SchoolMutationInput): Promise<SchoolOption> {
+  return mutate("create_high_school", { data });
 }
 
-export function updateSchool(
-  input: UpdateSchoolInput,
-  options: { baseUrl?: string } = {},
-): Promise<SchoolOption> {
-  return mutate(
-    "update_high_school",
-    { name: input.name, data: input.data, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để sửa trường học.",
-    options,
-  );
+export function updateSchool(input: UpdateSchoolInput): Promise<SchoolOption> {
+  return mutate("update_high_school", {
+    name: input.name,
+    data: input.data,
+    expected_modified: input.expectedModified,
+  });
 }
 
 export function deleteSchool(
   input: DeleteCatalogInput,
-  options: { baseUrl?: string } = {},
 ): Promise<{ deleted: string }> {
-  return mutate(
-    "delete_high_school",
-    { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để xóa trường học.",
-    options,
-  );
+  return mutate("delete_high_school", {
+    name: input.name,
+    expected_modified: input.expectedModified,
+  });
 }
 
 export function createSchoolArea(
   data: SchoolAreaMutationInput,
-  options: { baseUrl?: string } = {},
 ): Promise<SchoolAreaOption> {
-  return mutate(
-    "create_school_area",
-    { data },
-    "Chưa cấu hình API Frappe CRM để tạo khu vực trường.",
-    options,
-  );
+  return mutate("create_school_area", { data });
 }
 
 export function updateSchoolArea(
   input: UpdateSchoolAreaInput,
-  options: { baseUrl?: string } = {},
 ): Promise<SchoolAreaOption> {
-  return mutate(
-    "update_school_area",
-    { name: input.name, data: input.data, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để sửa khu vực trường.",
-    options,
-  );
+  return mutate("update_school_area", {
+    name: input.name,
+    data: input.data,
+    expected_modified: input.expectedModified,
+  });
 }
 
 export function deleteSchoolArea(
   input: DeleteCatalogInput,
-  options: { baseUrl?: string } = {},
 ): Promise<{ deleted: string }> {
-  return mutate(
-    "delete_school_area",
-    { name: input.name, expected_modified: input.expectedModified },
-    "Chưa cấu hình API Frappe CRM để xóa khu vực trường.",
-    options,
-  );
+  return mutate("delete_school_area", {
+    name: input.name,
+    expected_modified: input.expectedModified,
+  });
 }

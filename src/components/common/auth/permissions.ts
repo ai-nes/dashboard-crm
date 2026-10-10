@@ -21,7 +21,7 @@ const CRM_RULE_ADMIN_ROLES = new Set([
   "Business Admin",
 ]);
 
-/** Mirrors the Frappe Rule Engine admin gate; server authorization remains authoritative. */
+/** Mirrors the Rule Engine admin gate; server authorization remains authoritative. */
 export function canManageCrmRules(
   user: CurrentUser | null | undefined,
 ): boolean {
@@ -32,6 +32,7 @@ export function canManageCrmRules(
 }
 
 export interface CrmResourcePermissions {
+  deleteRequiresOwnership?: boolean;
   /** Scope used for mutations on an existing record. */
   scope: CrmRecordScope;
   /** Optional broader scope used only for read/list access. */
@@ -86,6 +87,7 @@ function toResourcePermissions(
   if (!permission) return NO_ACCESS;
 
   const scope = toRecordScope(permission.row_scope);
+  if (!permission.read || scope === "none") return NO_ACCESS;
   const readScope =
     scope === "assigned" && hasCrmCapability(user, "student.routing.read")
       ? "team"
@@ -98,14 +100,15 @@ function toResourcePermissions(
     canRead: permission.read,
     canUpdate: permission.write,
     canDelete: permission.delete,
-    canAssign,
+    deleteRequiresOwnership: permission.delete_requires_ownership,
+    canAssign: canAssign && permission.write,
   };
 }
 
 /**
  * Frontend capability map for the Sales workspaces.
  *
- * Frappe remains the source of truth for authorization. These capabilities
+ * The backend remains the source of truth for authorization. These capabilities
  * only keep the UI from exposing actions that the current role cannot use.
  */
 export function getCrmPermissions(
@@ -181,6 +184,12 @@ export function canPerformStudentAction(
   };
 
   if (!permissions[capabilityByAction[action]]) return false;
+  if (
+    action === "delete" &&
+    permissions.deleteRequiresOwnership &&
+    !isStudentAssignedToUser(student, user)
+  )
+    return false;
   if (action === "read") return canAccessStudent(permissions, student, user);
 
   if (!permissions.canRead) return false;

@@ -1,8 +1,8 @@
 /**
  * Student profile read/update against the Nest backend, translating between
- * the dashboard's Frappe-style snake_case fields and the REST DTO.
+ * the dashboard's snake_case fields and the REST DTO.
  */
-import { nestRequest } from "./nest-client";
+import { NestApiError, nestRequest } from "./nest-client";
 
 interface Envelope<T> {
   data: T;
@@ -18,6 +18,17 @@ const WRITE_FIELDS: Record<string, string> = {
   other_phone: "otherPhone",
   other_email: "otherEmail",
   parent_email: "parentEmail",
+  parent_other_phone: "parentOtherPhone",
+  bank_name: "bankName",
+  account_number: "accountNumber",
+  account_holder: "accountHolder",
+  father_email: "fatherEmail",
+  father_occupation: "fatherOccupation",
+  mother_email: "motherEmail",
+  mother_occupation: "motherOccupation",
+  advertising_channel: "advertisingChannel",
+  conversion_potential: "potential",
+
   father_name: "fatherName",
   father_phone: "fatherPhone",
   mother_name: "motherName",
@@ -56,6 +67,17 @@ function readFields(student: StudentDto): Record<string, unknown> {
     other_phone: student.otherPhone,
     other_email: student.otherEmail,
     parent_email: student.parentEmail,
+    parent_other_phone: student.parentOtherPhone,
+    bank_name: student.bankName,
+    account_number: student.accountNumber,
+    account_holder: student.accountHolder,
+    father_email: student.fatherEmail,
+    father_occupation: student.fatherOccupation,
+    mother_email: student.motherEmail,
+    mother_occupation: student.motherOccupation,
+    advertising_channel: student.advertisingChannel,
+    conversion_potential: student.potential,
+
     father_name: student.fatherName,
     father_phone: student.fatherPhone,
     mother_name: student.motherName,
@@ -78,6 +100,7 @@ function readFields(student: StudentDto): Record<string, unknown> {
     admission_year: student.admissionYear,
     alt_name: student.parentName,
     alt_phone: student.parentPhone,
+    alt_address: student.contactAddress,
     notes: student.notes,
     id_number: student.idNumber,
     id_issued_date: student.idIssuedDate,
@@ -103,6 +126,23 @@ export async function nestUpdateStudent(
   id: string,
   fields: Record<string, unknown>,
 ) {
+  const unsupported = Object.keys(fields).filter(
+    (field) => !Object.hasOwn(WRITE_FIELDS, field),
+  );
+  if (unsupported.length) {
+    throw new NestApiError(
+      400,
+      "UNSUPPORTED_STUDENT_FIELD",
+      `Các trường chưa được hỗ trợ: ${unsupported.join(", ")}.`,
+    );
+  }
+  if (!Object.values(fields).some((value) => value !== undefined)) {
+    throw new NestApiError(
+      400,
+      "INVALID_FIELDS",
+      "Vui lòng thay đổi ít nhất một trường.",
+    );
+  }
   const current = await nestRequest<Envelope<StudentDto>>(path(id));
   const body: Record<string, unknown> = {
     expectedRevision: current.data.revision,
@@ -110,9 +150,8 @@ export async function nestUpdateStudent(
   const applied: Record<string, unknown> = {};
   for (const [field, value] of Object.entries(fields)) {
     const key = WRITE_FIELDS[field];
-    if (!key) continue; // e.g. bank account fields are not stored here
-    if (value === null || value === "") continue; // clearing is not supported
-    body[key] = value;
+    if (value === undefined) continue;
+    body[key] = value === "" ? null : value;
     applied[field] = value;
   }
   const updated = await nestRequest<Envelope<StudentDto>>(path(id), {
@@ -126,7 +165,9 @@ export async function nestUpdateStudent(
     updated_fields: Object.fromEntries(
       Object.keys(applied).map((field) => [
         field,
-        next[field] ?? applied[field],
+        field in next && next[field] !== undefined
+          ? next[field]
+          : applied[field],
       ]),
     ),
   };

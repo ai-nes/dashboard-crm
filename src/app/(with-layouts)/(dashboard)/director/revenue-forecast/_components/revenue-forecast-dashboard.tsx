@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/tailgrids/core/skeleton";
 
 export default function RevenueForecastDashboard() {
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["director-revenue-forecast", "frappe-v1"],
+    queryKey: ["director-revenue-forecast", "v1"],
     queryFn: getRevenueForecast,
   });
 

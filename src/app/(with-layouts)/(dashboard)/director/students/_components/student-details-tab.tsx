@@ -295,6 +295,7 @@ export default function StudentDetailsTab({
             isEditing={personalEditing}
             label="Tỉnh / thành phố"
             options={provinceOptions}
+            pagination={provinceOptionsQuery.pagination}
             isDisabled={
               provinceOptionsQuery.isLoading || provinceOptions.length === 0
             }
@@ -313,6 +314,7 @@ export default function StudentDetailsTab({
             isEditing={personalEditing}
             label="Phường / xã"
             options={wardOptions}
+            pagination={wardOptionsQuery.pagination}
             isDisabled={
               !personalForm.province ||
               wardOptionsQuery.isLoading ||
@@ -459,6 +461,7 @@ export default function StudentDetailsTab({
               setAcademicForm((form) => ({ ...form, aspiration: value }))
             }
             options={academicEditing ? aspirationOptions : undefined}
+            pagination={aspirationOptionsQuery.pagination}
             value={
               academicEditing
                 ? academicForm.aspiration

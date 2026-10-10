@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { toSegmentListItem } from "./segment-list-types";
 
 describe("segment list mapping", () => {
-  it("uses the backend segment code instead of the Frappe document name", () => {
+  it("uses the backend segment code instead of the document name", () => {
     const result = toSegmentListItem({
       name: "a1b2c3d4",
       segment_code: "SEG-260909-7K4P2Q",

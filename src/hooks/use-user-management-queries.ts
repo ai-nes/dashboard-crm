@@ -7,6 +7,7 @@ import {
   type UseQueryOptions,
   type UseQueryResult,
 } from "@tanstack/react-query";
+import { AUTH_QUERY_KEY } from "@/components/common/auth/auth-provider";
 
 import {
   createCrmUser,
@@ -16,7 +17,6 @@ import {
   removeUser,
   updateCrmUserProfile,
   updatePermissionProfile,
-  updateUserCapacity,
   updateUserRole,
   type CreateCrmUserPayload,
   type ListCrmUsersParams,
@@ -28,7 +28,6 @@ import {
   type RemoveUserPayload,
   type UpdateCrmUserProfilePayload,
   type UpdatePermissionProfilePayload,
-  type UpdateUserCapacityPayload,
   type UpdateUserRolePayload,
 } from "@/services/api/user-management";
 
@@ -94,15 +93,6 @@ export function useUpdateCrmUserProfileMutation() {
   });
 }
 
-export function useUpdateUserCapacityMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: UpdateUserCapacityPayload) =>
-      updateUserCapacity(payload),
-    onSuccess: () => invalidateUsers(queryClient),
-  });
-}
-
 export function useUserRoleLogsQuery(
   params: ListUserRoleLogsParams = {},
   options?: Omit<
@@ -138,9 +128,11 @@ export function useUpdatePermissionProfileMutation() {
   return useMutation({
     mutationFn: (payload: UpdatePermissionProfilePayload) =>
       updatePermissionProfile(payload),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
+      await queryClient.invalidateQueries({
         queryKey: ["user-management", "permission-profiles"],
-      }),
+      });
+    },
   });
 }

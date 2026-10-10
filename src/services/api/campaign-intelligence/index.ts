@@ -7,16 +7,11 @@ import type {
   LeadStatusBreakdown,
   LeadStatusFilter,
 } from "./types";
-import {
-  NestApiError,
-  isNestApiEnabled,
-  nestRequest,
-} from "../nest/nest-client";
-
-const METHOD =
-  "crm.api.director_campaign_intelligence.get_director_campaign_intelligence";
+import { NestApiError, nestRequest } from "../nest/nest-client";
 
 export type * from "./types";
+
+const CAMPAIGNS_PATH = "/api/v1/director/campaign-intelligence";
 
 export class CampaignIntelligenceApiError extends Error {
   constructor(
@@ -51,21 +46,6 @@ function displayChannel(value: unknown): string {
   if (normalized.includes("tiktok")) return "TikTok";
   if (normalized.includes("zalo")) return "Zalo";
   return channel;
-}
-
-function getError(payload: unknown): { code?: string; message?: string } {
-  const root = asRecord(payload);
-  const error =
-    asRecord(root?.error) ?? asRecord(asRecord(root?.message)?.error);
-  return {
-    code: typeof error?.code === "string" ? error.code : undefined,
-    message:
-      typeof error?.message === "string"
-        ? error.message
-        : typeof root?.message === "string"
-          ? root.message
-          : undefined,
-  };
 }
 
 function normalizeCampaign(row: unknown): CampaignRecord | null {
@@ -247,69 +227,12 @@ async function requestNestCampaignData(
   }
 }
 
-async function requestCampaignData(
-  method: string,
-  params: CampaignScopeParams | CampaignLeadsParams,
-  signal?: AbortSignal,
-): Promise<unknown> {
-  if (isNestApiEnabled()) {
-    return requestNestCampaignData(
-      method.endsWith("get_campaign_leads")
-        ? "/api/v1/director/campaign-intelligence/leads"
-        : "/api/v1/director/campaign-intelligence",
-      params,
-      signal,
-    );
-  }
-  const baseUrl = (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
-    /\/+$/,
-    "",
-  );
-  if (!baseUrl)
-    throw new CampaignIntelligenceApiError(
-      0,
-      "FRAPPE_URL_MISSING",
-      "Chưa cấu hình địa chỉ Frappe CRM API.",
-    );
-  let response: Response;
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") query.set(key, String(value));
-  }
-  const suffix = query.size ? `?${query}` : "";
-  try {
-    response = await fetch(`${baseUrl}/api/method/${method}${suffix}`, {
-      headers: { Accept: "application/json" },
-      credentials: "include",
-      cache: "no-store",
-      ...(signal ? { signal } : {}),
-    });
-  } catch (error) {
-    if (signal?.aborted) throw error;
-    throw new CampaignIntelligenceApiError(
-      503,
-      "CAMPAIGN_INTELLIGENCE_DATA_UNAVAILABLE",
-      "Không thể kết nối tới dữ liệu campaign intelligence.",
-    );
-  }
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = getError(payload);
-    throw new CampaignIntelligenceApiError(
-      response.status,
-      error.code ?? "CAMPAIGN_INTELLIGENCE_DATA_UNAVAILABLE",
-      error.message ?? `Lỗi HTTP ${response.status}: ${response.statusText}`,
-    );
-  }
-  return asRecord(payload)?.message;
-}
-
 export async function getCampaignIntelligence(
   params: CampaignScopeParams = {},
   signal?: AbortSignal,
 ): Promise<CampaignIntelligenceResponse> {
   const data = normalizeResponse(
-    await requestCampaignData(METHOD, params, signal),
+    await requestNestCampaignData(CAMPAIGNS_PATH, params, signal),
   );
   if (!data)
     throw new CampaignIntelligenceApiError(
@@ -325,11 +248,7 @@ export async function getCampaignLeads(
   signal?: AbortSignal,
 ): Promise<CampaignLeadsResponse> {
   const data = asRecord(
-    await requestCampaignData(
-      "crm.api.director_campaign_intelligence.get_campaign_leads",
-      params,
-      signal,
-    ),
+    await requestNestCampaignData(`${CAMPAIGNS_PATH}/leads`, params, signal),
   );
   const invalid = () =>
     new CampaignIntelligenceApiError(

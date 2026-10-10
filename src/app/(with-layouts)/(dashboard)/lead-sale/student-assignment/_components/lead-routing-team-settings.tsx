@@ -8,9 +8,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectLabel,
 } from "@/components/tailgrids/core/select";
 import { Button } from "@/components/tailgrids/core/button";
+import LeadRoutingProvinceDialog from "./lead-routing-province-dialog";
 
 export type RoutingTeamOption = {
   id: string;
@@ -33,68 +33,81 @@ export default function LeadRoutingTeamSettings({
   isSaving,
   onChange,
 }: Props) {
-  const [newProvince, setNewProvince] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const provinces = [
     ...new Map(
       options.map((team) => [team.province, team.provinceLabel]),
     ).entries(),
   ];
-  const available = provinces.filter(([id]) => !(id in priorities));
-  const selected =
-    newProvince && available.some(([id]) => id === newProvince)
-      ? newProvince
-      : null;
+  const availableOptions = options.filter(
+    (team) => !(team.province in priorities),
+  );
 
   return (
-    <div className="space-y-3">
-      <h4 className="text-sm font-semibold text-text-primary">
-        Team ưu tiên theo tỉnh
-      </h4>
+    <div className="space-y-3 border-t border-card-border pt-4">
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="text-sm font-semibold text-text-primary">
+          Team ưu tiên theo tỉnh
+        </h4>
+        {canEdit && availableOptions.length > 0 && (
+          <Button
+            appearance="outline"
+            size="sm"
+            isDisabled={isSaving}
+            onPress={() => setIsAdding(true)}
+          >
+            Thêm tỉnh
+          </Button>
+        )}
+      </div>
       {Object.entries(priorities).map(([province, teamId]) => (
         <div
           key={province}
-          className="grid items-center gap-3 rounded-lg border border-card-border p-3 sm:grid-cols-[1fr_1fr_auto]"
+          className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg bg-background-gray-secondary/60 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]"
         >
           <span className="text-sm text-text-primary">
             {provinces.find(([id]) => id === province)?.[1] ?? province}
           </span>
-          {canEdit ? (
-            <Select
-              value={teamId}
-              isDisabled={isSaving}
-              aria-label={`Team ưu tiên của ${province}`}
-              onChange={(value) => {
-                if (value)
-                  onChange({ ...priorities, [province]: String(value) });
-              }}
-            >
-              <SelectTrigger size="sm">
-                <SelectValue />
-                <SelectIndicator />
-              </SelectTrigger>
-              <SelectContent>
-                {options
-                  .filter((team) => team.province === province)
-                  .map((team) => (
-                    <SelectItem
-                      key={team.id}
-                      id={team.id}
-                      textValue={team.label}
-                    >
-                      {team.label}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <span className="text-sm text-text-secondary">
-              {options.find((team) => team.id === teamId)?.label ?? teamId}
-            </span>
-          )}
+          <div className="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:row-start-auto">
+            {canEdit ? (
+              <Select
+                value={teamId}
+                isDisabled={isSaving}
+                aria-label={`Team ưu tiên của ${province}`}
+                onChange={(value) => {
+                  if (value)
+                    onChange({ ...priorities, [province]: String(value) });
+                }}
+              >
+                <SelectTrigger size="sm">
+                  <SelectValue />
+                  <SelectIndicator />
+                </SelectTrigger>
+                <SelectContent>
+                  {options
+                    .filter((team) => team.province === province)
+                    .map((team) => (
+                      <SelectItem
+                        key={team.id}
+                        id={team.id}
+                        textValue={team.label}
+                      >
+                        {team.label}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span className="text-sm text-text-secondary">
+                {options.find((team) => team.id === teamId)?.label ?? teamId}
+              </span>
+            )}
+          </div>
           {canEdit && (
             <Button
               appearance="ghost"
               size="sm"
+              className="col-start-2 row-start-1 sm:col-start-auto sm:row-start-auto"
               isDisabled={isSaving}
               aria-label={`Bỏ team ưu tiên của ${province}`}
               onPress={() => {
@@ -113,42 +126,21 @@ export default function LeadRoutingTeamSettings({
           Chưa chọn team ưu tiên. Lead thuộc tỉnh chưa cấu hình sẽ chờ xử lý.
         </p>
       )}
-      {canEdit && available.length > 0 && (
-        <div className="grid items-end gap-3 sm:grid-cols-[1fr_auto]">
-          <Select
-            value={selected ?? ""}
-            placeholder="Chọn tỉnh/thành phố"
-            isDisabled={isSaving}
-            onChange={(value) => setNewProvince(value ? String(value) : null)}
-          >
-            <SelectLabel>Thêm tỉnh</SelectLabel>
-            <SelectTrigger size="sm">
-              <SelectValue />
-              <SelectIndicator />
-            </SelectTrigger>
-            <SelectContent>
-              {available.map(([id, label]) => (
-                <SelectItem key={id} id={id} textValue={label}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            appearance="outline"
-            size="sm"
-            isDisabled={isSaving || !selected}
-            onPress={() => {
-              const team = options.find((entry) => entry.province === selected);
-              if (team) {
-                onChange({ ...priorities, [team.province]: team.id });
-                setNewProvince(null);
-              }
-            }}
-          >
-            Thêm tỉnh
-          </Button>
-        </div>
+      {canEdit && isAdding && (
+        <LeadRoutingProvinceDialog
+          options={availableOptions}
+          isSaving={isSaving}
+          onClose={() => setIsAdding(false)}
+          onAdd={(team) => {
+            if (
+              isSaving ||
+              !availableOptions.some((option) => option.id === team.id)
+            )
+              return;
+            onChange({ ...priorities, [team.province]: team.id });
+            setIsAdding(false);
+          }}
+        />
       )}
       {canEdit && !options.length && (
         <p className="text-sm text-text-tertiary">

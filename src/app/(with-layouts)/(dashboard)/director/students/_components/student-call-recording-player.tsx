@@ -4,6 +4,7 @@ import { Play, Volume1 } from "@tailgrids/icons";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/tailgrids/core/button";
+import { readApiUrl } from "@/services/api/nest/nest-client";
 import type { StudentCallRecord } from "@/services/api/students/types";
 
 interface StudentCallRecordingPlayerProps {
@@ -20,13 +21,8 @@ function resolveAudioUrl(url?: string): string | undefined {
   ) {
     return url;
   }
-  const frappeBase = (process.env.NEXT_PUBLIC_FRAPPE_URL ?? "").replace(
-    /\/+$/,
-    "",
-  );
-  return frappeBase
-    ? `${frappeBase}${url.startsWith("/") ? "" : "/"}${url}`
-    : url;
+  const apiBase = readApiUrl();
+  return apiBase ? `${apiBase}${url.startsWith("/") ? "" : "/"}${url}` : url;
 }
 
 export default function StudentCallRecordingPlayer({

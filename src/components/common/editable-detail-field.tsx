@@ -10,9 +10,9 @@ import {
 
 import { DatePickerField } from "@/components/common/date-picker-field";
 import { DropdownField } from "@/components/common/dropdown-field";
-import { useInfinityScroll } from "@/hooks/use-infinity-scroll";
 import { Input } from "@/components/tailgrids/core/input";
 import { cn } from "@/utils/cn";
+import type { ScrollToLoadMoreOptions } from "@/hooks/use-scroll-to-load-more";
 
 export interface EditableDetailOption {
   id: string;
@@ -29,7 +29,7 @@ interface EditableDetailFieldProps {
   readOnly?: boolean;
   isDisabled?: boolean;
   options?: EditableDetailOption[];
-  optionsPageSize?: number;
+  pagination?: ScrollToLoadMoreOptions;
   searchable?: boolean;
   searchPlaceholder?: string;
   dropdownClassName?: string;
@@ -51,7 +51,7 @@ export function EditableDetailField({
   readOnly = false,
   isDisabled = false,
   options,
-  optionsPageSize,
+  pagination,
   searchable = false,
   searchPlaceholder = "Tìm kiếm...",
   dropdownClassName,
@@ -74,21 +74,6 @@ export function EditableDetailField({
       `${option.label} ${option.id}`.toLocaleLowerCase("vi-VN").includes(query),
     );
   }, [deferredOptionsQuery, optionItems]);
-  const { visibleItems, hasMore, sentinelRef } = useInfinityScroll(
-    filteredOptionItems,
-    {
-      enabled: Boolean(options) && isEditing && !readOnly,
-      getItemKey: (option) => option.id,
-      pageSize: optionsPageSize,
-    },
-  );
-  const selectedOption =
-    !deferredOptionsQuery.trim() &&
-    optionItems.find((option) => option.id === value);
-  const renderedOptions =
-    selectedOption && !visibleItems.some((option) => option.id === value)
-      ? [selectedOption, ...visibleItems]
-      : visibleItems;
 
   return (
     <div className={cn("min-w-0", className)}>
@@ -96,10 +81,11 @@ export function EditableDetailField({
       {isEditing && !readOnly && onChange ? (
         options ? (
           <DropdownField
-            options={renderedOptions}
+            options={filteredOptionItems}
+            pagination={pagination}
             ariaLabel={label}
             className="mt-1.5"
-            contentClassName={cn("max-h-36", dropdownClassName)}
+            contentClassName={dropdownClassName}
             filterOptions={false}
             isDisabled={isDisabled}
             isSearchable={searchable}
@@ -107,30 +93,9 @@ export function EditableDetailField({
             onSearchChange={setOptionsQuery}
             placeholder={placeholder ?? "Chọn giá trị"}
             searchPlaceholder={searchPlaceholder}
-            renderOption={(option, { isSelected }) => {
-              const index = renderedOptions.findIndex(
-                (item) => item.id === option.id,
-              );
-              return (
-                <span
-                  ref={
-                    hasMore && index === renderedOptions.length - 1
-                      ? sentinelRef
-                      : undefined
-                  }
-                  className={cn(
-                    "block min-w-0 truncate",
-                    isSelected && "font-medium text-text-primary",
-                  )}
-                >
-                  {option.label}
-                </span>
-              );
-            }}
             selectedLabel={
               optionItems.find((option) => option.id === value)?.label
             }
-            triggerClassName="h-9 min-w-0 px-3 py-2 text-sm"
             value={value || undefined}
           />
         ) : type === "date" ? (
