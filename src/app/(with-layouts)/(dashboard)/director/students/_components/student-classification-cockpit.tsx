@@ -21,7 +21,7 @@ import StudentContactInsightsCard from "./student-contact-insights-card";
 import StudentPositiveFeedbackCard from "./student-positive-feedback-card";
 import StudentRecentInteractionsCard from "./student-recent-interactions-card";
 import StudentSentimentGaugeCard from "./student-sentiment-gauge-card";
-import StudentAiPanel from "./student-ai-panel";
+import StudentNextBestActions from "./student-next-best-actions";
 import type { StudentScoreBreakdown } from "./student-score-breakdown";
 import type { Student360SectionProps } from "./types";
 
@@ -40,10 +40,10 @@ export default function StudentClassificationCockpit({
   const [isHealthOpen, setIsHealthOpen] = useState(true);
   const [isAskDialogOpen, setIsAskDialogOpen] = useState(false);
   const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
+  const [nbaCount, setNbaCount] = useState(0);
 
   const {
     run,
-    overview,
     request,
     requestMutation,
     query: runQuery,
@@ -102,13 +102,13 @@ export default function StudentClassificationCockpit({
           {
             id: "next-actions",
             label: "Hành động tiếp theo",
-            badge: overview?.analysis?.nba.items.length || undefined,
+            badge: nbaCount || undefined,
             content: (
-              <StudentAiPanel
+              <StudentNextBestActions
+                data={data}
                 studentId={analysisTargetId}
-                overview={overview}
-                isActive={isAnalysisActive}
-                onAnalyze={handleAnalysisRequest}
+                isAnalysisActive={isAnalysisActive}
+                onActionsCountChange={setNbaCount}
               />
             ),
           },

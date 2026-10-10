@@ -87,7 +87,7 @@ export function isDecisionPermitted(
   recommendation: NbaRecommendation,
   operation: NbaDecisionOperation,
 ): boolean {
-  if (recommendation.permittedDecisions.length === 0) return true;
+  if (recommendation.permittedDecisions.length === 0) return false;
   const permitted = recommendation.permittedDecisions.map((value) =>
     value.toLowerCase(),
   );

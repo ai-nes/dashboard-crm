@@ -11,6 +11,8 @@ export interface LeadRoutingLayer {
 }
 
 export interface LeadRoutingPolicy {
+  routingMode?: LeadRoutingLayerKey;
+  provinceTeamPriority?: Record<string, string>;
   enabled: boolean;
   layers: LeadRoutingLayer[];
   layerOrder: LeadRoutingLayerKey[];
@@ -32,6 +34,9 @@ export interface LeadRoutingPolicyResponse {
 }
 
 export interface UpdateLeadRoutingPolicyRequest {
+  capacityRequired?: boolean;
+  routingMode?: LeadRoutingLayerKey;
+  provinceTeamPriority?: Record<string, string>;
   enabled: boolean;
   layerOrder: LeadRoutingLayerKey[];
   campaignLayerEnabled: boolean;
@@ -111,6 +116,15 @@ export function normalizeLeadRoutingPolicy(value: unknown): LeadRoutingPolicy {
       ? "round_robin"
       : "least_load";
   return {
+    routingMode:
+      normalizeLayerKey(source.routingMode) ??
+      layers.find((layer) => layer.enabled)?.key ??
+      "group",
+    provinceTeamPriority: Object.fromEntries(
+      Object.entries(asRecord(source.provinceTeamPriority) ?? {}).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    ),
     enabled: boolean(source.enabled),
     layers,
     layerOrder,
@@ -176,6 +190,9 @@ export async function updateLeadRoutingPolicy(
       groupLayerEnabled: request.groupLayerEnabled,
       globalLayerEnabled: request.globalLayerEnabled,
       distributionStrategy: request.distributionStrategy,
+      capacityRequired: request.capacityRequired,
+      routingMode: request.routingMode,
+      provinceTeamPriority: request.provinceTeamPriority,
       reason: request.reason,
     }),
   );

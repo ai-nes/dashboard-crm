@@ -1,0 +1,73 @@
+name: AI-NES CI/CD (Nest)
+
+on:
+  push:
+    branches:
+      - main-nest
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-nes-nest-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_PUBLIC_CRM_API_URL: https://api.faip.pro
+
+jobs:
+  ci:
+    name: Kiểm tra và build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Thiết lập Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Cài dependencies
+        run: npm ci
+
+      - name: Kiểm tra lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build production
+        run: npm run build
+
+  cd:
+    name: Phát hành qua Vercel
+    needs: ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Thiết lập Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Deploy Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Thiếu VERCEL_TOKEN, VERCEL_ORG_ID hoặc VERCEL_PROJECT_ID."
+            exit 1
+          fi
+
+          npm install --global vercel@latest
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

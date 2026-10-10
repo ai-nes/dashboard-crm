@@ -23,6 +23,12 @@ export type LeadAssignmentWorkflowClassificationSettings = {
 };
 
 export type LeadAssignmentWorkflowMatchingSettings = {
+  teamOptions?: {
+    id: string;
+    label: string;
+    province: string;
+    provinceLabel: string;
+  }[];
   routingPolicy: LeadRoutingPolicy;
   noEligibleOutcome: "review";
 };
@@ -86,6 +92,9 @@ export type LeadAssignmentWorkflowReviewUpdate = Partial<
   Pick<LeadAssignmentWorkflowReviewSettings, "maxRetries">
 >;
 export type LeadAssignmentWorkflowMatchingUpdate = {
+  capacityRequired?: boolean;
+  routingMode?: "global" | "group" | "campaign";
+  provinceTeamPriority?: Record<string, string>;
   enabled?: boolean;
   layerOrder?: string[];
   campaignLayerEnabled?: boolean;
@@ -188,6 +197,23 @@ function normalizeSettings(
       return { enabled: boolean(source.enabled, true) };
     case "matching":
       return {
+        teamOptions: Array.isArray(source.teamOptions)
+          ? source.teamOptions.flatMap((value) => {
+              const row = asRecord(value);
+              return row &&
+                typeof row.id === "string" &&
+                typeof row.province === "string"
+                ? [
+                    {
+                      id: row.id,
+                      label: text(row.label, row.id),
+                      province: row.province,
+                      provinceLabel: text(row.provinceLabel, row.province),
+                    },
+                  ]
+                : [];
+            })
+          : [],
         routingPolicy: policy,
         noEligibleOutcome: "review",
       };

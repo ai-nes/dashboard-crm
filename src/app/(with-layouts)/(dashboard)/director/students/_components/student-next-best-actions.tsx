@@ -1,7 +1,7 @@
 "use client";
 
 import { InfoTriangle } from "@tailgrids/icons";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -36,12 +36,14 @@ interface StudentNextBestActionsProps {
   data: Student360Data;
   studentId: string;
   onActionsCountChange?: (count: number) => void;
+  isAnalysisActive?: boolean;
 }
 
 export default function StudentNextBestActions({
   data,
   studentId,
   onActionsCountChange,
+  isAnalysisActive = false,
 }: StudentNextBestActionsProps) {
   const router = useRouter();
   const studentStage = data.student.studentStage;
@@ -62,9 +64,17 @@ export default function StudentNextBestActions({
   >({});
   const query = useStudentNbaWorklistQuery(studentId, {
     enabled: Boolean(studentId.trim()),
+    refetchInterval: isAnalysisActive ? 3000 : false,
   });
   const decisionMutation = useDecideNbaRecommendation();
   const runMutation = useRunStudentNbaEvaluation();
+  const refetchWorklist = query.refetch;
+  const wasAnalysisActive = useRef(isAnalysisActive);
+
+  useEffect(() => {
+    if (wasAnalysisActive.current && !isAnalysisActive) void refetchWorklist();
+    wasAnalysisActive.current = isAnalysisActive;
+  }, [isAnalysisActive, refetchWorklist]);
 
   useEffect(() => {
     if (!query.error) return;
@@ -77,7 +87,7 @@ export default function StudentNextBestActions({
   const worklistActions = useMemo(
     // The endpoint applies the student filter and resolves legacy Lead
     // ids to the canonical CRM Student id before returning this list.
-    () => (nbaBlocked ? [] : query.data?.items ?? []),
+    () => (nbaBlocked ? [] : (query.data?.items ?? [])),
     [query.data?.items, nbaBlocked],
   );
   const actions = useMemo(() => {
@@ -120,29 +130,39 @@ export default function StudentNextBestActions({
     if (!decisionMutation.isPending) setDecision(null);
   };
 
-	const runNba = async () => {
-		try {
-			const result = await runMutation.mutateAsync({ studentId });
-			const normalizedStatus = result.status.trim().toLowerCase();
-			if (normalizedStatus === "failed" || normalizedStatus === "dead_lettered") {
-				const message = formatNbaEvaluationFailure(result.terminalReason);
-				setPostRecommendations(null);
-				toast.error("Không thể tạo đề xuất NBA", { description: message });
-				return;
-			}
-			const refreshed = await query.refetch();
-			// The run endpoint is already scoped to this one requested student. Its
-			// recommendation target uses the canonical CRM Student id, which may
-			// differ from the legacy Lead id used by the detail route. If the
-			// inline read-back is unavailable, use the permission-filtered worklist
-			// returned by the same server-side scope instead of hiding new rows.
-			const recommendations =
-				result.recommendations.length > 0
-					? result.recommendations
-					: result.recommendationCount > 0
-						? refreshed.data?.items ?? []
-						: [];
-			setPostRecommendations(recommendations);
+  const runNba = async () => {
+    try {
+      const result = await runMutation.mutateAsync({ studentId });
+      const normalizedStatus = result.status.trim().toLowerCase();
+      if (normalizedStatus === "queued" || normalizedStatus === "running") {
+        setPostRecommendations(null);
+        toast.success(
+          "Đã yêu cầu đánh giá NBA. Đề xuất sẽ được cập nhật khi phân tích hoàn tất.",
+        );
+        return;
+      }
+      if (
+        normalizedStatus === "failed" ||
+        normalizedStatus === "dead_lettered"
+      ) {
+        const message = formatNbaEvaluationFailure(result.terminalReason);
+        setPostRecommendations(null);
+        toast.error("Không thể tạo đề xuất NBA", { description: message });
+        return;
+      }
+      const refreshed = await query.refetch();
+      // The run endpoint is already scoped to this one requested student. Its
+      // recommendation target uses the canonical CRM Student id, which may
+      // differ from the legacy Lead id used by the detail route. If the
+      // inline read-back is unavailable, use the permission-filtered worklist
+      // returned by the same server-side scope instead of hiding new rows.
+      const recommendations =
+        result.recommendations.length > 0
+          ? result.recommendations
+          : result.recommendationCount > 0
+            ? (refreshed.data?.items ?? [])
+            : [];
+      setPostRecommendations(recommendations);
 
       if (recommendations.length > 0 || result.recommendationCount > 0) {
         toast.success("Đã tạo đề xuất NBA cho học sinh.");
@@ -218,17 +238,12 @@ export default function StudentNextBestActions({
 
   return (
     <>
-      <section
-        aria-labelledby="next-best-actions-heading"
-        className="min-w-0"
-      >
+      <section aria-labelledby="next-best-actions-heading" className="min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-          </div>
+          <div className="min-w-0"></div>
           <div className="flex shrink-0 items-center gap-2">
             {studentStage && (
-              <span className="rounded-full border border-card-border bg-background-gray-secondary px-2.5 py-1 text-xs font-semibold text-text-secondary">
-              </span>
+              <span className="rounded-full border border-card-border bg-background-gray-secondary px-2.5 py-1 text-xs font-semibold text-text-secondary"></span>
             )}
             <Button
               variant="primary"
@@ -239,10 +254,13 @@ export default function StudentNextBestActions({
                 nbaBlocked ||
                 query.isFetching ||
                 runMutation.isPending ||
+                isAnalysisActive ||
                 decisionMutation.isPending
               }
             >
-              {runMutation.isPending ? "Đang tạo gợi ý…" : "Gợi ý hành động"}
+              {runMutation.isPending || isAnalysisActive
+                ? "Đang tạo gợi ý…"
+                : "Gợi ý hành động"}
             </Button>
           </div>
         </div>
@@ -252,8 +270,8 @@ export default function StudentNextBestActions({
             className="mt-4 rounded-lg border border-card-border bg-background-gray-secondary px-3 py-2.5 text-xs leading-5 text-text-secondary"
             role="status"
           >
-            Student stage <strong>{studentStage}</strong> là terminal; hiện không
-            phát sinh NBA mới.
+            Student stage <strong>{studentStage}</strong> là terminal; hiện
+            không phát sinh NBA mới.
           </div>
         )}
 

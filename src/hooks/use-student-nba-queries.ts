@@ -45,6 +45,7 @@ export function useDecideNbaRecommendation() {
     mutationFn: (request) => decideNbaRecommendation(request),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: studentNbaKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["student-ai"] });
     },
   });
 }
@@ -55,11 +56,12 @@ export function useRunStudentNbaEvaluation() {
   return useMutation<
     NbaEvaluationRunResponse,
     Error,
-    { studentId: string; forceRerunReason?: string }
+    { studentId: string; forceRerunReason?: string; idempotencyKey?: string }
   >({
     mutationFn: (request) => runStudentNbaEvaluation(request),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: studentNbaKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["student-ai"] });
     },
   });
 }

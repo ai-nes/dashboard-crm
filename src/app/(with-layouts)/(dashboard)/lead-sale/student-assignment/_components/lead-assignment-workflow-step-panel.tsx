@@ -1,13 +1,9 @@
 "use client";
 
-import { InfiniteSelectInput } from "@/components/common/infinite-select-input";
-
-import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react";
 import { InfoCircle, Locked3 } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import {
-  Card,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -18,18 +14,16 @@ import { Toggle } from "@/components/tailgrids/core/toggle";
 import { cn } from "@/utils/cn";
 import type {
   LeadAssignmentWorkflowInputSettings,
+  LeadAssignmentWorkflowMatchingSettings,
   LeadAssignmentWorkflowReviewSettings,
   LeadAssignmentWorkflowStepSnapshot,
-  LeadRoutingLayer,
-  LeadRoutingLayerKey,
   LeadRoutingPolicy,
-  LeadRoutingStrategy,
 } from "@/services/api/lead-sale";
 import type {
   StepId,
   WorkflowStep,
 } from "../../_shared/student-assignment/types";
-import LeadRoutingLayerRow from "./lead-routing-layer-row";
+import LeadRoutingSettings from "./lead-routing-settings";
 
 type Props = {
   step: WorkflowStep;
@@ -43,17 +37,6 @@ type Props = {
   onSave: () => void;
 };
 
-const strategyLabels: Record<LeadRoutingStrategy, string> = {
-  least_load: "Cân bằng theo tải (khuyến nghị)",
-  round_robin: "Luân phiên theo lượt",
-};
-
-const layerLabels: Record<LeadRoutingLayerKey, string> = {
-  campaign: "Theo chiến dịch",
-  group: "Theo Team Group/tỉnh",
-  global: "Chia đều trong campus",
-};
-
 function isEditable(stepId: StepId): boolean {
   return (
     stepId === "input" ||
@@ -65,7 +48,7 @@ function isEditable(stepId: StepId): boolean {
 
 function ReadOnlySetting({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-card-border bg-background-gray-secondary px-3 py-2.5">
+    <div className="border-b border-card-border py-3 last:border-b-0">
       <p className="text-xs text-text-tertiary">{label}</p>
       <p className="mt-1 text-sm font-medium text-text-primary">{value}</p>
     </div>
@@ -119,71 +102,25 @@ export default function LeadAssignmentWorkflowStepPanel({
     onSettingsChange({ ...settings, maxRetries });
   };
 
-  const updateMatching = (policy: LeadRoutingPolicy) => {
-    onSettingsChange({ routingPolicy: policy });
-  };
-
-  const matchingSettings = settings as {
-    routingPolicy: LeadRoutingPolicy;
-  };
-  const policy = matchingSettings.routingPolicy;
-  const layers = policy?.layers ?? [];
-
-  const reorderLayers = (sourceKey: unknown, targetKey: unknown) => {
-    if (
-      typeof sourceKey !== "string" ||
-      typeof targetKey !== "string" ||
-      !policy
-    )
-      return;
-    const sourceIndex = layers.findIndex((layer) => layer.key === sourceKey);
-    const targetIndex = layers.findIndex((layer) => layer.key === targetKey);
-    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex)
-      return;
-    const nextLayers = layers.slice();
-    const [moved] = nextLayers.splice(sourceIndex, 1);
-    nextLayers.splice(targetIndex, 0, moved);
-    updateMatching({
-      ...policy,
-      layers: nextLayers.map((layer, index) => ({
-        ...layer,
-        priority: index + 1,
-      })),
-      layerOrder: nextLayers.map((layer) => layer.key),
-    });
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    if (event.canceled) return;
-    reorderLayers(
-      event.operation.source?.data.layerKey,
-      event.operation.target?.data.layerKey,
-    );
-  };
-
-  const toggleLayer = (key: LeadRoutingLayerKey, enabled: boolean) => {
-    if (!policy) return;
-    updateMatching({
-      ...policy,
-      layers: policy.layers.map((layer) =>
-        layer.key === key ? { ...layer, enabled } : layer,
-      ),
-    });
-  };
-
   return (
-    <Card className="h-full space-y-5">
+    <section
+      id="lead-assignment-step-detail"
+      aria-labelledby="lead-assignment-step-title"
+      className="min-w-0 space-y-6 p-5 lg:p-7"
+    >
       <CardHeader>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-lg">{step.title}</CardTitle>
+            <CardTitle id="lead-assignment-step-title" className="text-base">
+              {step.id === "matching" ? "Bước 4 · Điều phối Lead" : step.title}
+            </CardTitle>
             <Badge
               color={
                 configuration.canToggle
                   ? configuration.enabled
                     ? "success"
                     : "gray"
-                  : "primary"
+                  : "gray"
               }
             >
               {configuration.canToggle
@@ -193,8 +130,10 @@ export default function LeadAssignmentWorkflowStepPanel({
                 : "Bắt buộc bật"}
             </Badge>
           </div>
-          <CardDescription className="mt-1 text-sm">
-            {step.detail}
+          <CardDescription className="mt-2 max-w-2xl text-sm leading-6">
+            {step.id === "matching"
+              ? "Chọn chia đều cho toàn bộ Sales, theo team/tỉnh hoặc theo chiến dịch."
+              : step.detail}
           </CardDescription>
         </div>
       </CardHeader>
@@ -216,7 +155,7 @@ export default function LeadAssignmentWorkflowStepPanel({
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="space-y-1.5">
                   <span className="text-xs font-medium text-input-label-text">
-                    Chờ trước khi job tự động nhận (phút)
+                    Thời gian chờ tự động (phút)
                   </span>
                   <Input
                     type="number"
@@ -350,123 +289,20 @@ export default function LeadAssignmentWorkflowStepPanel({
         </div>
       )}
 
-      {step.id === "matching" && policy && (
-        <div className="space-y-4">
-          <LockedNotice />
-          <div className="space-y-3 rounded-lg border border-card-border p-3">
-            <div>
-              <h4 className="text-sm font-semibold text-text-primary">
-                Các lớp ưu tiên
-              </h4>
-              <p className="mt-1 text-xs leading-5 text-text-tertiary">
-                Kéo biểu tượng để đổi ưu tiên. Lớp đã khớp nhưng không có người
-                đủ điều kiện sẽ đi vào Cần lưu ý.
-              </p>
-            </div>
-            {canEdit ? (
-              <Toggle
-                label="Cơ chế phân bổ Lead"
-                checked={policy.enabled}
-                disabled={isSaving}
-                onChange={(event) =>
-                  updateMatching({ ...policy, enabled: event.target.checked })
-                }
-              />
-            ) : (
-              <ReadOnlySetting
-                label="Cơ chế phân bổ Lead"
-                value={policy.enabled ? "Đang bật" : "Đang tắt"}
-              />
-            )}
-            {canEdit ? (
-              <DragDropProvider onDragEnd={handleDragEnd}>
-                <div
-                  className="space-y-2"
-                  role="list"
-                  aria-label="Thứ tự lớp phân tuyến"
-                >
-                  {layers.map((layer: LeadRoutingLayer, index: number) => (
-                    <LeadRoutingLayerRow
-                      key={layer.key}
-                      layer={layer}
-                      index={index}
-                      canEdit
-                      isSaving={isSaving}
-                      onToggle={toggleLayer}
-                    />
-                  ))}
-                </div>
-              </DragDropProvider>
-            ) : (
-              <div
-                className="space-y-2"
-                role="list"
-                aria-label="Thứ tự lớp phân tuyến"
-              >
-                {layers.map((layer: LeadRoutingLayer, index: number) => (
-                  <div
-                    key={layer.key}
-                    role="listitem"
-                    className="flex items-center gap-3 rounded-lg border border-card-border bg-card-background px-3 py-2.5"
-                  >
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-badge-primary-background text-xs font-semibold text-badge-primary-text">
-                      {index + 1}
-                    </span>
-                    <span className="min-w-0 flex-1 text-sm font-medium text-text-primary">
-                      {layerLabels[layer.key]}
-                    </span>
-                    <Badge
-                      color={layer.enabled ? "success" : "gray"}
-                      className="text-[10px]"
-                    >
-                      {layer.enabled ? "Bật" : "Tắt"}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-            {canEdit ? (
-              <label className="space-y-1.5">
-                <span className="text-xs font-medium text-input-label-text">
-                  Thuật toán
-                </span>
-                <InfiniteSelectInput
-                  value={policy.distributionStrategy}
-                  disabled={isSaving}
-                  onChange={(event) =>
-                    updateMatching({
-                      ...policy,
-                      distributionStrategy: event.target
-                        .value as LeadRoutingStrategy,
-                    })
-                  }
-                  aria-label="Thuật toán phân bổ Lead"
-                  className="h-10 w-full rounded-lg border border-card-border bg-input-background px-3 text-sm text-text-primary outline-none focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {(Object.keys(strategyLabels) as LeadRoutingStrategy[]).map(
-                    (strategy) => (
-                      <option key={strategy} value={strategy}>
-                        {strategyLabels[strategy]}
-                      </option>
-                    ),
-                  )}
-                </InfiniteSelectInput>
-              </label>
-            ) : (
-              <ReadOnlySetting
-                label="Thuật toán"
-                value={strategyLabels[policy.distributionStrategy]}
-              />
-            )}
-            <p className="text-xs text-text-tertiary">
-              Đang bật:{" "}
-              {layers
-                .filter((layer) => layer.enabled)
-                .map((layer) => layerLabels[layer.key])
-                .join(" → ") || "Không có lớp nào"}
-            </p>
-          </div>
-        </div>
+      {step.id === "matching" && (
+        <LeadRoutingSettings
+          policy={
+            (settings as { routingPolicy: LeadRoutingPolicy }).routingPolicy
+          }
+          canEdit={canEdit}
+          isSaving={isSaving}
+          teamOptions={
+            (settings as LeadAssignmentWorkflowMatchingSettings).teamOptions
+          }
+          onChange={(routingPolicy) =>
+            onSettingsChange({ ...settings, routingPolicy })
+          }
+        />
       )}
 
       {step.id === "review" && (
@@ -524,31 +360,45 @@ export default function LeadAssignmentWorkflowStepPanel({
         </div>
       )}
 
-      {editable && (
+      {editable && isDirty && (
         <div className="space-y-2 border-t border-card-border pt-4">
           <label
             className="text-xs font-medium text-input-label-text"
             htmlFor={`workflow-reason-${step.id}`}
           >
-            Lý do thay đổi
+            Lý do thay đổi{" "}
+            <span className="font-normal text-text-secondary">
+              (bắt buộc · ít nhất 5 ký tự)
+            </span>
           </label>
           <TextArea
             id={`workflow-reason-${step.id}`}
+            required
+            minLength={5}
             value={reason}
             onChange={(event) => onReasonChange(event.target.value)}
             rows={2}
             disabled={isSaving}
-            placeholder="Ví dụ: Giảm giới hạn batch để kiểm soát tải xử lý"
+            placeholder={
+              step.id === "matching"
+                ? "Ví dụ: Ưu tiên phân Lead theo chiến dịch tuyển sinh"
+                : "Ví dụ: Giảm giới hạn batch để kiểm soát tải xử lý"
+            }
             className="px-3 py-2.5 text-sm"
           />
-          <Button
-            type="button"
-            size="sm"
-            isDisabled={!isDirty || isSaving || reason.trim().length < 5}
-            onPress={onSave}
-          >
-            {isSaving ? "Đang lưu…" : "Lưu và áp dụng"}
-          </Button>
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <p role="status" className="text-xs text-text-secondary">
+              Thay đổi chưa được áp dụng.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              isDisabled={!isDirty || isSaving || reason.trim().length < 5}
+              onPress={onSave}
+            >
+              {isSaving ? "Đang lưu…" : "Lưu và áp dụng"}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -563,6 +413,6 @@ export default function LeadAssignmentWorkflowStepPanel({
           Sale có quyền vận hành để thay đổi.
         </p>
       )}
-    </Card>
+    </section>
   );
 }

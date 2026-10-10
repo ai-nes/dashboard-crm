@@ -88,6 +88,75 @@ describe("lead assignment batch Nest transport", () => {
     ]);
   });
 
+  it.each([undefined, "all"] as const)(
+    "omits the UI-only history status %s from the Nest query",
+    async (status) => {
+      fetchMock.mockImplementation((url: string) => {
+        if (new URL(url).searchParams.has("status")) {
+          return json(
+            {
+              error: {
+                code: "INVALID_INPUT",
+                message: "The request is invalid.",
+              },
+            },
+            400,
+          );
+        }
+        return json({
+          data: { items: [], pagination: { page: 1, pageSize: 50, total: 0 } },
+        });
+      });
+      const api = await import("./lead-assignment-batch");
+      await expect(
+        api.listLeadAssignmentHistoryItems({ status }),
+      ).resolves.toMatchObject({ items: [] });
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(
+        "http://api.test/api/v1/lead-assignment-batches/history?page=1&limit=50",
+      );
+    },
+  );
+
+  it.each(["assigned", "issues", "manual_review"] as const)(
+    "preserves the history status filter %s and pagination",
+    async (status) => {
+      fetchMock.mockResolvedValue(
+        json({
+          data: {
+            items: [],
+            pagination: {
+              page: 2,
+              pageSize: 10,
+              total: 25,
+              totalPages: 3,
+              hasNextPage: true,
+            },
+          },
+        }),
+      );
+      const api = await import("./lead-assignment-batch");
+      await expect(
+        api.listLeadAssignmentHistoryItems({
+          status,
+          page: 2,
+          limit: 10,
+          q: " Lead ",
+          leadIds: ["lead-1", "lead-2"],
+        }),
+      ).resolves.toMatchObject({
+        pagination: { page: 2, total: 25, hasNextPage: true },
+      });
+      const query = new URL(fetchMock.mock.calls[0][0]).searchParams;
+      expect(Object.fromEntries(query)).toEqual({
+        page: "2",
+        limit: "10",
+        status,
+        q: "Lead",
+        leadIds: "lead-1,lead-2",
+      });
+    },
+  );
+
   it("sends a Nest run request with browser credentials", async () => {
     fetchMock.mockResolvedValue(
       json({

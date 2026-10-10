@@ -1002,7 +1002,7 @@ export async function listLeadAssignmentHistoryItems(
       query: {
         page: params.page ?? 1,
         limit: params.limit ?? 50,
-        status: params.status ?? "all",
+        status: params.status === "all" ? undefined : params.status,
         q: params.q?.trim() ?? "",
         leadIds: params.leadIds?.length ? params.leadIds.join(",") : undefined,
       },
