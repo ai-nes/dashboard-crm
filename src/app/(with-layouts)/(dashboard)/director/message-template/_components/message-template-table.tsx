@@ -27,6 +27,7 @@ interface MessageTemplateTableProps {
   templates: MessageTemplateRecord[];
   totalCount: number;
   canCreate?: boolean;
+  canUpdate?: boolean;
   canDelete?: boolean;
   isLoading?: boolean;
   onDuplicate: (template: MessageTemplateRecord) => void;
@@ -77,8 +78,9 @@ function MessageTemplateSkeletonRows() {
 export default function MessageTemplateTable({
   templates,
   totalCount,
-  canCreate = true,
-  canDelete = true,
+  canCreate = false,
+  canUpdate = false,
+  canDelete = false,
   isLoading = false,
   onDuplicate,
   onDelete,
@@ -91,7 +93,7 @@ export default function MessageTemplateTable({
     if (event.key !== "Enter" && event.key !== " ") return;
 
     event.preventDefault();
-    if (template.canEdit) onEdit(template);
+    if (canUpdate && template.canEdit) onEdit(template);
   };
 
   return (
@@ -126,14 +128,16 @@ export default function MessageTemplateTable({
           templates.map((template) => (
             <AdminTableRow
               key={template.id}
-              tabIndex={template.canEdit ? 0 : -1}
+              tabIndex={canUpdate && template.canEdit ? 0 : -1}
               aria-label={
-                template.canEdit ? `Chỉnh sửa ${template.name}` : template.name
+                canUpdate && template.canEdit
+                  ? `Chỉnh sửa ${template.name}`
+                  : template.name
               }
-              onClick={() => template.canEdit && onEdit(template)}
+              onClick={() => canUpdate && template.canEdit && onEdit(template)}
               onKeyDown={(event) => handleRowKeyDown(event, template)}
               className={
-                template.canEdit
+                canUpdate && template.canEdit
                   ? "cursor-pointer outline-none hover:bg-background-gray-secondary/30 focus-visible:bg-background-gray-secondary/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                   : "outline-none"
               }

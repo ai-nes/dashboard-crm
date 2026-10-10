@@ -17,6 +17,7 @@ const PAGE_SIZE = 8;
 interface MessageTemplateListProps {
   templates: MessageTemplateRecord[];
   canCreate?: boolean;
+  canUpdate?: boolean;
   canDelete?: boolean;
   currentUserId?: string;
   isLoading?: boolean;
@@ -50,8 +51,9 @@ function parsePage(value: string | null) {
 
 export default function MessageTemplateList({
   templates,
-  canCreate = true,
-  canDelete = true,
+  canCreate = false,
+  canUpdate = false,
+  canDelete = false,
   currentUserId,
   isLoading = false,
   onDuplicate,
@@ -198,6 +200,7 @@ export default function MessageTemplateList({
         templates={paginatedTemplates}
         totalCount={serverPagination?.total ?? scopedTemplates.length}
         canCreate={canCreate}
+        canUpdate={canUpdate}
         canDelete={canDelete}
         isLoading={isLoading}
         onDuplicate={onDuplicate}

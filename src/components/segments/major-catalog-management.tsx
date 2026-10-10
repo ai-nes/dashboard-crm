@@ -37,6 +37,7 @@ import type {
   MajorGroupOption,
   MajorOption,
 } from "@/services/api/major-catalog";
+import type { MajorCatalogPermissions } from "./student-configuration-permissions";
 
 import { AdmissionCatalogPanel } from "./admission-catalog-panel";
 import { CatalogOrderingPanel } from "./catalog-ordering-panel";
@@ -59,16 +60,24 @@ function statusLabel(value: StatusFilter): string {
 }
 
 export function MajorCatalogManagement({
-  canManage,
+  permissions,
   groupId,
   groupName,
   enabled = true,
 }: {
-  canManage: boolean;
+  permissions: MajorCatalogPermissions;
   groupId?: string;
   groupName?: string;
   enabled?: boolean;
 }) {
+  const canCreateGroup = permissions.majorGroups.canCreate;
+  const canUpdateGroup = permissions.majorGroups.canUpdate;
+  const canDeleteGroup = permissions.majorGroups.canDelete;
+  const canReadGroup = permissions.majorGroups.canRead;
+  const canCreateMajor = permissions.majors.canCreate;
+  const canUpdateMajor = permissions.majors.canUpdate;
+  const canDeleteMajor = permissions.majors.canDelete;
+  const canReadMajor = permissions.majors.canRead;
   const isGroupDetail = Boolean(groupId);
   const [groupSearch, setGroupSearch] = useState("");
   const deferredGroupSearch = useDeferredValue(groupSearch);
@@ -100,20 +109,20 @@ export function MajorCatalogManagement({
     enabled: groupStatus === "all" ? undefined : groupStatus === "enabled",
     start: (groupPage - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
-    queryEnabled: enabled,
+    queryEnabled: enabled && canReadGroup,
   });
   const groups = groupsQuery.data?.groups ?? [];
   const groupOptionsQuery = useMajorGroupsQuery({
     includeDisabled: true,
     start: 0,
     pageLength: 100,
-    queryEnabled: enabled,
+    queryEnabled: enabled && canReadGroup,
   });
   const groupOptions = groupOptionsQuery.data?.groups ?? groups;
   const enabledGroupCount = groupOptions.filter(
     (group) => group.enabled,
   ).length;
-  const canCreateMajor = groupId
+  const hasMajorGroupForCreate = groupId
     ? groupOptions.some((group) => group.id === groupId && group.enabled)
     : enabledGroupCount > 0;
   const majorsQuery = useMajorsQuery({
@@ -125,7 +134,7 @@ export function MajorCatalogManagement({
     isActive: majorStatus === "all" ? undefined : majorStatus === "enabled",
     start: (majorPage - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
-    enabled: enabled && isGroupDetail,
+    enabled: enabled && isGroupDetail && canReadMajor,
   });
   const majors = majorsQuery.data?.majors ?? [];
   const deleteGroupMutation = useDeleteMajorGroupMutation();
@@ -133,19 +142,21 @@ export function MajorCatalogManagement({
   const updateGroupMutation = useUpdateMajorGroupMutation();
 
   const openCreateGroup = () => {
+    if (!canCreateGroup) return;
     setSelectedGroupRecord(null);
     setEditorKey((current) => current + 1);
     setGroupEditorOpen(true);
   };
 
   const openEditGroup = (group: MajorGroupOption) => {
+    if (!canUpdateGroup) return;
     setSelectedGroupRecord(group);
     setEditorKey((current) => current + 1);
     setGroupEditorOpen(true);
   };
 
   const openCreateMajor = () => {
-    if (!canCreateMajor) {
+    if (!canCreateMajor || !hasMajorGroupForCreate) {
       toast.error("Hãy tạo hoặc bật một Major Group trước khi thêm ngành.");
       return;
     }
@@ -155,13 +166,14 @@ export function MajorCatalogManagement({
   };
 
   const openEditMajor = (major: MajorOption) => {
+    if (!canUpdateMajor) return;
     setSelectedMajorRecord(major);
     setEditorKey((current) => current + 1);
     setMajorEditorOpen(true);
   };
 
   const confirmDeleteGroup = async () => {
-    if (!groupToDelete) return;
+    if (!canDeleteGroup || !groupToDelete) return;
     try {
       await deleteGroupMutation.mutateAsync({
         name: groupToDelete.id,
@@ -176,7 +188,7 @@ export function MajorCatalogManagement({
   };
 
   const confirmDeleteMajor = async () => {
-    if (!majorToDelete) return;
+    if (!canDeleteMajor || !majorToDelete) return;
     try {
       await deleteMajorMutation.mutateAsync({
         name: majorToDelete.id,
@@ -191,6 +203,7 @@ export function MajorCatalogManagement({
   };
 
   const saveGroupOrder = async (items: readonly { id: string }[]) => {
+    if (!canUpdateGroup) return;
     const recordsById = new Map(groupOptions.map((group) => [group.id, group]));
     try {
       await Promise.all(
@@ -286,9 +299,9 @@ export function MajorCatalogManagement({
                 <Badge color="gray" size="sm">
                   {groupTotal} nhóm
                 </Badge>
-                {canManage && (
+                {(canUpdateGroup || canCreateGroup) && (
                   <>
-                    <Button
+                    {canUpdateGroup && <Button
                       size="sm"
                       appearance="outline"
                       isDisabled={
@@ -297,11 +310,11 @@ export function MajorCatalogManagement({
                       onPress={() => setIsOrderingGroups(true)}
                     >
                       Sắp xếp
-                    </Button>
-                    <Button size="sm" onPress={openCreateGroup}>
+                    </Button>}
+                    {canCreateGroup && <Button size="sm" onPress={openCreateGroup}>
                       <Plus size={16} aria-hidden="true" />
                       <span>Thêm nhóm ngành</span>
-                    </Button>
+                    </Button>}
                   </>
                 )}
               </div>
@@ -313,7 +326,7 @@ export function MajorCatalogManagement({
               showHeader={false}
               count={groupTotal}
               countLabel="nhóm"
-              canManage={canManage}
+              canCreate={canCreateGroup}
               createLabel="Thêm nhóm ngành"
               onCreate={openCreateGroup}
               isBusy={
@@ -324,7 +337,9 @@ export function MajorCatalogManagement({
               }
               contentClassName="flex flex-col overflow-hidden"
             >
-            {isOrderingGroups ? (
+            {!canReadGroup ? (
+              <CatalogReadDenied label="Major Group" />
+            ) : isOrderingGroups ? (
               groupOptionsQuery.isPending ? (
                 <CatalogLoading label="Đang tải danh sách để sắp xếp…" />
               ) : groupOptionsQuery.error ? (
@@ -371,9 +386,7 @@ export function MajorCatalogManagement({
                     ? "Thử đổi từ khóa hoặc trạng thái."
                     : "Tạo nhóm đầu tiên để thêm các ngành học con."
                 }
-                action={
-                  !groupHasFilter && canManage ? openCreateGroup : undefined
-                }
+                action={!groupHasFilter && canCreateGroup ? openCreateGroup : undefined}
               />
             ) : (
               <TableRoot fullBleed className="w-full min-w-[760px] border-0">
@@ -421,8 +434,7 @@ export function MajorCatalogManagement({
                       </TableCell>
                       <TableCell className="align-top">
                         <div className="flex justify-end gap-1">
-                          {canManage && (
-                            <>
+                          {canUpdateGroup && (
                               <Button
                                 aria-label={`Sửa ${group.name}`}
                                 iconOnly
@@ -432,6 +444,8 @@ export function MajorCatalogManagement({
                               >
                                 <Pencil1 size={16} aria-hidden="true" />
                               </Button>
+                          )}
+                          {canDeleteGroup && (
                               <Button
                                 aria-label={`Xóa ${group.name}`}
                                 iconOnly
@@ -442,7 +456,6 @@ export function MajorCatalogManagement({
                               >
                                 <Trash1 size={16} aria-hidden="true" />
                               </Button>
-                            </>
                           )}
                         </div>
                       </TableCell>
@@ -543,11 +556,11 @@ export function MajorCatalogManagement({
                 <Badge color="gray" size="sm">
                   {majorTotal} ngành
                 </Badge>
-                {canManage && (
+                {canCreateMajor && (
                   <Button
                     size="sm"
                     onPress={openCreateMajor}
-                    isDisabled={!canCreateMajor}
+                    isDisabled={!hasMajorGroupForCreate}
                   >
                     <Plus size={16} aria-hidden="true" />
                     <span>Thêm ngành</span>
@@ -562,10 +575,10 @@ export function MajorCatalogManagement({
               showHeader={false}
               count={majorTotal}
               countLabel="ngành"
-              canManage={canManage}
+              canCreate={canCreateMajor}
               createLabel="Thêm ngành"
               onCreate={openCreateMajor}
-              isCreateDisabled={!canCreateMajor}
+              isCreateDisabled={!hasMajorGroupForCreate}
               isBusy={
                 majorsQuery.isPending ||
                 deleteMajorMutation.isPending ||
@@ -573,7 +586,9 @@ export function MajorCatalogManagement({
               }
               contentClassName="flex flex-col overflow-hidden"
             >
-            {majorsQuery.isPending ? (
+            {!canReadMajor ? (
+              <CatalogReadDenied label="Major" />
+            ) : majorsQuery.isPending ? (
               <CatalogLoading label="Đang tải ngành học…" />
             ) : majorsQuery.error ? (
               <CatalogError
@@ -593,12 +608,12 @@ export function MajorCatalogManagement({
                 description={
                   majorHasFilter
                     ? "Thử đổi từ khóa, nhóm ngành hoặc trạng thái."
-                    : !canCreateMajor
+                    : !hasMajorGroupForCreate
                       ? "Tạo hoặc bật một Major Group trước khi thêm ngành."
                       : "Tạo ngành học đầu tiên để dùng trong hồ sơ tuyển sinh."
                 }
                 action={
-                  !majorHasFilter && canManage && canCreateMajor
+                  !majorHasFilter && canCreateMajor && hasMajorGroupForCreate
                     ? openCreateMajor
                     : undefined
                 }
@@ -648,8 +663,7 @@ export function MajorCatalogManagement({
                       </TableCell>
                       <TableCell className="align-top">
                         <div className="flex justify-end gap-1">
-                          {canManage && (
-                            <>
+                          {canUpdateMajor && (
                               <Button
                                 aria-label={`Sửa ${major.name}`}
                                 iconOnly
@@ -659,6 +673,8 @@ export function MajorCatalogManagement({
                               >
                                 <Pencil1 size={16} aria-hidden="true" />
                               </Button>
+                          )}
+                          {canDeleteMajor && (
                               <Button
                                 aria-label={`Xóa ${major.name}`}
                                 iconOnly
@@ -669,7 +685,6 @@ export function MajorCatalogManagement({
                               >
                                 <Trash1 size={16} aria-hidden="true" />
                               </Button>
-                            </>
                           )}
                         </div>
                       </TableCell>
@@ -694,8 +709,9 @@ export function MajorCatalogManagement({
 
       <MajorGroupEditorDialog
         key={`group-${editorKey}`}
-        isOpen={groupEditorOpen}
+        isOpen={groupEditorOpen && (selectedGroupRecord ? canUpdateGroup : canCreateGroup)}
         record={selectedGroupRecord}
+        canSave={selectedGroupRecord ? canUpdateGroup : canCreateGroup}
         onOpenChange={(open) => {
           setGroupEditorOpen(open);
           if (!open) setSelectedGroupRecord(null);
@@ -703,8 +719,9 @@ export function MajorCatalogManagement({
       />
       <MajorEditorDialog
         key={`major-${editorKey}`}
-        isOpen={majorEditorOpen}
+        isOpen={majorEditorOpen && (selectedMajorRecord ? canUpdateMajor : canCreateMajor)}
         record={selectedMajorRecord}
+        canSave={selectedMajorRecord ? canUpdateMajor : canCreateMajor}
         groups={groupOptions}
         defaultGroup={defaultMajorGroup}
         onOpenChange={(open) => {
@@ -713,7 +730,7 @@ export function MajorCatalogManagement({
         }}
       />
       <DeleteRecordDialog
-        isOpen={Boolean(groupToDelete)}
+        isOpen={Boolean(groupToDelete && canDeleteGroup)}
         recordType="nhóm ngành"
         recordName={groupToDelete?.name ?? ""}
         isDeleting={deleteGroupMutation.isPending}
@@ -728,7 +745,7 @@ export function MajorCatalogManagement({
         </p>
       </DeleteRecordDialog>
       <DeleteRecordDialog
-        isOpen={Boolean(majorToDelete)}
+        isOpen={Boolean(majorToDelete && canDeleteMajor)}
         recordType="ngành học"
         recordName={majorToDelete?.name ?? ""}
         isDeleting={deleteMajorMutation.isPending}
@@ -752,6 +769,17 @@ function CatalogLoading({ label }: { label: string }) {
         />
       ))}
     </div>
+  );
+}
+
+function CatalogReadDenied({ label }: { label: string }) {
+  return (
+    <section
+      className="rounded-xl border border-card-border bg-card-background p-5 text-sm text-text-secondary"
+      role="status"
+    >
+      Bạn không có quyền xem danh mục {label}.
+    </section>
   );
 }
 

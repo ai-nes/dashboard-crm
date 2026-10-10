@@ -19,6 +19,7 @@ export function ReferenceCatalogEditorDialog({
   description,
   isSaving,
   submitLabel,
+  canSubmit = true,
   onOpenChange,
   onSubmit,
   children,
@@ -28,6 +29,7 @@ export function ReferenceCatalogEditorDialog({
   description: string;
   isSaving: boolean;
   submitLabel: string;
+  canSubmit?: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   children: ReactNode;
@@ -56,9 +58,11 @@ export function ReferenceCatalogEditorDialog({
             <DialogClose appearance="outline" size="sm" isDisabled={isSaving}>
               Hủy
             </DialogClose>
-            <Button size="sm" type="submit" isDisabled={isSaving}>
-              {isSaving ? "Đang lưu..." : submitLabel}
-            </Button>
+            {canSubmit && (
+              <Button size="sm" type="submit" isDisabled={isSaving}>
+                {isSaving ? "Đang lưu..." : submitLabel}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </Dialog>

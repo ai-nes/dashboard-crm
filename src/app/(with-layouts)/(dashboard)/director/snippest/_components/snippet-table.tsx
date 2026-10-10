@@ -26,6 +26,8 @@ interface SnippetTableProps {
   snippets: SnippetRecord[];
   totalCount: number;
   canCreate?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
   isLoading?: boolean;
   onDuplicate: (snippet: SnippetRecord) => void;
   onDelete: (snippet: SnippetRecord) => void;
@@ -90,7 +92,9 @@ function SnippetSkeletonRow({ index }: { index: number }) {
 export default function SnippetTable({
   snippets,
   totalCount,
-  canCreate = true,
+  canCreate = false,
+  canUpdate = false,
+  canDelete = false,
   isLoading = false,
   onDuplicate,
   onDelete,
@@ -103,7 +107,7 @@ export default function SnippetTable({
     if (event.key !== "Enter" && event.key !== " ") return;
 
     event.preventDefault();
-    if (snippet.canEdit) onEdit(snippet);
+    if (canUpdate && snippet.canEdit) onEdit(snippet);
   };
 
   return (
@@ -148,16 +152,16 @@ export default function SnippetTable({
           : snippets.map((snippet) => (
               <TableRow
                 key={snippet.id}
-                tabIndex={snippet.canEdit ? 0 : -1}
+                tabIndex={canUpdate && snippet.canEdit ? 0 : -1}
                 aria-label={
-                  snippet.canEdit
+                  canUpdate && snippet.canEdit
                     ? `Chỉnh sửa ${snippet.internalName}`
                     : snippet.internalName
                 }
-                onClick={() => snippet.canEdit && onEdit(snippet)}
+                onClick={() => canUpdate && snippet.canEdit && onEdit(snippet)}
                 onKeyDown={(event) => handleRowKeyDown(event, snippet)}
                 className={
-                  snippet.canEdit
+                  canUpdate && snippet.canEdit
                     ? "cursor-pointer outline-none hover:bg-background-gray-secondary/30 focus-visible:bg-background-gray-secondary/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                     : "outline-none"
                 }
@@ -212,7 +216,7 @@ export default function SnippetTable({
                         <TooltipContent>Nhân bản</TooltipContent>
                       </Tooltip>
                     ) : null}
-                    {snippet.canEdit ? (
+                    {canDelete && snippet.canEdit ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button

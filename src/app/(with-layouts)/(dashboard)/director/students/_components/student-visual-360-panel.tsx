@@ -18,6 +18,7 @@ interface StudentVisual360PanelProps {
   scoreBreakdown?: StudentScoreBreakdown | null;
   isLoading: boolean;
   hasError: boolean;
+  canReadInteractions?: boolean;
 }
 
 export default function StudentVisual360Panel({
@@ -27,6 +28,7 @@ export default function StudentVisual360Panel({
   scoreBreakdown,
   isLoading,
   hasError,
+  canReadInteractions = false,
 }: StudentVisual360PanelProps) {
   if (selected === "interactions")
     return (
@@ -34,6 +36,7 @@ export default function StudentVisual360Panel({
         studentId={data.student.studentId}
         recentChanges={report?.recentChanges}
         isRefreshing={isLoading}
+        canReadInteractions={canReadInteractions}
       />
     );
   if (selected === "challenges")

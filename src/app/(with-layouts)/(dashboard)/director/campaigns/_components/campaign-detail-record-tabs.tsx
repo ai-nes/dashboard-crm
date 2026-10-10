@@ -8,11 +8,15 @@ export type CampaignDetailRecordView = "leads" | "students";
 
 interface CampaignDetailRecordTabsProps {
   selectedKey: CampaignDetailRecordView;
+  canReadLeads: boolean;
+  canReadStudents: boolean;
   onSelectionChange: (view: CampaignDetailRecordView) => void;
 }
 
 export default function CampaignDetailRecordTabs({
   selectedKey,
+  canReadLeads,
+  canReadStudents,
   onSelectionChange,
 }: CampaignDetailRecordTabsProps) {
   const tabClassName = cn(
@@ -33,12 +37,16 @@ export default function CampaignDetailRecordTabs({
         aria-label="Loại hồ sơ trong chiến dịch"
         className="flex w-fit gap-1 rounded-lg border border-card-border bg-background-gray-secondary_alt p-1"
       >
-        <Tab id="leads" className={tabClassName}>
-          Lead
-        </Tab>
-        <Tab id="students" className={tabClassName}>
-          Học sinh
-        </Tab>
+        {canReadLeads && (
+          <Tab id="leads" className={tabClassName}>
+            Lead
+          </Tab>
+        )}
+        {canReadStudents && (
+          <Tab id="students" className={tabClassName}>
+            Học sinh
+          </Tab>
+        )}
       </TabList>
     </Tabs>
   );

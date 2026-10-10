@@ -5,7 +5,7 @@ import type { TeamManagementPermissions } from "./types";
 
 const FULL_ACCESS_ROLES = new Set(["Lead Sale", "System Manager"]);
 
-function currentStaffIds(
+function currentUserIds(
   user: CurrentUser | null,
   workspace: TeamManagementWorkspace,
 ): Set<string> {
@@ -13,7 +13,12 @@ function currentStaffIds(
   const identifiers = new Set([user.user, user.email].filter(Boolean));
   return new Set(
     workspace.members
-      .filter((member) => identifiers.has(member.email))
+      .filter(
+        (member) =>
+          member.id === user.crm_user_id ||
+          member.id === user.user ||
+          identifiers.has(member.email),
+      )
       .map((member) => member.id),
   );
 }
@@ -24,7 +29,7 @@ function unique(values: Iterable<string>): string[] {
 
 /**
  * Resolve organization scopes from the authenticated session and workspace.
- * Workspace IDs are only used to connect session.me's staff identity to the
+ * Workspace IDs are only used to connect session.me's User identity to the
  * existing group/team projection; the UI never grants access from a browser
  * supplied role string.
  */
@@ -37,18 +42,19 @@ export function getTeamManagementPermissions(
   );
   const isGlobal = Boolean(
     !isCtvSale &&
-    (user?.roles.some((role) => FULL_ACCESS_ROLES.has(role)) ||
+    (user?.crm_is_administrator ||
+      user?.roles.some((role) => FULL_ACCESS_ROLES.has(role)) ||
       user?.crm_profile === "lead_sales" ||
       user?.crm_profile === "system_manager"),
   );
-  const staffIds = currentStaffIds(user, workspace);
+  const userIds = currentUserIds(user, workspace);
   const sessionMemberships = user?.crm_team_memberships ?? [];
 
   const groupLeadGroupIds = new Set(
     isCtvSale
       ? []
       : workspace.groups
-          .filter((group) => staffIds.has(group.groupLeadId ?? ""))
+          .filter((group) => userIds.has(group.groupLeadId ?? ""))
           .map((group) => group.id),
   );
 
@@ -64,7 +70,7 @@ export function getTeamManagementPermissions(
   );
   if (!isCtvSale) {
     workspace.teams.forEach((team) => {
-      if (staffIds.has(team.leadId ?? "")) teamLeadTeamIds.add(team.id);
+      if (userIds.has(team.leadId ?? "")) teamLeadTeamIds.add(team.id);
     });
   }
 
@@ -72,7 +78,7 @@ export function getTeamManagementPermissions(
     sessionMemberships.map((membership) => membership.team_id),
   );
   workspace.members
-    .filter((member) => staffIds.has(member.id))
+    .filter((member) => userIds.has(member.id))
     .flatMap((member) => member.teamIds ?? [])
     .forEach((teamId) => memberTeamIds.add(teamId));
 
@@ -83,7 +89,7 @@ export function getTeamManagementPermissions(
   );
   const visibleTeamIds = isGlobal
     ? new Set(workspace.teams.map((team) => team.id))
-    : new Set([...memberTeamIds, ...managedTeamIds]);
+    : new Set([...memberTeamIds, ...managedTeamIds, ...teamLeadTeamIds]);
   const visibleGroupIds = isGlobal
     ? new Set(workspace.groups.map((group) => group.id))
     : new Set(
@@ -101,6 +107,22 @@ export function getTeamManagementPermissions(
   const effectiveManagedGroupIds = isGlobal
     ? new Set(workspace.groups.map((group) => group.id))
     : groupLeadGroupIds;
+
+  if (!workspace.permissions.canManage) {
+    return {
+      canManage: false,
+      canManageAll: false,
+      canManageGroups: false,
+      canManageTeams: false,
+      canManageMembers: false,
+      canManageTeamLeads: false,
+      visibleGroupIds: unique(visibleGroupIds),
+      visibleTeamIds: unique(visibleTeamIds),
+      managedGroupIds: [],
+      managedTeamIds: [],
+      memberManagementTeamIds: [],
+    };
+  }
 
   return {
     canManage: Boolean(

@@ -1,7 +1,15 @@
 import { ArrowDownward, ArrowRight, ArrowUpward } from "@tailgrids/icons";
+import { CrmPermissionLink } from "@/components/common/auth/crm-permission-link";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow } from "@/components/tailgrids/core/table";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRoot,
+  TableRow,
+} from "@/components/tailgrids/core/table";
 
 import { teamPerformance } from "./data";
 
@@ -11,12 +19,17 @@ export default function TeamPerformance() {
       <CardHeader className="p-5 pb-4 sm:px-6 sm:pt-6">
         <div>
           <CardTitle>Hiệu suất cơ sở & đội tuyển sinh</CardTitle>
-          <p className="mt-1 text-xs text-text-tertiary">So sánh năng suất và chất lượng xử lý hồ sơ</p>
+          <p className="mt-1 text-xs text-text-tertiary">
+            So sánh năng suất và chất lượng xử lý hồ sơ
+          </p>
         </div>
-        <a href="/director/regional-performance" className="flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600">
+        <CrmPermissionLink
+          href="/director/regional-performance"
+          className="flex items-center gap-1 text-xs font-semibold text-brand-500 hover:text-brand-600"
+        >
           Xem báo cáo
           <ArrowRight size={14} aria-hidden="true" />
-        </a>
+        </CrmPermissionLink>
       </CardHeader>
 
       <TableRoot className="min-w-[620px] rounded-none border-x-0 border-b-0">
@@ -40,19 +53,37 @@ export default function TeamPerformance() {
                   <span className="whitespace-nowrap">{team.name}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-right text-sm">{team.activeLeads}</TableCell>
+              <TableCell className="text-right text-sm">
+                {team.activeLeads}
+              </TableCell>
               <TableCell className="text-right">
-                <span className={team.sla.startsWith("88") ? "font-semibold text-orange-600" : "font-semibold text-green-600"}>
+                <span
+                  className={
+                    team.sla.startsWith("88")
+                      ? "font-semibold text-orange-600"
+                      : "font-semibold text-green-600"
+                  }
+                >
                   {team.sla}
                 </span>
               </TableCell>
-              <TableCell className="text-right text-sm text-text-primary">{team.enrolled}</TableCell>
+              <TableCell className="text-right text-sm text-text-primary">
+                {team.enrolled}
+              </TableCell>
               <TableCell className="text-right">
                 <span className="inline-flex items-center gap-1 text-sm font-semibold text-text-primary">
                   {team.trend === "up" ? (
-                    <ArrowUpward size={14} className="text-green-600" aria-label="Tăng" />
+                    <ArrowUpward
+                      size={14}
+                      className="text-green-600"
+                      aria-label="Tăng"
+                    />
                   ) : (
-                    <ArrowDownward size={14} className="text-red-600" aria-label="Giảm" />
+                    <ArrowDownward
+                      size={14}
+                      className="text-red-600"
+                      aria-label="Giảm"
+                    />
                   )}
                   {team.conversion}
                 </span>

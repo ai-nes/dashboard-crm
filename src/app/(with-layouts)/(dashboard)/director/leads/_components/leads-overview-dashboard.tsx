@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
+  getCrmDoctypePermissions,
   getCrmPermissions,
   hasCrmCapability,
 } from "@/components/common/auth/permissions";
@@ -48,10 +49,17 @@ const pageSize = 10;
 export default function LeadsOverviewDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
+  const canReadLeads = permissions.lead.canRead;
+  const canReadCampaigns = getCrmDoctypePermissions(
+    user,
+    "CRM Campaign",
+  ).canRead;
   const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
   const canManageLeadIntake = permissions.lead.canAssign && !isAuthLoading;
   const canAssignLead =
-    !isAuthLoading && hasCrmCapability(user, "student.routing.operate");
+    !isAuthLoading &&
+    permissions.lead.canAssign &&
+    hasCrmCapability(user, "student.routing.operate");
   const queryClient = useQueryClient();
   const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
   const createMutation = useCreateLeadMutation();
@@ -70,9 +78,14 @@ export default function LeadsOverviewDashboard() {
   const [campaign, setCampaign] = useState("");
   const [page, setPage] = useState(1);
 
-  const campaignsQuery = useLeadSaleCampaignsQuery({
-    leadOnly: true,
-  });
+  const campaignsQuery = useLeadSaleCampaignsQuery(
+    {
+      leadOnly: true,
+    },
+    {
+      enabled: canReadCampaigns && canReadLeads && !isAuthLoading,
+    },
+  );
   const availableCampaigns = campaignsQuery.data?.campaigns ?? [];
   const listParams: LeadListParams = {
     admissionYear: 2026,
@@ -89,6 +102,7 @@ export default function LeadsOverviewDashboard() {
     isPending,
     isPlaceholderData,
   } = useLeadSaleLeadsQuery(listParams, {
+    enabled: canReadLeads && !isAuthLoading,
     placeholderData: keepPreviousData,
     refetchInterval: 30_000,
   });
@@ -143,6 +157,7 @@ export default function LeadsOverviewDashboard() {
   };
 
   const handleCreateLead = async (fields: LeadCreateFields) => {
+    if (!canCreateLead) return;
     await createMutation.mutateAsync(fields);
     setCreateDialogOpen(false);
     setPage(1);
@@ -154,6 +169,9 @@ export default function LeadsOverviewDashboard() {
     campaignCode: string,
     mapping: LeadImportMapping[],
   ): Promise<LeadImportResponse> => {
+    if (!canCreateLead) {
+      throw new Error("Bạn không có quyền nhập Lead.");
+    }
     const result = await importMutation.mutateAsync({
       file,
       campaignCode,
@@ -174,6 +192,7 @@ export default function LeadsOverviewDashboard() {
   };
 
   const runLeadProcessing = async () => {
+    if (!canManageLeadIntake) return;
     try {
       const preview = await previewNewLeadsMutation.mutateAsync({
         admissionYear: listParams.admissionYear,
@@ -196,7 +215,7 @@ export default function LeadsOverviewDashboard() {
   };
 
   const confirmLeadProcessing = async () => {
-    if (!processingPreview) return;
+    if (!canManageLeadIntake || !processingPreview) return;
     try {
       const { summary } = await processNewLeadsMutation.mutateAsync({
         admissionYear: listParams.admissionYear,
@@ -223,6 +242,7 @@ export default function LeadsOverviewDashboard() {
   };
 
   const runLeadAssignment = async () => {
+    if (!canManageLeadIntake) return;
     try {
       const result = await runUnassignedMutation.mutateAsync({});
       await queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all });
@@ -258,6 +278,18 @@ export default function LeadsOverviewDashboard() {
       });
     }
   };
+
+  if (!isAuthLoading && !canReadLeads) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <Card className="border-warning-200 bg-badge-warning-background p-5 text-badge-warning-text">
+          <p className="font-semibold text-base">
+            Bạn không có quyền xem danh sách Lead.
+          </p>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <main

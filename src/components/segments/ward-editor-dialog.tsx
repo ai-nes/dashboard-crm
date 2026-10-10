@@ -33,12 +33,14 @@ function formFromRecord(record: WardOption | null, initialProvince?: string) {
 export function WardEditorDialog({
   isOpen,
   record,
+  canSave,
   provinces,
   initialProvince,
   onOpenChange,
 }: {
   isOpen: boolean;
   record: WardOption | null;
+  canSave: boolean;
   provinces: readonly GeographyOption[];
   initialProvince?: string;
   onOpenChange: (open: boolean) => void;
@@ -51,6 +53,7 @@ export function WardEditorDialog({
 
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canSave) return;
     const code = form.code.trim();
     const name = form.name.trim();
     if (!code || !name || !form.province) {
@@ -88,6 +91,7 @@ export function WardEditorDialog({
       description="Chọn tỉnh để liên kết trực tiếp với xã/phường."
       isSaving={isSaving}
       submitLabel={record ? "Lưu thay đổi" : "Tạo xã/phường"}
+      canSubmit={canSave}
       onOpenChange={onOpenChange}
       onSubmit={save}
     >

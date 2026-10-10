@@ -1,7 +1,7 @@
 "use client";
 
 import { InfoCircle } from "@tailgrids/icons";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -42,7 +42,9 @@ interface NbaActionConfigDialogProps {
   action: NbaAction | null;
   actionTypes: NbaActionType[];
   availableTimeSlots: ActionTimeSlot[];
-  canEdit: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
   isTimeSlotsReady: boolean;
   timeSlotsError: boolean;
   onClose: () => void;
@@ -71,7 +73,9 @@ export default function NbaActionConfigDialog({
   action,
   actionTypes,
   availableTimeSlots,
-  canEdit,
+  canCreate,
+  canUpdate,
+  canDelete,
   isTimeSlotsReady,
   timeSlotsError,
   onClose,
@@ -82,11 +86,11 @@ export default function NbaActionConfigDialog({
   const updateMutation = useUpdateNbaActionMutation();
   const deleteMutation = useDeleteNbaActionMutation();
   const actualAction = detailQuery.data ?? action;
-  const [form, setForm] = useState(() => formFromAction(action));
-
-  useEffect(() => {
-    if (detailQuery.data) setForm(formFromAction(detailQuery.data));
-  }, [detailQuery.data]);
+  const canEdit = actualAction ? canUpdate : canCreate;
+  const [formChanges, setFormChanges] = useState<Partial<ActionFormState>>(
+    {},
+  );
+  const form = { ...formFromAction(actualAction), ...formChanges };
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const actionTypeOptions = actionTypes.map((item) => ({
@@ -102,7 +106,7 @@ export default function NbaActionConfigDialog({
     field: K,
     value: ActionFormState[K],
   ) => {
-    setForm((current) => ({ ...current, [field]: value }));
+    setFormChanges((current) => ({ ...current, [field]: value }));
   };
 
   const validate = (): string | null => {
@@ -151,6 +155,7 @@ export default function NbaActionConfigDialog({
   };
 
   const handleSave = async () => {
+    if (actualAction ? !canUpdate : !canCreate) return;
     const error = validate();
     if (error) {
       toast.error(error);
@@ -179,6 +184,7 @@ export default function NbaActionConfigDialog({
 
   const handleDelete = async () => {
     if (
+      !canDelete ||
       !actualAction ||
       !window.confirm(
         `Xóa hành động ${actualAction.code}? Nếu hành động đã được sử dụng, hãy tắt thay vì xóa.`,
@@ -242,8 +248,7 @@ export default function NbaActionConfigDialog({
               </AlertIndicator>
               <AlertContent>
                 <AlertDescription>
-                  Bạn có thể xem cấu hình. Chỉ Administrator được thay đổi
-                  hành động.
+                  Bạn có quyền xem nhưng chưa được cấp quyền thay đổi hành động.
                 </AlertDescription>
               </AlertContent>
             </Alert>
@@ -290,7 +295,7 @@ export default function NbaActionConfigDialog({
 
         <DialogFooter className="shrink-0 border-t border-card-border px-4 py-4 sm:justify-between sm:px-6">
           <div>
-            {canEdit && actualAction && (
+            {canDelete && actualAction && (
               <Button
                 variant="danger"
                 appearance="ghost"

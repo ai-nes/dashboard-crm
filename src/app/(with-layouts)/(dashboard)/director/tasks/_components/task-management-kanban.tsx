@@ -31,6 +31,8 @@ interface TaskManagementKanbanProps {
     updates: Partial<StudentTaskItem>,
   ) => void | Promise<void>;
   onDeleteTask?: (id: string) => void;
+  canUpdateTask?: (task: TaskManagementItem) => boolean;
+  canDeleteTask?: (task: TaskManagementItem) => boolean;
   lanePagination?: Partial<Record<TaskStatus, TaskLanePagination>>;
   onCreateTask?: () => void;
   isLoading?: boolean;
@@ -81,6 +83,8 @@ interface TaskManagementKanbanColumnProps {
   onOpenTask: TaskManagementKanbanProps["onOpenTask"];
   onUpdateTask: TaskManagementKanbanProps["onUpdateTask"];
   onDeleteTask?: TaskManagementKanbanProps["onDeleteTask"];
+  canUpdateTask?: TaskManagementKanbanProps["canUpdateTask"];
+  canDeleteTask?: TaskManagementKanbanProps["canDeleteTask"];
   onCreateTask?: TaskManagementKanbanProps["onCreateTask"];
   pagination?: TaskLanePagination;
   isLoading: boolean;
@@ -95,6 +99,8 @@ function TaskManagementKanbanColumn({
   onOpenTask,
   onUpdateTask,
   onDeleteTask,
+  canUpdateTask,
+  canDeleteTask,
   onCreateTask,
   pagination,
   isLoading,
@@ -167,8 +173,9 @@ function TaskManagementKanbanColumn({
                   key={task.id}
                   task={task}
                   onOpenTask={onOpenTask}
-                  onUpdateTask={onUpdateTask}
-                  onDeleteTask={onDeleteTask}
+                  onUpdateTask={canUpdateTask?.(task) ? onUpdateTask : undefined}
+                  onDeleteTask={canDeleteTask?.(task) ? onDeleteTask : undefined}
+                  canUpdateTask={canUpdateTask?.(task) ?? false}
                 />
               ))
             ) : (
@@ -202,6 +209,8 @@ export default function TaskManagementKanban({
   onOpenTask,
   onUpdateTask,
   onDeleteTask,
+  canUpdateTask,
+  canDeleteTask,
   lanePagination,
   onCreateTask,
   isLoading = false,
@@ -215,7 +224,11 @@ export default function TaskManagementKanban({
     if (typeof taskId !== "string" || !isTaskStatus(nextStatus)) return;
 
     const task = tasks.find((item) => item.id === taskId);
-    if (!task || task.status === nextStatus) return;
+    if (
+      !task ||
+      !canUpdateTask?.(task) ||
+      task.status === nextStatus
+    ) return;
 
     onUpdateTask(task.id, { status: nextStatus });
   };
@@ -241,6 +254,8 @@ export default function TaskManagementKanban({
               onOpenTask={onOpenTask}
               onUpdateTask={onUpdateTask}
               onDeleteTask={onDeleteTask}
+              canUpdateTask={canUpdateTask}
+              canDeleteTask={canDeleteTask}
               onCreateTask={onCreateTask}
               pagination={lanePagination?.[column.status]}
               isLoading={isLoading}

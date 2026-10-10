@@ -1,4 +1,8 @@
-import { NestApiError, nestRequest } from "../nest/nest-client";
+import {
+  NestApiError,
+  nestRequest,
+  type NestValidationIssue,
+} from "../nest/nest-client";
 
 export interface TeamManagementGroup {
   id: string;
@@ -59,8 +63,8 @@ export interface TeamManagementWorkspace {
     groupCount: number;
     teamCount: number;
     activeTeamCount: number;
-    staffCount: number;
-    activeStaffCount: number;
+    userCount: number;
+    activeUserCount: number;
   };
   groups: TeamManagementGroup[];
   teams: TeamManagementTeam[];
@@ -81,8 +85,8 @@ export interface TeamManagementMutationResponse {
   replayed?: boolean;
   groupId?: string;
   teamId?: string;
-  teamLeadStaffId?: string | null;
-  staffId?: string;
+  teamLeadUserId?: string | null;
+  userId?: string;
   revision?: string;
 }
 
@@ -91,8 +95,24 @@ export class TeamManagementApiError extends Error {
     public status: number,
     public code: string,
     message: string,
+    readonly details: NestValidationIssue[] = [],
+    readonly requestId?: string,
   ) {
-    super(message);
+    super(
+      details.length
+        ? `Dữ liệu đội nhóm không hợp lệ. ${details
+            .map((issue) => {
+              const reason =
+                issue.code === "invalid_type"
+                  ? "Thiếu hoặc không đúng kiểu dữ liệu."
+                  : issue.code === "invalid_value"
+                    ? "Giá trị không được hỗ trợ."
+                    : issue.message;
+              return `${issue.field}: ${reason}`;
+            })
+            .join(" ")}`
+        : message,
+    );
     this.name = "TeamManagementApiError";
   }
 }
@@ -134,7 +154,22 @@ async function call<T>(
     });
   } catch (error) {
     if (error instanceof NestApiError) {
-      throw new TeamManagementApiError(error.status, error.code, error.message);
+      // Only diagnostic metadata, never request bodies, cookies or user data.
+      console.error("[team-management] API request failed", {
+        method: body ? "POST" : "GET",
+        path: NEST_PATHS[method],
+        status: error.status,
+        code: error.code,
+        requestId: error.requestId,
+        details: error.details,
+      });
+      throw new TeamManagementApiError(
+        error.status,
+        error.code,
+        error.message,
+        error.details,
+        error.requestId,
+      );
     }
     throw error;
   }
@@ -167,7 +202,7 @@ export async function saveTeamGroup(payload: {
   groupId?: string;
   groupName: string;
   provinceId?: string | null;
-  groupLeadStaff?: string | null;
+  groupLeadUser?: string | null;
   clearGroupLead?: boolean;
   isActive?: boolean;
   expectedRevision?: string;
@@ -176,7 +211,7 @@ export async function saveTeamGroup(payload: {
     group_id: payload.groupId,
     group_name: payload.groupName,
     province: payload.provinceId,
-    group_lead_staff: payload.groupLeadStaff,
+    group_lead_user: payload.groupLeadUser,
     clear_group_lead: payload.clearGroupLead ?? false,
     is_active: payload.isActive ?? true,
     expected_revision: payload.expectedRevision,
@@ -191,7 +226,7 @@ export async function saveTeam(payload: {
   teamType?: string;
   campus: string;
   territory?: string | null;
-  teamLeadStaff?: string | null;
+  teamLeadUser?: string | null;
   isActive?: boolean;
   expectedRevision?: string;
 }) {
@@ -202,7 +237,7 @@ export async function saveTeam(payload: {
     team_type: payload.teamType ?? "Sales",
     campus: payload.campus,
     territory: payload.territory,
-    team_lead_staff: payload.teamLeadStaff,
+    team_lead_user: payload.teamLeadUser,
     is_active: payload.isActive ?? true,
     expected_revision: payload.expectedRevision,
     idempotency_key: idempotencyKey(),
@@ -210,16 +245,16 @@ export async function saveTeam(payload: {
 }
 
 export async function addTeamMember(payload: {
-  staffId: string;
+  userId: string;
   teamId: string;
   function?: string;
   isPrimary?: boolean;
   isTeamLead?: boolean;
 }) {
   return call<TeamManagementMutationResponse>(METHODS.ADD_MEMBER, {
-    staff_id: payload.staffId,
+    user_id: payload.userId,
     team_id: payload.teamId,
-    function: payload.function ?? "Sale",
+    function: payload.function,
     is_primary: payload.isPrimary ?? false,
     is_team_lead: payload.isTeamLead ?? false,
     idempotency_key: idempotencyKey(),
@@ -227,27 +262,27 @@ export async function addTeamMember(payload: {
 }
 
 export async function moveTeamMember(payload: {
-  staffId: string;
+  userId: string;
   sourceTeamId: string;
   targetTeamId: string;
   function?: string;
 }) {
   return call<TeamManagementMutationResponse>(METHODS.MOVE_MEMBER, {
-    staff_id: payload.staffId,
+    user_id: payload.userId,
     source_team_id: payload.sourceTeamId,
     target_team_id: payload.targetTeamId,
-    function: payload.function ?? "Sale",
+    function: payload.function,
     idempotency_key: idempotencyKey(),
   });
 }
 
 export async function removeTeamMember(payload: {
-  staffId: string;
+  userId: string;
   teamId: string;
   expectedRevision?: string;
 }) {
   return call<TeamManagementMutationResponse>(METHODS.REMOVE_MEMBER, {
-    staff_id: payload.staffId,
+    user_id: payload.userId,
     team_id: payload.teamId,
     expected_revision: payload.expectedRevision,
     idempotency_key: idempotencyKey(),
@@ -255,12 +290,12 @@ export async function removeTeamMember(payload: {
 }
 
 export async function updateTeamMember(payload: {
-  staffId: string;
+  userId: string;
   fullName: string;
   expectedRevision?: string;
 }) {
   return call<TeamManagementMutationResponse>(METHODS.UPDATE_MEMBER, {
-    staff_id: payload.staffId,
+    user_id: payload.userId,
     full_name: payload.fullName,
     expected_revision: payload.expectedRevision,
     idempotency_key: idempotencyKey(),

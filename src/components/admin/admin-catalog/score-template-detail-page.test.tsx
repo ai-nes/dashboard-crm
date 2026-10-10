@@ -11,7 +11,7 @@ const session = vi.hoisted(() => ({
     roles: ["System Manager"],
     crm_profile: null as string | null,
     crm_doctype_permissions:
-      undefined as CurrentUser["crm_doctype_permissions"],
+      {} as CurrentUser["crm_doctype_permissions"],
   },
 }));
 
@@ -39,7 +39,10 @@ vi.mock("@/hooks/use-admin-catalog-queries", () => ({
   useScoreSignalsQuery: () => ({ data: { signals: [] }, isPending: false }),
 }));
 vi.mock("./score-rule-edit-dialog", () => ({ default: () => null }));
-vi.mock("./score-template-create-dialog", () => ({ default: () => null }));
+vi.mock("./score-template-create-dialog", () => ({
+  default: ({ isOpen }: { isOpen: boolean }) =>
+    isOpen ? <div>CREATE_SCORE_TEMPLATE_DIALOG</div> : null,
+}));
 
 const renderPage = () =>
   renderToStaticMarkup(<ScoreTemplateDetailPage templateName="template-1" />);
@@ -48,7 +51,15 @@ describe("score template direct editing", () => {
   beforeEach(() => {
     session.user.roles = ["System Manager"];
     session.user.crm_profile = null;
-    session.user.crm_doctype_permissions = undefined;
+    session.user.crm_doctype_permissions = {
+      "CRM Score Template": {
+        read: true,
+        write: true,
+        create: true,
+        delete: true,
+        export: false,
+      },
+    };
   });
 
   it("shows identity and weight inputs without entering edit mode", () => {
@@ -63,15 +74,36 @@ describe("score template direct editing", () => {
     expect(html).not.toContain('aria-label="Chỉnh sửa thông tin template"');
   });
 
-  it("also permits the admissions director profile", () => {
+  it("shows editing only when Nest grants score-template write access", () => {
     session.user.roles = ["Admissions Director"];
     session.user.crm_profile = "admissions_director";
+    session.user.crm_doctype_permissions = {};
+    expect(renderPage()).not.toContain('aria-label="Fit trọng số"');
+
+    session.user.crm_doctype_permissions = {
+      "CRM Score Template": {
+        read: true,
+        write: true,
+        create: true,
+        delete: true,
+        export: false,
+      },
+    };
     expect(renderPage()).toContain('aria-label="Fit trọng số"');
   });
 
   it("keeps read-only users out of inputs and rubric actions", () => {
     session.user.roles = ["Marketing"];
     session.user.crm_profile = "marketing";
+    session.user.crm_doctype_permissions = {
+      "CRM Score Template": {
+        read: true,
+        write: false,
+        create: false,
+        delete: false,
+        export: false,
+      },
+    };
     const html = renderPage();
     expect(html).not.toContain('aria-label="Fit trọng số"');
     expect(html).not.toContain('aria-label="Tên template"');
@@ -80,7 +112,15 @@ describe("score template direct editing", () => {
     expect(html).toContain("Trọng số");
   });
 
-  it("honors an explicit write denial even for System Manager", () => {
+  it("does not invent a write grant for System Manager", () => {
+    session.user.roles = ["System Manager"];
+    session.user.crm_doctype_permissions = {};
+    expect(renderPage()).not.toContain('aria-label="Fit trọng số"');
+  });
+
+  it("honors an explicit write denial even for Admissions Director", () => {
+    session.user.roles = ["Admissions Director"];
+    session.user.crm_profile = "admissions_director";
     session.user.crm_doctype_permissions = {
       "CRM Score Template": {
         read: true,
@@ -91,6 +131,37 @@ describe("score template direct editing", () => {
       },
     };
     expect(renderPage()).not.toContain('aria-label="Fit trọng số"');
+  });
+
+  it("uses the create grant independently from update on the create route", () => {
+    session.user.crm_doctype_permissions = {
+      "CRM Score Template": {
+        read: true,
+        write: false,
+        create: true,
+        delete: false,
+        export: false,
+      },
+    };
+
+    const html = renderToStaticMarkup(<ScoreTemplateDetailPage />);
+    expect(html).toContain("CREATE_SCORE_TEMPLATE_DIALOG");
+  });
+
+  it("does not allow creation just because update is granted", () => {
+    session.user.crm_doctype_permissions = {
+      "CRM Score Template": {
+        read: true,
+        write: true,
+        create: false,
+        delete: false,
+        export: false,
+      },
+    };
+
+    const html = renderToStaticMarkup(<ScoreTemplateDetailPage />);
+    expect(html).toContain("Bạn không có quyền tạo Score Template.");
+    expect(html).not.toContain("CREATE_SCORE_TEMPLATE_DIALOG");
   });
 });
 

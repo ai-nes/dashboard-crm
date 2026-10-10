@@ -104,6 +104,7 @@ export function crmTaskToStudentTask(
   return {
     id: task.name,
     title: task.title,
+    ownerId: task.owner,
     actionCode: task.actionCode,
     assignee: assignedUser?.full_name || task.assignedTo || fallbackAssignee,
     assigneeId: task.assignedTo,

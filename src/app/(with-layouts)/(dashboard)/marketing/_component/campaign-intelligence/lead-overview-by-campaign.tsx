@@ -12,7 +12,7 @@ import { buildLeadOverview, LEAD_STATUS_GROUPS, type CampaignLeadSelection } fro
 
 interface LeadOverviewProps {
   campaigns: CampaignRecord[];
-  onSelect: (selection: CampaignLeadSelection) => void;
+  onSelect?: (selection: CampaignLeadSelection) => void;
   onRetry: () => void;
 }
 
@@ -31,7 +31,11 @@ export function LeadOverviewByCampaign({ campaigns, onSelect, onRetry }: LeadOve
       <CardHeader className="flex flex-col gap-3 border-b border-card-border px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <CardTitle>Lead theo campaign</CardTitle>
-          <p className="mt-1 text-xs text-text-tertiary">Click vào biểu đồ để xem danh sách Lead.</p>
+          <p className="mt-1 text-xs text-text-tertiary">
+            {onSelect
+              ? "Click vào biểu đồ để xem danh sách Lead."
+              : "Số liệu Lead tổng hợp theo từng campaign."}
+          </p>
         </div>
         <div role="group" aria-label="Số chiến dịch trên biểu đồ" className="flex gap-1">
           {[5, 10].map((value) => (
@@ -75,10 +79,27 @@ export function LeadOverviewByCampaign({ campaigns, onSelect, onRetry }: LeadOve
                       }} />
                       <ChartTooltip content={<LeadOverviewTooltip />} cursor={{ fill: "var(--background-soft-50)" }} />
                       {LEAD_STATUS_GROUPS.map(({ code, label, color }) => (
-                        <Bar key={code} dataKey={code} name={label} stackId="leads" fill={color} maxBarSize={28} cursor="pointer" onClick={(_, index) => {
-                          const row = overview.rows[index];
-                          if (row) onSelect({ campaign: row.campaign, statusGroup: code });
-                        }} />
+                        <Bar
+                          key={code}
+                          dataKey={code}
+                          name={label}
+                          stackId="leads"
+                          fill={color}
+                          maxBarSize={28}
+                          cursor={onSelect ? "pointer" : "default"}
+                          onClick={
+                            onSelect
+                              ? (_, index) => {
+                                  const row = overview.rows[index];
+                                  if (row)
+                                    onSelect({
+                                      campaign: row.campaign,
+                                      statusGroup: code,
+                                    });
+                                }
+                              : undefined
+                          }
+                        />
                       ))}
                     </BarChart>
                   </ChartContainer>

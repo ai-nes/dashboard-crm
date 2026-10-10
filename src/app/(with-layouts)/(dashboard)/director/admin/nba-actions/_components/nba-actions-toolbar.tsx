@@ -34,7 +34,7 @@ interface NbaActionsToolbarProps {
   resultCount: number;
   isFetching: boolean;
   onReset: () => void;
-  canEdit: boolean;
+  canCreate: boolean;
   onCreateAction: () => void;
 }
 
@@ -66,7 +66,7 @@ export default function NbaActionsToolbar({
   resultCount,
   isFetching,
   onReset,
-  canEdit,
+  canCreate,
   onCreateAction,
 }: NbaActionsToolbarProps) {
   const hasFilters = Boolean(
@@ -92,7 +92,7 @@ export default function NbaActionsToolbar({
           >
             {isFetching ? "Đang cập nhật…" : `${resultCount} hành động`}
           </span>
-          {canEdit && (
+          {canCreate && (
             <Button type="button" size="sm" onPress={onCreateAction}>
               Tạo hành động
             </Button>

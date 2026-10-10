@@ -10,7 +10,7 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { useMajorGroupsQuery } from "@/hooks/use-major-catalog-queries";
 
 import { MajorCatalogManagement } from "./major-catalog-management";
-import { canManageMajorCatalog } from "./student-configuration-permissions";
+import { getMajorCatalogPermissions } from "./student-configuration-permissions";
 
 const GROUPS_PAGE_SIZE = 100;
 
@@ -22,16 +22,30 @@ function errorMessage(error: unknown): string {
 
 export function MajorGroupDetailPage({ groupId }: { groupId: string }) {
   const { user } = useAuth();
-  const canManage = canManageMajorCatalog(user?.roles);
+  const permissions = getMajorCatalogPermissions(user);
   const groupsQuery = useMajorGroupsQuery({
     includeDisabled: true,
     start: 0,
     pageLength: GROUPS_PAGE_SIZE,
+    queryEnabled: permissions.majorGroups.canRead,
   });
   const group = useMemo(
     () => groupsQuery.data?.groups.find((item) => item.id === groupId),
     [groupId, groupsQuery.data?.groups],
   );
+
+  if (!permissions.majorGroups.canRead) {
+    return (
+      <main id="main-content" className="px-2 py-4 lg:px-6">
+        <section
+          className="rounded-2xl border border-card-border bg-card-background p-6 text-sm text-text-secondary"
+          role="status"
+        >
+          Bạn không có quyền xem danh mục Major Group.
+        </section>
+      </main>
+    );
+  }
 
   if (groupsQuery.isPending) {
     return (
@@ -79,7 +93,7 @@ export function MajorGroupDetailPage({ groupId }: { groupId: string }) {
         section="Học sinh"
         title={group.name}
         description="Quản lý các Major thuộc Major Group này."
-        canEdit={canManage}
+        canEdit={permissions.majorGroups.canUpdate}
         before={
           <Link
             href="/director/admin/majors"
@@ -104,7 +118,7 @@ export function MajorGroupDetailPage({ groupId }: { groupId: string }) {
         metaValue="Các Major được phân loại trong nhóm này"
       />
       <MajorCatalogManagement
-        canManage={canManage}
+        permissions={permissions}
         groupId={group.id}
         groupName={group.name}
       />

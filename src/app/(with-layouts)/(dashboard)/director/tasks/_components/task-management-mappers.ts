@@ -51,6 +51,7 @@ export function crmTaskToManagementItem(
       assignees,
     ),
     actionCode: task.actionCode,
+    ownerId: task.owner,
     studentId,
     studentName,
     studentCode: student?.code || "",

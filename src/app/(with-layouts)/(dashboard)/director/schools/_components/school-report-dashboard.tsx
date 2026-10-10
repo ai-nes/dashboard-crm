@@ -1,5 +1,11 @@
 "use client";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  getCrmDoctypePermissions,
+  canReadCrmPath,
+} from "@/components/common/auth/permissions";
+
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -28,6 +34,9 @@ interface SchoolReportDashboardProps {
 export default function SchoolReportDashboard({
   data,
 }: SchoolReportDashboardProps) {
+  const { user } = useAuth();
+  const permissions = getCrmDoctypePermissions(user, "CRM High School");
+  const canRead = canReadCrmPath("/director/schools", user);
   const router = useRouter();
   const [region, setRegion] = useState<SchoolRegion | "all">("all");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -80,22 +89,28 @@ export default function SchoolReportDashboard({
     };
   }, [data, region]);
 
+  if (!canRead) return null;
+
   return (
     <main className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6">
       <SchoolReportHeader
-        onCreateSchool={() => {
-          createMutation.reset();
-          setCreateDialogOpen(true);
-        }}
+        onCreateSchool={
+          permissions.canCreate
+            ? () => {
+                createMutation.reset();
+                setCreateDialogOpen(true);
+              }
+            : undefined
+        }
         onRegionChange={setRegion}
         region={region}
       />
       <SchoolCreateDialog
-        isOpen={createDialogOpen}
+        isOpen={permissions.canCreate && createDialogOpen}
         isSubmitting={createMutation.isPending}
-        onCreate={(fields) =>
-          createMutation.mutateAsync(fields).then(() => undefined)
-        }
+        onCreate={async (fields) => {
+          if (permissions.canCreate) await createMutation.mutateAsync(fields);
+        }}
         onOpenChange={setCreateDialogOpen}
       />
       <SchoolReportKpis data={filtered} />

@@ -1,5 +1,8 @@
 "use client";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { canReadCrmPath } from "@/components/common/auth/permissions";
+
 import { useState } from "react";
 
 import {
@@ -26,19 +29,26 @@ const EMPTY_FILTERS: ActivityLogFilterState = {};
 const PAGE_SIZE = 8;
 
 export default function ActivityLogsPage() {
+  const { user } = useAuth();
+  const canRead = canReadCrmPath("/director/admin/activity-logs", user);
   const [activeModule, setActiveModule] = useState<ActivityLogModule>("all");
   const [filters, setFilters] = useState<ActivityLogFilterState>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<ActivityLogEntry | null>(null);
-  const query = useActivityLogsQuery({
-    module: activeModule,
-    ...filters,
-    start: (page - 1) * PAGE_SIZE,
-    pageLength: PAGE_SIZE,
-  });
+  const query = useActivityLogsQuery(
+    {
+      module: activeModule,
+      ...filters,
+      start: (page - 1) * PAGE_SIZE,
+      pageLength: PAGE_SIZE,
+    },
+    canRead,
+  );
   const logs = query.data?.logs ?? [];
   const total = query.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  if (!canRead) return null;
 
   return (
     <main

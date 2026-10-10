@@ -9,6 +9,7 @@ import { Plus } from "@tailgrids/icons";
 import type { DetailTabItem } from "@/components/common/detail-tabs";
 import DetailTabs from "@/components/common/detail-tabs";
 import { Button } from "@/components/tailgrids/core/button";
+import { Card } from "@/components/tailgrids/core/card";
 import {
   interactionIntelligenceKeys,
   useInteractionCatalogQuery,
@@ -31,6 +32,8 @@ import { isOtherInteractionType } from "./student-interaction-utils";
 interface StudentInteractionsTabsProps {
   studentId: string;
   studentName?: string;
+  canReadInteractions: boolean;
+  canCreateInteraction: boolean;
   calls: StudentCallRecord[];
   messages: StudentZaloMessage[];
   isCallsLoading?: boolean;
@@ -46,6 +49,8 @@ export function getDefaultInteractionTab(
 export default function StudentInteractionsTabs({
   studentId,
   studentName,
+  canReadInteractions,
+  canCreateInteraction,
   calls,
   messages,
   isCallsLoading = false,
@@ -55,7 +60,7 @@ export default function StudentInteractionsTabs({
   const normalizedStudentId = studentId.trim();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const queryClient = useQueryClient();
-  const catalogQuery = useInteractionCatalogQuery();
+  const catalogQuery = useInteractionCatalogQuery(canReadInteractions);
   const allInteractionTypes = useMemo(
     () => catalogQuery.data?.interactionTypes ?? [],
     [catalogQuery.data?.interactionTypes],
@@ -83,8 +88,22 @@ export default function StudentInteractionsTabs({
   const handleCreate = async (
     input: Omit<CreateInteractionInput, "student">,
   ) => {
+    if (!canCreateInteraction) return;
     await createMutation.mutateAsync(input);
   };
+
+  if (!canReadInteractions) {
+    return (
+      <Card className="border-warning-200 bg-badge-warning-background p-5 text-badge-warning-text">
+        <p className="font-semibold text-base">
+          Bạn không có quyền xem tương tác của học sinh.
+        </p>
+        <p className="mt-1 text-sm">
+          Cần quyền đọc hồ sơ học sinh và danh mục loại tương tác.
+        </p>
+      </Card>
+    );
+  }
 
   const interactionTabs: DetailTabItem[] = [
     {
@@ -121,20 +140,23 @@ export default function StudentInteractionsTabs({
         defaultSelectedKey={defaultSelectedKey}
         isSticky={false}
         actions={
-          <Button
-            type="button"
-            size="sm"
-            onPress={() => setIsCreateDialogOpen(true)}
-            isDisabled={
-              !normalizedStudentId ||
-              catalogQuery.isPending ||
-              manualInteractionTypes.length === 0
-            }
-          >
-            <Plus size={16} aria-hidden="true" />
-            <span className="hidden sm:inline">Tạo tương tác</span>
-            <span className="sm:hidden">Tạo</span>
-          </Button>
+          canCreateInteraction ? (
+            <Button
+              type="button"
+              size="sm"
+              onPress={() => setIsCreateDialogOpen(true)}
+              isDisabled={
+                !normalizedStudentId ||
+                !canCreateInteraction ||
+                catalogQuery.isPending ||
+                manualInteractionTypes.length === 0
+              }
+            >
+              <Plus size={16} aria-hidden="true" />
+              <span className="hidden sm:inline">Tạo tương tác</span>
+              <span className="sm:hidden">Tạo</span>
+            </Button>
+          ) : undefined
         }
         tabs={interactionTabs}
       />

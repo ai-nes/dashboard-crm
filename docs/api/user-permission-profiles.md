@@ -13,16 +13,20 @@ users is limited to administrators (identity role `admin`); everyone else gets
 `GET /api/v1/me` answers the signed-in account: `data` holds `email`, `name`,
 `identityRole` (`admin` or `user`), `crmProfile` (`sales`, `ctv_sale`,
 `lead_sales`, `pr`, `pr_manager`, `marketing`, `lead_marketing`,
-`admissions_director`, `ceo` or `null`), `leadScope` (`all` or `own`) and
-`capabilities`. The dashboard turns this into the `CurrentUser` shape in
+`admissions_director`, `ceo` or `null`), `leadScope` (`all` or `own`),
+`crmCapabilities`, and `crmDoctypePermissions`. The dashboard turns this into the
+`CurrentUser` shape in
 `src/services/api/nest/nest-auth.ts`: role names come from `crmProfile`
 (`Sale`, `CTV Sale`, `Lead Sale`, `Promoter`, `Lead Promoter`, `Marketing`,
 `Lead Marketing`, `Admissions Director`, `Administrator`) and the
-create/write/delete flags used to show or hide controls come from `leadScope`
-and `capabilities`. The dashboard must not infer those flags from role names; the
-backend stays authoritative and can still answer `403` for a stale session.
+read/create/write/delete/export flags used to show or hide controls come from
+`crmDoctypePermissions`. The dashboard must not infer those flags from role
+names; the backend stays authoritative and can still answer `403` for a stale session.
 
 ## Users
+
+Passwords for account creation and password changes must be 6–128 characters.
+Omit `newPassword` when editing a user without changing their password.
 
 | Method | Path | Notes |
 | --- | --- | --- |
@@ -118,3 +122,31 @@ so the paginated UI can save one page without removing rows from other pages
 (the default is `true` for full-matrix updates). `viewMode: "detailed"` updates
 one physical type without touching the rest of its group. The response is the
 complete saved profile.
+
+## Effective permissions in Director screens
+
+`GET /api/v1/me.data.crmDoctypePermissions` returns the effective business
+DocType flags using `{ row_scope, read, write, create, delete, export,
+delete_requires_ownership? }`. The dashboard consumes these flags directly;
+it does not grant Student or Task mutations from `student.execute` or a role
+label. Saved grants are intersected with the backend's existing workflow and
+ownership restrictions. A missing grant hides the corresponding data action.
+
+Lead, Student, admission profile/document, payment account, campaign and catalog
+actions use their own resource permissions. Catalog access does not require a
+Lead/Student row scope. Reports that query all students require effective Student
+read access with scope `all`. The sidebar, direct-route guard and Director
+drilldown links apply the same resource read checks.
+
+Resources outside the editable business matrix (including Task, Segment, CRM
+Rule, Score Template, NBA catalog types, message templates and snippets) receive
+explicit session flags from their existing backend policy. These flags do not
+add rows to the permission editor or replace record ownership checks. Regular
+message-template permissions and the administrative library are exposed
+separately as `CRM Message Template` and `CRM Message Template Library`.
+
+The session adapter also preserves the account ID as `crm_user_id` and the
+backend's effective administrator identity as `crm_is_administrator` so
+record-level ownership checks compare account IDs. CEO and administrators with
+an assigned CRM profile retain their business workspace; an identity admin
+without a CRM profile retains the technical System Manager workspace.

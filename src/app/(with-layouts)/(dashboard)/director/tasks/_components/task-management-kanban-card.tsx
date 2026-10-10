@@ -19,11 +19,12 @@ import TaskManagementTaskActions from "./task-management-task-actions";
 interface TaskManagementKanbanCardProps {
   task: TaskManagementItem;
   onOpenTask: (task: TaskManagementItem) => void;
-  onUpdateTask: (
+  onUpdateTask?: (
     id: string,
     updates: Partial<StudentTaskItem>,
   ) => void | Promise<void>;
   onDeleteTask?: (id: string) => void;
+  canUpdateTask: boolean;
 }
 
 function isOverdue(task: TaskManagementItem): boolean {
@@ -70,10 +71,12 @@ export default function TaskManagementKanbanCard({
   onOpenTask,
   onUpdateTask,
   onDeleteTask,
+  canUpdateTask,
 }: TaskManagementKanbanCardProps) {
   const { isDragging, handleRef, ref } = useDraggable({
     id: `task-${task.id}`,
     data: { taskId: task.id },
+    disabled: !canUpdateTask,
   });
   const handleOpen = (event: MouseEvent<HTMLElement>) => {
     if ((event.target as HTMLElement).closest("button, a")) return;
@@ -101,7 +104,7 @@ export default function TaskManagementKanbanCard({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1">
-          <button
+          {canUpdateTask && <button
             ref={handleRef}
             type="button"
             aria-label={`Kéo task của ${task.studentName} để chuyển trạng thái`}
@@ -109,7 +112,7 @@ export default function TaskManagementKanbanCard({
             className="flex size-7 shrink-0 cursor-grab items-center justify-center rounded-md text-base leading-none text-text-tertiary outline-none transition hover:bg-background-soft-50 hover:text-text-primary active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-primary-500"
           >
             <span aria-hidden="true">⠿</span>
-          </button>
+          </button>}
           <StudentTaskTypeBadge
             actionCode={task.actionCode}
             taskType={task.taskType}
@@ -125,7 +128,7 @@ export default function TaskManagementKanbanCard({
 
       <TaskManagementKanbanTitleEditor
         title={task.title}
-        onSave={(title) => onUpdateTask(task.id, { title })}
+        onSave={onUpdateTask ? (title) => onUpdateTask(task.id, { title }) : undefined}
       />
 
       <div className="mt-3">

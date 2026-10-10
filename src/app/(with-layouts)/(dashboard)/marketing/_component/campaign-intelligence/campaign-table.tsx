@@ -122,16 +122,19 @@ export function CampaignTable({
                       <TableCell className="px-3 py-4.5 text-right whitespace-nowrap">
                         {campaign.leadCount === null ? (
                           <span className="text-text-tertiary">—</span>
-                        ) : (
+                        ) : onSelect ? (
                           <button
                             type="button"
                             className="font-semibold tabular-nums text-text-primary focus-visible:outline-2 focus-visible:outline-primary-500"
-                            onClick={() => onSelect?.({ campaign })}
-                            disabled={!onSelect}
+                            onClick={() => onSelect({ campaign })}
                             aria-label={`Xem ${formatNumber(campaign.leadCount)} lead của ${campaign.name}`}
                           >
                             {formatNumber(campaign.leadCount)}
                           </button>
+                        ) : (
+                          <span className="font-semibold tabular-nums text-text-primary">
+                            {formatNumber(campaign.leadCount)}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="px-3 py-4.5 text-right font-medium tabular-nums whitespace-nowrap text-text-secondary">

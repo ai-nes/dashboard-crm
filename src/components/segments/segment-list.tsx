@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -21,6 +21,7 @@ import {
   AdminTableRow,
 } from "@/components/common/admin/admin-table";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
+import { useAuth } from "@/components/common/auth/auth-provider";
 import { useDeleteSegmentMutation } from "@/hooks/use-segment-queries";
 import { getSegmentListColumns } from "./segment-list-columns";
 import { useSegmentData } from "./segment-data-provider";
@@ -29,6 +30,7 @@ import {
   SEGMENT_STATUS_LABELS,
   type SegmentListItem,
 } from "./segment-list-types";
+import { canManageSegment } from "./segment-permissions";
 
 const normalizeSearch = (value: string) =>
   value
@@ -40,15 +42,15 @@ const normalizeSearch = (value: string) =>
 
 export function SegmentList({
   detailBaseHref,
-  canManage,
   compactStatus = false,
 }: {
   detailBaseHref: string;
-  canManage: boolean;
   compactStatus?: boolean;
 }) {
+  const { user } = useAuth();
   const {
     segments,
+    canRead,
     isLoading,
     error,
     refetch,
@@ -70,9 +72,17 @@ export function SegmentList({
   const [segmentToDelete, setSegmentToDelete] =
     useState<SegmentListItem | null>(null);
   const deleteMutation = useDeleteSegmentMutation();
+  const canUpdate = useCallback(
+    (segment: SegmentListItem) => canManageSegment(user, segment, "update"),
+    [user],
+  );
+  const canDelete = useCallback(
+    (segment: SegmentListItem) => canManageSegment(user, segment, "delete"),
+    [user],
+  );
 
   const handleConfirmDelete = async () => {
-    if (!segmentToDelete) return;
+    if (!segmentToDelete || !canDelete(segmentToDelete)) return;
 
     try {
       await deleteMutation.mutateAsync({
@@ -95,8 +105,10 @@ export function SegmentList({
     () =>
       getSegmentListColumns({
         detailBaseHref,
-        canManage,
+        canUpdate,
+        canDelete,
         onStatusChange: (segment, status) => {
+          if (!canUpdate(segment)) return;
           void transitionSegment({
             name: segment.id,
             status,
@@ -115,12 +127,15 @@ export function SegmentList({
               );
             });
         },
-        onDelete: setSegmentToDelete,
+        onDelete: (segment) => {
+          if (canDelete(segment)) setSegmentToDelete(segment);
+        },
         isDeleteDisabled: deleteMutation.isPending,
         compactStatus,
       }),
     [
-      canManage,
+      canUpdate,
+      canDelete,
       compactStatus,
       deleteMutation.isPending,
       detailBaseHref,
@@ -141,6 +156,14 @@ export function SegmentList({
     getFilteredRowModel: serverPaginated ? undefined : getFilteredRowModel(),
     getRowId: (row) => row.id,
   });
+
+  if (!canRead) {
+    return (
+      <section className="rounded-2xl border border-card-border bg-card-background p-8 text-center text-sm text-text-secondary">
+        Bạn không có quyền xem danh sách segment.
+      </section>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -244,7 +267,7 @@ export function SegmentList({
       </AdminTableFrame>
 
       <DeleteRecordDialog
-        isOpen={Boolean(segmentToDelete)}
+        isOpen={Boolean(segmentToDelete && canDelete(segmentToDelete))}
         recordType="segment"
         recordName={segmentToDelete?.name ?? ""}
         isDeleting={deleteMutation.isPending}

@@ -38,10 +38,12 @@ function formFromRecord(record: AdmissionMethodOption | null): MethodForm {
 export function AdmissionMethodEditorDialog({
   isOpen,
   record,
+  canSave,
   onOpenChange,
 }: {
   isOpen: boolean
   record: AdmissionMethodOption | null
+  canSave: boolean
   onOpenChange: (open: boolean) => void
 }) {
   const [form, setForm] = useState(() => formFromRecord(record))
@@ -55,6 +57,7 @@ export function AdmissionMethodEditorDialog({
 
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!canSave) return
     const code = form.code.trim().toUpperCase()
     const displayName = form.displayName.trim()
     if (!code || !/^[A-Z][A-Z0-9_]{1,49}$/.test(code)) {
@@ -159,9 +162,11 @@ export function AdmissionMethodEditorDialog({
             <DialogClose appearance="outline" size="sm" isDisabled={isSaving}>
               Hủy
             </DialogClose>
-            <Button size="sm" type="submit" isDisabled={isSaving}>
-              {isSaving ? 'Đang lưu…' : record ? 'Lưu thay đổi' : 'Tạo phương thức'}
-            </Button>
+            {canSave && (
+              <Button size="sm" type="submit" isDisabled={isSaving}>
+                {isSaving ? 'Đang lưu…' : record ? 'Lưu thay đổi' : 'Tạo phương thức'}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </Dialog>

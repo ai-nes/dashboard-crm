@@ -2,6 +2,8 @@
 
 import type { DetailTabItem } from "@/components/common/detail-tabs";
 import DetailTabs from "@/components/common/detail-tabs";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmDoctypePermissions } from "@/components/common/auth/permissions";
 
 import StudentAdmissionDocumentsMockup from "./student-admission-documents-mockup";
 import StudentAdmissionManagementMockup from "./student-admission-management-mockup";
@@ -10,8 +12,9 @@ import type { Student360SectionProps } from "./types";
 
 function getAdmissionTabs(
   data: Student360SectionProps["data"],
+  canReadPaymentAccount: boolean,
 ): DetailTabItem[] {
-  return [
+  const tabs: DetailTabItem[] = [
     {
       id: "admission-management",
       label: "Thông tin quản lí nhập học",
@@ -28,10 +31,18 @@ function getAdmissionTabs(
       content: <StudentPaymentInvoicesMockup />,
     },
   ];
+  return canReadPaymentAccount
+    ? tabs
+    : tabs.filter((tab) => tab.id !== "payment-invoices");
 }
 
 export default function StudentAdmissionTabs({ data }: Student360SectionProps) {
-  const admissionTabs = getAdmissionTabs(data);
+  const { user } = useAuth();
+  const canReadPaymentAccount = getCrmDoctypePermissions(
+    user,
+    "CRM Student Payment Account",
+  ).canRead;
+  const admissionTabs = getAdmissionTabs(data, canReadPaymentAccount);
 
   return (
     <DetailTabs

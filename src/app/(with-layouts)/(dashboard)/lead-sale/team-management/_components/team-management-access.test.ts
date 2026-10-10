@@ -18,8 +18,8 @@ const workspace: TeamManagementWorkspace = {
     groupCount: 2,
     teamCount: 3,
     activeTeamCount: 3,
-    staffCount: 5,
-    activeStaffCount: 5,
+    userCount: 5,
+    activeUserCount: 5,
   },
   groups: [
     {
@@ -174,6 +174,19 @@ const workspace: TeamManagementWorkspace = {
   permissions: { canManage: true, canManageAll: false },
 };
 
+it("uses the stable User ID for Team leadership even after an email change", () => {
+  const user = {
+    crm_user_id: "staff-team-lead",
+    user: "changed@example.com",
+    email: "changed@example.com",
+    roles: ["Sale"],
+    crm_profile: "sales",
+  } as CurrentUser;
+  const permissions = getTeamManagementPermissions(user, workspace);
+  expect(canManageMembers(permissions, "team-1")).toBe(true);
+  expect(canManageMembers(permissions, "team-3")).toBe(false);
+});
+
 function user(
   email: string,
   roles: string[],
@@ -211,6 +224,14 @@ function stateWithPermissions(
 }
 
 describe("team management organization permissions", () => {
+  it("keeps membership editing disabled when the backend says read-only", () => {
+    const permissions = getTeamManagementPermissions(
+      user("team-lead@example.com", ["Sale"]),
+      { ...workspace, permissions: { canManage: false, canManageAll: false } },
+    );
+    expect(permissions.canManage).toBe(false);
+    expect(canManageMembers(permissions, "team-1")).toBe(false);
+  });
   it("gives Lead Sale full organization access", () => {
     const permissions = getTeamManagementPermissions(
       user("lead-sale@example.com", ["Lead Sale"]),

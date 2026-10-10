@@ -328,7 +328,7 @@ describe("dashboard RBAC", () => {
           "Administrator",
         ]),
       ),
-    ).toHaveLength(17);
+    ).toHaveLength(20);
     expect(primaryItems).not.toContain("Cấu hình Action NBA");
     expect(
       findActiveGroupKeyInNavigation("/director/ai", directorNavigation),
@@ -407,6 +407,18 @@ describe("dashboard RBAC", () => {
         ),
       ),
     ).toEqual(systemManagerItems);
+  });
+
+  it("retains technical configuration routes for an administrator with a CRM profile", () => {
+    const roles = ["Admissions Director", "Administrator"];
+    for (const path of [
+      "/director/admin/nba-actions",
+      "/director/admin/action-recommendations",
+      "/director/admin/segments",
+      "/director/admin/student-config",
+    ]) {
+      expect(canAccessDashboardPath(path, roles)).toBe(true);
+    }
   });
 
   it("reserves NBA configuration for System Manager", () => {

@@ -96,20 +96,24 @@ export default function ContentCreateMenu({
           }}
         >
           <Menu aria-label="Tạo nội dung" className="outline-none">
-            <MenuItem
-              id="new"
-              onAction={handleCreateNew}
-              className="cursor-pointer rounded-lg px-3 py-2 text-sm text-text-secondary outline-none data-[focused=true]:bg-background-gray-secondary_alt data-[focused=true]:text-text-primary"
-            >
-              Tạo mới
-            </MenuItem>
-            <MenuItem
-              id="from-template"
-              onAction={handleCreateFromTemplate}
-              className="cursor-pointer rounded-lg px-3 py-2 text-sm text-text-secondary outline-none data-[focused=true]:bg-background-gray-secondary_alt data-[focused=true]:text-text-primary"
-            >
-              Tạo từ mẫu
-            </MenuItem>
+            {onCreateNew ? (
+              <MenuItem
+                id="new"
+                onAction={handleCreateNew}
+                className="cursor-pointer rounded-lg px-3 py-2 text-sm text-text-secondary outline-none data-[focused=true]:bg-background-gray-secondary_alt data-[focused=true]:text-text-primary"
+              >
+                Tạo mới
+              </MenuItem>
+            ) : null}
+            {onCreateFromTemplate ? (
+              <MenuItem
+                id="from-template"
+                onAction={handleCreateFromTemplate}
+                className="cursor-pointer rounded-lg px-3 py-2 text-sm text-text-secondary outline-none data-[focused=true]:bg-background-gray-secondary_alt data-[focused=true]:text-text-primary"
+              >
+                Tạo từ mẫu
+              </MenuItem>
+            ) : null}
           </Menu>
         </Popover>
       )}

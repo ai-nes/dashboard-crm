@@ -8,6 +8,7 @@ export interface TaskDialogDescriptionProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  readOnly?: boolean;
 }
 
 export default function TaskDialogDescription({
@@ -15,7 +16,23 @@ export default function TaskDialogDescription({
   onChange,
   placeholder = "Mô tả chi tiết công việc cần làm...",
   className,
+  readOnly = false,
 }: TaskDialogDescriptionProps) {
+  if (readOnly) {
+    const plainText = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    return (
+      <section
+        aria-label="Ghi chú task"
+        className={cn("flex min-h-0 flex-1 flex-col space-y-2", className)}
+      >
+        <h3 className="text-sm font-semibold text-text-primary">Ghi chú task</h3>
+        <p className="min-h-36 whitespace-pre-wrap rounded-lg border border-card-border bg-card-background px-4 py-3 text-sm leading-6 text-text-primary">
+          {plainText || "Chưa có ghi chú."}
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section
       aria-label="Ghi chú task"

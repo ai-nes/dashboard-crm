@@ -5,6 +5,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Book4 } from "@tailgrids/icons";
 import { toast } from "sonner";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  canAccessStudent,
+  getCrmDoctypePermissions,
+  getCrmPermissions,
+} from "@/components/common/auth/permissions";
 import {
   EditableDetailField,
   type EditableDetailOption,
@@ -73,10 +79,31 @@ interface StudentHighSchoolMockupProps {
 }
 
 export default function StudentHighSchoolMockup({
-  canEdit = true,
+  canEdit = false,
   data,
   studentId,
 }: StudentHighSchoolMockupProps) {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const studentPermissions = getCrmPermissions(user).student;
+  const canReadStudent =
+    !isAuthLoading &&
+    canAccessStudent(
+      studentPermissions,
+      { owner: data.student.counselor, ownerId: data.student.ownerId },
+      user,
+    );
+  const canEditStudent = canEdit && !isAuthLoading;
+  const admissionProfilePermissions = getCrmDoctypePermissions(
+    user,
+    "CRM Student Admission Profile",
+  );
+  const canReadAdmissionProfile = admissionProfilePermissions.canRead;
+  const canUpdateAdmissionProfile =
+    canEditStudent && admissionProfilePermissions.canUpdate;
+  const canReadHighSchool = getCrmDoctypePermissions(
+    user,
+    "CRM High School",
+  ).canRead;
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<HighSchoolForm>(() =>
@@ -93,7 +120,7 @@ export default function StudentHighSchoolMockup({
         studentId,
         data.student.admissionYear || undefined,
       ),
-    enabled: Boolean(studentId),
+    enabled: Boolean(studentId) && canReadStudent,
     staleTime: 60_000,
   });
   const scoreUpdateMutation = useMutation({
@@ -142,7 +169,7 @@ export default function StudentHighSchoolMockup({
           limit: 1,
         }
       : null,
-    Boolean(selectedSchool),
+    Boolean(selectedSchool) && canReadHighSchool,
   );
 
   const provinceOptions = toEditableOptions(provinceOptionsQuery.data?.options);
@@ -175,6 +202,7 @@ export default function StudentHighSchoolMockup({
 
   const saveHighSchool = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canEditStudent) return;
     const initial = getHighSchoolForm(data, scoreFields);
     const fields: StudentUpdateFields = {};
     const scoreUpdates: StudentHighSchoolScoreUpdateFields = {};
@@ -183,7 +211,7 @@ export default function StudentHighSchoolMockup({
       if (form.province !== initial.province)
         fields.province = nullable(form.province);
       if (form.ward !== initial.ward) fields.ward = nullable(form.ward);
-      if (form.high_school !== initial.high_school)
+      if (canReadHighSchool && form.high_school !== initial.high_school)
         fields.high_school = nullable(form.high_school);
       if (form.graduation_score !== initial.graduation_score) {
         scoreUpdates.graduation_score = parseScoreNumber(
@@ -193,28 +221,38 @@ export default function StudentHighSchoolMockup({
         );
       }
       if (form.is_high_school_graduate !== initial.is_high_school_graduate) {
-        scoreUpdates.is_high_school_graduate = parseBoolean(
-          form.is_high_school_graduate,
-        );
+        if (canUpdateAdmissionProfile) {
+          scoreUpdates.is_high_school_graduate = parseBoolean(
+            form.is_high_school_graduate,
+          );
+        }
       }
       if (form.graduation_year !== initial.graduation_year) {
-        scoreUpdates.graduation_year = parseYear(form.graduation_year);
+        if (canUpdateAdmissionProfile) {
+          scoreUpdates.graduation_year = parseYear(form.graduation_year);
+        }
       }
       if (form.academic_rank !== initial.academic_rank) {
         scoreUpdates.academic_rank = nullable(form.academic_rank);
       }
       if (form.priority_group !== initial.priority_group) {
-        scoreUpdates.priority_group = nullable(form.priority_group);
+        if (canUpdateAdmissionProfile) {
+          scoreUpdates.priority_group = nullable(form.priority_group);
+        }
       }
       if (
         form.graduation_classification !== initial.graduation_classification
       ) {
-        scoreUpdates.graduation_classification = nullable(
-          form.graduation_classification,
-        );
+        if (canUpdateAdmissionProfile) {
+          scoreUpdates.graduation_classification = nullable(
+            form.graduation_classification,
+          );
+        }
       }
       if (form.conduct_rank !== initial.conduct_rank) {
-        scoreUpdates.conduct_rank = nullable(form.conduct_rank);
+        if (canUpdateAdmissionProfile) {
+          scoreUpdates.conduct_rank = nullable(form.conduct_rank);
+        }
       }
 
       if (
@@ -287,7 +325,7 @@ export default function StudentHighSchoolMockup({
         />
         <div className="min-w-0">
           <dt className="text-xs text-text-tertiary">Trường THPT (mới)</dt>
-          {isEditing ? (
+          {isEditing && canReadHighSchool ? (
             <SchoolCombobox
               isDisabled={!form.province}
               province={form.province}
@@ -340,40 +378,52 @@ export default function StudentHighSchoolMockup({
               : formatScoreValue(scoreFields?.graduation_score)
           }
         />
-        <EditableDetailField
-          isDisabled={scoreQuery.isLoading || !hasAdmissionProfile}
-          isEditing={isEditing}
-          label="Đã tốt nghiệp THPT"
-          onChange={(value) =>
-            setForm((current) => ({
-              ...current,
-              is_high_school_graduate: value,
-            }))
-          }
-          options={graduationStatusOptions}
-          value={
-            isEditing
-              ? form.is_high_school_graduate
-              : formatGraduationStatus(scoreFields?.is_high_school_graduate)
-          }
-        />
-        <EditableDetailField
-          isDisabled={scoreQuery.isLoading || !hasAdmissionProfile}
-          isEditing={isEditing}
-          label="Năm tốt nghiệp THPT"
-          max={2100}
-          min={1900}
-          onChange={(value) =>
-            setForm((current) => ({ ...current, graduation_year: value }))
-          }
-          step={1}
-          type="number"
-          value={
-            isEditing
-              ? form.graduation_year
-              : formatScoreValue(scoreFields?.graduation_year)
-          }
-        />
+        {canReadAdmissionProfile && (
+          <EditableDetailField
+            isDisabled={
+              scoreQuery.isLoading ||
+              !hasAdmissionProfile ||
+              !canUpdateAdmissionProfile
+            }
+            isEditing={isEditing && canUpdateAdmissionProfile}
+            label="Đã tốt nghiệp THPT"
+            onChange={(value) =>
+              setForm((current) => ({
+                ...current,
+                is_high_school_graduate: value,
+              }))
+            }
+            options={graduationStatusOptions}
+            value={
+              isEditing
+                ? form.is_high_school_graduate
+                : formatGraduationStatus(scoreFields?.is_high_school_graduate)
+            }
+          />
+        )}
+        {canReadAdmissionProfile && (
+          <EditableDetailField
+            isDisabled={
+              scoreQuery.isLoading ||
+              !hasAdmissionProfile ||
+              !canUpdateAdmissionProfile
+            }
+            isEditing={isEditing && canUpdateAdmissionProfile}
+            label="Năm tốt nghiệp THPT"
+            max={2100}
+            min={1900}
+            onChange={(value) =>
+              setForm((current) => ({ ...current, graduation_year: value }))
+            }
+            step={1}
+            type="number"
+            value={
+              isEditing
+                ? form.graduation_year
+                : formatScoreValue(scoreFields?.graduation_year)
+            }
+          />
+        )}
         <EditableDetailField
           isDisabled={scoreQuery.isLoading}
           isEditing={isEditing}
@@ -388,50 +438,68 @@ export default function StudentHighSchoolMockup({
               : formatScoreValue(scoreFields?.academic_rank)
           }
         />
-        <EditableDetailField
-          isDisabled={scoreQuery.isLoading || !hasAdmissionProfile}
-          isEditing={isEditing}
-          label="Đối tượng ưu tiên"
-          onChange={(value) =>
-            setForm((current) => ({ ...current, priority_group: value }))
-          }
-          value={
-            isEditing
-              ? form.priority_group
-              : formatScoreValue(scoreFields?.priority_group)
-          }
-        />
-        <EditableDetailField
-          isDisabled={scoreQuery.isLoading || !hasAdmissionProfile}
-          isEditing={isEditing}
-          label="Xếp loại tốt nghiệp THPT"
-          onChange={(value) =>
-            setForm((current) => ({
-              ...current,
-              graduation_classification: value,
-            }))
-          }
-          options={graduationClassificationOptions}
-          value={
-            isEditing
-              ? form.graduation_classification
-              : formatScoreValue(scoreFields?.graduation_classification)
-          }
-        />
-        <EditableDetailField
-          isDisabled={scoreQuery.isLoading || !hasAdmissionProfile}
-          isEditing={isEditing}
-          label="Loại hạnh kiểm"
-          onChange={(value) =>
-            setForm((current) => ({ ...current, conduct_rank: value }))
-          }
-          options={conductRankOptions}
-          value={
-            isEditing
-              ? form.conduct_rank
-              : formatScoreValue(scoreFields?.conduct_rank)
-          }
-        />
+        {canReadAdmissionProfile && (
+          <EditableDetailField
+            isDisabled={
+              scoreQuery.isLoading ||
+              !hasAdmissionProfile ||
+              !canUpdateAdmissionProfile
+            }
+            isEditing={isEditing && canUpdateAdmissionProfile}
+            label="Đối tượng ưu tiên"
+            onChange={(value) =>
+              setForm((current) => ({ ...current, priority_group: value }))
+            }
+            value={
+              isEditing
+                ? form.priority_group
+                : formatScoreValue(scoreFields?.priority_group)
+            }
+          />
+        )}
+        {canReadAdmissionProfile && (
+          <EditableDetailField
+            isDisabled={
+              scoreQuery.isLoading ||
+              !hasAdmissionProfile ||
+              !canUpdateAdmissionProfile
+            }
+            isEditing={isEditing && canUpdateAdmissionProfile}
+            label="Xếp loại tốt nghiệp THPT"
+            onChange={(value) =>
+              setForm((current) => ({
+                ...current,
+                graduation_classification: value,
+              }))
+            }
+            options={graduationClassificationOptions}
+            value={
+              isEditing
+                ? form.graduation_classification
+                : formatScoreValue(scoreFields?.graduation_classification)
+            }
+          />
+        )}
+        {canReadAdmissionProfile && (
+          <EditableDetailField
+            isDisabled={
+              scoreQuery.isLoading ||
+              !hasAdmissionProfile ||
+              !canUpdateAdmissionProfile
+            }
+            isEditing={isEditing && canUpdateAdmissionProfile}
+            label="Loại hạnh kiểm"
+            onChange={(value) =>
+              setForm((current) => ({ ...current, conduct_rank: value }))
+            }
+            options={conductRankOptions}
+            value={
+              isEditing
+                ? form.conduct_rank
+                : formatScoreValue(scoreFields?.conduct_rank)
+            }
+          />
+        )}
       </dl>
     </>
   );

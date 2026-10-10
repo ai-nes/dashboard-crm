@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "./auth-provider";
-import { getDefaultRouteForRoles } from "./rbac";
+import { getCrmHomePath } from "./permissions";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -9,7 +9,7 @@ import { useEffect } from "react";
 export default function RoleEntryRedirect() {
   const { user } = useAuth();
   const router = useRouter();
-  const destination = getDefaultRouteForRoles(user?.roles);
+  const destination = getCrmHomePath(user);
 
   useEffect(() => {
     if (user) router.replace(destination);

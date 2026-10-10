@@ -27,11 +27,13 @@ import TaskManagementTaskActions from "./task-management-task-actions";
 interface TaskManagementTableProps {
   tasks: TaskManagementItem[];
   onOpenTask: (task: TaskManagementItem) => void;
-  onUpdateTask: (
+  onUpdateTask?: (
     id: string,
     updates: Partial<StudentTaskItem>,
   ) => void | Promise<void>;
   onDeleteTask?: (id: string) => void;
+  canUpdateTask?: (task: TaskManagementItem) => boolean;
+  canDeleteTask?: (task: TaskManagementItem) => boolean;
   isLoading?: boolean;
 }
 
@@ -114,11 +116,15 @@ function TaskTableRow({
   onOpenTask,
   onUpdateTask,
   onDeleteTask,
+  canUpdateTask,
+  canDeleteTask,
 }: {
   task: TaskManagementItem;
   onOpenTask: (task: TaskManagementItem) => void;
   onUpdateTask: TaskManagementTableProps["onUpdateTask"];
   onDeleteTask?: TaskManagementTableProps["onDeleteTask"];
+  canUpdateTask?: TaskManagementTableProps["canUpdateTask"];
+  canDeleteTask?: TaskManagementTableProps["canDeleteTask"];
 }) {
   return (
     <TableRow
@@ -161,8 +167,8 @@ function TaskTableRow({
       <TableCell className="w-12 whitespace-nowrap text-right align-middle">
         <TaskManagementTaskActions
           task={task}
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
+          onUpdateTask={canUpdateTask?.(task) ? onUpdateTask : undefined}
+          onDeleteTask={canDeleteTask?.(task) ? onDeleteTask : undefined}
         />
       </TableCell>
     </TableRow>
@@ -174,6 +180,8 @@ export default function TaskManagementTable({
   onOpenTask,
   onUpdateTask,
   onDeleteTask,
+  canUpdateTask,
+  canDeleteTask,
   isLoading = false,
 }: TaskManagementTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -215,6 +223,8 @@ export default function TaskManagementTable({
                     onOpenTask={onOpenTask}
                     onUpdateTask={onUpdateTask}
                     onDeleteTask={onDeleteTask}
+                    canUpdateTask={canUpdateTask}
+                    canDeleteTask={canDeleteTask}
                   />
                 ))
               ) : (

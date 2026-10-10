@@ -19,6 +19,8 @@ interface SnippetListProps {
   listResponse: ListSnippetsResponse;
   listParams: ListSnippetsParams;
   canCreate?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
   currentUserId?: string;
   isLoading?: boolean;
   onListParamsChange: (params: ListSnippetsParams) => void;
@@ -31,7 +33,9 @@ export default function SnippetList({
   snippets,
   listResponse,
   listParams,
-  canCreate = true,
+  canCreate = false,
+  canUpdate = false,
+  canDelete = false,
   currentUserId,
   isLoading = false,
   onListParamsChange,
@@ -128,6 +132,8 @@ export default function SnippetList({
         snippets={snippets}
         totalCount={totalCount}
         canCreate={canCreate}
+        canUpdate={canUpdate}
+        canDelete={canDelete}
         isLoading={isLoading}
         onDuplicate={onDuplicate}
         onDelete={onDelete}

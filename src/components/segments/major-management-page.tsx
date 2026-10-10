@@ -9,7 +9,7 @@ import {
 } from "@/components/common/admin/admin-tabs";
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { canManageMajorCatalog } from "@/components/segments/student-configuration-permissions";
+import { getMajorCatalogPermissions } from "@/components/segments/student-configuration-permissions";
 import { TabTrigger } from "@/components/tailgrids/core/tabs";
 
 import AcademicYearPanel from "../admin/admin-catalog/academic-year-panel";
@@ -21,7 +21,11 @@ type MajorManagementTab = "majors" | "geography" | "academic" | "channels";
 
 export function MajorManagementPage() {
   const { user } = useAuth();
-  const canManage = canManageMajorCatalog(user?.roles);
+  const permissions = getMajorCatalogPermissions(user);
+  const canEdit = Object.values(permissions).some(
+    ({ canCreate, canUpdate, canDelete }) =>
+      canCreate || canUpdate || canDelete,
+  );
   const [activeTab, setActiveTab] = useState<MajorManagementTab>("majors");
 
   return (
@@ -33,7 +37,7 @@ export function MajorManagementPage() {
         section="Học sinh & địa bàn"
         title="Danh mục tuyển sinh"
         description="Quản lý ngành học, địa bàn, năm tuyển sinh và kênh chiến dịch dùng chung trong CRM."
-        canEdit={canManage}
+        canEdit={canEdit}
         metaLabel="Danh mục CRM"
         metaValue="Ngành, địa bàn, năm, kênh"
       />
@@ -54,7 +58,7 @@ export function MajorManagementPage() {
           className="mt-3 min-h-0 flex-1 overflow-hidden p-0"
         >
           <MajorCatalogManagement
-            canManage={canManage}
+            permissions={permissions}
             enabled={activeTab === "majors"}
           />
         </AdminTabContent>
@@ -63,7 +67,7 @@ export function MajorManagementPage() {
           className="mt-3 min-h-0 flex-1 overflow-hidden p-0"
         >
           <GeographyCatalogManagement
-            canManage={canManage}
+            permissions={permissions}
             enabled={activeTab === "geography"}
           />
         </AdminTabContent>
@@ -71,13 +75,13 @@ export function MajorManagementPage() {
           value="academic"
           className="mt-3 min-h-0 flex-1 overflow-y-auto p-0"
         >
-          <AcademicYearPanel />
+          <AcademicYearPanel permissions={permissions.admissionYears} />
         </AdminTabContent>
         <AdminTabContent
           value="channels"
           className="mt-3 min-h-0 flex-1 overflow-y-auto p-0"
         >
-          <ChannelTypePanel />
+          <ChannelTypePanel permissions={permissions.campaignChannelTypes} />
         </AdminTabContent>
       </AdminTabRoot>
     </main>

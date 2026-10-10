@@ -27,6 +27,7 @@ import TaskManagementToolbar from "./task-management-toolbar";
 import StudentDeleteTaskDialog from "../../students/_components/student-delete-task-dialog";
 import { mergeTaskLists } from "./merge-task-lists";
 import { crmTaskToManagementItem } from "./task-management-mappers";
+import { canManageTaskRecord } from "./task-management-permissions";
 import type { TaskLayout, TaskStatusFilter, TaskView } from "./types";
 import {
   studentTaskToCreatePayload,
@@ -114,7 +115,9 @@ export default function TaskManagementPage({
   const createTaskMutation = useCreateCrmTaskMutation();
   const updateTaskMutation = useUpdateCrmTaskMutation();
   const deleteTaskMutation = useDeleteCrmTaskMutation();
-  const taskAssigneesQuery = useTaskAssigneesQuery();
+  const taskAssigneesQuery = useTaskAssigneesQuery({
+    enabled: canCreateTask && !isAuthLoading,
+  });
   const taskAssignees = useMemo(() => {
     const currentSessionUser = user
       ? {
@@ -153,7 +156,8 @@ export default function TaskManagementPage({
     },
     currentUserId,
     {
-      enabled: canCreateTask && !isAuthLoading,
+      enabled:
+        canCreateTask && permissions.student.canRead && !isAuthLoading,
       staleTime: 5 * 60 * 1000,
     },
   );
@@ -260,6 +264,10 @@ export default function TaskManagementPage({
   const tasks = shouldUseCrmApi ? apiTasks : localTasks;
   const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
   const totalTaskCount = shouldUseCrmApi ? apiTaskTotal : tasks.length;
+  const canUpdateTaskRecord = (task: TaskManagementItem) =>
+    canUpdateTask && canManageTaskRecord(user, task);
+  const canDeleteTaskRecord = (task: TaskManagementItem) =>
+    canDeleteTask && canManageTaskRecord(user, task);
 
   const filteredTasks = useMemo(() => {
     const now = new Date();
@@ -375,12 +383,12 @@ export default function TaskManagementPage({
     id: string,
     updates: Partial<TaskManagementItem>,
   ) => {
-    if (!canUpdateTask) {
-      toast.error("Bạn không có quyền sửa task.");
-      return;
-    }
     const currentTask = tasks.find((task) => task.id === id);
     if (!currentTask) return;
+    if (!canUpdateTaskRecord(currentTask)) {
+      toast.error("Bạn không có quyền sửa task này.");
+      return;
+    }
 
     if (!shouldUseCrmApi) {
       setLocalTasks((current) =>
@@ -432,14 +440,16 @@ export default function TaskManagementPage({
   };
 
   const handleRequestDeleteTask = (id: string) => {
-    if (!canDeleteTask) return;
     const task = tasks.find((current) => current.id === id);
-    if (task) setTaskToDelete(task);
+    if (task && canDeleteTaskRecord(task)) setTaskToDelete(task);
   };
 
   const handleConfirmDeleteTask = async () => {
-    if (!canDeleteTask) return;
     if (!taskToDelete) return;
+    if (!canDeleteTaskRecord(taskToDelete)) {
+      setTaskToDelete(null);
+      return;
+    }
 
     if (!shouldUseCrmApi) {
       setLocalTasks((current) =>
@@ -547,6 +557,8 @@ export default function TaskManagementPage({
             onOpenTask={(task) => setSelectedTaskId(task.id)}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={canDeleteTask ? handleRequestDeleteTask : undefined}
+        canUpdateTask={canUpdateTaskRecord}
+        canDeleteTask={canDeleteTaskRecord}
             onCreateTask={canCreateTask ? () => setSheetOpen(true) : undefined}
             lanePagination={lanePagination}
             isLoading={apiTasksPending && shouldUseCrmApi}
@@ -558,6 +570,8 @@ export default function TaskManagementPage({
             onOpenTask={(task) => setSelectedTaskId(task.id)}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={canDeleteTask ? handleRequestDeleteTask : undefined}
+            canUpdateTask={canUpdateTaskRecord}
+            canDeleteTask={canDeleteTaskRecord}
             isLoading={apiTasksPending && shouldUseCrmApi}
           />
         )}
@@ -566,7 +580,11 @@ export default function TaskManagementPage({
       <TaskDetailSheet
         isOpen={Boolean(selectedTask)}
         task={selectedTask}
-        onUpdateTask={handleUpdateTask}
+        onUpdateTask={
+          selectedTask && canUpdateTaskRecord(selectedTask)
+            ? handleUpdateTask
+            : undefined
+        }
         onOpenChange={(open) => {
           if (!open) setSelectedTaskId(null);
         }}
@@ -589,7 +607,7 @@ export default function TaskManagementPage({
           onCreate={handleCreateTask}
         />
       )}
-      {canDeleteTask && (
+      {taskToDelete && canDeleteTaskRecord(taskToDelete) && (
         <StudentDeleteTaskDialog
           task={taskToDelete}
           isDeleting={deleteTaskMutation.isPending}

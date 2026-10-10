@@ -12,6 +12,7 @@ interface StudentInlineEditableRichTextProps {
   onCommit: (value: string) => void;
   placeholder?: string;
   className?: string;
+  canEdit?: boolean;
 }
 
 export default function StudentInlineEditableRichText({
@@ -19,14 +20,35 @@ export default function StudentInlineEditableRichText({
   onCommit,
   placeholder,
   className,
+  canEdit = true,
 }: StudentInlineEditableRichTextProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
 
+  if (!canEdit) {
+    return (
+      <div
+        className={cn(
+          "min-h-14 rounded-lg px-2 py-1.5 text-sm leading-6 text-text-primary",
+          className,
+        )}
+        dangerouslySetInnerHTML={{
+          __html:
+            value ||
+            `<p class="text-text-tertiary">${placeholder ?? "Thêm nội dung..."}</p>`,
+        }}
+      />
+    );
+  }
+
   if (editing) {
     return (
       <div className={cn("space-y-2", className)}>
-        <RichTextEditor value={draft} onChange={setDraft} placeholder={placeholder} />
+        <RichTextEditor
+          value={draft}
+          onChange={setDraft}
+          placeholder={placeholder}
+        />
         <div className="flex justify-end gap-2">
           <Button
             size="xs"
@@ -77,7 +99,8 @@ export default function StudentInlineEditableRichText({
         className="pr-6 text-sm leading-6 text-text-primary [&_a]:text-primary-500 [&_a]:underline [&_p]:my-1"
         dangerouslySetInnerHTML={{
           __html:
-            value || `<p class="text-text-tertiary">${placeholder ?? "Thêm nội dung..."}</p>`,
+            value ||
+            `<p class="text-text-tertiary">${placeholder ?? "Thêm nội dung..."}</p>`,
         }}
       />
       <Pencil1

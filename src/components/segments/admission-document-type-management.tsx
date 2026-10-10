@@ -38,6 +38,7 @@ import type {
   AdmissionDocumentTypeOption,
   AdmissionDocumentTypeStatus,
 } from "@/services/api/admission-profile-catalog";
+import type { CrmDoctypePermissions } from "@/components/common/auth/permissions";
 
 import { AdmissionCatalogPanel } from "./admission-catalog-panel";
 import { AdmissionDocumentTypeEditorDialog } from "./admission-document-type-editor-dialog";
@@ -65,12 +66,13 @@ function statusColor(
 }
 
 export function AdmissionDocumentTypeManagement({
-  canManage,
-  canDelete,
+  permissions,
 }: {
-  canManage: boolean;
-  canDelete: boolean;
+  permissions: CrmDoctypePermissions;
 }) {
+  const canCreate = permissions.canCreate;
+  const canUpdate = permissions.canUpdate;
+  const canDelete = permissions.canDelete;
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [statusFilter, setStatusFilter] = useState<
@@ -102,19 +104,21 @@ export function AdmissionDocumentTypeManagement({
     Boolean(deferredSearch.trim()) || statusFilter !== "all";
 
   const openCreate = () => {
+    if (!canCreate) return;
     setSelected(null);
     setEditorKey((current) => current + 1);
     setIsEditorOpen(true);
   };
 
   const openEdit = (record: AdmissionDocumentTypeOption) => {
+    if (!canUpdate) return;
     setSelected(record);
     setEditorKey((current) => current + 1);
     setIsEditorOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (!toDelete) return;
+    if (!canDelete || !toDelete) return;
     try {
       await deleteMutation.mutateAsync({
         name: toDelete.id,
@@ -176,7 +180,7 @@ export function AdmissionDocumentTypeManagement({
           <Badge color="gray" size="sm">
             {total} mục
           </Badge>
-          {canManage && (
+          {canCreate && (
             <Button
               size="sm"
               onPress={openCreate}
@@ -192,7 +196,7 @@ export function AdmissionDocumentTypeManagement({
         title="Loại tài liệu"
         description="Danh mục giấy tờ dùng để xây dựng checklist hồ sơ nhập học."
         count={query.data?.total ?? documentTypes.length}
-        canManage={canManage}
+        canCreate={canCreate}
         createLabel="Thêm loại tài liệu"
         onCreate={openCreate}
         isBusy={query.isPending || deleteMutation.isPending}
@@ -228,7 +232,7 @@ export function AdmissionDocumentTypeManagement({
                     action={
                       !hasDocumentTypeFilter &&
                       documentTypes.length === 0 &&
-                      canManage
+                      canCreate
                         ? openCreate
                         : undefined
                     }
@@ -290,7 +294,7 @@ export function AdmissionDocumentTypeManagement({
                           </TableCell>
                           <TableCell className="align-top">
                             <div className="flex justify-end gap-1">
-                              {canManage && (
+                              {canUpdate && (
                                 <Button
                                   aria-label={`Sửa ${documentType.name}`}
                                   iconOnly
@@ -337,15 +341,16 @@ export function AdmissionDocumentTypeManagement({
 
       <AdmissionDocumentTypeEditorDialog
         key={`${selected?.id ?? "new"}-${editorKey}`}
-        isOpen={isEditorOpen}
+        isOpen={isEditorOpen && (selected ? canUpdate : canCreate)}
         record={selected}
+        canSave={selected ? canUpdate : canCreate}
         onOpenChange={(open) => {
           setIsEditorOpen(open);
           if (!open) setSelected(null);
         }}
       />
       <DeleteRecordDialog
-        isOpen={Boolean(toDelete)}
+        isOpen={Boolean(toDelete && canDelete)}
         recordType="loại tài liệu"
         recordName={toDelete?.name ?? ""}
         isDeleting={deleteMutation.isPending}

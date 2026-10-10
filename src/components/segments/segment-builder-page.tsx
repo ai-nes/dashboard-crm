@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
+import { useAuth } from "@/components/common/auth/auth-provider";
 import { Input } from "@/components/tailgrids/core/input";
 import {
   Tooltip,
@@ -31,6 +32,7 @@ import {
 } from "./segment-filter-config";
 import { SegmentFilterPreview } from "./segment-filter-preview";
 import { toSegmentStudent } from "./segment-detail-types";
+import { canCreateSegment, canManageSegment } from "./segment-permissions";
 
 export type SegmentCategory =
   | "admission_stage"
@@ -59,6 +61,7 @@ export default function SegmentBuilderPage({
   mode = "create",
   segmentId,
   expectedRevision,
+  segmentOwnerUserId,
   defaultIsPublic = 0,
 }: {
   backHref: string;
@@ -71,6 +74,77 @@ export default function SegmentBuilderPage({
   mode?: "create" | "edit";
   segmentId?: string;
   expectedRevision?: number;
+  segmentOwnerUserId?: string | null;
+  defaultIsPublic?: 0 | 1;
+}) {
+  const { user } = useAuth();
+  const isEditMode = mode === "edit";
+  const canManage = isEditMode
+    ? canManageSegment(
+        user,
+        { ownerUserId: segmentOwnerUserId ?? null },
+        "update",
+      )
+    : canCreateSegment(user);
+
+  if (!canManage) {
+    return (
+      <main className="flex h-full min-h-0 items-center justify-center bg-card-background px-6">
+        <section className="w-full max-w-md rounded-2xl border border-card-border bg-card-surface-area p-6 text-center">
+          <h1 className="text-xl font-semibold text-text-primary">
+            Không có quyền chỉnh sửa segment
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-text-secondary">
+            Tài khoản này chưa được cấp quyền tạo hoặc chỉnh sửa segment.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <SegmentBuilderContent
+      backHref={backHref}
+      managementHref={managementHref}
+      initialSegmentName={initialSegmentName}
+      initialGroups={initialGroups}
+      initialLogic={initialLogic}
+      initialPurpose={initialPurpose}
+      initialCategory={initialCategory}
+      mode={mode}
+      segmentId={segmentId}
+      expectedRevision={expectedRevision}
+      canManage={canManage}
+      defaultIsPublic={defaultIsPublic}
+    />
+  );
+}
+
+function SegmentBuilderContent({
+  backHref,
+  managementHref,
+  initialSegmentName,
+  initialGroups = [],
+  initialLogic = "OR",
+  initialPurpose = "",
+  initialCategory,
+  mode = "create",
+  segmentId,
+  expectedRevision,
+  canManage,
+  defaultIsPublic = 0,
+}: {
+  backHref: string;
+  managementHref?: string;
+  initialSegmentName: string;
+  initialGroups?: SegmentFilterGroup[];
+  initialLogic?: SegmentFilterLogic;
+  initialPurpose?: string;
+  initialCategory?: SegmentCategory;
+  mode?: "create" | "edit";
+  segmentId?: string;
+  expectedRevision?: number;
+  canManage: boolean;
   defaultIsPublic?: 0 | 1;
 }) {
   const router = useRouter();
@@ -81,7 +155,7 @@ export default function SegmentBuilderPage({
   const [groups, setGroups] = useState<SegmentFilterGroup[]>(initialGroups);
   const [logic, setLogic] = useState<SegmentFilterLogic>(initialLogic);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const filterOptionsQuery = useSegmentFilterOptionsQuery();
+  const filterOptionsQuery = useSegmentFilterOptionsQuery(canManage);
   const createMutation = useCreateSegmentMutation();
   const updateMutation = useUpdateSegmentMutation();
   const filterOptions = useMemo(
@@ -101,7 +175,7 @@ export default function SegmentBuilderPage({
   );
   const previewQuery = useSegmentPreviewQuery(
     { filters: backendFilters ?? undefined, pageLength: 25 },
-    previewReady && Boolean(backendFilters),
+    previewReady && Boolean(backendFilters) && canManage,
   );
   const studentSize = previewQuery.data?.total ?? 0;
   const totalStudents = previewQuery.data?.total_students ?? 0;
@@ -127,7 +201,7 @@ export default function SegmentBuilderPage({
   };
 
   const handleSave = async () => {
-    if (!backendFilters) return;
+    if (!canManage || !backendFilters) return;
     setIsSubmitting(true);
     const purpose = initialPurpose.trim();
     const category =

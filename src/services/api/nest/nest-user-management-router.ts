@@ -185,6 +185,12 @@ export const nestUserManagementHandler: MethodHandler = async (
         method: "PUT",
         body: { crmProfile: requestedProfile },
       });
+      if (body?.campus_id) {
+        await nestRequest(`${USERS}/${userIdOf(created.data.id)}/profile`, {
+          method: "PATCH",
+          body: { campusId: body.campus_id },
+        });
+      }
       return created.data.id;
     }
 

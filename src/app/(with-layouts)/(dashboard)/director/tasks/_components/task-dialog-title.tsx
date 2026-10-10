@@ -11,6 +11,7 @@ export interface TaskDialogTitleProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  readOnly?: boolean;
 }
 
 function getLineHeight(textarea: HTMLTextAreaElement): number {
@@ -32,6 +33,7 @@ export default function TaskDialogTitle({
   onChange,
   placeholder = "Tên task...",
   className,
+  readOnly = false,
 }: TaskDialogTitleProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -64,7 +66,8 @@ export default function TaskDialogTitle({
         rows={2}
         maxLength={120}
         value={value}
-        onChange={handleChange}
+        readOnly={readOnly}
+        onChange={readOnly ? undefined : handleChange}
         placeholder={placeholder}
         aria-label="Tiêu đề task"
         className="w-full resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-2xl font-bold leading-tight text-text-primary shadow-none outline-none ring-0 focus:border-0 focus:outline-none focus:ring-0 placeholder:font-medium placeholder:text-text-tertiary sm:text-3xl"

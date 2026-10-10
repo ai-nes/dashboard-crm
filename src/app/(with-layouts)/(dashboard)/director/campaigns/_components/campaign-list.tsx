@@ -14,7 +14,7 @@ import { formatDate } from "@/utils/format-date";
 import CampaignChannelCell from "./campaign-channel-cell";
 import { campaignColumns } from "./campaign-columns";
 import { getCampaignDetailPath } from "./campaign-routes";
-import type { ChannelTypeOption, ChannelTypeValue } from "./channel-types";
+import { getChannelTypeLabel, type ChannelTypeOption, type ChannelTypeValue } from "./channel-types";
 import { campaignModeColor, campaignModeLabel, campaignStatusColor, campaignStatusLabel } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -29,6 +29,8 @@ interface CampaignListProps {
   campaigns: CampaignListItem[];
   detailListPath: string;
   channelTypes: readonly ChannelTypeOption[];
+  canUpdate: boolean;
+  canDelete: boolean;
   onStatusChange: (id: string, status: CampaignStatus) => void | Promise<void>;
   onModeChange: (id: string, mode: CampaignMode) => void | Promise<void>;
   onChannelSave: (id: string, channelType: ChannelTypeValue | "", channelUrl: string) => void | Promise<void>;
@@ -43,6 +45,8 @@ export default function CampaignList({
   campaigns,
   detailListPath,
   channelTypes,
+  canUpdate,
+  canDelete,
   onStatusChange,
   onModeChange,
   onChannelSave,
@@ -57,6 +61,8 @@ export default function CampaignList({
     columns: campaignColumns({
       detailListPath,
       channelTypes,
+      canUpdate,
+      canDelete,
       onStatusChange,
       onModeChange,
       onChannelSave,
@@ -129,25 +135,37 @@ export default function CampaignList({
               </p>
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <Badge color={campaignModeColor[campaign.mode]}>{campaignModeLabel[campaign.mode]}</Badge>
-                <CampaignChannelCell
-                  campaignName={campaign.name}
-                  mode={campaign.mode}
-                  channelTypes={channelTypes}
-                  channelType={campaign.channelType}
-                  channelUrl={campaign.channelUrl}
-                  onSave={(channelType, url) => onChannelSave(campaign.id, channelType, url)}
-                />
+                {canUpdate ? (
+                  <CampaignChannelCell
+                    campaignName={campaign.name}
+                    mode={campaign.mode}
+                    channelTypes={channelTypes}
+                    channelType={campaign.channelType}
+                    channelUrl={campaign.channelUrl}
+                    onSave={(channelType, url) => onChannelSave(campaign.id, channelType, url)}
+                  />
+                ) : (
+                  <span className="text-xs text-text-secondary">
+                    {getChannelTypeLabel(channelTypes, campaign.channelType) || "—"}
+                  </span>
+                )}
               </div>
-              <div className="mt-3 flex items-center justify-end gap-2 border-t border-card-border/60 pt-2.5">
-                <Button appearance="ghost" size="sm" className="text-text-secondary" onPress={() => onEdit(campaign)}>
-                  <Pencil1 size={14} aria-hidden="true" />
-                  Sửa
-                </Button>
-                <Button appearance="ghost" size="sm" variant="danger" onPress={() => onDelete(campaign)}>
-                  <Trash1 size={14} aria-hidden="true" />
-                  Xóa
-                </Button>
-              </div>
+              {(canUpdate || canDelete) && (
+                <div className="mt-3 flex items-center justify-end gap-2 border-t border-card-border/60 pt-2.5">
+                  {canUpdate && (
+                    <Button appearance="ghost" size="sm" className="text-text-secondary" onPress={() => onEdit(campaign)}>
+                      <Pencil1 size={14} aria-hidden="true" />
+                      Sửa
+                    </Button>
+                  )}
+                  {canDelete && (
+                    <Button appearance="ghost" size="sm" variant="danger" onPress={() => onDelete(campaign)}>
+                      <Trash1 size={14} aria-hidden="true" />
+                      Xóa
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

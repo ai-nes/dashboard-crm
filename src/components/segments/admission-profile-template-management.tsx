@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/tailgrids/core/table";
 import { useAdmissionMethodsQuery } from "@/hooks/use-admission-catalog-queries";
+import type { CrmDoctypePermissions } from "@/components/common/auth/permissions";
 import {
   useAdmissionProfileTemplatesQuery,
   useDeleteAdmissionProfileTemplateMutation,
@@ -140,10 +141,15 @@ function FilterSelect({
 }
 
 export function AdmissionProfileTemplateManagement({
-  canManage,
+  permissions,
+  canReadMethods,
 }: {
-  canManage: boolean;
+  permissions: CrmDoctypePermissions;
+  canReadMethods: boolean;
 }) {
+  const canCreate = permissions.canCreate;
+  const canUpdate = permissions.canUpdate;
+  const canDelete = permissions.canDelete;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     AdmissionProfileTemplateStatus | "all"
@@ -160,6 +166,7 @@ export function AdmissionProfileTemplateManagement({
   });
   const methodsQuery = useAdmissionMethodsQuery({
     includeDisabled: true,
+    queryEnabled: canReadMethods,
     start: 0,
     pageLength: 100,
   });
@@ -188,6 +195,7 @@ export function AdmissionProfileTemplateManagement({
     template: AdmissionProfileTemplateOption,
     status: AdmissionProfileTemplateStatus,
   ) => {
+    if (!canUpdate) return;
     if (status === template.status) return;
     try {
       await transitionMutation.mutateAsync({
@@ -204,7 +212,7 @@ export function AdmissionProfileTemplateManagement({
   };
 
   const confirmDelete = async () => {
-    if (!templateToDelete) return;
+    if (!canDelete || !templateToDelete) return;
     try {
       await deleteMutation.mutateAsync({
         name: templateToDelete.id,
@@ -258,7 +266,7 @@ export function AdmissionProfileTemplateManagement({
           <Badge color="gray" size="sm">
             {total} mục
           </Badge>
-          {canManage && (
+          {canCreate && (
             <AdmissionProfileTemplateEditorDialog
               template={null}
               documentTypes={query.data?.documentTypes ?? []}
@@ -281,7 +289,7 @@ export function AdmissionProfileTemplateManagement({
         title="Loại hồ sơ"
         description="Cấu hình checklist tài liệu theo từng nhóm hồ sơ nhập học."
         count={total}
-        canManage={canManage}
+        canCreate={canCreate}
         createLabel="Thêm loại hồ sơ"
         isBusy={
           query.isPending ||
@@ -362,7 +370,7 @@ export function AdmissionProfileTemplateManagement({
                     <TableBody>
                       {templates.map((template) => {
                         const canOpen =
-                          canManage && template.status !== "Archived";
+                          canUpdate && template.status !== "Archived";
                         return (
                           <TableRow
                             key={template.id}
@@ -394,7 +402,7 @@ export function AdmissionProfileTemplateManagement({
                                 : "Tất cả phương thức"}
                             </TableCell>
                             <TableCell className="align-top">
-                              {canManage ? (
+                              {canUpdate ? (
                                 <AdmissionProfileTemplateStatusSelect
                                   value={template.status}
                                   options={statusOptions(template.status)}
@@ -435,7 +443,7 @@ export function AdmissionProfileTemplateManagement({
                                     )}
                                   </AdmissionProfileTemplateEditorDialog>
                                 )}
-                                {canManage && template.status === "Draft" && (
+                                {canDelete && template.status === "Draft" && (
                                   <Button
                                     aria-label={`Xóa ${template.name}`}
                                     iconOnly
@@ -476,7 +484,7 @@ export function AdmissionProfileTemplateManagement({
       </AdmissionCatalogPanel>
 
       <DeleteRecordDialog
-        isOpen={Boolean(templateToDelete)}
+        isOpen={Boolean(templateToDelete && canDelete)}
         recordType="loại hồ sơ"
         recordName={templateToDelete?.name ?? ""}
         isDeleting={deleteMutation.isPending}

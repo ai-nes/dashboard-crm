@@ -66,6 +66,9 @@ function normalizeWorkspace(
       role: member.role,
       isActive: member.isActive,
       campusId: member.campusId,
+      isAvailableForTeam: workspace.availableMembers.some(
+        (candidate) => candidate.id === member.id,
+      ),
       teamIds: (member.teamIds ?? []).filter((teamId) =>
         visibleTeamIds.has(teamId),
       ),

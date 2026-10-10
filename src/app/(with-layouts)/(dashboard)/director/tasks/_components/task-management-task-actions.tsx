@@ -19,7 +19,7 @@ import { StudentTaskStatusBadge } from "../../students/_components/student-task-
 
 interface TaskManagementTaskActionsProps {
   task: TaskManagementItem;
-  onUpdateTask: (
+  onUpdateTask?: (
     id: string,
     updates: Partial<StudentTaskItem>,
   ) => void | Promise<void>;
@@ -38,6 +38,8 @@ export default function TaskManagementTaskActions({
   onUpdateTask,
   onDeleteTask,
 }: TaskManagementTaskActionsProps) {
+  if (!onUpdateTask && !onDeleteTask) return null;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -51,23 +53,27 @@ export default function TaskManagementTaskActions({
         style={{ zIndex: 50 }}
         className="w-48 p-1"
       >
-        <DropdownMenuHeader className="px-2.5 py-1.5 text-[11px] font-semibold text-text-tertiary">
-          Chuyển trạng thái
-        </DropdownMenuHeader>
-        <DropdownMenuSection className="p-1">
-          {statusOptions.map((status) => (
-            <DropdownMenuItem
-              key={status}
-              onAction={() => onUpdateTask(task.id, { status })}
-              className="justify-between px-2.5 py-1.5 text-xs"
-            >
-              <StudentTaskStatusBadge status={status} size="sm" />
-              {task.status === status && (
-                <Check size={14} aria-hidden="true" />
-              )}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuSection>
+        {onUpdateTask && (
+          <>
+            <DropdownMenuHeader className="px-2.5 py-1.5 text-[11px] font-semibold text-text-tertiary">
+              Chuyển trạng thái
+            </DropdownMenuHeader>
+            <DropdownMenuSection className="p-1">
+              {statusOptions.map((status) => (
+                <DropdownMenuItem
+                  key={status}
+                  onAction={() => onUpdateTask(task.id, { status })}
+                  className="justify-between px-2.5 py-1.5 text-xs"
+                >
+                  <StudentTaskStatusBadge status={status} size="sm" />
+                  {task.status === status && (
+                    <Check size={14} aria-hidden="true" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSection>
+          </>
+        )}
         {onDeleteTask && (
           <>
             <DropdownMenuSeparator className="my-1" />

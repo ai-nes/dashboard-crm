@@ -7,10 +7,14 @@ import {
   type GetActivityLogsParams,
 } from "@/services/api/activity-log";
 
-export function useActivityLogsQuery(params: GetActivityLogsParams) {
+export function useActivityLogsQuery(
+  params: GetActivityLogsParams,
+  enabled = true,
+) {
   return useQuery({
     queryKey: ["activity-logs", params],
     queryFn: () => getActivityLogs(params),
+    enabled,
     staleTime: 30_000,
   });
 }

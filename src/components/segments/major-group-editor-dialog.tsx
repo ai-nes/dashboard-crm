@@ -41,10 +41,12 @@ function formFromRecord(record: MajorGroupOption | null): GroupForm {
 export function MajorGroupEditorDialog({
   isOpen,
   record,
+  canSave,
   onOpenChange,
 }: {
   isOpen: boolean;
   record: MajorGroupOption | null;
+  canSave: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const [form, setForm] = useState(() => formFromRecord(record));
@@ -61,6 +63,7 @@ export function MajorGroupEditorDialog({
 
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canSave) return;
     const code = form.code.trim().toUpperCase();
     const name = form.name.trim();
     if (!/^[A-Z][A-Z0-9_]{1,49}$/.test(code)) {
@@ -183,9 +186,11 @@ export function MajorGroupEditorDialog({
             <DialogClose appearance="outline" size="sm" isDisabled={isSaving}>
               Hủy
             </DialogClose>
-            <Button size="sm" type="submit" isDisabled={isSaving}>
-              {isSaving ? "Đang lưu…" : record ? "Lưu thay đổi" : "Tạo nhóm"}
-            </Button>
+            {canSave && (
+              <Button size="sm" type="submit" isDisabled={isSaving}>
+                {isSaving ? "Đang lưu…" : record ? "Lưu thay đổi" : "Tạo nhóm"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </Dialog>

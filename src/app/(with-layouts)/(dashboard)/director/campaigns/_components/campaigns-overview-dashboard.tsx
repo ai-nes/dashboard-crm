@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmDoctypePermissions } from "@/components/common/auth/permissions";
 import { ListRouteSkeleton } from "@/components/common/loading/route-skeleton";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
@@ -44,13 +45,27 @@ type FormDialogState =
 const pageSize = 5;
 
 export default function CampaignsOverviewDashboard() {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const campaignPermissions = getCrmDoctypePermissions(user, "CRM Campaign");
+  const canReadCampaign = campaignPermissions.canRead;
+  const canCreateCampaign = campaignPermissions.canCreate;
+  const canUpdateCampaign = campaignPermissions.canUpdate;
+  const canDeleteCampaign = campaignPermissions.canDelete;
+  const canLoadCampaignConfiguration =
+    !isAuthLoading && canReadCampaign && (canCreateCampaign || canUpdateCampaign);
   const campaignListPath = getCampaignListPath(user?.roles);
-  const { data, error, isPending } = useLeadSaleCampaignsQuery();
+  const { data, error, isPending } = useLeadSaleCampaignsQuery(
+    {},
+    { enabled: !isAuthLoading && canReadCampaign },
+  );
   const { data: channelTypeData, error: channelTypeError } =
-    useLeadSaleCampaignChannelTypesQuery();
+    useLeadSaleCampaignChannelTypesQuery({}, {
+      enabled: canLoadCampaignConfiguration,
+    });
   const { data: routingOptionData, error: routingOptionError } =
-    useLeadSaleCampaignRoutingOptionsQuery();
+    useLeadSaleCampaignRoutingOptionsQuery({
+      enabled: canLoadCampaignConfiguration,
+    });
   const channelTypes = channelTypeData?.channelTypes ?? [];
   const routingOptions = routingOptionData ?? { teams: [], groups: [] };
   const createCampaignMutation = useCreateLeadSaleCampaignMutation();
@@ -145,7 +160,7 @@ export default function CampaignsOverviewDashboard() {
     successMessage: string,
     errorMessage: string,
   ) => {
-    if (updateCampaignMutation.isPending) return;
+    if (!canUpdateCampaign || updateCampaignMutation.isPending) return;
 
     const previousChanges = campaignChanges[id];
     setCampaignChanges((current) => ({
@@ -214,6 +229,7 @@ export default function CampaignsOverviewDashboard() {
     channelType: ChannelTypeValue | "",
     channelUrl: string,
   ) => {
+    if (!canUpdateCampaign) return;
     const campaign = campaigns.find((item) => item.id === id);
     if (!campaign) return;
     await updateCampaignMutation.mutateAsync({
@@ -230,6 +246,7 @@ export default function CampaignsOverviewDashboard() {
 
   const handleFormSubmit = async (fields: CampaignFormValues) => {
     if (formDialog?.mode === "edit") {
+      if (!canUpdateCampaign) return;
       const { campaign } = formDialog;
         await updateCampaignMutation.mutateAsync({
           name: campaign.id,
@@ -252,6 +269,7 @@ export default function CampaignsOverviewDashboard() {
       });
       toast.success("Đã cập nhật chiến dịch.");
     } else {
+      if (!canCreateCampaign) return;
       const campus = data?.campaigns.find((item) => item.campus)?.campus;
       if (!campus) {
         throw new Error(
@@ -278,7 +296,7 @@ export default function CampaignsOverviewDashboard() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deletingCampaign) return;
+    if (!canDeleteCampaign || !deletingCampaign) return;
     try {
       await deleteCampaignMutation.mutateAsync(deletingCampaign.id);
       toast.success("Đã xóa chiến dịch.");
@@ -290,8 +308,18 @@ export default function CampaignsOverviewDashboard() {
     }
   };
 
-  if (isPending && !data) {
+  if (isAuthLoading || (canReadCampaign && isPending && !data)) {
     return <ListRouteSkeleton titleWidth="w-80" />;
+  }
+
+  if (!canReadCampaign) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <p className="rounded-xl border border-card-border bg-card-background p-5 text-sm text-text-secondary">
+          Bạn không có quyền xem chiến dịch tuyển sinh.
+        </p>
+      </main>
+    );
   }
 
   return (
@@ -312,13 +340,15 @@ export default function CampaignsOverviewDashboard() {
             hành.
           </p>
         </div>
-        <Button
-          className="shrink-0 self-start lg:self-auto"
-          onPress={() => setFormDialog({ mode: "create" })}
-        >
-          <Plus size={16} aria-hidden="true" />
-          Tạo chiến dịch
-        </Button>
+        {canCreateCampaign && (
+          <Button
+            className="shrink-0 self-start lg:self-auto"
+            onPress={() => setFormDialog({ mode: "create" })}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Tạo chiến dịch
+          </Button>
+        )}
       </header>
 
       <CampaignStats campaigns={campaigns} />
@@ -327,6 +357,8 @@ export default function CampaignsOverviewDashboard() {
         campaigns={pageCampaigns}
         detailListPath={campaignListPath}
         channelTypes={channelTypes}
+        canUpdate={canUpdateCampaign}
+        canDelete={canDeleteCampaign}
         onStatusChange={handleStatusChange}
         onModeChange={handleModeChange}
         onChannelSave={handleChannelSave}
@@ -352,7 +384,9 @@ export default function CampaignsOverviewDashboard() {
         }
       />
 
-      {formDialog && (
+      {formDialog &&
+        ((formDialog.mode === "create" && canCreateCampaign) ||
+          (formDialog.mode === "edit" && canUpdateCampaign)) && (
         <CampaignFormDialog
           campaign={formDialog.mode === "edit" ? formDialog.campaign : null}
           channelTypes={channelTypes}
@@ -363,14 +397,16 @@ export default function CampaignsOverviewDashboard() {
         />
       )}
 
-      <DeleteRecordDialog
-        isOpen={Boolean(deletingCampaign)}
-        recordType="chiến dịch"
-        recordName={deletingCampaign?.name ?? ""}
-        isDeleting={deleteCampaignMutation.isPending}
-        onOpenChange={(open) => !open && setDeletingCampaign(null)}
-        onConfirm={handleDeleteConfirm}
-      />
+      {canDeleteCampaign && (
+        <DeleteRecordDialog
+          isOpen={Boolean(deletingCampaign)}
+          recordType="chiến dịch"
+          recordName={deletingCampaign?.name ?? ""}
+          isDeleting={deleteCampaignMutation.isPending}
+          onOpenChange={(open) => !open && setDeletingCampaign(null)}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
     </main>
   );
 }

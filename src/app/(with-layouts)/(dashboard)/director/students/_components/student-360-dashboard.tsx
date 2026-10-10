@@ -147,7 +147,7 @@ export default function Student360Dashboard({
     error,
   } = useStudent360Query(targetId, {
     initialData: initialData ?? propData ?? undefined,
-    enabled: Boolean(targetId),
+    enabled: Boolean(targetId) && permissions.student.canRead && !isAuthLoading,
   });
 
   const data = queryData ?? initialData ?? propData;
@@ -274,6 +274,18 @@ export default function Student360Dashboard({
   const handleStudentOwnerChange = (owner: string) => {
     setStudentOwnerDraft({ studentId: targetId, owner });
   };
+
+  if (!isAuthLoading && !permissions.student.canRead) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <Card className="border-warning-200 bg-badge-warning-background p-5 text-badge-warning-text">
+          <p className="font-semibold text-base">
+            Bạn không có quyền xem hồ sơ học sinh.
+          </p>
+        </Card>
+      </main>
+    );
+  }
 
   if (!isAuthLoading && data && !hasStudentAccess) {
     return (

@@ -1,13 +1,15 @@
 "use client";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { canReadCrmPath } from "@/components/common/auth/permissions";
+
 import { use } from "react";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import {
   DirectorApiError,
   getDirectorSchoolDetail,
 } from "@/services/api/schools/school-intelligence";
-import type { DirectorSchoolDetailData } from "@/services/api/schools/types";
 
 import { toSchoolIntelligenceData } from "../_components/school-intelligence-adapter";
 import SchoolIntelligenceApiFallback from "../_components/school-intelligence-api-fallback";
@@ -19,35 +21,36 @@ interface SchoolDetailPageProps {
 }
 
 export default function SchoolDetailPage({ params }: SchoolDetailPageProps) {
+  const { user, isLoading: authLoading } = useAuth();
+  const canRead = canReadCrmPath("/director/schools", user);
   const { schoolCode } = use(params);
-  const [detail, setDetail] = useState<DirectorSchoolDetailData | null>();
-  const [error, setError] = useState<string>();
+  const {
+    data: detail,
+    error,
+    isPending,
+  } = useQuery({
+    queryKey: [
+      "director-school-detail",
+      schoolCode,
+      user?.crm_user_id ?? user?.user,
+    ],
+    queryFn: () => getDirectorSchoolDetail(schoolCode),
+    enabled: !authLoading && canRead,
+    retry: false,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
+  if (!authLoading && !canRead) return null;
 
-    setDetail(undefined);
-    setError(undefined);
-    getDirectorSchoolDetail(schoolCode)
-      .then((data) => {
-        if (cancelled) return;
-        setDetail(data);
-      })
-      .catch((requestError: unknown) => {
-        if (!cancelled) setError(schoolErrorMessage(requestError));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [schoolCode]);
-
-  if (detail === undefined && !error) {
+  if (authLoading || isPending) {
     return <SchoolDetailSkeleton />;
   }
 
   if (!detail) {
-    return <SchoolIntelligenceApiFallback error={error ?? "Không tìm thấy trường học."} />;
+    return (
+      <SchoolIntelligenceApiFallback
+        error={error ? schoolErrorMessage(error) : "Không tìm thấy trường học."}
+      />
+    );
   }
 
   return <SchoolDetailPageClient data={toSchoolIntelligenceData(detail)} />;
@@ -63,5 +66,7 @@ function schoolErrorMessage(error: unknown): string {
   if (error instanceof DirectorApiError && error.status === 404) {
     return "Không tìm thấy trường học.";
   }
-  return error instanceof Error ? error.message : "Không thể tải dữ liệu trường học.";
+  return error instanceof Error
+    ? error.message
+    : "Không thể tải dữ liệu trường học.";
 }

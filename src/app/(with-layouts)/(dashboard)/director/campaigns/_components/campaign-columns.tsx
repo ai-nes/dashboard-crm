@@ -15,7 +15,7 @@ import { formatDate } from "@/utils/format-date";
 
 import CampaignChannelCell from "./campaign-channel-cell";
 import { getCampaignDetailPath } from "./campaign-routes";
-import type { ChannelTypeOption, ChannelTypeValue } from "./channel-types";
+import { getChannelTypeLabel, type ChannelTypeOption, type ChannelTypeValue } from "./channel-types";
 import { campaignModeLabel, campaignModeOptions, campaignStatusLabel, campaignStatusOptions } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -34,6 +34,8 @@ const modeTriggerClass: Record<CampaignMode, string> = {
 interface CampaignColumnHandlers {
   detailListPath: string;
   channelTypes: readonly ChannelTypeOption[];
+  canUpdate: boolean;
+  canDelete: boolean;
   onStatusChange: (id: string, status: CampaignStatus) => void | Promise<void>;
   onModeChange: (id: string, mode: CampaignMode) => void | Promise<void>;
   onChannelSave: (id: string, channelType: ChannelTypeValue | "", channelUrl: string) => void | Promise<void>;
@@ -44,6 +46,8 @@ interface CampaignColumnHandlers {
 export function campaignColumns({
   detailListPath,
   channelTypes,
+  canUpdate,
+  canDelete,
   onStatusChange,
   onModeChange,
   onChannelSave,
@@ -84,6 +88,7 @@ export function campaignColumns({
       header: "Hình thức",
       cell: ({ row }) => {
         const campaign = row.original;
+        if (!canUpdate) return <span>{campaignModeLabel[campaign.mode]}</span>;
         return (
           <Select
             value={campaign.mode}
@@ -111,6 +116,13 @@ export function campaignColumns({
       header: "Loại kênh",
       cell: ({ row }) => {
         const campaign = row.original;
+        if (!canUpdate) {
+          return (
+            <span>
+              {getChannelTypeLabel(channelTypes, campaign.channelType) || "—"}
+            </span>
+          );
+        }
         return (
           <CampaignChannelCell
             campaignName={campaign.name}
@@ -128,6 +140,7 @@ export function campaignColumns({
       header: "Trạng thái",
       cell: ({ row }) => {
         const campaign = row.original;
+        if (!canUpdate) return <span>{campaignStatusLabel[campaign.status]}</span>;
         return (
           <Select
             value={campaign.status}
@@ -157,26 +170,30 @@ export function campaignColumns({
         const campaign = row.original;
         return (
           <div className="flex items-center gap-1">
-            <Button
-              appearance="ghost"
-              size="sm"
-              iconOnly
-              aria-label={`Sửa ${campaign.name}`}
-              className="text-text-tertiary"
-              onPress={() => onEdit(campaign)}
-            >
-              <Pencil1 size={15} aria-hidden="true" />
-            </Button>
-            <Button
-              appearance="ghost"
-              size="sm"
-              iconOnly
-              variant="danger"
-              aria-label={`Xóa ${campaign.name}`}
-              onPress={() => onDelete(campaign)}
-            >
-              <Trash1 size={15} aria-hidden="true" />
-            </Button>
+            {canUpdate && (
+              <Button
+                appearance="ghost"
+                size="sm"
+                iconOnly
+                aria-label={`Sửa ${campaign.name}`}
+                className="text-text-tertiary"
+                onPress={() => onEdit(campaign)}
+              >
+                <Pencil1 size={15} aria-hidden="true" />
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                appearance="ghost"
+                size="sm"
+                iconOnly
+                variant="danger"
+                aria-label={`Xóa ${campaign.name}`}
+                onPress={() => onDelete(campaign)}
+              >
+                <Trash1 size={15} aria-hidden="true" />
+              </Button>
+            )}
           </div>
         );
       },

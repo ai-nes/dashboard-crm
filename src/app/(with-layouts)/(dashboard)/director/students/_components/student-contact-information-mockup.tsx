@@ -4,6 +4,8 @@ import { ChevronDown, UserMultiple1 } from "@tailgrids/icons";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmDoctypePermissions } from "@/components/common/auth/permissions";
 import { EditableDetailField } from "@/components/common/editable-detail-field";
 import { Card } from "@/components/tailgrids/core/card";
 import {
@@ -82,13 +84,26 @@ const contactFormKeys = [
 export default function StudentContactInformationMockup({
   data,
   studentId,
-  canEdit = true,
+  canEdit = false,
 }: StudentContactInformationMockupProps) {
+  const { user } = useAuth();
+  const paymentAccountPermissions = getCrmDoctypePermissions(
+    user,
+    "CRM Student Payment Account",
+  );
+  const canReadPaymentAccount = paymentAccountPermissions.canRead;
+  const canUpdatePaymentAccount =
+    canEdit && paymentAccountPermissions.canUpdate;
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<ContactForm>(() => getContactForm(data));
   const updateMutation = useStudentProfileUpdate(studentId);
   const details = data.student.profileDetails?.contact;
-  const contactInformationGroups = getContactInformationGroups(data, details);
+  const contactInformationGroups = getContactInformationGroups(
+    data,
+    details,
+    canReadPaymentAccount,
+    canUpdatePaymentAccount,
+  );
   const primaryGroups = contactInformationGroups.filter(
     (group) => !group.collapsible,
   );
@@ -114,9 +129,18 @@ export default function StudentContactInformationMockup({
 
   const saveContact = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canEdit) return;
     const initial = getContactForm(data);
     const fields: StudentUpdateFields = {};
     for (const key of contactFormKeys) {
+      if (
+        !canUpdatePaymentAccount &&
+        (key === "bank_name" ||
+          key === "account_number" ||
+          key === "account_holder")
+      ) {
+        continue;
+      }
       if (form[key] !== initial[key]) fields[key] = nullable(form[key]);
     }
 
@@ -319,6 +343,8 @@ function getContactForm(data: Student360Data): ContactForm {
 function getContactInformationGroups(
   data: Student360Data,
   details?: StudentProfileContactDetails | null,
+  canReadPaymentAccount = false,
+  canUpdatePaymentAccount = false,
 ): ContactInformationGroup[] {
   const familyValue = (label: string) =>
     data.family?.find((item) => item.label === label)?.value;
@@ -350,21 +376,31 @@ function getContactInformationGroups(
           editKey: "parent_email",
           type: "email",
         },
-        {
-          label: "Tên ngân hàng",
-          value: details?.bankName,
-          editKey: "bank_name",
-        },
-        {
-          label: "Số tài khoản",
-          value: details?.accountNumber,
-          editKey: "account_number",
-        },
-        {
-          label: "Tên chủ tài khoản",
-          value: details?.accountHolder,
-          editKey: "account_holder",
-        },
+        ...(canReadPaymentAccount
+          ? [
+              {
+                label: "Tên ngân hàng",
+                value: details?.bankName,
+                editKey: canUpdatePaymentAccount
+                  ? ("bank_name" as const)
+                  : undefined,
+              },
+              {
+                label: "Số tài khoản",
+                value: details?.accountNumber,
+                editKey: canUpdatePaymentAccount
+                  ? ("account_number" as const)
+                  : undefined,
+              },
+              {
+                label: "Tên chủ tài khoản",
+                value: details?.accountHolder,
+                editKey: canUpdatePaymentAccount
+                  ? ("account_holder" as const)
+                  : undefined,
+              },
+            ]
+          : []),
       ],
     },
     {

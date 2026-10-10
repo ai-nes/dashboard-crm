@@ -18,31 +18,6 @@ interface NestMe {
   };
 }
 
-/**
- * Record permissions the screens use to decide what to show. The backend still
- * authorizes every call; these only decide what the screens show and fetch.
- */
-export function doctypePermissions(
-  leadScope: "all" | "own" | null | undefined,
-  capabilities: string[],
-): NonNullable<CurrentUser["crm_doctype_permissions"]> {
-  if (!leadScope) return {};
-  const canWrite = capabilities.includes("student.execute");
-  const permission: CurrentUserDocTypePermission = {
-    row_scope: leadScope === "all" ? "all" : "assigned",
-    read: true,
-    write: canWrite,
-    create: canWrite,
-    delete: false,
-    export: false,
-  };
-  return {
-    "CRM Student": permission,
-    "CRM Lead": permission,
-    Task: permission,
-  };
-}
-
 /** Backend CRM profile -> the dashboard's canonical role names (see rbac.ts). */
 const PROFILE_ROLES: Record<string, string[]> = {
   sales: ["Sale"],
@@ -53,7 +28,7 @@ const PROFILE_ROLES: Record<string, string[]> = {
   marketing: ["Marketing"],
   lead_marketing: ["Lead Marketing"],
   admissions_director: ["Admissions Director"],
-  ceo: ["Administrator", "System Manager"],
+  ceo: ["Administrator"],
 };
 
 const PROFILE_LABELS: Record<string, string> = {
@@ -74,8 +49,9 @@ export function rolesForProfile(
 ): string[] {
   const roles = profile ? [...(PROFILE_ROLES[profile] ?? [])] : [];
   if (identityRole === "admin" && !roles.includes("Administrator")) {
-    roles.push("Administrator", "System Manager");
+    roles.push("Administrator");
   }
+  if (identityRole === "admin" && !profile) roles.push("System Manager");
   return roles;
 }
 
@@ -86,6 +62,8 @@ export async function nestGetCurrentUser(): Promise<CurrentUser | null> {
     const { data } = me;
     return {
       user: data.email,
+      crm_user_id: data.id,
+      crm_is_administrator: data.identityRole === "admin",
       email: data.email,
       full_name: data.name,
       user_image: null,
@@ -97,13 +75,7 @@ export async function nestGetCurrentUser(): Promise<CurrentUser | null> {
       crm_capabilities: data.crmCapabilities.map(
         (capability) => capability.key,
       ),
-      crm_doctype_permissions: {
-        ...doctypePermissions(
-          data.leadScope,
-          data.crmCapabilities.map((capability) => capability.key),
-        ),
-        ...data.crmDoctypePermissions,
-      },
+      crm_doctype_permissions: data.crmDoctypePermissions ?? {},
     };
   } catch (error) {
     if (

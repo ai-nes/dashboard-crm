@@ -4,6 +4,11 @@ import { ErrorCircle1, InfoCircle } from "@tailgrids/icons";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  canReadCrmPath,
+  getCrmDoctypePermissions,
+} from "@/components/common/auth/permissions";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { useDirectorNbaRecommendationsQuery } from "@/hooks/use-director-nba-recommendations-queries";
@@ -19,10 +24,19 @@ import { useRecommendationStudentNames } from "./use-recommendation-student-name
 const RECOMMENDATION_LIMIT = 50;
 
 export default function NextBestActionWorkspace() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const canReadRecommendations =
+    canReadCrmPath("/director/ai/next-best-action", user) &&
+    getCrmDoctypePermissions(user, "CRM Recommendation").canRead;
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const query = useDirectorNbaRecommendationsQuery({
-    limit: RECOMMENDATION_LIMIT,
-  });
+  const query = useDirectorNbaRecommendationsQuery(
+    {
+      limit: RECOMMENDATION_LIMIT,
+    },
+    {
+      enabled: canReadRecommendations && !isAuthLoading,
+    },
+  );
   const recommendations = query.data?.recommendations ?? [];
   const studentNameById = useRecommendationStudentNames(recommendations);
   const selectedRecommendation: DirectorNbaRecommendation | null =
@@ -33,8 +47,34 @@ export default function NextBestActionWorkspace() {
     null;
 
   useEffect(() => {
-    if (query.error) toast.error(query.error.message);
-  }, [query.error]);
+    if (canReadRecommendations && query.error) toast.error(query.error.message);
+  }, [canReadRecommendations, query.error]);
+
+  if (isAuthLoading) {
+    return (
+      <main
+        id="main-content"
+        className="min-w-0 space-y-4 px-2 py-4 pb-8 lg:px-6"
+      >
+        <RecommendationWorkspaceSkeleton />
+      </main>
+    );
+  }
+
+  if (!canReadRecommendations) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <Card className="border-warning-200 bg-badge-warning-background p-5 text-badge-warning-text">
+          <p className="font-semibold text-base">
+            Bạn không có quyền xem đề xuất hành động.
+          </p>
+          <p className="mt-1 text-sm">
+            Cần quyền đọc hồ sơ học sinh trong phạm vi được cấp.
+          </p>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <main

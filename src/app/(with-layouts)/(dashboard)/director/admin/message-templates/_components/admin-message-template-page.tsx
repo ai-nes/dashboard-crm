@@ -6,7 +6,11 @@ import { toast } from "sonner";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
-import { getCurrentUser, type CurrentUser } from "@/services/api/auth";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  getCrmDoctypePermissions,
+  type CrmDoctypePermissions,
+} from "@/components/common/auth/permissions";
 import {
   createMessageTemplateLibrary,
   deleteMessageTemplateLibrary,
@@ -46,10 +50,24 @@ function getDraft(
 }
 
 export default function AdminMessageTemplatePage() {
+  const { user } = useAuth();
+  const permissions = getCrmDoctypePermissions(user, "CRM Message Template Library");
+  if (!permissions.canRead) {
+    return <main id="main-content" className="p-6 text-sm text-text-secondary">Bạn không có quyền xem thư viện Message Template.</main>;
+  }
+  return <AdminMessageTemplateContent user={user} permissions={permissions} />;
+}
+
+function AdminMessageTemplateContent({
+  user,
+  permissions,
+}: {
+  user: ReturnType<typeof useAuth>["user"];
+  permissions: CrmDoctypePermissions;
+}) {
   const [templates, setTemplates] = useState<MessageTemplateRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [owners, setOwners] = useState<Array<{ id: string; name: string }>>([]);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -75,19 +93,15 @@ export default function AdminMessageTemplatePage() {
       setIsLoading(true);
       setLoadError(null);
       try {
-        const [response, user] = await Promise.all([
-          listAdminMessageTemplateLibrary({
+        const response = await listAdminMessageTemplateLibrary({
             start: (nextPage - 1) * PAGE_SIZE,
             pageLength: PAGE_SIZE,
             search: nextSearch,
             owner: nextOwner === "all" ? undefined : nextOwner,
-          }),
-          getCurrentUser(),
-        ]);
+          });
         setTemplates(response.templates);
         setTotal(response.total);
         setOwners(response.owners);
-        setCurrentUser(user);
         const responseTotalPages = Math.max(
           1,
           Math.ceil(response.total / PAGE_SIZE),
@@ -148,6 +162,7 @@ export default function AdminMessageTemplatePage() {
   );
 
   const openCreateDialog = () => {
+    if (!permissions.canCreate) return;
     setTemplateToEdit(null);
     setDraft(emptyDraft);
     setIsPreviewVisible(true);
@@ -156,6 +171,7 @@ export default function AdminMessageTemplatePage() {
   };
 
   const openEditDialog = (template: MessageTemplateRecord) => {
+    if (!permissions.canUpdate || !template.canEdit) return;
     setTemplateToEdit(template);
     setDraft(getDraft(template));
     setIsPreviewVisible(true);
@@ -176,6 +192,7 @@ export default function AdminMessageTemplatePage() {
   };
 
   const saveTemplate = async (nextDraft: MessageTemplateDraft) => {
+    if (templateToEdit ? !permissions.canUpdate : !permissions.canCreate) return;
     setIsSaving(true);
     const normalizedDraft = {
       ...nextDraft,
@@ -207,6 +224,7 @@ export default function AdminMessageTemplatePage() {
   };
 
   const duplicateTemplate = async (template: MessageTemplateRecord) => {
+    if (!permissions.canCreate) return;
     try {
       await createMessageTemplateLibrary({
         name: `${template.name} (Bản sao)`,
@@ -227,7 +245,7 @@ export default function AdminMessageTemplatePage() {
   };
 
   const deleteTemplate = async () => {
-    if (!templateToDelete) return;
+    if (!permissions.canDelete || !templateToDelete?.canEdit) return;
 
     setIsDeleting(true);
     try {
@@ -258,11 +276,14 @@ export default function AdminMessageTemplatePage() {
         section="Message Template"
         title="Quản lý Message Template"
         description="Thư viện mẫu email dùng chung."
+        canEdit={permissions.canCreate || permissions.canUpdate || permissions.canDelete}
         actions={
-          <Button size="md" className="shrink-0" onPress={openCreateDialog}>
-            <Plus size={16} aria-hidden="true" />
-            Tạo mẫu
-          </Button>
+          permissions.canCreate ? (
+            <Button size="md" className="shrink-0" onPress={openCreateDialog}>
+              <Plus size={16} aria-hidden="true" />
+              Tạo mẫu
+            </Button>
+          ) : null
         }
         metaLabel="Nội dung dùng chung"
         metaValue={
@@ -285,17 +306,25 @@ export default function AdminMessageTemplatePage() {
         </Card>
       ) : (
         <MessageTemplateList
-          templates={templates}
+          templates={templates.map((template) => ({
+            ...template,
+            canEdit: permissions.canUpdate && template.canEdit,
+          }))}
+          canCreate={permissions.canCreate}
+          canDelete={permissions.canDelete}
+          currentUserId={user?.crm_user_id}
           isLoading={isLoading}
           onDuplicate={duplicateTemplate}
-          onDelete={setTemplateToDelete}
+          onDelete={(template) => {
+            if (permissions.canDelete && template.canEdit) setTemplateToDelete(template);
+          }}
           onEdit={openEditDialog}
           serverPagination={serverPagination}
         />
       )}
 
       <DeleteRecordDialog
-        isOpen={Boolean(templateToDelete)}
+        isOpen={Boolean(templateToDelete && permissions.canDelete && templateToDelete.canEdit)}
         recordType="mẫu dùng chung"
         recordName={templateToDelete?.name ?? ""}
         isDeleting={isDeleting}
@@ -306,11 +335,11 @@ export default function AdminMessageTemplatePage() {
       />
 
       <MessageTemplateCreateDialog
-        isOpen={isDialogOpen}
+        isOpen={isDialogOpen && (templateToEdit ? permissions.canUpdate : permissions.canCreate)}
         onOpenChange={handleDialogChange}
         draft={draft}
         ownerName={
-          templateToEdit?.owner ?? currentUser?.full_name ?? "Administrator"
+          templateToEdit?.owner ?? user?.full_name ?? "Administrator"
         }
         onDraftChange={updateDraft}
         template={templateToEdit}

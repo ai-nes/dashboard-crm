@@ -3,6 +3,12 @@
 import { Button } from "@/components/tailgrids/core/button";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import { useState } from "react";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  canReadCrmPath,
+  getCrmDoctypePermissions,
+  getCrmPermissions,
+} from "@/components/common/auth/permissions";
 import { useCampaignIntelligenceQuery } from "@/hooks/use-campaign-intelligence-queries";
 import { CampaignFunnel } from "./campaign-funnel";
 import { CampaignHeader } from "./campaign-header";
@@ -46,8 +52,26 @@ export default function CampaignIntelligenceDashboard({
 }: {
   showLeadOverview?: boolean;
 }) {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const canReadCampaign =
+    getCrmDoctypePermissions(user, "CRM Campaign").canRead &&
+    canReadCrmPath("/director/campaign-intelligence", user);
+  const canReadLead = getCrmPermissions(user).lead.canRead;
   const [selection, setSelection] = useState<CampaignLeadSelection | null>(null);
-  const { data, isLoading, isError, refetch } = useCampaignIntelligenceQuery();
+  const { data, isLoading, isError, refetch } = useCampaignIntelligenceQuery({
+    enabled: !isAuthLoading && canReadCampaign,
+  });
+
+  if (isAuthLoading) return <DashboardSkeleton leadOnly={showLeadOverview} />;
+  if (!canReadCampaign) {
+    return (
+      <section className="rounded-xl border border-card-border bg-card-background px-6 py-12 text-center">
+        <h2 className="text-lg font-semibold text-text-primary">
+          Bạn không có quyền xem dữ liệu chiến dịch.
+        </h2>
+      </section>
+    );
+  }
 
   if (isLoading) return <DashboardSkeleton leadOnly={showLeadOverview} />;
   if (isError || !data) {
@@ -75,12 +99,12 @@ export default function CampaignIntelligenceDashboard({
         <>
           <LeadOverviewByCampaign
             campaigns={data.campaigns}
-            onSelect={setSelection}
+            onSelect={canReadLead ? setSelection : undefined}
             onRetry={() => void refetch()}
           />
           <CampaignTable
             campaigns={data.campaigns}
-            onSelect={setSelection}
+            onSelect={canReadLead ? setSelection : undefined}
             leadOnly
           />
         </>
@@ -111,7 +135,7 @@ export default function CampaignIntelligenceDashboard({
           </p>
         </>
       )}
-      {selection && (
+      {selection && canReadLead && (
         <LeadOverviewLeadsDialog
           key={`${selection.campaign.id}:${selection.statusGroup ?? "all"}`}
           selection={selection}

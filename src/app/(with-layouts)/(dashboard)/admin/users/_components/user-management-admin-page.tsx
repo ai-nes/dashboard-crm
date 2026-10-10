@@ -143,6 +143,7 @@ export default function UserManagementAdminPage() {
     fullName: string;
     password: string;
     role: string;
+    campusId: string | null;
   }) => {
     await createUserMutation.mutateAsync(fields);
     toast.success(`Đã tạo người dùng ${fields.fullName}.`);
@@ -152,12 +153,14 @@ export default function UserManagementAdminPage() {
   const handleUpdateUser = async (fields: {
     fullName: string;
     newPassword: string;
+    campusId: string | null;
   }) => {
     if (!userFormTarget) return;
     await updateUserProfileMutation.mutateAsync({
       user: userFormTarget.name,
       fullName: fields.fullName,
       newPassword: fields.newPassword || undefined,
+      campusId: fields.campusId,
     });
     toast.success(`Đã cập nhật ${fields.fullName}.`);
     setIsUserFormOpen(false);
@@ -295,17 +298,22 @@ export default function UserManagementAdminPage() {
         onConfirm={handleConfirmRemove}
       />
 
-      <UserFormDialog
-        key={userFormTarget?.name ?? "create"}
-        isOpen={isUserFormOpen}
-        user={userFormTarget}
-        isSubmitting={
-          createUserMutation.isPending || updateUserProfileMutation.isPending
-        }
-        onOpenChange={setIsUserFormOpen}
-        onCreate={handleCreateUser}
-        onUpdate={handleUpdateUser}
-      />
+      {canManageUsers && isUserFormOpen && (
+        <UserFormDialog
+          key={userFormTarget?.name ?? "create"}
+          isOpen={isUserFormOpen}
+          user={userFormTarget}
+          campusOptions={campusOptions}
+          isCampusLoading={campusesQuery.isPending}
+          isCampusError={campusesQuery.isError}
+          isSubmitting={
+            createUserMutation.isPending || updateUserProfileMutation.isPending
+          }
+          onOpenChange={setIsUserFormOpen}
+          onCreate={handleCreateUser}
+          onUpdate={handleUpdateUser}
+        />
+      )}
     </main>
   );
 }

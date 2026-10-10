@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
 import { useSegmentByCodeQuery } from "@/hooks/use-segment-queries";
 
 import SegmentBuilderPage, {
@@ -11,6 +12,7 @@ import SegmentBuilderPage, {
 } from "./segment-builder-page";
 import { fromBackendSegmentFilters } from "./segment-filter-config";
 import { toSegmentListItem } from "./segment-list-types";
+import { canManageSegment, canReadSegments } from "./segment-permissions";
 
 const EDITABLE_CATEGORIES: SegmentCategory[] = [
   "admission_stage",
@@ -35,7 +37,9 @@ export default function SegmentEditPage({
   segmentCode: string;
   backHref: string;
 }) {
-  const segmentQuery = useSegmentByCodeQuery(segmentCode);
+  const { user } = useAuth();
+  const canRead = canReadSegments(user);
+  const segmentQuery = useSegmentByCodeQuery(segmentCode, canRead);
   const segment = useMemo(
     () => (segmentQuery.data ? toSegmentListItem(segmentQuery.data) : null),
     [segmentQuery.data],
@@ -44,6 +48,16 @@ export default function SegmentEditPage({
     () => fromBackendSegmentFilters(segmentQuery.data?.filters),
     [segmentQuery.data?.filters],
   );
+
+  if (!canRead) {
+    return (
+      <main className="flex h-full min-h-0 items-center justify-center bg-card-background px-6">
+        <p className="text-sm text-text-secondary">
+          Bạn không có quyền xem segment này.
+        </p>
+      </main>
+    );
+  }
 
   if (segmentQuery.isLoading) {
     return (
@@ -76,6 +90,16 @@ export default function SegmentEditPage({
     );
   }
 
+  if (!canManageSegment(user, segment, "update")) {
+    return (
+      <main className="flex h-full min-h-0 items-center justify-center bg-card-background px-6">
+        <p className="text-sm text-text-secondary">
+          Bạn không có quyền chỉnh sửa segment này.
+        </p>
+      </main>
+    );
+  }
+
   return (
     <SegmentBuilderPage
       key={`${segment.id}-${segment.revision}`}
@@ -89,6 +113,7 @@ export default function SegmentEditPage({
       mode="edit"
       segmentId={segment.id}
       expectedRevision={segment.revision}
+      segmentOwnerUserId={segment.ownerUserId}
     />
   );
 }

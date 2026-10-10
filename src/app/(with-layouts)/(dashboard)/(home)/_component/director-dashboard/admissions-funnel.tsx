@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
-import Link from "next/link";
+import { CrmPermissionLink as Link } from "@/components/common/auth/crm-permission-link";
 
 import { initialPipelineStages } from "@/services/api/director-overview/data";
 import type { AdmissionsPipeline } from "./types";
@@ -19,7 +19,10 @@ interface AdmissionsFunnelProps {
   admissionYear?: number;
 }
 
-export default function AdmissionsFunnel({ pipeline, admissionYear = 2026 }: AdmissionsFunnelProps) {
+export default function AdmissionsFunnel({
+  pipeline,
+  admissionYear = 2026,
+}: AdmissionsFunnelProps) {
   const stages = pipeline?.stages ?? initialPipelineStages;
   const summary = pipeline?.summary ?? {
     prospects: 24860,
@@ -38,8 +41,12 @@ export default function AdmissionsFunnel({ pipeline, admissionYear = 2026 }: Adm
   const enrolled = safeNumber(summary.enrolled);
   const enrollmentRate = Number.isFinite(summary.enrollmentRate)
     ? summary.enrollmentRate
-    : (prospects > 0 ? (enrolled / prospects) * 100 : 0);
-  const differencePoints = Number.isFinite(biggestDrop.differencePoints) ? biggestDrop.differencePoints : 0;
+    : prospects > 0
+      ? (enrolled / prospects) * 100
+      : 0;
+  const differencePoints = Number.isFinite(biggestDrop.differencePoints)
+    ? biggestDrop.differencePoints
+    : 0;
 
   return (
     <Card className="flex min-h-[34rem] min-w-0 flex-col overflow-hidden">
@@ -51,7 +58,10 @@ export default function AdmissionsFunnel({ pipeline, admissionYear = 2026 }: Adm
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/director/admission-funnel" className="text-xs font-semibold text-brand-500 hover:text-brand-600">
+          <Link
+            href="/director/admission-funnel"
+            className="text-xs font-semibold text-brand-500 hover:text-brand-600"
+          >
             Phân tích chi tiết
           </Link>
           <span className="rounded-full bg-badge-primary-background px-2.5 py-1 text-xs font-semibold text-badge-primary-text">
@@ -69,22 +79,38 @@ export default function AdmissionsFunnel({ pipeline, admissionYear = 2026 }: Adm
 
         <ol className="space-y-2.5" aria-label="Các giai đoạn tuyển sinh">
           {stages.map((stage) => {
-            const percentage = Number.isFinite(stage.percentage) ? stage.percentage : 0;
-            const stageValue = typeof stage.value === "number" ? (stage.value as number).toLocaleString("vi-VN") : stage.value;
+            const percentage = Number.isFinite(stage.percentage)
+              ? stage.percentage
+              : 0;
+            const stageValue =
+              typeof stage.value === "number"
+                ? (stage.value as number).toLocaleString("vi-VN")
+                : stage.value;
 
             return (
-              <li key={stage.id} className="grid grid-cols-[minmax(110px,1fr)_minmax(0,3fr)_64px] items-center gap-3 sm:grid-cols-[minmax(140px,1fr)_minmax(0,3fr)_80px]">
-                <span className="truncate text-xs font-medium text-text-secondary sm:text-sm">{stage.label}</span>
+              <li
+                key={stage.id}
+                className="grid grid-cols-[minmax(110px,1fr)_minmax(0,3fr)_64px] items-center gap-3 sm:grid-cols-[minmax(140px,1fr)_minmax(0,3fr)_80px]"
+              >
+                <span className="truncate text-xs font-medium text-text-secondary sm:text-sm">
+                  {stage.label}
+                </span>
                 <div className="flex h-10 items-center justify-center">
                   <div
                     className={`flex h-full min-w-16 items-center justify-center rounded-lg px-2 transition-[width] ${STAGE_COLORS[stage.id] ?? "bg-brand-500"}`}
                     style={{ width: `${Math.max(percentage, 16)}%` }}
                     aria-label={`${stage.label}: ${stageValue} học sinh`}
                   >
-                    <span className="truncate text-xs font-semibold text-white-100">{stageValue}</span>
+                    <span className="truncate text-xs font-semibold text-white-100">
+                      {stageValue}
+                    </span>
                   </div>
                 </div>
-                <span className={`text-right text-xs font-semibold ${stage.id === "enrolled" ? "text-success-500" : "text-text-secondary"}`}>{percentage}%</span>
+                <span
+                  className={`text-right text-xs font-semibold ${stage.id === "enrolled" ? "text-success-500" : "text-text-secondary"}`}
+                >
+                  {percentage}%
+                </span>
               </li>
             );
           })}
@@ -92,8 +118,14 @@ export default function AdmissionsFunnel({ pipeline, admissionYear = 2026 }: Adm
       </div>
 
       <div className="mt-5 grid grid-cols-3 gap-3 border-t border-card-border pt-4">
-        <PipelineSummary label="Tổng hồ sơ tiềm năng" value={prospects.toLocaleString("vi-VN")} />
-        <PipelineSummary label="Đã trúng tuyển" value={accepted.toLocaleString("vi-VN")} />
+        <PipelineSummary
+          label="Tổng hồ sơ tiềm năng"
+          value={prospects.toLocaleString("vi-VN")}
+        />
+        <PipelineSummary
+          label="Đã trúng tuyển"
+          value={accepted.toLocaleString("vi-VN")}
+        />
         <PipelineSummary
           label="Tỷ lệ nhập học"
           value={`${enrollmentRate.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%`}
@@ -102,7 +134,11 @@ export default function AdmissionsFunnel({ pipeline, admissionYear = 2026 }: Adm
       </div>
 
       <p className="mt-4 border-t border-card-border pt-4 text-xs leading-5 text-text-tertiary">
-        Điểm giảm lớn nhất: <strong className="font-semibold text-text-secondary">{biggestDrop.fromLabel} → {biggestDrop.toLabel}</strong> · giảm {differencePoints} điểm %.
+        Điểm giảm lớn nhất:{" "}
+        <strong className="font-semibold text-text-secondary">
+          {biggestDrop.fromLabel} → {biggestDrop.toLabel}
+        </strong>{" "}
+        · giảm {differencePoints} điểm %.
       </p>
     </Card>
   );
@@ -112,7 +148,12 @@ function safeNumber(value: unknown): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   if (!value) return 0;
   const str = String(value).trim();
-  if (str.toLowerCase().includes("nan") || str === "null" || str === "undefined") return 0;
+  if (
+    str.toLowerCase().includes("nan") ||
+    str === "null" ||
+    str === "undefined"
+  )
+    return 0;
   const cleaned = str.replace(/[^\d.-]/g, "");
   const num = Number(cleaned);
   return Number.isFinite(num) ? num : 0;

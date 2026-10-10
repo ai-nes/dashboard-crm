@@ -20,17 +20,26 @@ const BUILT_IN_ACTION_TYPES = new Set(["CONTACT", "INFORMATION", "ENGAGEMENT", "
 
 interface ActionTypeDetailDialogProps {
   actionType: NbaAdminActionType | null;
-  canEdit: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
   onClose: () => void;
 }
 
-export default function ActionTypeDetailDialog({ actionType, canEdit, onClose }: ActionTypeDetailDialogProps) {
+export default function ActionTypeDetailDialog({
+  actionType,
+  canCreate,
+  canUpdate,
+  canDelete,
+  onClose,
+}: ActionTypeDetailDialogProps) {
   const isNew = actionType === null;
   const detailQuery = useNbaActionTypeQuery(actionType?.name ?? "");
   const createMutation = useCreateNbaActionTypeMutation();
   const updateMutation = useUpdateNbaActionTypeMutation();
   const deleteMutation = useDeleteNbaActionTypeMutation();
   const record = detailQuery.data ?? actionType;
+  const canEdit = record ? canUpdate : canCreate;
   const [actionTypeCode, setActionTypeCode] = useState(actionType?.actionType ?? "");
   const [displayName, setDisplayName] = useState(actionType?.displayName ?? "");
   const [sortOrder, setSortOrder] = useState(String(actionType?.sortOrder ?? 100));
@@ -38,6 +47,7 @@ export default function ActionTypeDetailDialog({ actionType, canEdit, onClose }:
   const isBuiltIn = Boolean(record && BUILT_IN_ACTION_TYPES.has(record.actionType));
 
   const handleSave = async () => {
+    if (record ? !canUpdate : !canCreate) return;
     const nextCode = actionTypeCode.trim().toUpperCase();
     const nextSortOrder = Number(sortOrder);
     if (!nextCode || !/^[A-Z0-9_]+$/.test(nextCode)) {
@@ -63,7 +73,12 @@ export default function ActionTypeDetailDialog({ actionType, canEdit, onClose }:
   };
 
   const handleDelete = async () => {
-    if (!record || isBuiltIn || !window.confirm(`Xóa nhóm ${record.actionType}? Backend sẽ chặn nếu nhóm còn Action tham chiếu.`)) return;
+    if (
+      !canDelete ||
+      !record ||
+      isBuiltIn ||
+      !window.confirm(`Xóa nhóm ${record.actionType}? Backend sẽ chặn nếu nhóm còn Action tham chiếu.`)
+    ) return;
     try {
       await deleteMutation.mutateAsync(record.name);
       toast.success(`Đã xóa nhóm ${record.actionType}.`);
@@ -85,7 +100,7 @@ export default function ActionTypeDetailDialog({ actionType, canEdit, onClose }:
         />
 
         <DialogBody className="max-h-[min(36rem,calc(100vh-10rem))] space-y-4 overflow-y-auto px-5 py-4">
-          {!canEdit && <Alert status="info"><AlertIndicator><InfoCircle aria-hidden="true" /></AlertIndicator><AlertContent><AlertDescription>Bạn có thể xem cấu hình. Chỉ Administrator được thay đổi nhóm hành động.</AlertDescription></AlertContent></Alert>}
+          {!canEdit && <Alert status="info"><AlertIndicator><InfoCircle aria-hidden="true" /></AlertIndicator><AlertContent><AlertDescription>Bạn có quyền xem nhưng chưa được cấp quyền thay đổi nhóm hành động.</AlertDescription></AlertContent></Alert>}
           {isBuiltIn && <Alert status="info"><AlertIndicator /><AlertContent><AlertDescription>Đây là nhóm built-in. Không thể xóa vĩnh viễn; hãy tắt nhóm nếu không muốn sử dụng.</AlertDescription></AlertContent></Alert>}
           {detailQuery.isPending && !isNew ? <p className="text-sm text-text-tertiary">Đang tải thông tin nhóm…</p> : <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1 sm:col-span-2"><span className="text-xs font-medium text-input-label-text">Mã nhóm</span><Input value={record?.actionType ?? actionTypeCode} onChange={(event) => setActionTypeCode(event.target.value.toUpperCase())} readOnly={!isNew} disabled={!canEdit || !isNew} placeholder="Ví dụ: CUSTOM_SALES" className="h-9 w-full px-3 py-2 text-sm" /><span className="block text-[11px] leading-4 text-text-tertiary">Mã không thể thay đổi sau khi tạo.</span></label>
@@ -96,7 +111,7 @@ export default function ActionTypeDetailDialog({ actionType, canEdit, onClose }:
         </DialogBody>
 
         <DialogFooter className="border-t border-card-border px-5 py-3 sm:justify-between">
-          <div>{canEdit && record && !isBuiltIn && <Button variant="danger" appearance="ghost" size="sm" onPress={() => void handleDelete()} isDisabled={deleteMutation.isPending}>{deleteMutation.isPending ? "Đang xóa…" : "Xóa nhóm"}</Button>}</div>
+          <div>{canDelete && record && !isBuiltIn && <Button variant="danger" appearance="ghost" size="sm" onPress={() => void handleDelete()} isDisabled={deleteMutation.isPending}>{deleteMutation.isPending ? "Đang xóa…" : "Xóa nhóm"}</Button>}</div>
           <div className="flex gap-2"><DialogClose appearance="outline" size="sm">Đóng</DialogClose>{canEdit && <Button size="sm" onPress={() => void handleSave()} isDisabled={detailQuery.isPending || createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu…" : isNew ? "Tạo nhóm" : "Lưu thay đổi"}</Button>}</div>
         </DialogFooter>
       </Dialog>

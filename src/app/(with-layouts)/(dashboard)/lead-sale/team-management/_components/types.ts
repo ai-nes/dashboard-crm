@@ -8,6 +8,7 @@ export interface TeamMember {
   role: TeamMemberRole;
   isActive?: boolean;
   campusId?: string | null;
+  isAvailableForTeam?: boolean;
   teamIds?: string[];
   memberships?: TeamMembership[];
   revision?: string;

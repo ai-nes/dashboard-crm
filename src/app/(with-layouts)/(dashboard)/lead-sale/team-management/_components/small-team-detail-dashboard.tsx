@@ -58,6 +58,7 @@ export default function SmallTeamDetailDashboard({
   const candidates = state.members.filter(
     (member) =>
       member.isActive !== false &&
+      member.isAvailableForTeam === true &&
       member.campusId === smallTeam.campusId &&
       member.role !== "LEAD_SALE" &&
       (member.teamIds ?? []).length === 0 &&
@@ -89,7 +90,7 @@ export default function SmallTeamDetailDashboard({
       groupId: bigTeam.id,
       teamType: smallTeam.teamType ?? "Sales",
       campus: smallTeam.campusId,
-      teamLeadStaff: leadId,
+      teamLeadUser: leadId,
       isActive: smallTeam.isActive,
       expectedRevision: smallTeam.revision,
     });
@@ -105,7 +106,7 @@ export default function SmallTeamDetailDashboard({
     void run(
       () =>
         addMember({
-          staffId: memberId,
+          userId: memberId,
           teamId: smallTeam.id,
           function: functionName,
         }),
@@ -120,7 +121,7 @@ export default function SmallTeamDetailDashboard({
     void run(
       () =>
         removeMember({
-          staffId: memberId,
+          userId: memberId,
           teamId: smallTeam.id,
           expectedRevision: member.revision,
         }),
@@ -190,7 +191,7 @@ export default function SmallTeamDetailDashboard({
             void run(
               () =>
                 updateMember({
-                  staffId: id,
+                  userId: id,
                   fullName: value,
                   expectedRevision: member.revision,
                 }),
