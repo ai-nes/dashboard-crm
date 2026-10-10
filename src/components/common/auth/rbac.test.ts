@@ -4,6 +4,7 @@ import {
   canAccessDashboardPath,
   findRouteAccessRule,
   getDefaultRouteForRoles,
+  getLeadListRouteForRoles,
   getRecognizedRoles,
 } from "./rbac";
 import {
@@ -306,6 +307,7 @@ describe("dashboard RBAC", () => {
       "Chatbot CRM",
       "Trung tâm AI & dữ liệu",
       "Khám phá người học",
+      "Quản lý lead",
       "Hồ sơ học sinh 360°",
       "Trường THPT 360°",
       "Hiệu suất khu vực",
@@ -315,20 +317,21 @@ describe("dashboard RBAC", () => {
       "Message Template",
       "Snippest",
     ]);
-    expect(getNavigationUrls(directorNavigation)).toHaveLength(13);
+    expect(getNavigationUrls(directorNavigation)).toHaveLength(14);
+    expect(getNavigationUrls(directorNavigation)).toContain("/director/leads");
     expect(getNavigationUrls(directorNavigation)[0]).toBe("/director");
     expect(
       getNavigationUrls(
         filterNavigationByRoles(DIRECTOR_NAV_DATA, ["Admissions Director"]),
       ),
-    ).toHaveLength(13);
+    ).toHaveLength(14);
     expect(
       getNavigationUrls(
         filterNavigationByRoles(getNavigationDataForRoles(["Administrator"]), [
           "Administrator",
         ]),
       ),
-    ).toHaveLength(20);
+    ).toHaveLength(21);
     expect(primaryItems).not.toContain("Cấu hình Action NBA");
     expect(
       findActiveGroupKeyInNavigation("/director/ai", directorNavigation),
@@ -339,6 +342,17 @@ describe("dashboard RBAC", () => {
         directorNavigation,
       ),
     ).toBeNull();
+  });
+
+  it.each([
+    [["Admissions Director"], "/director/leads"],
+    [["Administrator"], "/director/leads"],
+    [["Admissions Director", "Sale"], "/director/leads"],
+    [["Lead Sale"], "/lead-sale/leads"],
+    [["Sale"], "/sale/leads"],
+    [["CTV Sale"], "/ctv-sale/leads"],
+  ])("returns lead details to the %j workspace", (roles, expected) => {
+    expect(getLeadListRouteForRoles(roles as string[])).toBe(expected);
   });
 
   it("hides the AI center and removes campaign performance from Marketing", () => {
