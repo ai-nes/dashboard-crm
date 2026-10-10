@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
+import { getLeadListRouteForRoles } from "@/components/common/auth/rbac";
 import {
   canAccessStudent,
   canConvertLeadToStudent,
@@ -44,7 +45,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const canReadLead = permissions.lead.canRead;
-  const leadListHref = getLeadListHref(user?.roles);
+  const leadListHref = getLeadListRouteForRoles(user?.roles);
   const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId, {
     enabled: Boolean(leadId) && canReadLead && !isAuthLoading,
   });
@@ -335,10 +336,4 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       />
     </main>
   );
-}
-
-function getLeadListHref(roles: readonly string[] | null | undefined): string {
-  if (roles?.includes("CTV Sale")) return "/ctv-sale/leads";
-  if (roles?.includes("Sale")) return "/sale/leads";
-  return "/lead-sale/leads";
 }

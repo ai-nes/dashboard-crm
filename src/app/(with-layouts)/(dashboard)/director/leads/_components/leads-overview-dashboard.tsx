@@ -46,7 +46,13 @@ import QuickCreateLeadDialog from "./quick-create-lead-dialog";
 
 const pageSize = 10;
 
-export default function LeadsOverviewDashboard() {
+interface LeadsOverviewDashboardProps {
+  admissionYear?: number | null;
+}
+
+export default function LeadsOverviewDashboard({
+  admissionYear = 2026,
+}: LeadsOverviewDashboardProps = {}) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const canReadLeads = permissions.lead.canRead;
@@ -88,7 +94,7 @@ export default function LeadsOverviewDashboard() {
   );
   const availableCampaigns = campaignsQuery.data?.campaigns ?? [];
   const listParams: LeadListParams = {
-    admissionYear: 2026,
+    ...(admissionYear === null ? {} : { admissionYear }),
     page,
     pageSize,
     q: query || undefined,
@@ -301,14 +307,19 @@ export default function LeadsOverviewDashboard() {
           <div className="flex flex-wrap items-center gap-2">
             <Badge color="primary">FAIP · Danh sách Lead</Badge>
             <span className="text-xs text-text-tertiary">
-              Dữ liệu tuyển sinh · Kỳ {meta?.admissionYear ?? 2026}
+              Dữ liệu tuyển sinh ·{" "}
+              {admissionYear === null
+                ? "Tất cả kỳ tuyển sinh"
+                : `Kỳ ${meta?.admissionYear ?? admissionYear}`}
             </span>
           </div>
           <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
             Danh sách Leads
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
-            Toàn cảnh Lead tiếp nhận trước khi được phân công cho đội ngũ Sale.
+            {admissionYear === null
+              ? "Toàn bộ Lead trên hệ thống, bao gồm Lead chưa phân công và Lead của tất cả Sale, team."
+              : "Toàn cảnh Lead tiếp nhận trước khi được phân công cho đội ngũ Sale."}
           </p>
         </div>
         {(canCreateLead || canManageLeadIntake) && (

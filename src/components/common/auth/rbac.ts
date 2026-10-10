@@ -457,3 +457,17 @@ export function getDefaultRouteForRoles(
   );
   return primaryRole ? ROLE_DEFAULT_ROUTES[primaryRole] : "/";
 }
+
+export function getLeadListRouteForRoles(
+  roles: readonly string[] | null | undefined,
+): string {
+  const workspaceRoute = getDefaultRouteForRoles(roles);
+  if (
+    workspaceRoute === ROLE_ROUTE_PATHS["ctv-sale"] ||
+    workspaceRoute === ROLE_ROUTE_PATHS.sale ||
+    workspaceRoute === ROLE_ROUTE_PATHS["lead-sale"]
+  ) {
+    return `${workspaceRoute}/leads`;
+  }
+  return "/director/leads";
+}

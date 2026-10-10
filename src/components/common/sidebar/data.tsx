@@ -105,6 +105,11 @@ export const NAV_DATA: NavigationSection[] = [
         icon: <AlphabetIcon />,
       }),
       navItem({
+        title: "Quản lý lead",
+        url: "/director/leads",
+        icon: <UserPencil size={18} />,
+      }),
+      navItem({
         title: "Hồ sơ học sinh 360°",
         url: "/director/students",
         icon: <UserGroupIcon />,
@@ -228,6 +233,7 @@ const DIRECTOR_NAV_PATHS = new Set([
   "/crm-chatbot",
   "/director/ai",
   "/director/demographics",
+  "/director/leads",
   "/director/students",
   "/director/market-intelligence",
   "/director/regional-performance",

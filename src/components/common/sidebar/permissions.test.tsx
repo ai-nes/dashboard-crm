@@ -2,8 +2,41 @@ import { describe, expect, it } from "vitest";
 import type { CurrentUser } from "@/services/api/auth";
 import { filterNavigationByPermissions } from "./utils";
 import type { NavigationSection } from "./data";
+import { getNavigationDataForRoles } from "./data";
 
 describe("sidebar effective resource permissions", () => {
+  it.each([true, false])(
+    "shows the Director lead entry only when CRM Lead read is %s",
+    (read) => {
+      const user: CurrentUser = {
+        user: "director@example.test",
+        email: "director@example.test",
+        full_name: "Director",
+        user_image: null,
+        roles: ["Admissions Director"],
+        crm_profile: "admissions_director",
+        crm_role: "Admissions Director",
+        crm_capabilities: [],
+        crm_doctype_permissions: {
+          "CRM Lead": {
+            read,
+            write: false,
+            create: false,
+            delete: false,
+            export: false,
+            row_scope: "all",
+          },
+        },
+      };
+      const items = filterNavigationByPermissions(
+        getNavigationDataForRoles(user.roles),
+        user,
+      ).flatMap((section) => section.items);
+
+      expect(items.some((item) => item.url === "/director/leads")).toBe(read);
+    },
+  );
+
   it("removes denied links and groups with no permitted children", () => {
     const user: CurrentUser = {
       user: "director@example.test",
