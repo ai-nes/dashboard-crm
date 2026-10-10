@@ -41,7 +41,6 @@ interface QuickCreateLeadForm {
   high_school: string;
   major: string;
   campaign: string;
-  advertising_channel: string;
   admission_year: string;
   branch: string;
   notes: string;
@@ -59,7 +58,6 @@ const initialForm: QuickCreateLeadForm = {
   high_school: "",
   major: "",
   campaign: "",
-  advertising_channel: "",
   admission_year: "2026",
   branch: "",
   notes: "",
@@ -312,17 +310,6 @@ export default function QuickCreateLeadDialog({
                 />
               </CreateDialogField>
 
-              <CreateDialogField label="Kênh quảng cáo">
-                <CreateDialogInput
-                  label="Kênh quảng cáo"
-                  placeholder="Facebook Ads, Google…"
-                  value={form.advertising_channel}
-                  onChange={(event) =>
-                    setField("advertising_channel", event.target.value)
-                  }
-                />
-              </CreateDialogField>
-
               <CreateDialogField label="Năm tuyển sinh">
                 <CreateDialogInput
                   label="Năm tuyển sinh"
@@ -389,7 +376,6 @@ function toLeadCreateFields(form: QuickCreateLeadForm): LeadCreateFields {
       ward: form.ward,
       high_school: form.high_school,
       major: form.major,
-      advertising_channel: form.advertising_channel,
       admission_year: form.admission_year,
       branch: form.branch,
       notes: form.notes,

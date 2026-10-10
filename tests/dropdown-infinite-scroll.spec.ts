@@ -56,6 +56,67 @@ test("selected option outside the first page keeps its label and keyboard naviga
   await expect(trigger).toContainText("Option 200");
 });
 
+for (const kind of ["dropdown", "select", "grouped", "major", "native", "combobox", "detail", "create"]) {
+  test(`${kind}: narrow popup has only a custom vertical scrollbar`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(`${origin}/?kind=${kind}`);
+    await page.locator("main").evaluate(element => { element.style.width = "250px"; });
+    if (kind === "combobox") await page.getByPlaceholder("Search options").click();
+    else await page.getByRole("button").first().click();
+    const list = page.getByRole("listbox");
+    await expect(list).toBeVisible();
+    const metrics = await list.evaluate(element => ({
+      width: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      padding: getComputedStyle(element).padding,
+      contentWidth: element.firstElementChild?.getBoundingClientRect().width,
+    }));
+    expect(metrics.scrollWidth, JSON.stringify(metrics)).toBeLessThanOrEqual(metrics.width + 1);
+    await expect(page.locator('[data-slot="scroll-area-scrollbar"][data-orientation="vertical"]')).toBeVisible();
+    await expect(page.locator('[data-slot="scroll-area-scrollbar"][data-orientation="horizontal"]')).toHaveCount(0);
+    expect(await list.evaluate(element => getComputedStyle(element).scrollbarWidth)).toBe("none");
+    await list.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await expect(page.getByRole("option", { name: "Option 200", exact: true })).toBeVisible();
+    if (kind === "dropdown") {
+      const thumb = await page.locator('[data-slot="scroll-area-thumb"]').boundingBox();
+      const track = await page.locator('[data-slot="scroll-area-scrollbar"]').boundingBox();
+      expect(thumb).not.toBeNull();
+      expect(track).not.toBeNull();
+      await page.mouse.move(thumb!.x + thumb!.width / 2, thumb!.y + thumb!.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(thumb!.x + thumb!.width / 2, track!.y + thumb!.height / 2, { steps: 5 });
+      await page.mouse.up();
+      await expect(page.getByRole("option", { name: "Option 001", exact: true })).toBeVisible();
+    }
+    await page.screenshot({ path: test.info().outputPath(`dropdown-${kind}-narrow.png`) });
+  });
+}
+
+test("detail and create forms share the same dropdown dimensions and selected styling", async ({ page }) => {
+  const styles = [];
+  for (const kind of ["detail", "create"]) {
+    await page.goto(`${origin}/?kind=${kind}`);
+    const trigger = page.getByRole("button", { name: "Options", exact: true });
+    await trigger.click();
+    await expect(page.getByRole("listbox")).toBeVisible();
+    styles.push(await page.getByRole("listbox").evaluate(element => {
+      const popup = element.closest("[data-placement]")!;
+      const selected = element.querySelector('[aria-selected="true"] .text-text-primary')!;
+      return {
+        triggerHeight: document.querySelector('button[aria-label="Options"]')!.getBoundingClientRect().height,
+        popupHeight: Math.round(popup.getBoundingClientRect().height),
+        listHeight: Math.round(element.getBoundingClientRect().height),
+        searchHeight: popup.querySelector("input")!.getBoundingClientRect().height,
+        selectedWeight: getComputedStyle(selected).fontWeight,
+      };
+    }));
+  }
+  expect(styles[1]).toEqual(styles[0]);
+  expect(styles[0].triggerHeight).toBe(36);
+  expect(styles[0].popupHeight).toBe(256);
+  expect(styles[0].selectedWeight).toBe("500");
+});
+
 test("search resets after selection and mobile dropdown stays inside its frame", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   await page.goto(origin);

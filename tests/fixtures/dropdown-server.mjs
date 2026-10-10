@@ -21,6 +21,8 @@ const server = await createServer({
         import React from 'react';
         import { createRoot } from 'react-dom/client';
         import { DropdownField } from '/src/components/common/dropdown-field.tsx';
+        import { EditableDetailField } from '/src/components/common/editable-detail-field.tsx';
+        import { CreateDialogSelect } from '/src/components/common/create-dialog-field.tsx';
         import { InfiniteSelectInput } from '/src/components/common/infinite-select-input.tsx';
         import { MajorSelector } from '/src/components/common/major-selector.tsx';
         import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectHeader } from '/src/components/tailgrids/core/select.tsx';
@@ -36,7 +38,7 @@ const server = await createServer({
         const e = React.createElement;
         function App() {
           const kind = new URLSearchParams(location.search).get('kind') || 'dropdown';
-          const [value, setValue] = React.useState(kind === 'selected' ? '180' : '');
+          const [value, setValue] = React.useState(kind === 'selected' ? '180' : kind === 'detail' || kind === 'create' ? '1' : '');
           const [events, setEvents] = React.useState(0);
           const [calls, setCalls] = React.useState(0);
           const [pending, setPending] = React.useState(false);
@@ -74,6 +76,10 @@ const server = await createServer({
             control = e(Combobox, { value: value || null, onChange: setValue, 'aria-label': 'Options', placeholder: 'Search options' }, options.map(o => e(ComboboxItem, { key: o.id, id: o.id, textValue: o.label }, o.label)));
           } else if (kind === 'major') {
             control = e(MajorSelector, { ...base, allowClear: true });
+          } else if (kind === 'detail') {
+            control = e('dl', null, e(EditableDetailField, { label: 'Options', options, value, onChange: setValue, isEditing: true, searchable: true, dropdownClassName: '!max-h-64', searchPlaceholder: 'Search options' }));
+          } else if (kind === 'create') {
+            control = e(CreateDialogSelect, { label: 'Options', options, value, onChange: setValue, searchable: true, searchPlaceholder: 'Search options' });
           } else if (kind === 'native') {
             control = e('form', { id: 'test-form', onSubmit: event => { event.preventDefault(); setValue(new FormData(event.currentTarget).get('choice')); } },
               e(InfiniteSelectInput, { name: 'choice', 'aria-label': 'Options', required: true, defaultValue: '', onChange: event => { setEvents(c => c + 1); setValue(event.target.value); } },

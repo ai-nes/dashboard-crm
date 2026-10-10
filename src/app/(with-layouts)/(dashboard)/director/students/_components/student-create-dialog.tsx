@@ -47,7 +47,6 @@ interface StudentCreateForm {
   major: string;
   campaign: string;
   assigned_to: string;
-  advertising_channel: string;
   admission_year: string;
   branch: string;
   description: string;
@@ -67,7 +66,6 @@ const initialForm: StudentCreateForm = {
   major: "",
   campaign: "",
   assigned_to: "",
-  advertising_channel: "",
   admission_year: "2026",
   branch: "",
   description: "",
@@ -371,17 +369,6 @@ export default function StudentCreateDialog({
                   />
                 </CreateDialogField>
 
-                <CreateDialogField label="Kênh quảng cáo">
-                  <CreateDialogInput
-                    label="Kênh quảng cáo"
-                    placeholder="Facebook Ads, Google…"
-                    value={form.advertising_channel}
-                    onChange={(event) =>
-                      setField("advertising_channel", event.target.value)
-                    }
-                  />
-                </CreateDialogField>
-
                 <CreateDialogField label="Năm tuyển sinh">
                   <CreateDialogInput
                     label="Năm tuyển sinh"
@@ -456,7 +443,6 @@ function toStudentCreateFields(
       ward: form.ward,
       high_school: form.high_school,
       major: form.major,
-      advertising_channel: form.advertising_channel,
       admission_year: form.admission_year,
       branch: form.branch,
       description: form.description,

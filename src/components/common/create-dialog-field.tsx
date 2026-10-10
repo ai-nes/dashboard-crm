@@ -110,7 +110,6 @@ export function CreateDialogSelect({
       onChange={(nextValue) => onChange(nextValue ?? "")}
       placeholder={resolvedPlaceholder}
       searchPlaceholder={searchPlaceholder}
-      triggerClassName="h-10 px-3 py-2.5 text-sm"
       value={value || undefined}
     />
   );

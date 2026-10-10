@@ -85,7 +85,7 @@ export function EditableDetailField({
             pagination={pagination}
             ariaLabel={label}
             className="mt-1.5"
-            contentClassName={cn("max-h-36", dropdownClassName)}
+            contentClassName={dropdownClassName}
             filterOptions={false}
             isDisabled={isDisabled}
             isSearchable={searchable}
@@ -93,22 +93,9 @@ export function EditableDetailField({
             onSearchChange={setOptionsQuery}
             placeholder={placeholder ?? "Chọn giá trị"}
             searchPlaceholder={searchPlaceholder}
-            renderOption={(option, { isSelected }) => {
-              return (
-                <span
-                  className={cn(
-                    "block min-w-0 truncate",
-                    isSelected && "font-medium text-text-primary",
-                  )}
-                >
-                  {option.label}
-                </span>
-              );
-            }}
             selectedLabel={
               optionItems.find((option) => option.id === value)?.label
             }
-            triggerClassName="h-9 min-w-0 px-3 py-2 text-sm"
             value={value || undefined}
           />
         ) : type === "date" ? (

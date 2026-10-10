@@ -183,6 +183,7 @@ export function DropdownField({
       </Button>
       <Popover
         placement="bottom start"
+        maxHeight={256}
         className={cn(
           "flex w-(--trigger-width) flex-col overflow-hidden rounded-lg border border-card-border bg-background-white-secondary shadow-md",
           "entering:animate-in entering:fade-in-0 entering:zoom-in-95",
@@ -233,7 +234,7 @@ export function DropdownField({
                     renderOption(option, { isSelected })
                   ) : (
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate text-text-primary">
+                      <span className={cn("truncate text-text-primary", isSelected && "font-medium")}>
                         {option.label}
                       </span>
                       {option.description && (
