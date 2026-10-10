@@ -1,5 +1,8 @@
 "use client";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmDoctypePermissions } from "@/components/common/auth/permissions";
+
 import { useMutation } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -59,6 +62,11 @@ export default function SchoolInformationTab({
   data,
   onUpdated,
 }: SchoolInformationTabProps) {
+  const { user } = useAuth();
+  const { canRead, canUpdate } = getCrmDoctypePermissions(
+    user,
+    "CRM High School",
+  );
   const [editingCard, setEditingCard] = useState<EditableSchoolCard | null>(
     null,
   );
@@ -82,7 +90,7 @@ export default function SchoolInformationTab({
   });
 
   const startEditing = (card: EditableSchoolCard) => {
-    if (updateMutation.isPending) return;
+    if (!canUpdate || updateMutation.isPending) return;
     updateMutation.reset();
     setForm(getSchoolForm(data));
     setEditingCard(card);
@@ -161,6 +169,7 @@ export default function SchoolInformationTab({
   };
 
   const save = (fields: SchoolUpdateFields) => {
+    if (!canUpdate) return;
     if (Object.keys(fields).length === 0) {
       setEditingCard(null);
       return;
@@ -168,12 +177,15 @@ export default function SchoolInformationTab({
     updateMutation.mutate({ fields });
   };
 
-  const identityEditing = editingCard === "identity";
-  const locationEditing = editingCard === "location";
+  const identityEditing = canUpdate && editingCard === "identity";
+  const locationEditing = canUpdate && editingCard === "location";
+
+  if (!canRead) return null;
 
   return (
     <div className="grid items-stretch gap-5 lg:grid-cols-2">
       <EditableCard
+        canEdit={canUpdate}
         editLabel="Chỉnh sửa thông tin nhận diện trường"
         headerContent={<Badge color="gray">Thông tin cơ bản</Badge>}
         isEditing={identityEditing}
@@ -262,6 +274,7 @@ export default function SchoolInformationTab({
       </EditableCard>
 
       <EditableCard
+        canEdit={canUpdate}
         editLabel="Chỉnh sửa vị trí và liên hệ trường"
         headerContent={<Badge color="sky">Vị trí & liên hệ</Badge>}
         isEditing={locationEditing}

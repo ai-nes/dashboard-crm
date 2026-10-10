@@ -11,7 +11,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { getCrmPermissions } from "@/components/common/auth/permissions";
+import {
+  getCrmDoctypePermissions,
+  getCrmPermissions,
+} from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
@@ -39,6 +42,10 @@ export default function StudentsOverviewDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const canReadStudents = permissions.student.canRead;
+  const canReadCampaigns = getCrmDoctypePermissions(
+    user,
+    "CRM Campaign",
+  ).canRead;
   const readScope = permissions.student.readScope ?? permissions.student.scope;
   const isSessionScoped = readScope === "assigned" || readScope === "team";
   const isLeadSale = user?.roles?.includes("Lead Sale") ?? false;
@@ -64,6 +71,8 @@ export default function StudentsOverviewDashboard() {
 
   const campaignsQuery = useLeadSaleCampaignsQuery({
     leadOnly: true,
+  }, {
+    enabled: canReadCampaigns && !isAuthLoading,
   });
   const availableCampaigns = campaignsQuery.data?.campaigns ?? [];
 
@@ -115,8 +124,12 @@ export default function StudentsOverviewDashboard() {
   const currentPage = meta ? Math.min(page, totalPages) : page;
 
   const createMutation = useMutation({
-    mutationFn: (fields: StudentCreateWithLeadFields) =>
-      createStudentWithLead(fields),
+    mutationFn: (fields: StudentCreateWithLeadFields) => {
+      if (!canCreateStudent) {
+        throw new Error("Bạn không có quyền tạo hồ sơ học sinh.");
+      }
+      return createStudentWithLead(fields);
+    },
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: ["director-students"] });
       await queryClient.invalidateQueries({ queryKey: ["assigned-students"] });
@@ -229,14 +242,21 @@ export default function StudentsOverviewDashboard() {
         </div>
       </header>
 
-      <StudentCreateDialog
-        isOpen={createDialogOpen}
-        isSubmitting={createMutation.isPending}
-        onCreate={(fields) =>
-          createMutation.mutateAsync(fields).then(() => undefined)
-        }
-        onOpenChange={setCreateDialogOpen}
-      />
+      {canCreateStudent && (
+        <StudentCreateDialog
+          isOpen={createDialogOpen}
+          isSubmitting={createMutation.isPending}
+          onCreate={(fields) => {
+            if (!canCreateStudent) {
+              return Promise.reject(
+                new Error("Bạn không có quyền tạo hồ sơ học sinh."),
+              );
+            }
+            return createMutation.mutateAsync(fields).then(() => undefined);
+          }}
+          onOpenChange={setCreateDialogOpen}
+        />
+      )}
 
       <StudentListToolbar
         query={query}

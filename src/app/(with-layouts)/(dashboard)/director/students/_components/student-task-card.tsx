@@ -21,6 +21,7 @@ interface StudentTaskCardProps {
   task: StudentTaskItem;
   onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
   onDeleteTask?: (id: string) => void;
+  canUpdateTask?: boolean;
   defaultExpanded?: boolean;
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
@@ -38,6 +39,7 @@ export default function StudentTaskCard({
   task,
   onUpdateTask,
   onDeleteTask,
+  canUpdateTask = false,
   defaultExpanded = true,
   expanded: expandedProp,
   onExpandedChange,
@@ -60,10 +62,12 @@ export default function StudentTaskCard({
   };
 
   const updateTask = (updates: Partial<StudentTaskItem>) => {
+    if (!canUpdateTask) return;
     onUpdateTask(task.id, updates);
   };
 
   const startRescheduling = () => {
+    if (!canUpdateTask) return;
     setDraftDueDate(toDateInputValue(task.dueDate));
     setDraftDueTime(task.dueTime ?? "");
     setIsRescheduling(true);
@@ -107,6 +111,7 @@ export default function StudentTaskCard({
             task={task}
             deadlineStatus={deadlineStatus}
             studentStage={studentStage}
+            canEdit={canUpdateTask}
             onUpdateTask={updateTask}
           />
         </div>
@@ -116,29 +121,37 @@ export default function StudentTaskCard({
             task={task}
             deadlineStatus={deadlineStatus}
             studentStage={studentStage}
+            canEdit={canUpdateTask}
             onUpdateTask={updateTask}
           />
           <div className="space-y-4 border-t border-border-primary px-4 py-4 sm:px-5">
             <TaskCardMetadata
               task={task}
               deadlineStatus={deadlineStatus}
-              isRescheduling={isRescheduling}
+              isRescheduling={isRescheduling && canUpdateTask}
               draftDueDate={draftDueDate}
               draftDueTime={draftDueTime}
               onDraftDueDateChange={setDraftDueDate}
               onDraftDueTimeChange={setDraftDueTime}
               onStartRescheduling={startRescheduling}
+              canEdit={canUpdateTask}
             />
-            <TaskCardContext notes={task.notes} onCommit={updateTask} />
+            <TaskCardContext
+              notes={task.notes}
+              onCommit={updateTask}
+              canEdit={canUpdateTask}
+            />
             {aiInsight}
           </div>
-          <StudentTaskCardActions
-            isRescheduling={isRescheduling}
-            canComplete={task.status !== "done"}
-            onCancelRescheduling={cancelRescheduling}
-            onSaveRescheduling={saveRescheduling}
-            onComplete={handleComplete}
-          />
+          {canUpdateTask ? (
+            <StudentTaskCardActions
+              isRescheduling={isRescheduling}
+              canComplete={task.status !== "done"}
+              onCancelRescheduling={cancelRescheduling}
+              onSaveRescheduling={saveRescheduling}
+              onComplete={handleComplete}
+            />
+          ) : null}
         </>
       )}
     </article>

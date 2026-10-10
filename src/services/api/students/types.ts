@@ -244,6 +244,7 @@ export interface StudentListItem {
 export interface StudentTaskItem {
   id: string;
   title: string;
+  ownerId?: string;
   actionCode?: string;
   assignee: string;
   assigneeId?: string;

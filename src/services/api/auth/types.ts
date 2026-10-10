@@ -2,6 +2,10 @@
 export interface CurrentUser {
   /** User id (the login email). */
   user: string;
+  /** Stable Better Auth account ID used by backend ownership policies. */
+  crm_user_id?: string;
+  /** Effective administrator identity returned by the backend session. */
+  crm_is_administrator?: boolean;
   email: string;
   full_name: string;
   /** Absolute or site-relative avatar URL, or null when unset. */

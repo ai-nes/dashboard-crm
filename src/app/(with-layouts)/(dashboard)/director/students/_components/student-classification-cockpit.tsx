@@ -10,6 +10,13 @@ import { toast } from "sonner";
 
 import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
 import { formatTerminalReason } from "@/components/analysis-runs/analysis-run-meta";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  canAccessStudent,
+  getCrmDoctypePermissions,
+  getCrmPermissions,
+  hasCrmCapability,
+} from "@/components/common/auth/permissions";
 import DetailTabs from "@/components/common/detail-tabs";
 import { Button } from "@/components/tailgrids/core/button";
 import { useStudentAnalysis } from "@/hooks/use-student-ai";
@@ -36,6 +43,28 @@ export default function StudentClassificationCockpit({
   analysisTargetId,
   scoreBreakdown,
 }: StudentClassificationCockpitProps) {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const crmPermissions = getCrmPermissions(user);
+  const recommendationPermissions = getCrmDoctypePermissions(
+    user,
+    "CRM Recommendation",
+  );
+  const canReadStudentRecord = canAccessStudent(
+    crmPermissions.student,
+    { owner: data.student.counselor, ownerId: data.student.ownerId },
+    user,
+  );
+  const canReadAiRecommendations =
+    !isAuthLoading && canReadStudentRecord && recommendationPermissions.canRead;
+  const canRequestAnalysis =
+    !isAuthLoading &&
+    canReadStudentRecord &&
+    recommendationPermissions.canCreate &&
+    hasCrmCapability(user, "recommendation.decide");
+  const canReadInteractions =
+    !isAuthLoading &&
+    canReadStudentRecord &&
+    getCrmDoctypePermissions(user, "CRM Interaction Type").canRead;
   const [isOverviewOpen, setIsOverviewOpen] = useState(true);
   const [isHealthOpen, setIsHealthOpen] = useState(true);
   const [isAskDialogOpen, setIsAskDialogOpen] = useState(false);
@@ -48,7 +77,10 @@ export default function StudentClassificationCockpit({
     requestMutation,
     query: runQuery,
     isActive: isAnalysisActive,
-  } = useStudentAnalysis(analysisTargetId);
+  } = useStudentAnalysis(analysisTargetId, {
+    enabled: canReadAiRecommendations,
+    canRequest: canRequestAnalysis,
+  });
   const analysisError = requestMutation.error ?? runQuery.error;
   const terminalReason =
     run?.terminalReason ??
@@ -72,13 +104,16 @@ export default function StudentClassificationCockpit({
   }, [terminalReasonLabel]);
 
   const handleAnalysisRequest = () => {
-    request();
+    if (canRequestAnalysis) request();
   };
 
   const student360Stage = useMemo(
     () =>
-      run?.stages.find((stage) => stage.stageKind === "student_360") ?? null,
-    [run],
+      canReadAiRecommendations
+        ? (run?.stages.find((stage) => stage.stageKind === "student_360") ??
+          null)
+        : null,
+    [canReadAiRecommendations, run],
   );
   const report = student360Stage?.report ?? null;
   const risks = report?.risks ?? [];
@@ -144,23 +179,27 @@ export default function StudentClassificationCockpit({
                         Tổng quan hồ sơ tuyển sinh
                       </h2>
                     </button>
-                    <Button
-                      appearance="outline"
-                      isDisabled={!analysisTargetId.trim() || isAnalysisActive}
-                      onPress={handleAnalysisRequest}
-                      size="xs"
-                    >
-                      {isAnalysisActive ? (
-                        <RefreshCircle1Clockwise
-                          className="motion-safe:animate-spin"
-                          size={14}
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <Sparkle size={14} aria-hidden="true" />
-                      )}
-                      {isAnalysisActive ? "Đang phân tích" : "Phân tích"}
-                    </Button>
+                    {canRequestAnalysis && (
+                      <Button
+                        appearance="outline"
+                        isDisabled={
+                          !analysisTargetId.trim() || isAnalysisActive
+                        }
+                        onPress={handleAnalysisRequest}
+                        size="xs"
+                      >
+                        {isAnalysisActive ? (
+                          <RefreshCircle1Clockwise
+                            className="motion-safe:animate-spin"
+                            size={14}
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <Sparkle size={14} aria-hidden="true" />
+                        )}
+                        {isAnalysisActive ? "Đang phân tích" : "Phân tích"}
+                      </Button>
+                    )}
                   </div>
 
                   {isOverviewOpen && (
@@ -170,7 +209,11 @@ export default function StudentClassificationCockpit({
                         <StudentContactInsightsCard
                           report={report}
                           isRefreshing={Boolean(isAnalysisActive)}
-                          onRefresh={handleAnalysisRequest}
+                          onRefresh={
+                            canRequestAnalysis
+                              ? handleAnalysisRequest
+                              : undefined
+                          }
                           onOpenAskAI={() => setIsAskDialogOpen(true)}
                         />
                       </div>
@@ -180,7 +223,10 @@ export default function StudentClassificationCockpit({
                         studentId={data.student.studentId}
                         recentChanges={report?.recentChanges}
                         isRefreshing={Boolean(isAnalysisActive)}
-                        onRefresh={handleAnalysisRequest}
+                        onRefresh={
+                          canRequestAnalysis ? handleAnalysisRequest : undefined
+                        }
+                        canReadInteractions={canReadInteractions}
                       />
                     </div>
                   )}
@@ -230,7 +276,11 @@ export default function StudentClassificationCockpit({
                           data={data}
                           risks={risks}
                           isRefreshing={Boolean(isAnalysisActive)}
-                          onRefresh={handleAnalysisRequest}
+                          onRefresh={
+                            canRequestAnalysis
+                              ? handleAnalysisRequest
+                              : undefined
+                          }
                         />
 
                         {/* Card 5: Positive feedback */}
@@ -239,7 +289,11 @@ export default function StudentClassificationCockpit({
                           recommendations={recommendations}
                           opportunities={opportunities}
                           isRefreshing={Boolean(isAnalysisActive)}
-                          onRefresh={handleAnalysisRequest}
+                          onRefresh={
+                            canRequestAnalysis
+                              ? handleAnalysisRequest
+                              : undefined
+                          }
                         />
                       </div>
                     </div>
@@ -256,6 +310,7 @@ export default function StudentClassificationCockpit({
                   label: "Visual 360",
                   content: (
                     <StudentVisual360
+                      canReadInteractions={canReadInteractions}
                       canRead={canViewVisual}
                       data={data}
                       report={report}

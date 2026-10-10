@@ -14,30 +14,51 @@ import ActionTypesTable from "../../action-recommendations/_components/action-ty
 interface NbaAdminTabsProps {
   actionsPanel: ReactNode;
   actionCount: number;
-  canEdit: boolean;
+  canReadActions: boolean;
+  canReadActionTypes: boolean;
+  actionTypesPermissions: {
+    canCreate: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+  };
 }
 
 export default function NbaAdminTabs({
   actionsPanel,
   actionCount,
-  canEdit,
+  canReadActions,
+  canReadActionTypes,
+  actionTypesPermissions,
 }: NbaAdminTabsProps) {
+  const defaultValue = canReadActions ? "actions" : "action-types";
+
   return (
     <AdminTabRoot
-      defaultValue="actions"
+      defaultValue={defaultValue}
       className="flex min-h-0 flex-1 flex-col overflow-hidden"
     >
       <AdminTabList>
-        <TabTrigger value="actions" badge={actionCount || undefined}>
-          Hành động
-        </TabTrigger>
-        <TabTrigger value="action-types">Nhóm hành động</TabTrigger>
+        {canReadActions && (
+          <TabTrigger value="actions" badge={actionCount || undefined}>
+            Hành động
+          </TabTrigger>
+        )}
+        {canReadActionTypes && (
+          <TabTrigger value="action-types">Nhóm hành động</TabTrigger>
+        )}
       </AdminTabList>
 
-      <AdminTabContent value="actions">{actionsPanel}</AdminTabContent>
-      <AdminTabContent value="action-types">
-        <ActionTypesTable canEdit={canEdit} />
-      </AdminTabContent>
+      {canReadActions && (
+        <AdminTabContent value="actions">{actionsPanel}</AdminTabContent>
+      )}
+      {canReadActionTypes && (
+        <AdminTabContent value="action-types">
+          <ActionTypesTable
+            canRead={canReadActionTypes}
+            {...actionTypesPermissions}
+          />
+        </AdminTabContent>
+      )}
     </AdminTabRoot>
   );
 }

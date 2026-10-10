@@ -6,7 +6,7 @@ import { SegmentList } from "@/components/segments/segment-list";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasTechnicalRole } from "@/components/common/auth/rbac";
+import { getCrmDoctypePermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 
@@ -20,10 +20,9 @@ export default function SegmentManagementPage({
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const canManage = Boolean(
-    hasTechnicalRole(user?.roles, "System Manager") ||
-    user?.roles.includes("Administrator"),
-  );
+  const permissions = getCrmDoctypePermissions(user, "CRM Segment");
+  const canManage = permissions.canCreate || permissions.canUpdate || permissions.canDelete;
+  const canCreate = permissions.canCreate;
 
   return (
     <main
@@ -37,7 +36,7 @@ export default function SegmentManagementPage({
           description="Quản lý các nhóm học sinh dùng chung."
           canEdit={canManage}
           actions={
-            canManage && createHref ? (
+            canCreate && createHref ? (
               <Button
                 size="md"
                 className="shrink-0"
@@ -73,7 +72,7 @@ export default function SegmentManagementPage({
               </p>
             </div>
 
-            {canManage && createHref && (
+            {canCreate && createHref && (
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   size="md"
@@ -90,11 +89,7 @@ export default function SegmentManagementPage({
       )}
 
       <div className="min-h-0 flex-1 overflow-hidden pt-5">
-        <SegmentList
-          detailBaseHref={pathname}
-          canManage={canManage}
-          compactStatus={isAdmin}
-        />
+        <SegmentList detailBaseHref={pathname} compactStatus={isAdmin} />
       </div>
     </main>
   );

@@ -5,7 +5,10 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { getCrmPermissions } from "@/components/common/auth/permissions";
+import {
+  getCrmDoctypePermissions,
+  getCrmPermissions,
+} from "@/components/common/auth/permissions";
 import {
   useLeadSaleCampaignChannelTypesQuery,
   useLeadSaleCampaignQuery,
@@ -55,20 +58,34 @@ export default function CampaignDetailDashboard({
 }) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const studentPermissions = getCrmPermissions(user);
+  const canReadCampaign = getCrmDoctypePermissions(
+    user,
+    "CRM Campaign",
+  ).canRead;
+  const canReadLeads = studentPermissions.lead.canRead;
+  const canReadStudents = studentPermissions.student.canRead;
   const studentReadScope =
     studentPermissions.student.readScope ?? studentPermissions.student.scope;
   const isSessionScopedStudentView =
     studentReadScope === "assigned" || studentReadScope === "team";
   const campaignListPath = getCampaignListPath(user?.roles);
-  const campaignQuery = useLeadSaleCampaignQuery(campaignCode);
-  const { data: channelTypeData } = useLeadSaleCampaignChannelTypesQuery();
+  const campaignQuery = useLeadSaleCampaignQuery(campaignCode, {
+    enabled: !isAuthLoading && canReadCampaign,
+  });
+  const { data: channelTypeData } = useLeadSaleCampaignChannelTypesQuery(
+    {},
+    { enabled: !isAuthLoading && canReadCampaign },
+  );
   const campaign = useMemo(
     () => (campaignQuery.data ? toCampaignListItem(campaignQuery.data) : null),
     [campaignQuery.data],
   );
   const leadsQuery = useLeadSaleLeadsQuery(
     { campaign: campaignQuery.data?.name ?? "", page: 1, pageSize: 100 },
-    { enabled: Boolean(campaignQuery.data) },
+    {
+      enabled:
+        Boolean(campaignQuery.data) && canReadLeads && !isAuthLoading,
+    },
   );
   const fetchedLeads = useMemo(
     () => (leadsQuery.data?.data ?? []).map(toCampaignLeadRow),
@@ -77,8 +94,16 @@ export default function CampaignDetailDashboard({
   const [leadQuery, setLeadQuery] = useState("");
   const [leadStatus, setLeadStatus] = useState<CampaignLeadStatusFilter>("all");
   const [leadPage, setLeadPage] = useState(1);
-  const [recordView, setRecordView] =
+  const [requestedRecordView, setRequestedRecordView] =
     useState<CampaignDetailRecordView>("leads");
+  const recordView: CampaignDetailRecordView =
+    requestedRecordView === "leads" && canReadLeads
+      ? "leads"
+      : requestedRecordView === "students" && canReadStudents
+        ? "students"
+        : canReadLeads
+          ? "leads"
+          : "students";
   const [studentQuery, setStudentQuery] = useState("");
   const [studentStatus, setStudentStatus] =
     useState<CampaignDetailStudentStatusFilter>("all");
@@ -200,7 +225,13 @@ export default function CampaignDetailDashboard({
   };
 
   const handleRecordViewChange = (nextView: CampaignDetailRecordView) => {
-    setRecordView(nextView);
+    if (
+      (nextView === "leads" && !canReadLeads) ||
+      (nextView === "students" && !canReadStudents)
+    ) {
+      return;
+    }
+    setRequestedRecordView(nextView);
     if (nextView === "leads") setLeadPage(1);
     if (nextView === "students") setStudentPage(1);
   };
@@ -220,6 +251,26 @@ export default function CampaignDetailDashboard({
   const handleStudentPageChange = (nextPage: number) => {
     setStudentPage(Math.min(Math.max(1, nextPage), studentTotalPages));
   };
+
+  if (isAuthLoading) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <Card className="p-5 text-sm text-text-secondary">
+          Đang xác thực quyền truy cập chiến dịch...
+        </Card>
+      </main>
+    );
+  }
+
+  if (!canReadCampaign) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <Card className="p-5 text-sm text-text-secondary">
+          Bạn không có quyền xem chiến dịch tuyển sinh.
+        </Card>
+      </main>
+    );
+  }
 
   if (campaignQuery.isPending) {
     return (
@@ -269,33 +320,43 @@ export default function CampaignDetailDashboard({
         conversionRate={conversionRate}
       />
 
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div className="min-w-0 flex-1">
-          {recordView === "leads" ? (
-            <CampaignDetailLeadToolbar
-              query={leadQuery}
-              status={leadStatus}
-              counts={leadStatusCounts}
-              onQueryChange={handleLeadQueryChange}
-              onStatusChange={handleLeadStatusChange}
-            />
-          ) : (
-            <CampaignDetailStudentToolbar
-              query={studentQuery}
-              status={studentStatus}
-              counts={studentStatusCounts}
-              onQueryChange={handleStudentQueryChange}
-              onStatusChange={handleStudentStatusChange}
+      {(canReadLeads || canReadStudents) && (
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="min-w-0 flex-1">
+            {recordView === "leads" ? (
+              <CampaignDetailLeadToolbar
+                query={leadQuery}
+                status={leadStatus}
+                counts={leadStatusCounts}
+                onQueryChange={handleLeadQueryChange}
+                onStatusChange={handleLeadStatusChange}
+              />
+            ) : (
+              <CampaignDetailStudentToolbar
+                query={studentQuery}
+                status={studentStatus}
+                counts={studentStatusCounts}
+                onQueryChange={handleStudentQueryChange}
+                onStatusChange={handleStudentStatusChange}
+              />
+            )}
+          </div>
+          {canReadLeads && canReadStudents && (
+            <CampaignDetailRecordTabs
+              selectedKey={recordView}
+              canReadLeads={canReadLeads}
+              canReadStudents={canReadStudents}
+              onSelectionChange={handleRecordViewChange}
             />
           )}
         </div>
-        <CampaignDetailRecordTabs
-          selectedKey={recordView}
-          onSelectionChange={handleRecordViewChange}
-        />
-      </div>
+      )}
 
-      {recordView === "leads" ? (
+      {!canReadLeads && !canReadStudents ? (
+        <Card className="p-8 text-center text-sm text-text-secondary">
+          Bạn không có quyền xem danh sách Lead hoặc học sinh của chiến dịch.
+        </Card>
+      ) : recordView === "leads" ? (
         <Card className="overflow-hidden p-0">
           {leadsQuery.isPending ? (
             <div className="px-5 py-14 text-center text-sm text-text-tertiary">

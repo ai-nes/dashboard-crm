@@ -16,6 +16,7 @@ export interface SegmentListItem {
   updatedAt: string;
   createdAt: string;
   creator: string;
+  ownerUserId: string | null;
   usedIn: number;
   description: string;
   revision: number;
@@ -36,6 +37,7 @@ export function toSegmentListItem(
     updatedAt: segment.modified || segment.creation || "",
     createdAt: segment.creation || segment.modified || "",
     creator: segment.owner || segment.responsible_user || "—",
+    ownerUserId: segment.owner ?? null,
     usedIn: 0,
     description: segment.purpose || "",
     revision: segment.revision || 0,

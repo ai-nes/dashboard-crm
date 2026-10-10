@@ -7,6 +7,9 @@ import {
   canConvertLeadToStudent,
   canPerformStudentAction,
   getCrmPermissions,
+  getCrmDoctypePermissions,
+  canReadCrmPath,
+  getCrmHomePath,
 } from "./permissions";
 
 const makeUser = (overrides: Partial<CurrentUser> = {}): CurrentUser => ({
@@ -35,16 +38,260 @@ const makeDoctypePermission = (
   ...overrides,
 });
 
+describe("effective business DocType permissions", () => {
+  it("hides specialized workspaces when their backend workflow grants are missing", () => {
+    const user = makeUser({
+      roles: ["Admissions Director"],
+      crm_doctype_permissions: {
+        "CRM Rule": makeDoctypePermission({ row_scope: "no_case_scope" }),
+      },
+    });
+    expect(canReadCrmPath("/director/admin/rules-config", user)).toBe(true);
+    expect(canReadCrmPath("/director/tasks", user)).toBe(false);
+    expect(canReadCrmPath("/director/admin/message-templates", user)).toBe(
+      false,
+    );
+  });
+  it("hides case routes when a saved read flag has no effective case scope", () => {
+    const user = makeUser({
+      crm_doctype_permissions: {
+        "CRM Student": makeDoctypePermission({ row_scope: "deny" }),
+        "CRM Lead": makeDoctypePermission({ row_scope: "no_case_scope" }),
+      },
+    });
+    expect(canReadCrmPath("/director/students", user)).toBe(false);
+    expect(canReadCrmPath("/director/leads/one", user)).toBe(false);
+  });
+  it("denies a direct Student detail URL when the saved read grant is off", () => {
+    const user = makeUser({
+      roles: ["Admissions Director"],
+      crm_doctype_permissions: {
+        "CRM Student": makeDoctypePermission({ read: false }),
+        "CRM Lead": makeDoctypePermission(),
+      },
+    });
+    expect(canReadCrmPath("/director/students/student-1", user)).toBe(false);
+    expect(canReadCrmPath("/director/leads/lead-1", user)).toBe(true);
+  });
+
+  it("keeps mixed configuration screens readable when one resource is granted", () => {
+    const user = makeUser({
+      crm_doctype_permissions: {
+        "CRM Document Type": makeDoctypePermission({
+          row_scope: "no_case_scope",
+        }),
+      },
+    });
+    expect(canReadCrmPath("/director/admin/student-config", user)).toBe(true);
+    expect(canReadCrmPath("/director/admin/majors", user)).toBe(false);
+    expect(canReadCrmPath("/profile", user)).toBe(true);
+  });
+
+  it("does not expose all-record Director reports with an assigned-only Student grant", () => {
+    const user = makeUser({
+      crm_doctype_permissions: {
+        "CRM Student": makeDoctypePermission({ row_scope: "assigned" }),
+      },
+    });
+    expect(canReadCrmPath("/director", user)).toBe(false);
+    expect(canReadCrmPath("/director/revenue-forecast", user)).toBe(false);
+    expect(canReadCrmPath("/director/demographics", user)).toBe(false);
+    expect(canReadCrmPath("/director/students", user)).toBe(true);
+  });
+
+  it("requires both school read and all-student scope for market intelligence", () => {
+    const user = makeUser({
+      crm_doctype_permissions: {
+        "CRM High School": makeDoctypePermission({ row_scope: "all" }),
+        "CRM Student": makeDoctypePermission({ row_scope: "assigned" }),
+      },
+    });
+    expect(canReadCrmPath("/director/market-intelligence", user)).toBe(false);
+    expect(
+      canReadCrmPath("/director/market-intelligence", {
+        ...user,
+        crm_doctype_permissions: {
+          ...user.crm_doctype_permissions,
+          "CRM Student": makeDoctypePermission({ row_scope: "all" }),
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it("checks each activity tab against its own all-record report resources", () => {
+    const user = makeUser({
+      crm_doctype_permissions: {
+        "CRM Student": makeDoctypePermission({ row_scope: "all" }),
+        "CRM Campaign": makeDoctypePermission(),
+      },
+    });
+    expect(canReadCrmPath("/director/activity-campaign", user)).toBe(true);
+    expect(
+      canReadCrmPath("/director/activity-campaign?tab=campaign", user),
+    ).toBe(true);
+    expect(canReadCrmPath("/director/activity-campaign?tab=field", user)).toBe(
+      false,
+    );
+    expect(
+      canReadCrmPath(
+        "/director/campaign-intelligence",
+        makeUser({
+          crm_doctype_permissions: { "CRM Campaign": makeDoctypePermission() },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it("hides student AI workspaces after Student read is revoked", () => {
+    expect(
+      canReadCrmPath(
+        "/director/ai/next-best-action",
+        makeUser({
+          roles: ["Admissions Director"],
+          crm_doctype_permissions: {
+            "CRM Student": makeDoctypePermission({
+              row_scope: "all",
+              read: false,
+            }),
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it("requires Recommendation read as well as scoped Student read for NBA", () => {
+    const user = makeUser({
+      crm_doctype_permissions: {
+        "CRM Student": makeDoctypePermission(),
+      },
+    });
+    expect(canReadCrmPath("/director/ai/next-best-action", user)).toBe(false);
+    expect(
+      canReadCrmPath("/director/ai/next-best-action", {
+        ...user,
+        crm_doctype_permissions: {
+          ...user.crm_doctype_permissions,
+          "CRM Recommendation": makeDoctypePermission(),
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it("uses the backend administrator identity for system-wide activity logs", () => {
+    expect(
+      canReadCrmPath(
+        "/director/admin/activity-logs",
+        makeUser({ roles: ["Admissions Director"] }),
+      ),
+    ).toBe(false);
+    expect(
+      canReadCrmPath(
+        "/director/admin/activity-logs",
+        makeUser({ crm_is_administrator: true }),
+      ),
+    ).toBe(true);
+  });
+
+  it("routes directly to Profile if the role home cannot be read", () => {
+    expect(getCrmHomePath(makeUser({ roles: ["Admissions Director"] }))).toBe(
+      "/profile",
+    );
+    expect(
+      getCrmHomePath(
+        makeUser({
+          roles: ["Admissions Director"],
+          crm_doctype_permissions: {
+            "CRM Student": makeDoctypePermission({ row_scope: "all" }),
+          },
+        }),
+      ),
+    ).toBe("/director");
+    expect(getCrmHomePath(makeUser({ roles: ["System Manager"] }))).toBe(
+      "/admin",
+    );
+  });
+
+  it("does not grant missing business permissions from a Director role", () => {
+    expect(
+      getCrmDoctypePermissions(
+        makeUser({ roles: ["Admissions Director"] }),
+        "CRM Campaign",
+      ),
+    ).toEqual({
+      canRead: false,
+      canCreate: false,
+      canUpdate: false,
+      canDelete: false,
+      canExport: false,
+    });
+  });
+
+  it("honors independent saved catalog flags without requiring a case scope", () => {
+    const user = makeUser({
+      crm_doctype_permissions: {
+        "CRM Major": makeDoctypePermission({
+          row_scope: "no_case_scope",
+          create: false,
+          write: false,
+          delete: false,
+          export: true,
+        }),
+      },
+    });
+    expect(getCrmDoctypePermissions(user, "CRM Major")).toEqual({
+      canRead: true,
+      canCreate: false,
+      canUpdate: false,
+      canDelete: false,
+      canExport: true,
+    });
+  });
+
+  it("hides all actions when read is denied even if mutation flags are saved", () => {
+    const user = makeUser({
+      crm_doctype_permissions: {
+        "CRM Campaign": makeDoctypePermission({ read: false }),
+      },
+    });
+    expect(getCrmDoctypePermissions(user, "CRM Campaign")).toEqual({
+      canRead: false,
+      canCreate: false,
+      canUpdate: false,
+      canDelete: false,
+      canExport: false,
+    });
+  });
+});
+
 describe("CRM Rule administration permissions", () => {
-  it.each(["System Manager", "Admissions Director", "Business Admin"])(
-    "allows the backend-authorized %s role",
+  it.each(["System Manager", "Admissions Director", "Administrator"])(
+    "allows effective rule editing for %s",
     (role) => {
-      expect(canManageCrmRules(makeUser({ roles: [role] }))).toBe(true);
+      expect(
+        canManageCrmRules(
+          makeUser({
+            roles: [role],
+            crm_doctype_permissions: {
+              "CRM Rule": makeDoctypePermission({ row_scope: "no_case_scope" }),
+            },
+          }),
+        ),
+      ).toBe(true);
     },
   );
 
-  it("allows the Administrator identity", () => {
-    expect(canManageCrmRules(makeUser({ user: "Administrator" }))).toBe(true);
+  it("does not infer an effective rule editing grant from the role or identity", () => {
+    expect(canManageCrmRules(makeUser({ user: "Administrator" }))).toBe(false);
+    expect(
+      canManageCrmRules(
+        makeUser({
+          roles: ["Admissions Director"],
+          crm_doctype_permissions: {
+            "CRM Rule": makeDoctypePermission({ write: false }),
+          },
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("does not grant a capability-only or unrelated role access the API denies", () => {

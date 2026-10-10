@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { DropdownField } from "@/components/common/dropdown-field";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { canEditScoreTemplates } from "./score-template-permissions";
+import { getScoreTemplatePermissions } from "./score-template-permissions";
 import ScoreRulesInlineEditor from "./score-rules-inline-editor";
 import { EditableDetailField } from "@/components/common/editable-detail-field";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
@@ -548,11 +548,45 @@ export default function ScoreTemplateDetailPage({
 }: {
   templateName?: string;
 }) {
-  const router = useRouter();
   const { user } = useAuth();
-  const canEdit = canEditScoreTemplates(user);
+  const permissions = getScoreTemplatePermissions(user);
   const isCreate = !templateName;
-  const detailQuery = useScoreTemplateDetailQuery(templateName ?? null);
+  const canRead = isCreate ? permissions.canCreate : permissions.canRead;
+
+  if (!canRead) {
+    return (
+      <main id="main-content" className="px-2 py-4 lg:px-6">
+        <section className="rounded-2xl border border-card-border bg-card-background p-6 text-sm text-text-secondary">
+          {isCreate
+            ? "Bạn không có quyền tạo Score Template."
+            : "Bạn không có quyền xem Score Template."}
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <ScoreTemplateDetailContent
+      templateName={templateName}
+      permissions={permissions}
+    />
+  );
+}
+
+function ScoreTemplateDetailContent({
+  templateName,
+  permissions,
+}: {
+  templateName?: string;
+  permissions: ReturnType<typeof getScoreTemplatePermissions>;
+}) {
+  const router = useRouter();
+  const isCreate = !templateName;
+  const canEdit = permissions.canUpdate;
+  const detailQuery = useScoreTemplateDetailQuery(
+    templateName ?? null,
+    permissions.canRead,
+  );
   const save = useScoreTemplateMutation();
   const initializedTemplateRef = useRef<string | null>(null);
   const [savedForm, setSavedForm] = useState<ScoreForm>(emptyForm);
@@ -584,7 +618,7 @@ export default function ScoreTemplateDetailPage({
 
   const createTemplate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!canEdit || save.isPending) return;
+    if (!permissions.canCreate || save.isPending) return;
     setShowCreateErrors(true);
     const templateNameValue = form.template_name.trim();
     if (!templateNameValue) {
@@ -844,7 +878,7 @@ export default function ScoreTemplateDetailPage({
         )}
       </div>
       <ScoreTemplateCreateDialog
-        isOpen={canEdit && isCreate}
+        isOpen={permissions.canCreate && isCreate}
         isSaving={save.isPending}
         templateName={form.template_name}
         status={form.status}

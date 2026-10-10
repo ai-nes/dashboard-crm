@@ -5,11 +5,13 @@ import StudentInlineEditableRichText from "../student-inline-editable-rich-text"
 interface TaskCardContextProps {
   notes?: string;
   onCommit: (updates: Partial<StudentTaskItem>) => void;
+  canEdit?: boolean;
 }
 
 export default function TaskCardContext({
   notes,
   onCommit,
+  canEdit = true,
 }: TaskCardContextProps) {
   return (
     <section
@@ -24,6 +26,7 @@ export default function TaskCardContext({
         value={notes ?? ""}
         onCommit={(nextNotes) => onCommit({ notes: nextNotes })}
         placeholder="Thêm ghi chú cho task..."
+        canEdit={canEdit}
       />
     </section>
   );

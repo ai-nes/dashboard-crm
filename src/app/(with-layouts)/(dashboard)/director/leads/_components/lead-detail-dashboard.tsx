@@ -43,11 +43,14 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
+  const canReadLead = permissions.lead.canRead;
   const leadListHref = getLeadListHref(user?.roles);
-  const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId);
+  const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId, {
+    enabled: Boolean(leadId) && canReadLead && !isAuthLoading,
+  });
   const [activeTab, setActiveTab] = useState("details");
   const callLogsQuery = useLeadCallLogsQuery(leadId, {
-    enabled: activeTab === "calls",
+    enabled: canReadLead && !isAuthLoading && activeTab === "calls",
   });
   const deleteMutation = useDeleteLeadMutation();
   const convertMutation = useConvertLeadToStudentMutation();
@@ -86,6 +89,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     !data?.lead.studentId &&
     canConvertLeadToStudent(user?.roles, leadOwnership, user);
   const submitConversion = () => {
+    if (!canConvertLead) return;
     convertMutation.mutate(leadId, {
       onSuccess: (result) => {
         toast.success("Đã chuyển đổi Lead thành học sinh.");
@@ -105,7 +109,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   };
 
   const handleConvert = () => {
-    if (!data) return;
+    if (!canConvertLead || !data) return;
     if (convertMutation.isPending || updateMutation.isPending) return;
     const missingFields = getLeadConversionMissingFields(data.lead);
     if (missingFields.length > 0) {
@@ -118,12 +122,14 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   };
 
   const handleConversionDetailsSubmit = async (fields: LeadUpdateFields) => {
+    if (!canUpdateLead || !canConvertLead) return;
     await updateMutation.mutateAsync({ leadId, fields });
     setConversionDialogOpen(false);
     setConversionMissingFields([]);
     submitConversion();
   };
   const handleDelete = () => {
+    if (!canDeleteLead) return;
     deleteMutation.mutate(leadId, {
       onSuccess: () => {
         setDeleteDialogOpen(false);
@@ -140,6 +146,28 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       },
     });
   };
+
+  if (isAuthLoading) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <p className="text-text-tertiary" role="status">
+          Đang kiểm tra quyền truy cập Lead…
+        </p>
+      </main>
+    );
+  }
+
+  if (!canReadLead) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <Card className="border-warning-200 bg-badge-warning-background p-5 text-badge-warning-text">
+          <p className="font-semibold text-base">
+            Bạn không có quyền xem Lead này.
+          </p>
+        </Card>
+      </main>
+    );
+  }
 
   if (isPending) {
     return (

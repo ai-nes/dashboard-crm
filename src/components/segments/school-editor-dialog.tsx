@@ -37,6 +37,7 @@ function formFromRecord(record: SchoolOption | null) {
 export function SchoolEditorDialog({
   isOpen,
   record,
+  canSave,
   provinces,
   wards,
   schoolAreas,
@@ -45,6 +46,7 @@ export function SchoolEditorDialog({
 }: {
   isOpen: boolean;
   record: SchoolOption | null;
+  canSave: boolean;
   provinces: readonly GeographyOption[];
   wards: readonly GeographyOption[];
   schoolAreas: readonly GeographyOption[];
@@ -62,6 +64,7 @@ export function SchoolEditorDialog({
 
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canSave) return;
     const name = form.name.trim();
     const code = form.code.trim();
     const validationMessage = validateSchoolEditorRequiredFields(form);
@@ -106,6 +109,7 @@ export function SchoolEditorDialog({
       description="Thông tin trường được dùng cho hồ sơ học sinh, lead và hoạt động địa bàn."
       isSaving={isSaving}
       submitLabel={record ? "Lưu thay đổi" : "Tạo trường"}
+      canSubmit={canSave}
       onOpenChange={onOpenChange}
       onSubmit={save}
     >

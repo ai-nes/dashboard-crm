@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/common/delete-record-dialog";
+import type { CrmDoctypePermissions } from "@/components/common/auth/permissions";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import {
   useCampaignChannelTypeMutation,
@@ -52,7 +53,18 @@ const emptyForm: ChannelForm = {
   description: "",
 };
 
-export default function ChannelTypePanel() {
+export default function ChannelTypePanel({
+  permissions,
+}: {
+  permissions: CrmDoctypePermissions;
+}) {
+  if (!permissions.canRead) {
+    return <div className="rounded-xl border border-card-border p-6 text-sm text-text-secondary">Không có quyền xem loại kênh chiến dịch.</div>;
+  }
+  return <ChannelTypePanelContent permissions={permissions} />;
+}
+
+function ChannelTypePanelContent({ permissions }: { permissions: CrmDoctypePermissions }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState<ChannelForm>(emptyForm);
@@ -69,6 +81,7 @@ export default function ChannelTypePanel() {
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (form.name ? !permissions.canUpdate : !permissions.canCreate) return;
     try {
       await save.mutateAsync({
         name: form.name,
@@ -91,7 +104,7 @@ export default function ChannelTypePanel() {
   };
 
   const confirmDelete = async () => {
-    if (!pendingDelete) return;
+    if (!permissions.canDelete || !pendingDelete) return;
     try {
       await remove.mutateAsync(pendingDelete.code);
       toast.success("Đã xóa loại kênh.");
@@ -126,19 +139,19 @@ export default function ChannelTypePanel() {
           total={query.data?.total ?? 0}
           placeholder="Tìm theo code hoặc tên loại kênh…"
           actions={
-            <PanelHeaderActions
+            permissions.canCreate ? <PanelHeaderActions
               createLabel="Thêm loại kênh"
               isDisabled={save.isPending || remove.isPending}
               onCreate={() => {
                 setForm(emptyForm);
                 setIsEditorOpen(true);
               }}
-            />
+            /> : null
           }
         />
       }
     >
-      {isEditorOpen ? (
+      {isEditorOpen && (form.name ? permissions.canUpdate : permissions.canCreate) ? (
         <CatalogEditorDialog
           title={form.name ? "Chỉnh sửa loại kênh" : "Thêm loại kênh"}
           description="Khai báo code dùng trong hệ thống, tên hiển thị và các kênh mà campaign hỗ trợ."
@@ -259,7 +272,7 @@ export default function ChannelTypePanel() {
                   <td className="px-3 py-3">
                     <RowActions
                       isDisabled={save.isPending || remove.isPending}
-                      onEdit={() => {
+                      onEdit={permissions.canUpdate ? () => {
                         setForm({
                           name: type.code,
                           code: type.code,
@@ -271,8 +284,8 @@ export default function ChannelTypePanel() {
                           description: type.description ?? "",
                         });
                         setIsEditorOpen(true);
-                      }}
-                      onDelete={() => setPendingDelete(type)}
+                      } : undefined}
+                      onDelete={permissions.canDelete ? () => setPendingDelete(type) : undefined}
                     />
                   </td>
                 </tr>
@@ -297,7 +310,7 @@ export default function ChannelTypePanel() {
         )}
       </div>
       <ConfirmDialog
-        isOpen={Boolean(pendingDelete)}
+        isOpen={Boolean(pendingDelete && permissions.canDelete)}
         ariaLabel="Xác nhận xóa loại kênh campaign"
         title={`Xóa ${pendingDelete?.display_name ?? "loại kênh"}?`}
         description="Không thể xóa loại kênh đang được tham chiếu bởi campaign."

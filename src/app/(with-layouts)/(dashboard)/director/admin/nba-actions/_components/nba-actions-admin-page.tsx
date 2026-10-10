@@ -5,7 +5,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasTechnicalRole } from "@/components/common/auth/rbac";
 import {
   useNbaActionTypesQuery,
   useNbaActionsQuery,
@@ -13,6 +12,7 @@ import {
 } from "@/hooks/use-nba-actions-queries";
 import { ACTION_TIME_SLOTS } from "@/services/api/nba-actions";
 
+import { getNbaAdminPermissions } from "./nba-admin-permissions";
 import NbaActionsTable from "./nba-actions-table";
 import NbaAdminTabs from "./nba-admin-tabs";
 import {
@@ -33,7 +33,7 @@ export default function NbaActionsAdminPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const canEdit = hasTechnicalRole(user?.roles, "System Manager");
+  const permissions = getNbaAdminPermissions(user);
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [debouncedSearch, setDebouncedSearch] = useState(
@@ -92,15 +92,25 @@ export default function NbaActionsAdminPage() {
     [actionType, channel, debouncedSearch, enabled, page],
   );
 
-  const actionsQuery = useNbaActionsQuery(actionsParams);
-  const actionTypesQuery = useNbaActionTypesQuery();
-  const timeSlotsQuery = useNbaTimeSlotsQuery();
+  const actionsQuery = useNbaActionsQuery(actionsParams, {
+    enabled: permissions.actions.canRead,
+  });
+  const actionTypesQuery = useNbaActionTypesQuery({
+    enabled: permissions.actionTypes.canRead,
+  });
+  const timeSlotsQuery = useNbaTimeSlotsQuery({
+    enabled: permissions.actionTypes.canRead,
+  });
   const actions = actionsQuery.data?.actions ?? [];
   const total = actionsQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const availableTimeSlots =
     timeSlotsQuery.data?.timeSlots ?? ACTION_TIME_SLOTS.slice();
   const isTimeSlotsReady = Boolean(timeSlotsQuery.data?.timeSlots.length);
+  const canManage = Object.values(permissions).some(
+    (permission) =>
+      permission.canCreate || permission.canUpdate || permission.canDelete,
+  );
 
   const handleFilterChange = (change: Record<string, string | undefined>) => {
     setPage(1);
@@ -144,7 +154,7 @@ export default function NbaActionsAdminPage() {
         section="NBA"
         title="Cấu hình gợi ý NBA"
         description="Cấu hình hành động đề xuất tuyển sinh."
-        canEdit={canEdit}
+        canEdit={canManage}
         metaLabel="Dữ liệu từ máy chủ CRM"
         metaValue={
           <>
@@ -158,7 +168,13 @@ export default function NbaActionsAdminPage() {
 
       <NbaAdminTabs
         actionCount={total}
-        canEdit={canEdit}
+        canReadActions={permissions.actions.canRead}
+        canReadActionTypes={permissions.actionTypes.canRead}
+        actionTypesPermissions={{
+          canCreate: permissions.actionTypes.canCreate,
+          canUpdate: permissions.actionTypes.canUpdate,
+          canDelete: permissions.actionTypes.canDelete,
+        }}
         actionsPanel={
           actionsQuery.error ? (
             <section
@@ -208,7 +224,9 @@ export default function NbaActionsAdminPage() {
               isFetching={actionsQuery.isFetching}
               onReset={handleReset}
               availableTimeSlots={availableTimeSlots}
-              canEdit={canEdit}
+              canCreate={permissions.actions.canCreate}
+              canUpdate={permissions.actions.canUpdate}
+              canDelete={permissions.actions.canDelete}
               isTimeSlotsReady={isTimeSlotsReady}
               timeSlotsError={Boolean(timeSlotsQuery.error)}
             />

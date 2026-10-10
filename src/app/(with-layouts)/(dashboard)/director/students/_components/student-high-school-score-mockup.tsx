@@ -5,6 +5,11 @@ import { BarChart2 } from "@tailgrids/icons";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  getCrmDoctypePermissions,
+  getCrmPermissions,
+} from "@/components/common/auth/permissions";
 import { EditableDetailField } from "@/components/common/editable-detail-field";
 import { Card } from "@/components/tailgrids/core/card";
 import { studentsKeys } from "@/hooks/use-students-queries";
@@ -110,10 +115,19 @@ const highSchoolScoreFields: ScoreFieldDefinition[] = [
 ];
 
 export default function StudentHighSchoolScoreMockup({
-  canEdit = true,
+  canEdit = false,
   data,
   studentId,
 }: StudentHighSchoolScoreMockupProps) {
+  const { user } = useAuth();
+  const canReadStudent = getCrmPermissions(user).student.canRead;
+  const admissionProfilePermissions = getCrmDoctypePermissions(
+    user,
+    "CRM Student Admission Profile",
+  );
+  const canReadAdmissionProfile = admissionProfilePermissions.canRead;
+  const canUpdateAdmissionProfile =
+    canEdit && admissionProfilePermissions.canUpdate;
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<ScoreForm>(() => getScoreForm());
@@ -127,7 +141,7 @@ export default function StudentHighSchoolScoreMockup({
         studentId,
         data.student.admissionYear || undefined,
       ),
-    enabled: Boolean(studentId),
+    enabled: Boolean(studentId) && canReadStudent,
     staleTime: 60_000,
   });
   const updateMutation = useMutation({
@@ -177,18 +191,23 @@ export default function StudentHighSchoolScoreMockup({
 
   const saveHighSchoolScore = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canEdit) return;
     const initial = getScoreForm(scoreFields);
     const fields: StudentHighSchoolScoreUpdateFields = {};
 
     try {
       if (form.grade_12_gpa !== initial.grade_12_gpa) {
-        fields.grade_12_gpa = parseScoreNumber(
-          form.grade_12_gpa,
-          "Điểm TB lớp 12",
-        );
+        if (canUpdateAdmissionProfile) {
+          fields.grade_12_gpa = parseScoreNumber(
+            form.grade_12_gpa,
+            "Điểm TB lớp 12",
+          );
+        }
       }
       if (form.exam_candidate_number !== initial.exam_candidate_number) {
-        fields.exam_candidate_number = nullableText(form.exam_candidate_number);
+        if (canUpdateAdmissionProfile) {
+          fields.exam_candidate_number = nullableText(form.exam_candidate_number);
+        }
       }
       if (form.transcript_score !== initial.transcript_score) {
         fields.transcript_score = parseScoreNumber(
@@ -197,7 +216,9 @@ export default function StudentHighSchoolScoreMockup({
         );
       }
       if (form.score_details !== initial.score_details) {
-        fields.score_details = parseScoreDetails(form.score_details);
+        if (canUpdateAdmissionProfile) {
+          fields.score_details = parseScoreDetails(form.score_details);
+        }
       }
       if (form.total_score !== initial.total_score) {
         fields.total_score = parseScoreNumber(
@@ -206,27 +227,36 @@ export default function StudentHighSchoolScoreMockup({
         );
       }
       if (form.encouragement_type !== initial.encouragement_type) {
-        fields.encouragement_type = nullableText(form.encouragement_type);
+        if (canUpdateAdmissionProfile) {
+          fields.encouragement_type = nullableText(form.encouragement_type);
+        }
       }
       if (form.encouragement_score !== initial.encouragement_score) {
-        fields.encouragement_score = parseScoreNumber(
-          form.encouragement_score,
-          "Số điểm khuyến khích",
-        );
+        if (canUpdateAdmissionProfile) {
+          fields.encouragement_score = parseScoreNumber(
+            form.encouragement_score,
+            "Số điểm khuyến khích",
+          );
+        }
       }
       if (form.priority_type !== initial.priority_type) {
-        fields.priority_type = nullableText(form.priority_type);
+        if (canUpdateAdmissionProfile) {
+          fields.priority_type = nullableText(form.priority_type);
+        }
       }
       if (form.priority_score !== initial.priority_score) {
-        fields.priority_score = parseScoreNumber(
-          form.priority_score,
-          "Điểm ưu tiên đối tượng",
-        );
+        if (canUpdateAdmissionProfile) {
+          fields.priority_score = parseScoreNumber(
+            form.priority_score,
+            "Điểm ưu tiên đối tượng",
+          );
+        }
       }
 
       const changedProfileField = highSchoolScoreFields.some(
         (field) => field.requiresProfile && field.key in fields,
       );
+      if (changedProfileField && !canUpdateAdmissionProfile) return;
       if (changedProfileField && !hasAdmissionProfile) {
         throw new Error(
           "Chưa có hồ sơ xét tuyển để cập nhật các điểm THPT này.",
@@ -274,7 +304,10 @@ export default function StudentHighSchoolScoreMockup({
             : "Không thể tải dữ liệu điểm THPT."}
         </p>
       )}
-      {!scoreQuery.isLoading && scoreQuery.data && !hasAdmissionProfile && (
+      {canReadAdmissionProfile &&
+        !scoreQuery.isLoading &&
+        scoreQuery.data &&
+        !hasAdmissionProfile && (
         <p className="mb-4 rounded-lg bg-badge-warning-background p-3 text-sm text-badge-warning-text">
           Học sinh chưa có hồ sơ xét tuyển; chỉ các điểm thuộc hồ sơ Student có
           thể cập nhật.
@@ -282,29 +315,35 @@ export default function StudentHighSchoolScoreMockup({
       )}
 
       <dl className="grid gap-x-8 gap-y-5 md:grid-cols-2">
-        {highSchoolScoreFields.map((field) => (
-          <EditableDetailField
-            key={field.key}
-            isDisabled={
-              scoreQuery.isLoading ||
-              (Boolean(field.requiresProfile) && !hasAdmissionProfile)
-            }
-            isEditing={isEditing}
-            label={field.label}
-            min={field.min}
-            onChange={(value) =>
-              setForm((current) => ({ ...current, [field.key]: value }))
-            }
-            placeholder={field.placeholder}
-            step={field.step}
-            type={field.type}
-            value={
-              isEditing
-                ? form[field.key]
-                : formatScoreValue(scoreFields?.[field.key])
-            }
-          />
-        ))}
+        {highSchoolScoreFields
+          .filter((field) => !field.requiresProfile || canReadAdmissionProfile)
+          .map((field) => (
+            <EditableDetailField
+              key={field.key}
+              isDisabled={
+                scoreQuery.isLoading ||
+                (Boolean(field.requiresProfile) &&
+                  (!hasAdmissionProfile || !canUpdateAdmissionProfile))
+              }
+              isEditing={
+                isEditing &&
+                (!field.requiresProfile || canUpdateAdmissionProfile)
+              }
+              label={field.label}
+              min={field.min}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, [field.key]: value }))
+              }
+              placeholder={field.placeholder}
+              step={field.step}
+              type={field.type}
+              value={
+                isEditing
+                  ? form[field.key]
+                  : formatScoreValue(scoreFields?.[field.key])
+              }
+            />
+          ))}
       </dl>
     </>
   );

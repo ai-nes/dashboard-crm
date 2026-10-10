@@ -12,7 +12,7 @@ interface AdmissionCatalogPanelProps {
   description: string;
   count: number;
   countLabel?: string;
-  canManage: boolean;
+  canCreate: boolean;
   createLabel: string;
   onCreate?: () => void;
   isCreateDisabled?: boolean;
@@ -29,7 +29,7 @@ export function AdmissionCatalogPanel({
   description,
   count,
   countLabel = "mục",
-  canManage,
+  canCreate,
   createLabel,
   onCreate,
   isCreateDisabled = false,
@@ -69,7 +69,7 @@ export function AdmissionCatalogPanel({
             <Badge color="gray" size="sm">
               {count} {countLabel}
             </Badge>
-            {canManage && onCreate && (
+            {canCreate && onCreate && (
               <Button
                 size="sm"
                 onPress={onCreate}

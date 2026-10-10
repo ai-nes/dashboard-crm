@@ -17,7 +17,8 @@ import { SegmentStatusSelect } from "./segment-status-select";
 
 interface SegmentColumnOptions {
   detailBaseHref: string;
-  canManage: boolean;
+  canUpdate: (segment: SegmentListItem) => boolean;
+  canDelete: (segment: SegmentListItem) => boolean;
   onStatusChange: (segment: SegmentListItem, status: SegmentStatus) => void;
   onDelete: (segment: SegmentListItem) => void;
   isDeleteDisabled?: boolean;
@@ -26,7 +27,8 @@ interface SegmentColumnOptions {
 
 export function getSegmentListColumns({
   detailBaseHref,
-  canManage,
+  canUpdate,
+  canDelete,
   onStatusChange,
   onDelete,
   isDeleteDisabled = false,
@@ -77,7 +79,7 @@ export function getSegmentListColumns({
       enableGlobalFilter: false,
       filterFn: "equals",
       cell: ({ row }) =>
-        canManage ? (
+        canUpdate(row.original) ? (
           <SegmentStatusSelect
             value={row.original.status}
             ariaLabel={`Cập nhật trạng thái ${row.original.name}`}
@@ -112,12 +114,11 @@ export function getSegmentListColumns({
     },
   ];
 
-  if (canManage) {
-    columns.push({
-      id: "actions",
-      header: "Hành động",
-      enableGlobalFilter: false,
-      cell: ({ row }) => (
+  columns.push({
+    id: "actions",
+    header: "Hành động",
+    enableGlobalFilter: false,
+    cell: ({ row }) => canDelete(row.original) ? (
         <Button
           iconOnly
           size="sm"
@@ -130,9 +131,8 @@ export function getSegmentListColumns({
         >
           <Trash1 size={16} aria-hidden="true" />
         </Button>
-      ),
-    });
-  }
+      ) : null,
+  });
 
   return columns;
 }

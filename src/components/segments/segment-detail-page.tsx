@@ -7,7 +7,6 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from "react-aria-components";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { hasTechnicalRole } from "@/components/common/auth/rbac";
 import {
   useDeleteSegmentMutation,
   useSegmentDetailQuery,
@@ -26,6 +25,7 @@ import {
 } from "./segment-filter-config";
 import { toSegmentListItem } from "./segment-list-types";
 import { SegmentStudentTable } from "./segment-student-table";
+import { canManageSegment, canReadSegments } from "./segment-permissions";
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -44,9 +44,33 @@ export function SegmentDetailPage({
   editHref: string;
   isAdmin?: boolean;
 }) {
-  const router = useRouter();
   const { user } = useAuth();
-  const canManage = hasTechnicalRole(user?.roles, "System Manager");
+  if (!user || !canReadSegments(user)) {
+    return (
+      <main id="main-content" className="px-2 py-4 lg:px-6">
+        <section className="rounded-2xl border border-card-border bg-card-background p-6 text-sm text-text-secondary">
+          Bạn không có quyền xem chi tiết segment.
+        </section>
+      </main>
+    );
+  }
+  return <SegmentDetailContent user={user} segmentId={segmentId} backHref={backHref} editHref={editHref} isAdmin={isAdmin} />;
+}
+
+function SegmentDetailContent({
+  user,
+  segmentId,
+  backHref,
+  editHref,
+  isAdmin,
+}: {
+  user: NonNullable<ReturnType<typeof useAuth>["user"]>;
+  segmentId: string;
+  backHref: string;
+  editHref: string;
+  isAdmin: boolean;
+}) {
+  const router = useRouter();
   const [studentSearch, setStudentSearch] = useState("");
   const [studentPage, setStudentPage] = useState(1);
   const segmentQuery = useSegmentDetailQuery(segmentId);
@@ -120,6 +144,7 @@ export function SegmentDetailPage({
   }
 
   const handleDelete = () => {
+    if (!canManageSegment(user, segment, "delete")) return;
     void deleteMutation
       .mutateAsync({ name: segment.id, expectedRevision: segment.revision })
       .then(() => {
@@ -140,13 +165,15 @@ export function SegmentDetailPage({
         segment={segment}
         createdAt={segment.createdAt}
         backHref={backHref}
-        canManage={canManage}
+        canUpdate={canManageSegment(user, segment, "update")}
+        canDelete={canManageSegment(user, segment, "delete")}
         isAdmin={isAdmin}
-        onEdit={() =>
+        onEdit={() => {
+          if (!canManageSegment(user, segment, "update")) return;
           router.push(
             `${editHref.replace(/\/$/, "")}/${encodeURIComponent(segment.segmentCode)}`,
-          )
-        }
+          );
+        }}
         onDelete={handleDelete}
       />
       <Tabs

@@ -33,12 +33,14 @@ function formFromRecord(record: ProvinceOption | null) {
 export function ProvinceEditorDialog({
   isOpen,
   record,
+  canSave,
   regions,
   onCreated,
   onOpenChange,
 }: {
   isOpen: boolean;
   record: ProvinceOption | null;
+  canSave: boolean;
   regions: readonly GeographyOption[];
   onCreated?: (province: ProvinceOption) => void;
   onOpenChange: (open: boolean) => void;
@@ -50,6 +52,7 @@ export function ProvinceEditorDialog({
 
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canSave) return;
     const code = form.code.trim();
     const name = form.name.trim();
     if (!code || !name) {
@@ -88,6 +91,7 @@ export function ProvinceEditorDialog({
       description="Mã và tên tỉnh/thành được giữ cố định để không làm hỏng liên kết dữ liệu."
       isSaving={isSaving}
       submitLabel={record ? "Lưu thay đổi" : "Tạo tỉnh/thành"}
+      canSubmit={canSave}
       onOpenChange={onOpenChange}
       onSubmit={save}
     >

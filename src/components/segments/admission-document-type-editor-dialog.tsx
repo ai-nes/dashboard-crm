@@ -67,10 +67,12 @@ function formFromRecord(record: AdmissionDocumentTypeOption | null): DocumentTyp
 export function AdmissionDocumentTypeEditorDialog({
   isOpen,
   record,
+  canSave,
   onOpenChange,
 }: {
   isOpen: boolean
   record: AdmissionDocumentTypeOption | null
+  canSave: boolean
   onOpenChange: (open: boolean) => void
 }) {
   const [form, setForm] = useState(() => formFromRecord(record))
@@ -85,6 +87,7 @@ export function AdmissionDocumentTypeEditorDialog({
 
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!canSave) return
     const code = form.code.trim().toUpperCase()
     const label = form.label.trim()
     if (!code || !/^[A-Z][A-Z0-9_]{1,49}$/.test(code)) {
@@ -268,9 +271,11 @@ export function AdmissionDocumentTypeEditorDialog({
             <DialogClose appearance="outline" size="sm" isDisabled={isSaving}>
               Hủy
             </DialogClose>
-            <Button size="sm" type="submit" isDisabled={isSaving}>
-              {isSaving ? 'Đang lưu…' : record ? 'Lưu thay đổi' : 'Tạo loại tài liệu'}
-            </Button>
+            {canSave && (
+              <Button size="sm" type="submit" isDisabled={isSaving}>
+                {isSaving ? 'Đang lưu…' : record ? 'Lưu thay đổi' : 'Tạo loại tài liệu'}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </Dialog>

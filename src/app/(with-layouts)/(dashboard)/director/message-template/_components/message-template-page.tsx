@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmDoctypePermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardTitle } from "@/components/tailgrids/core/card";
-import { getCurrentUser, type CurrentUser } from "@/services/api/auth";
 import {
   createMessageTemplate,
   deleteMessageTemplate,
@@ -58,8 +59,23 @@ export default function MessageTemplatePage({
   canDelete?: boolean;
   lockedSharing?: MessageTemplateSharing;
 } = {}) {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const templatePermissions = getCrmDoctypePermissions(
+    user,
+    "CRM Message Template",
+  );
+  const libraryPermissions = getCrmDoctypePermissions(
+    user,
+    "CRM Message Template Library",
+  );
+  const snippetPermissions = getCrmDoctypePermissions(user, "CRM Snippet");
+  const canReadTemplates = !isAuthLoading && templatePermissions.canRead;
+  const canCreateTemplate = canCreate && templatePermissions.canCreate;
+  const canUpdateTemplate = templatePermissions.canUpdate;
+  const canDeleteTemplate = canDelete && templatePermissions.canDelete;
+  const canReadLibrary = libraryPermissions.canRead;
+  const canReadSnippets = snippetPermissions.canRead;
   const [templates, setTemplates] = useState<MessageTemplateRecord[]>([]);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -80,15 +96,17 @@ export default function MessageTemplatePage({
   const [snippetsError, setSnippetsError] = useState<string | null>(null);
 
   const loadTemplates = useCallback(async () => {
+    if (!canReadTemplates) {
+      setTemplates([]);
+      setLoadError(null);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setLoadError(null);
     try {
-      const [response, user] = await Promise.all([
-        listMessageTemplates(),
-        getCurrentUser(),
-      ]);
+      const response = await listMessageTemplates();
       setTemplates(response.templates);
-      setCurrentUser(user);
     } catch (error) {
       setLoadError(
         error instanceof Error ? error.message : "Không thể tải mẫu email.",
@@ -96,9 +114,15 @@ export default function MessageTemplatePage({
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [canReadTemplates]);
 
   const loadSnippets = useCallback(async () => {
+    if (!canReadSnippets) {
+      setSnippets([]);
+      setSnippetsError(null);
+      setIsLoadingSnippets(false);
+      return;
+    }
     setIsLoadingSnippets(true);
     setSnippetsError(null);
     try {
@@ -111,23 +135,26 @@ export default function MessageTemplatePage({
     } finally {
       setIsLoadingSnippets(false);
     }
-  }, []);
+  }, [canReadSnippets]);
 
   useEffect(() => {
+    if (isAuthLoading) return;
     const timer = window.setTimeout(() => {
       void loadTemplates();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadTemplates]);
+  }, [isAuthLoading, loadTemplates]);
 
   useEffect(() => {
+    if (isAuthLoading) return;
     const timer = window.setTimeout(() => {
       void loadSnippets();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadSnippets]);
+  }, [isAuthLoading, loadSnippets]);
 
   const openCreateDialog = () => {
+    if (!canCreateTemplate) return;
     setTemplateToEdit(null);
     setDraft(createEmptyDraft(lockedSharing));
     setIsPreviewVisible(true);
@@ -136,6 +163,7 @@ export default function MessageTemplatePage({
   };
 
   const openEditDialog = (template: MessageTemplateRecord) => {
+    if (!canUpdateTemplate || !template.canEdit) return;
     setTemplateToEdit(template);
     setDraft(getDraftForTemplate(template, lockedSharing));
     setIsPreviewVisible(true);
@@ -144,6 +172,7 @@ export default function MessageTemplatePage({
   };
 
   const useLibraryTemplate = (libraryDraft: MessageTemplateDraft) => {
+    if (!canCreateTemplate || !canReadLibrary) return;
     setTemplateToEdit(null);
     setDraft({
       ...libraryDraft,
@@ -163,11 +192,26 @@ export default function MessageTemplatePage({
   };
 
   const handleCreateDialogChange = (open: boolean) => {
+    if (
+      open &&
+      (templateToEdit
+        ? !canUpdateTemplate || !templateToEdit.canEdit
+        : !canCreateTemplate)
+    ) {
+      return;
+    }
     setIsCreateDialogOpen(open);
     if (!open) setTemplateToEdit(null);
   };
 
   const saveTemplate = async (nextDraft: MessageTemplateDraft) => {
+    if (
+      templateToEdit
+        ? !canUpdateTemplate || !templateToEdit.canEdit
+        : !canCreateTemplate
+    ) {
+      return;
+    }
     setIsSaving(true);
     const normalizedDraft = {
       ...nextDraft,
@@ -198,6 +242,7 @@ export default function MessageTemplatePage({
   };
 
   const duplicateTemplate = async (template: MessageTemplateRecord) => {
+    if (!canCreateTemplate) return;
     try {
       await createMessageTemplate({
         name: `${template.name} (Bản sao)`,
@@ -219,6 +264,7 @@ export default function MessageTemplatePage({
 
   const deleteTemplate = async () => {
     if (!templateToDelete) return;
+    if (!canDeleteTemplate || !templateToDelete.canEdit) return;
 
     setIsDeleting(true);
     try {
@@ -238,6 +284,28 @@ export default function MessageTemplatePage({
     }
   };
 
+  if (isAuthLoading) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <p className="text-sm text-text-tertiary" role="status">
+          Đang kiểm tra quyền truy cập mẫu nội dung…
+        </p>
+      </main>
+    );
+  }
+
+  if (!canReadTemplates) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <Card className="border-warning-200 bg-badge-warning-background p-5 text-badge-warning-text">
+          <p className="font-semibold text-base">
+            Bạn không có quyền xem mẫu nội dung.
+          </p>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main
       id="main-content"
@@ -254,10 +322,12 @@ export default function MessageTemplatePage({
             sinh.
           </p>
         </div>
-        {canCreate ? (
+        {canCreateTemplate ? (
           <ContentCreateMenu
             onCreateNew={openCreateDialog}
-            onCreateFromTemplate={() => setIsLibraryOpen(true)}
+            onCreateFromTemplate={
+              canReadLibrary ? () => setIsLibraryOpen(true) : undefined
+            }
           />
         ) : null}
       </Card>
@@ -276,9 +346,10 @@ export default function MessageTemplatePage({
       ) : (
         <MessageTemplateList
           templates={templates}
-          canCreate={canCreate}
-          canDelete={canDelete}
-          currentUserId={currentUser?.user ?? currentUser?.email}
+          canCreate={canCreateTemplate}
+          canUpdate={canUpdateTemplate}
+          canDelete={canDeleteTemplate}
+          currentUserId={user?.crm_user_id ?? user?.user ?? user?.email}
           isLoading={isLoading}
           onDuplicate={duplicateTemplate}
           onDelete={setTemplateToDelete}
@@ -287,7 +358,9 @@ export default function MessageTemplatePage({
       )}
 
       <DeleteRecordDialog
-        isOpen={Boolean(templateToDelete)}
+        isOpen={Boolean(
+          templateToDelete && canDeleteTemplate && templateToDelete.canEdit,
+        )}
         recordType="mẫu email"
         recordName={templateToDelete?.name ?? ""}
         isDeleting={isDeleting}
@@ -298,15 +371,23 @@ export default function MessageTemplatePage({
       />
 
       <MessageTemplateLibraryDialog
-        isOpen={isLibraryOpen}
-        onOpenChange={setIsLibraryOpen}
+        isOpen={isLibraryOpen && canReadLibrary && canCreateTemplate}
+        onOpenChange={(open) => {
+          if (!open || (canReadLibrary && canCreateTemplate))
+            setIsLibraryOpen(open);
+        }}
         onUseTemplate={useLibraryTemplate}
       />
       <MessageTemplateCreateDialog
-        isOpen={isCreateDialogOpen}
+        isOpen={
+          isCreateDialogOpen &&
+          (templateToEdit
+            ? canUpdateTemplate && templateToEdit.canEdit
+            : canCreateTemplate)
+        }
         onOpenChange={handleCreateDialogChange}
         draft={draft}
-        ownerName={templateToEdit?.owner ?? currentUser?.full_name ?? "Bạn"}
+        ownerName={templateToEdit?.owner ?? user?.full_name ?? "Bạn"}
         onDraftChange={updateDraft}
         template={templateToEdit}
         sharingLocked={lockedSharing !== undefined}

@@ -5,10 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { getCrmDoctypePermissions } from "@/components/common/auth/permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardTitle } from "@/components/tailgrids/core/card";
-import { getCurrentUser, type CurrentUser } from "@/services/api/auth";
 import {
   createSnippet,
   deleteSnippet,
@@ -43,7 +44,9 @@ const EMPTY_LIST_RESPONSE: ListSnippetsResponse = {
   hasNextPage: false,
 };
 
-const createEmptyDraft = (sharing: SnippetSharing = "public"): SnippetDraft => ({
+const createEmptyDraft = (
+  sharing: SnippetSharing = "public",
+): SnippetDraft => ({
   internalName: "",
   snippetText: "",
   shortcut: "",
@@ -88,12 +91,17 @@ export default function SnippestPage({
   canCreate?: boolean;
   lockedSharing?: SnippetSharing;
 } = {}) {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const permissions = getCrmDoctypePermissions(user, "CRM Snippet");
+  const canReadSnippets = !isAuthLoading && permissions.canRead;
+  const canCreateSnippet = canCreate && permissions.canCreate;
+  const canUpdateSnippet = permissions.canUpdate;
+  const canDeleteSnippet = permissions.canDelete;
   const [snippets, setSnippets] = useState<SnippetRecord[]>([]);
   const [listResponse, setListResponse] =
     useState<ListSnippetsResponse>(EMPTY_LIST_RESPONSE);
   const [listParams, setListParams] =
     useState<ListSnippetsParams>(INITIAL_LIST_PARAMS);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -108,51 +116,46 @@ export default function SnippestPage({
   const [draft, setDraft] = useState<SnippetDraft>(createEmptyDraft);
   const requestId = useRef(0);
 
-  const loadSnippets = useCallback(async (params: ListSnippetsParams) => {
-    const nextRequestId = ++requestId.current;
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const response = await listSnippets(params);
-      if (nextRequestId !== requestId.current) return;
-      setSnippets(response.snippets);
-      setListResponse(response);
-    } catch (error) {
-      if (nextRequestId !== requestId.current) return;
-      setLoadError(
-        error instanceof Error ? error.message : "Không thể tải snippet.",
-      );
-    } finally {
-      if (nextRequestId === requestId.current) setIsLoading(false);
-    }
-  }, []);
+  const loadSnippets = useCallback(
+    async (params: ListSnippetsParams) => {
+      if (!canReadSnippets) return;
+      const nextRequestId = ++requestId.current;
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const response = await listSnippets(params);
+        if (nextRequestId !== requestId.current) return;
+        setSnippets(response.snippets);
+        setListResponse(response);
+      } catch (error) {
+        if (nextRequestId !== requestId.current) return;
+        setLoadError(
+          error instanceof Error ? error.message : "Không thể tải snippet.",
+        );
+      } finally {
+        if (nextRequestId === requestId.current) setIsLoading(false);
+      }
+    },
+    [canReadSnippets],
+  );
 
   useEffect(() => {
+    if (isAuthLoading || !canReadSnippets) return;
     const timer = window.setTimeout(() => {
       void loadSnippets(listParams);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [listParams, loadSnippets]);
-
-  useEffect(() => {
-    let isActive = true;
-    void getCurrentUser()
-      .then((user) => {
-        if (isActive) setCurrentUser(user);
-      })
-      .catch(() => undefined);
-    return () => {
-      isActive = false;
-    };
-  }, []);
+  }, [canReadSnippets, isAuthLoading, listParams, loadSnippets]);
 
   const openCreateDialog = () => {
+    if (!canCreateSnippet) return;
     setSnippetToEdit(null);
     setDraft(createEmptyDraft(lockedSharing));
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (snippet: SnippetRecord) => {
+    if (!canUpdateSnippet || !snippet.canEdit) return;
     setSnippetToEdit(snippet);
     setDraft(getDraftForSnippet(snippet, lockedSharing));
     setIsDialogOpen(true);
@@ -165,11 +168,26 @@ export default function SnippestPage({
   };
 
   const handleDialogChange = (open: boolean) => {
+    if (
+      open &&
+      (snippetToEdit
+        ? !canUpdateSnippet || !snippetToEdit.canEdit
+        : !canCreateSnippet)
+    ) {
+      return;
+    }
     setIsDialogOpen(open);
     if (!open) setSnippetToEdit(null);
   };
 
   const saveSnippet = async (nextDraft: SnippetDraft) => {
+    if (
+      snippetToEdit
+        ? !canUpdateSnippet || !snippetToEdit.canEdit
+        : !canCreateSnippet
+    ) {
+      return;
+    }
     setIsSaving(true);
     const normalizedDraft = lockedSharing
       ? { ...nextDraft, sharing: lockedSharing }
@@ -198,6 +216,7 @@ export default function SnippestPage({
   };
 
   const duplicateSnippet = async (snippet: SnippetRecord) => {
+    if (!canCreateSnippet) return;
     try {
       await createSnippet({
         internalName: `${snippet.internalName} (Bản sao)`,
@@ -215,11 +234,13 @@ export default function SnippestPage({
   };
 
   const requestDeleteSnippet = (snippet: SnippetRecord) => {
+    if (!canDeleteSnippet || !snippet.canEdit) return;
     setSnippetToDelete(snippet);
   };
 
   const confirmDeleteSnippet = async () => {
     if (!snippetToDelete) return;
+    if (!canDeleteSnippet || !snippetToDelete.canEdit) return;
 
     setIsDeleting(true);
     try {
@@ -235,6 +256,28 @@ export default function SnippestPage({
       setIsDeleting(false);
     }
   };
+
+  if (isAuthLoading) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <p className="text-sm text-text-tertiary" role="status">
+          Đang kiểm tra quyền truy cập snippet…
+        </p>
+      </main>
+    );
+  }
+
+  if (!canReadSnippets) {
+    return (
+      <main id="main-content" className="min-w-0 p-6">
+        <Card className="border-warning-200 bg-badge-warning-background p-5 text-badge-warning-text">
+          <p className="font-semibold text-base">
+            Bạn không có quyền xem snippet.
+          </p>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <main
@@ -252,7 +295,7 @@ export default function SnippestPage({
             sinh.
           </p>
         </div>
-        {canCreate ? (
+        {canCreateSnippet ? (
           <Button size="sm" className="shrink-0" onPress={openCreateDialog}>
             <Plus size={16} aria-hidden="true" />
             Tạo snippet
@@ -276,8 +319,10 @@ export default function SnippestPage({
           snippets={snippets}
           listResponse={listResponse}
           listParams={listParams}
-          canCreate={canCreate}
-          currentUserId={currentUser?.user ?? currentUser?.email}
+          canCreate={canCreateSnippet}
+          canUpdate={canUpdateSnippet}
+          canDelete={canDeleteSnippet}
+          currentUserId={user?.crm_user_id ?? user?.user ?? user?.email}
           isLoading={isLoading}
           onListParamsChange={(nextParams) => {
             setListParams({
@@ -292,7 +337,7 @@ export default function SnippestPage({
         />
       )}
 
-      {snippetToDelete ? (
+      {snippetToDelete && canDeleteSnippet && snippetToDelete.canEdit ? (
         <DeleteRecordDialog
           isOpen={Boolean(snippetToDelete)}
           recordType="snippet"
@@ -306,10 +351,15 @@ export default function SnippestPage({
       ) : null}
 
       <SnippetCreateDialog
-        isOpen={isDialogOpen}
+        isOpen={
+          isDialogOpen &&
+          (snippetToEdit
+            ? canUpdateSnippet && snippetToEdit.canEdit
+            : canCreateSnippet)
+        }
         onOpenChange={handleDialogChange}
         draft={draft}
-        ownerName={snippetToEdit?.owner ?? currentUser?.full_name ?? "Bạn"}
+        ownerName={snippetToEdit?.owner ?? user?.full_name ?? "Bạn"}
         sharingLocked={lockedSharing !== undefined}
         lockedSharing={lockedSharing}
         onDraftChange={updateDraft}

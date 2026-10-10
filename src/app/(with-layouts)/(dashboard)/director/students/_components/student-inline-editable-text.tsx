@@ -15,6 +15,7 @@ interface StudentInlineEditableTextProps {
   emptyLabel?: string;
   strikethrough?: boolean;
   textClassName?: string;
+  canEdit?: boolean;
 }
 
 export default function StudentInlineEditableText({
@@ -25,6 +26,7 @@ export default function StudentInlineEditableText({
   emptyLabel = "—",
   strikethrough = false,
   textClassName,
+  canEdit = true,
 }: StudentInlineEditableTextProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -65,6 +67,22 @@ export default function StudentInlineEditableText({
     setDraft(value);
     setEditing(false);
   };
+
+  if (!canEdit) {
+    return (
+      <span className={cn("block min-w-0", className)}>
+        <span
+          className={cn(
+            "whitespace-normal break-words text-text-primary",
+            textClassName,
+            strikethrough && "text-text-tertiary line-through",
+          )}
+        >
+          {value || placeholder || emptyLabel}
+        </span>
+      </span>
+    );
+  }
 
   if (editing) {
     return (

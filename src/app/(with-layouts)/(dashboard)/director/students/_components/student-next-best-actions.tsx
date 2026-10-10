@@ -5,7 +5,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  canAccessStudent,
+  getCrmDoctypePermissions,
+  getCrmPermissions,
+  hasCrmCapability,
+} from "@/components/common/auth/permissions";
 import { Button } from "@/components/tailgrids/core/button";
+import { Card } from "@/components/tailgrids/core/card";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import {
   useDecideNbaRecommendation,
@@ -46,6 +54,38 @@ export default function StudentNextBestActions({
   isAnalysisActive = false,
 }: StudentNextBestActionsProps) {
   const router = useRouter();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const permissions = getCrmPermissions(user);
+  const recommendationPermissions = getCrmDoctypePermissions(
+    user,
+    "CRM Recommendation",
+  );
+  const decisionEventPermissions = getCrmDoctypePermissions(
+    user,
+    "CRM Student Decision Event",
+  );
+  const taskPermissions = getCrmDoctypePermissions(user, "Task");
+  const canReadWorklist =
+    !isAuthLoading &&
+    canAccessStudent(
+      permissions.student,
+      { owner: data.student.counselor, ownerId: data.student.ownerId },
+      user,
+    ) &&
+    recommendationPermissions.canRead;
+  const canRunNba =
+    canReadWorklist &&
+    recommendationPermissions.canCreate &&
+    hasCrmCapability(user, "recommendation.decide");
+  const canDecide =
+    canReadWorklist &&
+    recommendationPermissions.canUpdate &&
+    decisionEventPermissions.canCreate &&
+    hasCrmCapability(user, "recommendation.decide");
+  const canAccept =
+    canDecide &&
+    taskPermissions.canCreate &&
+    hasCrmCapability(user, "action.execute");
   const studentStage = data.student.studentStage;
   const studentStageKnown = studentStage
     ? studentStatusOptions.includes(studentStage)
@@ -63,7 +103,7 @@ export default function StudentNextBestActions({
     Record<string, string>
   >({});
   const query = useStudentNbaWorklistQuery(studentId, {
-    enabled: Boolean(studentId.trim()),
+    enabled: Boolean(studentId.trim()) && canReadWorklist,
     refetchInterval: isAnalysisActive ? 3000 : false,
   });
   const decisionMutation = useDecideNbaRecommendation();
@@ -122,6 +162,7 @@ export default function StudentNextBestActions({
     recommendation: NbaRecommendation,
     operation: NbaDecisionOperation,
   ) => {
+    if (!canDecide || (operation.startsWith("ACCEPT") && !canAccept)) return;
     if (decisionMutation.isPending) return;
     setDecision({ recommendation, operation });
   };
@@ -131,6 +172,7 @@ export default function StudentNextBestActions({
   };
 
   const runNba = async () => {
+    if (!canRunNba) return;
     try {
       const result = await runMutation.mutateAsync({ studentId });
       const normalizedStatus = result.status.trim().toLowerCase();
@@ -179,6 +221,7 @@ export default function StudentNextBestActions({
     operation: NbaDecisionOperation,
     fields: DecisionFields,
   ) => {
+    if (!canDecide || (operation.startsWith("ACCEPT") && !canAccept)) return;
     if (!recommendation.expectedRevision) {
       toast.error(
         "Đề xuất này chưa có phiên bản hợp lệ để ghi nhận quyết định.",
@@ -236,6 +279,28 @@ export default function StudentNextBestActions({
     }
   };
 
+  if (isAuthLoading) {
+    return (
+      <section aria-labelledby="next-best-actions-heading" className="min-w-0">
+        <NbaPanelSkeleton />
+      </section>
+    );
+  }
+
+  if (!canReadWorklist) {
+    return (
+      <Card className="border-warning-200 bg-badge-warning-background p-5 text-badge-warning-text">
+        <p className="font-semibold text-base">
+          Bạn không có quyền xem đề xuất hành động của học sinh.
+        </p>
+        <p className="mt-1 text-sm">
+          Cần quyền đọc hồ sơ học sinh trong phạm vi được cấp và quyền đọc đề
+          xuất.
+        </p>
+      </Card>
+    );
+  }
+
   return (
     <>
       <section aria-labelledby="next-best-actions-heading" className="min-w-0">
@@ -245,23 +310,25 @@ export default function StudentNextBestActions({
             {studentStage && (
               <span className="rounded-full border border-card-border bg-background-gray-secondary px-2.5 py-1 text-xs font-semibold text-text-secondary"></span>
             )}
-            <Button
-              variant="primary"
-              appearance="outline"
-              size="sm"
-              onPress={() => void runNba()}
-              isDisabled={
-                nbaBlocked ||
-                query.isFetching ||
-                runMutation.isPending ||
-                isAnalysisActive ||
-                decisionMutation.isPending
-              }
-            >
-              {runMutation.isPending || isAnalysisActive
-                ? "Đang tạo gợi ý…"
-                : "Gợi ý hành động"}
-            </Button>
+            {canRunNba && (
+              <Button
+                variant="primary"
+                appearance="outline"
+                size="sm"
+                onPress={() => void runNba()}
+                isDisabled={
+                  nbaBlocked ||
+                  query.isFetching ||
+                  runMutation.isPending ||
+                  isAnalysisActive ||
+                  decisionMutation.isPending
+                }
+              >
+                {runMutation.isPending || isAnalysisActive
+                  ? "Đang tạo gợi ý…"
+                  : "Gợi ý hành động"}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -315,6 +382,8 @@ export default function StudentNextBestActions({
                 key={action.id}
                 recommendation={action}
                 onBeginDecision={beginDecision}
+                canDecide={canDecide}
+                canAccept={canAccept}
               />
             ))}
           </div>

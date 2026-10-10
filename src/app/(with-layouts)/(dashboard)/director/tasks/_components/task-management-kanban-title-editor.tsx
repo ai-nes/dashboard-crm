@@ -8,7 +8,7 @@ import { TextArea } from "@/components/tailgrids/core/text-area";
 
 interface TaskManagementKanbanTitleEditorProps {
   title: string;
-  onSave: (title: string) => void | Promise<void>;
+  onSave?: (title: string) => void | Promise<void>;
 }
 
 export default function TaskManagementKanbanTitleEditor({
@@ -50,6 +50,7 @@ export default function TaskManagementKanbanTitleEditor({
   };
 
   const saveTitle = async () => {
+    if (!onSave) return;
     const nextTitle = draft.trim();
     if (!nextTitle || nextTitle === title) {
       cancelEditing();
@@ -127,7 +128,7 @@ export default function TaskManagementKanbanTitleEditor({
           <h3 className="break-words pr-8 text-sm font-semibold leading-5 text-text-primary">
             {title}
           </h3>
-          <Button
+          {onSave && <Button
             type="button"
             iconOnly
             size="xs"
@@ -138,7 +139,7 @@ export default function TaskManagementKanbanTitleEditor({
             className="absolute top-0 right-0 size-6 rounded-md text-text-tertiary opacity-0 hover:bg-background-soft-50 hover:text-text-primary group-hover/title:opacity-100 focus-visible:opacity-100"
           >
             <Pencil1 size={13} aria-hidden="true" />
-          </Button>
+          </Button>}
         </>
       )}
     </div>

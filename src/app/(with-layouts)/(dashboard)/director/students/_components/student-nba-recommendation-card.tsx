@@ -31,6 +31,8 @@ const CARD_OPERATION_LABELS: Record<NbaDecisionOperation, string> = {
 
 interface StudentNbaRecommendationCardProps {
   recommendation: NbaRecommendation;
+  canDecide: boolean;
+  canAccept: boolean;
   onBeginDecision: (
     recommendation: NbaRecommendation,
     operation: NbaDecisionOperation,
@@ -39,6 +41,8 @@ interface StudentNbaRecommendationCardProps {
 
 export default function StudentNbaRecommendationCard({
   recommendation,
+  canDecide,
+  canAccept,
   onBeginDecision,
 }: StudentNbaRecommendationCardProps) {
   const hasRevision = Boolean(recommendation.expectedRevision);
@@ -47,8 +51,11 @@ export default function StudentNbaRecommendationCard({
   const timeLabel = formatNbaTimeOfDay(scheduledAt);
   const dateLabel = formatNbaDateShort(scheduledAt);
   const expiresLabel = formatNbaDateShort(recommendation.timing.expiresAt);
-  const operations = CARD_OPERATIONS.filter((operation) =>
-    isDecisionPermitted(recommendation, operation),
+  const operations = CARD_OPERATIONS.filter(
+    (operation) =>
+      isDecisionPermitted(recommendation, operation) &&
+      canDecide &&
+      (!operation.startsWith("ACCEPT") || canAccept),
   );
 
   return (

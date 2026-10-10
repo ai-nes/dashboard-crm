@@ -45,6 +45,7 @@ import type {
 } from "@/services/api/segments";
 
 import { CatalogOrderingPanel } from "./catalog-ordering-panel";
+import type { CrmDoctypePermissions } from "@/components/common/auth/permissions";
 
 const STATUS_LABELS = {
   draft: "Bản nháp",
@@ -59,10 +60,12 @@ const EMPTY_FORM = { code: "", label: "", description: "" };
 function GroupEditor({
   kind,
   group,
+  canSave,
   onClose,
 }: {
   kind: ClassificationGroupKind;
   group: ClassificationGroupRecord | null;
+  canSave: boolean;
   onClose: () => void;
 }) {
   const [form, setForm] = useState(() =>
@@ -83,6 +86,7 @@ function GroupEditor({
     setForm((current) => ({ ...current, [field]: value }));
 
   const save = async () => {
+    if (!canSave) return;
     const code = form.code.trim().toUpperCase();
     const label = form.label.trim();
     if (!code || !/^[A-Z0-9_]+$/.test(code)) {
@@ -195,9 +199,11 @@ function GroupEditor({
           <DialogClose appearance="outline" size="sm">
             Đóng
           </DialogClose>
-          <Button size="sm" onPress={() => void save()} isDisabled={isSaving}>
-            {isSaving ? "Đang lưu…" : group ? "Lưu thay đổi" : "Tạo nhóm"}
-          </Button>
+          {canSave && (
+            <Button size="sm" onPress={() => void save()} isDisabled={isSaving}>
+              {isSaving ? "Đang lưu…" : group ? "Lưu thay đổi" : "Tạo nhóm"}
+            </Button>
+          )}
         </DialogFooter>
       </Dialog>
     </Backdrop>
@@ -209,12 +215,14 @@ function TermEditor({
   groups,
   term,
   initialGroup,
+  canSave,
   onClose,
 }: {
   kind: ClassificationGroupKind;
   groups: ClassificationGroupRecord[];
   term: SegmentTermRecord | null;
   initialGroup?: string;
+  canSave: boolean;
   onClose: () => void;
 }) {
   const [form, setForm] = useState({
@@ -229,6 +237,7 @@ function TermEditor({
   const childLabel = kind === "need" ? "Nhu cầu" : "Tag";
 
   const save = async () => {
+    if (!canSave) return;
     const code = form.code.trim().toUpperCase();
     const label = form.label.trim();
     if (!code || !/^[A-Z0-9_]+$/.test(code) || !label || !form.group) {
@@ -366,17 +375,19 @@ function TermEditor({
           <DialogClose appearance="outline" size="sm">
             Đóng
           </DialogClose>
-          <Button
-            size="sm"
-            onPress={() => void save()}
-            isDisabled={isSaving || groups.length === 0}
-          >
-            {isSaving
-              ? "Đang lưu…"
-              : term
-                ? "Lưu thay đổi"
-                : `Tạo ${childLabel}`}
-          </Button>
+          {canSave && (
+            <Button
+              size="sm"
+              onPress={() => void save()}
+              isDisabled={isSaving || groups.length === 0}
+            >
+              {isSaving
+                ? "Đang lưu…"
+                : term
+                  ? "Lưu thay đổi"
+                  : `Tạo ${childLabel}`}
+            </Button>
+          )}
         </DialogFooter>
       </Dialog>
     </Backdrop>
@@ -385,15 +396,24 @@ function TermEditor({
 
 export function ClassificationGroupManagement({
   kind,
-  canManage,
+  permissions,
   hideHeader = false,
   compactStatus = false,
 }: {
   kind: ClassificationGroupKind;
-  canManage: boolean;
+  permissions: {
+    groups: CrmDoctypePermissions;
+    terms: CrmDoctypePermissions;
+  };
   hideHeader?: boolean;
   compactStatus?: boolean;
 }) {
+  const canCreateGroup = permissions.groups.canCreate;
+  const canUpdateGroup = permissions.groups.canUpdate;
+  const canDeleteGroup = permissions.groups.canDelete;
+  const canCreateTerm = permissions.terms.canCreate;
+  const canUpdateTerm = permissions.terms.canUpdate;
+  const canDeleteTerm = permissions.terms.canDelete;
   const [groupPage, setGroupPage] = useState(1);
   const [termPage, setTermPage] = useState(1);
   const [isOrderingGroups, setIsOrderingGroups] = useState(false);
@@ -443,7 +463,7 @@ export function ClassificationGroupManagement({
   const childLabel = kind === "need" ? "Nhu cầu" : "Tag";
 
   const confirmDelete = async () => {
-    if (!toDelete) return;
+    if (!canDeleteGroup || !toDelete) return;
     try {
       await deleteMutation.mutateAsync({
         kind,
@@ -459,6 +479,7 @@ export function ClassificationGroupManagement({
   };
 
   const saveGroupOrder = async (items: readonly { id: string }[]) => {
+    if (!canUpdateGroup) return;
     const recordsById = new Map(
       (orderingQuery.data?.groups ?? []).map((group) => [group.name, group]),
     );
@@ -496,6 +517,7 @@ export function ClassificationGroupManagement({
     group: ClassificationGroupRecord,
     status: ClassificationGroupRecord["status"],
   ) => {
+    if (!canUpdateGroup) return;
     if (status === group.status) return;
     try {
       await transitionMutation.mutateAsync({
@@ -516,6 +538,7 @@ export function ClassificationGroupManagement({
     term: SegmentTermRecord,
     status: ClassificationGroupRecord["status"],
   ) => {
+    if (!canUpdateTerm) return;
     if (status === term.status) return;
     try {
       await transitionTermMutation.mutateAsync({
@@ -539,7 +562,7 @@ export function ClassificationGroupManagement({
   };
 
   const confirmTermDelete = async () => {
-    if (!termToDelete) return;
+    if (!canDeleteTerm || !termToDelete) return;
     try {
       await deleteTermMutation.mutateAsync({
         kind,
@@ -597,7 +620,7 @@ export function ClassificationGroupManagement({
                 {groupTotal} nhóm trong hệ thống
               </p>
             </div>
-            {canManage && (
+            {canCreateGroup && (
               <Button
                 size="sm"
                 onPress={() => {
@@ -633,7 +656,7 @@ export function ClassificationGroupManagement({
                       Danh sách nhóm
                     </p>
                   </div>
-                  {canManage && (
+                  {canUpdateGroup && (
                     <Button
                       size="sm"
                       appearance="outline"
@@ -712,7 +735,7 @@ export function ClassificationGroupManagement({
                       </h3>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      {canManage ? (
+                      {canUpdateGroup ? (
                         <SegmentStatusSelect
                           ariaLabel={`Trạng thái ${selectedGroup.label}`}
                           value={selectedGroup.status}
@@ -736,7 +759,7 @@ export function ClassificationGroupManagement({
                           {STATUS_LABELS[selectedGroup.status]}
                         </Badge>
                       )}
-                      {canManage && (
+                      {canUpdateGroup && (
                         <Button
                           aria-label={`Sửa ${selectedGroup.label}`}
                           iconOnly
@@ -750,7 +773,7 @@ export function ClassificationGroupManagement({
                           <Pencil1 size={16} aria-hidden="true" />
                         </Button>
                       )}
-                      {canManage && (
+                      {canDeleteGroup && (
                         <Button
                           aria-label={`Xóa ${selectedGroup.label}`}
                           iconOnly
@@ -774,7 +797,7 @@ export function ClassificationGroupManagement({
                       {termTotal} {childLabel.toLowerCase()} trong nhóm này.
                     </p>
                   </div>
-                  {canManage && (
+                  {canCreateTerm && (
                     <Button
                       size="sm"
                       appearance="outline"
@@ -805,7 +828,7 @@ export function ClassificationGroupManagement({
                             </p>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
-                            {canManage ? (
+                            {canUpdateTerm ? (
                               <SegmentStatusSelect
                                 ariaLabel={`Trạng thái ${term.label || term.name}`}
                                 value={
@@ -835,7 +858,7 @@ export function ClassificationGroupManagement({
                                 }
                               </Badge>
                             )}
-                            {canManage && (
+                            {canUpdateTerm && (
                               <Button
                                 aria-label={`Sửa ${term.label || term.name}`}
                                 iconOnly
@@ -849,7 +872,7 @@ export function ClassificationGroupManagement({
                                 <Pencil1 size={15} aria-hidden="true" />
                               </Button>
                             )}
-                            {canManage && (
+                            {canDeleteTerm && (
                               <Button
                                 aria-label={`Xóa ${term.label || term.name}`}
                                 iconOnly
@@ -1002,22 +1025,25 @@ export function ClassificationGroupManagement({
           </table>
         </div> */}
       </section>
-      {editorOpen && (
+      {editorOpen && (selected ? canUpdateGroup : canCreateGroup) && (
         <GroupEditor
           kind={kind}
           group={selected}
+          canSave={selected ? canUpdateGroup : canCreateGroup}
           onClose={() => {
             setEditorOpen(false);
             setSelected(null);
           }}
         />
       )}
-      {termToEdit !== undefined && (
+      {termToEdit !== undefined &&
+        (termToEdit ? canUpdateTerm : canCreateTerm) && (
         <TermEditor
           kind={kind}
           groups={groups}
           term={termToEdit}
           initialGroup={termGroup}
+          canSave={termToEdit ? canUpdateTerm : canCreateTerm}
           onClose={() => {
             setTermToEdit(undefined);
             setTermGroup(undefined);
@@ -1025,7 +1051,7 @@ export function ClassificationGroupManagement({
         />
       )}
       <DeleteRecordDialog
-        isOpen={Boolean(toDelete)}
+        isOpen={Boolean(toDelete && canDeleteGroup)}
         recordType={title}
         recordName={toDelete?.label ?? ""}
         isDeleting={deleteMutation.isPending}
@@ -1040,7 +1066,7 @@ export function ClassificationGroupManagement({
         </p>
       </DeleteRecordDialog>
       <DeleteRecordDialog
-        isOpen={Boolean(termToDelete)}
+        isOpen={Boolean(termToDelete && canDeleteTerm)}
         recordType={childLabel}
         recordName={termToDelete?.label || termToDelete?.name || ""}
         isDeleting={deleteTermMutation.isPending}

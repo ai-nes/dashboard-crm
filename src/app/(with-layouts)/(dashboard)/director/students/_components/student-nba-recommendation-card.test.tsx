@@ -14,10 +14,14 @@ const recommendation = {
 } as NbaRecommendation;
 
 describe("main student NBA card UI", () => {
-  const render = (values: Partial<NbaRecommendation> = {}) =>
+  const render = (
+    values: Partial<NbaRecommendation> = {},
+    permissions = { canDecide: true, canAccept: true },
+  ) =>
     renderToStaticMarkup(
       <StudentNbaRecommendationCard
         recommendation={{ ...recommendation, ...values }}
+        {...permissions}
         onBeginDecision={() => {}}
       />,
     );
@@ -32,6 +36,17 @@ describe("main student NBA card UI", () => {
   });
   it("hides decision actions when the server permits none", () => {
     expect(render({ permittedDecisions: [] })).not.toContain("<button");
+  });
+  it("hides decision actions without the effective mutation grants", () => {
+    expect(render({}, { canDecide: false, canAccept: false })).not.toContain(
+      "<button",
+    );
+  });
+  it("keeps rejection available when accept-only grants are missing", () => {
+    const html = render({}, { canDecide: true, canAccept: false });
+    expect(html).toContain("Từ chối");
+    expect(html).not.toContain("Đồng ý");
+    expect(html).not.toContain("Chỉnh sửa");
   });
   it("shows only the decisions permitted by the server", () => {
     const html = render({ permittedDecisions: ["REJECT"] });

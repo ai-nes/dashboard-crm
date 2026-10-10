@@ -11,6 +11,12 @@ vi.mock("./student-gauge-chart", () => ({
   default: ({ score }: { score: number }) => <span>score:{score}</span>,
 }));
 
+vi.mock("./student-recent-interactions-card", () => ({
+  default: ({ canReadInteractions }: { canReadInteractions: boolean }) => (
+    <span>interactions:{String(canReadInteractions)}</span>
+  ),
+}));
+
 const fixture = () => {
   const data = computeStudent360("nguyen-minh-an");
   if (!data) throw new Error("Missing student fixture");
@@ -18,6 +24,23 @@ const fixture = () => {
 };
 
 describe("Visual 360", () => {
+  it("denies outbound interactions unless explicitly authorized", () => {
+    const props = {
+      selected: "interactions" as const,
+      data: fixture(),
+      report: null,
+      isLoading: false,
+      hasError: false,
+    };
+    expect(
+      renderToStaticMarkup(<StudentVisual360Panel {...props} />),
+    ).toContain("interactions:false");
+    expect(
+      renderToStaticMarkup(
+        <StudentVisual360Panel {...props} canReadInteractions />,
+      ),
+    ).toContain("interactions:true");
+  });
   it("does not render student data or controls without read permission", () => {
     expect(
       renderToStaticMarkup(

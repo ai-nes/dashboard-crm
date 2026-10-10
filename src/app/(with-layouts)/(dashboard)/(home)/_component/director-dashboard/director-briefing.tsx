@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, InfoTriangle } from "@tailgrids/icons";
-import Link from "next/link";
+import { CrmPermissionLink as Link } from "@/components/common/auth/crm-permission-link";
 
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import StudentCardEmptyState from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-card-empty-state";
@@ -12,7 +12,9 @@ interface DirectorBriefingProps {
   briefing?: DirectorBriefingType;
 }
 
-export default function DirectorBriefing({ briefing = initialDirectorBriefing }: DirectorBriefingProps) {
+export default function DirectorBriefing({
+  briefing = initialDirectorBriefing,
+}: DirectorBriefingProps) {
   const data = briefing ?? initialDirectorBriefing;
   const alert = data.alert;
   const priorityAction = data.priorityAction;
@@ -23,7 +25,9 @@ export default function DirectorBriefing({ briefing = initialDirectorBriefing }:
         <CardHeader className="mb-4 items-start">
           <div>
             <CardTitle>Việc cần xử lý hôm nay</CardTitle>
-            <p className="mt-1 text-xs leading-5 text-text-tertiary">Một cảnh báo và việc ưu tiên tương ứng</p>
+            <p className="mt-1 text-xs leading-5 text-text-tertiary">
+              Một cảnh báo và việc ưu tiên tương ứng
+            </p>
           </div>
         </CardHeader>
         <StudentCardEmptyState message="Chưa có dữ liệu" className="flex-1" />
@@ -36,9 +40,13 @@ export default function DirectorBriefing({ briefing = initialDirectorBriefing }:
       <CardHeader className="mb-4 items-start">
         <div>
           <CardTitle>Việc cần xử lý hôm nay</CardTitle>
-          <p className="mt-1 text-xs leading-5 text-text-tertiary">Một cảnh báo và việc ưu tiên tương ứng</p>
+          <p className="mt-1 text-xs leading-5 text-text-tertiary">
+            Một cảnh báo và việc ưu tiên tương ứng
+          </p>
         </div>
-        <span className="rounded-full bg-badge-error-background px-2.5 py-1 text-xs font-medium text-badge-error-text">Cảnh báo</span>
+        <span className="rounded-full bg-badge-error-background px-2.5 py-1 text-xs font-medium text-badge-error-text">
+          Cảnh báo
+        </span>
       </CardHeader>
 
       <Link
@@ -52,20 +60,34 @@ export default function DirectorBriefing({ briefing = initialDirectorBriefing }:
             </span>
             Cảnh báo chính
           </span>
-          <span className="text-lg font-semibold text-error-500">{alert.metric}</span>
+          <span className="text-lg font-semibold text-error-500">
+            {alert.metric}
+          </span>
         </div>
-        <p className="mt-3 text-sm font-semibold leading-5 text-text-primary">{alert.title}</p>
-        <p className="mt-1 text-xs leading-5 text-text-secondary">{alert.description}</p>
-        <p className="mt-3 border-t border-badge-error-text/30 pt-3 text-xs leading-5 text-text-secondary">{alert.evidence}</p>
+        <p className="mt-3 text-sm font-semibold leading-5 text-text-primary">
+          {alert.title}
+        </p>
+        <p className="mt-1 text-xs leading-5 text-text-secondary">
+          {alert.description}
+        </p>
+        <p className="mt-3 border-t border-badge-error-text/30 pt-3 text-xs leading-5 text-text-secondary">
+          {alert.evidence}
+        </p>
         <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-500">
           Xem chi tiết
-          <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          <ArrowRight
+            size={13}
+            className="transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
         </span>
       </Link>
 
       <div className="mt-5 border-t border-card-border pt-4">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-text-primary">Việc nên làm</p>
+          <p className="text-sm font-semibold text-text-primary">
+            Việc nên làm
+          </p>
           <span className="text-xs text-text-tertiary">Ưu tiên 1</span>
         </div>
         <Link
@@ -76,9 +98,15 @@ export default function DirectorBriefing({ briefing = initialDirectorBriefing }:
             1
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-xs font-semibold leading-5 text-text-primary">{priorityAction.title}</span>
-            <span className="mt-0.5 block text-xs leading-5 text-text-tertiary">{priorityAction.description}</span>
-            <span className="mt-2 block text-xs font-semibold text-success-500">{priorityAction.impact}</span>
+            <span className="block text-xs font-semibold leading-5 text-text-primary">
+              {priorityAction.title}
+            </span>
+            <span className="mt-0.5 block text-xs leading-5 text-text-tertiary">
+              {priorityAction.description}
+            </span>
+            <span className="mt-2 block text-xs font-semibold text-success-500">
+              {priorityAction.impact}
+            </span>
           </span>
           <ArrowRight size={13} aria-hidden="true" />
         </Link>

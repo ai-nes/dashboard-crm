@@ -12,12 +12,15 @@ import {
   useTransitionSegmentMutation,
   useVisibleSegmentsQuery,
 } from "@/hooks/use-segment-queries";
+import { useAuth } from "@/components/common/auth/auth-provider";
 import type { SegmentStatus } from "@/services/api/segments";
 
 import { toSegmentListItem, type SegmentListItem } from "./segment-list-types";
+import { canReadSegments } from "./segment-permissions";
 
 const SegmentDataContext = createContext<{
   segments: SegmentListItem[];
+  canRead: boolean;
   isLoading: boolean;
   error: Error | null;
   refetch: () => Promise<unknown>;
@@ -48,6 +51,8 @@ export function SegmentDataProvider({
   /** Hide segments whose permission-scoped student result is empty. */
   visibleStudentsOnly?: boolean;
 }) {
+  const { user } = useAuth();
+  const canRead = canReadSegments(user);
   const serverPaginated = !visibleStudentsOnly;
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -59,9 +64,9 @@ export function SegmentDataProvider({
       start: (page - 1) * PAGE_SIZE,
       pageLength: PAGE_SIZE,
     },
-    { enabled: serverPaginated },
+    { enabled: serverPaginated && canRead },
   );
-  const visibleSegmentsQuery = useVisibleSegmentsQuery(visibleStudentsOnly);
+  const visibleSegmentsQuery = useVisibleSegmentsQuery(visibleStudentsOnly && canRead);
   const transitionMutation = useTransitionSegmentMutation();
   const segmentsQuery = visibleStudentsOnly
     ? visibleSegmentsQuery
@@ -79,6 +84,7 @@ export function SegmentDataProvider({
     <SegmentDataContext.Provider
       value={{
         segments,
+        canRead,
         isLoading: segmentsQuery.isLoading,
         error: segmentsQuery.error,
         refetch: segmentsQuery.refetch,

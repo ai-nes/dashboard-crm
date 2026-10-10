@@ -25,7 +25,8 @@ import { toAnalysisRun } from "@/services/api/student-ai/to-analysis-run";
 
 export const studentAiKeys = {
   all: ["student-ai"] as const,
-  overview: (studentId: string) => ["student-ai", "overview", studentId] as const,
+  overview: (studentId: string) =>
+    ["student-ai", "overview", studentId] as const,
   memory: (studentId: string) => ["student-ai", "memory", studentId] as const,
 };
 
@@ -35,11 +36,12 @@ const isWorking = (overview: StudentAiOverview | undefined) =>
 /** The stored analysis for a student; it is re-read every few seconds while crm-ai works. */
 export function useStudentAi(
   studentId: string,
+  enabled = true,
 ): UseQueryResult<StudentAiOverview, Error> {
   return useQuery({
     queryKey: studentAiKeys.overview(studentId),
     queryFn: () => getStudentAi(studentId),
-    enabled: Boolean(studentId.trim()),
+    enabled: Boolean(studentId.trim()) && enabled,
     refetchInterval: (query) => (isWorking(query.state.data) ? 3000 : false),
     refetchOnWindowFocus: true,
   });
@@ -56,13 +58,25 @@ interface StudentAnalysisRun {
 }
 
 /** "Phân tích": queue one analysis and follow it until crm-ai has stored the result. */
-export function useStudentAnalysis(studentId: string): StudentAnalysisRun {
+export function useStudentAnalysis(
+  studentId: string,
+  options: { enabled?: boolean; canRequest?: boolean } = {},
+): StudentAnalysisRun {
   const queryClient = useQueryClient();
-  const query = useStudentAi(studentId);
+  const canRead = options.enabled ?? true;
+  const canRequest = options.canRequest ?? true;
+  const query = useStudentAi(studentId, canRead);
   const requestMutation = useMutation<unknown, Error, void>({
-    mutationFn: () => requestStudentAnalysis(studentId),
+    mutationFn: () => {
+      if (!canRequest) {
+        throw new Error("Bạn không có quyền yêu cầu phân tích hồ sơ.");
+      }
+      return requestStudentAnalysis(studentId);
+    },
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: studentAiKeys.overview(studentId) }),
+      queryClient.invalidateQueries({
+        queryKey: studentAiKeys.overview(studentId),
+      }),
   });
   const overview = query.data;
   return {
@@ -70,7 +84,12 @@ export function useStudentAnalysis(studentId: string): StudentAnalysisRun {
     run: overview ? toAnalysisRun(overview) : null,
     isActive: isWorking(overview) || requestMutation.isPending,
     request: () => {
-      if (!studentId.trim() || requestMutation.isPending || isWorking(overview)) {
+      if (
+        !canRequest ||
+        !studentId.trim() ||
+        requestMutation.isPending ||
+        isWorking(overview)
+      ) {
         return;
       }
       requestMutation.mutate();
@@ -95,8 +114,12 @@ export function useStudentMemoryActions(studentId: string) {
   const queryClient = useQueryClient();
   const refresh = () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: studentAiKeys.memory(studentId) }),
-      queryClient.invalidateQueries({ queryKey: studentAiKeys.overview(studentId) }),
+      queryClient.invalidateQueries({
+        queryKey: studentAiKeys.memory(studentId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: studentAiKeys.overview(studentId),
+      }),
     ]);
   const edit = useMutation({
     mutationFn: (input: { item: AiMemoryItem } & AiMemoryEdit) =>
@@ -108,8 +131,16 @@ export function useStudentMemoryActions(studentId: string) {
     onSuccess: refresh,
   });
   const close = useMutation({
-    mutationFn: (input: { item: AiMemoryItem; status: "done" | "contradicted" }) =>
-      closeStudentMemory(studentId, input.item.id, input.status, input.item.updated_at),
+    mutationFn: (input: {
+      item: AiMemoryItem;
+      status: "done" | "contradicted";
+    }) =>
+      closeStudentMemory(
+        studentId,
+        input.item.id,
+        input.status,
+        input.item.updated_at,
+      ),
     onSuccess: refresh,
   });
   return { edit, close };
@@ -120,7 +151,9 @@ export function useNbaCardDecision(studentId: string) {
   const queryClient = useQueryClient();
   const refresh = () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: studentAiKeys.overview(studentId) }),
+      queryClient.invalidateQueries({
+        queryKey: studentAiKeys.overview(studentId),
+      }),
       queryClient.invalidateQueries({ queryKey: ["tasks"] }),
     ]);
   const accept = useMutation({

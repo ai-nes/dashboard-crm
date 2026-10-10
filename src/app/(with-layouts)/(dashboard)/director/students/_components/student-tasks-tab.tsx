@@ -27,6 +27,8 @@ interface StudentTasksTabProps {
   onUpdateTask: (id: string, updates: Partial<StudentTaskItem>) => void;
   onDeleteTask?: (id: string) => void;
   canCreateTask: boolean;
+  canUpdateTask?: (task: StudentTaskItem) => boolean;
+  canDeleteTask?: (task: StudentTaskItem) => boolean;
   createTaskDisabledReason?: string;
   assigneeId?: string;
   isCreating?: boolean;
@@ -107,6 +109,8 @@ export default function StudentTasksTab({
   onUpdateTask,
   onDeleteTask,
   canCreateTask,
+  canUpdateTask,
+  canDeleteTask,
   createTaskDisabledReason,
   assigneeId,
   isCreating = false,
@@ -233,7 +237,12 @@ export default function StudentTasksTab({
                     key={task.id}
                     task={task}
                     onUpdateTask={onUpdateTask}
-                    onDeleteTask={onDeleteTask}
+                    onDeleteTask={
+                      onDeleteTask && (!canDeleteTask || canDeleteTask(task))
+                        ? onDeleteTask
+                        : undefined
+                    }
+                    canUpdateTask={canUpdateTask?.(task) ?? false}
                     studentStage={studentStage}
                     expanded={expandedTaskIds.has(task.id)}
                     onExpandedChange={(expanded) =>

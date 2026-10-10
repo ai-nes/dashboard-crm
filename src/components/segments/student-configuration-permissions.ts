@@ -1,44 +1,66 @@
-import { hasTechnicalRole } from "@/components/common/auth/rbac";
+import {
+  getCrmDoctypePermissions,
+  type CrmDoctypePermissions,
+} from "@/components/common/auth/permissions";
+import type { CurrentUser } from "@/services/api/auth";
 
-export function canManageStudentConfiguration(
-  roles?: readonly string[] | null,
-): boolean {
-  return Boolean(
-    hasTechnicalRole(roles, "System Manager") ||
-    roles?.includes("Administrator") ||
-    roles?.includes("Admissions Director"),
-  );
+export interface StudentConfigurationPermissions {
+  needGroups: CrmDoctypePermissions;
+  needs: CrmDoctypePermissions;
+  tagGroups: CrmDoctypePermissions;
+  tags: CrmDoctypePermissions;
+  admissionProfileTemplates: CrmDoctypePermissions;
+  admissionDocumentTypes: CrmDoctypePermissions;
+  admissionMethods: CrmDoctypePermissions;
 }
 
-export function canManageMajorCatalog(
-  roles?: readonly string[] | null,
-): boolean {
-  return Boolean(
-    hasTechnicalRole(roles, "System Manager") ||
-    roles?.includes("Administrator"),
-  );
+export function getStudentConfigurationPermissions(
+  user: CurrentUser | null | undefined,
+): StudentConfigurationPermissions {
+  return {
+    needGroups: getCrmDoctypePermissions(user, "CRM Need Group"),
+    needs: getCrmDoctypePermissions(user, "CRM Need"),
+    tagGroups: getCrmDoctypePermissions(user, "CRM Tag Group"),
+    tags: getCrmDoctypePermissions(user, "CRM Tag"),
+    admissionProfileTemplates: getCrmDoctypePermissions(
+      user,
+      "CRM Admission Profile Template",
+    ),
+    admissionDocumentTypes: getCrmDoctypePermissions(user, "CRM Document Type"),
+    admissionMethods: getCrmDoctypePermissions(user, "CRM Admission Method"),
+  };
 }
 
-export function canManageAdmissionDocumentTypes(
-  roles?: readonly string[] | null,
-): boolean {
-  return hasTechnicalRole(roles, "System Manager");
+export interface MajorCatalogPermissions {
+  majors: CrmDoctypePermissions;
+  majorGroups: CrmDoctypePermissions;
+  educationPrograms: CrmDoctypePermissions;
+  provinces: CrmDoctypePermissions;
+  wards: CrmDoctypePermissions;
+  highSchools: CrmDoctypePermissions;
+  schoolAreas: CrmDoctypePermissions;
+  admissionYears: CrmDoctypePermissions;
+  campaignChannelTypes: CrmDoctypePermissions;
 }
 
-export function canDeleteAdmissionDocumentTypes(
-  roles?: readonly string[] | null,
-): boolean {
-  return hasTechnicalRole(roles, "System Manager");
-}
-
-export function canManageAdmissionMethods(
-  roles?: readonly string[] | null,
-): boolean {
-  return hasTechnicalRole(roles, "System Manager");
-}
-
-export function canDeleteAdmissionMethods(
-  roles?: readonly string[] | null,
-): boolean {
-  return canManageAdmissionMethods(roles);
+export function getMajorCatalogPermissions(
+  user: CurrentUser | null | undefined,
+): MajorCatalogPermissions {
+  return {
+    majors: getCrmDoctypePermissions(user, "CRM Major"),
+    majorGroups: getCrmDoctypePermissions(user, "CRM Major Group"),
+    educationPrograms: getCrmDoctypePermissions(
+      user,
+      "CRM Education Program",
+    ),
+    provinces: getCrmDoctypePermissions(user, "CRM Province"),
+    wards: getCrmDoctypePermissions(user, "CRM Ward"),
+    highSchools: getCrmDoctypePermissions(user, "CRM High School"),
+    schoolAreas: getCrmDoctypePermissions(user, "CRM School Area"),
+    admissionYears: getCrmDoctypePermissions(user, "CRM Admission Year"),
+    campaignChannelTypes: getCrmDoctypePermissions(
+      user,
+      "CRM Campaign Channel Type",
+    ),
+  };
 }

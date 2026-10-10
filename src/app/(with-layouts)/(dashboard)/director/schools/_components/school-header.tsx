@@ -1,5 +1,5 @@
 import { ArrowLeft, MapMarker5, Trash1 } from "@tailgrids/icons";
-import Link from "next/link";
+import { CrmPermissionLink as Link } from "@/components/common/auth/crm-permission-link";
 
 import { CopyableId } from "@/components/common/copyable-id";
 import { Badge } from "@/components/tailgrids/core/badge";

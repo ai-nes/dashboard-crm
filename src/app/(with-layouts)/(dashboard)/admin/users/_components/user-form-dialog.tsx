@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Eye, EyeDisabled } from "@tailgrids/icons";
+import { useId, useState, type FormEvent } from "react";
 import {
   Dialog as AriaDialog,
   Modal as AriaModal,
@@ -28,6 +29,8 @@ const roleOptions = ASSIGNABLE_CRM_ROLES.map((role) => ({
   id: role,
   label: role,
 }));
+
+const passwordRequirement = "Mật khẩu phải có từ 6 đến 128 ký tự.";
 
 interface UserFormValues {
   fullName: string;
@@ -81,6 +84,15 @@ export default function UserFormDialog({
       : emptyForm,
   );
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const passwordHintId = useId();
+  const hasPasswordError = submitError === passwordRequirement;
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open && isSubmitting) return;
+    if (!open) setShowPassword(false);
+    onOpenChange(open);
+  };
 
   const setField = <TField extends keyof UserFormValues>(
     field: TField,
@@ -109,6 +121,14 @@ export default function UserFormDialog({
       }
     }
 
+    if (
+      form.password &&
+      (form.password.length < 6 || form.password.length > 128)
+    ) {
+      setSubmitError(passwordRequirement);
+      return;
+    }
+
     try {
       if (isEdit) {
         await onUpdate({
@@ -123,6 +143,7 @@ export default function UserFormDialog({
           role: form.role,
         });
       }
+      setShowPassword(false);
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "Không thể lưu người dùng.",
@@ -134,9 +155,7 @@ export default function UserFormDialog({
     <Backdrop
       isDismissable={!isSubmitting}
       isOpen={isOpen}
-      onOpenChange={(open) => {
-        if (open || !isSubmitting) onOpenChange(open);
-      }}
+      onOpenChange={handleOpenChange}
     >
       <AriaModal className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 max-sm:max-w-[calc(100%-2rem)]">
         <AriaDialog
@@ -197,28 +216,60 @@ export default function UserFormDialog({
                     />
                   </CreateDialogField>
                 )}
-                <CreateDialogField
-                  className={isEdit ? "sm:col-span-2" : undefined}
-                  label={
-                    isEdit
-                      ? "Mật khẩu mới (để trống nếu giữ nguyên)"
-                      : "Mật khẩu"
-                  }
-                  required={!isEdit}
-                >
-                  <CreateDialogInput
-                    label="Mật khẩu"
-                    placeholder={isEdit ? "Để trống nếu không đổi" : ""}
-                    type="password"
-                    value={form.password}
-                    onChange={(event) =>
-                      setField("password", event.target.value)
-                    }
-                  />
-                </CreateDialogField>
+                <div className={isEdit ? "sm:col-span-2" : undefined}>
+                  <div className="relative">
+                    <CreateDialogField
+                      label={
+                        isEdit
+                          ? "Mật khẩu mới (để trống nếu giữ nguyên)"
+                          : "Mật khẩu"
+                      }
+                      required={!isEdit}
+                    >
+                      <CreateDialogInput
+                        aria-describedby={passwordHintId}
+                        autoComplete="new-password"
+                        className="pr-11"
+                        label="Mật khẩu"
+                        placeholder={isEdit ? "Để trống nếu không đổi" : ""}
+                        type={showPassword ? "text" : "password"}
+                        value={form.password}
+                        onChange={(event) =>
+                          setField("password", event.target.value)
+                        }
+                      />
+                    </CreateDialogField>
+                    <Button
+                      appearance="ghost"
+                      aria-label={
+                        showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                      }
+                      aria-pressed={showPassword}
+                      className="absolute right-1 bottom-1 size-8 text-text-tertiary"
+                      iconOnly
+                      isDisabled={isSubmitting}
+                      onPress={() => setShowPassword((visible) => !visible)}
+                      size="sm"
+                      type="button"
+                    >
+                      {showPassword ? (
+                        <EyeDisabled aria-hidden="true" />
+                      ) : (
+                        <Eye aria-hidden="true" />
+                      )}
+                    </Button>
+                  </div>
+                  <p
+                    id={passwordHintId}
+                    className={`mt-1.5 text-xs ${hasPasswordError ? "text-error-600" : "text-text-tertiary"}`}
+                    role={hasPasswordError ? "alert" : undefined}
+                  >
+                    {passwordRequirement}
+                  </p>
+                </div>
               </div>
 
-              {submitError && (
+              {submitError && !hasPasswordError && (
                 <p className="text-xs text-error-600" role="alert">
                   {submitError}
                 </p>
@@ -229,7 +280,7 @@ export default function UserFormDialog({
               <Button
                 appearance="outline"
                 isDisabled={isSubmitting}
-                onPress={() => onOpenChange(false)}
+                onPress={() => handleOpenChange(false)}
                 size="sm"
                 type="button"
               >

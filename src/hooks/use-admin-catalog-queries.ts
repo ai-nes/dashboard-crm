@@ -131,7 +131,12 @@ export function useAdmissionOfferingsQuery(
 }
 
 export function useScoreTemplatesQuery(
-  options: { search?: string; start?: number; pageLength?: number } = {},
+  options: {
+    search?: string;
+    start?: number;
+    pageLength?: number;
+    enabled?: boolean;
+  } = {},
 ) {
   const search = options.search?.trim() ?? "";
   return useQuery({
@@ -146,6 +151,7 @@ export function useScoreTemplatesQuery(
         start: options.start,
         pageLength: options.pageLength,
       }),
+    enabled: options.enabled,
     staleTime: 30_000,
   });
 }
@@ -360,10 +366,13 @@ export function useProposeGovernedChangeMutation() {
 export function useApproveGovernedChangeMutation() {
   return useAdminCatalogMutation((name: string) => approveGovernedChange(name));
 }
-export function useScoreTemplateDetailQuery(name: string | null) {
+export function useScoreTemplateDetailQuery(
+  name: string | null,
+  enabled = true,
+) {
   return useQuery({
     queryKey: ["admin-catalog", "score-detail", name],
     queryFn: () => getScoreTemplate(name!),
-    enabled: Boolean(name),
+    enabled: Boolean(name) && enabled,
   });
 }

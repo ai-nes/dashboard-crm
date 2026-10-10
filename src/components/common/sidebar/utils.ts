@@ -1,6 +1,11 @@
 import { NAV_DATA } from "./data";
 import type { NavigationItem, NavigationSection } from "./data";
-import { getEffectiveDashboardRoles } from "../auth/rbac";
+import {
+  getDefaultRouteForRoles,
+  getEffectiveDashboardRoles,
+} from "../auth/rbac";
+import { canReadCrmPath } from "../auth/permissions";
+import type { CurrentUser } from "@/services/api/auth";
 
 /**
  * Checks if the current pathname matches the target href, or if the pathname is a subpath of the target href.=
@@ -53,6 +58,29 @@ function hasRoleAccess(
   userRoles: readonly string[],
 ): boolean {
   return itemRoles.some((role) => userRoles.includes(role));
+}
+
+export function filterNavigationByPermissions(
+  navigation: NavigationSection[],
+  user: CurrentUser | null | undefined,
+): NavigationSection[] {
+  const filterItems = (items: NavigationItem[]): NavigationItem[] =>
+    items.flatMap((item) => {
+      const children = item.items ? filterItems(item.items) : undefined;
+      if (item.items && !children?.length) return [];
+      if (
+        item.url &&
+        !canReadCrmPath(
+          item.url === "/" ? getDefaultRouteForRoles(user?.roles) : item.url,
+          user,
+        )
+      )
+        return [];
+      return [{ ...item, items: children }];
+    });
+  return navigation
+    .map((section) => ({ ...section, items: filterItems(section.items) }))
+    .filter((section) => section.items.length > 0);
 }
 
 export function filterNavigationByRoles(

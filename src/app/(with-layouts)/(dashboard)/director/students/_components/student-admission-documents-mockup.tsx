@@ -29,8 +29,10 @@ import type {
 import StudentEnglishCertificateFields from "./student-english-certificate-fields";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
+  canAccessStudent,
   getCrmPermissions,
   canPerformStudentAction,
+  getCrmDoctypePermissions,
 } from "@/components/common/auth/permissions";
 import StudentCardHeader from "./student-card-header";
 import type { Student360SectionProps } from "./types";
@@ -123,12 +125,32 @@ export default function StudentAdmissionDocumentsMockup({
     string | null
   >(null);
   const { user } = useAuth();
-  const canEdit = canPerformStudentAction(
-    getCrmPermissions(user).student,
-    "update",
-    { owner: data.student.counselor, ownerId: data.student.ownerId },
+  const studentPermissions = getCrmPermissions(user).student;
+  const studentOwnership = {
+    owner: data.student.counselor,
+    ownerId: data.student.ownerId,
+  };
+  const canReadStudent = canAccessStudent(
+    studentPermissions,
+    studentOwnership,
     user,
   );
+  const canEdit = canPerformStudentAction(
+    studentPermissions,
+    "update",
+    studentOwnership,
+    user,
+  );
+  const canReadAdmissionProfile = getCrmDoctypePermissions(
+    user,
+    "CRM Student Admission Profile",
+  ).canRead;
+  const canCreateStudentDocument = getCrmDoctypePermissions(
+    user,
+    "CRM Student Document",
+  ).canCreate;
+  const canUploadDocument =
+    canReadStudent && canReadAdmissionProfile && canCreateStudentDocument;
   const certificateFields = (
     <StudentEnglishCertificateFields
       key={data.student.studentId || data.student.code}
@@ -155,7 +177,7 @@ export default function StudentAdmissionDocumentsMockup({
   });
 
   const handleUpload: DocumentUploadHandler = async (requirement, file) => {
-    if (!profile || !canEdit) return;
+    if (!profile || !canUploadDocument) return;
     setUploadingDocumentType(requirement.documentType);
     try {
       await uploadMutation.mutateAsync({ requirement, file });
@@ -182,14 +204,18 @@ export default function StudentAdmissionDocumentsMockup({
         title="Thủ tục và Hồ sơ Nhập học"
       />
 
-      {!profile ? (
+      {!canReadAdmissionProfile ? (
+        <p className="rounded-lg border border-card-border bg-background-gray-secondary p-4 text-sm text-text-secondary">
+          Bạn không có quyền xem hồ sơ nhập học.
+        </p>
+      ) : !profile ? (
         <EmptyAdmissionProfile />
       ) : (
         <>
           <AdmissionProfileChecklist
             certificateFields={certificateFields}
             isUploading={uploadingDocumentType}
-            onUpload={canEdit ? handleUpload : undefined}
+            onUpload={canUploadDocument ? handleUpload : undefined}
             profile={profile}
           />
         </>

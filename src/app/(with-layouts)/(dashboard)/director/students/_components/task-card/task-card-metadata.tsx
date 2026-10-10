@@ -22,6 +22,7 @@ interface TaskCardMetadataProps {
   onDraftDueDateChange: (value: string) => void;
   onDraftDueTimeChange: (value: string) => void;
   onStartRescheduling: () => void;
+  canEdit?: boolean;
 }
 
 export default function TaskCardMetadata({
@@ -33,14 +34,16 @@ export default function TaskCardMetadata({
   onDraftDueDateChange,
   onDraftDueTimeChange,
   onStartRescheduling,
+  canEdit = true,
 }: TaskCardMetadataProps) {
+  const editable = canEdit && isRescheduling;
   return (
     <section
       aria-label="Thông tin task"
       className="grid gap-4 rounded-xl border border-border-primary bg-card-surface-area p-3 sm:grid-cols-2"
     >
       <MetadataBlock>
-        {isRescheduling ? (
+        {editable ? (
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1.25fr)_minmax(7rem,0.75fr)]">
             <DatePickerField
               ariaLabel="Hạn xử lý"
@@ -79,17 +82,19 @@ export default function TaskCardMetadata({
               aria-hidden="true"
             />
             <div className="group relative min-w-0 pr-8">
-              <Button
-                iconOnly
-                size="xs"
-                variant="ghost"
-                appearance="ghost"
-                aria-label="Đổi lịch xử lý"
-                className="absolute top-0 right-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-                onPress={onStartRescheduling}
-              >
-                <Pencil1 size={14} aria-hidden="true" />
-              </Button>
+              {canEdit ? (
+                <Button
+                  iconOnly
+                  size="xs"
+                  variant="ghost"
+                  appearance="ghost"
+                  aria-label="Đổi lịch xử lý"
+                  className="absolute top-0 right-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                  onPress={onStartRescheduling}
+                >
+                  <Pencil1 size={14} aria-hidden="true" />
+                </Button>
+              ) : null}
               <p className="text-base leading-6 font-semibold text-text-primary">
                 {task.dueDate ? formatTaskDeadline(task) : "Chưa đặt hạn"}
               </p>
@@ -107,7 +112,7 @@ export default function TaskCardMetadata({
               >
                 {deadlineStatus.detail}
               </p>
-              {!task.dueDate ? (
+              {!task.dueDate && canEdit ? (
                 <Button
                   variant="ghost"
                   appearance="ghost"

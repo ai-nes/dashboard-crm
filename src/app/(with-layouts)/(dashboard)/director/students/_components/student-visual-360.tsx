@@ -13,6 +13,7 @@ import {
 
 interface StudentVisual360Props {
   canRead: boolean;
+  canReadInteractions?: boolean;
   data: Student360Data;
   report: AnalysisReport | null;
   scoreBreakdown?: StudentScoreBreakdown | null;
@@ -22,6 +23,7 @@ interface StudentVisual360Props {
 
 export default function StudentVisual360({
   canRead,
+  canReadInteractions = false,
   data,
   report,
   scoreBreakdown,
@@ -71,6 +73,7 @@ export default function StudentVisual360({
             scoreBreakdown={scoreBreakdown}
             isLoading={isLoading}
             hasError={hasError}
+            canReadInteractions={canReadInteractions}
           />
         </div>
       </div>

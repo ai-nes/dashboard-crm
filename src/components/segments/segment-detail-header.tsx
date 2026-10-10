@@ -23,7 +23,8 @@ interface SegmentDetailHeaderProps {
   segment: SegmentListItem;
   createdAt: string;
   backHref: string;
-  canManage: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
   isAdmin?: boolean;
   onEdit: () => void;
   onDelete: () => void;
@@ -33,7 +34,8 @@ export function SegmentDetailHeader({
   segment,
   createdAt,
   backHref,
-  canManage,
+  canUpdate,
+  canDelete,
   isAdmin = false,
   onEdit,
   onDelete,
@@ -47,7 +49,7 @@ export function SegmentDetailHeader({
           segment.description ||
           "Chi tiết nhóm học sinh được sử dụng trong quy trình tuyển sinh."
         }
-        canEdit={canManage}
+        canEdit={canUpdate || canDelete}
         before={
           <Link
             href={backHref}
@@ -77,13 +79,13 @@ export function SegmentDetailHeader({
           </div>
         }
         actions={
-          canManage ? (
+          canUpdate || canDelete ? (
             <>
-              <Button size="md" onPress={onEdit}>
+              {canUpdate && <Button size="md" onPress={onEdit}>
                 <Pencil1 size={16} aria-hidden="true" />
                 Chỉnh sửa
-              </Button>
-              <Button
+              </Button>}
+              {canDelete && <Button
                 size="md"
                 variant="danger"
                 appearance="outline"
@@ -91,7 +93,7 @@ export function SegmentDetailHeader({
               >
                 <Trash1 size={16} aria-hidden="true" />
                 Xóa
-              </Button>
+              </Button>}
             </>
           ) : null
         }
@@ -155,13 +157,13 @@ export function SegmentDetailHeader({
             </span>
           </div>
         </div>
-        {canManage && (
+        {(canUpdate || canDelete) && (
           <div className="flex shrink-0 items-center gap-2">
-            <Button size="md" onPress={onEdit}>
+            {canUpdate && <Button size="md" onPress={onEdit}>
               <Pencil1 size={16} aria-hidden="true" />
               Chỉnh sửa
-            </Button>
-            <Button
+            </Button>}
+            {canDelete && <Button
               size="md"
               variant="danger"
               appearance="outline"
@@ -169,7 +171,7 @@ export function SegmentDetailHeader({
             >
               <Trash1 size={16} aria-hidden="true" />
               Xóa
-            </Button>
+            </Button>}
           </div>
         )}
       </div>

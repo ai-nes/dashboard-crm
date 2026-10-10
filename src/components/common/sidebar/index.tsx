@@ -8,12 +8,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Key } from "react-aria-components";
-import { getDefaultRouteForRoles } from "../auth/rbac";
+import { getCrmHomePath } from "../auth/permissions";
 import { getNavigationDataForRoles } from "./data";
 import { CloseIcon, SidebarExpandedIcon, ThreeDots } from "./icon";
 import NavItem from "./nav-item";
 import {
   filterNavigationByRoles,
+  filterNavigationByPermissions,
   findActiveGroupKeyInNavigation,
 } from "./utils";
 
@@ -33,10 +34,16 @@ export default function Sidebar({
   const userRoles = useMemo(() => user?.roles ?? [], [user?.roles]);
   const visibleNavData = useMemo(
     () =>
-      filterNavigationByRoles(getNavigationDataForRoles(userRoles), userRoles),
-    [userRoles],
+      filterNavigationByPermissions(
+        filterNavigationByRoles(
+          getNavigationDataForRoles(userRoles),
+          userRoles,
+        ),
+        user,
+      ),
+    [user, userRoles],
   );
-  const homeHref = user ? getDefaultRouteForRoles(user.roles) : "/";
+  const homeHref = getCrmHomePath(user);
 
   // Compute which group should be open based on the current route
   const activeGroupKey = useMemo(

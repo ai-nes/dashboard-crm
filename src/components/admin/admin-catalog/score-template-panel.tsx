@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
 import { ConfirmDialog } from "@/components/common/delete-record-dialog";
 import {
   useDeleteScoreTemplateMutation,
@@ -26,11 +27,31 @@ import {
   StatusBadge,
   Table,
 } from "./admin-catalog-ui";
+import { getScoreTemplatePermissions } from "./score-template-permissions";
 
 const PAGE_SIZE = 10;
 const SCORE_TEMPLATE_LIST_PATH = "/director/admin/catalogs";
 
 export default function ScoreTemplatePanel() {
+  const { user } = useAuth();
+  const permissions = getScoreTemplatePermissions(user);
+
+  if (!permissions.canRead) {
+    return (
+      <section className="rounded-xl border border-card-border bg-card-background p-6 text-sm text-text-secondary">
+        Bạn không có quyền xem Score Template.
+      </section>
+    );
+  }
+
+  return <ScoreTemplatePanelContent permissions={permissions} />;
+}
+
+function ScoreTemplatePanelContent({
+  permissions,
+}: {
+  permissions: ReturnType<typeof getScoreTemplatePermissions>;
+}) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -41,6 +62,7 @@ export default function ScoreTemplatePanel() {
     search,
     start: (page - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
+    enabled: permissions.canRead,
   });
   const remove = useDeleteScoreTemplateMutation();
 
@@ -51,7 +73,7 @@ export default function ScoreTemplatePanel() {
   };
 
   const confirmDelete = async () => {
-    if (!pendingDelete) return;
+    if (!permissions.canDelete || !pendingDelete) return;
     try {
       await remove.mutateAsync({
         name: pendingDelete.name,
@@ -81,11 +103,15 @@ export default function ScoreTemplatePanel() {
           total={query.data?.total ?? 0}
           placeholder="Tìm theo tên Score Template…"
           actions={
-            <PanelHeaderActions
-              createLabel="Thêm template"
-              isDisabled={remove.isPending}
-              onCreate={() => router.push(`${SCORE_TEMPLATE_LIST_PATH}/new`)}
-            />
+            permissions.canCreate ? (
+              <PanelHeaderActions
+                createLabel="Thêm template"
+                isDisabled={remove.isPending}
+                onCreate={() =>
+                  router.push(`${SCORE_TEMPLATE_LIST_PATH}/new`)
+                }
+              />
+            ) : null
           }
         />
       }
@@ -154,8 +180,12 @@ export default function ScoreTemplatePanel() {
                   <td className="px-3 py-3">
                     <RowActions
                       isDisabled={remove.isPending}
-                      onEdit={() => openTemplate(template)}
-                      onDelete={() => setPendingDelete(template)}
+                      onEdit={permissions.canUpdate
+                        ? () => openTemplate(template)
+                        : undefined}
+                      onDelete={permissions.canDelete
+                        ? () => setPendingDelete(template)
+                        : undefined}
                     />
                   </td>
                 </tr>
@@ -178,7 +208,7 @@ export default function ScoreTemplatePanel() {
         )}
       </div>
       <ConfirmDialog
-        isOpen={Boolean(pendingDelete)}
+        isOpen={Boolean(pendingDelete && permissions.canDelete)}
         ariaLabel="Xác nhận xóa Score Template"
         title={`Xóa ${pendingDelete?.template_name ?? "template"}?`}
         description="Chỉ xóa template không còn được tham chiếu bởi nghiệp vụ chấm điểm."

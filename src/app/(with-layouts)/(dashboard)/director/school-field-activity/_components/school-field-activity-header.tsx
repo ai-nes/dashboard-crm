@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight } from "@tailgrids/icons";
-import Link from "next/link";
+import { CrmPermissionLink as Link } from "@/components/common/auth/crm-permission-link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card } from "@/components/tailgrids/core/card";
@@ -11,8 +11,15 @@ interface SchoolFieldActivityHeaderProps {
   meta: FieldActivityMeta;
 }
 
-export default function SchoolFieldActivityHeader({ meta }: SchoolFieldActivityHeaderProps) {
-  const statusLabel = meta.status === "available" ? "Dữ liệu CRM" : meta.status === "partial" ? "Dữ liệu một phần" : "Chưa có dữ liệu";
+export default function SchoolFieldActivityHeader({
+  meta,
+}: SchoolFieldActivityHeaderProps) {
+  const statusLabel =
+    meta.status === "available"
+      ? "Dữ liệu CRM"
+      : meta.status === "partial"
+        ? "Dữ liệu một phần"
+        : "Chưa có dữ liệu";
 
   return (
     <header>
@@ -20,13 +27,16 @@ export default function SchoolFieldActivityHeader({ meta }: SchoolFieldActivityH
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge color="primary">M-11 · Hoạt động thực địa</Badge>
-            <span className="text-xs text-text-tertiary">{statusLabel} · Kỳ tuyển sinh {meta.admissionYear}</span>
+            <span className="text-xs text-text-tertiary">
+              {statusLabel} · Kỳ tuyển sinh {meta.admissionYear}
+            </span>
           </div>
           <h1 className="mt-3 text-balance text-[28px] leading-8 font-semibold tracking-[-0.4px] text-text-primary">
             Hoạt động trường & thực địa
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
-            Theo dõi hoạt động đã triển khai, kết quả thu được và phần cần cải thiện.
+            Theo dõi hoạt động đã triển khai, kết quả thu được và phần cần cải
+            thiện.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

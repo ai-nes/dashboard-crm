@@ -48,6 +48,9 @@ import type {
   SchoolOption,
   WardOption,
 } from "@/services/api/reference-catalog";
+import type {
+  MajorCatalogPermissions,
+} from "./student-configuration-permissions";
 
 import { AdmissionCatalogPanel } from "./admission-catalog-panel";
 import { CatalogOrderingPanel } from "./catalog-ordering-panel";
@@ -77,16 +80,34 @@ function statusValue(status: StatusFilter): boolean | undefined {
 }
 
 export function GeographyCatalogManagement({
-  canManage,
+  permissions,
   enabled,
 }: {
-  canManage: boolean;
+  permissions: MajorCatalogPermissions;
   enabled: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<GeoTab>("provinces");
   const [wardPrefill, setWardPrefill] = useState<ProvinceOption | null>(null);
-  const optionsQuery = useGeographyOptionsQuery({ enabled });
-  const options = optionsQuery.data;
+  const canReadOptions =
+    permissions.provinces.canRead ||
+    permissions.wards.canRead ||
+    permissions.highSchools.canRead ||
+    permissions.schoolAreas.canRead;
+  const optionsQuery = useGeographyOptionsQuery({
+    enabled: enabled && canReadOptions,
+  });
+  const options = optionsQuery.data
+    ? {
+        ...optionsQuery.data,
+        provinces: permissions.provinces.canRead
+          ? optionsQuery.data.provinces
+          : [],
+        wards: permissions.wards.canRead ? optionsQuery.data.wards : [],
+        schoolAreas: permissions.schoolAreas.canRead
+          ? optionsQuery.data.schoolAreas
+          : [],
+      }
+    : undefined;
   const openWardForProvince = useCallback((province: ProvinceOption) => {
     setWardPrefill(province);
     setActiveTab("wards");
@@ -108,55 +129,76 @@ export function GeographyCatalogManagement({
         <TabTrigger value="areas">Khu vực trường</TabTrigger>
       </TabList>
       <TabContent value="provinces" className="min-h-0 flex-1 overflow-hidden p-0">
-        {activeTab === "provinces" && (
-          <ProvinceCatalogPanel
-            canManage={canManage}
-            enabled={enabled}
-            regions={options?.regions ?? []}
-            onCreateWardForProvince={openWardForProvince}
-          />
-        )}
+        {activeTab === "provinces" &&
+          (permissions.provinces.canRead ? (
+            <ProvinceCatalogPanel
+              permissions={permissions.provinces}
+              canCreateWard={permissions.wards.canCreate}
+              enabled={enabled}
+              regions={options?.regions ?? []}
+              onCreateWardForProvince={openWardForProvince}
+            />
+          ) : (
+            <CatalogReadDenied label="Tỉnh/thành" />
+          ))}
       </TabContent>
       <TabContent value="wards" className="min-h-0 flex-1 overflow-hidden p-0">
-        {activeTab === "wards" && (
-          <WardCatalogPanel
-            canManage={canManage}
-            enabled={enabled}
-            options={options}
-            initialProvince={wardPrefill}
-            onInitialProvinceHandled={clearWardPrefill}
-          />
-        )}
+        {activeTab === "wards" &&
+          (permissions.wards.canRead ? (
+            <WardCatalogPanel
+              permissions={permissions.wards}
+              enabled={enabled}
+              options={options}
+              initialProvince={wardPrefill}
+              onInitialProvinceHandled={clearWardPrefill}
+            />
+          ) : (
+            <CatalogReadDenied label="Xã/phường" />
+          ))}
       </TabContent>
       <TabContent value="schools" className="min-h-0 flex-1 overflow-hidden p-0">
-        {activeTab === "schools" && (
-          <SchoolCatalogPanel
-            canManage={canManage}
-            enabled={enabled}
-            options={options}
-          />
-        )}
+        {activeTab === "schools" &&
+          (permissions.highSchools.canRead ? (
+            <SchoolCatalogPanel
+              permissions={permissions.highSchools}
+              enabled={enabled}
+              options={options}
+            />
+          ) : (
+            <CatalogReadDenied label="Trường THPT" />
+          ))}
       </TabContent>
       <TabContent value="areas" className="min-h-0 flex-1 overflow-hidden p-0">
-        {activeTab === "areas" && (
-          <SchoolAreaCatalogPanel canManage={canManage} enabled={enabled} />
-        )}
+        {activeTab === "areas" &&
+          (permissions.schoolAreas.canRead ? (
+            <SchoolAreaCatalogPanel
+              permissions={permissions.schoolAreas}
+              enabled={enabled}
+            />
+          ) : (
+            <CatalogReadDenied label="Khu vực trường" />
+          ))}
       </TabContent>
     </TabRoot>
   );
 }
 
 function ProvinceCatalogPanel({
-  canManage,
+  permissions,
+  canCreateWard,
   enabled,
   regions,
   onCreateWardForProvince,
 }: {
-  canManage: boolean;
+  permissions: MajorCatalogPermissions["provinces"];
+  canCreateWard: boolean;
   enabled: boolean;
   regions: GeographyOptions["regions"];
   onCreateWardForProvince: (province: ProvinceOption) => void;
 }) {
+  const canCreate = permissions.canCreate;
+  const canUpdate = permissions.canUpdate;
+  const canDelete = permissions.canDelete;
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [page, setPage] = useState(1);
@@ -168,24 +210,26 @@ function ProvinceCatalogPanel({
     search: deferredSearch,
     start: (page - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
-    enabled,
+    enabled: enabled && permissions.canRead,
   });
   const deleteMutation = useDeleteProvinceMutation();
   const rows = query.data?.provinces ?? [];
   const total = query.data?.total ?? rows.length;
 
   const openCreate = () => {
+    if (!canCreate) return;
     setSelected(null);
     setEditorKey((current) => current + 1);
     setEditorOpen(true);
   };
   const openEdit = (record: ProvinceOption) => {
+    if (!canUpdate) return;
     setSelected(record);
     setEditorKey((current) => current + 1);
     setEditorOpen(true);
   };
   const confirmDelete = async () => {
-    if (!toDelete) return;
+    if (!canDelete || !toDelete) return;
     try {
       await deleteMutation.mutateAsync({
         name: toDelete.id,
@@ -207,7 +251,7 @@ function ProvinceCatalogPanel({
         showHeader={false}
         count={total}
         countLabel="tỉnh/thành"
-        canManage={canManage}
+        canCreate={canCreate}
         createLabel="Thêm tỉnh/thành"
         onCreate={openCreate}
         isBusy={query.isPending || deleteMutation.isPending}
@@ -221,14 +265,16 @@ function ProvinceCatalogPanel({
           }}
           searchPlaceholder="Tìm mã hoặc tên tỉnh/thành"
           searchLabel="Tìm tỉnh/thành"
-          actions={canManage ? (
+          actions={canCreate ? (
             <Button size="sm" onPress={openCreate}>
               <Plus size={16} aria-hidden="true" />
               Thêm tỉnh/thành
             </Button>
           ) : undefined}
         />
-        {query.isPending ? (
+        {!permissions.canRead ? (
+          <CatalogReadDenied label="Tỉnh/thành" />
+        ) : query.isPending ? (
           <CatalogLoading label="Đang tải tỉnh/thành..." />
         ) : query.error ? (
           <CatalogError
@@ -239,7 +285,7 @@ function ProvinceCatalogPanel({
           <CatalogEmpty
             title={search.trim() ? "Không tìm thấy tỉnh/thành" : "Chưa có tỉnh/thành"}
             description={search.trim() ? "Thử đổi từ khóa tìm kiếm." : "Tạo tỉnh/thành đầu tiên để bắt đầu."}
-            action={!search.trim() && canManage ? openCreate : undefined}
+            action={!search.trim() && canCreate ? openCreate : undefined}
             actionLabel="Thêm tỉnh/thành"
           />
         ) : (
@@ -268,7 +314,8 @@ function ProvinceCatalogPanel({
                   </TableCell>
                   <TableCell className="align-top">
                     <CatalogActions
-                      canManage={canManage}
+                      canUpdate={canUpdate}
+                      canDelete={canDelete}
                       recordName={row.name}
                       onEdit={() => openEdit(row)}
                       onDelete={() => setToDelete(row)}
@@ -288,17 +335,18 @@ function ProvinceCatalogPanel({
       </AdmissionCatalogPanel>
       <ProvinceEditorDialog
         key={`province-${editorKey}`}
-        isOpen={editorOpen}
+        isOpen={editorOpen && (selected ? canUpdate : canCreate)}
         record={selected}
+        canSave={selected ? canUpdate : canCreate}
         regions={regions}
-        onCreated={onCreateWardForProvince}
+        onCreated={canCreateWard ? onCreateWardForProvince : undefined}
         onOpenChange={(open) => {
           setEditorOpen(open);
           if (!open) setSelected(null);
         }}
       />
       <DeleteRecordDialog
-        isOpen={Boolean(toDelete)}
+        isOpen={Boolean(toDelete && canDelete)}
         recordType="tỉnh/thành"
         recordName={toDelete?.name ?? ""}
         isDeleting={deleteMutation.isPending}
@@ -316,18 +364,21 @@ function ProvinceCatalogPanel({
 }
 
 function WardCatalogPanel({
-  canManage,
+  permissions,
   enabled,
   options,
   initialProvince,
   onInitialProvinceHandled,
 }: {
-  canManage: boolean;
+  permissions: MajorCatalogPermissions["wards"];
   enabled: boolean;
   options?: GeographyOptions;
   initialProvince: ProvinceOption | null;
   onInitialProvinceHandled: () => void;
 }) {
+  const canCreate = permissions.canCreate;
+  const canUpdate = permissions.canUpdate;
+  const canDelete = permissions.canDelete;
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [province, setProvince] = useState(initialProvince?.id ?? "all");
@@ -343,7 +394,7 @@ function WardCatalogPanel({
     province: province === "all" ? undefined : province,
     start: (page - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
-    enabled,
+    enabled: enabled && permissions.canRead,
   });
   const deleteMutation = useDeleteWardMutation();
   const rows = query.data?.wards ?? [];
@@ -353,13 +404,14 @@ function WardCatalogPanel({
     ? [editorProvince, ...availableProvinces]
     : availableProvinces;
   const openEditor = useCallback((record: WardOption | null, preferredProvince?: string) => {
+    if (record ? !canUpdate : !canCreate) return;
     setSelected(record);
     setEditorInitialProvince(preferredProvince);
     setEditorKey((current) => current + 1);
     setEditorOpen(true);
-  }, []);
+  }, [canCreate, canUpdate]);
   const confirmDelete = async () => {
-    if (!toDelete) return;
+    if (!canDelete || !toDelete) return;
     try {
       await deleteMutation.mutateAsync({ name: toDelete.id, expectedModified: toDelete.modified });
       toast.success(`Đã xóa ${toDelete.name}.`);
@@ -378,7 +430,7 @@ function WardCatalogPanel({
         showHeader={false}
         count={total}
         countLabel="xã/phường"
-        canManage={canManage}
+        canCreate={canCreate}
         createLabel="Thêm xã/phường"
         onCreate={() => openEditor(null, province === "all" ? undefined : province)}
         isBusy={query.isPending || deleteMutation.isPending}
@@ -392,7 +444,7 @@ function WardCatalogPanel({
           }}
           searchPlaceholder="Tìm mã hoặc tên xã/phường"
           searchLabel="Tìm xã/phường"
-          actions={canManage ? (
+          actions={canCreate ? (
             <Button size="sm" onPress={() => openEditor(null, province === "all" ? undefined : province)}>
               <Plus size={16} aria-hidden="true" />
               Thêm xã/phường
@@ -420,7 +472,9 @@ function WardCatalogPanel({
             </SelectContent>
           </Select>
         </CatalogToolbar>
-        {query.isPending ? (
+        {!permissions.canRead ? (
+          <CatalogReadDenied label="Xã/phường" />
+        ) : query.isPending ? (
           <CatalogLoading label="Đang tải xã/phường..." />
         ) : query.error ? (
           <CatalogError message={errorMessage(query.error, "Không thể tải xã/phường.")} onRetry={() => void query.refetch()} />
@@ -428,7 +482,7 @@ function WardCatalogPanel({
           <CatalogEmpty
             title={search.trim() || province !== "all" ? "Không tìm thấy xã/phường" : "Chưa có xã/phường"}
             description={search.trim() || province !== "all" ? "Thử đổi bộ lọc hoặc từ khóa." : "Tạo xã/phường đầu tiên cho một tỉnh/thành."}
-            action={!search.trim() && canManage ? () => openEditor(null, province === "all" ? undefined : province) : undefined}
+            action={!search.trim() && canCreate ? () => openEditor(null, province === "all" ? undefined : province) : undefined}
             actionLabel="Thêm xã/phường"
           />
         ) : (
@@ -450,7 +504,7 @@ function WardCatalogPanel({
                   <TableCell className="align-top text-sm text-text-secondary">{row.wardType === "Commune" ? "Xã" : row.wardType === "Township" ? "Thị trấn" : "Phường"}</TableCell>
                   <TableCell className="align-top text-sm text-text-secondary">{row.provinceName || "Chưa xác định"}</TableCell>
                   <TableCell className="align-top">
-                    <CatalogActions canManage={canManage} recordName={row.name} onEdit={() => openEditor(row)} onDelete={() => setToDelete(row)} />
+                    <CatalogActions canUpdate={canUpdate} canDelete={canDelete} recordName={row.name} onEdit={() => openEditor(row)} onDelete={() => canDelete && setToDelete(row)} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -461,8 +515,9 @@ function WardCatalogPanel({
       </AdmissionCatalogPanel>
       <WardEditorDialog
         key={`ward-${editorKey}`}
-        isOpen={editorOpen}
+        isOpen={editorOpen && (selected ? canUpdate : canCreate)}
         record={selected}
+        canSave={selected ? canUpdate : canCreate}
         provinces={dialogProvinces}
         initialProvince={editorInitialProvince}
         onOpenChange={(open) => {
@@ -476,7 +531,7 @@ function WardCatalogPanel({
         }}
       />
       <DeleteRecordDialog
-        isOpen={Boolean(toDelete)}
+        isOpen={Boolean(toDelete && canDelete)}
         recordType="xã/phường"
         recordName={toDelete?.name ?? ""}
         isDeleting={deleteMutation.isPending}
@@ -490,14 +545,17 @@ function WardCatalogPanel({
 }
 
 function SchoolCatalogPanel({
-  canManage,
+  permissions,
   enabled,
   options,
 }: {
-  canManage: boolean;
+  permissions: MajorCatalogPermissions["highSchools"];
   enabled: boolean;
   options?: GeographyOptions;
 }) {
+  const canCreate = permissions.canCreate;
+  const canUpdate = permissions.canUpdate;
+  const canDelete = permissions.canDelete;
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [province, setProvince] = useState("all");
@@ -515,18 +573,19 @@ function SchoolCatalogPanel({
     isActive: statusValue(status),
     start: (page - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
-    enabled,
+    enabled: enabled && permissions.canRead,
   });
   const deleteMutation = useDeleteSchoolMutation();
   const rows = query.data?.schools ?? [];
   const total = query.data?.total ?? rows.length;
   const openEditor = (record: SchoolOption | null) => {
+    if (record ? !canUpdate : !canCreate) return;
     setSelected(record);
     setEditorKey((current) => current + 1);
     setEditorOpen(true);
   };
   const confirmDelete = async () => {
-    if (!toDelete) return;
+    if (!canDelete || !toDelete) return;
     try {
       await deleteMutation.mutateAsync({ name: toDelete.id, expectedModified: toDelete.modified });
       toast.success(`Đã xóa ${toDelete.name}.`);
@@ -545,7 +604,7 @@ function SchoolCatalogPanel({
         showHeader={false}
         count={total}
         countLabel="trường"
-        canManage={canManage}
+        canCreate={canCreate}
         createLabel="Thêm trường"
         onCreate={() => openEditor(null)}
         isBusy={query.isPending || deleteMutation.isPending}
@@ -565,7 +624,7 @@ function SchoolCatalogPanel({
             setPage(1);
           }}
           statusLabelText="Lọc trạng thái trường"
-          actions={canManage ? (
+          actions={canCreate ? (
             <Button size="sm" onPress={() => openEditor(null)}>
               <Plus size={16} aria-hidden="true" />
               Thêm trường
@@ -603,7 +662,9 @@ function SchoolCatalogPanel({
             </SelectContent>
           </Select>
         </CatalogToolbar>
-        {query.isPending ? (
+        {!permissions.canRead ? (
+          <CatalogReadDenied label="Trường THPT" />
+        ) : query.isPending ? (
           <CatalogLoading label="Đang tải trường học..." />
         ) : query.error ? (
           <CatalogError message={errorMessage(query.error, "Không thể tải trường học.")} onRetry={() => void query.refetch()} />
@@ -611,7 +672,7 @@ function SchoolCatalogPanel({
           <CatalogEmpty
             title={search.trim() || province !== "all" || area !== "all" || status !== "all" ? "Không tìm thấy trường phù hợp" : "Chưa có trường học"}
             description={search.trim() || province !== "all" || area !== "all" || status !== "all" ? "Thử đổi bộ lọc hoặc từ khóa." : "Tạo trường đầu tiên để hoàn thiện danh bạ."}
-            action={!search.trim() && province === "all" && area === "all" && status === "all" && canManage ? () => openEditor(null) : undefined}
+            action={!search.trim() && province === "all" && area === "all" && status === "all" && canCreate ? () => openEditor(null) : undefined}
             actionLabel="Thêm trường"
           />
         ) : (
@@ -636,7 +697,7 @@ function SchoolCatalogPanel({
                   <TableCell className="align-top text-sm text-text-secondary">{row.wardName || row.ward}</TableCell>
                   <TableCell className="align-top text-sm text-text-secondary">{row.schoolAreaName || "Chưa phân khu vực"}</TableCell>
                   <TableCell className="align-top text-sm text-text-secondary">{row.isActive ? "Đang dùng" : "Đã tắt"}</TableCell>
-                  <TableCell className="align-top"><CatalogActions canManage={canManage} recordName={row.name} onEdit={() => openEditor(row)} onDelete={() => setToDelete(row)} /></TableCell>
+                  <TableCell className="align-top"><CatalogActions canUpdate={canUpdate} canDelete={canDelete} recordName={row.name} onEdit={() => openEditor(row)} onDelete={() => canDelete && setToDelete(row)} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -646,8 +707,9 @@ function SchoolCatalogPanel({
       </AdmissionCatalogPanel>
       <SchoolEditorDialog
         key={`school-${editorKey}`}
-        isOpen={editorOpen}
+        isOpen={editorOpen && (selected ? canUpdate : canCreate)}
         record={selected}
+        canSave={selected ? canUpdate : canCreate}
         provinces={options?.provinces ?? []}
         wards={options?.wards ?? []}
         schoolAreas={options?.schoolAreas ?? []}
@@ -658,7 +720,7 @@ function SchoolCatalogPanel({
         }}
       />
       <DeleteRecordDialog
-        isOpen={Boolean(toDelete)}
+        isOpen={Boolean(toDelete && canDelete)}
         recordType="trường học"
         recordName={toDelete?.name ?? ""}
         isDeleting={deleteMutation.isPending}
@@ -672,12 +734,15 @@ function SchoolCatalogPanel({
 }
 
 function SchoolAreaCatalogPanel({
-  canManage,
+  permissions,
   enabled,
 }: {
-  canManage: boolean;
+  permissions: MajorCatalogPermissions["schoolAreas"];
   enabled: boolean;
 }) {
+  const canCreate = permissions.canCreate;
+  const canUpdate = permissions.canUpdate;
+  const canDelete = permissions.canDelete;
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -691,13 +756,13 @@ function SchoolAreaCatalogPanel({
     search: deferredSearch,
     includeDisabled: true,
     enabled: statusValue(status),
-    queryEnabled: enabled,
+    queryEnabled: enabled && permissions.canRead,
     start: (page - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
   });
   const orderingQuery = useSchoolAreasQuery({
     includeDisabled: true,
-    queryEnabled: enabled && isOrdering,
+    queryEnabled: enabled && permissions.canRead && canUpdate && isOrdering,
     start: 0,
     pageLength: 100,
   });
@@ -707,12 +772,13 @@ function SchoolAreaCatalogPanel({
   const total = query.data?.total ?? rows.length;
   const orderingRows = orderingQuery.data?.schoolAreas ?? [];
   const openEditor = (record: SchoolAreaOption | null) => {
+    if (record ? !canUpdate : !canCreate) return;
     setSelected(record);
     setEditorKey((current) => current + 1);
     setEditorOpen(true);
   };
   const confirmDelete = async () => {
-    if (!toDelete) return;
+    if (!canDelete || !toDelete) return;
     try {
       await deleteMutation.mutateAsync({ name: toDelete.id, expectedModified: toDelete.modified });
       toast.success(`Đã xóa ${toDelete.name}.`);
@@ -723,6 +789,7 @@ function SchoolAreaCatalogPanel({
     }
   };
   const saveOrder = async (items: readonly { id: string }[]) => {
+    if (!canUpdate) return;
     const recordsById = new Map(orderingRows.map((row) => [row.id, row]));
     try {
       await Promise.all(
@@ -751,7 +818,7 @@ function SchoolAreaCatalogPanel({
         showHeader={false}
         count={total}
         countLabel="khu vực"
-        canManage={canManage}
+        canCreate={canCreate}
         createLabel="Thêm khu vực"
         onCreate={() => openEditor(null)}
         isBusy={query.isPending || deleteMutation.isPending || updateMutation.isPending}
@@ -771,14 +838,14 @@ function SchoolAreaCatalogPanel({
             setPage(1);
           }}
           statusLabelText="Lọc trạng thái khu vực"
-          actions={canManage && !isOrdering ? (
+          actions={canCreate && !isOrdering ? (
             <Button size="sm" onPress={() => openEditor(null)}>
               <Plus size={16} aria-hidden="true" />
               Thêm khu vực
             </Button>
           ) : undefined}
         >
-          {canManage && !isOrdering && (
+          {canUpdate && !isOrdering && (
             <Button
               size="sm"
               appearance="outline"
@@ -789,7 +856,9 @@ function SchoolAreaCatalogPanel({
             </Button>
           )}
         </CatalogToolbar>
-        {isOrdering ? (
+        {!permissions.canRead ? (
+          <CatalogReadDenied label="Khu vực trường" />
+        ) : isOrdering ? (
           orderingQuery.isPending ? (
             <CatalogLoading label="Đang tải danh sách để sắp xếp..." />
           ) : orderingQuery.error ? (
@@ -819,7 +888,7 @@ function SchoolAreaCatalogPanel({
           <CatalogEmpty
             title={search.trim() || status !== "all" ? "Không tìm thấy khu vực" : "Chưa có khu vực trường"}
             description={search.trim() || status !== "all" ? "Thử đổi bộ lọc hoặc từ khóa." : "Tạo khu vực đầu tiên để phân loại trường."}
-            action={!search.trim() && status === "all" && canManage ? () => openEditor(null) : undefined}
+            action={!search.trim() && status === "all" && canCreate ? () => openEditor(null) : undefined}
             actionLabel="Thêm khu vực"
           />
         ) : (
@@ -840,7 +909,7 @@ function SchoolAreaCatalogPanel({
                   <TableCell className="align-top font-medium text-text-primary">{row.name}</TableCell>
                   <TableCell className="max-w-[26rem] align-top text-sm text-text-secondary"><span className="line-clamp-2">{row.description || "Chưa có mô tả"}</span></TableCell>
                   <TableCell className="align-top text-sm text-text-secondary">{row.enabled ? "Đang dùng" : "Đã tắt"}</TableCell>
-                  <TableCell className="align-top"><CatalogActions canManage={canManage} recordName={row.name} onEdit={() => openEditor(row)} onDelete={() => setToDelete(row)} /></TableCell>
+                  <TableCell className="align-top"><CatalogActions canUpdate={canUpdate} canDelete={canDelete} recordName={row.name} onEdit={() => openEditor(row)} onDelete={() => canDelete && setToDelete(row)} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -852,15 +921,16 @@ function SchoolAreaCatalogPanel({
       </AdmissionCatalogPanel>
       <SchoolAreaEditorDialog
         key={`area-${editorKey}`}
-        isOpen={editorOpen}
+        isOpen={editorOpen && (selected ? canUpdate : canCreate)}
         record={selected}
+        canSave={selected ? canUpdate : canCreate}
         onOpenChange={(open) => {
           setEditorOpen(open);
           if (!open) setSelected(null);
         }}
       />
       <DeleteRecordDialog
-        isOpen={Boolean(toDelete)}
+        isOpen={Boolean(toDelete && canDelete)}
         recordType="khu vực trường"
         recordName={toDelete?.name ?? ""}
         isDeleting={deleteMutation.isPending}
@@ -874,25 +944,31 @@ function SchoolAreaCatalogPanel({
 }
 
 function CatalogActions({
-  canManage,
+  canUpdate,
+  canDelete,
   recordName,
   onEdit,
   onDelete,
 }: {
-  canManage: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
   recordName: string;
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  if (!canManage) return null;
+  if (!canUpdate && !canDelete) return null;
   return (
     <div className="flex justify-end gap-1">
-      <Button aria-label={`Sửa ${recordName}`} iconOnly size="sm" appearance="ghost" onPress={onEdit}>
-        <Pencil1 size={16} aria-hidden="true" />
-      </Button>
-      <Button aria-label={`Xóa ${recordName}`} iconOnly size="sm" appearance="ghost" variant="danger" onPress={onDelete}>
-        <Trash1 size={16} aria-hidden="true" />
-      </Button>
+      {canUpdate && (
+        <Button aria-label={`Sửa ${recordName}`} iconOnly size="sm" appearance="ghost" onPress={onEdit}>
+          <Pencil1 size={16} aria-hidden="true" />
+        </Button>
+      )}
+      {canDelete && (
+        <Button aria-label={`Xóa ${recordName}`} iconOnly size="sm" appearance="ghost" variant="danger" onPress={onDelete}>
+          <Trash1 size={16} aria-hidden="true" />
+        </Button>
+      )}
     </div>
   );
 }
@@ -916,5 +992,13 @@ function CatalogPagination({
       onPageChange={onPageChange}
       isDisabled={isFetching}
     />
+  );
+}
+
+function CatalogReadDenied({ label }: { label: string }) {
+  return (
+    <div className="m-5 rounded-xl border border-card-border bg-background-gray-secondary/30 px-4 py-8 text-center">
+      <p className="text-sm font-medium text-text-primary">Không có quyền xem {label.toLowerCase()}.</p>
+    </div>
   );
 }

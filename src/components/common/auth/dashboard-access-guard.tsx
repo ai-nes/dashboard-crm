@@ -2,8 +2,11 @@
 
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
+  canReadCrmPath,
+  getCrmHomePath,
+} from "@/components/common/auth/permissions";
+import {
   canAccessDashboardPath,
-  getDefaultRouteForRoles,
   getRecognizedDashboardRoles,
   isProtectedDashboardPath,
 } from "@/components/common/auth/rbac";
@@ -24,12 +27,10 @@ export function DashboardAccessGuard({
     [user?.roles],
   );
   const isProtectedPath = isProtectedDashboardPath(pathname);
-  const hasAccess = canAccessDashboardPath(
-    pathname,
-    user?.roles,
-    user?.crm_capabilities,
-  );
-  const fallbackRoute = getDefaultRouteForRoles(user?.roles);
+  const hasAccess =
+    canReadCrmPath(pathname, user) &&
+    canAccessDashboardPath(pathname, user?.roles, user?.crm_capabilities);
+  const fallbackRoute = getCrmHomePath(user);
 
   useEffect(() => {
     if (

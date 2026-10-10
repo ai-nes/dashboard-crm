@@ -18,6 +18,7 @@ interface StudentRecentInteractionsCardProps {
   recentChanges?: AnalysisRecentChange[];
   isRefreshing?: boolean;
   onRefresh?: () => void;
+  canReadInteractions: boolean;
 }
 
 export default function StudentRecentInteractionsCard({
@@ -25,6 +26,7 @@ export default function StudentRecentInteractionsCard({
   recentChanges = [],
   isRefreshing,
   onRefresh,
+  canReadInteractions,
 }: StudentRecentInteractionsCardProps) {
   return (
     <Card className="min-w-0 overflow-hidden border border-card-border p-5 lg:p-6">
@@ -64,7 +66,10 @@ export default function StudentRecentInteractionsCard({
               3 hoạt động gần nhất (Outbound)
             </h4>
           </div>
-          <StudentOutboundActivityList studentId={studentId} />
+          <StudentOutboundActivityList
+            studentId={studentId}
+            canReadInteractions={canReadInteractions}
+          />
         </div>
       </div>
     </Card>
@@ -73,25 +78,37 @@ export default function StudentRecentInteractionsCard({
 
 function StudentOutboundActivityList({
   studentId,
+  canReadInteractions,
 }: {
   studentId?: string | null;
+  canReadInteractions: boolean;
 }) {
   const normalizedStudentId = studentId?.trim() ?? "";
   const query = useInteractionFeedQuery(
     normalizedStudentId,
     { direction: "outbound", limit: 3 },
-    Boolean(normalizedStudentId),
+    Boolean(normalizedStudentId) && canReadInteractions,
   );
-  const items =
-    query.data?.pages
-      .flatMap((page) => page.items)
-      .filter((item) => item.direction?.toLowerCase() === "outbound")
-      .sort(
-        (left, right) =>
-          parseActivityTimestamp(right.occurred_at) -
-          parseActivityTimestamp(left.occurred_at),
-      )
-      .slice(0, 3) ?? [];
+  const items = canReadInteractions
+    ? (query.data?.pages
+        .flatMap((page) => page.items)
+        .filter((item) => item.direction?.toLowerCase() === "outbound")
+        .sort(
+          (left, right) =>
+            parseActivityTimestamp(right.occurred_at) -
+            parseActivityTimestamp(left.occurred_at),
+        )
+        .slice(0, 3) ?? [])
+    : [];
+
+  if (!canReadInteractions) {
+    return (
+      <StudentCardEmptyState
+        message="Cần quyền đọc danh mục loại tương tác để xem hoạt động."
+        className="py-6"
+      />
+    );
+  }
 
   if (query.isPending && items.length === 0) {
     return (

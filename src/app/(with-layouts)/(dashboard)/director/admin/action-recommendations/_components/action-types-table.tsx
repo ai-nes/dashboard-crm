@@ -23,7 +23,10 @@ import { RecordStatusBadge } from "./status-badges";
 import type { SelectOption } from "./types";
 
 interface ActionTypesTableProps {
-  canEdit: boolean;
+  canRead: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
 }
 
 const statusOptions: SelectOption[] = [
@@ -33,21 +36,37 @@ const statusOptions: SelectOption[] = [
 ];
 const PAGE_SIZE = 8;
 
-export default function ActionTypesTable({ canEdit }: ActionTypesTableProps) {
+export default function ActionTypesTable({
+  canRead,
+  canCreate,
+  canUpdate,
+  canDelete,
+}: ActionTypesTableProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<NbaAdminActionType | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const query = useNbaAdminActionTypesQuery({
-    search: search.trim() || undefined,
-    enabled: status === "all" ? undefined : status === "enabled",
-    start: (page - 1) * PAGE_SIZE,
-    pageLength: PAGE_SIZE,
-  });
+  const query = useNbaAdminActionTypesQuery(
+    {
+      search: search.trim() || undefined,
+      enabled: status === "all" ? undefined : status === "enabled",
+      start: (page - 1) * PAGE_SIZE,
+      pageLength: PAGE_SIZE,
+    },
+    { enabled: canRead },
+  );
   const actionTypes = query.data?.actionTypes ?? [];
   const total = query.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  if (!canRead) {
+    return (
+      <section className="rounded-xl border border-card-border p-6 text-sm text-text-secondary">
+        Bạn không có quyền xem nhóm hành động.
+      </section>
+    );
+  }
 
   return (
     <>
@@ -70,7 +89,7 @@ export default function ActionTypesTable({ canEdit }: ActionTypesTableProps) {
                 ? "Đang tải…"
                 : `${query.data?.total ?? 0} nhóm`}
             </span>
-            {canEdit && (
+            {canCreate && (
               <Button
                 size="sm"
                 onPress={() => {
@@ -171,15 +190,15 @@ export default function ActionTypesTable({ canEdit }: ActionTypesTableProps) {
                           setIsCreateOpen(false);
                           setSelected(actionType);
                         }}
-                        aria-label={`${canEdit ? "Chỉnh sửa" : "Xem"} nhóm ${actionType.displayName}`}
+                        aria-label={`${canUpdate ? "Chỉnh sửa" : "Xem"} nhóm ${actionType.displayName}`}
                         className="min-w-20"
                       >
-                        {canEdit ? (
+                        {canUpdate ? (
                           <Pencil1 size={16} aria-hidden="true" />
                         ) : (
                           <Eye size={16} aria-hidden="true" />
                         )}
-                        {canEdit ? "Sửa" : "Xem"}
+                        {canUpdate ? "Sửa" : "Xem"}
                       </Button>
                     </AdminTableCell>
                   </AdminTableRow>
@@ -207,11 +226,13 @@ export default function ActionTypesTable({ canEdit }: ActionTypesTableProps) {
         )}
       </AdminTableFrame>
 
-      {(selected || isCreateOpen) && (
+      {((selected && canRead) || (isCreateOpen && canCreate)) && (
         <ActionTypeDetailDialog
           key={selected?.name ?? "new"}
           actionType={selected}
-          canEdit={canEdit}
+          canCreate={canCreate}
+          canUpdate={canUpdate}
+          canDelete={canDelete}
           onClose={() => {
             setSelected(null);
             setIsCreateOpen(false);

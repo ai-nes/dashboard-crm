@@ -1,5 +1,11 @@
 "use client";
 
+import { useAuth } from "@/components/common/auth/auth-provider";
+import {
+  getCrmDoctypePermissions,
+  canReadCrmPath,
+} from "@/components/common/auth/permissions";
+
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -36,6 +42,9 @@ interface SchoolIntelligenceDashboardProps {
 export default function SchoolIntelligenceDashboard({
   data,
 }: SchoolIntelligenceDashboardProps) {
+  const { user } = useAuth();
+  const permissions = getCrmDoctypePermissions(user, "CRM High School");
+  const canRead = canReadCrmPath("/director/schools", user);
   const router = useRouter();
   const [updatedFields, setUpdatedFields] = useState<SchoolUpdateFields>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -62,11 +71,15 @@ export default function SchoolIntelligenceDashboard({
     setUpdatedFields((current) => ({ ...current, ...fields }));
   };
 
+  if (!canRead) return null;
+
   return (
     <main className="min-w-0 px-2 py-4 pb-8 lg:px-6">
       <SchoolHeader
         data={currentData}
-        onDeleteRequest={() => setDeleteDialogOpen(true)}
+        onDeleteRequest={
+          permissions.canDelete ? () => setDeleteDialogOpen(true) : undefined
+        }
       />
       <DetailTabs
         ariaLabel="Các phần trong hồ sơ trường học"
@@ -76,8 +89,10 @@ export default function SchoolIntelligenceDashboard({
       />
       <DeleteRecordDialog
         isDeleting={deleteMutation.isPending}
-        isOpen={deleteDialogOpen}
-        onConfirm={() => deleteMutation.mutate()}
+        isOpen={permissions.canDelete && deleteDialogOpen}
+        onConfirm={() => {
+          if (permissions.canDelete) deleteMutation.mutate();
+        }}
         onOpenChange={setDeleteDialogOpen}
         recordName={currentData.school.name || data.school.id}
         recordType="hồ sơ trường học"

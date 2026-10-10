@@ -36,6 +36,7 @@ import {
   useUpdateAdmissionMethodMutation,
 } from "@/hooks/use-admission-catalog-queries";
 import type { AdmissionMethodOption } from "@/services/api/admission-profile-catalog";
+import type { CrmDoctypePermissions } from "@/components/common/auth/permissions";
 
 import { AdmissionCatalogPanel } from "./admission-catalog-panel";
 import { CatalogOrderingPanel } from "./catalog-ordering-panel";
@@ -59,12 +60,13 @@ function filterLabel(value: MethodStatusFilter): string {
 }
 
 export function AdmissionMethodManagement({
-  canManage,
-  canDelete,
+  permissions,
 }: {
-  canManage: boolean;
-  canDelete: boolean;
+  permissions: CrmDoctypePermissions;
 }) {
+  const canCreate = permissions.canCreate;
+  const canUpdate = permissions.canUpdate;
+  const canDelete = permissions.canDelete;
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [statusFilter, setStatusFilter] = useState<MethodStatusFilter>("all");
@@ -78,12 +80,13 @@ export function AdmissionMethodManagement({
     search: deferredSearch,
     includeDisabled: true,
     enabled: statusFilter === "all" ? undefined : statusFilter === "enabled",
+    queryEnabled: permissions.canRead,
     start: (page - 1) * PAGE_SIZE,
     pageLength: PAGE_SIZE,
   });
   const orderingQuery = useAdmissionMethodsQuery({
     includeDisabled: true,
-    queryEnabled: isOrdering,
+    queryEnabled: isOrdering && canUpdate,
     start: 0,
     pageLength: 100,
   });
@@ -99,19 +102,21 @@ export function AdmissionMethodManagement({
     Boolean(deferredSearch.trim()) || statusFilter !== "all";
 
   const openCreate = () => {
+    if (!canCreate) return;
     setSelected(null);
     setEditorKey((current) => current + 1);
     setIsEditorOpen(true);
   };
 
   const openEdit = (record: AdmissionMethodOption) => {
+    if (!canUpdate) return;
     setSelected(record);
     setEditorKey((current) => current + 1);
     setIsEditorOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (!toDelete) return;
+    if (!canDelete || !toDelete) return;
     try {
       await deleteMutation.mutateAsync({
         name: toDelete.id,
@@ -125,6 +130,7 @@ export function AdmissionMethodManagement({
   };
 
   const saveOrder = async (items: readonly { id: string }[]) => {
+    if (!canUpdate) return;
     const recordsById = new Map(
       orderingMethods.map((method) => [method.id, method]),
     );
@@ -200,7 +206,7 @@ export function AdmissionMethodManagement({
           <Badge color="gray" size="sm">
             {total} mục
           </Badge>
-          {canManage && (
+          {canUpdate && (
             <Button
               size="sm"
               appearance="outline"
@@ -210,7 +216,7 @@ export function AdmissionMethodManagement({
               Sắp xếp
             </Button>
           )}
-          {canManage && (
+          {canCreate && (
             <Button
               size="sm"
               onPress={openCreate}
@@ -226,7 +232,7 @@ export function AdmissionMethodManagement({
         title="Phương thức xét tuyển"
         description="Danh mục phương thức dùng khi xây dựng hồ sơ và tiếp nhận đăng ký."
         count={total}
-        canManage={canManage}
+        canCreate={canCreate}
         createLabel="Thêm phương thức"
         onCreate={openCreate}
         isBusy={
@@ -281,7 +287,7 @@ export function AdmissionMethodManagement({
                     : "Thử đổi từ khóa hoặc bộ lọc trạng thái."
                 }
                 action={
-                  !hasMethodFilter && methods.length === 0 && canManage
+                  !hasMethodFilter && methods.length === 0 && canCreate
                     ? openCreate
                     : undefined
                 }
@@ -332,7 +338,7 @@ export function AdmissionMethodManagement({
                           </TableCell>
                           <TableCell className="align-top">
                             <div className="flex justify-end gap-1">
-                              {canManage && (
+                              {canUpdate && (
                                 <Button
                                   aria-label={`Sửa ${method.name}`}
                                   iconOnly
@@ -380,15 +386,16 @@ export function AdmissionMethodManagement({
 
       <AdmissionMethodEditorDialog
         key={`${selected?.id ?? "new"}-${editorKey}`}
-        isOpen={isEditorOpen}
+        isOpen={isEditorOpen && (selected ? canUpdate : canCreate)}
         record={selected}
+        canSave={selected ? canUpdate : canCreate}
         onOpenChange={(open) => {
           setIsEditorOpen(open);
           if (!open) setSelected(null);
         }}
       />
       <DeleteRecordDialog
-        isOpen={Boolean(toDelete)}
+        isOpen={Boolean(toDelete && canDelete)}
         recordType="phương thức xét tuyển"
         recordName={toDelete?.name ?? ""}
         isDeleting={deleteMutation.isPending}

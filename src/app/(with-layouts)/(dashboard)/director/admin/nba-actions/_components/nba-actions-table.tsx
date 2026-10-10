@@ -58,7 +58,9 @@ interface NbaActionsTableProps {
   isFetching: boolean;
   onReset: () => void;
   availableTimeSlots: ActionTimeSlot[];
-  canEdit: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
   isTimeSlotsReady: boolean;
   timeSlotsError: boolean;
 }
@@ -88,7 +90,9 @@ export default function NbaActionsTable({
   isFetching,
   onReset,
   availableTimeSlots,
-  canEdit,
+  canCreate,
+  canUpdate,
+  canDelete,
   isTimeSlotsReady,
   timeSlotsError,
 }: NbaActionsTableProps) {
@@ -112,7 +116,7 @@ export default function NbaActionsTable({
           resultCount={resultCount}
           isFetching={isFetching}
           onReset={onReset}
-          canEdit={canEdit}
+          canCreate={canCreate}
           onCreateAction={onCreateAction}
         />
 
@@ -141,7 +145,7 @@ export default function NbaActionsTable({
                     key={action.name}
                     action={action}
                     isSelected={isSelected}
-                    canEdit={canEdit}
+                    canUpdate={canUpdate}
                     onSelectAction={onSelectAction}
                   />
                 );
@@ -168,12 +172,14 @@ export default function NbaActionsTable({
         />
       </AdminTableFrame>
 
-      {(selectedAction || isCreateOpen) && (
+      {(selectedAction || (isCreateOpen && canCreate)) && (
         <NbaActionConfigDialog
           action={selectedAction}
           actionTypes={actionTypes}
           availableTimeSlots={availableTimeSlots}
-          canEdit={canEdit}
+          canCreate={canCreate}
+          canUpdate={canUpdate}
+          canDelete={canDelete}
           isTimeSlotsReady={isTimeSlotsReady}
           timeSlotsError={timeSlotsError}
           onClose={() => {
@@ -189,12 +195,12 @@ export default function NbaActionsTable({
 function ActionTableRows({
   action,
   isSelected,
-  canEdit,
+  canUpdate,
   onSelectAction,
 }: {
   action: NbaAction;
   isSelected: boolean;
-  canEdit: boolean;
+  canUpdate: boolean;
   onSelectAction: (name: string) => void;
 }) {
   return (
@@ -247,17 +253,17 @@ function ActionTableRows({
             aria-label={
               isSelected
                 ? `Đóng cấu hình ${action.displayName}`
-                : `${canEdit ? "Chỉnh sửa" : "Xem"} ${action.displayName}`
+                : `${canUpdate ? "Chỉnh sửa" : "Xem"} ${action.displayName}`
             }
             className="min-w-20"
           >
             {!isSelected &&
-              (canEdit ? (
+              (canUpdate ? (
                 <Pencil1 size={16} aria-hidden="true" />
               ) : (
                 <Eye size={16} aria-hidden="true" />
               ))}
-            {isSelected ? "Đóng" : canEdit ? "Sửa" : "Xem"}
+            {isSelected ? "Đóng" : canUpdate ? "Sửa" : "Xem"}
           </Button>
         </AdminTableCell>
       </AdminTableRow>

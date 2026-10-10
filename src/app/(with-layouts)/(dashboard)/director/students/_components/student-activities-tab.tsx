@@ -4,7 +4,12 @@ import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { getCrmPermissions } from "@/components/common/auth/permissions";
+import {
+  getCrmDoctypePermissions,
+  getCrmPermissions,
+  hasCrmCapability,
+} from "@/components/common/auth/permissions";
+import { canManageTaskRecord } from "../../tasks/_components/task-management-permissions";
 import DetailTabs, {
   type DetailTabItem,
 } from "@/components/common/detail-tabs";
@@ -98,15 +103,24 @@ export default function StudentActivitiesTab({
   initialStudentInteractions,
   initialTaskId,
 }: StudentActivitiesTabProps) {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
+  const canReadTasks = permissions.task.canRead;
+  const canReadInteractions =
+    permissions.student.canRead &&
+    getCrmDoctypePermissions(user, "CRM Interaction Type").canRead &&
+    !isAuthLoading;
+  const canCreateInteraction =
+    canReadInteractions &&
+    permissions.student.canUpdate &&
+    hasCrmCapability(user, "interaction.record");
   const [selectedTab, setSelectedTab] = useState(defaultSelectedKey);
   const shouldLoadTasks = selectedTab === "tasks";
   const shouldLoadNotes = selectedTab === "notes";
   const shouldLoadInteractions = selectedTab === "interactions";
   const shouldLoadTaskData = shouldLoadTasks || shouldLoadNotes;
   const taskAssigneesQuery = useTaskAssigneesQuery({
-    enabled: shouldLoadTaskData,
+    enabled: shouldLoadTaskData && permissions.task.canCreate && !isAuthLoading,
   });
   const assignedTo = data.student.counselor || "Chưa phân công";
   const taskAssignees = useMemo(() => {
@@ -142,6 +156,7 @@ export default function StudentActivitiesTab({
   );
   const canCreateTask = Boolean(
     permissions.task.canCreate &&
+    !isAuthLoading &&
     studentTaskAssignee &&
     !taskAssigneesQuery.isPending &&
     !taskAssigneesQuery.isError,
@@ -163,12 +178,13 @@ export default function StudentActivitiesTab({
   const chatwootInteractionsQuery = useStudentChatwootInteractionsQuery(
     studentDocname,
     {
-      enabled: shouldLoadInteractions,
+      enabled:
+        shouldLoadInteractions && permissions.student.canRead && !isAuthLoading,
       initialData: initialChatwootInteractions ?? undefined,
     },
   );
   const studentInteractionsQuery = useStudentInteractionsQuery(studentDocname, {
-    enabled: shouldLoadInteractions,
+    enabled: shouldLoadInteractions && canReadInteractions,
     initialData: initialStudentInteractions ?? undefined,
   });
 
@@ -189,7 +205,7 @@ export default function StudentActivitiesTab({
       referenceDocname: studentDocname,
     },
     {
-      enabled: shouldLoadTasks,
+      enabled: shouldLoadTasks && canReadTasks && !isAuthLoading,
     },
   );
 
@@ -429,12 +445,15 @@ export default function StudentActivitiesTab({
     id: string,
     updates: Partial<StudentTaskItem>,
   ) => {
-    if (!permissions.task.canUpdate) {
+    const currentTask = tasks.find((task) => task.id === id);
+    if (
+      !permissions.task.canUpdate ||
+      !currentTask ||
+      !canManageTaskRecord(user, currentTask)
+    ) {
       toast.error("Bạn không có quyền sửa task.");
       return;
     }
-    const currentTask = tasks.find((task) => task.id === id);
-    if (!currentTask) return;
     if (pendingTaskUpdates.current.has(id)) return;
     pendingTaskUpdates.current.add(id);
 
@@ -470,13 +489,13 @@ export default function StudentActivitiesTab({
   const handleRequestDeleteTask = (id: string) => {
     if (!permissions.task.canDelete) return;
     const task = tasks.find((current) => current.id === id);
-    if (task) setTaskToDelete(task);
+    if (task && canManageTaskRecord(user, task)) setTaskToDelete(task);
   };
 
   const handleConfirmDeleteTask = async () => {
     if (!permissions.task.canDelete) return;
     const task = taskToDelete;
-    if (!task) return;
+    if (!task || !canManageTaskRecord(user, task)) return;
 
     setDeletedTaskIds((prev) => new Set(prev).add(task.id));
     try {
@@ -499,7 +518,11 @@ export default function StudentActivitiesTab({
     <>
       <DetailTabs
         ariaLabel="Các phần trong hồ sơ học sinh"
-        defaultSelectedKey={defaultSelectedKey}
+        defaultSelectedKey={
+          !canReadTasks && defaultSelectedKey === "tasks"
+            ? (detailTabs[0]?.id ?? "decision")
+            : defaultSelectedKey
+        }
         onSelectionChange={setSelectedTab}
         tabs={[
           ...detailTabs.slice(0, 1),
@@ -517,6 +540,12 @@ export default function StudentActivitiesTab({
                 tasks={tasks}
                 onCreateTask={handleCreateTask}
                 onUpdateTask={handleUpdateTask}
+                canUpdateTask={(task) =>
+                  permissions.task.canUpdate && canManageTaskRecord(user, task)
+                }
+                canDeleteTask={(task) =>
+                  permissions.task.canDelete && canManageTaskRecord(user, task)
+                }
                 onDeleteTask={
                   permissions.task.canDelete
                     ? handleRequestDeleteTask
@@ -559,6 +588,8 @@ export default function StudentActivitiesTab({
                 studentName={data.student.name}
                 calls={calls}
                 messages={zaloMessages}
+                canReadInteractions={canReadInteractions}
+                canCreateInteraction={canCreateInteraction}
                 isCallsLoading={
                   studentInteractionsQuery.isPending && calls.length === 0
                 }
@@ -570,7 +601,7 @@ export default function StudentActivitiesTab({
             ),
           },
           ...detailTabs.filter((tab) => tab.id === "audit"),
-        ]}
+        ].filter((tab) => canReadTasks || tab.id !== "tasks")}
       />
       {permissions.task.canDelete && (
         <StudentDeleteTaskDialog

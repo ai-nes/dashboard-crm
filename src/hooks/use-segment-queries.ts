@@ -268,11 +268,14 @@ export function useSegmentDetailQuery(name: string) {
   });
 }
 
-export function useSegmentByCodeQuery(segmentCode: string) {
+export function useSegmentByCodeQuery(
+  segmentCode: string,
+  enabled = true,
+) {
   return useQuery({
     queryKey: segmentKeys.detailByCode(segmentCode),
     queryFn: () => getSegmentByCode(segmentCode),
-    enabled: Boolean(segmentCode),
+    enabled: Boolean(segmentCode) && enabled,
   });
 }
 
@@ -300,11 +303,12 @@ export function useSegmentPreviewQuery(
   });
 }
 
-export function useSegmentFilterOptionsQuery() {
+export function useSegmentFilterOptionsQuery(enabled = true) {
   return useQuery({
     queryKey: segmentKeys.filterOptions,
     queryFn: () => getSegmentFilterOptions(),
     staleTime: 5 * 60_000,
+    enabled,
   });
 }
 

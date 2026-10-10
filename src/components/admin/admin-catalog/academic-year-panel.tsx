@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/common/delete-record-dialog";
+import type { CrmDoctypePermissions } from "@/components/common/auth/permissions";
 import { DatePickerField } from "@/components/common/date-picker-field";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import {
@@ -66,7 +67,18 @@ const emptyYear: YearForm = {
   end_date: "",
   is_active: false,
 };
-export default function AcademicYearPanel() {
+export default function AcademicYearPanel({
+  permissions,
+}: {
+  permissions: CrmDoctypePermissions;
+}) {
+  if (!permissions.canRead) {
+    return <div className="rounded-xl border border-card-border p-6 text-sm text-text-secondary">Không có quyền xem năm tuyển sinh.</div>;
+  }
+  return <AcademicYearPanelContent permissions={permissions} />;
+}
+
+function AcademicYearPanelContent({ permissions }: { permissions: CrmDoctypePermissions }) {
   const [yearSearch, setYearSearch] = useState("");
   const [yearPage, setYearPage] = useState(1);
   const yearsQuery = useAdmissionYearsQuery({
@@ -86,6 +98,7 @@ export default function AcademicYearPanel() {
 
   const saveYear = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (yearForm.name ? !permissions.canUpdate : !permissions.canCreate) return;
     const yearName = yearForm.year_name.trim();
     if (!yearName) {
       toast.error("Vui lòng chọn năm tuyển sinh.");
@@ -122,7 +135,7 @@ export default function AcademicYearPanel() {
   };
 
   const confirmDelete = async () => {
-    if (!pendingDelete) return;
+    if (!permissions.canDelete || !pendingDelete) return;
     try {
       await deleteYear.mutateAsync({
         name: pendingDelete.name,
@@ -162,7 +175,7 @@ export default function AcademicYearPanel() {
             total={yearsQuery.data?.total ?? 0}
             placeholder="Tìm theo tên năm…"
             actions={
-              <PanelHeaderActions
+              permissions.canCreate ? <PanelHeaderActions
                 createLabel="Thêm năm"
                 isDisabled={createYear.isPending || updateYear.isPending}
                 onCreate={() => {
@@ -170,12 +183,12 @@ export default function AcademicYearPanel() {
                   setIsCustomYear(false);
                   setIsYearEditorOpen(true);
                 }}
-              />
+              /> : null
             }
           />
         }
       >
-        {isYearEditorOpen ? (
+        {isYearEditorOpen && (yearForm.name ? permissions.canUpdate : permissions.canCreate) ? (
           <CatalogEditorDialog
             title={
               yearForm.name ? "Chỉnh sửa năm tuyển sinh" : "Thêm năm tuyển sinh"
@@ -310,7 +323,7 @@ export default function AcademicYearPanel() {
                     <td className="px-3 py-3">
                       <RowActions
                         isDisabled={isDeleting}
-                        onEdit={() => {
+                        onEdit={permissions.canUpdate ? () => {
                           setIsCustomYear(false);
                           setYearForm({
                             name: year.name,
@@ -320,15 +333,14 @@ export default function AcademicYearPanel() {
                             is_active: year.is_active,
                           });
                           setIsYearEditorOpen(true);
-                        }}
-                        onDelete={() =>
+                        } : undefined}
+                        onDelete={permissions.canDelete ? () =>
                           setPendingDelete({
                             kind: "year",
                             name: year.name,
                             label: year.year_name,
                             modified: year.modified,
-                          })
-                        }
+                          }) : undefined}
                       />
                     </td>
                   </tr>
@@ -353,7 +365,7 @@ export default function AcademicYearPanel() {
       </Panel>
 
       <ConfirmDialog
-        isOpen={Boolean(pendingDelete)}
+        isOpen={Boolean(pendingDelete && permissions.canDelete)}
         ariaLabel="Xác nhận xóa danh mục năm học"
         title={`Xóa ${pendingDelete?.label ?? "bản ghi"}?`}
         description="Dữ liệu sẽ bị xóa khỏi CRM và có thể bị chặn nếu đang được tham chiếu."

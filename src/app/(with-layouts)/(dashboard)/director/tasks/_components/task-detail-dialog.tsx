@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
+import { CrmPermissionLink } from "@/components/common/auth/crm-permission-link";
 import { Button } from "@/components/tailgrids/core/button";
 import type {
   StudentPriority,
@@ -57,7 +57,7 @@ function TaskDetailDialogContent({
   };
 
   const handleSaveTitle = () => {
-    if (!title.trim() || title === task.title) return;
+    if (!onUpdateTask || !title.trim() || title === task.title) return;
     onUpdateTask?.(task.id, { title: title.trim() });
   };
 
@@ -83,7 +83,7 @@ function TaskDetailDialogContent({
   };
 
   const studentLink = (
-    <Link
+    <CrmPermissionLink
       href={`/director/students/${task.studentId}?tab=activities&taskId=${task.id}`}
       className="inline-flex items-center gap-1.5 font-medium text-text-primary hover:text-primary-600 hover:underline"
     >
@@ -91,7 +91,7 @@ function TaskDetailDialogContent({
         {task.studentInitials || task.studentName.slice(0, 2).toUpperCase()}
       </span>
       <span className="truncate">{task.studentName}</span>
-    </Link>
+    </CrmPermissionLink>
   );
 
   return (
@@ -112,6 +112,7 @@ function TaskDetailDialogContent({
               <TaskDialogTitle
                 value={title}
                 onChange={handleTitleChange}
+                readOnly={!onUpdateTask}
                 placeholder="Tiêu đề task..."
                 className="shrink-0"
               />
@@ -120,6 +121,7 @@ function TaskDetailDialogContent({
             <TaskDialogDescription
               value={notes}
               onChange={handleNotesChange}
+                readOnly={!onUpdateTask}
               placeholder="Mô tả chi tiết công việc cần làm..."
             />
           </div>
@@ -128,16 +130,16 @@ function TaskDetailDialogContent({
           <div className="border-t border-card-border bg-background-soft-50/30 p-5 lg:border-t-0 lg:border-l">
             <TaskDialogSidebar
               status={task.status}
-              onStatusChange={handleStatusChange}
+              onStatusChange={onUpdateTask ? handleStatusChange : undefined}
               assigneeName={task.assignee || "Chưa phân công"}
               parentField={studentLink}
               priority={task.priority}
-              onPriorityChange={handlePriorityChange}
+              onPriorityChange={onUpdateTask ? handlePriorityChange : undefined}
               actionCode={task.actionCode || "CREATE_TASK"}
               dueDate={formatDate(task.dueDate)}
-              onDueDateChange={handleDueDateChange}
+              onDueDateChange={onUpdateTask ? handleDueDateChange : undefined}
               dueTime={task.dueTime || "09:00"}
-              onDueTimeChange={handleDueTimeChange}
+              onDueTimeChange={onUpdateTask ? handleDueTimeChange : undefined}
             />
           </div>
         </div>

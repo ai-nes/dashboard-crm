@@ -123,6 +123,7 @@ const DATA_HEALTH_ROLES = [
 
 const NBA_ACTIONS_READ_ROLES = [
   "System Manager",
+  "Administrator",
 ] as const satisfies readonly DashboardRole[];
 
 const CRM_RULES_ADMIN_ROLES = [
@@ -139,6 +140,7 @@ const MESSAGE_TEMPLATE_ADMIN_ROLES = [
 
 const SEGMENTS_ADMIN_ROLES = [
   "System Manager",
+  "Administrator",
 ] as const satisfies readonly DashboardRole[];
 
 const MAJOR_CATALOG_ADMIN_ROLES = [
