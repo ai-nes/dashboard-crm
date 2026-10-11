@@ -382,6 +382,7 @@ export default function Student360Dashboard({
           initialChatwootInteractions={initialChatwootInteractions}
           initialStudentInteractions={initialStudentInteractions}
           initialTaskId={initialTaskId}
+          initialCampaignTab={initialTab === "campaigns"}
           studentId={canonicalStudentId || targetId}
         />
       </div>

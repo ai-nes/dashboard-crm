@@ -6,6 +6,10 @@ import {
 } from "./student-detail-tab-state";
 
 describe("student detail tab state", () => {
+  it("opens interactions for the nested campaign tab", () => {
+    expect(getInitialStudentDetailTab("campaigns")).toBe("interactions");
+    expect(shouldLoadInitialStudentInteractions("campaigns")).toBe(true);
+  });
   it("keeps the initial page load focused on the overview", () => {
     expect(getInitialStudentDetailTab()).toBe("decision");
     expect(shouldLoadInitialStudentInteractions()).toBe(false);

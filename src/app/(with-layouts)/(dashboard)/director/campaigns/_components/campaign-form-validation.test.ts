@@ -31,7 +31,7 @@ const validForm: CampaignFormState = {
   mode: "ONLINE",
   channelType: "FACEBOOK_LEAD_FORM",
   channelUrl: "https://example.com/lead-form",
-  campus: "",
+  campus: "HCM",
   leadRoutingEnabled: false,
   leadRoutingTargetType: "",
   leadRoutingTargetTeam: "",
@@ -39,6 +39,11 @@ const validForm: CampaignFormState = {
 };
 
 describe("campaign form validation", () => {
+  it("requires an explicit campus instead of borrowing one from another campaign", () => {
+    expect(
+      validateCampaignForm({ ...validForm, campus: "  " }, channelTypes),
+    ).toHaveProperty("campus");
+  });
   it("accepts a valid campaign form", () => {
     expect(validateCampaignForm(validForm, channelTypes)).toEqual({});
   });

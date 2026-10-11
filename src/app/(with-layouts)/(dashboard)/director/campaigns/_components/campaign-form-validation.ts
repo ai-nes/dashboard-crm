@@ -19,6 +19,8 @@ export function validateCampaignForm(
   channelTypes: readonly ChannelTypeOption[],
 ): CampaignFormErrors {
   const errors: CampaignFormErrors = {};
+  if (!form.campus.trim())
+    errors.campus = "Vui lòng chọn Campus cho chiến dịch.";
   const admissionYear = form.admissionYear.trim();
   const name = form.name.trim();
   const startDate = form.startDate.trim();
@@ -82,7 +84,8 @@ export function validateCampaignForm(
 
   if (form.leadRoutingEnabled) {
     if (!form.leadRoutingTargetType) {
-      errors.leadRoutingTargetType = "Vui lòng chọn phạm vi nhận Lead của Campaign.";
+      errors.leadRoutingTargetType =
+        "Vui lòng chọn phạm vi nhận Lead của Campaign.";
     } else if (
       form.leadRoutingTargetType === "Team" &&
       !form.leadRoutingTargetTeam

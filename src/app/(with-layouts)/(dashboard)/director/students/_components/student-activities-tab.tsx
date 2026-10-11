@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
+  canReadStudentCampaigns,
   getCrmDoctypePermissions,
   getCrmPermissions,
   hasCrmCapability,
@@ -63,6 +64,7 @@ interface StudentActivitiesTabProps extends Student360SectionProps {
   initialChatwootInteractions?: StudentChatwootInteractionsResponse | null;
   initialStudentInteractions?: StudentInteractionsResponse | null;
   initialTaskId?: string;
+  initialCampaignTab?: boolean;
 }
 
 function generateId(prefix: string) {
@@ -102,10 +104,12 @@ export default function StudentActivitiesTab({
   initialChatwootInteractions,
   initialStudentInteractions,
   initialTaskId,
+  initialCampaignTab,
 }: StudentActivitiesTabProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const canReadTasks = permissions.task.canRead;
+  const canReadCampaigns = !isAuthLoading && canReadStudentCampaigns(user);
   const canReadInteractions =
     permissions.student.canRead &&
     getCrmDoctypePermissions(user, "CRM Interaction Type").canRead &&
@@ -589,6 +593,9 @@ export default function StudentActivitiesTab({
                 calls={calls}
                 messages={zaloMessages}
                 canReadInteractions={canReadInteractions}
+                canReadCampaigns={canReadCampaigns}
+                isActive={selectedTab === "interactions"}
+                initialCampaignTab={initialCampaignTab}
                 canCreateInteraction={canCreateInteraction}
                 isCallsLoading={
                   studentInteractionsQuery.isPending && calls.length === 0

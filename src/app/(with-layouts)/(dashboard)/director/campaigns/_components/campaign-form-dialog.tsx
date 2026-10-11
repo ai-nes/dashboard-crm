@@ -55,14 +55,14 @@ interface CampaignFormDialogProps {
   campaign: CampaignListItem | null;
   channelTypes: readonly ChannelTypeOption[];
   routingOptions: CampaignRoutingOptions;
-  defaultCampus?: string;
+  isLoadingCampuses?: boolean;
+  campusLoadError?: string;
   onClose: () => void;
   onSubmit: (campaign: CampaignFormValues) => void | Promise<void>;
 }
 
 function formFromCampaign(
   campaign: CampaignListItem | null,
-  defaultCampus = "",
 ): CampaignFormState {
   return {
     name: campaign?.name ?? "",
@@ -73,7 +73,7 @@ function formFromCampaign(
     mode: campaign?.mode ?? "OFFLINE",
     channelType: campaign?.channelType ?? "",
     channelUrl: campaign?.channelUrl ?? "",
-    campus: campaign?.campus ?? defaultCampus,
+    campus: campaign?.campus ?? "",
     leadRoutingEnabled: campaign?.leadRoutingEnabled ?? false,
     leadRoutingTargetType: campaign?.leadRoutingTargetType ?? "",
     leadRoutingTargetTeam: campaign?.leadRoutingTargetTeam ?? "",
@@ -85,13 +85,14 @@ export default function CampaignFormDialog({
   campaign,
   channelTypes,
   routingOptions,
-  defaultCampus,
+  isLoadingCampuses = false,
+  campusLoadError,
   onClose,
   onSubmit,
 }: CampaignFormDialogProps) {
   const isEditing = Boolean(campaign);
   const [form, setForm] = useState<CampaignFormState>(() =>
-    formFromCampaign(campaign, defaultCampus),
+    formFromCampaign(campaign),
   );
   const [fieldErrors, setFieldErrors] = useState<CampaignFormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -117,7 +118,14 @@ export default function CampaignFormDialog({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSubmitting) return;
+    if (isLoadingCampuses || campusLoadError) return;
     const nextErrors = validateCampaignForm(form, channelTypes);
+    if (
+      form.campus &&
+      !routingOptions.campuses.some((option) => option.label === form.campus)
+    ) {
+      nextErrors.campus = "Campus không còn khả dụng. Vui lòng chọn lại.";
+    }
     if (Object.keys(nextErrors).length) {
       setFieldErrors(nextErrors);
       setSubmitError(null);
@@ -185,7 +193,8 @@ export default function CampaignFormDialog({
     setForm((current) => ({
       ...current,
       leadRoutingTargetType: targetType,
-      leadRoutingTargetTeam: targetType === "Team" ? current.leadRoutingTargetTeam : "",
+      leadRoutingTargetTeam:
+        targetType === "Team" ? current.leadRoutingTargetTeam : "",
       leadRoutingTargetGroup:
         targetType === "Team Group" ? current.leadRoutingTargetGroup : "",
     }));
@@ -224,6 +233,42 @@ export default function CampaignFormDialog({
           </div>
 
           <DialogBody className="space-y-3 px-5 py-4">
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-input-label-text">
+                Campus <span aria-hidden="true">*</span>
+              </span>
+              <DropdownField
+                options={routingOptions.campuses.map((option) => ({
+                  id: option.label,
+                  label: option.label,
+                }))}
+                value={form.campus}
+                selectedLabel={form.campus || undefined}
+                onChange={(value) => {
+                  setField("campus", value ?? "");
+                  setField("leadRoutingTargetTeam", "");
+                  setField("leadRoutingTargetGroup", "");
+                }}
+                ariaLabel="Campus của chiến dịch"
+                placeholder="Chọn Campus"
+                isRequired
+                isLoading={isLoadingCampuses}
+                isError={Boolean(campusLoadError)}
+                errorMessage={campusLoadError}
+                emptyMessage="Chưa có Campus khả dụng."
+                isDisabled={
+                  isSubmitting || isLoadingCampuses || Boolean(campusLoadError)
+                }
+                isInvalid={Boolean(fieldError("campus"))}
+                ariaDescribedBy={
+                  fieldError("campus") ? "campaign-campus-error" : undefined
+                }
+              />
+              <FormFieldError
+                id="campaign-campus-error"
+                message={fieldError("campus") || campusLoadError}
+              />
+            </div>
             <label className="block space-y-1">
               <span className="text-xs font-medium text-input-label-text">
                 Năm tuyển sinh
@@ -451,7 +496,8 @@ export default function CampaignFormDialog({
                     Phân bổ Lead theo Campaign
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-text-tertiary">
-                    Khi bật, Campaign được ưu tiên trước Group/tỉnh và chia đều campus.
+                    Khi bật, Campaign được ưu tiên trước Group/tỉnh và chia đều
+                    campus.
                   </p>
                 </div>
                 <Toggle
@@ -472,7 +518,9 @@ export default function CampaignFormDialog({
                     </span>
                     <Select
                       value={form.leadRoutingTargetType}
-                      onChange={(value) => handleRoutingTargetTypeChange(String(value))}
+                      onChange={(value) =>
+                        handleRoutingTargetTypeChange(String(value))
+                      }
                       aria-label="Đích phân bổ Campaign"
                       isInvalid={Boolean(fieldError("leadRoutingTargetType"))}
                     >
@@ -518,7 +566,11 @@ export default function CampaignFormDialog({
                             Chọn Team
                           </SelectItem>
                           {teamOptions.map((option) => (
-                            <SelectItem key={option.id} id={option.id} textValue={option.label}>
+                            <SelectItem
+                              key={option.id}
+                              id={option.id}
+                              textValue={option.label}
+                            >
                               {option.label}
                             </SelectItem>
                           ))}
@@ -540,7 +592,9 @@ export default function CampaignFormDialog({
                           setField("leadRoutingTargetGroup", String(value))
                         }
                         aria-label="Team Group nhận Lead của Campaign"
-                        isInvalid={Boolean(fieldError("leadRoutingTargetGroup"))}
+                        isInvalid={Boolean(
+                          fieldError("leadRoutingTargetGroup"),
+                        )}
                       >
                         <SelectTrigger className="h-9 w-full text-sm">
                           <SelectValue />
@@ -550,7 +604,11 @@ export default function CampaignFormDialog({
                             Chọn Team Group
                           </SelectItem>
                           {routingOptions.groups.map((option) => (
-                            <SelectItem key={option.id} id={option.id} textValue={option.label}>
+                            <SelectItem
+                              key={option.id}
+                              id={option.id}
+                              textValue={option.label}
+                            >
                               {option.label}
                             </SelectItem>
                           ))}
@@ -577,7 +635,16 @@ export default function CampaignFormDialog({
             <DialogClose appearance="outline" size="sm" type="button">
               Hủy
             </DialogClose>
-            <Button type="submit" size="sm" isDisabled={isSubmitting}>
+            <Button
+              type="submit"
+              size="sm"
+              isDisabled={
+                isSubmitting ||
+                isLoadingCampuses ||
+                Boolean(campusLoadError) ||
+                routingOptions.campuses.length === 0
+              }
+            >
               {isEditing ? "Lưu thay đổi" : "Tạo chiến dịch"}
             </Button>
           </DialogFooter>

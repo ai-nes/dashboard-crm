@@ -27,6 +27,7 @@ import StudentCallsTab from "./student-calls-tab";
 import StudentCreateInteractionDialog from "./student-create-interaction-dialog";
 import StudentOtherInteractionsTab from "./student-other-interactions-tab";
 import StudentZaloTab from "./student-zalo-tab";
+import StudentCampaignsTab from "./student-campaigns-tab";
 import { isOtherInteractionType } from "./student-interaction-utils";
 
 interface StudentInteractionsTabsProps {
@@ -34,6 +35,9 @@ interface StudentInteractionsTabsProps {
   studentName?: string;
   canReadInteractions: boolean;
   canCreateInteraction: boolean;
+  canReadCampaigns?: boolean;
+  isActive?: boolean;
+  initialCampaignTab?: boolean;
   calls: StudentCallRecord[];
   messages: StudentZaloMessage[];
   isCallsLoading?: boolean;
@@ -51,12 +55,18 @@ export default function StudentInteractionsTabs({
   studentName,
   canReadInteractions,
   canCreateInteraction,
+  canReadCampaigns = false,
+  isActive = true,
+  initialCampaignTab = false,
   calls,
   messages,
   isCallsLoading = false,
   isZaloLoading = false,
 }: StudentInteractionsTabsProps) {
-  const defaultSelectedKey = getDefaultInteractionTab(calls);
+  const defaultSelectedKey =
+    canReadCampaigns && (!canReadInteractions || initialCampaignTab)
+      ? "campaigns"
+      : getDefaultInteractionTab(calls);
   const normalizedStudentId = studentId.trim();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -92,7 +102,7 @@ export default function StudentInteractionsTabs({
     await createMutation.mutateAsync(input);
   };
 
-  if (!canReadInteractions) {
+  if (!canReadInteractions && !canReadCampaigns) {
     return (
       <Card className="border-warning-200 bg-badge-warning-background p-5 text-badge-warning-text">
         <p className="font-semibold text-base">
@@ -130,7 +140,20 @@ export default function StudentInteractionsTabs({
         />
       ),
     },
-  ];
+    {
+      id: "campaigns",
+      label: "Chiến dịch",
+      content: (
+        <StudentCampaignsTab
+          key={normalizedStudentId}
+          studentId={normalizedStudentId}
+          isActive={isActive}
+        />
+      ),
+    },
+  ].filter((tab) =>
+    tab.id === "campaigns" ? canReadCampaigns : canReadInteractions,
+  );
 
   return (
     <>
