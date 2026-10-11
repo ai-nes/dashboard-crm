@@ -7,6 +7,7 @@ import {
   MapMarker5,
   Phone,
   Trash1,
+  CommentBotHappy,
 } from "@tailgrids/icons";
 import Link from "next/link";
 
@@ -36,6 +37,7 @@ import type { Student360SectionProps } from "./types";
 interface StudentHeaderProps extends Student360SectionProps {
   isStatusUpdating?: boolean;
   onDeleteRequest?: () => void;
+  onLookupFpilot?: () => void;
   onOwnerChange?: (owner: string) => void;
   onStatusChange?: (status: StudentStatus) => boolean | Promise<boolean>;
   owner?: string | null;
@@ -53,6 +55,7 @@ export default function StudentHeader({
   data,
   isStatusUpdating,
   onDeleteRequest,
+  onLookupFpilot,
   onOwnerChange,
   onStatusChange,
   owner,
@@ -118,6 +121,17 @@ export default function StudentHeader({
                     >
                       <Trash1 size={15} aria-hidden="true" />
                       Xóa hồ sơ
+                    </Button>
+                  )}
+                  {onLookupFpilot && (
+                    <Button
+                      appearance="ghost"
+                      size="sm"
+                      data-student-fpilot-trigger
+                      onPress={onLookupFpilot}
+                    >
+                      <CommentBotHappy size={15} aria-hidden="true" />
+                      Tra cứu Fpilot
                     </Button>
                   )}
                 </div>

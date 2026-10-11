@@ -14,6 +14,7 @@ import {
 } from "@/components/common/auth/permissions";
 import type { DetailTabItem } from "@/components/common/detail-tabs";
 import { Card } from "@/components/tailgrids/core/card";
+import { useStudentFpilotChat } from "@/components/common/crm-chatbot/student-fpilot-chat-context";
 import { useCanonicalBusinessRoute } from "@/hooks/use-canonical-business-route";
 import {
   useAssignedStudentsQuery,
@@ -86,6 +87,7 @@ export default function Student360Dashboard({
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { openStudentChat } = useStudentFpilotChat();
   const [studentOwnerDraft, setStudentOwnerDraft] = useState<{
     studentId: string;
     owner: string;
@@ -361,6 +363,17 @@ export default function Student360Dashboard({
           onDeleteRequest={
             canDeleteStudent && canonicalStudentId
               ? () => setDeleteDialogOpen(true)
+              : undefined
+          }
+          onLookupFpilot={
+            !isAuthLoading && hasStudentAccess && data.student.studentId?.trim()
+              ? () => {
+                  openStudentChat({
+                    studentId: data.student.studentId!.trim(),
+                    studentName: data.student.name,
+                    canReadStudent: true,
+                  });
+                }
               : undefined
           }
           onOwnerChange={handleStudentOwnerChange}

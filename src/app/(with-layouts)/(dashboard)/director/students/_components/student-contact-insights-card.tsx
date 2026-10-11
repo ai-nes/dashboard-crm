@@ -5,7 +5,6 @@ import {
   AnalysisSourceCountBadge,
   getAnalysisSourceCount,
 } from "@/components/analysis-runs/analysis-report-signal-lists";
-import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import type { AnalysisReport } from "@/services/api/analysis-runs";
 import { AnalysisAdvisorySignalList } from "@/components/analysis-runs/analysis-report-signal-lists";
@@ -16,16 +15,12 @@ interface StudentContactInsightsCardProps {
   report?: AnalysisReport | null;
   isRefreshing?: boolean;
   onRefresh?: () => void;
-  onOpenAskAI?: () => void;
-  canAskAI?: boolean;
 }
 
 export default function StudentContactInsightsCard({
   report,
   isRefreshing,
   onRefresh,
-  onOpenAskAI,
-  canAskAI = false,
 }: StudentContactInsightsCardProps) {
   const advisorySignals = report?.advisorySignals ?? [];
   const hasOverview = Boolean(report?.title || report?.summary);
@@ -63,21 +58,6 @@ export default function StudentContactInsightsCard({
         <div className="mt-4 rounded-xl border border-card-border bg-background-soft-50/50 p-4 sm:p-5">
           <StudentCardEmptyState message="Chưa có phân tích cho hồ sơ này." />
         </div>
-      )}
-
-      {/* Action button */}
-      {canAskAI && onOpenAskAI && (
-      <div className="mt-4">
-        <Button
-          appearance="outline"
-          size="xs"
-          onPress={onOpenAskAI}
-          className="rounded-full font-medium"
-        >
-          <Sparkle size={13} aria-hidden="true" />
-          <span>Đặt câu hỏi cho AI</span>
-        </Button>
-      </div>
       )}
     </Card>
   );
