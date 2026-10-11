@@ -39,6 +39,16 @@ export function getCrmDoctypePermissions(
   };
 }
 
+/** Campaign history needs both the Student row grant and Campaign read access. */
+export function canReadStudentCampaigns(
+  user: CurrentUser | null | undefined,
+): boolean {
+  return (
+    getCrmPermissions(user).student.canRead &&
+    getCrmDoctypePermissions(user, "CRM Campaign").canRead
+  );
+}
+
 const CRM_PATH_RESOURCES: ReadonlyArray<{
   path: string;
   documentTypes: readonly string[];

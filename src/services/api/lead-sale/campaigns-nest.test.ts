@@ -78,6 +78,7 @@ describe("campaign adapter for the Nest backend", () => {
   it("returns routing options from teams", async () => {
     const { getCampaignRoutingOptions } = await import("./campaigns");
     expect(await getCampaignRoutingOptions()).toEqual({
+      campuses: [{ id: "campus-1", label: "HCM" }],
       teams: [{ id: "team-1", label: "Team A", campus: "HCM" }],
       groups: [],
     });

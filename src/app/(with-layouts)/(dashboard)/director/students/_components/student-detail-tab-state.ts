@@ -6,6 +6,7 @@ const legacyTabAliases: Record<string, string> = {
   calls: "interactions",
   log: "audit",
   activities: "interactions",
+  campaigns: "interactions",
 };
 
 const supportedTabs = new Set([

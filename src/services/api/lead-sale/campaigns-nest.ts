@@ -26,6 +26,7 @@ interface NestNamed {
   id: string;
   name: string;
   campusId?: string;
+  approvalState?: string;
 }
 
 const PAGE_SIZE = 500;
@@ -40,6 +41,9 @@ async function nameMaps() {
     }),
   ]);
   return {
+    campuses: campuses.data.filter(
+      (row) => !row.approvalState || row.approvalState === "Approved",
+    ),
     campusName: new Map(campuses.data.map((row) => [row.id, row.name])),
     campusId: new Map(campuses.data.map((row) => [row.name, row.id])),
     teams: teams.data,
@@ -110,6 +114,10 @@ export async function nestCampaignGet(code: string): Promise<unknown> {
 export async function nestCampaignRoutingOptions(): Promise<unknown> {
   const maps = await nameMaps();
   return {
+    campuses: maps.campuses.map((campus) => ({
+      name: campus.id,
+      campus_name: campus.name,
+    })),
     teams: maps.teams.map((team) => ({
       name: team.id,
       team_name: team.name,

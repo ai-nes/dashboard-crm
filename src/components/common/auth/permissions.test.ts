@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { CurrentUser } from "@/services/api/auth";
 
 import {
+  canReadStudentCampaigns,
   canManageCrmRules,
   canConvertLeadToStudent,
   canPerformStudentAction,
@@ -36,6 +37,50 @@ const makeDoctypePermission = (
   delete: true,
   export: false,
   ...overrides,
+});
+
+describe("Student campaign history permissions", () => {
+  it.each([
+    {
+      student: true,
+      campaign: true,
+      scope: "team_and_team_pool",
+      allowed: true,
+    },
+    {
+      student: false,
+      campaign: true,
+      scope: "team_and_team_pool",
+      allowed: false,
+    },
+    {
+      student: true,
+      campaign: false,
+      scope: "team_and_team_pool",
+      allowed: false,
+    },
+    { student: true, campaign: true, scope: "deny", allowed: false },
+  ])(
+    "requires both effective Student and Campaign read grants: $allowed",
+    ({ student, campaign, scope, allowed }) => {
+      const user = makeUser({
+        crm_doctype_permissions: {
+          "CRM Student": makeDoctypePermission({
+            read: student,
+            row_scope: scope,
+          }),
+          "CRM Campaign": makeDoctypePermission({
+            read: campaign,
+            row_scope: "no_case_scope",
+          }),
+        },
+      });
+      expect(canReadStudentCampaigns(user)).toBe(allowed);
+    },
+  );
+  it("denies an unauthenticated viewer", () => {
+    expect(canReadStudentCampaigns(null)).toBe(false);
+  });
 });
 
 describe("effective business DocType permissions", () => {

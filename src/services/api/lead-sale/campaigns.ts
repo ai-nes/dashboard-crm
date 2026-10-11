@@ -36,6 +36,7 @@ export interface CampaignRoutingOption {
 }
 
 export interface CampaignRoutingOptions {
+  campuses: CampaignRoutingOption[];
   teams: CampaignRoutingOption[];
   groups: CampaignRoutingOption[];
 }
@@ -238,7 +239,7 @@ export async function getCampaign(
 
 function normalizeCampaignRoutingOption(
   value: unknown,
-  labelField: "team_name" | "group_name",
+  labelField: "team_name" | "group_name" | "campus_name",
 ): CampaignRoutingOption | null {
   const row = asRecord(value);
   const id = text(row?.name);
@@ -256,6 +257,7 @@ export async function getCampaignRoutingOptions(): Promise<CampaignRoutingOption
   const payload = asRecord(await viaNest(() => nestCampaignRoutingOptions()));
   if (
     !payload ||
+    !Array.isArray(payload.campuses) ||
     !Array.isArray(payload.teams) ||
     !Array.isArray(payload.groups)
   ) {
@@ -266,6 +268,10 @@ export async function getCampaignRoutingOptions(): Promise<CampaignRoutingOption
     );
   }
   return {
+    campuses: payload.campuses.flatMap((value) => {
+      const option = normalizeCampaignRoutingOption(value, "campus_name");
+      return option ? [option] : [];
+    }),
     teams: payload.teams.flatMap((value) => {
       const option = normalizeCampaignRoutingOption(value, "team_name");
       return option ? [option] : [];

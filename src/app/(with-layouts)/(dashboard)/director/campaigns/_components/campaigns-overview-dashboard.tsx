@@ -52,22 +52,34 @@ export default function CampaignsOverviewDashboard() {
   const canUpdateCampaign = campaignPermissions.canUpdate;
   const canDeleteCampaign = campaignPermissions.canDelete;
   const canLoadCampaignConfiguration =
-    !isAuthLoading && canReadCampaign && (canCreateCampaign || canUpdateCampaign);
+    !isAuthLoading &&
+    canReadCampaign &&
+    (canCreateCampaign || canUpdateCampaign);
   const campaignListPath = getCampaignListPath(user?.roles);
   const { data, error, isPending } = useLeadSaleCampaignsQuery(
     {},
     { enabled: !isAuthLoading && canReadCampaign },
   );
   const { data: channelTypeData, error: channelTypeError } =
-    useLeadSaleCampaignChannelTypesQuery({}, {
-      enabled: canLoadCampaignConfiguration,
-    });
-  const { data: routingOptionData, error: routingOptionError } =
-    useLeadSaleCampaignRoutingOptionsQuery({
-      enabled: canLoadCampaignConfiguration,
-    });
+    useLeadSaleCampaignChannelTypesQuery(
+      {},
+      {
+        enabled: canLoadCampaignConfiguration,
+      },
+    );
+  const {
+    data: routingOptionData,
+    error: routingOptionError,
+    isPending: isRoutingOptionsPending,
+  } = useLeadSaleCampaignRoutingOptionsQuery({
+    enabled: canLoadCampaignConfiguration,
+  });
   const channelTypes = channelTypeData?.channelTypes ?? [];
-  const routingOptions = routingOptionData ?? { teams: [], groups: [] };
+  const routingOptions = routingOptionData ?? {
+    campuses: [],
+    teams: [],
+    groups: [],
+  };
   const createCampaignMutation = useCreateLeadSaleCampaignMutation();
   const deleteCampaignMutation = useDeleteLeadSaleCampaignMutation();
   const updateCampaignMutation = useUpdateLeadSaleCampaignMutation();
@@ -97,7 +109,8 @@ export default function CampaignsOverviewDashboard() {
   useEffect(() => {
     if (routingOptionError) {
       toast.error(
-        routingOptionError.message || "Không thể tải cấu hình Team phân bổ Lead.",
+        routingOptionError.message ||
+          "Không thể tải cấu hình Team phân bổ Lead.",
       );
     }
   }, [routingOptionError]);
@@ -248,20 +261,21 @@ export default function CampaignsOverviewDashboard() {
     if (formDialog?.mode === "edit") {
       if (!canUpdateCampaign) return;
       const { campaign } = formDialog;
-        await updateCampaignMutation.mutateAsync({
-          name: campaign.id,
+      await updateCampaignMutation.mutateAsync({
+        name: campaign.id,
         title: fields.name.trim(),
+        campus: fields.campus,
         status: fields.status,
         startDate: fields.startDate,
         endDate: fields.endDate,
         channelBoundary: fields.mode === "ONLINE" ? "Digital" : "Field",
-          channelType: fields.channelType,
-          channelUrl: fields.channelUrl.trim(),
-          leadRoutingEnabled: fields.leadRoutingEnabled,
-          leadRoutingTargetType: fields.leadRoutingTargetType,
-          leadRoutingTargetTeam: fields.leadRoutingTargetTeam,
-          leadRoutingTargetGroup: fields.leadRoutingTargetGroup,
-        });
+        channelType: fields.channelType,
+        channelUrl: fields.channelUrl.trim(),
+        leadRoutingEnabled: fields.leadRoutingEnabled,
+        leadRoutingTargetType: fields.leadRoutingTargetType,
+        leadRoutingTargetTeam: fields.leadRoutingTargetTeam,
+        leadRoutingTargetGroup: fields.leadRoutingTargetGroup,
+      });
       setCampaignChanges((current) => {
         const next = { ...current };
         delete next[campaign.id];
@@ -270,15 +284,12 @@ export default function CampaignsOverviewDashboard() {
       toast.success("Đã cập nhật chiến dịch.");
     } else {
       if (!canCreateCampaign) return;
-      const campus = data?.campaigns.find((item) => item.campus)?.campus;
-      if (!campus) {
-        throw new Error(
-          "Không thể tạo chiến dịch vì chưa xác định được cơ sở.",
-        );
+      if (!fields.campus.trim()) {
+        throw new Error("Vui lòng chọn Campus cho chiến dịch.");
       }
       await createCampaignMutation.mutateAsync({
         title: fields.name.trim(),
-        campus: fields.campus || campus,
+        campus: fields.campus,
         status: fields.status,
         startDate: fields.startDate,
         endDate: fields.endDate,
@@ -387,15 +398,16 @@ export default function CampaignsOverviewDashboard() {
       {formDialog &&
         ((formDialog.mode === "create" && canCreateCampaign) ||
           (formDialog.mode === "edit" && canUpdateCampaign)) && (
-        <CampaignFormDialog
-          campaign={formDialog.mode === "edit" ? formDialog.campaign : null}
-          channelTypes={channelTypes}
-          routingOptions={routingOptions}
-          defaultCampus={data?.campaigns.find((item) => item.campus)?.campus}
-          onClose={() => setFormDialog(null)}
-          onSubmit={handleFormSubmit}
-        />
-      )}
+          <CampaignFormDialog
+            campaign={formDialog.mode === "edit" ? formDialog.campaign : null}
+            channelTypes={channelTypes}
+            routingOptions={routingOptions}
+            isLoadingCampuses={isRoutingOptionsPending}
+            campusLoadError={routingOptionError?.message}
+            onClose={() => setFormDialog(null)}
+            onSubmit={handleFormSubmit}
+          />
+        )}
 
       {canDeleteCampaign && (
         <DeleteRecordDialog
