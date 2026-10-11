@@ -11,6 +11,22 @@ vi.mock("./student-tags-cell", () => ({ default: () => null }));
 vi.mock("./student-gauge-chart", () => ({ default: () => null }));
 
 describe("student stage history visibility", () => {
+  it.each([true, false])(
+    "renders Fpilot action only when authorized callback exists: %s",
+    (allowed) => {
+      const data = computeStudent360("nguyen-minh-an");
+      if (!data) throw new Error("Missing student fixture");
+      const html = renderToStaticMarkup(
+        <StudentHeader
+          data={data}
+          studentId="STUDENT-1"
+          onLookupFpilot={allowed ? () => {} : undefined}
+        />,
+      );
+      expect(html.includes("Tra cứu Fpilot")).toBe(allowed);
+      expect(html.includes("Đặt câu hỏi cho AI")).toBe(false);
+    },
+  );
   it.each([
     { allowed: true, canonicalId: "STUDENT-1", visible: true },
     { allowed: false, canonicalId: "STUDENT-1", visible: false },

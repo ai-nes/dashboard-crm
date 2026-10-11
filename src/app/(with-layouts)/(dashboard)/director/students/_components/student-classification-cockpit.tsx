@@ -22,7 +22,6 @@ import { Button } from "@/components/tailgrids/core/button";
 import { useStudentAnalysis } from "@/hooks/use-student-ai";
 import { cn } from "@/utils/cn";
 
-import StudentAskAIDialog from "./student-ask-ai-dialog";
 import StudentChallengesCard from "./student-challenges-card";
 import StudentContactInsightsCard from "./student-contact-insights-card";
 import StudentPositiveFeedbackCard from "./student-positive-feedback-card";
@@ -43,8 +42,6 @@ export default function StudentClassificationCockpit({
   data,
   analysisTargetId,
   scoreBreakdown,
-  canViewVisual = false,
-  sessionUserId,
 }: StudentClassificationCockpitProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const crmPermissions = getCrmPermissions(user);
@@ -70,7 +67,6 @@ export default function StudentClassificationCockpit({
     getCrmDoctypePermissions(user, "CRM Interaction Type").canRead;
   const [isOverviewOpen, setIsOverviewOpen] = useState(true);
   const [isHealthOpen, setIsHealthOpen] = useState(true);
-  const [isAskDialogOpen, setIsAskDialogOpen] = useState(false);
   const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
   const [nbaCount, setNbaCount] = useState(0);
 
@@ -217,8 +213,6 @@ export default function StudentClassificationCockpit({
                               ? handleAnalysisRequest
                               : undefined
                           }
-                          canAskAI={canViewVisual && Boolean(data.student.studentId?.trim())}
-                          onOpenAskAI={() => setIsAskDialogOpen(true)}
                         />
                       </div>
 
@@ -330,15 +324,6 @@ export default function StudentClassificationCockpit({
             : []),
           */
         ]}
-      />
-
-      {/* Modal Ask AI */}
-      <StudentAskAIDialog
-        key={`${sessionUserId ?? "signed-out"}:${data.student.studentId ?? "missing"}`}
-        isOpen={isAskDialogOpen}
-        onClose={() => setIsAskDialogOpen(false)}
-        data={data}
-        canReadStudent={canViewVisual}
       />
 
       {/* Optional Analysis Drawer for deep claims review */}

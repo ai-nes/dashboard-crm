@@ -3,6 +3,8 @@
 import { AuthGuard } from "@/components/common/auth/auth-guard";
 import Header from "@/components/common/header";
 import CrmChatbotPopover from "@/components/common/crm-chatbot/crm-chatbot-popover";
+import StudentAskAIDialog from "./(dashboard)/director/students/_components/student-ask-ai-dialog";
+import { StudentFpilotChatProvider } from "@/components/common/crm-chatbot/student-fpilot-chat-context";
 import Sidebar from "@/components/common/sidebar";
 import {
   SheetContent,
@@ -28,6 +30,7 @@ export default function WithLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthGuard>
+      <StudentFpilotChatProvider>
       <div className="flex h-full">
         {/*  Desktop sidebar (xl+) — always in DOM, toggles width  */}
         <aside
@@ -103,6 +106,8 @@ export default function WithLayout({ children }: { children: ReactNode }) {
         </div>
       </div>
       <CrmChatbotPopover />
+      <StudentAskAIDialog />
+      </StudentFpilotChatProvider>
     </AuthGuard>
   );
 }
