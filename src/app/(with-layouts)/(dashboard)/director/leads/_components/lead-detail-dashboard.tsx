@@ -19,6 +19,8 @@ import DetailTabs, {
 } from "@/components/common/detail-tabs";
 import { Card } from "@/components/tailgrids/core/card";
 import { useLeadCallLogsQuery } from "@/hooks/use-lead-call-logs-query";
+import { useCanonicalBusinessRoute } from "@/hooks/use-canonical-business-route";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 import {
   useConvertLeadToStudentMutation,
   useDeleteLeadMutation,
@@ -50,8 +52,14 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     enabled: Boolean(leadId) && canReadLead && !isAuthLoading,
   });
   const [activeTab, setActiveTab] = useState("details");
-  const callLogsQuery = useLeadCallLogsQuery(leadId, {
-    enabled: canReadLead && !isAuthLoading && activeTab === "calls",
+  const resolvedLeadId = data?.lead.id ?? "";
+  useCanonicalBusinessRoute(leadId, data?.lead.leadCode);
+  const callLogsQuery = useLeadCallLogsQuery(resolvedLeadId, {
+    enabled:
+      Boolean(resolvedLeadId) &&
+      canReadLead &&
+      !isAuthLoading &&
+      activeTab === "calls",
   });
   const deleteMutation = useDeleteLeadMutation();
   const convertMutation = useConvertLeadToStudentMutation();
@@ -90,12 +98,12 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     !data?.lead.studentId &&
     canConvertLeadToStudent(user?.roles, leadOwnership, user);
   const submitConversion = () => {
-    if (!canConvertLead) return;
-    convertMutation.mutate(leadId, {
+    if (!canConvertLead || !resolvedLeadId) return;
+    convertMutation.mutate(resolvedLeadId, {
       onSuccess: (result) => {
         toast.success("Đã chuyển đổi Lead thành học sinh.");
         router.replace(
-          `/director/students/${encodeURIComponent(result.student)}`,
+          `/director/students/${encodeURIComponent(getBusinessRouteKey(result.studentCode, result.student))}`,
         );
         router.refresh();
       },
@@ -123,15 +131,15 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
   };
 
   const handleConversionDetailsSubmit = async (fields: LeadUpdateFields) => {
-    if (!canUpdateLead || !canConvertLead) return;
-    await updateMutation.mutateAsync({ leadId, fields });
+    if (!canUpdateLead || !canConvertLead || !resolvedLeadId) return;
+    await updateMutation.mutateAsync({ leadId: resolvedLeadId, fields });
     setConversionDialogOpen(false);
     setConversionMissingFields([]);
     submitConversion();
   };
   const handleDelete = () => {
-    if (!canDeleteLead) return;
-    deleteMutation.mutate(leadId, {
+    if (!canDeleteLead || !resolvedLeadId) return;
+    deleteMutation.mutate(resolvedLeadId, {
       onSuccess: () => {
         setDeleteDialogOpen(false);
         toast.success("Đã xóa Lead.");
@@ -235,7 +243,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
           canAssign={canAssignLead}
           canEdit={canUpdateLead}
           lead={data.lead}
-          leadId={leadId}
+          leadId={resolvedLeadId}
         />
       ),
     },
@@ -244,7 +252,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
       label: "Cuộc gọi",
       content: (
         <LeadCallsTab
-          leadId={leadId}
+          leadId={resolvedLeadId}
           leadName={data.lead.name}
           calls={callLogsQuery.data?.calls ?? []}
           isLoading={callLogsQuery.isPending}
@@ -262,7 +270,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
         <LeadNotesTab
           canManageNotes={canUpdateLead}
           enabled={activeTab === "notes"}
-          leadId={leadId}
+          leadId={resolvedLeadId}
           leadName={data.lead.name}
         />
       ),
@@ -270,7 +278,9 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     {
       id: "log",
       label: "Nhật ký",
-      content: <LeadLogTab enabled={activeTab === "log"} leadId={leadId} />,
+      content: (
+        <LeadLogTab enabled={activeTab === "log"} leadId={resolvedLeadId} />
+      ),
     },
   ];
 
@@ -291,7 +301,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
           }
         >
           <LeadWorkflowSection
-            leadId={leadId}
+            leadId={resolvedLeadId}
             leadName={data.lead.name}
             status={status}
             result={result}

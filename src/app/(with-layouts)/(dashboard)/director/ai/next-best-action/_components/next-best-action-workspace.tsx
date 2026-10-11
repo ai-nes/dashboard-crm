@@ -19,7 +19,7 @@ import DirectorRecommendationList, {
   DirectorRecommendationListSkeleton,
 } from "./director-recommendation-list";
 import NextBestActionHeader from "./next-best-action-header";
-import { useRecommendationStudentNames } from "./use-recommendation-student-names";
+import { useRecommendationStudents } from "./use-recommendation-students";
 
 const RECOMMENDATION_LIMIT = 50;
 
@@ -38,13 +38,14 @@ export default function NextBestActionWorkspace() {
     },
   );
   const recommendations = query.data?.recommendations ?? [];
-  const studentNameById = useRecommendationStudentNames(recommendations);
   const selectedRecommendation: DirectorNbaRecommendation | null =
     recommendations.find(
       (recommendation) => recommendation.id === selectedId,
     ) ??
     recommendations[0] ??
     null;
+  const { studentNameById, studentCodeById } =
+    useRecommendationStudents(recommendations);
 
   useEffect(() => {
     if (canReadRecommendations && query.error) toast.error(query.error.message);
@@ -143,6 +144,7 @@ export default function NextBestActionWorkspace() {
             <DirectorRecommendationList
               recommendations={recommendations}
               studentNameById={studentNameById}
+              studentCodeById={studentCodeById}
               selectedId={selectedRecommendation?.id ?? null}
               onSelect={setSelectedId}
             />
@@ -151,6 +153,7 @@ export default function NextBestActionWorkspace() {
           <DirectorRecommendationDetail
             recommendation={selectedRecommendation}
             studentNameById={studentNameById}
+            studentCodeById={studentCodeById}
           />
         </Card>
       )}

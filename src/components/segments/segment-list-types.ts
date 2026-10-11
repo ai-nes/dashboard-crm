@@ -2,6 +2,7 @@ import type {
   SegmentRecord,
   SegmentStatus as ApiSegmentStatus,
 } from "@/services/api/segments";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 export type SegmentStatus = ApiSegmentStatus;
 export type SegmentType = "dynamic" | "static";
@@ -9,6 +10,7 @@ export type SegmentType = "dynamic" | "static";
 export interface SegmentListItem {
   /** The document name is the stable segment identifier. */
   id: string;
+  /** Raw business code used for routes; empty when the code is missing. */
   segmentCode: string;
   name: string;
   size: number;
@@ -30,8 +32,8 @@ export function toSegmentListItem(
 ): SegmentListItem {
   return {
     id: segment.name,
-    segmentCode: segment.segment_code || segment.name,
-    name: segment.title || segment.name,
+    segmentCode: segment.segment_code?.trim() || "",
+    name: segment.title?.trim() || "—",
     size: sizeOverride ?? segment.member_count ?? 0,
     status: segment.status,
     updatedAt: segment.modified || segment.creation || "",
@@ -44,6 +46,14 @@ export function toSegmentListItem(
     category: segment.category || undefined,
     segmentType: segment.segment_type,
   };
+}
+
+export function getSegmentDetailHref(
+  detailBaseHref: string,
+  segment: Pick<SegmentListItem, "id" | "segmentCode">,
+): string {
+  const routeKey = getBusinessRouteKey(segment.segmentCode, segment.id);
+  return `${detailBaseHref.replace(/\/$/, "")}/${encodeURIComponent(routeKey)}`;
 }
 
 export const SEGMENT_STATUS_LABELS: Record<SegmentStatus, string> = {

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 import { formatDate } from "@/utils/format-date";
 
 import {
@@ -23,7 +24,8 @@ interface TaskDetailRowProps {
 }
 
 function taskHref(task: TaskManagementItem): string {
-  return `/director/students/${task.studentId}?tab=activities&taskId=${task.id}`;
+  const studentRouteKey = getBusinessRouteKey(task.studentCode, task.studentId);
+  return `/director/students/${encodeURIComponent(studentRouteKey)}?tab=activities&taskId=${encodeURIComponent(task.id)}`;
 }
 
 function getInitials(name: string): string {

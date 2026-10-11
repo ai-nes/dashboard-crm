@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { Badge } from "@/components/tailgrids/core/badge";
+import { useCanonicalBusinessRoute } from "@/hooks/use-canonical-business-route";
 import { useMajorGroupsQuery } from "@/hooks/use-major-catalog-queries";
 
 import { MajorCatalogManagement } from "./major-catalog-management";
@@ -30,9 +31,13 @@ export function MajorGroupDetailPage({ groupId }: { groupId: string }) {
     queryEnabled: permissions.majorGroups.canRead,
   });
   const group = useMemo(
-    () => groupsQuery.data?.groups.find((item) => item.id === groupId),
+    () =>
+      groupsQuery.data?.groups.find(
+        (item) => item.id === groupId || item.code === groupId,
+      ),
     [groupId, groupsQuery.data?.groups],
   );
+  useCanonicalBusinessRoute(groupId, group?.code);
 
   if (!permissions.majorGroups.canRead) {
     return (

@@ -77,6 +77,7 @@ export interface SegmentAnalysisResponse {
 
 export interface SegmentStudentRecord {
   name: string;
+  student_code?: string | null;
   full_name?: string | null;
   phone?: string | null;
   student_stage?: string | null;

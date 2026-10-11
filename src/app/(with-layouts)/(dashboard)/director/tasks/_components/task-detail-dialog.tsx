@@ -9,6 +9,7 @@ import type {
   StudentTaskItem,
 } from "@/services/api/students/types";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 import { formatDate } from "@/utils/format-date";
 
 import TaskCreateDialogShell from "./task-create-dialog-shell";
@@ -82,9 +83,10 @@ function TaskDetailDialogContent({
     onUpdateTask?.(task.id, { dueTime });
   };
 
+  const studentRouteKey = getBusinessRouteKey(task.studentCode, task.studentId);
   const studentLink = (
     <CrmPermissionLink
-      href={`/director/students/${task.studentId}?tab=activities&taskId=${task.id}`}
+      href={`/director/students/${encodeURIComponent(studentRouteKey)}?tab=activities&taskId=${encodeURIComponent(task.id)}`}
       className="inline-flex items-center gap-1.5 font-medium text-text-primary hover:text-primary-600 hover:underline"
     >
       <span className="flex size-5 items-center justify-center rounded-full bg-primary-100 text-[10px] font-bold text-primary-700">
@@ -121,7 +123,7 @@ function TaskDetailDialogContent({
             <TaskDialogDescription
               value={notes}
               onChange={handleNotesChange}
-                readOnly={!onUpdateTask}
+              readOnly={!onUpdateTask}
               placeholder="Mô tả chi tiết công việc cần làm..."
             />
           </div>

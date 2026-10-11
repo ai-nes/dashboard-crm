@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSegmentFilterOptions,
   fromBackendSegmentFilters,
+  getClassificationTermCode,
   getClassificationTermLabel,
   getOptionsForSelectedClassificationGroup,
   getSelectedOptionLabels,
@@ -115,6 +116,51 @@ describe("segment classification options", () => {
         group_name: "NEED_APPLICATION",
       }),
     ).toBe("Hạn nộp hồ sơ");
+  });
+
+  it("does not use a term UUID as the visible label when code and label are missing", () => {
+    expect(
+      getClassificationTermLabel({
+        name: "550e8400-e29b-41d4-a716-446655440000",
+        label: null,
+        code: null,
+        group_name: "NEED_APPLICATION",
+      }),
+    ).toBe("Chưa đặt tên");
+  });
+
+  it("uses a placeholder instead of a UUID for a missing term code", () => {
+    expect(
+      getClassificationTermCode({
+        name: "550e8400-e29b-41d4-a716-446655440000",
+        label: null,
+        code: null,
+        group_name: "NEED_APPLICATION",
+      }),
+    ).toBe("—");
+  });
+
+  it("prefers the business code when a term name is a UUID", () => {
+    const term = {
+      name: "550e8400-e29b-41d4-a716-446655440000",
+      label: null,
+      code: "FIRST_CONTACT",
+      group_name: "NEED_CONTACT",
+    };
+
+    expect(getClassificationTermCode(term)).toBe("FIRST_CONTACT");
+    expect(getClassificationTermLabel(term)).toBe("Liên hệ lần đầu");
+  });
+
+  it("keeps legacy business codes stored in a non-UUID term name", () => {
+    expect(
+      getClassificationTermCode({
+        name: "FIRST_CONTACT",
+        label: null,
+        code: null,
+        group_name: "NEED_CONTACT",
+      }),
+    ).toBe("FIRST_CONTACT");
   });
 
   it.each([

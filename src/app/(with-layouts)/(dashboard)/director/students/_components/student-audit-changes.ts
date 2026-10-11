@@ -1,7 +1,12 @@
 import type { StudentAuditLog } from "@/services/api/student-audit";
-import { formatAuditMetadataKey } from "@/utils/format-audit-metadata";
 import { formatDate, formatDateTime } from "@/utils/format-date";
 import { studentStatusLabel } from "./student-status";
+import {
+  formatStudentAuditFieldLabel,
+  getStudentAuditSystemValueLabel,
+  isStudentAuditIdentifier,
+  isStudentAuditTechnicalField,
+} from "./student-audit-presentation";
 
 export interface StudentAuditFieldChange {
   fieldname: string;
@@ -10,19 +15,6 @@ export interface StudentAuditFieldChange {
   newValue: unknown;
 }
 
-const technicalFields = new Set([
-  "id",
-  "legacyId",
-  "studentId",
-  "revision",
-  "createdAt",
-  "updatedAt",
-  "modifiedAt",
-  "storageKey",
-  "sha256",
-  "sourceKey",
-  "idempotencyKey",
-]);
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -40,12 +32,15 @@ export function getStudentAuditChanges(
     (event.fieldname || event.fieldLabel) &&
     !entries?.length
   ) {
+    if (event.fieldname && isStudentAuditTechnicalField(event.fieldname))
+      return [];
     return [
       {
         fieldname: event.fieldname || "field",
-        fieldLabel:
-          event.fieldLabel ||
-          formatAuditMetadataKey(event.fieldname || "field"),
+        fieldLabel: formatStudentAuditFieldLabel(
+          event.fieldname || "field",
+          event.fieldLabel,
+        ),
         oldValue: event.oldValue,
         newValue: event.newValue,
       },
@@ -58,13 +53,13 @@ export function getStudentAuditChanges(
       if (
         !change ||
         typeof change.fieldname !== "string" ||
-        technicalFields.has(change.fieldname)
+        isStudentAuditTechnicalField(change.fieldname)
       )
         return [];
-      const fieldLabel =
-        typeof change.fieldLabel === "string"
-          ? change.fieldLabel
-          : formatAuditMetadataKey(change.fieldname);
+      const fieldLabel = formatStudentAuditFieldLabel(
+        change.fieldname,
+        typeof change.fieldLabel === "string" ? change.fieldLabel : undefined,
+      );
       return [
         {
           fieldname: change.fieldname,
@@ -79,16 +74,16 @@ export function getStudentAuditChanges(
   return [...new Set([...Object.keys(before), ...Object.keys(after)])]
     .filter(
       (key) =>
-        !technicalFields.has(key) &&
+        !isStudentAuditTechnicalField(key) &&
         JSON.stringify(before[key] ?? null) !==
           JSON.stringify(after[key] ?? null),
     )
     .map((fieldname) => ({
       fieldname,
-      fieldLabel:
-        typeof labels[fieldname] === "string"
-          ? labels[fieldname]
-          : formatAuditMetadataKey(fieldname),
+      fieldLabel: formatStudentAuditFieldLabel(
+        fieldname,
+        typeof labels[fieldname] === "string" ? labels[fieldname] : undefined,
+      ),
       oldValue: before[fieldname] ?? null,
       newValue: after[fieldname] ?? null,
     }));
@@ -137,6 +132,9 @@ export function formatStudentAuditChangeValue(
   if (typeof value === "boolean") return value ? "Có" : "Không";
   if (typeof value === "number") return String(value);
   if (typeof value === "string") {
+    if (isStudentAuditIdentifier(value)) return "Chưa có tên hiển thị";
+    const systemLabel = getStudentAuditSystemValueLabel(field, value);
+    if (systemLabel) return systemLabel;
     if (
       ["studentStage", "student_stage"].includes(field) &&
       value in studentStatusLabel
@@ -168,9 +166,10 @@ export function formatStudentAuditChangeValue(
   if (record)
     return (
       Object.entries(record)
+        .filter(([key]) => !isStudentAuditTechnicalField(key))
         .map(
           ([key, item]) =>
-            `${detailLabels[key] ?? formatAuditMetadataKey(key)}: ${formatStudentAuditChangeValue(key, item)}`,
+            `${detailLabels[key] ?? formatStudentAuditFieldLabel(key)}: ${formatStudentAuditChangeValue(key, item)}`,
         )
         .join("; ") || "Chưa có giá trị"
     );

@@ -13,6 +13,8 @@ import {
   useSegmentFilterOptionsQuery,
   useSegmentPreviewQuery,
 } from "@/hooks/use-segment-queries";
+import { useCanonicalBusinessRoute } from "@/hooks/use-canonical-business-route";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import SegmentAuditTab from "./segment-audit-tab";
 import { SegmentDetailFilters } from "./segment-detail-filters";
@@ -74,14 +76,15 @@ function SegmentDetailContent({
   const [studentSearch, setStudentSearch] = useState("");
   const [studentPage, setStudentPage] = useState(1);
   const segmentQuery = useSegmentDetailQuery(segmentId);
+  useCanonicalBusinessRoute(segmentId, segmentQuery.data?.segment_code);
   const previewQuery = useSegmentPreviewQuery(
     {
-      segment: segmentId,
+      segment: segmentQuery.data?.name ?? "",
       search: studentSearch.trim() || undefined,
       start: (studentPage - 1) * SEGMENT_STUDENT_PAGE_SIZE,
       pageLength: SEGMENT_STUDENT_PAGE_SIZE,
     },
-    Boolean(segmentId),
+    Boolean(segmentQuery.data?.name),
   );
   const optionsQuery = useSegmentFilterOptionsQuery();
   const deleteMutation = useDeleteSegmentMutation();
@@ -155,6 +158,10 @@ function SegmentDetailContent({
         toast.error(errorMessage(error, "Không thể xóa segment."));
       });
   };
+  const segmentRouteKey = getBusinessRouteKey(
+    segmentQuery.data?.segment_code,
+    segment.id,
+  );
 
   return (
     <main
@@ -171,7 +178,7 @@ function SegmentDetailContent({
         onEdit={() => {
           if (!canManageSegment(user, segment, "update")) return;
           router.push(
-            `${editHref.replace(/\/$/, "")}/${encodeURIComponent(segment.segmentCode)}`,
+            `${editHref.replace(/\/$/, "")}/${encodeURIComponent(segmentRouteKey)}`,
           );
         }}
         onDelete={handleDelete}

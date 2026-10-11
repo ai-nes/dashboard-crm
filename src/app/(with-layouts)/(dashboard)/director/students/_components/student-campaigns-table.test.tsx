@@ -47,4 +47,31 @@ describe("Student campaigns display", () => {
     expect(html).toContain("Đang diễn ra");
     expect(html).toContain("11/10/2026");
   });
+
+  it("shows a readable missing-code label without exposing the campaign id", () => {
+    const html = renderToStaticMarkup(
+      <StudentCampaignsTable
+        items={[
+          {
+            id: "participation-uuid",
+            campaignId: "campaign-uuid",
+            title: "Tư vấn tuyển sinh",
+            code: null,
+            status: "ACTIVE",
+            channel: null,
+            startDate: null,
+            endDate: null,
+            registeredAt: "2026-10-10T03:45:36.351Z",
+            timestampEstimated: false,
+            isOriginalCampaign: true,
+            isNewLead: false,
+          },
+        ]}
+      />,
+    );
+
+    expect(html).toContain("Chưa có mã chiến dịch");
+    expect(html).not.toContain("campaign-uuid");
+    expect(html).not.toContain("participation-uuid");
+  });
 });

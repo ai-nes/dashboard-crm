@@ -113,6 +113,22 @@ describe("Lead Sale campaign API contract", () => {
     expect(calls()).toContain("GET /api/v1/reference-data/campaigns/CAM-1");
   });
 
+  it("resolves a campaign code to the persisted UUID record", async () => {
+    mockReferenceData();
+    await expect(getCampaign("CAM-2026-00001")).resolves.toMatchObject({
+      name: nestCampaign.id,
+      stableCode: "CAM-2026-00001",
+    });
+    const lookup = fetchMock.mock.calls.find(([url]) => {
+      const parsed = new URL(String(url));
+      return (
+        parsed.pathname === "/api/v1/reference-data/campaigns" &&
+        parsed.searchParams.get("q") === "CAM-2026-00001"
+      );
+    });
+    expect(lookup).toBeDefined();
+  });
+
   it("returns null when the campaign does not exist", async () => {
     mockReferenceData({
       "GET /api/v1/reference-data/campaigns": () =>
@@ -222,6 +238,31 @@ describe("Lead Sale campaign API contract", () => {
           startDate: "2026-09-01",
           endDate: "2026-09-30",
           channelBoundary: "Digital",
+        },
+      ],
+    });
+  });
+
+  it("does not use an internal campaign id as the displayed title or code", () => {
+    expect(
+      normalizeCampaignList({
+        total: 1,
+        campaigns: [
+          {
+            name: "8f2d69d0-1795-4c52-a94a-e77c9ef64918",
+            stableCode: null,
+            status: "ACTIVE",
+          },
+        ],
+      }),
+    ).toEqual({
+      total: 1,
+      campaigns: [
+        {
+          name: "8f2d69d0-1795-4c52-a94a-e77c9ef64918",
+          stableCode: "",
+          title: "Chiến dịch chưa có tên",
+          status: "ACTIVE",
         },
       ],
     });

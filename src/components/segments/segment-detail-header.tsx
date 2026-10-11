@@ -127,7 +127,7 @@ export function SegmentDetailHeader({
             {segment.name}
           </h1>
           <p className="mt-1 font-mono text-xs font-medium tracking-wide text-text-tertiary">
-            {segment.segmentCode}
+            {segment.segmentCode || "—"}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge color={SEGMENT_STATUS_BADGE_COLORS[segment.status]}>

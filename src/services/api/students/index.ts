@@ -896,7 +896,7 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
           modifiedAt: nullableText(student.modifiedAt),
           branchId: nullableText(student.campusId),
           branch: nullableText(student.branch),
-          sourceLead: nullableText(student.sourceLeadId),
+          sourceLead: nullableText(student.leadCode),
         },
         contact: {
           name: nullableText(student.parentName),

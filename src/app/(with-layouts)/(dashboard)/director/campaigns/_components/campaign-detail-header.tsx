@@ -41,7 +41,9 @@ export default function CampaignDetailHeader({
       </Link>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Badge color="primary">{campaign.code}</Badge>
+        <Badge color="primary">
+          {campaign.code.trim() || "Chưa có mã chiến dịch"}
+        </Badge>
         <Badge color={campaignStatusColor[campaign.status]}>
           {campaignStatusLabel[campaign.status]}
         </Badge>

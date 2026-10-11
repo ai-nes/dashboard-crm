@@ -14,6 +14,7 @@ import {
 } from "@/components/common/auth/permissions";
 import type { DetailTabItem } from "@/components/common/detail-tabs";
 import { Card } from "@/components/tailgrids/core/card";
+import { useCanonicalBusinessRoute } from "@/hooks/use-canonical-business-route";
 import {
   useAssignedStudentsQuery,
   useDirectorStudentsQuery,
@@ -43,6 +44,7 @@ import StudentHighSchoolScoreMockup from "./student-high-school-score-mockup";
 import StudentPersonalContactMockup from "./student-personal-contact-mockup";
 import { isHighSchoolAdmissionMethod } from "./student-admission-method";
 import { getInitialStudentDetailTab } from "./student-detail-tab-state";
+import { getStudentInternalId } from "./student-identifiers";
 import {
   buildStudentScoreBreakdown,
   type StudentScoreBreakdown,
@@ -92,22 +94,6 @@ export default function Student360Dashboard({
     studentId: string;
     status: StudentStatus;
   } | null>(null);
-  const deleteMutation = useMutation({
-    mutationFn: () => deleteStudent(targetId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["director-students"] });
-      await queryClient.invalidateQueries({ queryKey: ["student-360"] });
-      setDeleteDialogOpen(false);
-      toast.success("Đã xóa hồ sơ học sinh.");
-      router.replace("/director/students");
-      router.refresh();
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof Error ? error.message : "Chưa thể xóa hồ sơ học sinh.",
-      );
-    },
-  });
   const stageTransitionMutation = useMutation({
     mutationFn: ({
       targetStudent,
@@ -151,6 +137,29 @@ export default function Student360Dashboard({
   });
 
   const data = queryData ?? initialData ?? propData;
+  const canonicalStudentId = getStudentInternalId(data?.student);
+  useCanonicalBusinessRoute(targetId, data?.student.code);
+  const deleteMutation = useMutation({
+    mutationFn: () => {
+      if (!canonicalStudentId) {
+        throw new Error("Thiếu mã bản ghi nội bộ của học sinh.");
+      }
+      return deleteStudent(canonicalStudentId);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["director-students"] });
+      await queryClient.invalidateQueries({ queryKey: ["student-360"] });
+      setDeleteDialogOpen(false);
+      toast.success("Đã xóa hồ sơ học sinh.");
+      router.replace("/director/students");
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Chưa thể xóa hồ sơ học sinh.",
+      );
+    },
+  });
   const studentOwnership = {
     owner: data?.student.counselor,
     ownerId: data?.student.ownerId,
@@ -209,7 +218,8 @@ export default function Student360Dashboard({
     data?.student.revision ??
     revisionLookupData?.data.find(
       (student) =>
-        student.id === targetId || student.code === data?.student.code,
+        student.id === canonicalStudentId ||
+        student.code === data?.student.code,
     )?.revision;
   const canDeleteStudent =
     !isAuthLoading &&
@@ -225,7 +235,6 @@ export default function Student360Dashboard({
       : null) ??
     data?.student.studentStage ??
     null;
-  const canonicalStudentId = data?.student.studentId;
   const scoreContextQuery = useStudentScoreContextQuery(
     canonicalStudentId ?? "",
     {
@@ -350,13 +359,15 @@ export default function Student360Dashboard({
             canUpdateStudent ? handleStudentStatusChange : undefined
           }
           onDeleteRequest={
-            canDeleteStudent ? () => setDeleteDialogOpen(true) : undefined
+            canDeleteStudent && canonicalStudentId
+              ? () => setDeleteDialogOpen(true)
+              : undefined
           }
           onOwnerChange={handleStudentOwnerChange}
           owner={studentOwner}
-          ownerEditable={canAssignStudent}
+          ownerEditable={canAssignStudent && Boolean(canonicalStudentId)}
           ownerRevision={ownerRevision}
-          studentId={targetId}
+          studentId={canonicalStudentId || ""}
           tagStudentId={canonicalStudentId}
           tagsEditable={canUpdateStudent && Boolean(canonicalStudentId)}
           scoreBreakdown={scoreBreakdown}
@@ -373,7 +384,7 @@ export default function Student360Dashboard({
           )}
           detailTabs={getStudentTabs(
             data,
-            targetId,
+            canonicalStudentId || targetId,
             canUpdateStudent,
             scoreBreakdown,
             !isAuthLoading && hasStudentAccess,

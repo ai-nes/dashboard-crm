@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { useSegmentByCodeQuery } from "@/hooks/use-segment-queries";
+import { useCanonicalBusinessRoute } from "@/hooks/use-canonical-business-route";
+import { useSegmentDetailQuery } from "@/hooks/use-segment-queries";
 
 import SegmentBuilderPage, {
   defaultCategory,
@@ -39,7 +40,8 @@ export default function SegmentEditPage({
 }) {
   const { user } = useAuth();
   const canRead = canReadSegments(user);
-  const segmentQuery = useSegmentByCodeQuery(segmentCode, canRead);
+  const segmentQuery = useSegmentDetailQuery(segmentCode, canRead);
+  useCanonicalBusinessRoute(segmentCode, segmentQuery.data?.segment_code);
   const segment = useMemo(
     () => (segmentQuery.data ? toSegmentListItem(segmentQuery.data) : null),
     [segmentQuery.data],

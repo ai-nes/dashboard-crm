@@ -175,4 +175,162 @@ describe("Student audit diary content", () => {
     expect(markup).toContain('href="/api/v1/files/file-1/content"');
     expect(markup).toContain("Học bạ đã xác minh");
   });
+
+  it("hides internal IDs in snapshots and legacy single-field events but keeps admissions codes", () => {
+    const id = "baea13fa-ed34-4768-bcf8-486bd9c42166";
+    for (const metadata of [
+      {
+        after: {
+          sourceLeadId: id,
+          convertedStudentId: id,
+          studentCode: "HS-2026-HCM-002670",
+          leadCode: "LD-2026-HCM-003721",
+        },
+      },
+      {
+        changes: [
+          { fieldname: "sourceLeadId", newValue: id },
+          { fieldname: "convertedStudentId", newValue: id },
+          { fieldname: "studentCode", newValue: "HS-2026-HCM-002670" },
+          { fieldname: "leadCode", newValue: "LD-2026-HCM-003721" },
+        ],
+      },
+    ]) {
+      const content = text({ ...event, action: "created", metadata });
+      expect(content).not.toContain(id);
+      expect(content).not.toMatch(/source Lead Id|converted Student Id/i);
+      expect(content).toContain("HS-2026-HCM-002670");
+      expect(content).toContain("LD-2026-HCM-003721");
+    }
+    expect(
+      text({
+        ...event,
+        fieldname: "convertedStudentId",
+        fieldLabel: "converted Student Id",
+        newValue: id,
+        metadata: null,
+      }),
+    ).not.toContain(id);
+  });
+
+  it("translates system fields and conversion reasons into admissions language", () => {
+    const content = text({
+      ...event,
+      doctype: "CRM Lead",
+      subject: "Lead liên quan",
+      reason: "CREATED handoff completed.",
+      metadata: {
+        changes: [
+          {
+            fieldname: "processingStatus",
+            fieldLabel: "processing Status",
+            oldValue: "ASSIGNED",
+            newValue: "CLOSED",
+          },
+          {
+            fieldname: "resolution",
+            fieldLabel: "resolution",
+            oldValue: "PENDING",
+            newValue: "CREATED",
+          },
+          {
+            fieldname: "resolutionReason",
+            fieldLabel: "resolution Reason",
+            oldValue: "Assigned by lead assignment batch.",
+            newValue: "CREATED handoff completed.",
+          },
+          {
+            fieldname: "slaStatus",
+            fieldLabel: "Trạng thái SLA",
+            oldValue: "on_time",
+            newValue: "breach",
+          },
+          {
+            fieldname: "convertedAt",
+            fieldLabel: "converted At",
+            oldValue: null,
+            newValue: "2026-10-11T06:52:00Z",
+          },
+        ],
+      },
+    });
+    expect(content).toContain("Trạng thái xử lý từ Đã phân công tới Đã đóng");
+    expect(content).toContain(
+      "Kết quả xử lý từ Chưa có kết quả tới Đã tạo hồ sơ thí sinh",
+    );
+    expect(content).toContain(
+      "Lý do xử lý từ Đã phân công người phụ trách theo đợt tới Đã hoàn tất tạo hồ sơ thí sinh",
+    );
+    expect(content).toContain(
+      "Tình trạng chăm sóc từ Trong hạn chăm sóc tới Quá hạn chăm sóc",
+    );
+    expect(content).toContain("Thời gian tạo hồ sơ thí sinh");
+    expect(content).not.toMatch(
+      /ASSIGNED|CLOSED|PENDING|CREATED|on_time|breach|handoff|SLA|processing Status|resolution/,
+    );
+  });
+
+  it("does not expose unresolved reference IDs or nested IDs, and preserves custom notes", () => {
+    const id = "baea13fa-ed34-4768-bcf8-486bd9c42166";
+    const content = text({
+      ...event,
+      metadata: {
+        changes: [
+          {
+            fieldname: "highSchoolId",
+            fieldLabel: "Trường THPT",
+            oldValue: null,
+            newValue: id,
+          },
+          {
+            fieldname: "payload",
+            fieldLabel: "Chi tiết",
+            newValue: {
+              sourceLeadId: id,
+              content: "Phụ huynh yêu cầu gọi sau 17h",
+              slaStatus: "warning",
+            },
+          },
+        ],
+      },
+    });
+    expect(content).not.toContain(id);
+    expect(content).not.toContain("source Lead Id");
+    expect(content).toContain("Trường THPT");
+    expect(content).toContain("Phụ huynh yêu cầu gọi sau 17h");
+    expect(content).toContain("Sắp quá hạn chăm sóc");
+    expect(
+      text({
+        ...event,
+        metadata: {
+          changes: [
+            {
+              fieldname: "examCandidateNumber",
+              fieldLabel: "Số báo danh",
+              newValue: "hcm2026123",
+            },
+            {
+              fieldname: "content",
+              fieldLabel: "Nội dung",
+              newValue: "ielts2026",
+            },
+          ],
+        },
+      }),
+    ).toContain("hcm2026123");
+    expect(
+      text({
+        ...event,
+        metadata: {
+          changes: [
+            {
+              fieldname: "content",
+              fieldLabel: "Nội dung",
+              newValue: "ielts2026",
+            },
+          ],
+        },
+      }),
+    ).toContain("ielts2026");
+  });
 });

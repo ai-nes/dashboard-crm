@@ -17,6 +17,7 @@ interface NestStudent {
   id: string;
   studentCode: string;
   sourceLeadId: string | null;
+  leadCode: string | null;
   fullName: string;
   studentStage: string;
   qualityBucket: string | null;
@@ -100,7 +101,7 @@ function toListItem(student: NestStudent): StudentListItem {
     major: student.major,
     stage: JOURNEY[student.studentStage] ?? "Quan tâm",
     studentStage: student.studentStage as StudentStatus,
-    sourceLead: student.sourceLeadId,
+    sourceLead: student.leadCode ?? null,
     recordType: "student",
     assignmentStatus: student.ownerUserId ? "assigned" : "unassigned",
     lifecycleStatus: LIFECYCLE[student.studentStage] ?? null,

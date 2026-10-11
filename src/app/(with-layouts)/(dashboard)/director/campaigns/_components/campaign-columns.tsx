@@ -12,18 +12,30 @@ import {
   SelectValue,
 } from "@/components/tailgrids/core/select";
 import { formatDate } from "@/utils/format-date";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import CampaignChannelCell from "./campaign-channel-cell";
 import { getCampaignDetailPath } from "./campaign-routes";
-import { getChannelTypeLabel, type ChannelTypeOption, type ChannelTypeValue } from "./channel-types";
-import { campaignModeLabel, campaignModeOptions, campaignStatusLabel, campaignStatusOptions } from "./mappings";
+import {
+  getChannelTypeLabel,
+  type ChannelTypeOption,
+  type ChannelTypeValue,
+} from "./channel-types";
+import {
+  campaignModeLabel,
+  campaignModeOptions,
+  campaignStatusLabel,
+  campaignStatusOptions,
+} from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
 const statusTriggerClass: Record<CampaignStatus, string> = {
   DRAFT: "border-transparent bg-badge-gray-background text-badge-gray-text",
   UPCOMING: "border-transparent bg-badge-sky-background text-badge-sky-text",
-  ACTIVE: "border-transparent bg-badge-success-background text-badge-success-text",
-  CLOSED: "border-transparent bg-badge-warning-background text-badge-warning-text",
+  ACTIVE:
+    "border-transparent bg-badge-success-background text-badge-success-text",
+  CLOSED:
+    "border-transparent bg-badge-warning-background text-badge-warning-text",
 };
 
 const modeTriggerClass: Record<CampaignMode, string> = {
@@ -38,7 +50,11 @@ interface CampaignColumnHandlers {
   canDelete: boolean;
   onStatusChange: (id: string, status: CampaignStatus) => void | Promise<void>;
   onModeChange: (id: string, mode: CampaignMode) => void | Promise<void>;
-  onChannelSave: (id: string, channelType: ChannelTypeValue | "", channelUrl: string) => void | Promise<void>;
+  onChannelSave: (
+    id: string,
+    channelType: ChannelTypeValue | "",
+    channelUrl: string,
+  ) => void | Promise<void>;
   onEdit: (campaign: CampaignListItem) => void;
   onDelete: (campaign: CampaignListItem) => void;
 }
@@ -59,7 +75,9 @@ export function campaignColumns({
       accessorKey: "code",
       header: "Mã chiến dịch",
       cell: ({ row }) => (
-        <span className="font-mono text-xs font-semibold text-text-primary">{row.original.code}</span>
+        <span className="font-mono text-xs font-semibold text-text-primary">
+          {row.original.code.trim() || "Chưa có mã chiến dịch"}
+        </span>
       ),
     },
     {
@@ -67,7 +85,10 @@ export function campaignColumns({
       header: "Tên chiến dịch",
       cell: ({ row }) => (
         <Link
-          href={getCampaignDetailPath(detailListPath, row.original.code)}
+          href={getCampaignDetailPath(
+            detailListPath,
+            getBusinessRouteKey(row.original.code, row.original.id),
+          )}
           className="font-medium text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
         >
           {row.original.name}
@@ -79,7 +100,8 @@ export function campaignColumns({
       header: "Thời gian",
       cell: ({ row }) => (
         <span className="tabular-nums text-text-secondary">
-          {formatDate(row.original.startDate)} – {formatDate(row.original.endDate)}
+          {formatDate(row.original.startDate)} –{" "}
+          {formatDate(row.original.endDate)}
         </span>
       ),
     },
@@ -92,17 +114,26 @@ export function campaignColumns({
         return (
           <Select
             value={campaign.mode}
-            onChange={(value) => onModeChange(campaign.id, String(value) as CampaignMode)}
+            onChange={(value) =>
+              onModeChange(campaign.id, String(value) as CampaignMode)
+            }
             aria-label={`Đổi hình thức ${campaign.name}`}
             className="w-fit min-w-32"
           >
-            <SelectTrigger size="sm" className={`w-full ${modeTriggerClass[campaign.mode]}`}>
+            <SelectTrigger
+              size="sm"
+              className={`w-full ${modeTriggerClass[campaign.mode]}`}
+            >
               <SelectValue />
               <SelectIndicator />
             </SelectTrigger>
             <SelectContent>
               {campaignModeOptions.map((mode) => (
-                <SelectItem key={mode} id={mode} textValue={campaignModeLabel[mode]}>
+                <SelectItem
+                  key={mode}
+                  id={mode}
+                  textValue={campaignModeLabel[mode]}
+                >
                   {campaignModeLabel[mode]}
                 </SelectItem>
               ))}
@@ -130,7 +161,9 @@ export function campaignColumns({
             channelTypes={channelTypes}
             channelType={campaign.channelType}
             channelUrl={campaign.channelUrl}
-            onSave={(channelType, url) => onChannelSave(campaign.id, channelType, url)}
+            onSave={(channelType, url) =>
+              onChannelSave(campaign.id, channelType, url)
+            }
           />
         );
       },
@@ -140,21 +173,31 @@ export function campaignColumns({
       header: "Trạng thái",
       cell: ({ row }) => {
         const campaign = row.original;
-        if (!canUpdate) return <span>{campaignStatusLabel[campaign.status]}</span>;
+        if (!canUpdate)
+          return <span>{campaignStatusLabel[campaign.status]}</span>;
         return (
           <Select
             value={campaign.status}
-            onChange={(value) => onStatusChange(campaign.id, String(value) as CampaignStatus)}
+            onChange={(value) =>
+              onStatusChange(campaign.id, String(value) as CampaignStatus)
+            }
             aria-label={`Đổi trạng thái ${campaign.name}`}
             className="w-fit min-w-40"
           >
-            <SelectTrigger size="sm" className={`w-full ${statusTriggerClass[campaign.status]}`}>
+            <SelectTrigger
+              size="sm"
+              className={`w-full ${statusTriggerClass[campaign.status]}`}
+            >
               <SelectValue />
               <SelectIndicator />
             </SelectTrigger>
             <SelectContent>
               {campaignStatusOptions.map((status) => (
-                <SelectItem key={status} id={status} textValue={campaignStatusLabel[status]}>
+                <SelectItem
+                  key={status}
+                  id={status}
+                  textValue={campaignStatusLabel[status]}
+                >
                   {campaignStatusLabel[status]}
                 </SelectItem>
               ))}

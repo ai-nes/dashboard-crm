@@ -154,7 +154,7 @@ export default function AssignmentHistoryItemDrawer({
       setStep("Đang phân công lại…");
       if (isLiveReview) {
         const created = await createBatchMutation.mutateAsync({
-          batchName: `Phân công lại ${item.leadId} ${Date.now()}`,
+          batchName: `Phân công lại ${item.leadCode || "Lead chưa có mã"} ${Date.now()}`,
           leadIds: [item.leadId],
           description: "Xử lý lại hồ sơ từ danh sách cần kiểm tra.",
         });

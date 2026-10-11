@@ -73,15 +73,19 @@ export default function LeadHeader({
                 </div>
 
                 <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-tertiary">
-                  <StudentCopyBadge
-                    className="h-auto rounded-none bg-transparent px-0 text-sm text-text-tertiary hover:bg-transparent hover:text-text-primary"
-                    icon={Copy1}
-                    label="mã lead"
-                    showLeadingIcon={false}
-                    value={lead.leadCode || lead.id}
-                  >
-                    Mã Lead: {lead.leadCode || lead.id}
-                  </StudentCopyBadge>
+                  {lead.leadCode ? (
+                    <StudentCopyBadge
+                      className="h-auto rounded-none bg-transparent px-0 text-sm text-text-tertiary hover:bg-transparent hover:text-text-primary"
+                      icon={Copy1}
+                      label="mã lead"
+                      showLeadingIcon={false}
+                      value={lead.leadCode}
+                    >
+                      Mã Lead: {lead.leadCode}
+                    </StudentCopyBadge>
+                  ) : (
+                    <span>Mã Lead: Chưa có mã Lead</span>
+                  )}
                   {subtitle && <span aria-hidden="true">·</span>}
                   {subtitle && <span>{subtitle}</span>}
                 </div>

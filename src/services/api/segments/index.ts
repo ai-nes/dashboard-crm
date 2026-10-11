@@ -1,5 +1,6 @@
 import { NestApiError } from "../nest/nest-client";
 import { nestSegmentRequest } from "../nest/nest-segment-router";
+import { isUuid } from "@/utils/is-uuid";
 import type {
   CreateSegmentPayload,
   DeleteSegmentPayload,
@@ -160,6 +161,13 @@ export async function getSegmentByCode(
   return callSegmentApi<SegmentRecord>(METHODS.GET_BY_CODE, {
     segment_code: segmentCode,
   });
+}
+
+/** Resolves legacy ID links and canonical business-code links. */
+export function getSegmentByReference(
+  reference: string,
+): Promise<SegmentRecord> {
+  return isUuid(reference) ? getSegment(reference) : getSegmentByCode(reference);
 }
 
 export async function getSegmentAnalysis(

@@ -50,6 +50,23 @@ describe("student profile with the Nest backend", () => {
     });
   });
 
+  it.each(["LD-2026-HCM-003721", null])(
+    "reads the Lead code (%s) without falling back to the source ID",
+    async (leadCode) => {
+      fetchMock.mockImplementation(() =>
+        json({
+          data: {
+            ...student,
+            sourceLeadId: "9b76c807-5747-4574-9447-9e6735b1168c",
+            leadCode,
+          },
+        }),
+      );
+      const { getStudent } = await import("../student-school-update");
+      expect((await getStudent("s1")).fields.source_lead).toBe(leadCode);
+    },
+  );
+
   it("sends contact fields with the current revision", async () => {
     fetchMock.mockImplementation((_url: string, init?: RequestInit) =>
       json({

@@ -80,7 +80,7 @@ export function toCampaignLeadRow(lead: LeadListItem): CampaignLeadRow {
   return {
     id: lead.id,
     leadCode: lead.leadCode,
-    name: lead.name || lead.id,
+    name: lead.name || lead.leadCode || "Lead chưa có tên",
     initials: lead.initials || lead.name.charAt(0).toUpperCase(),
     phone: lead.phone,
     school: lead.school,

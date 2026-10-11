@@ -361,9 +361,7 @@ function normalizeRecentLead(value: unknown): SaleRecentLead | null {
   const resolution = source.resolution;
   return {
     id: text(source.id ?? source.name),
-    leadCode: text(
-      source.leadCode ?? source.lead_code ?? source.id ?? source.name,
-    ),
+    leadCode: text(source.leadCode ?? source.lead_code, "Chưa có mã Lead"),
     name: text(source.name, "Lead chưa đặt tên"),
     phone: nullableText(source.phone),
     school: nullableText(source.school ?? source.high_school),

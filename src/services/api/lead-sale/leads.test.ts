@@ -134,6 +134,22 @@ const timeline = [
 ];
 
 describe("Lead list/detail API contract", () => {
+  it("resolves a code route before loading its UUID-based timeline", async () => {
+    const code = "LD-2026-HCM-003978";
+    const id = "23600821-7310-458a-9b9d-54135d0d33aa";
+    mockRoutes({
+      [`GET /api/v1/leads/${code}`]: () =>
+        json({ data: { ...leadRecord, id, leadCode: code } }),
+      [`GET /api/v1/leads/${id}/timeline`]: () => json({ data: timeline }),
+    });
+    await expect(getLeadDetail(code)).resolves.toMatchObject({
+      lead: { id, leadCode: code },
+    });
+    expect(callKeys()).toEqual([
+      `GET /api/v1/leads/${code}`,
+      `GET /api/v1/leads/${id}/timeline`,
+    ]);
+  });
   it("serializes list filters and normalizes the list envelope", async () => {
     fetchMock.mockResolvedValue(json(listFixture()));
 
@@ -596,6 +612,24 @@ describe("Lead write API contract", () => {
       `${API}/api/v1/leads/HS-2026-HCM-000005/convert`,
     );
     expect(fetchMock.mock.calls[0]![1]).toMatchObject({ method: "POST" });
+  });
+
+  it("retains the student business code separately for post-conversion navigation", async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        data: {
+          id: "student-internal-id",
+          studentCode: "HS-2026-HCM-002670",
+          studentStage: "New",
+        },
+      }),
+    );
+    await expect(
+      convertLeadToStudent("lead-internal-id"),
+    ).resolves.toMatchObject({
+      student: "student-internal-id",
+      studentCode: "HS-2026-HCM-002670",
+    });
   });
 });
 

@@ -142,6 +142,22 @@ describe("director students API contract", () => {
 });
 
 describe("student 360 API contract", () => {
+  it.each(["LD-2026-HCM-003721", null])(
+    "uses the Lead code (%s) as display text and keeps its ID for links",
+    async (leadCode) => {
+      const sourceLeadId = "9b76c807-5747-4574-9447-9e6735b1168c";
+      const row = { ...studentRow, sourceLeadId, leadCode };
+      fetchMock.mockResolvedValueOnce(json(studentList([row])));
+      const list = await getDirectorStudents();
+      expect(list.data[0].sourceLead).toBe(leadCode);
+      fetchMock.mockResolvedValueOnce(json({ data: row }));
+      const details = (await getStudent360("stu-1"))?.student.profileDetails
+        ?.personal;
+      expect(details?.sourceLead).toBe(leadCode);
+      expect(details?.sourceLeadId).toBe(sourceLeadId);
+    },
+  );
+
   it("maps 404 to null", async () => {
     fetchMock.mockResolvedValue(
       json(

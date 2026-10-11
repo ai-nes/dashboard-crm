@@ -37,6 +37,7 @@ import type {
   MajorGroupOption,
   MajorOption,
 } from "@/services/api/major-catalog";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 import type { MajorCatalogPermissions } from "./student-configuration-permissions";
 
 import { AdmissionCatalogPanel } from "./admission-catalog-panel";
@@ -412,7 +413,7 @@ export function MajorCatalogManagement({
                       </TableCell>
                       <TableCell className="max-w-[18rem] align-top">
                         <Link
-                          href={`/director/admin/majors/${encodeURIComponent(group.id)}`}
+                          href={`/director/admin/majors/${encodeURIComponent(getBusinessRouteKey(group.code, group.id))}`}
                           title={`Xem các Major thuộc ${group.name}`}
                           className="block rounded font-medium text-text-primary outline-none hover:text-primary-500 focus-visible:ring-2 focus-visible:ring-primary-500"
                         >

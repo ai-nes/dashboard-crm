@@ -22,6 +22,7 @@ import type {
   StudentProfilePersonalDetails,
 } from "@/services/api/students/types";
 import { formatDate } from "@/utils/format-date";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import StudentContactAddressMockup from "./student-contact-address-mockup";
 import StudentContactInformationMockup from "./student-contact-information-mockup";
@@ -231,7 +232,15 @@ export default function StudentPersonalContactMockup({
                   setForm((current) => ({ ...current, [editKey]: value }))
                 }
                 options={field.options}
-                pagination={editKey === "birth_place" ? birthPlaceOptionsQuery.pagination : editKey === "admission_year" ? admissionYearOptionsQuery.pagination : editKey === "branch" ? branchOptionsQuery.pagination : undefined}
+                pagination={
+                  editKey === "birth_place"
+                    ? birthPlaceOptionsQuery.pagination
+                    : editKey === "admission_year"
+                      ? admissionYearOptionsQuery.pagination
+                      : editKey === "branch"
+                        ? branchOptionsQuery.pagination
+                        : undefined
+                }
                 searchable={field.searchable}
                 searchPlaceholder={field.searchPlaceholder}
                 type={field.type}
@@ -422,7 +431,7 @@ function getPersonalContactFields(
       label: "Chuyển từ Lead",
       value: details?.sourceLead,
       href: details?.sourceLeadId
-        ? `/director/leads/${encodeURIComponent(details.sourceLeadId)}`
+        ? `/director/leads/${encodeURIComponent(getBusinessRouteKey(details.sourceLead, details.sourceLeadId))}`
         : undefined,
     },
     {

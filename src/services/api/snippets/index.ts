@@ -43,7 +43,7 @@ function normalizeSnippet(value: unknown): SnippetRecord {
 
   return {
     id: String(record.id ?? record.name ?? ""),
-    code: String(record.code ?? record.id ?? record.name ?? ""),
+    code: String(record.code ?? ""),
     internalName: String(record.internalName ?? record.internal_name ?? ""),
     snippetText: String(
       record.snippetText ?? record.snippet_text ?? record.content ?? "",

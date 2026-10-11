@@ -12,11 +12,14 @@ export async function searchSchoolDirectory(
   filters: Pick<GetSchoolsParams, "province" | "ward"> = {},
   signal?: AbortSignal,
 ): Promise<SchoolDirectoryRecord[]> {
-  const response = await getSchools({
-    search: query.trim() || undefined,
-    limit,
-    ...filters,
-  }, signal);
+  const response = await getSchools(
+    {
+      search: query.trim() || undefined,
+      limit,
+      ...filters,
+    },
+    signal,
+  );
   return response.schools.map(toSchoolDirectoryRecord);
 }
 
@@ -32,8 +35,8 @@ function toSchoolDirectoryRecord(
     province: fieldText(fields.province) ?? "",
     districtCode: fieldText(fields.ward) ?? "",
     district: fieldText(fields.ward) ?? "",
-    schoolCode: fieldText(fields.school_code) ?? record.name,
-    name: fieldText(fields.school_name) ?? record.name,
+    schoolCode: fieldText(fields.school_code) ?? "",
+    name: fieldText(fields.school_name) ?? "Chưa có tên trường",
     address: fieldText(fields.address) ?? "",
     area: fieldText(fields.school_area) ?? "",
     isBoardingSchool: boardingType === "Boarding School",

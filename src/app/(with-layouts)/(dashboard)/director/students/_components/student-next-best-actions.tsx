@@ -27,8 +27,10 @@ import {
   type NbaRecommendation,
 } from "@/services/api/nba";
 import type { Student360Data } from "@/services/api/students/types";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 import StudentNbaRecommendationCard from "./student-nba-recommendation-card";
 import StudentNbaDecisionDialog from "./student-nba-decision-dialog";
+import { getStudentInternalId } from "./student-identifiers";
 import {
   isStudentStatusTerminal,
   studentStatusOptions,
@@ -268,8 +270,12 @@ export default function StudentNextBestActions({
 
       if (result.action) {
         toast.success("Đã chấp nhận đề xuất và tạo Task.");
+        const studentRouteKey = getBusinessRouteKey(
+          data.student.code,
+          getStudentInternalId(data.student) || studentId,
+        );
         router.push(
-          `/director/students/${encodeURIComponent(studentId)}?tab=activities&taskId=${encodeURIComponent(result.action)}`,
+          `/director/students/${encodeURIComponent(studentRouteKey)}?tab=activities&taskId=${encodeURIComponent(result.action)}`,
         );
       } else {
         toast.success(decisionSuccessMessage(operation));

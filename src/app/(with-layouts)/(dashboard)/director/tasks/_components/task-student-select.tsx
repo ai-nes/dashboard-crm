@@ -47,7 +47,7 @@ export default function TaskStudentSelect({
         }}
         options={students.map((student) => ({
           id: student.id,
-          label: student.name,
+          label: `${student.name} · ${student.code.trim() || "Chưa có mã học sinh"}`,
           description: student.major,
           searchText: `${student.name} ${student.code} ${student.major}`,
         }))}

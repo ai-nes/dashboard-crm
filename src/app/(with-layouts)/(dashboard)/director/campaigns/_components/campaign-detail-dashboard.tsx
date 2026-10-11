@@ -23,6 +23,7 @@ import {
   getDirectorStudents,
   type DirectorStudentsParams,
 } from "@/services/api/students";
+import { useCanonicalBusinessRoute } from "@/hooks/use-canonical-business-route";
 
 import CampaignDetailHeader from "./campaign-detail-header";
 import CampaignDetailLeadList, {
@@ -80,6 +81,7 @@ export default function CampaignDetailDashboard({
     () => (campaignQuery.data ? toCampaignListItem(campaignQuery.data) : null),
     [campaignQuery.data],
   );
+  useCanonicalBusinessRoute(campaignCode, campaign?.code);
   const leadsQuery = useLeadSaleLeadsQuery(
     { campaign: campaignQuery.data?.name ?? "", page: 1, pageSize: 100 },
     {
@@ -143,7 +145,7 @@ export default function CampaignDetailDashboard({
     page: studentPage,
     pageSize: studentPageSize,
     q: studentQuery || undefined,
-    campaign: campaign?.code || undefined,
+    campaign: campaign?.id || undefined,
     lifecycleStatus: studentStatus === "all" ? undefined : studentStatus,
   };
   const sessionScopedStudentsQuery = useAssignedStudentsQuery(

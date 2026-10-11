@@ -94,6 +94,74 @@ describe("student classification API contract", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("rejects a tag record without a business code instead of using its UUID", async () => {
+    fetchMock.mockResolvedValue(
+      json([
+        {
+          group_name: "ATTENTION",
+          tags: [
+            {
+              name: "550e8400-e29b-41d4-a716-446655440000",
+              label: "Ưu tiên đặc biệt",
+            },
+          ],
+        },
+      ]),
+    );
+
+    await expect(getStudentTagCatalogue()).rejects.toMatchObject({
+      status: 502,
+      code: "INVALID_STUDENT_TAG_GROUPS_RESPONSE",
+    });
+  });
+
+  it("rejects a UUID supplied in the tag code field", async () => {
+    fetchMock.mockResolvedValue(
+      json([
+        {
+          group_name: "ATTENTION",
+          tags: [
+            {
+              name: "550e8400-e29b-41d4-a716-446655440000",
+              code: "550e8400-e29b-41d4-a716-446655440000",
+              label: "Ưu tiên đặc biệt",
+            },
+          ],
+        },
+      ]),
+    );
+
+    await expect(getStudentTagCatalogue()).rejects.toMatchObject({
+      status: 502,
+      code: "INVALID_STUDENT_TAG_GROUPS_RESPONSE",
+    });
+  });
+
+  it("replaces a UUID term label with its business code", async () => {
+    fetchMock.mockResolvedValue(
+      json([
+        {
+          group_name: "ATTENTION",
+          tags: [
+            {
+              name: "550e8400-e29b-41d4-a716-446655440000",
+              code: "VIP",
+              label: "550e8400-e29b-41d4-a716-446655440000",
+            },
+          ],
+        },
+      ]),
+    );
+
+    const groups = await getStudentTagCatalogue();
+
+    expect(groups[0]?.tags[0]).toMatchObject({
+      name: "550e8400-e29b-41d4-a716-446655440000",
+      code: "VIP",
+      label: "VIP",
+    });
+  });
+
   it("surfaces a revision conflict so the UI can reload instead of overwriting", async () => {
     fetchMock.mockResolvedValue(
       json(

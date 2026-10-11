@@ -2,9 +2,15 @@ import { ArrowRight, FileText } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { StudentAuditLog } from "@/services/api/student-audit";
 import { formatDateTime } from "@/utils/format-date";
-import { formatAuditMetadataKey } from "@/utils/format-audit-metadata";
 
 import { parseStudentActivityDate } from "./student-activity-utils";
+import {
+  formatStudentAuditFieldLabel,
+  formatStudentAuditReason,
+  getStudentAuditSystemValueLabel,
+  isStudentAuditIdentifier,
+  isStudentAuditIdentifierKey,
+} from "./student-audit-presentation";
 
 export type StudentAuditTone = "success" | "primary" | "warning" | "error";
 
@@ -24,35 +30,35 @@ export function getStudentAuditSourceLabel(source?: string | null): string {
     case "comment":
       return "Bình luận";
     case "communication":
-      return "Email / Communication";
+      return "Trao đổi với thí sinh";
     case "file":
       return "Tệp đính kèm";
     case "call log":
       return "Nhật ký cuộc gọi";
     case "fcrm note":
-      return "Ghi chú FCRM";
+      return "Ghi chú tư vấn";
     case "task":
-      return "Task";
+      return "Công việc";
     case "crm action item":
-      return "Action Item";
+      return "Việc cần thực hiện";
     case "crm interaction":
-      return "Tương tác CRM";
+      return "Tương tác tuyển sinh";
     case "lifecycle event":
-      return "Sự kiện vòng đời";
+      return "Quá trình chăm sóc";
     case "ownership event":
-      return "Sự kiện phân công";
+      return "Phân công phụ trách";
     case "outcome event":
-      return "Sự kiện kết quả";
+      return "Kết quả tư vấn";
     case "marketing engagement":
-      return "Tương tác marketing";
+      return "Tương tác chiến dịch";
     case "sla event":
-      return "Sự kiện SLA";
+      return "Theo dõi hạn chăm sóc";
     case "decision event":
-      return "Sự kiện quyết định";
+      return "Quyết định tư vấn";
     case "consent event":
-      return "Sự kiện consent";
+      return "Đồng ý liên hệ";
     case "conversion event":
-      return "Sự kiện chuyển đổi";
+      return "Tạo hồ sơ thí sinh từ Lead";
     default:
       return source || "Hồ sơ tuyển sinh";
   }
@@ -69,9 +75,15 @@ export function getStudentAuditDoctypeLabel(doctype?: string | null): string {
     "CRM Task": "Công việc",
     File: "Tệp đính kèm",
     "CRM Interaction": "Tương tác",
+    "CRM Timeline Entry": "Hoạt động tuyển sinh",
+    "CRM Segment Member": "Phân khúc thí sinh",
+    "CRM Student Classification": "Phân loại thí sinh",
+    "CRM Student SLA Event": "Theo dõi hạn chăm sóc",
+    "CRM Student SLA Attempt": "Lần chăm sóc thí sinh",
+    "CRM Student SLA Policy": "Quy định thời hạn chăm sóc",
   };
   if (doctype && labels[doctype]) return labels[doctype];
-  if (doctype === "CRM Segment") return "Segment";
+  if (doctype === "CRM Segment") return "Phân khúc thí sinh";
   return doctype === "CRM Lead" || doctype === "CRM Student"
     ? "Hồ sơ học sinh"
     : doctype || "Hồ sơ";
@@ -82,27 +94,27 @@ export function getStudentAuditActionLabel(event: StudentAuditLog): string {
     case "comment_added":
       return "Thêm bình luận";
     case "communication_recorded":
-      return "Ghi nhận Email / Communication";
+      return "Ghi nhận trao đổi với thí sinh";
     case "attachment_added":
       return "Đính kèm tệp";
     case "call_logged":
       return "Ghi nhận cuộc gọi";
     case "note_added":
-      return "Thêm ghi chú FCRM";
+      return "Thêm ghi chú tư vấn";
     case "note_updated":
-      return "Cập nhật ghi chú FCRM";
+      return "Cập nhật ghi chú tư vấn";
     case "task_recorded":
-      return "Ghi nhận task";
+      return "Ghi nhận công việc";
     case "interaction_recorded":
-      return "Ghi nhận tương tác CRM";
+      return "Ghi nhận tương tác tuyển sinh";
     case "sla_event_recorded":
-      return "Ghi nhận sự kiện SLA";
+      return "Ghi nhận hạn chăm sóc";
     case "decision_recorded":
       return "Ghi nhận quyết định";
     case "consent_recorded":
-      return "Ghi nhận consent / privacy";
+      return "Ghi nhận đồng ý liên hệ và bảo mật thông tin";
     case "conversion_completed":
-      return "Hoàn tất chuyển đổi";
+      return "Hoàn tất tạo hồ sơ thí sinh";
   }
 
   if (event.action === "created") return "Tạo hồ sơ học sinh";
@@ -112,10 +124,10 @@ export function getStudentAuditActionLabel(event: StudentAuditLog): string {
   }
 
   if (event.category === "status") return "Cập nhật tình trạng học sinh";
-  if (event.category === "lifecycle") return "Cập nhật vòng đời hồ sơ";
+  if (event.category === "lifecycle") return "Cập nhật quá trình chăm sóc";
   if (event.category === "assignment") return "Thay đổi phân công";
   if (event.category === "processing") return "Cập nhật xử lý Lead";
-  if (event.category === "conversion") return "Cập nhật chuyển đổi";
+  if (event.category === "conversion") return "Cập nhật tạo hồ sơ thí sinh";
   if (event.category === "outcome") return "Ghi nhận kết quả";
 
   const field = event.fieldLabel;
@@ -129,37 +141,37 @@ export function getStudentAuditCategoryLabel(
     case "status":
       return "Tình trạng";
     case "lifecycle":
-      return "Vòng đời";
+      return "Quá trình chăm sóc";
     case "assignment":
       return "Phân công";
     case "processing":
       return "Xử lý Lead";
     case "conversion":
-      return "Chuyển đổi";
+      return "Tạo hồ sơ thí sinh";
     case "outcome":
       return "Kết quả";
     case "comment":
       return "Bình luận";
     case "communication":
-      return "Email / Communication";
+      return "Trao đổi với thí sinh";
     case "attachment":
       return "Tệp đính kèm";
     case "call":
       return "Cuộc gọi";
     case "note":
-      return "Ghi chú FCRM";
+      return "Ghi chú tư vấn";
     case "task":
-      return "Task";
+      return "Công việc";
     case "interaction":
       return "Tương tác";
     case "engagement":
-      return "Marketing";
+      return "Chiến dịch tuyển sinh";
     case "sla":
-      return "SLA";
+      return "Hạn chăm sóc";
     case "decision":
       return "Quyết định";
     case "consent":
-      return "Consent / privacy";
+      return "Đồng ý liên hệ và bảo mật thông tin";
     default:
       return null;
   }
@@ -173,27 +185,27 @@ export function getStudentAuditActivityDescription(
     case "comment_added":
       return "đã thêm bình luận";
     case "communication_recorded":
-      return "đã ghi nhận Email / Communication";
+      return "đã ghi nhận trao đổi với thí sinh";
     case "attachment_added":
       return "đã đính kèm tệp";
     case "call_logged":
       return "đã ghi nhận cuộc gọi";
     case "note_added":
-      return "đã thêm ghi chú FCRM";
+      return "đã thêm ghi chú tư vấn";
     case "note_updated":
-      return "đã cập nhật ghi chú FCRM";
+      return "đã cập nhật ghi chú tư vấn";
     case "task_recorded":
-      return "đã ghi nhận task";
+      return "đã ghi nhận công việc";
     case "interaction_recorded":
-      return "đã ghi nhận tương tác CRM";
+      return "đã ghi nhận tương tác tuyển sinh";
     case "sla_event_recorded":
-      return "đã ghi nhận sự kiện SLA";
+      return "đã ghi nhận hạn chăm sóc";
     case "decision_recorded":
       return "đã ghi nhận quyết định";
     case "consent_recorded":
-      return "đã ghi nhận consent / privacy";
+      return "đã ghi nhận đồng ý liên hệ và bảo mật thông tin";
     case "conversion_completed":
-      return "đã hoàn tất chuyển đổi";
+      return "đã hoàn tất tạo hồ sơ thí sinh";
   }
 
   if (event.action === "created") return `đã tạo ${recordLabel}`;
@@ -228,17 +240,17 @@ export function getStudentAuditStatus(event: StudentAuditLog): string {
     case "note_updated":
       return "Đã cập nhật ghi chú";
     case "task_recorded":
-      return "Đã ghi nhận task";
+      return "Đã ghi nhận công việc";
     case "interaction_recorded":
       return "Đã ghi nhận tương tác";
     case "sla_event_recorded":
-      return "Đã ghi nhận SLA";
+      return "Đã ghi nhận hạn chăm sóc";
     case "decision_recorded":
       return "Đã ghi nhận quyết định";
     case "consent_recorded":
-      return "Đã ghi nhận consent";
+      return "Đã ghi nhận đồng ý liên hệ";
     case "conversion_completed":
-      return "Đã hoàn tất chuyển đổi";
+      return "Đã hoàn tất tạo hồ sơ thí sinh";
   }
 
   if (event.action === "created") return "Đã tạo";
@@ -248,10 +260,10 @@ export function getStudentAuditStatus(event: StudentAuditLog): string {
   if (event.eventType === "status_initialized") return "Đã gán ban đầu";
 
   if (event.category === "status") return "Đã đổi tình trạng";
-  if (event.category === "lifecycle") return "Đã đổi vòng đời";
+  if (event.category === "lifecycle") return "Đã cập nhật quá trình chăm sóc";
   if (event.category === "assignment") return "Đã đổi phân công";
   if (event.category === "processing") return "Đã cập nhật xử lý";
-  if (event.category === "conversion") return "Đã cập nhật chuyển đổi";
+  if (event.category === "conversion") return "Đã cập nhật tạo hồ sơ thí sinh";
   if (event.category === "outcome") return "Đã ghi nhận kết quả";
 
   if (event.changeType === "added") return "Đã thêm";
@@ -295,9 +307,12 @@ export function formatStudentAuditContent(value?: string | null): string {
 
 const AUDIT_SUBJECT_LABELS: Record<string, string> = {
   call: "Cuộc gọi",
-  communication: "Email / Communication",
+  communication: "Trao đổi với thí sinh",
   note: "Ghi chú",
-  task: "Task",
+  task: "Công việc",
+  "sla thí sinh": "Thời hạn chăm sóc thí sinh",
+  "lần xử lý sla": "Lần chăm sóc thí sinh",
+  "chính sách sla": "Quy định thời hạn chăm sóc",
 };
 
 export function formatStudentAuditSubject(value?: string | null): string {
@@ -359,6 +374,8 @@ export function formatStudentAuditMetadataValue(
 
   const normalizedKey = key.toLocaleLowerCase("en-US");
   if (typeof value === "string") {
+    const systemLabel = getStudentAuditSystemValueLabel(key, value);
+    if (systemLabel) return systemLabel;
     const label =
       AUDIT_METADATA_VALUE_LABELS[normalizedKey]?.[value] ||
       AUDIT_METADATA_VALUE_LABELS[normalizedKey]?.[
@@ -393,16 +410,6 @@ function formatAuditDuration(seconds: number): string {
   return `${minutes} phút ${remainingSeconds} giây`;
 }
 
-function isStudentAuditIdentifier(value: string): boolean {
-  const normalizedValue = value.trim();
-
-  return (
-    /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(
-      normalizedValue,
-    ) || /^(?=.*[a-z])(?=.*\d)[a-z\d]{8,}$/.test(normalizedValue)
-  );
-}
-
 function redactStudentAuditIdentifiers(value: unknown): unknown {
   if (typeof value === "string") {
     return isStudentAuditIdentifier(value) ? "—" : value;
@@ -424,10 +431,6 @@ function redactStudentAuditIdentifiers(value: unknown): unknown {
   }
 
   return value;
-}
-
-function isStudentAuditIdentifierKey(key: string): boolean {
-  return /(^id$|_id$|Id$|ID$)/.test(key);
 }
 
 export function formatStudentAuditRelativeTime(value: string): string {
@@ -512,7 +515,9 @@ export function StudentAuditEventDetails({
             </div>
           )}
           {event.reason && (
-            <p className="text-xs text-text-secondary">Lý do: {event.reason}</p>
+            <p className="text-xs text-text-secondary">
+              Lý do: {formatStudentAuditReason(event.reason)}
+            </p>
           )}
         </div>
       )}
@@ -521,7 +526,9 @@ export function StudentAuditEventDetails({
         <StudentAuditRecordContent event={event} compact={compact} />
       )}
       {event.reason && !isFieldChange && (
-        <p className="text-xs text-text-secondary">Lý do: {event.reason}</p>
+        <p className="text-xs text-text-secondary">
+          Lý do: {formatStudentAuditReason(event.reason)}
+        </p>
       )}
       <StudentAuditMetadata event={event} />
 
@@ -610,7 +617,7 @@ export function StudentAuditMetadata({ event }: { event: StudentAuditLog }) {
           className="inline-flex max-w-full flex-wrap items-baseline gap-x-1.5 gap-y-0.5 rounded-md border border-card-border/50 bg-background-gray-secondary/40 px-2.5 py-1.5"
         >
           <span className="font-medium text-text-secondary">
-            {formatAuditMetadataKey(key)}
+            {formatStudentAuditFieldLabel(key)}
           </span>
           <span className="break-words text-text-primary">
             {formatStudentAuditMetadataValue(key, value)}

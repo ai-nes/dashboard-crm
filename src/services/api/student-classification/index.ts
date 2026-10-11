@@ -1,5 +1,6 @@
 import { NestApiError } from "../nest/nest-client";
 import { nestStudentClassificationRequest } from "../nest/nest-segment-router";
+import { isUuid } from "@/utils/is-uuid";
 export interface StudentClassificationAssignment {
   name?: string;
   tag: string;
@@ -178,16 +179,16 @@ function normalizeClassifications(
 function normalizeTagRecord(value: unknown, index: number): StudentTagRecord {
   const source = asRecord(value);
   const name = text(source?.name);
-  const code = text(source?.code) || name;
-  const label = text(source?.label) || code;
-  if (!name || !code) {
+  const code = text(source?.code);
+  const sourceLabel = text(source?.label);
+  if (!name || !code || isUuid(code)) {
     throw new Error(`tags[${index}] thiếu name hoặc code.`);
   }
 
   return {
     name,
     code,
-    label,
+    label: sourceLabel && !isUuid(sourceLabel) ? sourceLabel : code,
     group_name: text(source?.group_name) || "Khác",
     description: text(source?.description) || null,
     status: text(source?.status) || null,

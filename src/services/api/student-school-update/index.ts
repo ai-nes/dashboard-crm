@@ -258,6 +258,8 @@ export interface UpdateRecordResponse<TFields> {
 export interface CreateRecordResponse<TFields> {
   doctype: "CRM Student" | "CRM Lead" | "CRM High School";
   name: string;
+  /** Business code supplied by the Nest Student create adapter when available. */
+  studentCode?: string | null;
   created_fields: TFields;
 }
 

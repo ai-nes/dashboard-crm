@@ -129,6 +129,29 @@ describe("Snippets API service", () => {
     });
   });
 
+  it("does not use a UUID id as the displayed business code", async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        total: 1,
+        snippets: [
+          {
+            id: "63e9f32a-b9a8-4a11-8887-2e1814cc0452",
+            internalName: "Greeting",
+            snippetText: "Hello",
+            shortcut: "hello",
+          },
+        ],
+      }),
+    );
+
+    const result = await listSnippets();
+
+    expect(result.snippets[0]).toMatchObject({
+      id: "63e9f32a-b9a8-4a11-8887-2e1814cc0452",
+      code: "",
+    });
+  });
+
   it("sends the shared draft contract for create and update", async () => {
     fetchMock.mockImplementation(async () => json({ id: "SNP-001" }));
 
