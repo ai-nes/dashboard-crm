@@ -17,6 +17,7 @@ interface StudentContactInsightsCardProps {
   isRefreshing?: boolean;
   onRefresh?: () => void;
   onOpenAskAI?: () => void;
+  canAskAI?: boolean;
 }
 
 export default function StudentContactInsightsCard({
@@ -24,6 +25,7 @@ export default function StudentContactInsightsCard({
   isRefreshing,
   onRefresh,
   onOpenAskAI,
+  canAskAI = false,
 }: StudentContactInsightsCardProps) {
   const advisorySignals = report?.advisorySignals ?? [];
   const hasOverview = Boolean(report?.title || report?.summary);
@@ -64,6 +66,7 @@ export default function StudentContactInsightsCard({
       )}
 
       {/* Action button */}
+      {canAskAI && onOpenAskAI && (
       <div className="mt-4">
         <Button
           appearance="outline"
@@ -75,6 +78,7 @@ export default function StudentContactInsightsCard({
           <span>Đặt câu hỏi cho AI</span>
         </Button>
       </div>
+      )}
     </Card>
   );
 }

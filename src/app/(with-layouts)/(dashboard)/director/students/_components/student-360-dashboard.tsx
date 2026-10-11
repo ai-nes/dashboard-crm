@@ -377,6 +377,7 @@ export default function Student360Dashboard({
             canUpdateStudent,
             scoreBreakdown,
             !isAuthLoading && hasStudentAccess,
+            user?.user,
           )}
           initialChatwootInteractions={initialChatwootInteractions}
           initialStudentInteractions={initialStudentInteractions}
@@ -403,6 +404,7 @@ function getStudentTabs(
   canUpdateStudent: boolean,
   scoreBreakdown: StudentScoreBreakdown | null,
   canReadStudent: boolean,
+  sessionUserId?: string,
 ): DetailTabItem[] {
   const auditStudentId = data.student.studentId || analysisTargetId;
   const showHighSchoolScore = isHighSchoolAdmissionMethod(data);
@@ -416,6 +418,7 @@ function getStudentTabs(
           analysisTargetId={analysisTargetId}
           scoreBreakdown={scoreBreakdown}
           canViewVisual={canReadStudent}
+          sessionUserId={sessionUserId}
         />
       ),
     },
