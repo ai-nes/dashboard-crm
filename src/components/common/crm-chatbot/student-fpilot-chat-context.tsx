@@ -1,6 +1,5 @@
 "use client";
 
-import { toast } from "sonner";
 import {
   createContext,
   useCallback,
@@ -25,7 +24,9 @@ interface OpenStudentFpilotChatInput {
 
 interface StudentFpilotChatContextValue extends StudentFpilotChatState {
   isActive: boolean;
+  openGeneralChat: () => void;
   openStudentChat: (input: OpenStudentFpilotChatInput) => void;
+  closeChat: () => void;
   minimizeStudentChat: () => void;
   expandStudentChat: () => void;
   closeApprovedStudentChat: (opening: number) => void;
@@ -50,15 +51,8 @@ export function StudentFpilotChatProvider({
       const normalizedStudentId = studentId.trim();
       if (!canReadStudent || !normalizedStudentId) return;
 
-      if (state.session && state.session.studentId !== normalizedStudentId) {
-        toast.info(
-          `Đang có cuộc trò chuyện Fpilot với ${state.session.studentName}. Hãy đóng phiên đó trước khi tra cứu học sinh khác.`,
-        );
-        return;
-      }
-
       let session: StudentFpilotChatSession;
-      if (state.session) {
+      if (state.session?.studentId === normalizedStudentId) {
         session = state.session;
       } else {
         lastOpening.current = Math.max(Date.now(), lastOpening.current + 1);
@@ -69,10 +63,16 @@ export function StudentFpilotChatProvider({
           opening: lastOpening.current,
         };
       }
-      dispatch({ type: "open", session });
+      dispatch({ type: "open-student", session });
     },
     [state.session],
   );
+
+  const openGeneralChat = useCallback(
+    () => dispatch({ type: "open-general" }),
+    [],
+  );
+  const closeChat = useCallback(() => dispatch({ type: "close" }), []);
 
   const minimizeStudentChat = useCallback(
     () => dispatch({ type: "minimize" }),
@@ -90,15 +90,19 @@ export function StudentFpilotChatProvider({
   const value = useMemo<StudentFpilotChatContextValue>(
     () => ({
       ...state,
-      isActive: state.mode !== "closed" && state.session !== null,
+      isActive: state.mode !== "closed",
+      openGeneralChat,
       openStudentChat,
+      closeChat,
       minimizeStudentChat,
       expandStudentChat,
       closeApprovedStudentChat,
     }),
     [
       state,
+      openGeneralChat,
       openStudentChat,
+      closeChat,
       minimizeStudentChat,
       expandStudentChat,
       closeApprovedStudentChat,

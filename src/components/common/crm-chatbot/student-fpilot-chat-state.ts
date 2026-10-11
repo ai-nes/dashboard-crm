@@ -1,4 +1,4 @@
-export type StudentFpilotChatMode = "closed" | "expanded" | "minimized";
+export type StudentFpilotChatMode = "closed" | "compact" | "expanded";
 
 export interface StudentFpilotChatSession {
   studentId: string;
@@ -10,17 +10,21 @@ export interface StudentFpilotChatSession {
 export interface StudentFpilotChatState {
   mode: StudentFpilotChatMode;
   session: StudentFpilotChatSession | null;
+  hasOpened: boolean;
 }
 
 export type StudentFpilotChatAction =
-  | { type: "open"; session: StudentFpilotChatSession }
+  | { type: "open-general" }
+  | { type: "open-student"; session: StudentFpilotChatSession }
   | { type: "minimize" }
   | { type: "expand" }
+  | { type: "close" }
   | { type: "close-approved"; opening: number };
 
 export const initialStudentFpilotChatState: StudentFpilotChatState = {
   mode: "closed",
   session: null,
+  hasOpened: false,
 };
 
 export function reduceStudentFpilotChatState(
@@ -28,25 +32,26 @@ export function reduceStudentFpilotChatState(
   action: StudentFpilotChatAction,
 ): StudentFpilotChatState {
   switch (action.type) {
-    case "open": {
-      if (state.session) {
-        return state.session.studentId === action.session.studentId
-          ? { ...state, mode: "expanded" }
-          : state;
+    case "open-general":
+      return state.mode === "closed"
+        ? { ...state, mode: "compact", hasOpened: true }
+        : state;
+    case "open-student": {
+      const mode = state.mode === "closed" ? "expanded" : state.mode;
+      if (state.session?.studentId === action.session.studentId) {
+        return { ...state, mode, hasOpened: true };
       }
-      return { mode: "expanded", session: action.session };
+      return { ...state, mode, session: action.session, hasOpened: true };
     }
     case "minimize":
-      return state.mode === "expanded"
-        ? { ...state, mode: "minimized" }
-        : state;
+      return state.mode === "expanded" ? { ...state, mode: "compact" } : state;
     case "expand":
-      return state.mode === "minimized"
-        ? { ...state, mode: "expanded" }
-        : state;
+      return state.mode === "closed" ? state : { ...state, mode: "expanded" };
+    case "close":
+      return { ...state, mode: "closed", session: null };
     case "close-approved":
       return state.session?.opening === action.opening
-        ? initialStudentFpilotChatState
+        ? { ...state, mode: "closed", session: null }
         : state;
     default:
       return state;
