@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 import { useState } from "react";
 import { Badge } from "@/components/tailgrids/core/badge";
 import {
@@ -75,7 +76,10 @@ export function LeadOverviewLeadsDialog({
             {selection.campaign.name}
           </DialogTitle>
           <p className="mt-1 text-sm text-text-secondary">
-            {selection.campaign.channel} · {selection.campaign.leadCount === null ? "Chưa có tổng Lead" : `${formatNumber(selection.campaign.leadCount)} lead`}
+            {selection.campaign.channel} ·{" "}
+            {selection.campaign.leadCount === null
+              ? "Chưa có tổng Lead"
+              : `${formatNumber(selection.campaign.leadCount)} lead`}
           </p>
         </DialogHeader>
 
@@ -109,15 +113,39 @@ export function LeadOverviewLeadsDialog({
               ))}
             </div>
 
-            {query.isLoading && <p role="status" className="py-12 text-center text-sm text-text-secondary">Đang tải danh sách lead…</p>}
+            {query.isLoading && (
+              <p
+                role="status"
+                className="py-12 text-center text-sm text-text-secondary"
+              >
+                Đang tải danh sách lead…
+              </p>
+            )}
             {query.isError && (
-              <div role="alert" className="rounded-lg border border-card-border p-6 text-center">
-                <p className="text-sm text-text-secondary">Không thể tải danh sách lead.</p>
-                <Button className="mt-3" appearance="outline" size="sm" onPress={() => void query.refetch()}>Thử lại</Button>
+              <div
+                role="alert"
+                className="rounded-lg border border-card-border p-6 text-center"
+              >
+                <p className="text-sm text-text-secondary">
+                  Không thể tải danh sách lead.
+                </p>
+                <Button
+                  className="mt-3"
+                  appearance="outline"
+                  size="sm"
+                  onPress={() => void query.refetch()}
+                >
+                  Thử lại
+                </Button>
               </div>
             )}
             {query.data && query.data.items.length === 0 && (
-              <p role="status" className="py-12 text-center text-sm text-text-secondary">Không có lead trong bộ lọc này.</p>
+              <p
+                role="status"
+                className="py-12 text-center text-sm text-text-secondary"
+              >
+                Không có lead trong bộ lọc này.
+              </p>
             )}
             {query.data && query.data.items.length > 0 && (
               <div className="overflow-x-auto rounded-lg border border-card-border">
@@ -128,27 +156,51 @@ export function LeadOverviewLeadsDialog({
                       <th className="px-3 py-3 font-medium">Trường</th>
                       <th className="px-3 py-3 font-medium">Trạng thái</th>
                       <th className="px-3 py-3 font-medium">Owner</th>
-                      <th className="px-3 py-3 text-right font-medium">Liên hệ</th>
+                      <th className="px-3 py-3 text-right font-medium">
+                        Liên hệ
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {query.data.items.map((lead) => (
-                      <tr key={lead.leadCode} className="border-b border-card-border last:border-0">
+                      <tr
+                        key={lead.leadCode}
+                        className="border-b border-card-border last:border-0"
+                      >
                         <td className="px-3 py-3">
                           <Link
-                            href={`/director/leads/${encodeURIComponent(lead.id ?? lead.leadCode)}`}
+                            href={`/director/leads/${encodeURIComponent(getBusinessRouteKey(lead.leadCode, lead.id ?? ""))}`}
                             className="font-medium text-text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-primary-500"
                           >
                             {lead.name}
                           </Link>
-                          <p className="mt-0.5 text-xs text-text-tertiary">{lead.leadCode}</p>
+                          <p className="mt-0.5 text-xs text-text-tertiary">
+                            {lead.leadCode}
+                          </p>
                         </td>
-                        <td className="px-3 py-3 text-text-secondary">{lead.school || "—"}</td>
+                        <td className="px-3 py-3 text-text-secondary">
+                          {lead.school || "—"}
+                        </td>
                         <td className="px-3 py-3">
-                          <Badge color={statusColor[lead.statusGroup === "all" ? "unknown" : lead.statusGroup]} size="sm">{lead.status || "Chưa có trạng thái"}</Badge>
+                          <Badge
+                            color={
+                              statusColor[
+                                lead.statusGroup === "all"
+                                  ? "unknown"
+                                  : lead.statusGroup
+                              ]
+                            }
+                            size="sm"
+                          >
+                            {lead.status || "Chưa có trạng thái"}
+                          </Badge>
                         </td>
-                        <td className="px-3 py-3 text-text-secondary">{lead.owner || "—"}</td>
-                        <td className="px-3 py-3 text-right tabular-nums text-text-secondary">{lead.contactAttemptCount ?? "—"}</td>
+                        <td className="px-3 py-3 text-text-secondary">
+                          {lead.owner || "—"}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums text-text-secondary">
+                          {lead.contactAttemptCount ?? "—"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -160,7 +212,9 @@ export function LeadOverviewLeadsDialog({
 
         <DialogFooter className="shrink-0 border-t border-card-border px-5 py-4 sm:justify-between">
           <p className="text-xs text-text-tertiary">
-            {pagination ? `Hiển thị trang ${pagination.page}/${Math.max(pagination.totalPages, 1)} · ${formatNumber(pagination.total)} lead` : ""}
+            {pagination
+              ? `Hiển thị trang ${pagination.page}/${Math.max(pagination.totalPages, 1)} · ${formatNumber(pagination.total)} lead`
+              : ""}
           </p>
           <div className="flex items-center justify-end gap-2">
             <Button
@@ -174,12 +228,16 @@ export function LeadOverviewLeadsDialog({
             <Button
               appearance="outline"
               size="sm"
-              isDisabled={!pagination || page >= pagination.totalPages || query.isFetching}
+              isDisabled={
+                !pagination || page >= pagination.totalPages || query.isFetching
+              }
               onPress={() => setPage((current) => current + 1)}
             >
               Sau
             </Button>
-            <DialogClose appearance="outline" size="sm">Đóng</DialogClose>
+            <DialogClose appearance="outline" size="sm">
+              Đóng
+            </DialogClose>
           </div>
         </DialogFooter>
       </Dialog>

@@ -86,6 +86,7 @@ export const nestStudentSchoolHandler: MethodHandler = async (
       return {
         doctype: "CRM Student",
         name: created.studentCode,
+        studentCode: created.studentCode,
         student: {
           doctype: "CRM Student",
           name: created.studentCode,

@@ -18,6 +18,7 @@ import {
 } from "./student-audit-event";
 import { getStudentAuditChanges } from "./student-audit-changes";
 import StudentAuditFieldChanges from "./student-audit-field-changes";
+import { formatStudentAuditReason } from "./student-audit-presentation";
 
 interface StudentAuditItemProps {
   event: StudentAuditLog;
@@ -33,7 +34,9 @@ export default function StudentAuditItem({
   const status = getStudentAuditStatus(event);
   const categoryLabel = getStudentAuditCategoryLabel(event.category);
   const changes = getStudentAuditChanges(event);
-  const target = event.subject || getStudentAuditDoctypeLabel(event.doctype);
+  const target =
+    formatStudentAuditSubject(event.subject) ||
+    getStudentAuditDoctypeLabel(event.doctype);
   const action =
     event.action === "created"
       ? "đã tạo"
@@ -139,7 +142,7 @@ export default function StudentAuditItem({
       </div>
       {event.reason && (
         <p className="mt-2 text-xs leading-5 text-text-secondary">
-          Lý do: {event.reason}
+          Lý do: {formatStudentAuditReason(event.reason)}
         </p>
       )}
     </li>
@@ -154,27 +157,27 @@ function getAuditRecordTitle(
     case "comment_added":
       return "Đã thêm bình luận.";
     case "communication_recorded":
-      return "Đã ghi nhận Email / Communication.";
+      return "Đã ghi nhận trao đổi với thí sinh.";
     case "attachment_added":
       return "Đã đính kèm tệp.";
     case "call_logged":
       return "Đã ghi nhận cuộc gọi.";
     case "note_added":
-      return "Đã thêm FCRM Note.";
+      return "Đã thêm ghi chú tư vấn.";
     case "note_updated":
-      return "Đã cập nhật FCRM Note.";
+      return "Đã cập nhật ghi chú tư vấn.";
     case "task_recorded":
-      return "Đã ghi nhận task.";
+      return "Đã ghi nhận công việc.";
     case "interaction_recorded":
-      return "Đã ghi nhận tương tác CRM.";
+      return "Đã ghi nhận tương tác tuyển sinh.";
     case "sla_event_recorded":
-      return "Đã ghi nhận sự kiện SLA.";
+      return "Đã ghi nhận hạn chăm sóc.";
     case "decision_recorded":
       return "Đã ghi nhận quyết định.";
     case "consent_recorded":
-      return "Đã ghi nhận consent / privacy.";
+      return "Đã ghi nhận đồng ý liên hệ và bảo mật thông tin.";
     case "conversion_completed":
-      return "Đã hoàn tất chuyển đổi.";
+      return "Đã hoàn tất tạo hồ sơ thí sinh.";
   }
 
   if (event.action === "created") {

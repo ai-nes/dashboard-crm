@@ -49,15 +49,15 @@ export default function LeadImportDialog({
   const campaignOptions = campaigns
     .filter((campaign) => {
       const status = campaign.status.trim().toUpperCase();
-      return (
-        (status === "ACTIVE" || status === "CLOSED") &&
-        Boolean(campaign.stableCode)
-      );
+      return status === "ACTIVE" || status === "CLOSED";
     })
-    .map((campaign) => ({
-      id: campaign.stableCode,
-      label: `${campaign.stableCode} — ${campaign.title}`,
-    }));
+    .map((campaign) => {
+      const code = campaign.stableCode.trim();
+      return {
+        id: code || campaign.name,
+        label: code ? `${code} — ${campaign.title}` : campaign.title,
+      };
+    });
 
   // Bước 1 (chọn file + campaign) giữ dialog gọn; từ bước 2 (bảng map cột) mới mở rộng.
   const dialogSize = currentStep === 0 ? "default" : "wide";

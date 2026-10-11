@@ -22,8 +22,8 @@ export function toSegmentStudent(
 ): SegmentStudent {
   return {
     id: student.name,
-    code: student.name,
-    name: student.full_name || student.name,
+    code: student.student_code?.trim() || "—",
+    name: student.full_name?.trim() || "—",
     phone: student.phone || "",
     stage: student.student_stage || "",
     major: student.major || "",

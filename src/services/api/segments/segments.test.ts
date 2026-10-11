@@ -5,6 +5,7 @@ import {
   deleteClassificationTerm,
   getSegmentAnalysis,
   getSegmentByCode,
+  getSegmentByReference,
   getSegmentFilterOptions,
   previewSegment,
   SegmentApiError,
@@ -129,6 +130,32 @@ describe("Segment API service", () => {
     expect(result.name).toBe("a1b2c3d4");
     expect(fetchMock.mock.calls[0]![0]).toBe(
       `${API}/api/v1/segments/by-code/SEG-260909-7K4P2Q`,
+    );
+  });
+
+  it("resolves legacy UUID references by document name", async () => {
+    const id = "550e8400-e29b-41d4-a716-446655440000";
+    fetchMock.mockResolvedValue(
+      json({ name: id, segment_code: "SEG-2026-0042", title: "Tiềm năng cao" }),
+    );
+
+    const result = await getSegmentByReference(id);
+
+    expect(result.name).toBe(id);
+    expect(fetchMock.mock.calls[0]![0]).toBe(`${API}/api/v1/segments/${id}`);
+  });
+
+  it("resolves business-code references and retains the UUID for later mutations", async () => {
+    const id = "550e8400-e29b-41d4-a716-446655440000";
+    fetchMock.mockResolvedValue(
+      json({ name: id, segment_code: "SEG-2026-0042", title: "Tiềm năng cao" }),
+    );
+
+    const result = await getSegmentByReference("SEG-2026-0042");
+
+    expect(result.name).toBe(id);
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      `${API}/api/v1/segments/by-code/SEG-2026-0042`,
     );
   });
 

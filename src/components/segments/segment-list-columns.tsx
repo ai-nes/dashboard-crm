@@ -10,6 +10,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import {
   SEGMENT_STATUS_BADGE_COLORS,
   SEGMENT_STATUS_LABELS,
+  getSegmentDetailHref,
   type SegmentListItem,
   type SegmentStatus,
 } from "./segment-list-types";
@@ -40,7 +41,7 @@ export function getSegmentListColumns({
       header: "Mã segment",
       cell: ({ row }) => (
         <span className="whitespace-nowrap font-medium tabular-nums text-text-primary">
-          {row.original.segmentCode}
+          {row.original.segmentCode || "—"}
         </span>
       ),
     },
@@ -49,7 +50,7 @@ export function getSegmentListColumns({
       header: "Tên segment",
       cell: ({ row }) => (
         <Link
-          href={`${detailBaseHref}/${row.original.id}`}
+          href={getSegmentDetailHref(detailBaseHref, row.original)}
           className="inline-block min-w-56 font-semibold text-primary-500 outline-none hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-primary-500"
         >
           {row.original.name}

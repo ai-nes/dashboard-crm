@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { StudentListItem } from "@/services/api/students/types";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import StudentOwnerCell from "./student-owner-cell";
 import { studentStatusBadgeColor, studentStatusLabel } from "./student-status";
@@ -59,14 +60,14 @@ export default function StudentList({
                   Mã học sinh
                 </p>
                 <p className="truncate text-sm font-medium text-text-primary">
-                  {student.code || "-"}
+                  {student.code.trim() || "Chưa có mã học sinh"}
                 </p>
               </div>
 
               {/* Cột 2: Họ và tên */}
               <div className="min-w-0">
                 <Link
-                  href={`/director/students/${encodeURIComponent(student.code || student.id)}`}
+                  href={`/director/students/${encodeURIComponent(getBusinessRouteKey(student.code, student.id))}`}
                   aria-label={`Xem chi tiết hồ sơ ${student.name || "học sinh"}`}
                   className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
                 >

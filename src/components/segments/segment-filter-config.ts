@@ -11,6 +11,7 @@ import {
   TAG_CATEGORY_LABEL,
   TAG_SUBTYPE_LABEL,
 } from "@/services/api/student-classification/classification-types";
+import { isUuid } from "@/utils/is-uuid";
 
 export {
   LEAD_NEED_CATEGORY_LABEL,
@@ -251,9 +252,16 @@ function normalizeClassificationTerm(value: string): string {
     .replace(/\s+/g, " ");
 }
 
+export function getClassificationTermCode(term: SegmentTermRecord): string {
+  const candidates = [term.code, term.name].filter((value): value is string =>
+    Boolean(value?.trim() && !isUuid(value)),
+  );
+  return candidates[0] ?? "—";
+}
+
 export function getClassificationTermLabel(term: SegmentTermRecord): string {
   const candidates = [term.label, term.code, term.name].filter(
-    (value): value is string => Boolean(value?.trim()),
+    (value): value is string => Boolean(value?.trim() && !isUuid(value)),
   );
 
   for (const candidate of candidates) {

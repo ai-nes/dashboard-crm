@@ -25,8 +25,11 @@ vi.mock("@/hooks/use-director-nba-recommendations-queries", () => ({
     };
   },
 }));
-vi.mock("./use-recommendation-student-names", () => ({
-  useRecommendationStudentNames: () => new Map(),
+vi.mock("./use-recommendation-students", () => ({
+  useRecommendationStudents: () => ({
+    studentNameById: new Map(),
+    studentCodeById: new Map(),
+  }),
 }));
 
 function userWithPermissions(

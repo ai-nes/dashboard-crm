@@ -43,7 +43,7 @@ export default function StudentCampaignsTable({
             <TableCell className="min-w-52 align-top">
               <p className="font-medium text-text-primary">{item.title}</p>
               <p className="mt-1 text-xs text-text-secondary">
-                {item.code || "—"}
+                {item.code?.trim() || "Chưa có mã chiến dịch"}
               </p>
               {item.channel && (
                 <p className="mt-1 text-xs text-text-secondary">

@@ -226,6 +226,7 @@ export interface StudentListItem {
   studentStage?: StudentStatus | null;
   processingStatus?: LeadProcessingStatus | null;
   resolution?: LeadResolution | null;
+  /** Human-readable Lead code; never the internal sourceLeadId. */
   sourceLead?: string | null;
   recordType?: "student";
   assignmentStatus?: StudentAssignmentStatus;
@@ -292,7 +293,9 @@ export interface StudentProfilePersonalDetails {
   campaign?: string | null;
   owner?: string | null;
   convertedFromLead?: string | null;
+  /** Internal Lead ID used only to navigate to the source record. */
   sourceLeadId?: string | null;
+  /** Human-readable Lead code for the source record. */
   sourceLead?: string | null;
   majorId?: string | null;
   major?: string | null;

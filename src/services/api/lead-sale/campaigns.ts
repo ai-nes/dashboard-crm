@@ -146,7 +146,7 @@ function normalizeCampaign(value: unknown): LeadSaleCampaign | null {
   return {
     name,
     stableCode: text(row?.stableCode ?? row?.stable_code),
-    title: text(row?.title, name),
+    title: text(row?.title).trim() || "Chiến dịch chưa có tên",
     status: text(row?.status),
     ...(text(row?.campus) ? { campus: text(row?.campus) } : {}),
     ...(startDate ? { startDate } : {}),

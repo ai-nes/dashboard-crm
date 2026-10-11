@@ -201,7 +201,7 @@ function ProcessingPreviewRow({
       <TableCell>
         <p className="font-medium text-text-primary">{item.studentName}</p>
         <p className="mt-0.5 text-xs text-text-tertiary">
-          {item.leadCode || item.lead}
+          {item.leadCode || "Chưa có mã Lead"}
         </p>
       </TableCell>
       <TableCell className="text-text-secondary">{item.phone || "—"}</TableCell>

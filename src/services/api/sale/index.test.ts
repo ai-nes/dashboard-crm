@@ -69,6 +69,19 @@ function overviewFixture() {
 }
 
 describe("Sale overview API contract", () => {
+  it("keeps internal Lead IDs out of the code displayed in recent records", () => {
+    const id = "9b76c807-5747-4574-9447-9e6735b1168c";
+    const result = normalizeSaleOverview({
+      ...overviewFixture(),
+      recentLeads: [
+        { id, name: "Thí sinh A", leadCode: "LD-2026-HCM-003721" },
+        { id, name: "Thí sinh B", leadCode: null },
+      ],
+    });
+    expect(result.recentLeads[0].leadCode).toBe("LD-2026-HCM-003721");
+    expect(result.recentLeads[1].leadCode).toBe("Chưa có mã Lead");
+    expect(result.recentLeads[1].id).toBe(id);
+  });
   it("serializes the query and normalizes the core snapshot", async () => {
     fetchMock.mockImplementation(
       async () =>

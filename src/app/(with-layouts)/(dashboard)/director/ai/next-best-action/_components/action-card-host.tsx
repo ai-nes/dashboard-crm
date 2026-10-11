@@ -7,10 +7,11 @@ import {
   ChevronDown,
 } from "@tailgrids/icons";
 import Link from "next/link";
-import { useState } from "react";
+import { createElement, useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import ActionRationale from "./cards/rationale";
 import { resolveActionCard } from "./cards/registry";
@@ -70,6 +71,9 @@ export default function ActionCardHost({
   const showSummary =
     action.summary.trim() !== "" &&
     action.summary.trim() !== action.recommendation.trim();
+  const studentRouteKey = action.studentId
+    ? getBusinessRouteKey(undefined, action.studentId)
+    : "";
 
   return (
     <aside
@@ -101,7 +105,7 @@ export default function ActionCardHost({
           </div>
           {action.studentId && (
             <Link
-              href={`/director/students/${encodeURIComponent(action.studentId)}`}
+              href={`/director/students/${encodeURIComponent(studentRouteKey)}`}
               className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-300"
             >
               Mở hồ sơ 360
@@ -165,7 +169,7 @@ export default function ActionCardHost({
             </button>
             {showHow && (
               <div className="px-5 pb-5">
-                <Card action={action} />
+              {createElement(Card, { action })}
               </div>
             )}
           </section>

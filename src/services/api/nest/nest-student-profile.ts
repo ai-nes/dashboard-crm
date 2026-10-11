@@ -106,7 +106,7 @@ function readFields(student: StudentDto): Record<string, unknown> {
     id_issued_date: student.idIssuedDate,
     id_issued_place: student.idIssuedPlace,
     student_stage: student.studentStage,
-    source_lead: student.sourceLeadId,
+    source_lead: student.leadCode ?? null,
     student_code: student.studentCode,
   };
 }

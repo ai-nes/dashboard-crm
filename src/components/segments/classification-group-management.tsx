@@ -46,6 +46,10 @@ import type {
 
 import { CatalogOrderingPanel } from "./catalog-ordering-panel";
 import type { CrmDoctypePermissions } from "@/components/common/auth/permissions";
+import {
+  getClassificationTermCode,
+  getClassificationTermLabel,
+} from "./segment-filter-config";
 
 const STATUS_LABELS = {
   draft: "Bản nháp",
@@ -821,16 +825,16 @@ export function ClassificationGroupManagement({
                         >
                           <div className="min-w-0 flex-1">
                             <p className="break-words font-medium text-text-primary">
-                              {term.label || term.name}
+                              {getClassificationTermLabel(term)}
                             </p>
                             <p className="mt-1 break-words font-mono text-xs text-text-secondary">
-                              {term.code || term.name}
+                              {getClassificationTermCode(term)}
                             </p>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
                             {canUpdateTerm ? (
                               <SegmentStatusSelect
-                                ariaLabel={`Trạng thái ${term.label || term.name}`}
+                                ariaLabel={`Trạng thái ${getClassificationTermLabel(term)}`}
                                 value={
                                   (term.status as ClassificationGroupRecord["status"]) ||
                                   "draft"
@@ -860,7 +864,7 @@ export function ClassificationGroupManagement({
                             )}
                             {canUpdateTerm && (
                               <Button
-                                aria-label={`Sửa ${term.label || term.name}`}
+                                aria-label={`Sửa ${getClassificationTermLabel(term)}`}
                                 iconOnly
                                 size="sm"
                                 appearance="ghost"
@@ -874,7 +878,7 @@ export function ClassificationGroupManagement({
                             )}
                             {canDeleteTerm && (
                               <Button
-                                aria-label={`Xóa ${term.label || term.name}`}
+                                aria-label={`Xóa ${getClassificationTermLabel(term)}`}
                                 iconOnly
                                 size="sm"
                                 appearance="ghost"
@@ -1068,7 +1072,9 @@ export function ClassificationGroupManagement({
       <DeleteRecordDialog
         isOpen={Boolean(termToDelete && canDeleteTerm)}
         recordType={childLabel}
-        recordName={termToDelete?.label || termToDelete?.name || ""}
+        recordName={
+          termToDelete ? getClassificationTermLabel(termToDelete) : ""
+        }
         isDeleting={deleteTermMutation.isPending}
         onOpenChange={(open) => {
           if (!open && !deleteTermMutation.isPending) setTermToDelete(null);

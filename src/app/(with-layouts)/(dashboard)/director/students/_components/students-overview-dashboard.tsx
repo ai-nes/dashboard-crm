@@ -28,6 +28,7 @@ import {
   createStudentWithLead,
   type StudentCreateWithLeadFields,
 } from "@/services/api/student-school-update";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 import type {
   StudentAssignmentStatus,
   StudentStatus,
@@ -69,11 +70,14 @@ export default function StudentsOverviewDashboard() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const campaignsQuery = useLeadSaleCampaignsQuery({
-    leadOnly: true,
-  }, {
-    enabled: canReadCampaigns && !isAuthLoading,
-  });
+  const campaignsQuery = useLeadSaleCampaignsQuery(
+    {
+      leadOnly: true,
+    },
+    {
+      enabled: canReadCampaigns && !isAuthLoading,
+    },
+  );
   const availableCampaigns = campaignsQuery.data?.campaigns ?? [];
 
   const studentsQueryParams = {
@@ -136,7 +140,13 @@ export default function StudentsOverviewDashboard() {
       setCreateDialogOpen(false);
       toast.success("Đã tạo hồ sơ học sinh.");
       if (response.name) {
-        router.push(`/director/students/${encodeURIComponent(response.name)}`);
+        const studentRouteKey = getBusinessRouteKey(
+          response.studentCode,
+          response.name,
+        );
+        router.push(
+          `/director/students/${encodeURIComponent(studentRouteKey)}`,
+        );
       }
     },
     onError: (error) => {

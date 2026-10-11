@@ -82,6 +82,7 @@ describe("student form calls routed to Nest", () => {
     });
     expect(result).toMatchObject({
       name: "HS-1",
+      studentCode: "HS-1",
       created_fields: { full_name: "An", student_stage: "New" },
     });
   });

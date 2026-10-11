@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { formatDate } from "@/utils/format-date";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import LeadResultCell from "./lead-result-cell";
 import LeadListAssigneeCell from "./lead-list-assignee-cell";
@@ -15,8 +16,8 @@ import type { LeadListItem } from "./types";
 
 export const leadListGrid = leadTableGrid;
 
-export function getLeadDetailHref(leadId: string) {
-  return `/director/leads/${leadId}`;
+export function getLeadDetailHref(leadId: string, leadCode?: string | null) {
+  return `/director/leads/${encodeURIComponent(getBusinessRouteKey(leadCode, leadId))}`;
 }
 
 interface LeadListProps {
@@ -58,7 +59,7 @@ export default function LeadList({ leads, canAssign = false }: LeadListProps) {
 
               <div className="min-w-0">
                 <Link
-                  href={getLeadDetailHref(lead.id)}
+                  href={getLeadDetailHref(lead.id, lead.leadCode)}
                   className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
                 >
                   {lead.name || "-"}

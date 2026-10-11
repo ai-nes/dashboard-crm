@@ -4,8 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createSegment,
   deleteSegment,
-  getSegment,
   getSegmentByCode,
+  getSegmentByReference,
   getSegmentAnalysis,
   getSegmentFilterOptions,
   listSegmentsPage,
@@ -38,6 +38,7 @@ import {
   type TransitionSegmentPayload,
   type UpdateSegmentPayload,
 } from "@/services/api/segments";
+import { isUuid } from "@/utils/is-uuid";
 
 export type { ClassificationGroupKind } from "@/services/api/segments";
 
@@ -63,6 +64,12 @@ export const segmentKeys = {
     params: Record<string, unknown> = {},
   ) => ["segments", "terms", kind, params] as const,
 };
+
+function segmentDetailKey(reference: string) {
+  return isUuid(reference)
+    ? segmentKeys.detail(reference)
+    : segmentKeys.detailByCode(reference);
+}
 
 export function useClassificationGroupsQuery(
   kind: ClassificationGroupKind,
@@ -260,11 +267,11 @@ export function useVisibleSegmentsQuery(enabled = true) {
   });
 }
 
-export function useSegmentDetailQuery(name: string) {
+export function useSegmentDetailQuery(reference: string, enabled = true) {
   return useQuery({
-    queryKey: segmentKeys.detail(name),
-    queryFn: () => getSegment(name),
-    enabled: Boolean(name),
+    queryKey: segmentDetailKey(reference),
+    queryFn: () => getSegmentByReference(reference),
+    enabled: Boolean(reference) && enabled,
   });
 }
 

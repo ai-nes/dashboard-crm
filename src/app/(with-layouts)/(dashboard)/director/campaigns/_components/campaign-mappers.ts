@@ -7,6 +7,8 @@ import type { ChannelTypeValue } from "./channel-types";
 export function toCampaignListItem(
   campaign: LeadSaleCampaign,
 ): CampaignListItem {
+  const stableCode = campaign.stableCode.trim();
+  const title = campaign.title.trim();
   const startDate = campaign.startDate ?? "";
   const endDate = campaign.endDate ?? "";
   const admissionYear =
@@ -19,8 +21,8 @@ export function toCampaignListItem(
 
   return {
     id: campaign.name,
-    code: campaign.stableCode || campaign.name,
-    name: campaign.title || campaign.name,
+    code: stableCode,
+    name: title || "Chiến dịch chưa có tên",
     admissionYear,
     startDate,
     endDate,

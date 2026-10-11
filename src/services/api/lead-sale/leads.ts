@@ -210,6 +210,7 @@ export interface LeadConversionResponse {
   resolution: LeadProcessResolution;
   lead: string;
   student: string;
+  studentCode?: string;
   studentStage: string;
 }
 
@@ -591,11 +592,18 @@ function normalizeConversionResponse(value: unknown): LeadConversionResponse {
     throw new Error("Invalid Lead conversion response");
   }
 
+  const studentCode = firstText([
+    payload.studentCode,
+    payload.student_code,
+    conversion?.studentCode,
+    conversion?.student_code,
+  ]);
   return {
     status,
     resolution,
     lead: firstText([payload.lead]),
     student,
+    ...(studentCode ? { studentCode } : {}),
     studentStage: firstText(
       [
         payload.studentStage,

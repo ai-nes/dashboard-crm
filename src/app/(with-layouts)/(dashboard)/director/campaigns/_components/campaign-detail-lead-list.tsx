@@ -8,6 +8,7 @@ import {
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
 import { leadTableGrid } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-table-grid";
 import { formatDate } from "@/utils/format-date";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import type { CampaignLeadRow } from "./campaign-detail-leads";
 
@@ -58,7 +59,7 @@ export default function CampaignDetailLeadList({
 
             <div className="min-w-0">
               <Link
-                href={`/director/leads/${lead.id}`}
+                href={`/director/leads/${encodeURIComponent(getBusinessRouteKey(lead.leadCode, lead.id))}`}
                 className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
               >
                 {lead.name}

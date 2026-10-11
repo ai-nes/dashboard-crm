@@ -163,14 +163,12 @@ export async function nestLeadList(params: {
 }
 
 export async function nestLeadDetail(id: string): Promise<unknown> {
-  const [lead, timeline] = await Promise.all([
-    nestRequest<Envelope<LeadRecord>>(
-      `/api/v1/leads/${encodeURIComponent(id)}`,
-    ),
-    nestRequest<Envelope<TimelineItem[]>>(
-      `/api/v1/leads/${encodeURIComponent(id)}/timeline`,
-    ),
-  ]);
+  const lead = await nestRequest<Envelope<LeadRecord>>(
+    `/api/v1/leads/${encodeURIComponent(id)}`,
+  );
+  const timeline = await nestRequest<Envelope<TimelineItem[]>>(
+    `/api/v1/leads/${encodeURIComponent(lead.data.id)}/timeline`,
+  );
   return {
     lead: lead.data,
     log: logEntries(timeline.data),
@@ -360,13 +358,20 @@ export async function nestImportLeadRows(
 /** `POST /leads/{id}/convert` returns the student; the screens expect the conversion summary. */
 export async function nestConvertLead(id: string): Promise<unknown> {
   const result = await nestRequest<
-    Envelope<{ id: string; studentStage?: string | null }>
+    Envelope<{
+      id: string;
+      studentCode?: string | null;
+      studentStage?: string | null;
+    }>
   >(`/api/v1/leads/${encodeURIComponent(id)}/convert`, { method: "POST" });
   return {
     status: "CLOSED",
     resolution: "CREATED",
     lead: id,
     student: result.data.id,
+    ...(result.data.studentCode
+      ? { studentCode: result.data.studentCode }
+      : {}),
     studentStage: result.data.studentStage ?? "New",
   };
 }

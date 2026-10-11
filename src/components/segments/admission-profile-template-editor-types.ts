@@ -55,7 +55,7 @@ export function includeCurrentOption(
   currentValue: string,
 ): TechnicalSelectOption[] {
   if (!currentValue || options.some((option) => option.value === currentValue)) return [...options]
-  return [{value: currentValue, label: `Giá trị hiện tại (${currentValue})`}, ...options]
+  return [{value: currentValue, label: 'Giá trị hiện tại (chưa có trong danh mục)'}, ...options]
 }
 
 export function requirementConditionOptions(
@@ -64,7 +64,7 @@ export function requirementConditionOptions(
 ): TechnicalSelectOption[] {
   const methodOptions = admissionMethods.map((method) => ({
     value: `field:application.admission_method=${method.code || method.id}`,
-    label: `Phương thức: ${method.name || method.code || method.id}`,
+    label: `Phương thức: ${method.name || method.code || 'Chưa có tên phương thức'}`,
   }))
 
   if (sectionCode === 'method') {
@@ -124,7 +124,8 @@ export function documentTypeLabel(
   documentType: string,
   documentTypes: AdmissionDocumentTypeOption[],
 ): string {
-  return documentTypes.find((item) => item.id === documentType)?.name || documentType
+  const item = documentTypes.find((option) => option.id === documentType || option.code === documentType)
+  return item?.name || item?.code || 'Chưa xác định loại giấy tờ'
 }
 
 export function requirementModeLabel(mode: 'ALL' | 'ANY'): string {

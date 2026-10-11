@@ -466,7 +466,7 @@ describe("student create and delete contract", () => {
   it("trims and compacts the student-with-lead payload", async () => {
     mockRoutes({ "POST /api/v1/students": () => json(created) });
 
-    await createStudentWithLead({
+    const response = await createStudentWithLead({
       student_name: " Nguyễn Minh An ",
       phone: " 0900000000 ",
       province: " P1 ",
@@ -475,6 +475,10 @@ describe("student create and delete contract", () => {
       email: "  ",
     });
 
+    expect(response).toMatchObject({
+      name: "HS-2026-000001",
+      studentCode: "HS-2026-000001",
+    });
     expect(sentBody(0)).toEqual({
       studentName: "Nguyễn Minh An",
       phone: "0900000000",

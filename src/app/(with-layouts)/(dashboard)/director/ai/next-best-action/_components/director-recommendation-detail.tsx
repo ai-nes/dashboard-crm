@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { DirectorNbaRecommendation } from "@/services/api/nba";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 import {
   formatNbaDateTime,
   formatNbaDecisionStatus,
@@ -14,6 +15,7 @@ import {
 interface DirectorRecommendationDetailProps {
   recommendation: DirectorNbaRecommendation | null;
   studentNameById: ReadonlyMap<string, string>;
+  studentCodeById: ReadonlyMap<string, string>;
 }
 
 const priorityLabels = {
@@ -31,6 +33,7 @@ const priorityColors = {
 export default function DirectorRecommendationDetail({
   recommendation,
   studentNameById,
+  studentCodeById,
 }: DirectorRecommendationDetailProps) {
   if (!recommendation) {
     return (
@@ -48,11 +51,15 @@ export default function DirectorRecommendationDetail({
   const studentName =
     recommendation.studentName ??
     studentNameById.get(recommendation.target.id) ??
-    recommendation.target.id;
+    "Chưa có tên học sinh";
   const objective =
     (recommendation.objective ?? recommendation.reason) ||
     "Chưa có mục tiêu cho đề xuất này.";
-  const href = `/director/students/${encodeURIComponent(recommendation.target.id)}?tab=decision`;
+  const studentRouteKey = getBusinessRouteKey(
+    studentCodeById.get(recommendation.target.id),
+    recommendation.target.id,
+  );
+  const href = `/director/students/${encodeURIComponent(studentRouteKey)}?tab=decision`;
 
   return (
     <section
@@ -83,7 +90,8 @@ export default function DirectorRecommendationDetail({
         <span className="mx-1.5 text-text-tertiary" aria-hidden="true">
           ·
         </span>
-        {recommendation.target.id}
+        {studentCodeById.get(recommendation.target.id) ??
+          "Chưa có mã học sinh"}
       </p>
 
       <div className="mt-5 rounded-lg bg-background-soft-50 p-4">
