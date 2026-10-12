@@ -37,6 +37,7 @@ export interface DropdownFieldProps {
   selectedLabel?: string;
   isSearchable?: boolean;
   filterOptions?: boolean;
+  resetSearchOnClose?: boolean;
   searchPlaceholder?: string;
   onSearchChange?: (value: string) => void;
   isLoading?: boolean;
@@ -84,6 +85,7 @@ export function DropdownField({
   selectedLabel,
   isSearchable = false,
   filterOptions = true,
+  resetSearchOnClose = true,
   searchPlaceholder = "Tìm kiếm...",
   onSearchChange,
   isLoading = false,
@@ -127,7 +129,7 @@ export function DropdownField({
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     if (controlledIsOpen === undefined) setUncontrolledIsOpen(nextIsOpen);
-    if (!nextIsOpen) {
+    if (!nextIsOpen && resetSearchOnClose) {
       setQuery("");
       onSearchChange?.("");
       pagination?.onSearchChange?.("");

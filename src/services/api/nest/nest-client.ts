@@ -74,7 +74,10 @@ export function toServiceError<E extends Error>(
   ErrorClass: ServiceErrorConstructor<E>,
 ): unknown {
   return error instanceof NestApiError
-    ? new ErrorClass(error.status, error.code, error.message)
+    ? Object.assign(new ErrorClass(error.status, error.code, error.message), {
+        details: error.details,
+        requestId: error.requestId,
+      })
     : error;
 }
 
@@ -86,7 +89,10 @@ export interface NestRequestOptions {
   signal?: AbortSignal;
 }
 
-function buildUrl(path: string, query: NestRequestOptions["query"]): string {
+export function buildUrl(
+  path: string,
+  query: NestRequestOptions["query"],
+): string {
   const url = `${getApiUrl()}${path}`;
   if (!query) return url;
   const params = new URLSearchParams();
@@ -99,7 +105,7 @@ function buildUrl(path: string, query: NestRequestOptions["query"]): string {
   return search ? `${url}?${search}` : url;
 }
 
-function errorFrom(status: number, payload: unknown): NestApiError {
+export function errorFrom(status: number, payload: unknown): NestApiError {
   const error =
     payload && typeof payload === "object" && "error" in payload
       ? (

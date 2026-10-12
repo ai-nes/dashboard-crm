@@ -2,6 +2,7 @@
 
 import {
   useQuery,
+  useInfiniteQuery,
   type UseQueryOptions,
   type UseQueryResult,
 } from "@tanstack/react-query";
@@ -21,6 +22,7 @@ import type {
 
 export const studentsKeys = {
   all: ["students"] as const,
+  student360Root: ["student-360"] as const,
   directorStudentsRoot: ["director-students"] as const,
   directorStudents: (params?: DirectorStudentsParams) =>
     ["director-students", params] as const,
@@ -97,6 +99,35 @@ export function useAssignedStudentsQuery(
     queryKey: studentsKeys.assignedStudents(params, sessionUser),
     queryFn: () => getDirectorStudents(params),
     enabled: Boolean(sessionUser) && enabled,
+  });
+}
+
+/** Loads the current user's student scope in API pages for searchable pickers. */
+export function useAssignedStudentsInfiniteQuery(
+  params: Omit<DirectorStudentsParams, "page"> | undefined,
+  sessionUser: string | null | undefined,
+  options: { enabled?: boolean; staleTime?: number } = {},
+) {
+  const { enabled = true, ...queryOptions } = options;
+  const pageSize = params?.pageSize ?? 100;
+
+  return useInfiniteQuery({
+    queryKey: [
+      ...studentsKeys.assignedStudents(params, sessionUser),
+      "paged",
+      pageSize,
+    ],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      getDirectorStudents({
+        ...params,
+        page: pageParam,
+        pageSize,
+      }),
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.hasNextPage ? lastPage.meta.page + 1 : undefined,
+    enabled: Boolean(sessionUser) && enabled,
+    ...queryOptions,
   });
 }
 

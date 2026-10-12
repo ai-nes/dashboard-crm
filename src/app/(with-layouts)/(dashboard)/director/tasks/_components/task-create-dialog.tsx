@@ -3,10 +3,14 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { DropdownField } from "@/components/common/dropdown-field";
+import { Label } from "@/components/tailgrids/core/label";
+import type { ScrollToLoadMoreOptions } from "@/hooks/use-scroll-to-load-more";
 import type { SessionUser } from "@/services/api/auth";
 import type { StudentListItem } from "@/services/api/students/types";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 
+import type { TaskAdmissionYearOption } from "./task-admission-year-options";
 import {
   normalizeStudentOwner,
   resolveStudentTaskAssignee,
@@ -19,6 +23,13 @@ interface TaskCreateDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   students: StudentListItem[];
+  admissionYearOptions: TaskAdmissionYearOption[];
+  selectedAdmissionYear: number | null;
+  onAdmissionYearChange: (year: number | null) => void;
+  isLoadingAdmissionYears?: boolean;
+  admissionYearsError?: Error | null;
+  isStudentOptionsReady: boolean;
+  studentPagination?: ScrollToLoadMoreOptions;
   onCreate: (task: TaskManagementItem) => void | Promise<void>;
   isLoadingStudents?: boolean;
   studentsError?: Error | null;
@@ -29,10 +40,29 @@ interface TaskCreateDialogProps {
   requireAssignee?: boolean;
 }
 
+export function resolveSelectedTaskStudent(
+  students: StudentListItem[],
+  studentId: string,
+  selectionYear: number | null,
+  currentYear: number | null,
+): StudentListItem | undefined {
+  if (!studentId || selectionYear === null || selectionYear !== currentYear) {
+    return undefined;
+  }
+  return students.find((item) => item.id === studentId);
+}
+
 export default function TaskCreateDialog({
   isOpen,
   onOpenChange,
   students,
+  admissionYearOptions,
+  selectedAdmissionYear,
+  onAdmissionYearChange,
+  isLoadingAdmissionYears = false,
+  admissionYearsError = null,
+  isStudentOptionsReady,
+  studentPagination,
   onCreate,
   isLoadingStudents = false,
   studentsError = null,
@@ -42,11 +72,17 @@ export default function TaskCreateDialog({
   isSubmitting = false,
   requireAssignee = false,
 }: TaskCreateDialogProps) {
-  const [studentId, setStudentId] = useState(students[0]?.id ?? "");
-  const selectedStudentId = students.some((item) => item.id === studentId)
-    ? studentId
-    : (students[0]?.id ?? "");
-  const student = students.find((item) => item.id === selectedStudentId);
+  const [studentSelection, setStudentSelection] = useState<{
+    admissionYear: number | null;
+    studentId: string;
+  }>({ admissionYear: null, studentId: "" });
+  const student = resolveSelectedTaskStudent(
+    students,
+    studentSelection.studentId,
+    studentSelection.admissionYear,
+    selectedAdmissionYear,
+  );
+
   const studentOwner = normalizeStudentOwner(student?.owner);
   const studentTaskAssignee = resolveStudentTaskAssignee(
     studentOwner,
@@ -57,6 +93,8 @@ export default function TaskCreateDialog({
   const assigneeName =
     studentTaskAssignee?.full_name || studentOwner || "Chưa phân công";
   const canCreateTask = Boolean(
+    selectedAdmissionYear !== null &&
+    isStudentOptionsReady &&
     student &&
     assigneeId &&
     (!requireAssignee ||
@@ -64,7 +102,13 @@ export default function TaskCreateDialog({
   );
 
   const handleSubmit = async (values: TaskCreateFormValues) => {
-    if (!student || !assigneeId || isSubmitting) return;
+    if (
+      selectedAdmissionYear === null ||
+      !isStudentOptionsReady ||
+      !student ||
+      !assigneeId ||
+      isSubmitting
+    ) return;
 
     try {
       await onCreate({
@@ -87,7 +131,10 @@ export default function TaskCreateDialog({
         studentMajor: student.major,
       });
       toast.success(`Đã tạo task cho ${student.name}.`);
-      setStudentId(students[0]?.id ?? "");
+      setStudentSelection({
+        admissionYear: selectedAdmissionYear,
+        studentId: "",
+      });
       onOpenChange(false);
     } catch (error) {
       toast.error(
@@ -107,12 +154,67 @@ export default function TaskCreateDialog({
         heading="Task mới"
         studentField={
           <div className="flex flex-col gap-2">
+            <Label htmlFor="task-admission-year">Năm tuyển sinh *</Label>
+            <DropdownField
+              id="task-admission-year"
+              ariaLabel="Chọn năm tuyển sinh"
+              options={admissionYearOptions}
+              value={
+                selectedAdmissionYear === null
+                  ? null
+                  : String(selectedAdmissionYear)
+              }
+              onChange={(nextValue) => {
+                const nextYear =
+                  nextValue && /^\d{4}$/.test(nextValue)
+                    ? Number(nextValue)
+                    : null;
+                if (nextYear === selectedAdmissionYear) return;
+
+                setStudentSelection({
+                  admissionYear: nextYear,
+                  studentId: "",
+                });
+                onAdmissionYearChange(nextYear);
+              }}
+              placeholder="Chọn năm tuyển sinh"
+              isDisabled={isLoadingAdmissionYears || admissionYearOptions.length === 0}
+              isLoading={isLoadingAdmissionYears}
+              isError={Boolean(admissionYearsError)}
+              errorMessage={
+                admissionYearsError?.message ||
+                "Không thể tải danh sách năm tuyển sinh."
+              }
+              emptyMessage="Chưa có năm tuyển sinh hợp lệ."
+              triggerClassName="border-card-border bg-card-background text-sm font-medium shadow-xs"
+            />
+            {admissionYearsError && (
+              <p className="text-xs text-input-error" role="alert">
+                {admissionYearsError.message ||
+                  "Không thể tải danh sách năm tuyển sinh."}
+              </p>
+            )}
             <TaskStudentSelect
-              students={students}
-              value={selectedStudentId}
-              onChange={setStudentId}
-              isDisabled={students.length === 0}
+              key={selectedAdmissionYear ?? "no-admission-year"}
+              students={isStudentOptionsReady ? students : []}
+              value={studentSelection.studentId}
+              onChange={(studentId) =>
+                setStudentSelection({
+                  admissionYear: selectedAdmissionYear,
+                  studentId,
+                })
+              }
+              isDisabled={
+                selectedAdmissionYear === null || !isStudentOptionsReady
+              }
               isLoading={isLoadingStudents}
+              isError={Boolean(studentsError)}
+              pagination={studentPagination}
+              placeholder={
+                selectedAdmissionYear === null
+                  ? "Chọn năm tuyển sinh trước"
+                  : undefined
+              }
               hideLabel
             />
             {studentsError && (

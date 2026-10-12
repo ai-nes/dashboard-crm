@@ -70,7 +70,10 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
     LeadConversionField[]
   >([]);
 
-  const leadOwnership = { owner: data?.lead.owner };
+  const leadOwnership = {
+    owner: data?.lead.owner,
+    ownerId: data?.lead.ownerId,
+  };
   const hasLeadAccess =
     isAuthLoading ||
     (data !== null &&

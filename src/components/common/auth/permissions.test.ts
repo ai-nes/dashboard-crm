@@ -40,6 +40,34 @@ const makeDoctypePermission = (
 });
 
 describe("Student campaign history permissions", () => {
+  it("uses the authoritative owner UUID instead of a coincidentally identical display name for deletion", () => {
+    const user = makeUser({
+      crm_user_id: "my-user-id",
+      crm_doctype_permissions: {
+        "CRM Lead": makeDoctypePermission({
+          row_scope: "all",
+          delete_requires_ownership: true,
+        }),
+      },
+    });
+    const permissions = getCrmPermissions(user).lead;
+    expect(
+      canPerformStudentAction(
+        permissions,
+        "delete",
+        { ownerId: "another-user-id", owner: "CRM Staff" },
+        user,
+      ),
+    ).toBe(false);
+    expect(
+      canPerformStudentAction(
+        permissions,
+        "delete",
+        { ownerId: "my-user-id", owner: "Renamed Staff" },
+        user,
+      ),
+    ).toBe(true);
+  });
   it.each([
     {
       student: true,

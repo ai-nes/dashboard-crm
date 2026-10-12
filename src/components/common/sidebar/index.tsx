@@ -36,7 +36,10 @@ export default function Sidebar({
     () =>
       filterNavigationByPermissions(
         filterNavigationByRoles(
-          getNavigationDataForRoles(userRoles),
+          getNavigationDataForRoles(userRoles, {
+            capabilities: user?.crm_capabilities,
+            isAdministrator: user?.crm_is_administrator,
+          }),
           userRoles,
         ),
         user,

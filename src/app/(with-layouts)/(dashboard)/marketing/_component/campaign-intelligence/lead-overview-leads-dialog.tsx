@@ -126,7 +126,7 @@ export function LeadOverviewLeadsDialog({
                 role="alert"
                 className="rounded-lg border border-card-border p-6 text-center"
               >
-                <p className="text-sm text-text-secondary">
+                <p className="text-sm text-badge-error-text">
                   Không thể tải danh sách lead.
                 </p>
                 <Button

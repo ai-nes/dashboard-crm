@@ -1,7 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const campus = { id: "campus-1", name: "HCM", campusId: undefined };
-const team = { id: "team-1", name: "Team A", campusId: "campus-1" };
+const team = {
+  id: "team-1",
+  name: "Team A",
+  campusId: "campus-1",
+  isActive: true,
+  teamType: "Sales",
+};
+const ineligibleTeams = [
+  {
+    id: "team-marketing",
+    name: "Marketing",
+    campusId: "campus-1",
+    isActive: true,
+    teamType: "Marketing",
+  },
+  {
+    id: "team-inactive",
+    name: "Inactive Sales",
+    campusId: "campus-1",
+    isActive: false,
+    teamType: "Sales",
+  },
+];
 const campaign = {
   id: "camp-1",
   title: "Spring",
@@ -33,11 +55,25 @@ describe("campaign adapter for the Nest backend", () => {
     vi.stubGlobal("fetch", fetchMock);
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method === "POST") return respond({ data: campaign }, 201);
+      if (url.includes("/campaign-routing-groups")) {
+        return respond({
+          data: [
+            {
+              id: "group-1",
+              name: "North Group",
+              campusIds: ["campus-1"],
+            },
+          ],
+        });
+      }
       if (url.includes("/campuses")) {
         return respond({ data: [campus], meta: { pagination: { total: 1 } } });
       }
       if (url.includes("/teams")) {
-        return respond({ data: [team], meta: { pagination: { total: 1 } } });
+        return respond({
+          data: [team, ...ineligibleTeams],
+          meta: { pagination: { total: 3 } },
+        });
       }
       if (url.endsWith("/campaigns/camp-1")) return respond({ data: campaign });
       if (url.includes("/campaigns/missing")) return respond({}, 404);
@@ -75,13 +111,24 @@ describe("campaign adapter for the Nest backend", () => {
     expect(calledUrls.some((url) => url.includes("q=spr"))).toBe(true);
   });
 
-  it("returns routing options from teams", async () => {
+  it("returns routing options from teams and the dedicated group reference endpoint", async () => {
     const { getCampaignRoutingOptions } = await import("./campaigns");
     expect(await getCampaignRoutingOptions()).toEqual({
       campuses: [{ id: "campus-1", label: "HCM" }],
       teams: [{ id: "team-1", label: "Team A", campus: "HCM" }],
-      groups: [],
+      groups: [
+        {
+          id: "group-1",
+          label: "North Group",
+          campusIds: ["campus-1"],
+        },
+      ],
     });
+    expect(
+      fetchMock.mock.calls.some(([url]) =>
+        String(url).includes("/api/v1/reference-data/campaign-routing-groups"),
+      ),
+    ).toBe(true);
   });
 
   it("returns null for an unknown campaign and sends campus ids on create", async () => {

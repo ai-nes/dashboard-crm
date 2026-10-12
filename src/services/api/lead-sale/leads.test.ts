@@ -401,6 +401,25 @@ describe("Lead list/detail API contract", () => {
     });
   });
 
+  it("retains the original campaign identity rather than event participation", () => {
+    expect(
+      normalizeLeadDetail({
+        lead: {
+          id: "lead-1",
+          campaignId: "campaign-2",
+          campaign: "Chiến dịch 2",
+          eventsParticipated: ["Sự kiện khác"],
+        },
+        log: [],
+        meta: {},
+      }).lead,
+    ).toMatchObject({
+      campaignId: "campaign-2",
+      campaign: "Chiến dịch 2",
+      eventsParticipated: ["Sự kiện khác"],
+    });
+  });
+
   it("normalizes a valid list envelope", () => {
     expect(normalizeLeadList(listFixture()).data).toHaveLength(1);
   });

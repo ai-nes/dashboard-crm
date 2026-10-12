@@ -19,6 +19,7 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
+import { toNestStudentFilters } from "@/services/api/students/students-nest";
 import {
   useAssignedStudentsQuery,
   useDirectorStudentsQuery,
@@ -38,6 +39,9 @@ import StudentCreateDialog from "./student-create-dialog";
 import StudentList, { studentListGrid } from "./student-list";
 import StudentListSkeleton from "./student-list-skeleton";
 import StudentListToolbar from "./student-list-toolbar";
+import { STUDENT_LIST_COLUMNS } from "./student-export-columns";
+import StudentExportDialog from "./student-export-dialog";
+import { StudentExportAction } from "./student-export-action";
 
 export default function StudentsOverviewDashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -51,11 +55,14 @@ export default function StudentsOverviewDashboard() {
   const isSessionScoped = readScope === "assigned" || readScope === "team";
   const isLeadSale = user?.roles?.includes("Lead Sale") ?? false;
   const canCreateStudent = permissions.student.canCreate;
+  const canExportStudents =
+    getCrmDoctypePermissions(user, "CRM Student").canExport && !isAuthLoading;
   const pageTitle = isLeadSale ? "Danh sách học sinh" : "Hồ sơ học sinh 360°";
   const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const ownerId = searchParams.get("owner")?.trim() || undefined;
   const [query, setQuery] = useState("");
   const [studentStatus, setStudentStatus] = useState<StudentStatus | "all">(
@@ -85,9 +92,9 @@ export default function StudentsOverviewDashboard() {
     page,
     pageSize,
     q: query || undefined,
-    province,
-    lifecycleStatus: studentStatus === "all" ? undefined : studentStatus,
-    assignmentStatus,
+    provinceId: province === "all" ? undefined : province,
+    stage: studentStatus === "all" ? undefined : studentStatus,
+    assignmentStatus: assignmentStatus === "all" ? undefined : assignmentStatus,
     campaign: campaign || undefined,
     order,
     // Session-scoped roles must never be able to widen the list with an owner
@@ -212,6 +219,16 @@ export default function StudentsOverviewDashboard() {
       id="main-content"
       className="min-w-0 space-y-5 px-2 py-4 pb-8 lg:px-6"
     >
+      {canExportStudents && exportDialogOpen && (
+        <StudentExportDialog
+          key={user?.crm_user_id ?? user?.user ?? "anonymous"}
+          isOpen={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          canExport={canExportStudents}
+          scopeKey={user?.crm_user_id ?? user?.user ?? "anonymous"}
+          initialFilters={toNestStudentFilters(studentsQueryParams)}
+        />
+      )}
       {isError && (
         <Card className="border-error-200 bg-badge-error-background p-4 text-error-600">
           <p className="font-semibold text-sm">
@@ -240,6 +257,10 @@ export default function StudentsOverviewDashboard() {
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-start gap-3 lg:items-end">
+          <StudentExportAction
+            canExport={canExportStudents}
+            onOpen={() => setExportDialogOpen(true)}
+          />
           {canCreateStudent && (
             <Button
               isDisabled={createMutation.isPending}
@@ -293,15 +314,15 @@ export default function StudentsOverviewDashboard() {
           <div>
             <div
               className={`hidden ${studentListGrid} items-center gap-4 border-b border-card-border bg-background-soft-50 px-5 py-3 text-xs font-medium text-text-tertiary lg:grid`}
-              aria-hidden="true"
             >
-              <span className="min-w-0 truncate">Mã học sinh</span>
-              <span className="min-w-0 truncate">Họ và tên</span>
-              <span className="min-w-0 truncate">Tỉnh/TP</span>
-              <span className="min-w-0 truncate">Ngành quan tâm</span>
-              <span className="min-w-0 truncate">Trạng thái</span>
-              <span className="min-w-0 truncate">Điểm tiềm năng</span>
-              <span className="min-w-0 truncate">Người phụ trách</span>
+              {STUDENT_LIST_COLUMNS.map((column) => (
+                <div
+                  key={column.id}
+                  className="flex min-w-0 items-center gap-2"
+                >
+                  <span className="min-w-0 truncate">{column.label}</span>
+                </div>
+              ))}
             </div>
             {isPending && !response ? (
               <StudentListSkeleton />

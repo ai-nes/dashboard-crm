@@ -82,7 +82,7 @@ export default function LeadListToolbar({
               aria-label="Tìm lead"
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
-              placeholder="Tìm theo tên, số điện thoại, trường, người phụ trách…"
+              placeholder="Tìm mọi thông tin Lead: tên, CCCD, SĐT…"
             />
           </InputGroup>
           <Select

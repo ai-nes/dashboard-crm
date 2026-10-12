@@ -10,7 +10,9 @@ import {
   getCrmDoctypePermissions,
   getCrmPermissions,
   hasCrmCapability,
+  canPerformStudentAction,
 } from "@/components/common/auth/permissions";
+import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
@@ -23,6 +25,7 @@ import { useLeadSaleCampaignsQuery } from "@/hooks/use-lead-sale-campaign-querie
 import {
   leadSaleLeadsKeys,
   useCreateLeadMutation,
+  useDeleteLeadMutation,
   useImportLeadFileMutation,
   useLeadSaleLeadsQuery,
   usePreviewNewLeadsMutation,
@@ -33,9 +36,11 @@ import type {
   LeadImportMapping,
   LeadImportResponse,
   LeadListParams,
+  LeadListItem,
   LeadProcessingPreviewResponse,
 } from "@/services/api/lead-sale";
 
+import LeadExportDialog from "./lead-export-dialog";
 import LeadList, { leadListGrid } from "./lead-list";
 import LeadImportDialog from "./lead-import-dialog";
 import LeadListToolbar from "./lead-list-toolbar";
@@ -60,6 +65,11 @@ export default function LeadsOverviewDashboard({
     user,
     "CRM Campaign",
   ).canRead;
+  const canExportLeads =
+    canReadLeads &&
+    getCrmDoctypePermissions(user, "CRM Lead").canExport &&
+    !isAuthLoading;
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const canCreateLead = permissions.lead.canCreate && !isAuthLoading;
   const canManageLeadIntake = permissions.lead.canAssign && !isAuthLoading;
   const canAssignLead =
@@ -69,6 +79,16 @@ export default function LeadsOverviewDashboard({
   const queryClient = useQueryClient();
   const runUnassignedMutation = useRunUnassignedLeadAssignmentMutation();
   const createMutation = useCreateLeadMutation();
+  const deleteMutation = useDeleteLeadMutation();
+  const [leadToDelete, setLeadToDelete] = useState<LeadListItem | null>(null);
+  const canDeleteLead = (lead: LeadListItem) =>
+    !isAuthLoading &&
+    canPerformStudentAction(
+      permissions.lead,
+      "delete",
+      { owner: lead.owner, ownerId: lead.ownerId },
+      user,
+    );
   const importMutation = useImportLeadFileMutation();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -322,9 +342,18 @@ export default function LeadsOverviewDashboard({
               : "Toàn cảnh Lead tiếp nhận trước khi được phân công cho đội ngũ Sale."}
           </p>
         </div>
-        {(canCreateLead || canManageLeadIntake) && (
+        {(canCreateLead || canManageLeadIntake || canExportLeads) && (
           <div className="flex shrink-0 flex-col items-end gap-2 max-sm:w-full">
             <div className="flex flex-wrap items-center justify-end gap-3 max-sm:w-full">
+              {canExportLeads && (
+                <Button
+                  appearance="outline"
+                  className="shrink-0 max-sm:w-full"
+                  onPress={() => setExportDialogOpen(true)}
+                >
+                  Xuất Excel
+                </Button>
+              )}
               {canCreateLead && (
                 <Button
                   appearance="outline"
@@ -394,6 +423,24 @@ export default function LeadsOverviewDashboard({
         )}
       </header>
 
+      {canExportLeads && exportDialogOpen && (
+        <LeadExportDialog
+          isOpen
+          onOpenChange={setExportDialogOpen}
+          canExport={canExportLeads}
+          scopeKey={user?.crm_user_id ?? user?.user ?? "anonymous"}
+          initialFilters={{
+            q: listParams.q,
+            status: listParams.status,
+            resolution: listParams.resolution,
+            campaign: listParams.campaign,
+            admissionYear:
+              admissionYear === null ? undefined : String(admissionYear),
+            order: listParams.order,
+          }}
+        />
+      )}
+
       <LeadListToolbar
         query={query}
         status={status}
@@ -430,7 +477,13 @@ export default function LeadsOverviewDashboard({
             {isPending && !response ? (
               <LeadListSkeleton />
             ) : (
-              <LeadList canAssign={canAssignLead} leads={leads} />
+              <LeadList
+                canAssign={canAssignLead}
+                leads={leads}
+                canDeleteLead={canDeleteLead}
+                onDeleteRequest={setLeadToDelete}
+                isDeleting={deleteMutation.isPending || isPlaceholderData}
+              />
             )}
           </div>
         </div>
@@ -471,6 +524,36 @@ export default function LeadsOverviewDashboard({
         )}
       </Card>
 
+      {leadToDelete && canDeleteLead(leadToDelete) && (
+        <DeleteRecordDialog
+          isOpen
+          recordType="Lead"
+          recordName={`${leadToDelete.leadCode} · ${leadToDelete.name}`}
+          isDeleting={deleteMutation.isPending}
+          onOpenChange={(open) => {
+            if (!open) setLeadToDelete(null);
+          }}
+          onConfirm={async () => {
+            if (!canDeleteLead(leadToDelete) || deleteMutation.isPending)
+              return;
+            try {
+              await deleteMutation.mutateAsync(leadToDelete.id);
+              setLeadToDelete(null);
+              setPage(
+                Math.max(
+                  1,
+                  Math.min(page, Math.ceil((totalCount - 1) / pageSize)),
+                ),
+              );
+              toast.success("Đã xóa Lead.");
+            } catch (error) {
+              toast.error(
+                error instanceof Error ? error.message : "Chưa thể xóa Lead.",
+              );
+            }
+          }}
+        />
+      )}
       {canCreateLead && (
         <QuickCreateLeadDialog
           isOpen={createDialogOpen}

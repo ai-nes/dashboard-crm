@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDialogError } from "@/utils/dialog-error";
+
 import { useState, type FormEvent } from "react";
 
 import { SchoolCombobox } from "@/components/common/school-combobox";
@@ -168,7 +170,7 @@ export default function QuickCreateLeadDialog({
       reset();
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : "Chưa thể tạo Lead.",
+        formatDialogError(error, "Chưa thể tạo Lead."),
       );
     }
   };
@@ -335,12 +337,12 @@ export default function QuickCreateLeadDialog({
             {(campaignOptionsQuery.isError ||
               provinceOptionsQuery.isError ||
               wardOptionsQuery.isError) && (
-              <p className="text-xs text-error-600" role="alert">
+              <p className="text-xs text-badge-error-text" role="alert">
                 Chưa thể tải một số danh mục Lead. Vui lòng thử lại sau.
               </p>
             )}
             {submitError && (
-              <p className="text-xs text-error-600" role="alert">
+              <p className="text-xs text-badge-error-text whitespace-pre-line break-words" role="alert">
                 {submitError}
               </p>
             )}
@@ -398,7 +400,7 @@ function toSelectOptions(options?: { value: string; label: string }[]) {
 function FormFieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p className="text-xs text-error-600" role="alert">
+    <p className="text-xs text-badge-error-text" role="alert">
       {message}
     </p>
   );

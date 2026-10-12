@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDialogError } from "@/utils/dialog-error";
+
 import { useMemo, useState, type FormEvent } from "react";
 
 import { DatePickerField } from "@/components/common/date-picker-field";
@@ -138,7 +140,7 @@ export default function StudentCreateInteractionDialog({
       onOpenChange(false);
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : "Chưa thể tạo tương tác.",
+        formatDialogError(error, "Chưa thể tạo tương tác."),
       );
     }
   };
@@ -320,7 +322,7 @@ export default function StudentCreateInteractionDialog({
                 </p>
               )}
               {submitError && (
-                <p className="text-xs text-error-600" role="alert">
+                <p className="text-xs text-badge-error-text whitespace-pre-line break-words" role="alert">
                   {submitError}
                 </p>
               )}

@@ -14,6 +14,7 @@ import {
   Brain1,
   Buildings11,
   ClockThree,
+  Envelope1,
   FileTextMultiple,
   IdCard,
   Layers2,
@@ -29,6 +30,7 @@ import {
 import type { ReactNode } from "react";
 import type { DashboardRole } from "../auth/rbac";
 import {
+  canConfigureSystem,
   getDefaultRouteForRoles,
   getEffectiveDashboardRoles,
   getRolesForRoute,
@@ -553,7 +555,11 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
 
 export function getNavigationDataForRoles(
   userRoles: readonly string[],
-  options: { showRoleVisibleSegments?: boolean } = {},
+  options: {
+    showRoleVisibleSegments?: boolean;
+    capabilities?: readonly string[];
+    isAdministrator?: boolean;
+  } = {},
 ): NavigationSection[] {
   const effectiveRoles = getEffectiveDashboardRoles(userRoles);
   const isMarketingWorkspace =
@@ -577,7 +583,33 @@ export function getNavigationDataForRoles(
 
   const workspaceRoute = getDefaultRouteForRoles(userRoles);
 
-  return navigation.map((section) => ({
+  let sections = navigation;
+  if (canConfigureSystem(options.capabilities, options.isAdministrator)) {
+    const reminderItem = navItem({
+      title: "Email nhắc task",
+      url: "/admin/task-reminders",
+      icon: <Envelope1 size={18} />,
+    });
+    sections = navigation.some((section) => section.label === "CẤU HÌNH")
+      ? navigation.map((section) => {
+          if (section.label !== "CẤU HÌNH") return section;
+          const logIndex = section.items.findIndex(
+            (item) => item.url === "/director/admin/activity-logs",
+          );
+          const insertAt = logIndex < 0 ? section.items.length : logIndex;
+          return {
+            ...section,
+            items: [
+              ...section.items.slice(0, insertAt),
+              reminderItem,
+              ...section.items.slice(insertAt),
+            ],
+          };
+        })
+      : [...navigation, { label: "CẤU HÌNH", items: [reminderItem] }];
+  }
+
+  return sections.map((section) => ({
     ...section,
     items: section.items
       .filter(

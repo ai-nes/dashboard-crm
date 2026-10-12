@@ -325,6 +325,32 @@ describe("interaction intelligence API contract", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("preserves the backend field validation when creating an interaction fails", async () => {
+    const details = [
+      {
+        field: "interaction_datetime",
+        code: "invalid",
+        message: "Thời gian tương tác không hợp lệ.",
+      },
+    ];
+    fetchMock.mockResolvedValue(
+      json(
+        {
+          error: {
+            code: "INVALID_INPUT",
+            message: "The request is invalid.",
+            details,
+            requestId: "interaction-request",
+          },
+        },
+        400,
+      ),
+    );
+    await expect(
+      createInteraction({ student: "STU-1", interaction_type: "NOTE" }),
+    ).rejects.toMatchObject({ details, requestId: "interaction-request" });
+  });
+
   it("rejects a created interaction without a name with 502", async () => {
     fetchMock.mockResolvedValue(json({}, 201));
 
