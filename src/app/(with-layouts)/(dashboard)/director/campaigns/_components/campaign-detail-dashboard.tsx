@@ -141,7 +141,9 @@ export default function CampaignDetailDashboard({
   }, [fetchedLeads, serverConversionRate]);
 
   const studentQueryParams: DirectorStudentsParams = {
-    admissionYear: campaign?.admissionYear ?? 2026,
+    ...(campaign?.admissionYear != null
+      ? { admissionYear: campaign.admissionYear }
+      : {}),
     page: studentPage,
     pageSize: studentPageSize,
     q: studentQuery || undefined,

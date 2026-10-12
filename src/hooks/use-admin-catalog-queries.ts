@@ -64,7 +64,12 @@ function invalidate(queryClient: ReturnType<typeof useQueryClient>) {
 }
 
 export function useAdmissionYearsQuery(
-  options: { search?: string; start?: number; pageLength?: number } = {},
+  options: {
+    search?: string;
+    start?: number;
+    pageLength?: number;
+    enabled?: boolean;
+  } = {},
 ) {
   const search = options.search?.trim() ?? "";
   return useQuery({
@@ -73,6 +78,7 @@ export function useAdmissionYearsQuery(
       start: options.start,
       pageLength: options.pageLength,
     }),
+    enabled: options.enabled,
     queryFn: () =>
       listAdmissionYears({
         search,

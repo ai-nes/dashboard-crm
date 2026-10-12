@@ -26,6 +26,8 @@ import {
   campaignModeOptions,
   campaignStatusLabel,
   campaignStatusOptions,
+  getCampaignModeLabel,
+  getCampaignStatusLabel,
 } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -42,6 +44,8 @@ const modeTriggerClass: Record<CampaignMode, string> = {
   ONLINE: "border-transparent bg-badge-sky-background text-badge-sky-text",
   OFFLINE: "border-transparent bg-badge-gray-background text-badge-gray-text",
 };
+const unknownTriggerClass =
+  "border-transparent bg-badge-gray-background text-badge-gray-text";
 
 interface CampaignColumnHandlers {
   detailListPath: string;
@@ -110,7 +114,8 @@ export function campaignColumns({
       header: "Hình thức",
       cell: ({ row }) => {
         const campaign = row.original;
-        if (!canUpdate) return <span>{campaignModeLabel[campaign.mode]}</span>;
+        const modeLabel = getCampaignModeLabel(campaign.mode);
+        if (!canUpdate) return <span>{modeLabel}</span>;
         return (
           <Select
             value={campaign.mode}
@@ -122,9 +127,9 @@ export function campaignColumns({
           >
             <SelectTrigger
               size="sm"
-              className={`w-full ${modeTriggerClass[campaign.mode]}`}
+              className={`w-full ${campaign.mode ? modeTriggerClass[campaign.mode] : unknownTriggerClass}`}
             >
-              <SelectValue />
+              <SelectValue>{modeLabel}</SelectValue>
               <SelectIndicator />
             </SelectTrigger>
             <SelectContent>
@@ -173,8 +178,8 @@ export function campaignColumns({
       header: "Trạng thái",
       cell: ({ row }) => {
         const campaign = row.original;
-        if (!canUpdate)
-          return <span>{campaignStatusLabel[campaign.status]}</span>;
+        const statusLabel = getCampaignStatusLabel(campaign.status);
+        if (!canUpdate) return <span>{statusLabel}</span>;
         return (
           <Select
             value={campaign.status}
@@ -186,9 +191,9 @@ export function campaignColumns({
           >
             <SelectTrigger
               size="sm"
-              className={`w-full ${statusTriggerClass[campaign.status]}`}
+              className={`w-full ${campaign.status ? statusTriggerClass[campaign.status] : unknownTriggerClass}`}
             >
-              <SelectValue />
+              <SelectValue>{statusLabel}</SelectValue>
               <SelectIndicator />
             </SelectTrigger>
             <SelectContent>

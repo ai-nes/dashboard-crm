@@ -28,7 +28,7 @@ import type {
   Student360Data,
   StudentContactConsent,
 } from "@/services/api/students/types";
-import { studentsKeys } from "@/hooks/use-students-queries";
+import { refreshStudentProfileQueries } from "@/hooks/refresh-student-profile-queries";
 import { formatDateTime } from "@/utils/format-date";
 
 import type { Student360SectionProps } from "./types";
@@ -133,9 +133,7 @@ export default function StudentDetailsTab({
     mutationFn: (variables: { fields: StudentUpdateFields; message: string }) =>
       updateStudent(studentId, variables.fields),
     onSuccess: async (_response, variables) => {
-      await queryClient.invalidateQueries({
-        queryKey: studentsKeys.student360(studentId),
-      });
+      await refreshStudentProfileQueries(queryClient);
       setEditingCard(null);
       toast.success(variables.message);
     },

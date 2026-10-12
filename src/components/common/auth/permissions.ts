@@ -3,7 +3,11 @@ import type {
   CurrentUserDocTypePermission,
 } from "@/services/api/auth";
 
-import { getDefaultRouteForRoles, getEffectiveDashboardRoles } from "./rbac";
+import {
+  canConfigureSystem,
+  getDefaultRouteForRoles,
+  getEffectiveDashboardRoles,
+} from "./rbac";
 
 export type CrmRecordScope = "assigned" | "team" | "all" | "none";
 export type CrmPermissionAction = "create" | "read" | "update" | "delete";
@@ -168,6 +172,14 @@ export function canReadCrmPath(
   user: CurrentUser | null | undefined,
 ): boolean {
   const pathname = path.split(/[?#]/, 1)[0];
+  if (
+    pathname === "/admin/task-reminders" ||
+    pathname.startsWith("/admin/task-reminders/")
+  )
+    return canConfigureSystem(
+      user?.crm_capabilities,
+      user?.crm_is_administrator,
+    );
   if (pathname === "/director/admin/activity-logs")
     return user?.crm_is_administrator === true;
   if (pathname === "/director/sla")
@@ -335,6 +347,12 @@ export function isStudentAssignedToUser(
   student: StudentOwnershipInfo,
   user: CurrentUser | null | undefined,
 ): boolean {
+  if (student.ownerId?.trim()) {
+    const ownerId = normalizeIdentity(student.ownerId);
+    return [user?.crm_user_id, user?.user, user?.email].some(
+      (id) => normalizeIdentity(id) === ownerId,
+    );
+  }
   const userIdentifiers = getUserIdentifiers(user);
   if (userIdentifiers.size === 0) return false;
 

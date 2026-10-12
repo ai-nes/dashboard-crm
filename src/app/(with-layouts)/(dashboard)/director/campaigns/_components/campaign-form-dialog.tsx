@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDialogError } from "@/utils/dialog-error";
+
 import { useState, type FormEvent } from "react";
 
 import { DatePickerField } from "@/components/common/date-picker-field";
@@ -38,8 +40,11 @@ import {
   campaignModeOptions,
   campaignStatusLabel,
   campaignStatusOptions,
+  getCampaignModeLabel,
+  getCampaignStatusLabel,
 } from "./mappings";
 import type {
+  CampaignRoutingOption,
   CampaignRoutingOptions,
   CampaignRoutingTargetType,
 } from "@/services/api/lead-sale";
@@ -61,16 +66,18 @@ interface CampaignFormDialogProps {
   onSubmit: (campaign: CampaignFormValues) => void | Promise<void>;
 }
 
-function formFromCampaign(
+export function formFromCampaign(
   campaign: CampaignListItem | null,
 ): CampaignFormState {
   return {
     name: campaign?.name ?? "",
-    admissionYear: String(campaign?.admissionYear ?? new Date().getFullYear()),
+    admissionYear: campaign
+      ? String(campaign.admissionYear ?? "")
+      : String(new Date().getFullYear()),
     startDate: campaign?.startDate ?? "",
     endDate: campaign?.endDate ?? "",
-    status: campaign?.status ?? "DRAFT",
-    mode: campaign?.mode ?? "OFFLINE",
+    status: campaign ? campaign.status : "DRAFT",
+    mode: campaign ? campaign.mode : "OFFLINE",
     channelType: campaign?.channelType ?? "",
     channelUrl: campaign?.channelUrl ?? "",
     campus: campaign?.campus ?? "",
@@ -78,6 +85,37 @@ function formFromCampaign(
     leadRoutingTargetType: campaign?.leadRoutingTargetType ?? "",
     leadRoutingTargetTeam: campaign?.leadRoutingTargetTeam ?? "",
     leadRoutingTargetGroup: campaign?.leadRoutingTargetGroup ?? "",
+  };
+}
+
+export function filterCampaignGroupOptions(
+  groups: CampaignRoutingOption[],
+  selectedCampusId?: string,
+): CampaignRoutingOption[] {
+  return selectedCampusId
+    ? groups.filter((option) => option.campusIds?.includes(selectedCampusId))
+    : groups;
+}
+
+export function toCampaignFormValues(
+  form: CampaignFormState,
+): CampaignFormValues {
+  return {
+    name: form.name.trim(),
+    admissionYear: form.admissionYear.trim()
+      ? Number(form.admissionYear)
+      : null,
+    startDate: form.startDate.trim(),
+    endDate: form.endDate.trim(),
+    status: form.status,
+    mode: form.mode,
+    channelType: form.channelType,
+    channelUrl: form.channelUrl.trim(),
+    campus: form.campus,
+    leadRoutingEnabled: form.leadRoutingEnabled,
+    leadRoutingTargetType: form.leadRoutingTargetType,
+    leadRoutingTargetTeam: form.leadRoutingTargetTeam,
+    leadRoutingTargetGroup: form.leadRoutingTargetGroup,
   };
 }
 
@@ -136,26 +174,10 @@ export default function CampaignFormDialog({
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      await onSubmit({
-        name: form.name.trim(),
-        admissionYear: Number(form.admissionYear) || new Date().getFullYear(),
-        startDate: form.startDate,
-        endDate: form.endDate,
-        status: form.status,
-        mode: form.mode,
-        channelType: form.channelType,
-        channelUrl: form.channelUrl.trim(),
-        campus: form.campus,
-        leadRoutingEnabled: form.leadRoutingEnabled,
-        leadRoutingTargetType: form.leadRoutingTargetType,
-        leadRoutingTargetTeam: form.leadRoutingTargetTeam,
-        leadRoutingTargetGroup: form.leadRoutingTargetGroup,
-      });
+      await onSubmit(toCampaignFormValues(form));
     } catch (submitError) {
       setSubmitError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Không thể lưu chiến dịch.",
+        formatDialogError(submitError, "Không thể lưu chiến dịch.", { title: "Tên chiến dịch" }),
       );
     } finally {
       setIsSubmitting(false);
@@ -186,6 +208,13 @@ export default function CampaignFormDialog({
   const fieldError = (field: keyof CampaignFormState) => fieldErrors[field];
   const teamOptions = routingOptions.teams.filter(
     (option) => !form.campus || !option.campus || option.campus === form.campus,
+  );
+  const selectedCampusId = routingOptions.campuses.find(
+    (option) => option.label === form.campus,
+  )?.id;
+  const groupOptions = filterCampaignGroupOptions(
+    routingOptions.groups,
+    selectedCampusId,
   );
 
   const handleRoutingTargetTypeChange = (value: string) => {
@@ -375,7 +404,9 @@ export default function CampaignFormDialog({
                   isInvalid={Boolean(fieldError("status"))}
                 >
                   <SelectTrigger className="h-9 w-full text-sm">
-                    <SelectValue />
+                    <SelectValue>
+                      {getCampaignStatusLabel(form.status)}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {campaignStatusOptions.map((status) => (
@@ -410,7 +441,7 @@ export default function CampaignFormDialog({
                   isInvalid={Boolean(fieldError("mode"))}
                 >
                   <SelectTrigger className="h-9 w-full text-sm">
-                    <SelectValue />
+                    <SelectValue>{getCampaignModeLabel(form.mode)}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {campaignModeOptions.map((mode) => (
@@ -496,8 +527,8 @@ export default function CampaignFormDialog({
                     Phân bổ Lead theo Campaign
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-text-tertiary">
-                    Khi bật, Campaign được ưu tiên trước Group/tỉnh và chia đều
-                    campus.
+                    Chọn Team hoặc Team Group nhận Lead khi hệ thống phân bổ
+                    theo Campaign.
                   </p>
                 </div>
                 <Toggle
@@ -603,7 +634,7 @@ export default function CampaignFormDialog({
                           <SelectItem id="" textValue="Chọn Team Group">
                             Chọn Team Group
                           </SelectItem>
-                          {routingOptions.groups.map((option) => (
+                          {groupOptions.map((option) => (
                             <SelectItem
                               key={option.id}
                               id={option.id}
@@ -625,7 +656,7 @@ export default function CampaignFormDialog({
             </section>
 
             {submitError && (
-              <p className="text-xs text-badge-error-text" role="alert">
+              <p className="text-xs text-badge-error-text whitespace-pre-line break-words" role="alert">
                 {submitError}
               </p>
             )}

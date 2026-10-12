@@ -30,6 +30,8 @@ interface MultiStepDialogProps {
   onSubmit: FormEventHandler<HTMLFormElement>;
   footer: ReactNode;
   children: ReactNode;
+  formClassName?: string;
+  bodyClassName?: string;
 }
 
 export function MultiStepDialog({
@@ -45,6 +47,8 @@ export function MultiStepDialog({
   onSubmit,
   footer,
   children,
+  formClassName,
+  bodyClassName,
 }: MultiStepDialogProps) {
   const handleOpenChange = (open: boolean) => {
     if (open || !isBusy) onOpenChange(open);
@@ -103,8 +107,10 @@ export function MultiStepDialog({
               ))}
             </ol>
           </DialogHeader>
-          <form onSubmit={onSubmit}>
-            <DialogBody className="max-h-[calc(100vh-15rem)] space-y-4 overflow-y-auto px-6 py-5">
+          <form onSubmit={onSubmit} className={formClassName}>
+            <DialogBody
+              className={`max-h-[calc(100vh-15rem)] space-y-4 overflow-y-auto px-6 py-5 ${bodyClassName ?? ""}`}
+            >
               {children}
             </DialogBody>
             <DialogFooter className="border-t border-card-border px-6 py-4">

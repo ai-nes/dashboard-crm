@@ -59,9 +59,11 @@ export default function StudentList({
                 <p className="text-xs text-text-tertiary lg:hidden">
                   Mã học sinh
                 </p>
-                <p className="truncate text-sm font-medium text-text-primary">
-                  {student.code.trim() || "Chưa có mã học sinh"}
-                </p>
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="truncate text-sm font-medium text-text-primary">
+                    {student.code.trim() || "Chưa có mã học sinh"}
+                  </p>
+                </div>
               </div>
 
               {/* Cột 2: Họ và tên */}

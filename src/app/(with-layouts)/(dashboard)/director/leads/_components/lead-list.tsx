@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
+import { Trash1 } from "@tailgrids/icons";
 import { formatDate } from "@/utils/format-date";
 import { getBusinessRouteKey } from "@/utils/business-record-route";
 
@@ -23,9 +25,18 @@ export function getLeadDetailHref(leadId: string, leadCode?: string | null) {
 interface LeadListProps {
   leads: LeadListItem[];
   canAssign?: boolean;
+  canDeleteLead?: (lead: LeadListItem) => boolean;
+  onDeleteRequest?: (lead: LeadListItem) => void;
+  isDeleting?: boolean;
 }
 
-export default function LeadList({ leads, canAssign = false }: LeadListProps) {
+export default function LeadList({
+  leads,
+  canAssign = false,
+  canDeleteLead,
+  onDeleteRequest,
+  isDeleting = false,
+}: LeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
@@ -119,9 +130,23 @@ export default function LeadList({ leads, canAssign = false }: LeadListProps) {
 
               <div className="flex min-w-0 items-center justify-between gap-2 lg:block">
                 <p className="text-xs text-text-tertiary lg:hidden">Ngày tạo</p>
-                <p className="truncate text-sm text-text-secondary tabular-nums">
-                  {formatDate(lead.createdAt ?? "")}
-                </p>
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="truncate text-sm text-text-secondary tabular-nums">
+                    {formatDate(lead.createdAt ?? "")}
+                  </p>
+                  {onDeleteRequest && canDeleteLead?.(lead) && (
+                    <Button
+                      size="xs"
+                      variant="danger"
+                      appearance="ghost"
+                      aria-label={`Xóa Lead ${lead.leadCode || lead.name}`}
+                      isDisabled={isDeleting}
+                      onPress={() => onDeleteRequest(lead)}
+                    >
+                      <Trash1 size={16} aria-hidden="true" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </li>

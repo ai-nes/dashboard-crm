@@ -25,10 +25,10 @@ import {
   type ChannelTypeValue,
 } from "./channel-types";
 import {
-  campaignModeColor,
-  campaignModeLabel,
-  campaignStatusColor,
-  campaignStatusLabel,
+  getCampaignModeColor,
+  getCampaignModeLabel,
+  getCampaignStatusColor,
+  getCampaignStatusLabel,
 } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -157,8 +157,8 @@ export default function CampaignList({
                 <p className="font-mono text-xs font-semibold text-text-primary">
                   {campaign.code.trim() || "Chưa có mã chiến dịch"}
                 </p>
-                <Badge color={campaignStatusColor[campaign.status]}>
-                  {campaignStatusLabel[campaign.status]}
+                <Badge color={getCampaignStatusColor(campaign.status)}>
+                  {getCampaignStatusLabel(campaign.status)}
                 </Badge>
               </div>
               <Link
@@ -175,8 +175,8 @@ export default function CampaignList({
                 {formatDate(campaign.endDate)}
               </p>
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                <Badge color={campaignModeColor[campaign.mode]}>
-                  {campaignModeLabel[campaign.mode]}
+                <Badge color={getCampaignModeColor(campaign.mode)}>
+                  {getCampaignModeLabel(campaign.mode)}
                 </Badge>
                 {canUpdate ? (
                   <CampaignChannelCell

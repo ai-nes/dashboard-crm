@@ -12,6 +12,7 @@ import {
   createCampaign,
   deleteCampaign,
   getCampaign,
+  getCampaignSource,
   getCampaignChannelTypes,
   getCampaignList,
   getCampaignRoutingOptions,
@@ -23,6 +24,7 @@ import {
   type CampaignRoutingOptions,
   type CreateCampaignPayload,
   type LeadSaleCampaign,
+  type CampaignSource,
   type UpdateCampaignPayload,
 } from "@/services/api/lead-sale";
 
@@ -34,7 +36,16 @@ export const leadSaleCampaignKeys = {
     ["lead-sale-campaigns", "channel-types", params] as const,
   routingOptions: () => ["lead-sale-campaigns", "routing-options"] as const,
   detail: (code: string) => ["lead-sale-campaigns", "detail", code] as const,
+  source: (id: string) => ["lead-sale-campaigns", "source", id] as const,
 };
+
+export function useLeadSaleCampaignSourceQuery(id: string, enabled: boolean) {
+  return useQuery<CampaignSource, Error>({
+    queryKey: leadSaleCampaignKeys.source(id),
+    queryFn: () => getCampaignSource(id),
+    enabled: Boolean(id) && enabled,
+  });
+}
 
 export function useLeadSaleCampaignsQuery<TData = CampaignListResponse>(
   params: CampaignListParams = {},

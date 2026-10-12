@@ -151,6 +151,27 @@ describe("toServiceError", () => {
     const original = new Error("boom");
     expect(toServiceError(original, ServiceError)).toBe(original);
   });
+
+  it("preserves backend validation details and request ID through service adapters", () => {
+    const details = [
+      {
+        field: "password",
+        code: "too_small",
+        message: "Password must have at least 6 characters.",
+      },
+    ];
+    const result = toServiceError(
+      new NestApiError(
+        400,
+        "INVALID_INPUT",
+        "The request is invalid.",
+        details,
+        "backend-request-id",
+      ),
+      ServiceError,
+    );
+    expect(result).toMatchObject({ details, requestId: "backend-request-id" });
+  });
 });
 
 describe("notMigrated", () => {
