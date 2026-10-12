@@ -1,6 +1,6 @@
 "use client";
 
-import { InfoTriangle } from "@tailgrids/icons";
+import { InfoTriangle, RefreshCircle1Clockwise } from "@tailgrids/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import {
   getCrmPermissions,
   hasCrmCapability,
 } from "@/components/common/auth/permissions";
+import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
@@ -45,14 +46,12 @@ import {
 interface StudentNextBestActionsProps {
   data: Student360Data;
   studentId: string;
-  onActionsCountChange?: (count: number) => void;
   isAnalysisActive?: boolean;
 }
 
 export default function StudentNextBestActions({
   data,
   studentId,
-  onActionsCountChange,
   isAnalysisActive = false,
 }: StudentNextBestActionsProps) {
   const router = useRouter();
@@ -94,6 +93,7 @@ export default function StudentNextBestActions({
     : false;
   const terminalStage = isStudentStatusTerminal(studentStage);
   const nbaBlocked = !studentStageKnown || terminalStage;
+  const canGenerateNba = canRunNba && !nbaBlocked;
   const [decision, setDecision] = useState<{
     recommendation: NbaRecommendation;
     operation: NbaDecisionOperation;
@@ -157,9 +157,6 @@ export default function StudentNextBestActions({
       };
     });
   }, [nbaBlocked, postRecommendations, worklistActions]);
-  useEffect(() => {
-    onActionsCountChange?.(actions.length);
-  }, [actions.length, onActionsCountChange]);
   const beginDecision = (
     recommendation: NbaRecommendation,
     operation: NbaDecisionOperation,
@@ -310,31 +307,50 @@ export default function StudentNextBestActions({
   return (
     <>
       <section aria-labelledby="next-best-actions-heading" className="min-w-0">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0"></div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2
+            id="next-best-actions-heading"
+            className="flex items-center gap-2 text-base font-semibold text-text-primary"
+          >
+            Hành động tiếp theo
+            {canReadWorklist && actions.length > 0 && (
+              <Badge color="gray" size="sm">
+                {actions.length}
+              </Badge>
+            )}
+          </h2>
           <div className="flex shrink-0 items-center gap-2">
-            {studentStage && (
-              <span className="rounded-full border border-card-border bg-background-gray-secondary px-2.5 py-1 text-xs font-semibold text-text-secondary"></span>
-            )}
-            {canRunNba && (
-              <Button
-                variant="primary"
-                appearance="outline"
-                size="sm"
-                onPress={() => void runNba()}
-                isDisabled={
-                  nbaBlocked ||
-                  query.isFetching ||
-                  runMutation.isPending ||
-                  isAnalysisActive ||
-                  decisionMutation.isPending
+            <Button
+              variant="primary"
+              appearance="outline"
+              size="sm"
+              onPress={() =>
+                canGenerateNba ? void runNba() : void query.refetch()
+              }
+              isDisabled={
+                query.isFetching ||
+                runMutation.isPending ||
+                isAnalysisActive ||
+                decisionMutation.isPending
+              }
+            >
+              <RefreshCircle1Clockwise
+                className={
+                  query.isFetching || runMutation.isPending || isAnalysisActive
+                    ? "motion-safe:animate-spin"
+                    : undefined
                 }
-              >
-                {runMutation.isPending || isAnalysisActive
-                  ? "Đang tạo gợi ý…"
-                  : "Gợi ý hành động"}
-              </Button>
-            )}
+                size={16}
+                aria-hidden="true"
+              />
+              {runMutation.isPending || isAnalysisActive
+                ? "Đang phân tích NBA…"
+                : query.isFetching
+                  ? "Đang tải NBA…"
+                  : canGenerateNba
+                    ? "Gợi ý & tải lại NBA"
+                    : "Tải lại NBA"}
+            </Button>
           </div>
         </div>
 
