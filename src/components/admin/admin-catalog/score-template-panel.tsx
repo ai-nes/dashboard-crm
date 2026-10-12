@@ -179,6 +179,7 @@ function ScoreTemplatePanelContent({
                   </td>
                   <td className="px-3 py-3">
                     <RowActions
+                      recordLabel={template.template_name}
                       isDisabled={remove.isPending}
                       onEdit={permissions.canUpdate
                         ? () => openTemplate(template)

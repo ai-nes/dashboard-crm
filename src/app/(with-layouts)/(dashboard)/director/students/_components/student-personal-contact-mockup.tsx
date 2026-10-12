@@ -66,6 +66,7 @@ interface StudentPersonalContactMockupProps {
   data: Student360Data;
   studentId: string;
   canEdit?: boolean;
+  initialEdit?: boolean;
 }
 
 const genderOptions: EditableDetailOption[] = [
@@ -78,8 +79,9 @@ export default function StudentPersonalContactMockup({
   data,
   studentId,
   canEdit = true,
+  initialEdit = false,
 }: StudentPersonalContactMockupProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(canEdit && initialEdit);
   const [form, setForm] = useState<PersonalForm>(() => getPersonalForm(data));
   const updateMutation = useStudentProfileUpdate(studentId);
   const details = data.student.profileDetails?.personal;

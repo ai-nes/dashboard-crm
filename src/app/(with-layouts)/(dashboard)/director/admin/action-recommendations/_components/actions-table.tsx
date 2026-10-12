@@ -1,6 +1,8 @@
 "use client";
 
-import { Eye } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+
 import { useMemo, useState } from "react";
 
 import {
@@ -11,7 +13,7 @@ import {
   AdminTableRoot,
   AdminTableRow,
 } from "@/components/common/admin/admin-table";
-import { Button } from "@/components/tailgrids/core/button";
+
 import { TableBody } from "@/components/tailgrids/core/table";
 
 import AdminTableToolbar from "./admin-table-toolbar";
@@ -180,16 +182,9 @@ export default function ActionsTable({ onInspect }: ActionsTableProps) {
                 />
               </AdminTableCell>
               <AdminTableCell className="text-right">
-                <Button
-                  size="sm"
-                  appearance="ghost"
-                  onPress={() => onInspect(action)}
-                  aria-label={`Xem cấu hình ${action.displayName}`}
-                  className="text-primary-500 hover:bg-badge-primary-background"
-                >
-                  <Eye size={16} aria-hidden="true" />
-                  Xem cấu hình
-                </Button>
+                <TableRowActions label={action.displayName} actions={[
+  { id: "view", label: "Xem cấu hình", onAction: () => onInspect(action) },
+]} />
               </AdminTableCell>
             </AdminTableRow>
           ))}

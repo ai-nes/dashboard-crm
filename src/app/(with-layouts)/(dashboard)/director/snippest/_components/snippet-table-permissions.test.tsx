@@ -63,3 +63,5 @@ describe("snippet row actions", () => {
     expect(html).not.toContain('aria-label="Chỉnh sửa Other"');
   });
 });
+
+vi.mock("@/components/tailgrids/core/dropdown", async () => import("@/test-utils/open-dropdown"));

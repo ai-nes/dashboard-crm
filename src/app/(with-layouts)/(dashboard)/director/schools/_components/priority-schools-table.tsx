@@ -1,5 +1,5 @@
-import { ArrowRight, TrendUp2 } from "@tailgrids/icons";
-import { CrmPermissionLink as Link } from "@/components/common/auth/crm-permission-link";
+import { TrendUp2 } from "@tailgrids/icons";
+import { TableRowLinkActions } from "@/components/common/table-row-link-actions";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
@@ -81,13 +81,7 @@ export default function PrioritySchoolsTable({
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
-                  <Link
-                    href={`/director/schools/${item.school.id}`}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-button-primary-outline-text hover:text-button-primary-outline-hover-text"
-                  >
-                    Chi tiết
-                    <ArrowRight size={14} />
-                  </Link>
+                  <TableRowLinkActions label={item.school.name} href={`/director/schools/${item.school.id}`} />
                 </td>
               </tr>
             ))}

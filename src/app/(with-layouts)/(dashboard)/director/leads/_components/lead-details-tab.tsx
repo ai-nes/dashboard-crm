@@ -45,6 +45,7 @@ interface LeadDetailsTabProps {
   leadId: string;
   canEdit?: boolean;
   canAssign?: boolean;
+  initialEditContact?: boolean;
 }
 
 const emptyOption: EditableDetailOption = {
@@ -65,9 +66,12 @@ export default function LeadDetailsTab({
   leadId,
   canEdit = true,
   canAssign = false,
+  initialEditContact = false,
 }: LeadDetailsTabProps) {
   const [editingSection, setEditingSection] =
-    useState<EditableLeadSection | null>(null);
+    useState<EditableLeadSection | null>(
+      canEdit && initialEditContact ? "contact" : null,
+    );
   const [contactForm, setContactForm] = useState<ContactForm>(() =>
     getContactForm(lead),
   );

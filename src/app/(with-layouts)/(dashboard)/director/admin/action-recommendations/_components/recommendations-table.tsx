@@ -1,6 +1,8 @@
 "use client";
 
-import { Eye, Shield1Check } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+import { Shield1Check } from "@tailgrids/icons";
 import { useMemo, useState } from "react";
 
 import {
@@ -11,7 +13,7 @@ import {
   AdminTableRoot,
   AdminTableRow,
 } from "@/components/common/admin/admin-table";
-import { Button } from "@/components/tailgrids/core/button";
+
 import { TableBody } from "@/components/tailgrids/core/table";
 
 import AdminTableToolbar from "./admin-table-toolbar";
@@ -161,16 +163,9 @@ export default function RecommendationsTable({
                 <RecommendationStatusBadge status={recommendation.status} />
               </AdminTableCell>
               <AdminTableCell className="text-right">
-                <Button
-                  size="sm"
-                  appearance="ghost"
-                  onPress={() => onInspect(recommendation)}
-                  aria-label={`Xem đề xuất cho ${recommendation.studentName}`}
-                  className="text-primary-500 hover:bg-badge-primary-background"
-                >
-                  <Eye size={16} aria-hidden="true" />
-                  Xem
-                </Button>
+                <TableRowActions label={recommendation.studentName} actions={[
+  { id: "view", label: "Xem chi tiết", onAction: () => onInspect(recommendation) },
+]} />
               </AdminTableCell>
             </AdminTableRow>
           ))}

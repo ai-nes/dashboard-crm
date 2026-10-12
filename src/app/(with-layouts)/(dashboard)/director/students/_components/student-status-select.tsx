@@ -12,6 +12,7 @@ import { cn } from "@/utils/cn";
 import {
   getStudentStatusOptions,
   studentStatusLabel,
+  studentStatusBadgeLabel,
   studentStatusTriggerClass,
 } from "./student-status";
 
@@ -44,7 +45,7 @@ export default function StudentStatusSelect({
         size="sm"
         className={cn("w-full", studentStatusTriggerClass[value])}
       >
-        <SelectValue>{studentStatusLabel[value]}</SelectValue>
+        <SelectValue><span title={studentStatusLabel[value]} className="whitespace-nowrap">{studentStatusBadgeLabel[value]}</span></SelectValue>
         <SelectIndicator />
       </SelectTrigger>
       <SelectContent className="min-w-44">

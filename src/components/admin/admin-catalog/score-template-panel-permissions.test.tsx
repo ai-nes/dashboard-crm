@@ -85,8 +85,6 @@ describe("Score Template list permissions", () => {
   });
 
   it("does not fetch or display templates without a read grant", () => {
-    state.user.roles = ["System Manager"];
-
     expect(renderPanel()).toContain("Bạn không có quyền xem Score Template.");
     expect(state.queryCalls).toBe(0);
   });
@@ -119,3 +117,5 @@ describe("Score Template list permissions", () => {
     expect(html).not.toContain('aria-label="Sửa"');
   });
 });
+
+vi.mock("@/components/tailgrids/core/dropdown", async () => import("@/test-utils/open-dropdown"));

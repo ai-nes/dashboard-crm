@@ -111,6 +111,7 @@ function toListItem(student: NestStudent): StudentListItem {
     lastActivity: student.modifiedAt,
     nextAction: "",
     owner: student.owner,
+    ownerId: student.ownerUserId,
     // The list revision is the ownership compare-and-set token.
     revision: student.ownershipRevision ?? student.revision,
     source: student.source,

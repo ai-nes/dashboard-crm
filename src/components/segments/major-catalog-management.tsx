@@ -1,6 +1,8 @@
 "use client";
 
-import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+import { Plus } from "@tailgrids/icons";
 import Link from "next/link";
 import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
@@ -10,29 +12,9 @@ import { AdminSearchInput } from "@/components/common/admin/admin-search-input";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
-import {
-  useDeleteMajorGroupMutation,
-  useDeleteMajorMutation,
-  useMajorGroupsQuery,
-  useMajorsQuery,
-  useUpdateMajorGroupMutation,
-} from "@/hooks/use-major-catalog-queries";
+import { Select, SelectContent, SelectIndicator, SelectItem, SelectTrigger, SelectValue } from "@/components/tailgrids/core/select";
+import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow } from "@/components/tailgrids/core/table";
+import { useDeleteMajorGroupMutation, useDeleteMajorMutation, useMajorGroupsQuery, useMajorsQuery, useUpdateMajorGroupMutation } from "@/hooks/use-major-catalog-queries";
 import type {
   MajorGroupOption,
   MajorOption,
@@ -434,31 +416,10 @@ export function MajorCatalogManagement({
                         </Badge>
                       </TableCell>
                       <TableCell className="align-top">
-                        <div className="flex justify-end gap-1">
-                          {canUpdateGroup && (
-                              <Button
-                                aria-label={`Sửa ${group.name}`}
-                                iconOnly
-                                size="sm"
-                                appearance="ghost"
-                                onPress={() => openEditGroup(group)}
-                              >
-                                <Pencil1 size={16} aria-hidden="true" />
-                              </Button>
-                          )}
-                          {canDeleteGroup && (
-                              <Button
-                                aria-label={`Xóa ${group.name}`}
-                                iconOnly
-                                size="sm"
-                                appearance="ghost"
-                                variant="danger"
-                                onPress={() => setGroupToDelete(group)}
-                              >
-                                <Trash1 size={16} aria-hidden="true" />
-                              </Button>
-                          )}
-                        </div>
+                        <TableRowActions label={group.name} actions={[
+          { id: "edit", label: "Chỉnh sửa", ariaLabel: `Sửa ${group.name}`, onAction: () => openEditGroup(group), isVisible: canUpdateGroup },
+          { id: "delete", label: "Xóa", onAction: () => setGroupToDelete(group), isVisible: canDeleteGroup, variant: "danger" },
+        ]} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -663,31 +624,10 @@ export function MajorCatalogManagement({
                         </Badge>
                       </TableCell>
                       <TableCell className="align-top">
-                        <div className="flex justify-end gap-1">
-                          {canUpdateMajor && (
-                              <Button
-                                aria-label={`Sửa ${major.name}`}
-                                iconOnly
-                                size="sm"
-                                appearance="ghost"
-                                onPress={() => openEditMajor(major)}
-                              >
-                                <Pencil1 size={16} aria-hidden="true" />
-                              </Button>
-                          )}
-                          {canDeleteMajor && (
-                              <Button
-                                aria-label={`Xóa ${major.name}`}
-                                iconOnly
-                                size="sm"
-                                appearance="ghost"
-                                variant="danger"
-                                onPress={() => setMajorToDelete(major)}
-                              >
-                                <Trash1 size={16} aria-hidden="true" />
-                              </Button>
-                          )}
-                        </div>
+                        <TableRowActions label={major.name} actions={[
+          { id: "edit", label: "Chỉnh sửa", ariaLabel: `Sửa ${major.name}`, onAction: () => openEditMajor(major), isVisible: canUpdateMajor },
+          { id: "delete", label: "Xóa", onAction: () => setMajorToDelete(major), isVisible: canDeleteMajor, variant: "danger" },
+        ]} />
                       </TableCell>
                     </TableRow>
                   ))}

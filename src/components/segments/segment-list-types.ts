@@ -63,6 +63,19 @@ export const SEGMENT_STATUS_LABELS: Record<SegmentStatus, string> = {
   archive: "Lưu trữ",
 };
 
+const segmentEditRoutes: Record<string, string> = {
+  "/sale/segments": "/sale/segments/edit",
+  "/sale/next-best-action": "/sale/segments/edit",
+  "/lead-sale/segments": "/lead-sale/segments/edit",
+  "/lead-sale/next-best-action": "/lead-sale/segments/edit",
+  "/director/admin/segments": "/director/admin/segments/edit",
+};
+
+export function getSegmentEditHref(detailBaseHref: string, segment: Pick<SegmentListItem, "id" | "segmentCode">): string | undefined {
+  const editBase = segmentEditRoutes[detailBaseHref.replace(/\/$/, "")];
+  return editBase ? getSegmentDetailHref(editBase, segment) : undefined;
+}
+
 export const SEGMENT_STATUS_BADGE_COLORS: Record<
   SegmentStatus,
   "gray" | "success" | "warning" | "violet"

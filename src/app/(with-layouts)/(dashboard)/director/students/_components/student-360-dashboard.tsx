@@ -60,6 +60,7 @@ interface Student360DashboardProps {
   data?: Student360Data;
   initialTab?: string;
   initialTaskId?: string;
+  initialEditPersonal?: boolean;
 }
 
 interface StudentStageTransitionVariables {
@@ -76,6 +77,7 @@ export default function Student360Dashboard({
   data: propData,
   initialTab,
   initialTaskId,
+  initialEditPersonal = false,
 }: Student360DashboardProps) {
   const targetId =
     studentId?.trim() ||
@@ -402,6 +404,7 @@ export default function Student360Dashboard({
             scoreBreakdown,
             !isAuthLoading && hasStudentAccess,
             user?.user,
+            initialEditPersonal,
           )}
           initialChatwootInteractions={initialChatwootInteractions}
           initialStudentInteractions={initialStudentInteractions}
@@ -429,6 +432,7 @@ function getStudentTabs(
   scoreBreakdown: StudentScoreBreakdown | null,
   canReadStudent: boolean,
   sessionUserId?: string,
+  initialEditPersonal = false,
 ): DetailTabItem[] {
   const auditStudentId = data.student.studentId || analysisTargetId;
   const showHighSchoolScore = isHighSchoolAdmissionMethod(data);
@@ -452,6 +456,7 @@ function getStudentTabs(
       content: (
         <StudentPersonalContactMockup
           canEdit={canUpdateStudent}
+          initialEdit={initialEditPersonal}
           data={data}
           studentId={analysisTargetId}
         />

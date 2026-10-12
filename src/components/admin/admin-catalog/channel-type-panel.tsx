@@ -271,6 +271,7 @@ function ChannelTypePanelContent({ permissions }: { permissions: CrmDoctypePermi
                   </td>
                   <td className="px-3 py-3">
                     <RowActions
+                      recordLabel={type.display_name}
                       isDisabled={save.isPending || remove.isPending}
                       onEdit={permissions.canUpdate ? () => {
                         setForm({

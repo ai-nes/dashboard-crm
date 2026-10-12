@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StudentExportAction } from "./student-export-action";
 import StudentList from "./student-list";
 
+vi.mock("@/components/common/auth/auth-provider", () => ({ useAuth: () => ({ user: null, isLoading: false }) }));
+
 describe("Student list export entry", () => {
   it("opens directly without requiring row selection and is hidden without export grant", () => {
     const allowed = renderToStaticMarkup(

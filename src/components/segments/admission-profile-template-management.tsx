@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
+import { Plus } from "@tailgrids/icons";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -10,6 +10,7 @@ import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { AdmissionProfileTemplateEditorDialog } from "@/components/segments/admission-profile-template-editor-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
+import { TableRowActions } from "@/components/common/table-row-actions";
 import {
   ScrollArea,
   ScrollAreaViewport,
@@ -422,42 +423,17 @@ export function AdmissionProfileTemplateManagement({
                               )}
                             </TableCell>
                             <TableCell className="align-top">
-                              <div className="flex justify-end gap-1">
-                                {canOpen && (
-                                  <AdmissionProfileTemplateEditorDialog
-                                    template={template}
-                                    documentTypes={
-                                      query.data?.documentTypes ?? []
-                                    }
-                                  >
-                                    {(open) => (
-                                      <Button
-                                        aria-label={`Sửa ${template.name}`}
-                                        iconOnly
-                                        size="sm"
-                                        appearance="ghost"
-                                        onPress={open}
-                                      >
-                                        <Pencil1 size={16} aria-hidden="true" />
-                                      </Button>
-                                    )}
-                                  </AdmissionProfileTemplateEditorDialog>
+                              <AdmissionProfileTemplateEditorDialog
+                                template={template}
+                                documentTypes={query.data?.documentTypes ?? []}
+                              >
+                                {(open) => (
+                                  <TableRowActions label={template.name} actions={[
+                                    { id: "edit", label: "Chỉnh sửa", ariaLabel: `Sửa ${template.name}`, onAction: open, isVisible: canOpen },
+                                    { id: "delete", label: "Xóa", onAction: () => setTemplateToDelete(template), isVisible: canDelete && template.status === "Draft", variant: "danger" },
+                                  ]} />
                                 )}
-                                {canDelete && template.status === "Draft" && (
-                                  <Button
-                                    aria-label={`Xóa ${template.name}`}
-                                    iconOnly
-                                    size="sm"
-                                    appearance="ghost"
-                                    variant="danger"
-                                    onPress={() =>
-                                      setTemplateToDelete(template)
-                                    }
-                                  >
-                                    <Trash1 size={16} aria-hidden="true" />
-                                  </Button>
-                                )}
-                              </div>
+                              </AdmissionProfileTemplateEditorDialog>
                             </TableCell>
                           </TableRow>
                         );

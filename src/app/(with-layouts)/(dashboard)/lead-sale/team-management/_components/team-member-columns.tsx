@@ -1,10 +1,9 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { Trash1 } from "@tailgrids/icons";
 import { Avatar, AvatarFallback } from "@/components/tailgrids/core/avatar";
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
+import { TableRowActions } from "@/components/common/table-row-actions";
 import EditableMemberField from "./editable-member-field";
 import { teamMemberRoleColor } from "./mappings";
 import type { SmallTeam, TeamMember } from "./types";
@@ -92,17 +91,9 @@ export function createTeamMemberColumns(
       header: "Thao tác",
       size: 10,
       cell: ({ row }) => (
-        <Button
-          type="button"
-          iconOnly
-          appearance="ghost"
-          size="sm"
-          onPress={() => onRemove(row.original.id)}
-          aria-label={`Gỡ ${row.original.name} khỏi ${smallTeam.name}`}
-          className="mx-auto size-9 text-text-tertiary hover:bg-badge-error-background hover:text-badge-error-text"
-        >
-          <Trash1 size={16} aria-hidden="true" />
-        </Button>
+        <TableRowActions label={row.original.name} actions={[
+          { id: "delete", label: "Gỡ khỏi nhóm", ariaLabel: `Gỡ ${row.original.name} khỏi ${smallTeam.name}`, onAction: () => onRemove(row.original.id), variant: "danger" },
+        ]} />
       ),
     });
   }

@@ -323,6 +323,7 @@ export default function StudentsOverviewDashboard() {
                   <span className="min-w-0 truncate">{column.label}</span>
                 </div>
               ))}
+              <span className="sr-only">Thao tác</span>
             </div>
             {isPending && !response ? (
               <StudentListSkeleton />

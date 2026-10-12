@@ -263,6 +263,7 @@ export default function GovernedReferencePanel() {
                   </td>
                   <td className="px-3 py-3">
                     <RowActions
+                      recordLabel={record.name}
                       isDisabled={proposeMutation.isPending}
                       onDelete={() => {
                         setPendingProposal({ record, action: "Retire" });

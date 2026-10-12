@@ -102,6 +102,7 @@ describe("director students API contract", () => {
       name: "Nguyễn Minh An",
       code: "HS-001",
       assignmentStatus: "assigned",
+      ownerId: "user-1",
       lifecycleStatus: "Applicant",
       revision: 5,
       priority: "Cao",

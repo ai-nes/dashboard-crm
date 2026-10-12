@@ -167,6 +167,7 @@ function TaskTableRow({
       <TableCell className="w-12 whitespace-nowrap text-right align-middle">
         <TaskManagementTaskActions
           task={task}
+          onOpenTask={() => onOpenTask(task)}
           onUpdateTask={canUpdateTask?.(task) ? onUpdateTask : undefined}
           onDeleteTask={canDeleteTask?.(task) ? onDeleteTask : undefined}
         />

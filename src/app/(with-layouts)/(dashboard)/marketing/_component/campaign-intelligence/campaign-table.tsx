@@ -3,6 +3,9 @@
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import {
+  TableRowActions,
+} from "@/components/common/table-row-actions";
+import {
   TableBody,
   TableCell,
   TableHead,
@@ -77,6 +80,7 @@ export function CampaignTable({
                   Trạng thái
                 </TableHead>
               )}
+              {onSelect && <TableHead className="px-4 py-3.5 text-right">Thao tác</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -198,6 +202,9 @@ export function CampaignTable({
                       </Badge>
                     </TableCell>
                   )}
+                  {onSelect && <TableCell className="px-4 py-4.5">
+                    <TableRowActions label={campaign.name} actions={[{ id: "view", label: "Xem Lead", onAction: () => onSelect({ campaign }) }]} />
+                  </TableCell>}
                 </TableRow>
               );
             })}

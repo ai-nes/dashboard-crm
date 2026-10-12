@@ -1,22 +1,21 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
-import { Trash1 } from "@tailgrids/icons";
 import { formatDate } from "@/utils/format-date";
 import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import LeadResultCell from "./lead-result-cell";
 import LeadListAssigneeCell from "./lead-list-assignee-cell";
+import LeadRowActions from "./lead-row-actions";
 import {
   leadStageStatusColor,
   leadStageStatusLabel,
   normalizeLeadStageStatus,
 } from "./lead-status";
-import { leadTableGrid } from "./lead-table-grid";
+import { leadTableActionsGrid } from "./lead-table-grid";
 import type { LeadListItem } from "./types";
 
-export const leadListGrid = leadTableGrid;
+export const leadListGrid = leadTableActionsGrid;
 
 export function getLeadDetailHref(leadId: string, leadCode?: string | null) {
   return `/director/leads/${encodeURIComponent(getBusinessRouteKey(leadCode, leadId))}`;
@@ -25,6 +24,7 @@ export function getLeadDetailHref(leadId: string, leadCode?: string | null) {
 interface LeadListProps {
   leads: LeadListItem[];
   canAssign?: boolean;
+  canEditLead?: (lead: LeadListItem) => boolean;
   canDeleteLead?: (lead: LeadListItem) => boolean;
   onDeleteRequest?: (lead: LeadListItem) => void;
   isDeleting?: boolean;
@@ -33,6 +33,7 @@ interface LeadListProps {
 export default function LeadList({
   leads,
   canAssign = false,
+  canEditLead,
   canDeleteLead,
   onDeleteRequest,
   isDeleting = false,
@@ -130,23 +131,22 @@ export default function LeadList({
 
               <div className="flex min-w-0 items-center justify-between gap-2 lg:block">
                 <p className="text-xs text-text-tertiary lg:hidden">Ngày tạo</p>
-                <div className="flex min-w-0 items-center gap-2">
-                  <p className="truncate text-sm text-text-secondary tabular-nums">
-                    {formatDate(lead.createdAt ?? "")}
-                  </p>
-                  {onDeleteRequest && canDeleteLead?.(lead) && (
-                    <Button
-                      size="xs"
-                      variant="danger"
-                      appearance="ghost"
-                      aria-label={`Xóa Lead ${lead.leadCode || lead.name}`}
-                      isDisabled={isDeleting}
-                      onPress={() => onDeleteRequest(lead)}
-                    >
-                      <Trash1 size={16} aria-hidden="true" />
-                    </Button>
-                  )}
-                </div>
+                <p className="truncate text-sm text-text-secondary tabular-nums">
+                  {formatDate(lead.createdAt ?? "")}
+                </p>
+              </div>
+              <div className="flex items-center justify-end">
+                <LeadRowActions
+                  label={lead.leadCode || lead.name}
+                  detailHref={getLeadDetailHref(lead.id, lead.leadCode)}
+                  canEdit={canEditLead?.(lead) ?? false}
+                  onDelete={
+                    onDeleteRequest && canDeleteLead?.(lead)
+                      ? () => onDeleteRequest(lead)
+                      : undefined
+                  }
+                  isDeleting={isDeleting}
+                />
               </div>
             </div>
           </li>

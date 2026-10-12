@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/components/tailgrids/core/dropdown", async () => import("@/test-utils/open-dropdown"));
+
 import ActionTypesTable from "./action-types-table";
 
 const state = vi.hoisted(() => ({ enabled: undefined as boolean | undefined }));

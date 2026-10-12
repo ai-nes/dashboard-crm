@@ -2,18 +2,21 @@
 
 import { keepPreviousData, useQueries } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
   getCrmDoctypePermissions,
   getCrmPermissions,
+  canPerformStudentAction,
 } from "@/components/common/auth/permissions";
 import {
   useLeadSaleCampaignChannelTypesQuery,
   useLeadSaleCampaignQuery,
 } from "@/hooks/use-lead-sale-campaign-queries";
-import { useLeadSaleLeadsQuery } from "@/hooks/use-lead-sale-leads-queries";
+import { useDeleteLeadMutation, useLeadSaleLeadsQuery } from "@/hooks/use-lead-sale-leads-queries";
 import {
   useAssignedStudentsQuery,
   useDirectorStudentsQuery,
@@ -34,6 +37,7 @@ import {
   filterCampaignLeads,
   toCampaignLeadRow,
   type CampaignLeadStatusFilter,
+  type CampaignLeadRow,
 } from "./campaign-detail-leads";
 import CampaignDetailLeadToolbar from "./campaign-detail-lead-toolbar";
 import CampaignDetailRecordTabs, {
@@ -59,6 +63,10 @@ export default function CampaignDetailDashboard({
 }) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const studentPermissions = getCrmPermissions(user);
+  const deleteLead = useDeleteLeadMutation();
+  const [leadToDelete, setLeadToDelete] = useState<CampaignLeadRow | null>(null);
+  const canDeleteLead = (lead: CampaignLeadRow) => !isAuthLoading && canPerformStudentAction(studentPermissions.lead, "delete", { ownerId: lead.ownerId }, user);
+  const canEditLead = (lead: CampaignLeadRow) => !isAuthLoading && canPerformStudentAction(studentPermissions.lead, "update", { ownerId: lead.ownerId }, user);
   const canReadCampaign = getCrmDoctypePermissions(
     user,
     "CRM Campaign",
@@ -384,9 +392,14 @@ export default function CampaignDetailDashboard({
                 <span className="min-w-0 truncate">Kết quả</span>
                 <span className="min-w-0 truncate">Người phụ trách</span>
                 <span className="min-w-0 truncate">Ngày tạo</span>
+                <span className="sr-only">Thao tác</span>
               </div>
               <CampaignDetailLeadList
                 leads={visibleLeads}
+                canEditLead={canEditLead}
+                canDeleteLead={canDeleteLead}
+                onDeleteRequest={setLeadToDelete}
+                isDeleting={deleteLead.isPending || leadsQuery.isPlaceholderData}
                 isFiltered={Boolean(leadQuery.trim()) || leadStatus !== "all"}
               />
               {totalLeads > 0 && (
@@ -446,6 +459,7 @@ export default function CampaignDetailDashboard({
                 <span className="min-w-0 truncate">Trạng thái</span>
                 <span className="min-w-0 truncate">Điểm tiềm năng</span>
                 <span className="min-w-0 truncate">Người phụ trách</span>
+                <span className="sr-only">Thao tác</span>
               </div>
               <StudentList
                 students={students}
@@ -486,6 +500,20 @@ export default function CampaignDetailDashboard({
           )}
         </Card>
       )}
+      {leadToDelete && canDeleteLead(leadToDelete) && <DeleteRecordDialog
+        isOpen
+        isDeleting={deleteLead.isPending}
+        recordType="Lead"
+        recordName={leadToDelete.name}
+        onOpenChange={(open) => { if (!open) setLeadToDelete(null); }}
+        onConfirm={() => {
+          if (deleteLead.isPending || !canDeleteLead(leadToDelete)) return;
+          deleteLead.mutate(leadToDelete.id, {
+            onSuccess: () => { setLeadToDelete(null); toast.success("Đã xóa Lead."); },
+            onError: (error) => toast.error(error.message || "Chưa thể xóa Lead."),
+          });
+        }}
+      />}
     </main>
   );
 }

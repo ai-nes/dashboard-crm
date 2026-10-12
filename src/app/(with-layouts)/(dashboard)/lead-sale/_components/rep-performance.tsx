@@ -1,6 +1,8 @@
 "use client";
 
-import { ArrowRight } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -106,17 +108,9 @@ export default function RepPerformance({ reps, onOpenDetail }: RepPerformancePro
                   <td className={`px-2 py-3 text-right font-semibold ${rep.overdue > 0 ? "text-badge-error-text" : "text-text-primary"}`}>{rep.overdue}</td>
                   <td className="px-2 py-3 text-right" title={`${rep.actionItemCount} việc cần xử lý`}><span className={isRisk ? "font-semibold text-warning-500" : "text-text-secondary"}>{rep.avgStageAgeDays} ngày · {rep.actionItemCount} việc</span></td>
                   <td className="px-2 py-3 text-center">
-                    <Button
-                      type="button"
-                      size="xs"
-                      variant="ghost"
-                      appearance="ghost"
-                      onPress={() => onOpenDetail(rep.detailId)}
-                      aria-label={`Xem chi tiết ${rep.name}`}
-                      className="mx-auto size-8 p-0 text-text-tertiary hover:text-text-primary"
-                    >
-                      <ArrowRight size={15} aria-hidden="true" />
-                    </Button>
+                    <TableRowActions label={rep.name} actions={[
+  { id: "view", label: "Xem chi tiết", onAction: () => onOpenDetail(rep.detailId) },
+]} />
                   </td>
                 </tr>
               );
