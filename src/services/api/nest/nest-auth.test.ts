@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { nestGetCurrentUser, rolesForProfile } from "./nest-auth";
+import {
+  nestGetCurrentUser,
+  nestRequestPasswordReset,
+  nestResetPassword,
+  rolesForProfile,
+} from "./nest-auth";
 import {
   canAccessDashboardPath,
   getDefaultRouteForRoles,
@@ -26,6 +31,35 @@ describe("Nest Director workspace roles", () => {
     const roles = rolesForProfile(null, "admin");
     expect(getDefaultRouteForRoles(roles)).toBe("/admin");
     expect(canAccessDashboardPath("/director/students", roles)).toBe(false);
+  });
+});
+
+describe("password reset requests", () => {
+  it("requests a reset link with the application callback URL", async () => {
+    await nestRequestPasswordReset(
+      "user@example.test",
+      "http://localhost:3000/reset-password",
+    );
+
+    expect(nestRequest).toHaveBeenCalledWith(
+      "/api/auth/request-password-reset",
+      {
+        method: "POST",
+        body: {
+          email: "user@example.test",
+          redirectTo: "http://localhost:3000/reset-password",
+        },
+      },
+    );
+  });
+
+  it("submits the one-time token and new password to Better Auth", async () => {
+    await nestResetPassword("one-time-token", "new-secure-password");
+
+    expect(nestRequest).toHaveBeenCalledWith("/api/auth/reset-password", {
+      method: "POST",
+      body: { token: "one-time-token", newPassword: "new-secure-password" },
+    });
   });
 });
 describe("Nest effective Lead permissions", () => {

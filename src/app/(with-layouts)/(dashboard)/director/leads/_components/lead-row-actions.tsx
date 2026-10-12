@@ -1,6 +1,7 @@
 "use client";
 
 import { TableRowActions } from "@/components/common/table-row-actions";
+import { leadEditHref } from "./lead-source-navigation";
 
 interface LeadRowActionsProps {
   label: string;
@@ -25,7 +26,7 @@ export default function LeadRowActions({
         {
           id: "edit",
           label: "Chỉnh sửa",
-          href: `${detailHref}?edit=contact`,
+          href: leadEditHref(detailHref),
           isVisible: canEdit,
         },
         {

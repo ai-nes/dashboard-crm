@@ -361,32 +361,40 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
         };
       })
     : [];
-  const priorityQueue = Array.isArray(source.priorityQueue)
-    ? source.priorityQueue.map((item) => {
-        const row = asRecord(item) ?? {};
-        const stageId = DASHBOARD_STAGE_IDS.includes(
-          row.stageId as (typeof DASHBOARD_STAGE_IDS)[number],
-        )
-          ? (row.stageId as (typeof DASHBOARD_STAGE_IDS)[number])
-          : "new";
-        const issueCode = DASHBOARD_ISSUE_IDS.includes(
-          row.issueCode as (typeof DASHBOARD_ISSUE_IDS)[number],
-        )
-          ? (row.issueCode as (typeof DASHBOARD_ISSUE_IDS)[number])
-          : "aging";
-        return {
-          id: text(row.id),
-          name: text(row.name, "Hồ sơ chưa đặt tên"),
-          owner: text(row.owner, "Chưa phân công"),
-          stageId,
-          stageLabel: text(row.stageLabel, stageId),
-          issueCode,
-          ageDays: count(row.ageDays ?? row.age_days),
-          nextAction: text(row.nextAction ?? row.next_action),
-          lastActivityAt: text(row.lastActivityAt ?? row.last_activity_at),
-        };
-      })
-    : [];
+  const normalizeRecords = (value: unknown) =>
+    Array.isArray(value)
+      ? value.map((item) => {
+          const row = asRecord(item) ?? {};
+          const stageId = DASHBOARD_STAGE_IDS.includes(
+            row.stageId as (typeof DASHBOARD_STAGE_IDS)[number],
+          )
+            ? (row.stageId as (typeof DASHBOARD_STAGE_IDS)[number])
+            : "new";
+          const issueCode = DASHBOARD_ISSUE_IDS.includes(
+            row.issueCode as (typeof DASHBOARD_ISSUE_IDS)[number],
+          )
+            ? (row.issueCode as (typeof DASHBOARD_ISSUE_IDS)[number])
+            : "aging";
+          return {
+            id: text(row.id),
+            name: text(row.name, "Hồ sơ chưa đặt tên"),
+            owner: text(row.owner, "Chưa phân công"),
+            stageId,
+            stageLabel: text(row.stageLabel, stageId),
+            issueCode,
+            ageDays: count(row.ageDays ?? row.age_days),
+            nextAction: text(row.nextAction ?? row.next_action),
+            lastActivityAt: text(row.lastActivityAt ?? row.last_activity_at),
+          };
+        })
+      : [];
+  const priorityQueue = normalizeRecords(source.priorityQueue);
+  const detailRecords = Object.fromEntries(
+    Object.entries(asRecord(source.detailRecords) ?? {}).map(([id, rows]) => [
+      id,
+      normalizeRecords(rows),
+    ]),
+  );
   const actions = Array.isArray(source.actions)
     ? source.actions.map((item) => {
         const row = asRecord(item) ?? {};
@@ -436,6 +444,7 @@ function normalizeDashboard(value: unknown): LeadSaleDashboardPayload {
     },
     actions,
     priorityQueue,
+    detailRecords,
     stages,
     reps,
     trend,

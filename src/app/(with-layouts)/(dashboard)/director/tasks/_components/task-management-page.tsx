@@ -6,6 +6,11 @@ import { Plus } from "@tailgrids/icons";
 import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
+import {
+  crmCurrentDateKey,
+  crmTaskDateKey,
+  crmTaskDateTimeToTimestamp,
+} from "@/utils/crm-task-date-time";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { getCrmPermissions } from "@/components/common/auth/permissions";
 import {
@@ -43,29 +48,11 @@ interface TaskManagementPageProps {
   useCrmApi?: boolean;
 }
 
-function startOfDay(date: Date): number {
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  ).getTime();
-}
-
-function toDateInputValue(value: string): string {
-  const ddmmyyyy = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (ddmmyyyy) {
-    const [, day, month, year] = ddmmyyyy;
-    return `${year}-${month}-${day}`;
-  }
-
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
-}
-
 function dueTimestamp(task: TaskManagementItem): number {
-  const date = toDateInputValue(task.dueDate);
-  return date
-    ? new Date(`${date}T${task.dueTime || "23:59"}`).getTime()
-    : Number.POSITIVE_INFINITY;
+  return (
+    crmTaskDateTimeToTimestamp(task.dueDate, task.dueTime || "23:59") ??
+    Number.POSITIVE_INFINITY
+  );
 }
 
 function isOverdue(task: TaskManagementItem, now = Date.now()): boolean {
@@ -77,17 +64,17 @@ function isOverdue(task: TaskManagementItem, now = Date.now()): boolean {
 }
 
 function isDueToday(task: TaskManagementItem, now = new Date()): boolean {
-  const date = toDateInputValue(task.dueDate);
-  if (!date) return false;
-  const due = new Date(`${date}T00:00:00`);
-  return startOfDay(due) === startOfDay(now);
+  const date = crmTaskDateKey(task.dueDate);
+  return Boolean(date && date === crmCurrentDateKey(now));
 }
 
 function isUpcoming(task: TaskManagementItem, now = new Date()): boolean {
-  const date = toDateInputValue(task.dueDate);
-  if (!date) return false;
-  const due = new Date(`${date}T00:00:00`);
-  return !isOverdue(task, now.getTime()) && startOfDay(due) > startOfDay(now);
+  const date = crmTaskDateKey(task.dueDate);
+  return Boolean(
+    date &&
+      !isOverdue(task, now.getTime()) &&
+      date > crmCurrentDateKey(now),
+  );
 }
 
 type ManagedTaskStatus = TaskManagementItem["status"];

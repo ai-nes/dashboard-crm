@@ -6,6 +6,7 @@ import {
 } from "@/components/common/auth/auth-provider";
 import { getDefaultRouteForRoles } from "@/components/common/auth/rbac";
 import { loginWithPassword } from "@/services/api/auth";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -127,6 +128,15 @@ export function LoginForm() {
             {showPwd ? "Ẩn" : "Hiện"}
           </button>
         </div>
+      </div>
+
+      <div className="mb-4 flex justify-end">
+        <Link
+          href="/forgot-password"
+          className="text-[13px] font-medium text-[#374151] underline-offset-2 hover:underline"
+        >
+          Quên mật khẩu?
+        </Link>
       </div>
 
       <button

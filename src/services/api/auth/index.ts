@@ -2,6 +2,8 @@ import {
   nestGetCurrentUser,
   nestLoginWithPassword,
   nestLogout,
+  nestRequestPasswordReset,
+  nestResetPassword,
   nestSessionUsers,
 } from "../nest/nest-auth";
 import type { CurrentUser, SessionUser } from "./types";
@@ -49,6 +51,22 @@ export async function loginWithPassword(
   password: string,
 ): Promise<PasswordLoginResult> {
   return nestLoginWithPassword(email, password);
+}
+
+/** Request a Better Auth reset email; the server keeps account existence private. */
+export async function requestPasswordReset(
+  email: string,
+  redirectTo: string,
+): Promise<void> {
+  await nestRequestPasswordReset(email, redirectTo);
+}
+
+/** Consume the one-time Better Auth token and set a new password. */
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<void> {
+  await nestResetPassword(token, newPassword);
 }
 
 /** End the session. Errors are swallowed; the client routes to /login regardless. */

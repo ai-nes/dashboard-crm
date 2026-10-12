@@ -2,6 +2,7 @@ import { ArrowRight, FileText } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import type { StudentAuditLog } from "@/services/api/student-audit";
 import { formatDateTime } from "@/utils/format-date";
+import { crmTaskDateTimeParts } from "@/utils/crm-task-date-time";
 
 import { parseStudentActivityDate } from "./student-activity-utils";
 import {
@@ -384,7 +385,8 @@ export function formatStudentAuditMetadataValue(
     if (label) return label;
 
     if (normalizedKey === "due_at") {
-      return formatDateTime(value, value);
+      const due = crmTaskDateTimeParts(value);
+      return [due.date, due.time].filter(Boolean).join(" · ") || value;
     }
 
     if (normalizedKey === "duration_seconds") {

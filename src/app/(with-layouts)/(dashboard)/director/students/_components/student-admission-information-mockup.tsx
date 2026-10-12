@@ -36,6 +36,7 @@ import type {
 import { refreshStudentAdmissionQueries } from "@/hooks/refresh-student-admission-queries";
 
 import StudentCardHeader from "./student-card-header";
+import { getStudentParentEmail } from "./student-parent-email";
 import { getSelectedAdmissionMethodCode } from "./student-admission-method";
 import StudentProfileCardActions from "./student-profile-card-actions";
 
@@ -443,7 +444,7 @@ export default function StudentAdmissionInformationMockup({
         <EditableDetailField
           isEditing={isEditing}
           label="Email phụ huynh"
-          value={data.student.email || ""}
+            value={getStudentParentEmail(data)}
         />
       </dl>
     </>

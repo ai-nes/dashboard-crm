@@ -86,13 +86,15 @@ function getTaskCachePatch(
       : {}),
     ...(updates.priority !== undefined ? { priority: updates.priority } : {}),
     ...(updates.startDate !== undefined
-      ? { startDate: updates.startDate }
+      ? { startDate: updates.startDate ?? undefined }
       : {}),
     ...(updates.assignedTo !== undefined
-      ? { assignedTo: updates.assignedTo }
+      ? { assignedTo: updates.assignedTo ?? undefined }
       : {}),
     ...(updates.status !== undefined ? { status: updates.status } : {}),
-    ...(updates.dueDate !== undefined ? { dueDate: updates.dueDate } : {}),
+    ...(updates.dueDate !== undefined
+      ? { dueDate: updates.dueDate ?? undefined }
+      : {}),
     ...(updates.linkedInteraction !== undefined
       ? { linkedInteraction: updates.linkedInteraction }
       : {}),

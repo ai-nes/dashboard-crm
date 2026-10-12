@@ -29,4 +29,25 @@ describe("segment student mapping", () => {
       name: "—",
     });
   });
+
+  it("uses the resolved owner name instead of the student owner id", () => {
+    expect(
+      toSegmentStudent({
+        name: "student-id",
+        student_code: "STU-2026-0042",
+        assigned_to: "user-id",
+        assigned_to_name: "Nguyễn An",
+      }),
+    ).toMatchObject({ owner: "Nguyễn An" });
+  });
+
+  it("shows a clear fallback when a student owner cannot be resolved", () => {
+    expect(
+      toSegmentStudent({
+        name: "student-id",
+        student_code: "STU-2026-0042",
+        assigned_to: "user-id",
+      }),
+    ).toMatchObject({ owner: "Không xác định" });
+  });
 });

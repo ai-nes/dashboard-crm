@@ -7,6 +7,7 @@ import { CalendarTime } from "@tailgrids/icons";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 import type { StudentTaskItem } from "@/services/api/students/types";
 import { cn } from "@/utils/cn";
+import { crmTaskDateTimeToTimestamp } from "@/utils/crm-task-date-time";
 import { formatDate } from "@/utils/format-date";
 
 import {
@@ -30,12 +31,11 @@ interface TaskManagementKanbanCardProps {
 function isOverdue(task: TaskManagementItem): boolean {
   if (task.status === "done" || task.status === "canceled") return false;
 
-  const ddmmyyyy = task.dueDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  const date = ddmmyyyy
-    ? `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`
-    : task.dueDate;
-
-  return new Date(`${date}T${task.dueTime || "23:59"}`).getTime() < Date.now();
+  const dueAt = crmTaskDateTimeToTimestamp(
+    task.dueDate,
+    task.dueTime || "23:59",
+  );
+  return dueAt !== null && dueAt < Date.now();
 }
 
 function getAssigneeInitials(name?: string): string {

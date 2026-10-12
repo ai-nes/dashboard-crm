@@ -92,4 +92,36 @@ describe("toNestLeadBody", () => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
+
+  it("uses the created Lead response and preserves duplicate identity metadata", async () => {
+    vi.resetModules();
+    const response = {
+      data: {
+        id: "lead-existing",
+        leadCode: "LD-2026-HCM-000001",
+        studentName: "Minh Khang",
+        phone: "0900000000",
+      },
+      meta: { created: false },
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(response), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://api.test");
+    vi.stubGlobal("fetch", fetchMock);
+    const { nestCreateLead } = await import("./leads-nest");
+
+    await expect(
+      nestCreateLead({ student_name: "Hoang Dat", phone: "0900000000" }),
+    ).resolves.toMatchObject({
+      lead: { id: "lead-existing" },
+      meta: { created: false },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
 });

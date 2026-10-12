@@ -1,5 +1,6 @@
 import type { StudentAuditLog } from "@/services/api/student-audit";
 import { formatDate, formatDateTime } from "@/utils/format-date";
+import { crmTaskDateTimeParts } from "@/utils/crm-task-date-time";
 import { studentStatusLabel } from "./student-status";
 import {
   formatStudentAuditFieldLabel,
@@ -150,6 +151,11 @@ export function formatStudentAuditChangeValue(
       ].includes(field)
     )
       return valueLabels[value] ?? valueLabels[value.toLowerCase()] ?? value;
+    if (field === "dueDate") return crmTaskDateTimeParts(value).date;
+    if (field === "dueAt" || field === "due_at") {
+      const due = crmTaskDateTimeParts(value);
+      return [due.date, due.time].filter(Boolean).join(" · ");
+    }
     if (/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(value))
       return /Date$|date_of_birth|dateOfBirth/.test(field)
         ? formatDate(value)

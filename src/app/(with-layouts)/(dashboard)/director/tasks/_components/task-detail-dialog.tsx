@@ -10,7 +10,7 @@ import type {
 } from "@/services/api/students/types";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 import { getBusinessRouteKey } from "@/utils/business-record-route";
-import { formatDate } from "@/utils/format-date";
+import { crmTaskDateForInput } from "@/utils/crm-task-date-time";
 
 import TaskCreateDialogShell from "./task-create-dialog-shell";
 import TaskDialogHeader from "./task-dialog-header";
@@ -138,7 +138,7 @@ function TaskDetailDialogContent({
               priority={task.priority}
               onPriorityChange={onUpdateTask ? handlePriorityChange : undefined}
               actionCode={task.actionCode || "CREATE_TASK"}
-              dueDate={formatDate(task.dueDate)}
+              dueDate={crmTaskDateForInput(task.dueDate)}
               onDueDateChange={onUpdateTask ? handleDueDateChange : undefined}
               dueTime={task.dueTime || "09:00"}
               onDueTimeChange={onUpdateTask ? handleDueTimeChange : undefined}

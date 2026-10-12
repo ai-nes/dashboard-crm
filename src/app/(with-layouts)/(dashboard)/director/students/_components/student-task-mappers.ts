@@ -10,6 +10,10 @@ import type {
   StudentTaskItem,
 } from "@/services/api/students/types";
 import type { SessionUser } from "@/services/api/auth";
+import {
+  crmDateTimeToApi,
+  crmTaskDateTimeParts,
+} from "@/utils/crm-task-date-time";
 
 const priorityToApi: Record<StudentPriority, CRMTaskPriority> = {
   Cao: "High",
@@ -50,53 +54,12 @@ export function crmTaskStatusToStudentStatus(
   return statusFromApi[status];
 }
 
-function normalizeDateParts(value?: string): {
-  date: string;
-  time?: string;
-} {
-  if (!value) return { date: "" };
-
-  const normalized = value.trim().replace("T", " ");
-  const [datePart, timePart] = normalized.split(/\s+/, 2);
-  const isoMatch = datePart?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) {
-    return {
-      date: `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`,
-      time: timePart?.slice(0, 5) || undefined,
-    };
-  }
-
-  const vietnameseMatch = datePart?.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (vietnameseMatch) {
-    return {
-      date: `${vietnameseMatch[1].padStart(2, "0")}/${vietnameseMatch[2].padStart(2, "0")}/${vietnameseMatch[3]}`,
-      time: timePart?.slice(0, 5) || undefined,
-    };
-  }
-
-  return { date: value, time: undefined };
-}
-
-function toIsoDate(value: string): string {
-  const trimmed = value.trim();
-  const vietnameseMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (vietnameseMatch) {
-    return `${vietnameseMatch[3]}-${vietnameseMatch[2]}-${vietnameseMatch[1]}`;
-  }
-  return trimmed;
-}
-
-function toApiDateTime(date: string, time?: string): string | undefined {
-  if (!date) return undefined;
-  return `${toIsoDate(date)} ${time || "23:59"}:00`;
-}
-
 export function crmTaskToStudentTask(
   task: CRMTask,
   fallbackAssignee: string,
   assignees: SessionUser[] = [],
 ): StudentTaskItem {
-  const due = normalizeDateParts(task.dueDate);
+  const due = crmTaskDateTimeParts(task.dueDate);
   const assignedUser = assignees.find(
     (user) => user.name === task.assignedTo || user.email === task.assignedTo,
   );
@@ -131,7 +94,7 @@ export function studentTaskToCreatePayload(
     actionCode: task.actionCode,
     priority: priorityToApi[task.priority],
     status: studentTaskStatusToCrmStatus(task.status),
-    dueDate: toApiDateTime(task.dueDate, task.dueTime),
+    dueDate: crmDateTimeToApi(task.dueDate, task.dueTime),
     ...(assignedTo ? { assignedTo } : {}),
   };
 }
@@ -154,7 +117,7 @@ export function studentTaskToUpdatePayload(
 
   if (updates.dueDate !== undefined || updates.dueTime !== undefined) {
     const nextTask = { ...currentTask, ...updates };
-    payload.dueDate = toApiDateTime(nextTask.dueDate, nextTask.dueTime);
+    payload.dueDate = crmDateTimeToApi(nextTask.dueDate, nextTask.dueTime);
   }
 
   return payload;

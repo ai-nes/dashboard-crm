@@ -262,7 +262,7 @@ describe("Message templates API service", () => {
     );
     expect(Object.fromEntries(urlOf(0).searchParams)).toEqual({
       search: "Minh Anh",
-      limit: "100",
+      limit: "50",
     });
     expect(urlOf(1).pathname).toBe("/api/v1/message-templates/preview");
     expect(initOf(1)).toMatchObject({ method: "POST" });

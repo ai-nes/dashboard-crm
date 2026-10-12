@@ -152,6 +152,8 @@ export default function QuickCreateLeadDialog({
     if (!form.student_name.trim())
       errors.student_name = "Vui lòng nhập họ tên.";
     if (!form.phone.trim()) errors.phone = "Vui lòng nhập số điện thoại.";
+    if (!form.province.trim())
+      errors.province = "Vui lòng chọn tỉnh / thành phố.";
     if (!form.campaign.trim()) errors.campaign = "Vui lòng chọn Campaign.";
     if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) {
       errors.email = "Email không đúng định dạng.";
@@ -169,9 +171,7 @@ export default function QuickCreateLeadDialog({
       await onCreate(toLeadCreateFields(form));
       reset();
     } catch (error) {
-      setSubmitError(
-        formatDialogError(error, "Chưa thể tạo Lead."),
-      );
+      setSubmitError(formatDialogError(error, "Chưa thể tạo Lead."));
     }
   };
 
@@ -250,7 +250,7 @@ export default function QuickCreateLeadDialog({
                 <FormFieldError message={fieldErrors.campaign} />
               </CreateDialogField>
 
-              <CreateDialogField label="Tỉnh / thành phố">
+              <CreateDialogField label="Tỉnh / thành phố" required>
                 <CreateDialogSelect
                   label="Tỉnh / thành phố"
                   options={provinceOptions}
@@ -261,6 +261,7 @@ export default function QuickCreateLeadDialog({
                   isDisabled={provinceOptionsQuery.isPending}
                   onChange={handleProvinceChange}
                 />
+                <FormFieldError message={fieldErrors.province} />
               </CreateDialogField>
 
               <CreateDialogField label="Xã / phường">
@@ -342,7 +343,10 @@ export default function QuickCreateLeadDialog({
               </p>
             )}
             {submitError && (
-              <p className="text-xs text-badge-error-text whitespace-pre-line break-words" role="alert">
+              <p
+                className="text-xs text-badge-error-text whitespace-pre-line break-words"
+                role="alert"
+              >
                 {submitError}
               </p>
             )}

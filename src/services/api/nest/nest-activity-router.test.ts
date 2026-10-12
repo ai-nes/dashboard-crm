@@ -113,11 +113,22 @@ describe("notes and tasks with the Nest backend", () => {
       assignedTo: "a@example.test",
     });
 
-    await updateTask({ name: "t1", status: "Done" });
+    await updateTask({
+      name: "t1",
+      status: "Done",
+      startDate: null,
+      dueDate: null,
+      assignedTo: null,
+    });
     const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(url).toBe("http://api.test/api/v1/tasks/t1");
     expect(init.method).toBe("PATCH");
-    expect(JSON.parse(init.body as string)).toEqual({ status: "Done" });
+    expect(JSON.parse(init.body as string)).toEqual({
+      status: "Done",
+      startDate: null,
+      dueDate: null,
+      assignedTo: null,
+    });
 
     fetchMock.mockImplementationOnce(() =>
       json({ error: { code: "FORBIDDEN", message: "Không có quyền." } }, 403),

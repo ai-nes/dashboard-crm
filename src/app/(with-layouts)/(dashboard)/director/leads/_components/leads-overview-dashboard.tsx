@@ -192,7 +192,12 @@ export default function LeadsOverviewDashboard({
 
   const handleCreateLead = async (fields: LeadCreateFields) => {
     if (!canCreateLead) return;
-    await createMutation.mutateAsync(fields);
+    const created = await createMutation.mutateAsync(fields);
+    if (created.meta.created === false) {
+      throw new Error(
+        "Số điện thoại hoặc email đã được gắn với một Lead hiện có. Hệ thống không tạo Lead trùng; vui lòng kiểm tra hồ sơ hiện tại.",
+      );
+    }
     setCreateDialogOpen(false);
     setPage(1);
     toast.success("Đã tạo Lead.");

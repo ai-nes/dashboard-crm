@@ -128,6 +128,26 @@ export async function nestLogout(): Promise<void> {
   }
 }
 
+export async function nestRequestPasswordReset(
+  email: string,
+  redirectTo: string,
+): Promise<void> {
+  await nestRequest("/api/auth/request-password-reset", {
+    method: "POST",
+    body: { email, redirectTo },
+  });
+}
+
+export async function nestResetPassword(
+  token: string,
+  newPassword: string,
+): Promise<void> {
+  await nestRequest("/api/auth/reset-password", {
+    method: "POST",
+    body: { token, newPassword },
+  });
+}
+
 /** CRM accounts that can be picked as an assignee. */
 export async function nestSessionUsers(): Promise<SessionUser[]> {
   const result = await nestRequest<{

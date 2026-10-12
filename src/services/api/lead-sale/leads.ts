@@ -180,7 +180,7 @@ export interface LeadListResponse {
 export interface LeadDetailResponse {
   lead: LeadDetail;
   log: LeadLogEntry[];
-  meta: { asOf?: string | null };
+  meta: { asOf?: string | null; created?: boolean };
 }
 
 export interface LeadProcessRequest {
@@ -1007,7 +1007,10 @@ export function normalizeLeadDetail(value: unknown): LeadDetailResponse {
     return {
       lead: normalizeDetail(legacyLead),
       log: payload.log.map(normalizeLogEntry),
-      meta: { asOf: nullableText(meta.asOf ?? meta.as_of) },
+      meta: {
+        asOf: nullableText(meta.asOf ?? meta.as_of),
+        ...(typeof meta.created === "boolean" ? { created: meta.created } : {}),
+      },
     };
   }
 
@@ -1025,6 +1028,7 @@ export function normalizeLeadDetail(value: unknown): LeadDetailResponse {
         nullableText(
           payload.modifiedAt ?? payload.modified_at ?? payload.modified,
         ),
+      ...(typeof meta.created === "boolean" ? { created: meta.created } : {}),
     },
   };
 }

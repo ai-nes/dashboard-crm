@@ -27,6 +27,12 @@ import { useLeadMappingOptions } from "@/hooks/use-lead-mapping-options";
 import { useStudentSchoolFieldOptions } from "@/hooks/use-student-school-field-options";
 import type { StudentCreateWithLeadFields } from "@/services/api/student-school-update";
 import {
+  studentCreateDefaultOwner,
+  studentCreateOwnerOptions,
+  studentCreateOwnerValue,
+  type StudentOwnerReadScope,
+} from "./student-create-owner-options";
+import {
   Dialog as AriaDialog,
   Modal as AriaModal,
 } from "react-aria-components";
@@ -34,6 +40,9 @@ import {
 interface StudentCreateDialogProps {
   isOpen: boolean;
   isSubmitting?: boolean;
+  currentUserId?: string;
+  ownerReadScope?: StudentOwnerReadScope;
+  ownerAssignmentScope?: StudentOwnerReadScope;
   onOpenChange: (open: boolean) => void;
   onCreate: (fields: StudentCreateWithLeadFields) => Promise<void>;
 }
@@ -76,6 +85,9 @@ const initialForm: StudentCreateForm = {
 export default function StudentCreateDialog({
   isOpen,
   isSubmitting = false,
+  currentUserId,
+  ownerReadScope,
+  ownerAssignmentScope,
   onOpenChange,
   onCreate,
 }: StudentCreateDialogProps) {
@@ -115,11 +127,27 @@ export default function StudentCreateDialog({
   const campaignOptions = toSelectOptions(campaignOptionsQuery.data?.options);
   const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
   const branchOptions = toSelectOptions(branchOptionsQuery.data?.options);
-  const assignedToOptions =
+  const availableAssignedToOptions =
     leadMappingOptionsQuery.data?.staff
       .filter((option) => option.user)
       .map((option) => ({ id: option.user as string, label: option.label })) ??
     [];
+  const assignedToOptions = studentCreateOwnerOptions(
+    availableAssignedToOptions,
+    currentUserId,
+    ownerReadScope,
+    ownerAssignmentScope,
+  );
+  const defaultAssignedTo = studentCreateDefaultOwner(
+    currentUserId,
+    ownerReadScope,
+    ownerAssignmentScope,
+  );
+  const assignedTo = studentCreateOwnerValue(
+    form.assigned_to,
+    isOpen,
+    defaultAssignedTo,
+  );
 
   const setField = <TField extends StudentCreateField>(
     field: TField,
@@ -181,7 +209,7 @@ export default function StudentCreateDialog({
     if (!form.campaign.trim()) {
       errors.campaign = "Vui lòng chọn Campaign.";
     }
-    if (!form.assigned_to.trim()) {
+    if (!assignedTo.trim()) {
       errors.assigned_to = "Vui lòng chọn người phụ trách.";
     }
     if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) {
@@ -197,12 +225,12 @@ export default function StudentCreateDialog({
     setFieldErrors({});
     setSubmitError(null);
     try {
-      await onCreate(toStudentCreateFields(form));
+      await onCreate(
+        toStudentCreateFields({ ...form, assigned_to: assignedTo }),
+      );
       reset();
     } catch (error) {
-      setSubmitError(
-        formatDialogError(error, "Chưa thể tạo học sinh."),
-      );
+      setSubmitError(formatDialogError(error, "Chưa thể tạo học sinh."));
     }
   };
 
@@ -298,7 +326,7 @@ export default function StudentCreateDialog({
                     options={assignedToOptions}
                     searchable
                     searchPlaceholder="Tìm người phụ trách..."
-                    value={form.assigned_to}
+                    value={assignedTo}
                     isDisabled={leadMappingOptionsQuery.isPending}
                     onChange={(value) => setField("assigned_to", value)}
                   />
@@ -404,7 +432,10 @@ export default function StudentCreateDialog({
                 </p>
               )}
               {submitError && (
-                <p className="text-xs text-badge-error-text whitespace-pre-line break-words" role="alert">
+                <p
+                  className="text-xs text-badge-error-text whitespace-pre-line break-words"
+                  role="alert"
+                >
                   {submitError}
                 </p>
               )}

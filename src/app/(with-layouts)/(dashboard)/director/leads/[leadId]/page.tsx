@@ -12,14 +12,15 @@ export default async function LeadDetailPage({
   searchParams,
 }: {
   params: Promise<{ leadId: string }>;
-  searchParams: Promise<{ edit?: string }>;
+  searchParams: Promise<{ edit?: string; returnTo?: string }>;
 }) {
   const { leadId } = await params;
-  const { edit } = await searchParams;
+  const { edit, returnTo } = await searchParams;
   return (
     <LeadDetailDashboard
       leadId={leadId}
       initialEditContact={edit === "contact"}
+      returnTo={returnTo}
     />
   );
 }

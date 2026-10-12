@@ -19,8 +19,8 @@ import { cn } from "@/utils/cn";
 import {
   SEGMENT_STATUS_BADGE_COLORS,
   SEGMENT_STATUS_LABELS,
-  SEGMENT_STATUS_OPTIONS,
   SEGMENT_STATUS_SELECT_STYLES,
+  getSegmentStatusOptions,
   type SegmentStatus,
 } from "./segment-list-types";
 
@@ -41,7 +41,8 @@ export function SegmentStatusSelect({
   labels,
   compact = false,
 }: SegmentStatusSelectProps) {
-  const getLabel = (status: SegmentStatus) => labels?.[status] ?? SEGMENT_STATUS_LABELS[status];
+  const getLabel = (status: SegmentStatus) =>
+    labels?.[status] ?? SEGMENT_STATUS_LABELS[status];
 
   return (
     <Select
@@ -74,21 +75,7 @@ export function SegmentStatusSelect({
       <SelectContent
         className={compact ? ADMIN_STATUS_SELECT_CONTENT_CLASS : "min-w-40"}
       >
-        {SEGMENT_STATUS_OPTIONS.filter((option) =>
-          value === "draft"
-            ? option.value === "draft" ||
-              option.value === "active" ||
-              option.value === "archive"
-            : value === "active"
-              ? option.value === "active" ||
-                option.value === "inactive" ||
-                option.value === "archive"
-              : value === "inactive"
-                ? option.value === "inactive" ||
-                  option.value === "active" ||
-                  option.value === "archive"
-                : option.value === "archive",
-        ).map((option) => (
+        {getSegmentStatusOptions(value).map((option) => (
           <SelectItem
             key={option.value}
             id={option.value}

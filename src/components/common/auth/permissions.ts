@@ -13,11 +13,7 @@ export type CrmRecordScope = "assigned" | "team" | "all" | "none";
 export type CrmPermissionAction = "create" | "read" | "update" | "delete";
 
 export function isCrmAdmin(user: CurrentUser | null | undefined): boolean {
-  return Boolean(
-    user?.crm_is_administrator ||
-      user?.roles?.includes("Administrator") ||
-      user?.roles?.includes("System Manager"),
-  );
+  return user?.crm_is_administrator === true;
 }
 
 export function hasCrmCapability(

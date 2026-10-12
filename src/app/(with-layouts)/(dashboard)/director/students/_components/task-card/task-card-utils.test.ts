@@ -19,6 +19,12 @@ const task: StudentTaskItem = {
 };
 
 describe("task-card-utils", () => {
+  it("uses CRM +07 when comparing the saved local deadline", () => {
+    expect(
+      getTaskDueAt({ ...task, dueDate: "13/10/2026", dueTime: "23:59" }),
+    ).toBe(Date.parse("2026-10-13T16:59:00.000Z"));
+  });
+
   it("formats assignee initials from the last two name parts", () => {
     expect(getAssigneeInitials(task.assignee)).toBe("BT");
     expect(getAssigneeInitials("")).toBe("—");

@@ -21,10 +21,12 @@ import { Card } from "@/components/tailgrids/core/card";
 import { useLeadCallLogsQuery } from "@/hooks/use-lead-call-logs-query";
 import { useCanonicalBusinessRoute } from "@/hooks/use-canonical-business-route";
 import { getBusinessRouteKey } from "@/utils/business-record-route";
+import { leadBackHref } from "./lead-source-navigation";
 import {
   useConvertLeadToStudentMutation,
   useDeleteLeadMutation,
   useLeadSaleLeadQuery,
+  useProcessLeadMutation,
   useUpdateLeadMutation,
 } from "@/hooks/use-lead-sale-leads-queries";
 import type { LeadUpdateFields } from "@/services/api/lead-sale";
@@ -45,15 +47,20 @@ import { normalizeLeadStageStatus } from "./lead-status";
 export default function LeadDetailDashboard({
   leadId,
   initialEditContact = false,
+  returnTo,
 }: {
   leadId: string;
   initialEditContact?: boolean;
+  returnTo?: string;
 }) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
   const canReadLead = permissions.lead.canRead;
-  const leadListHref = getLeadListRouteForRoles(user?.roles);
+  const leadListHref = leadBackHref(
+    returnTo,
+    getLeadListRouteForRoles(user?.roles),
+  );
   const { data, isError, error, isPending } = useLeadSaleLeadQuery(leadId, {
     enabled: Boolean(leadId) && canReadLead && !isAuthLoading,
   });
@@ -69,6 +76,7 @@ export default function LeadDetailDashboard({
   });
   const deleteMutation = useDeleteLeadMutation();
   const convertMutation = useConvertLeadToStudentMutation();
+  const processLeadMutation = useProcessLeadMutation();
   const updateMutation = useUpdateLeadMutation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversionDialogOpen, setConversionDialogOpen] = useState(false);
@@ -95,6 +103,8 @@ export default function LeadDetailDashboard({
     !isAuthLoading &&
     permissions.lead.canAssign &&
     hasCrmCapability(user, "student.routing.operate");
+  const canProcessLead =
+    !isAuthLoading && hasCrmCapability(user, "lifecycle.transition");
   const canRecordCall =
     !isAuthLoading && hasCrmCapability(user, "interaction.record");
   const isLeadAssigned =
@@ -137,6 +147,40 @@ export default function LeadDetailDashboard({
       return;
     }
     submitConversion();
+  };
+
+  const handleProcessLead = () => {
+    const status = normalizeLeadStageStatus(
+      data?.lead.processingStatus ?? data?.lead.statusCode ?? data?.lead.status,
+    );
+    if (
+      !canProcessLead ||
+      status !== "NEW" ||
+      !resolvedLeadId ||
+      processLeadMutation.isPending
+    )
+      return;
+    processLeadMutation.mutate(
+      { lead: resolvedLeadId },
+      {
+        onSuccess: (result) => {
+          if (result.status === "CLOSED") {
+            toast.error(
+              `Lead chưa thể phân công sau bước xử lý (${result.resolution}).`,
+            );
+            return;
+          }
+          toast.success("Lead đã được xử lý. Bạn có thể phân công ngay.");
+        },
+        onError: (processError) => {
+          toast.error(
+            processError instanceof Error
+              ? processError.message
+              : "Chưa thể xử lý Lead.",
+          );
+        },
+      },
+    );
   };
 
   const handleConversionDetailsSubmit = async (fields: LeadUpdateFields) => {
@@ -251,9 +295,12 @@ export default function LeadDetailDashboard({
         <LeadDetailsTab
           canAssign={canAssignLead}
           canEdit={canUpdateLead}
+          canProcess={canProcessLead}
           initialEditContact={initialEditContact}
           lead={data.lead}
           leadId={resolvedLeadId}
+          onProcessLead={handleProcessLead}
+          isProcessingLead={processLeadMutation.isPending}
         />
       ),
     },
