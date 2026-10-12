@@ -10,9 +10,7 @@ import {
   getCrmPermissions,
   hasCrmCapability,
 } from "@/components/common/auth/permissions";
-import DetailTabs, {
-  type DetailTabItem,
-} from "@/components/common/detail-tabs";
+import { Badge } from "@/components/tailgrids/core/badge";
 import { useStudentAnalysis } from "@/hooks/use-student-ai";
 import StudentInsightCard from "./student-insight-card";
 import StudentAnalysisDimensions from "./student-analysis-dimensions";
@@ -89,80 +87,63 @@ export default function StudentClassificationCockpit({
   const labels = canReadAiRecommendations ? overview?.labels : undefined;
   if (!isAuthLoading && !canReadStudentRecord) return null;
 
-  const tabs: DetailTabItem[] = [
-    {
-      id: "next-actions",
-      label: "Hành động tiếp theo",
-      badge: nbaCount || undefined,
-      content: (
-        <div className="space-y-3">
-          <h2
-            id="next-best-actions-heading"
-            className="flex items-center gap-2 text-base font-semibold text-text-primary"
-          >
-            Hành động tiếp theo
-          </h2>
-          <StudentNextBestActions
-            data={data}
-            studentId={analysisTargetId}
-            isAnalysisActive={isAnalysisActive}
-            onActionsCountChange={setNbaCount}
-          />
-        </div>
-      ),
-    },
-    {
-      id: "analysis-360",
-      label: "Phân tích 360",
-      content: (
-        <div className="space-y-4">
-          <StudentInsightCard
-            overview={canReadAiRecommendations ? overview : undefined}
-            canRead={canReadAiRecommendations}
-            onAnalyze={canRequestAnalysis ? request : undefined}
-            isBusy={isAnalysisActive}
-            isLoading={
-              isAuthLoading || (canReadAiRecommendations && runQuery.isLoading)
-            }
-            hasError={Boolean(analysisError)}
-            hasTarget={Boolean(analysisTargetId.trim())}
-          />
-          <StudentAnalysisDimensions
-            dimensions={analysis?.insight.dimensions}
-            labels={labels}
-            canRead={canReadAiRecommendations}
-            isLoading={Boolean(isAnalysisActive || runQuery.isLoading)}
-          />
-          <StudentInsightSignals
-            insight={analysis?.insight}
-            labels={labels}
-            canRead={canReadAiRecommendations}
-            isLoading={Boolean(isAnalysisActive || runQuery.isLoading)}
-          />
-        </div>
-      ),
-    },
-  ];
+  return (
+    <div className="min-w-0 space-y-4">
+      <section
+        aria-labelledby="next-best-actions-heading"
+        className="space-y-3"
+      >
+        <h2
+          id="next-best-actions-heading"
+          className="flex items-center gap-2 text-base font-semibold text-text-primary"
+        >
+          Hành động tiếp theo
+          {canReadAiRecommendations && nbaCount > 0 && (
+            <Badge color="gray" size="sm">
+              {nbaCount}
+            </Badge>
+          )}
+        </h2>
+        <StudentNextBestActions
+          data={data}
+          studentId={analysisTargetId}
+          isAnalysisActive={isAnalysisActive}
+          onActionsCountChange={setNbaCount}
+        />
+      </section>
 
-  if (canReadInteractions) {
-    tabs.push({
-      id: "recent-interactions",
-      label: "Tương tác gần đây",
-      content: (
+      <div className="space-y-4">
+        <StudentInsightCard
+          overview={canReadAiRecommendations ? overview : undefined}
+          canRead={canReadAiRecommendations}
+          onAnalyze={canRequestAnalysis ? request : undefined}
+          isBusy={isAnalysisActive}
+          isLoading={
+            isAuthLoading || (canReadAiRecommendations && runQuery.isLoading)
+          }
+          hasError={Boolean(analysisError)}
+          hasTarget={Boolean(analysisTargetId.trim())}
+        />
+        <StudentAnalysisDimensions
+          dimensions={analysis?.insight.dimensions}
+          labels={labels}
+          canRead={canReadAiRecommendations}
+          isLoading={Boolean(isAnalysisActive || runQuery.isLoading)}
+        />
+        <StudentInsightSignals
+          insight={analysis?.insight}
+          labels={labels}
+          canRead={canReadAiRecommendations}
+          isLoading={Boolean(isAnalysisActive || runQuery.isLoading)}
+        />
+      </div>
+
+      {canReadInteractions && (
         <StudentOverviewInteractions
           studentId={analysisTargetId}
           canReadInteractions={canReadInteractions}
         />
-      ),
-    });
-  }
-
-  return (
-    <DetailTabs
-      ariaLabel="Các phần trong tổng quan"
-      defaultSelectedKey="next-actions"
-      isSticky={false}
-      tabs={tabs}
-    />
+      )}
+    </div>
   );
 }
