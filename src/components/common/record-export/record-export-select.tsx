@@ -29,11 +29,14 @@ export function RecordExportSelect({
       onChange={(value) => onChange(String(value))}
       className="min-w-0 w-full"
     >
-      <SelectTrigger size="sm" className={triggerClassName}>
+      <SelectTrigger
+        size="sm"
+        className={`w-full text-left ${triggerClassName ?? ""}`}
+      >
         <SelectValue />
         <SelectIndicator />
       </SelectTrigger>
-      <SelectContent className="max-h-72 max-w-[calc(100vw-4rem)] overflow-y-auto">
+      <SelectContent className="max-h-72 max-w-[calc(100vw-4rem)] overflow-hidden">
         {options.map((option) => (
           <SelectItem
             key={option.value}

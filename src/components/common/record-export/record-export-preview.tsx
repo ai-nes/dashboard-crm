@@ -1,5 +1,10 @@
 "use client";
 import { Button } from "@/components/tailgrids/core/button";
+import {
+  ScrollArea,
+  ScrollAreaViewport,
+  ScrollBar,
+} from "@/components/tailgrids/core/scroll-area";
 import type { RecordExportPreview } from "@/services/api/record-export/types";
 
 export function RecordExportPreviewTable({
@@ -38,38 +43,42 @@ export function RecordExportPreviewTable({
           kiện.
         </p>
       ) : (
-        <div className="max-h-96 max-w-full overflow-auto rounded-lg border border-card-border">
-          <table className="w-full text-left text-sm">
-            <thead className="sticky top-0 bg-background-soft-50 text-text-secondary">
-              <tr>
-                {data.columns.map((column) => (
-                  <th
-                    key={column.id}
-                    className="min-w-40 border-b border-card-border px-4 py-3 font-medium"
-                  >
-                    {column.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-card-border">
-              {data.rows.map((row, index) => (
-                <tr key={index}>
+        <ScrollArea className="max-h-96 max-w-full overflow-hidden rounded-lg border border-card-border">
+          <ScrollAreaViewport className="max-h-96">
+            <table className="w-full text-left text-sm">
+              <thead className="sticky top-0 bg-background-soft-50 text-text-secondary">
+                <tr>
                   {data.columns.map((column) => (
-                    <td
+                    <th
                       key={column.id}
-                      className="max-w-80 min-w-40 px-4 py-3 align-top whitespace-pre-wrap break-words text-text-primary"
+                      className="min-w-40 border-b border-card-border px-4 py-3 font-medium"
                     >
-                      {row[column.id] === null || row[column.id] === ""
-                        ? "—"
-                        : String(row[column.id])}
-                    </td>
+                      {column.label}
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-card-border">
+                {data.rows.map((row, index) => (
+                  <tr key={index}>
+                    {data.columns.map((column) => (
+                      <td
+                        key={column.id}
+                        className="max-w-80 min-w-40 px-4 py-3 align-top whitespace-pre-wrap break-words text-text-primary"
+                      >
+                        {row[column.id] === null || row[column.id] === ""
+                          ? "—"
+                          : String(row[column.id])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollAreaViewport>
+          <ScrollBar />
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-text-tertiary">

@@ -73,6 +73,7 @@ export default function RecordExportDialog<Filters extends object>(
       currentStep={0}
       formClassName="flex min-h-0 flex-1 flex-col"
       bodyClassName="min-h-0 flex-1"
+      scrollable
       size="wide"
       onSubmit={(event) => event.preventDefault()}
       footer={
@@ -204,6 +205,7 @@ function RecordExportBuilder<Filters extends object>({
       currentStep={step - 1}
       formClassName="flex min-h-0 flex-1 flex-col"
       bodyClassName="min-h-0 flex-1"
+      scrollable
       size="wide"
       isBusy={isBusy}
       onSubmit={(event) => event.preventDefault()}

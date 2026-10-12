@@ -7,8 +7,17 @@ import { Button } from "@/components/tailgrids/core/button";
 import { Input } from "@/components/tailgrids/core/input";
 import { OverlayWrapper } from "@/components/tailgrids/core/overlay";
 import { Popover } from "@/components/tailgrids/core/popover";
+import {
+  ScrollArea,
+  ScrollAreaViewport,
+  ScrollBar,
+} from "@/components/tailgrids/core/scroll-area";
 import { cn } from "@/utils/cn";
 import { useInfinityScroll } from "@/hooks/use-infinity-scroll";
+import {
+  useScrollToLoadMore,
+  type ScrollToLoadMoreOptions,
+} from "@/hooks/use-scroll-to-load-more";
 
 import {
   getOptionsForSelectedClassificationGroup,
@@ -18,6 +27,11 @@ import {
 } from "./segment-filter-config";
 
 interface SegmentFilterValuePickerProps {
+  pagination?: ScrollToLoadMoreOptions;
+  selectedOptions?: SegmentOption[];
+  onOpenChange?: (isOpen: boolean) => void;
+  onRetry?: () => void;
+  className?: string;
   ownerId: string;
   label: string;
   options: SegmentOption[];
@@ -27,6 +41,11 @@ interface SegmentFilterValuePickerProps {
 }
 
 export function SegmentFilterValuePicker({
+  pagination,
+  selectedOptions = [],
+  onOpenChange,
+  onRetry,
+  className,
   ownerId,
   label,
   options,
@@ -52,23 +71,38 @@ export function SegmentFilterValuePicker({
   );
   const filteredOptions = useMemo(
     () =>
-      visibleOptions.filter((option) =>
-        option.label.toLocaleLowerCase("vi-VN").includes(normalizedSearch),
-      ),
-    [normalizedSearch, visibleOptions],
+      pagination
+        ? options
+        : visibleOptions.filter((option) =>
+            option.label.toLocaleLowerCase("vi-VN").includes(normalizedSearch),
+          ),
+    [normalizedSearch, visibleOptions, pagination, options],
   );
 
-  const selectedLabels = getSelectedOptionLabels(selectedValues, options);
-  const { visibleItems, onScrollToLoadMore } = useInfinityScroll(filteredOptions, {
-    enabled: isOpen,
-    getItemKey: (option) => option.value,
-    resetKey: `${isOpen}:${normalizedSearch}`,
-  });
+  const selectedLabels = getSelectedOptionLabels(selectedValues, [
+    ...options,
+    ...selectedOptions.filter(
+      (selected) => !options.some((option) => option.value === selected.value),
+    ),
+  ]);
+  const { visibleItems, onScrollToLoadMore } = useInfinityScroll(
+    filteredOptions,
+    {
+      enabled: isOpen && !pagination,
+      getItemKey: (option) => option.value,
+      resetKey: `${isOpen}:${normalizedSearch}`,
+    },
+  );
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     setIsOpen(nextIsOpen);
-    if (!nextIsOpen) setSearch("");
+    onOpenChange?.(nextIsOpen);
+    if (!nextIsOpen) {
+      setSearch("");
+      pagination?.onSearchChange?.("");
+    }
   };
+  const remoteScroll = useScrollToLoadMore(pagination ?? { enabled: false });
 
   const toggleValue = (nextValue: string) => {
     const nextValues = selectedValues.includes(nextValue)
@@ -90,7 +124,10 @@ export function SegmentFilterValuePicker({
         variant="primary"
         appearance="outline"
         size="md"
-        className="min-w-0 flex-1 justify-between overflow-hidden bg-card-surface-area text-left font-normal"
+        className={cn(
+          "min-w-0 flex-1 justify-between overflow-hidden bg-card-surface-area text-left font-normal",
+          className,
+        )}
         aria-label={`Chọn ${label}`}
       >
         <span
@@ -122,50 +159,82 @@ export function SegmentFilterValuePicker({
               autoFocus
               aria-label="Tìm giá trị"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                pagination?.onSearchChange?.(event.target.value);
+              }}
               placeholder="Tìm kiếm"
               className="h-10 w-full py-2 pl-9 pr-3 text-sm"
             />
           </div>
         </div>
 
-        <div className="max-h-64 overflow-y-auto p-2" onScroll={onScrollToLoadMore}>
-          {filteredOptions.length > 0 ? (
-            visibleItems.map((option) => {
-              const isSelected = selectedValues.includes(option.value);
+        <ScrollArea className="max-h-64 overflow-hidden">
+          <ScrollAreaViewport
+            className="max-h-64 p-2"
+            onScroll={
+              pagination ? remoteScroll.onScrollToLoadMore : onScrollToLoadMore
+            }
+          >
+            {filteredOptions.length > 0 ? (
+              (pagination ? filteredOptions : visibleItems).map((option) => {
+                const isSelected = selectedValues.includes(option.value);
 
-              return (
-                <Button
-                  key={option.value}
-                  variant="primary"
-                  appearance="ghost"
-                  size="md"
-                  aria-pressed={isSelected}
-                  className="h-auto w-full justify-start gap-3 rounded-md px-2.5 py-2 text-left font-normal text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
-                  onPress={() => toggleValue(option.value)}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "flex size-5 shrink-0 items-center justify-center rounded border border-card-border",
-                      isSelected &&
-                        "border-button-primary-background bg-button-primary-background text-white-100",
-                    )}
+                return (
+                  <Button
+                    key={option.value}
+                    variant="primary"
+                    appearance="ghost"
+                    size="md"
+                    aria-pressed={isSelected}
+                    className="h-auto w-full justify-start gap-3 rounded-md px-2.5 py-2 text-left font-normal text-text-secondary hover:bg-background-gray-secondary_alt hover:text-text-primary"
+                    onPress={() => toggleValue(option.value)}
                   >
-                    {isSelected && <Check size={13} />}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">
-                    {option.label}
-                  </span>
-                </Button>
-              );
-            })
-          ) : (
-            <p className="px-3 py-8 text-center text-sm text-text-tertiary">
-              Không tìm thấy giá trị phù hợp.
-            </p>
-          )}
-        </div>
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "flex size-5 shrink-0 items-center justify-center rounded border border-card-border",
+                        isSelected &&
+                          "border-button-primary-background bg-button-primary-background text-white-100",
+                      )}
+                    >
+                      {isSelected && <Check size={13} />}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {option.label}
+                    </span>
+                  </Button>
+                );
+              })
+            ) : !pagination?.isLoading && !pagination?.isError ? (
+              <p className="px-3 py-8 text-center text-sm text-text-tertiary">
+                Không tìm thấy giá trị phù hợp.
+              </p>
+            ) : null}
+            {pagination?.isLoading && (
+              <p
+                role="status"
+                className="px-3 py-4 text-center text-sm text-text-tertiary"
+              >
+                Đang tải lựa chọn…
+              </p>
+            )}
+            {pagination?.isError && (
+              <div
+                role="alert"
+                className="px-3 py-4 text-center text-sm text-text-tertiary"
+              >
+                <p>Không thể tải lựa chọn.</p>
+                {onRetry && (
+                  <Button appearance="ghost" onPress={onRetry}>
+                    Thử lại
+                  </Button>
+                )}
+              </div>
+            )}
+          </ScrollAreaViewport>
+          <ScrollBar />
+        </ScrollArea>
       </Popover>
     </OverlayWrapper>
   );
