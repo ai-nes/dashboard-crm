@@ -118,6 +118,7 @@ export default function UserPermissionPanel({
   const [doctypePage, setDoctypePage] = useState(1);
   const [draft, setDraft] = useState<PermissionProfile | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [permissionTab, setPermissionTab] = useState("grouped");
   const [viewMode, setViewMode] =
     useState<PermissionProfileViewMode>("grouped");
   const profilesQuery = usePermissionProfilesQuery(
@@ -135,6 +136,22 @@ export default function UserPermissionPanel({
     [profilesQuery.data?.profiles],
   );
   const activeRole = selectedRole || profiles[0]?.role || "";
+
+  const detailedProfileQuery = usePermissionProfilesQuery(
+    {
+      role: activeRole || undefined,
+      start: 0,
+      pageLength: 100,
+      viewMode: "detailed",
+    },
+    { enabled: canEdit && Boolean(activeRole) },
+  );
+  const detailedProfile = detailedProfileQuery.data?.profiles.find(
+    (profile) => profile.role === activeRole,
+  );
+  const recommendationPermission = detailedProfile?.applicableDoctypes.find(
+    (doctype) => doctype.documentType === "CRM Recommendation",
+  );
 
   const selectedProfile = useMemo(
     () => profiles.find((profile) => profile.role === activeRole) ?? null,
@@ -187,6 +204,11 @@ export default function UserPermissionPanel({
     setIsSaving(false);
   };
 
+  const handlePermissionTabChange = (value: string) => {
+    setPermissionTab(value);
+    if (value !== "ai") handleViewModeChange(value);
+  };
+
   const updatePermission = (
     documentType: string,
     permission: PermissionFlag,
@@ -200,6 +222,38 @@ export default function UserPermissionPanel({
           : row,
       ),
     }));
+  };
+
+  const updateStudentAiPermission = async (enabled: boolean) => {
+    if (
+      !detailedProfile ||
+      !recommendationPermission ||
+      updateMutation.isPending ||
+      isSaving
+    ) {
+      return;
+    }
+
+    const nextProfile = {
+      ...detailedProfile,
+      applicableDoctypes: detailedProfile.applicableDoctypes.map((doctype) =>
+        doctype.documentType === "CRM Recommendation"
+          ? { ...doctype, read: enabled || doctype.read, create: enabled }
+          : doctype,
+      ),
+    };
+
+    setIsSaving(true);
+    try {
+      await updateMutation.mutateAsync(
+        permissionProfileUpdate(detailedProfile, nextProfile, "detailed"),
+      );
+      toast.success(`Đã cập nhật quyền phân tích AI cho ${activeRole}.`);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!canEdit) {
@@ -264,48 +318,50 @@ export default function UserPermissionPanel({
 
   return (
     <AdminTableFrame>
+      <div className="border-b border-card-border px-4 py-4">
+        <div className="w-full sm:w-64">
+          <label
+            htmlFor="permission-profile-role"
+            className="mb-1.5 block text-xs font-semibold text-text-secondary"
+          >
+            Vai trò
+          </label>
+          <Select
+            value={activeRole}
+            onChange={(value) => {
+              setSelectedRole(String(value));
+              setDoctypePage(1);
+              setDraft(null);
+              setIsSaving(false);
+            }}
+            isDisabled={updateMutation.isPending || isSaving}
+            aria-label="Chọn vai trò để cấu hình quyền hạn"
+          >
+            <SelectTrigger
+              id="permission-profile-role"
+              size="sm"
+              className="w-full"
+            >
+              <SelectValue />
+              <SelectIndicator />
+            </SelectTrigger>
+            <SelectContent>
+              {profiles.map((profile) => (
+                <SelectItem
+                  key={profile.role}
+                  id={profile.role}
+                  textValue={profile.role}
+                >
+                  {profile.role}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-card-border px-4 py-4">
         <div className="flex flex-wrap items-end gap-4">
-          <div className="w-full sm:w-56">
-            <label
-              htmlFor="permission-profile-role"
-              className="mb-1.5 block text-xs font-semibold text-text-secondary"
-            >
-              Vai trò
-            </label>
-            <Select
-              value={activeRole}
-              onChange={(value) => {
-                setSelectedRole(String(value));
-                setDoctypePage(1);
-                setDraft(null);
-                setIsSaving(false);
-              }}
-              isDisabled={updateMutation.isPending || isSaving}
-              aria-label="Chọn vai trò để cấu hình quyền hạn"
-            >
-              <SelectTrigger
-                id="permission-profile-role"
-                size="sm"
-                className="w-full"
-              >
-                <SelectValue />
-                <SelectIndicator />
-              </SelectTrigger>
-              <SelectContent>
-                {profiles.map((profile) => (
-                  <SelectItem
-                    key={profile.role}
-                    id={profile.role}
-                    textValue={profile.role}
-                  >
-                    {profile.role}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="w-full sm:w-80 lg:w-96">
             <label
               htmlFor="permission-profile-row-scope"
@@ -389,8 +445,8 @@ export default function UserPermissionPanel({
 
         <AdminTabRoot
           defaultValue="grouped"
-          value={viewMode}
-          onValueChange={handleViewModeChange}
+          value={permissionTab}
+          onValueChange={handlePermissionTabChange}
           className="w-fit min-w-0 !rounded-lg !border !border-card-border !bg-background-gray-secondary !p-1 [&>div]:!border-0 [&>div]:!p-0 [&>div>div]:!w-auto"
         >
           <AdminTabList className="!gap-0">
@@ -408,56 +464,110 @@ export default function UserPermissionPanel({
             >
               Chi tiết DocType
             </TabTrigger>
+            <TabTrigger
+              value="ai"
+              disabled={updateMutation.isPending || isSaving}
+              className="!rounded-md !px-3 !py-1.5 !text-text-secondary transition-colors duration-150 hover:bg-background-gray-secondary_alt focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-500 data-[active=true]:!border-0 data-[active=true]:!bg-card-background data-[active=true]:!text-neutral-brand-color data-[active=true]:!shadow-xs"
+            >
+              AI
+            </TabTrigger>
           </AdminTabList>
         </AdminTabRoot>
       </div>
 
-      <div className="overflow-x-auto">
-        <AdminTableRoot
-          aria-label={`Ma trận quyền hạn vai trò ${activeDraft.role}`}
-          className="min-w-[780px]"
-        >
+      {permissionTab === "ai" ? (
+        <AdminTableRoot aria-label={`Quyền AI của vai trò ${activeRole}`}>
           <AdminTableHeader>
             <AdminTableRow>
               <AdminTableHead scope="col" className="w-12 text-center">
                 STT
               </AdminTableHead>
-              <AdminTableHead scope="col">
-                {viewMode === "detailed" ? "DocType" : "Đối tượng"}
+              <AdminTableHead scope="col">Đối tượng</AdminTableHead>
+              <AdminTableHead scope="col" className="w-24 text-center">
+                Phân tích
               </AdminTableHead>
-              {PERMISSION_COLUMNS.map((column) => (
-                <AdminTableHead
-                  key={column.key}
-                  scope="col"
-                  className="w-24 text-center"
-                >
-                  {column.label}
-                </AdminTableHead>
-              ))}
             </AdminTableRow>
           </AdminTableHeader>
           <TableBody>
-            {activeDraft.applicableDoctypes.map((row, index) => (
+            {detailedProfileQuery.isPending ? (
+              <AdminTableRow>
+                <AdminTableCell colSpan={3} role="status">
+                  Đang tải quyền AI…
+                </AdminTableCell>
+              </AdminTableRow>
+            ) : detailedProfileQuery.isError || !recommendationPermission ? (
+              <AdminTableRow>
+                <AdminTableCell colSpan={3} role="alert">
+                  Không tải được quyền CRM Recommendation.
+                </AdminTableCell>
+              </AdminTableRow>
+            ) : (
               <PermissionMatrixRow
-                key={row.documentType}
-                row={row}
-                viewMode={viewMode}
-                index={index + (doctypePage - 1) * ADMIN_TABLE_PAGE_SIZE}
-                disabled={updateMutation.isPending}
-                onChange={updatePermission}
+                row={recommendationPermission}
+                viewMode="detailed"
+                index={0}
+                disabled={updateMutation.isPending || isSaving}
+                visiblePermissions={["create"]}
+                displayLabel="AI phân tích học sinh"
+                displayDescription="Cho phép chạy hoặc chạy lại Phân tích 360; người dùng cần thêm quyền đọc hồ sơ học sinh."
+                permissionAriaLabel={`Cho phép AI phân tích học sinh cho ${activeRole}`}
+                onChange={(_doctype, _permission, checked) =>
+                  void updateStudentAiPermission(checked)
+                }
               />
-            ))}
+            )}
           </TableBody>
         </AdminTableRoot>
-      </div>
-      <AdminTablePagination
-        currentPage={doctypePage}
-        totalPages={doctypeTotalPages}
-        totalItems={totalDoctypes}
-        pageSize={ADMIN_TABLE_PAGE_SIZE}
-        onPageChange={setDoctypePage}
-        isDisabled={updateMutation.isPending || isSaving}
-      />
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <AdminTableRoot
+              aria-label={`Ma trận quyền hạn vai trò ${activeDraft.role}`}
+              className="min-w-[780px]"
+            >
+              <AdminTableHeader>
+                <AdminTableRow>
+                  <AdminTableHead scope="col" className="w-12 text-center">
+                    STT
+                  </AdminTableHead>
+                  <AdminTableHead scope="col">
+                    {viewMode === "detailed" ? "DocType" : "Đối tượng"}
+                  </AdminTableHead>
+                  {PERMISSION_COLUMNS.map((column) => (
+                    <AdminTableHead
+                      key={column.key}
+                      scope="col"
+                      className="w-24 text-center"
+                    >
+                      {column.label}
+                    </AdminTableHead>
+                  ))}
+                </AdminTableRow>
+              </AdminTableHeader>
+              <TableBody>
+                {activeDraft.applicableDoctypes.map((row, index) => (
+                  <PermissionMatrixRow
+                    key={row.documentType}
+                    row={row}
+                    viewMode={viewMode}
+                    index={index + (doctypePage - 1) * ADMIN_TABLE_PAGE_SIZE}
+                    disabled={updateMutation.isPending}
+                    onChange={updatePermission}
+                  />
+                ))}
+              </TableBody>
+            </AdminTableRoot>
+          </div>
+          <AdminTablePagination
+            currentPage={doctypePage}
+            totalPages={doctypeTotalPages}
+            totalItems={totalDoctypes}
+            pageSize={ADMIN_TABLE_PAGE_SIZE}
+            onPageChange={setDoctypePage}
+            isDisabled={updateMutation.isPending || isSaving}
+          />
+        </>
+      )}
     </AdminTableFrame>
   );
 }
@@ -467,6 +577,10 @@ interface PermissionMatrixRowProps {
   viewMode: PermissionProfileViewMode;
   index: number;
   disabled: boolean;
+  visiblePermissions?: PermissionFlag[];
+  displayLabel?: string;
+  displayDescription?: string;
+  permissionAriaLabel?: string;
   onChange: (
     documentType: string,
     permission: PermissionFlag,
@@ -479,17 +593,28 @@ function PermissionMatrixRow({
   viewMode,
   index,
   disabled,
+  visiblePermissions,
+  displayLabel,
+  displayDescription,
+  permissionAriaLabel,
   onChange,
 }: PermissionMatrixRowProps) {
   const groupedLabel =
     row.label ??
     FALLBACK_PERMISSION_LABELS[row.documentType] ??
     row.documentType;
-  const label = viewMode === "detailed" ? row.documentType : groupedLabel;
+  const label =
+    displayLabel ?? (viewMode === "detailed" ? row.documentType : groupedLabel);
   const description =
-    viewMode === "detailed" && row.groupLabel
+    displayDescription ??
+    (viewMode === "detailed" && row.groupLabel
       ? `Nhóm: ${row.groupLabel}`
-      : row.description;
+      : row.description);
+  const columns = visiblePermissions
+    ? PERMISSION_COLUMNS.filter((column) =>
+        visiblePermissions.includes(column.key),
+      )
+    : PERMISSION_COLUMNS;
 
   return (
     <AdminTableRow>
@@ -506,11 +631,13 @@ function PermissionMatrixRow({
           ) : null}
         </div>
       </AdminTableCell>
-      {PERMISSION_COLUMNS.map((column) => (
+      {columns.map((column) => (
         <AdminTableCell key={column.key} className="text-center">
           <div className="flex justify-center">
             <Checkbox
-              aria-label={`${column.label} ${row.documentType}`}
+              aria-label={
+                permissionAriaLabel ?? `${column.label} ${row.documentType}`
+              }
               isSelected={row[column.key]}
               isDisabled={disabled}
               onChange={(checked) =>
