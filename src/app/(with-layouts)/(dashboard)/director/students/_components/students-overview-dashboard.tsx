@@ -36,6 +36,7 @@ import type {
 } from "@/services/api/students/types";
 
 import StudentCreateDialog from "./student-create-dialog";
+import { studentCreateCurrentUserId } from "./student-create-owner-options";
 import StudentList, { studentListGrid } from "./student-list";
 import StudentListSkeleton from "./student-list-skeleton";
 import StudentListToolbar from "./student-list-toolbar";
@@ -277,6 +278,9 @@ export default function StudentsOverviewDashboard() {
         <StudentCreateDialog
           isOpen={createDialogOpen}
           isSubmitting={createMutation.isPending}
+          currentUserId={studentCreateCurrentUserId(user)}
+          ownerReadScope={readScope}
+          ownerAssignmentScope={permissions.student.scope}
           onCreate={(fields) => {
             if (!canCreateStudent) {
               return Promise.reject(

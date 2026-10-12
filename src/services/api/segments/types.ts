@@ -35,12 +35,15 @@ export interface SegmentRecord {
   category?: SegmentCategory | string | null;
   segment_type?: SegmentType;
   responsible_user?: string | null;
+  responsible_user_name?: string | null;
   is_public?: 0 | 1 | boolean;
   revision: number;
   filters?: SegmentFilterPayload | string | null;
   snapshot_at?: string | null;
   snapshot_by?: string | null;
+  snapshot_by_name?: string | null;
   owner?: string | null;
+  owner_name?: string | null;
   creation?: string | null;
   modified?: string | null;
   member_count?: number;
@@ -83,6 +86,7 @@ export interface SegmentStudentRecord {
   student_stage?: string | null;
   major?: string | null;
   assigned_to?: string | null;
+  assigned_to_name?: string | null;
   potential?: string | null;
   intent?: string | null;
 }

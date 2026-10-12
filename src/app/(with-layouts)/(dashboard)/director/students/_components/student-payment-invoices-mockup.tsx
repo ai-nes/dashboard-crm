@@ -25,28 +25,7 @@ interface PaymentInvoice {
   createdBy: string;
 }
 
-const paymentInvoices: PaymentInvoice[] = [
-  {
-    paymentId: "8F14079206000566AB",
-    bank: "VIETINBANK",
-    amount: "7,860,000",
-    invoiceSerial: "1/001;K26TAA-00040980",
-    paidAt: "17/08/2026 09:18",
-    transactionId: "_7361539",
-    document: "-",
-    createdBy: "TĐK",
-  },
-  {
-    paymentId: "8F14079206000566AA",
-    bank: "VIETINBANK",
-    amount: "13,446,650",
-    invoiceSerial: "1/001;K26TAA-00038962",
-    paidAt: "13/08/2026 01:39",
-    transactionId: "_7331751_7331752",
-    document: "-",
-    createdBy: "TĐK",
-  },
-];
+const paymentInvoices: PaymentInvoice[] = [];
 
 export default function StudentPaymentInvoicesMockup() {
   return (
@@ -87,6 +66,16 @@ export default function StudentPaymentInvoicesMockup() {
           </TableRow>
         </TableHeader>
         <TableBody>
+          {paymentInvoices.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={8}
+                className="px-6 py-8 text-center text-text-tertiary"
+              >
+                Chưa có hóa đơn thanh toán.
+              </TableCell>
+            </TableRow>
+          ) : null}
           {paymentInvoices.map((invoice) => (
             <TableRow key={invoice.paymentId} className="[&_td]:border-none">
               <TableCell className="px-6 py-3.5 text-sm leading-5 font-medium whitespace-nowrap text-text-primary">
@@ -121,10 +110,8 @@ export default function StudentPaymentInvoicesMockup() {
       <div className="flex justify-end border-t border-card-border px-6 py-3.5 text-sm text-text-secondary">
         <span>
           Tổng:{" "}
-          <strong className="font-semibold text-text-primary">
-            21,306,650 VND
-          </strong>{" "}
-          — 2 hóa đơn
+          <strong className="font-semibold text-text-primary">0 VND</strong> — 0
+          hóa đơn
         </span>
       </div>
     </Card>

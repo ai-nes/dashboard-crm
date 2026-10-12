@@ -12,7 +12,7 @@ interface EnrollmentInformationField {
 }
 
 const enrollmentInformationFields: EnrollmentInformationField[] = [
-  { label: "Cho phép truy cập cổng thông tin KH", value: "Không" },
+  { label: "Cho phép truy cập cổng thông tin KH" },
   { label: "Ngày bắt đầu hỗ trợ" },
   { label: "Ngày kết thúc hỗ trợ" },
 ];

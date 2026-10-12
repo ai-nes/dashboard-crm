@@ -1,6 +1,44 @@
 import type { ActivityLogEntry } from "@/services/api/activity-log";
 import { formatAuditMetadataKey } from "@/utils/format-audit-metadata";
 
+export interface ActivityDateRange {
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface ActivityDateDraftState {
+  sourceStartDate?: string;
+  sourceEndDate?: string;
+  startDate: string;
+  endDate: string;
+}
+
+/** Preserve an in-progress draft unless the controlled date range changes. */
+export function resolveActivityDateDraft(
+  draft: ActivityDateDraftState,
+  value: ActivityDateRange,
+): { startDate: string; endDate: string } {
+  if (
+    draft.sourceStartDate === value.startDate &&
+    draft.sourceEndDate === value.endDate
+  ) {
+    return { startDate: draft.startDate, endDate: draft.endDate };
+  }
+  return {
+    startDate: value.startDate ?? "",
+    endDate: value.endDate ?? "",
+  };
+}
+
+export function getActivityDateRangeError(
+  startDate?: string,
+  endDate?: string,
+): string | null {
+  return startDate && endDate && startDate > endDate
+    ? "Ngày kết thúc phải bằng hoặc sau ngày bắt đầu."
+    : null;
+}
+
 const ACTION_LABELS: Record<string, string> = {
   created: "Đã tạo",
   updated: "Đã cập nhật",

@@ -183,6 +183,7 @@ export interface LeadSaleDashboardPayload {
   summary: LeadSaleDashboardSummary;
   actions: LeadSaleDashboardAction[];
   priorityQueue: LeadSaleDashboardPriorityRecord[];
+  detailRecords?: Record<string, LeadSaleDashboardPriorityRecord[]>;
   stages: LeadSaleDashboardStage[];
   reps: LeadSaleDashboardRep[];
   trend: LeadSaleDashboardTrendPoint[];

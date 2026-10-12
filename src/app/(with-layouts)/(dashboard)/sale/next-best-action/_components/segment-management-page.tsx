@@ -6,7 +6,10 @@ import { SegmentList } from "@/components/segments/segment-list";
 
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { useAuth } from "@/components/common/auth/auth-provider";
-import { getCrmDoctypePermissions } from "@/components/common/auth/permissions";
+import {
+  canCreateSegment,
+  canManageSegment,
+} from "@/components/segments/segment-permissions";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 
@@ -20,9 +23,11 @@ export default function SegmentManagementPage({
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const permissions = getCrmDoctypePermissions(user, "CRM Segment");
-  const canManage = permissions.canCreate || permissions.canUpdate || permissions.canDelete;
-  const canCreate = permissions.canCreate;
+  const canCreate = canCreateSegment(user);
+  const canManage =
+    canCreate ||
+    canManageSegment(user, { ownerUserId: null }, "update") ||
+    canManageSegment(user, { ownerUserId: null }, "delete");
 
   return (
     <main

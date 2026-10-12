@@ -69,10 +69,10 @@ export interface UpdateTaskPayload {
   title?: string;
   description?: string;
   priority?: CRMTaskPriority;
-  startDate?: string;
-  assignedTo?: string;
+  startDate?: string | null;
+  assignedTo?: string | null;
   status?: CRMTaskStatus;
-  dueDate?: string;
+  dueDate?: string | null;
   linkedInteraction?: string;
 }
 

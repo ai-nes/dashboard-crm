@@ -114,6 +114,41 @@ const response: LeadSaleOverviewResponse = {
 };
 
 describe("Lead Sale dashboard adapter", () => {
+  it("opens the selected priority record even beyond the first three rows", () => {
+    const data = toLeadSaleDashboardData({
+      ...response,
+      dashboard: {
+        ...response.dashboard,
+        priorityQueue: Array.from({ length: 5 }, (_, index) => ({
+          ...response.dashboard.priorityQueue[0],
+          id: `student-${index}`,
+          name: `Student ${index}`,
+          ageDays: 1,
+        })),
+      },
+    });
+    const fourth = data.priorityQueue[3];
+    expect(data.details[fourth.detailId].records.map((row) => row.id)).toEqual([
+      fourth.id,
+    ]);
+    expect(data.details[fourth.detailId].title).toBe(fourth.name);
+  });
+  it("keeps zero groups empty and uses the group age instead of its count", () => {
+    const data = toLeadSaleDashboardData(response);
+    expect(data.details.unassigned.records).toEqual([]);
+    expect(data.details.overdue.metrics).toContainEqual({
+      label: "Tuổi cao nhất",
+      value: "2 ngày",
+    });
+    expect(
+      data.actions.find((action) => action.id === "due-today")?.subtext,
+    ).not.toContain("Không có hồ sơ");
+  });
+  it("does not reuse the priority queue for drilldown groups without matching data", () => {
+    const data = toLeadSaleDashboardData(response);
+    expect(data.details["due-today"].records).toEqual([]);
+    expect(data.details["stage-new"].records).toEqual([]);
+  });
   it("maps the API projection into the existing dashboard view model", () => {
     const data = toLeadSaleDashboardData(response);
 

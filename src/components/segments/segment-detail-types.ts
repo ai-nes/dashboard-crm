@@ -29,7 +29,9 @@ export function toSegmentStudent(
     major: student.major || "",
     potential: student.potential || "",
     intent: student.intent || "",
-    owner: student.assigned_to || "",
+    owner:
+      student.assigned_to_name?.trim() ||
+      (student.assigned_to ? "Không xác định" : ""),
   };
 }
 

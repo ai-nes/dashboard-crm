@@ -38,4 +38,16 @@ describe("quick create Lead dialog composition", () => {
     expect(importPanelSource).toContain("previewLeadImport");
     expect(importPanelSource).toContain("<ValidationPreview");
   });
+
+  it("marks Province as required and blocks submission when it is empty", () => {
+    expect(dialogSource).toMatch(
+      /if\s*\(!form\.province\.trim\(\)\)\s*errors\.province\s*=/,
+    );
+    expect(dialogSource).toContain(
+      '<CreateDialogField label="Tỉnh / thành phố" required>',
+    );
+    expect(dialogSource).toContain(
+      "<FormFieldError message={fieldErrors.province} />",
+    );
+  });
 });

@@ -45,7 +45,10 @@ interface LeadDetailsTabProps {
   leadId: string;
   canEdit?: boolean;
   canAssign?: boolean;
+  canProcess?: boolean;
   initialEditContact?: boolean;
+  onProcessLead?: () => void;
+  isProcessingLead?: boolean;
 }
 
 const emptyOption: EditableDetailOption = {
@@ -66,7 +69,10 @@ export default function LeadDetailsTab({
   leadId,
   canEdit = true,
   canAssign = false,
+  canProcess = false,
   initialEditContact = false,
+  onProcessLead,
+  isProcessingLead = false,
 }: LeadDetailsTabProps) {
   const [editingSection, setEditingSection] =
     useState<EditableLeadSection | null>(
@@ -497,10 +503,13 @@ export default function LeadDetailsTab({
           />
           <LeadAssigneeField
             canAssign={canAssign}
+            canProcess={canProcess}
             key={leadId}
             lead={lead}
             leadId={leadId}
             isEditing={admissionEditing}
+            onProcessLead={onProcessLead}
+            isProcessingLead={isProcessingLead}
           />
         </dl>
       </LeadDetailSection>

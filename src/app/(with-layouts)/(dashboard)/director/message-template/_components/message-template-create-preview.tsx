@@ -123,7 +123,7 @@ export default function MessageTemplateCreatePreview({
     setContactsError(null);
     try {
       const response = await listMessageTemplatePreviewContacts({
-        pageLength: 100,
+        pageLength: 50,
         context: previewContext,
       });
       setContacts(response.contacts);

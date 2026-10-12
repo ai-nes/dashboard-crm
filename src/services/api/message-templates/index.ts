@@ -124,12 +124,16 @@ export async function listMessageTemplatePreviewContacts(
     context?: MessageTemplatePreviewContext;
   } = {},
 ): Promise<ListMessageTemplatePreviewContactsResponse> {
+  const pageLength =
+    params.pageLength === undefined
+      ? undefined
+      : Math.min(Math.max(params.pageLength, 1), 50);
   return request<ListMessageTemplatePreviewContactsResponse>(
     METHODS.PREVIEW_CONTACTS,
     {
       query: {
         search: params.search?.trim(),
-        page_length: params.pageLength ? String(params.pageLength) : undefined,
+        page_length: pageLength ? String(pageLength) : undefined,
         context: params.context,
       },
     },

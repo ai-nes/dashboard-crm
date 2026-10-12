@@ -1,8 +1,14 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/tailgrids/core/avatar";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/tailgrids/core/avatar";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
+import { useAuth } from "@/components/common/auth/auth-provider";
 import { Input } from "@/components/tailgrids/core/input";
 import {
   InputGroup,
@@ -23,6 +29,7 @@ import { TextArea } from "@/components/tailgrids/core/text-area";
 import { TextField } from "@/components/tailgrids/core/text-field";
 import Image from "next/image";
 import { FieldError, Form } from "react-aria-components";
+import { toast } from "sonner";
 import { LogoutIcon, TrashIcon } from "./icons";
 
 const countryOptions = [
@@ -35,11 +42,42 @@ const countryOptions = [
 ];
 
 export default function AccountPage() {
+  const { user } = useAuth();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const displayName = user?.full_name || user?.email || "Người dùng";
+  const avatarUrl = avatarPreview ?? user?.user_image ?? undefined;
+
+  useEffect(() => {
+    if (!avatarPreview?.startsWith("blob:")) return;
+    return () => URL.revokeObjectURL(avatarPreview);
+  }, [avatarPreview]);
+
+  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+
+    if (!["image/png", "image/jpeg", "image/gif"].includes(file.type)) {
+      toast.error("Chỉ hỗ trợ ảnh PNG, JPEG hoặc GIF.");
+      event.currentTarget.value = "";
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Ảnh đại diện không được vượt quá 2MB.");
+      event.currentTarget.value = "";
+      return;
+    }
+
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
   return (
     <div className="space-y-6">
       {/* Account Details Card */}
       <Card className="bg-transparent p-5">
-        <h2 className="mb-6 text-xl leading-7 font-semibold text-text-primary">Account Details</h2>
+        <h2 className="mb-6 text-xl leading-7 font-semibold text-text-primary">
+          Account Details
+        </h2>
 
         <Form
           className="space-y-6"
@@ -49,18 +87,35 @@ export default function AccountPage() {
         >
           <div className="flex items-center gap-4">
             <Avatar size="xxl">
-              <AvatarImage src="/images/user/jhon-smith.png" alt="Jhon Smith" />
-              <AvatarFallback>JS</AvatarFallback>
+              {avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt={displayName} />
+              ) : null}
+              <AvatarFallback>
+                {displayName.charAt(0).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
 
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-3">
-                <Button appearance="outline" size="sm">
+                <Button
+                  type="button"
+                  appearance="outline"
+                  size="sm"
+                  onPress={() => avatarInputRef.current?.click()}
+                >
                   Change Avatar
                 </Button>
                 <Button appearance="outline" variant="danger" size="sm">
                   Remove
                 </Button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif"
+                  aria-label="Chọn ảnh đại diện"
+                  className="sr-only"
+                  onChange={handleAvatarChange}
+                />
               </div>
               <p className="text-xs leading-4 text-text-tertiary">
                 Accepts PNG, JPEG, GIF; max size 2MB.
@@ -71,7 +126,13 @@ export default function AccountPage() {
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <TextField className="w-full gap-2.5">
               <Label>Full Name</Label>
-              <Input name="fullName" placeholder="Jhon Smith" className="w-full" required />
+              <Input
+                name="fullName"
+                value={user?.full_name ?? ""}
+                className="w-full"
+                readOnly
+                required
+              />
               <FieldError />
             </TextField>
 
@@ -80,8 +141,9 @@ export default function AccountPage() {
               <Input
                 name="email"
                 type="email"
-                placeholder="jhon@example.com"
+                value={user?.email ?? ""}
                 className="w-full"
+                readOnly
                 required
               />
               <FieldError />
@@ -89,7 +151,11 @@ export default function AccountPage() {
 
             <TextField className="w-full gap-2.5">
               <Label>Phone Number</Label>
-              <Input name="phone" placeholder="+1 604 555 1234" className="w-full" />
+              <Input
+                name="phone"
+                placeholder="+1 604 555 1234"
+                className="w-full"
+              />
             </TextField>
 
             <TextField className="w-full gap-2.5">
@@ -98,7 +164,11 @@ export default function AccountPage() {
                 <InputGroupAddon className="after h-full border-r border-card-border text-input-placeholder-text-color">
                   https://
                 </InputGroupAddon>
-                <InputGroupInput name="website" placeholder="www.nextadmin.co" className="pl-2" />
+                <InputGroupInput
+                  name="website"
+                  placeholder="www.nextadmin.co"
+                  className="pl-2"
+                />
               </InputGroup>
             </TextField>
 
@@ -112,7 +182,7 @@ export default function AccountPage() {
             </TextField>
 
             <div>
-              <Select name="country" defaultSelectedKey="us" className="h-full">
+              <Select name="country" className="h-full">
                 <SelectLabel>Country</SelectLabel>
                 <SelectTrigger className="h-full w-full border-input-border">
                   <SelectValue className="flex items-center gap-2" />
@@ -120,7 +190,11 @@ export default function AccountPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {countryOptions.map((option) => (
-                    <SelectItem key={option.value} id={option.value} textValue={option.label}>
+                    <SelectItem
+                      key={option.value}
+                      id={option.value}
+                      textValue={option.label}
+                    >
                       <span className="flex items-center gap-2">
                         <Image
                           src={option.flag}
@@ -156,10 +230,25 @@ export default function AccountPage() {
               >
                 Cancel
               </Button>
-              <Button variant="primary" size="lg" type="submit" className="px-3.5 text-sm">
+              <Button
+                variant="primary"
+                size="lg"
+                type="button"
+                isDisabled
+                aria-disabled="true"
+                aria-describedby="account-save-note"
+                className="px-3.5 text-sm"
+              >
                 Save Changes
               </Button>
             </div>
+            <p
+              id="account-save-note"
+              className="col-span-1 text-right text-xs text-text-tertiary md:col-span-2"
+            >
+              Thông tin hồ sơ chưa thể lưu trên hệ thống; ảnh mới chỉ được xem
+              trước tại trang này.
+            </p>
           </div>
         </Form>
       </Card>
@@ -190,7 +279,9 @@ export default function AccountPage() {
         {/* Delete Account */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p className="mb-1 text-sm leading-5 font-medium text-text-primary">Delete Account</p>
+            <p className="mb-1 text-sm leading-5 font-medium text-text-primary">
+              Delete Account
+            </p>
             <p className="text-xs leading-4 text-text-tertiary">
               Delete your account permanently along with all associated data.
             </p>

@@ -8,9 +8,17 @@ import type {
   LeadSaleDashboardTrendPoint,
 } from "@/services/api/lead-sale";
 
-export type LeadSaleTone = "primary" | "success" | "warning" | "danger" | "violet";
+export type LeadSaleTone =
+  | "primary"
+  | "success"
+  | "warning"
+  | "danger"
+  | "violet";
 
-export type LeadSaleDetailKind = "records" | "sales-breakdown" | "stage-breakdown";
+export type LeadSaleDetailKind =
+  | "records"
+  | "sales-breakdown"
+  | "stage-breakdown";
 
 export interface LeadSaleDashboardFilters {
   period: string;
@@ -61,6 +69,7 @@ export const LEAD_SALE_FILTER_OPTIONS = {
 } as const;
 
 export type LeadSaleDetailId =
+  | `record:${string}`
   | "enrollment"
   | "forecast"
   | "overdue"

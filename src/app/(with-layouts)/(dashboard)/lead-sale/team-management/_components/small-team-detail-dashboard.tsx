@@ -13,6 +13,7 @@ import { canManageMembers, canManageTeam } from "./team-management-access";
 import {
   findMember,
   membersOfSmallTeam,
+  teamLeaderCandidates,
 } from "./team-management-utils";
 import TeamMemberList from "./team-member-list";
 import { useTeamManagement } from "./use-team-management";
@@ -55,6 +56,7 @@ export default function SmallTeamDetailDashboard({
     state.permissions?.managedGroupIds.includes(bigTeam.id),
   );
   const members = membersOfSmallTeam(state, smallTeam);
+  const leaderCandidates = teamLeaderCandidates(state, smallTeam);
   const candidates = state.members.filter(
     (member) =>
       member.isActive !== false &&
@@ -99,10 +101,7 @@ export default function SmallTeamDetailDashboard({
   const handleAddMember = (memberId: string) => {
     const added = findMember(state.members, memberId);
     if (!added) return;
-    const functionName =
-      added.role === "CTV_SALE"
-        ? "CTV Sale"
-        : "Sale";
+    const functionName = added.role === "CTV_SALE" ? "CTV Sale" : "Sale";
     void run(
       () =>
         addMember({
@@ -162,9 +161,22 @@ export default function SmallTeamDetailDashboard({
           canManageMembers={canManageTeamMembers}
           leadPicker={
             <div className="flex w-full flex-col items-start gap-2 sm:w-auto">
-              <span className="text-xs text-text-tertiary">Trưởng nhóm</span>
+              {!smallTeam.leadId && (
+                <div
+                  role="alert"
+                  className="max-w-sm rounded-lg border border-badge-warning-background bg-badge-warning-background px-3 py-2 text-xs text-badge-warning-text"
+                >
+                  <p className="font-semibold">Team chưa có trưởng nhóm.</p>
+                  <p className="mt-1">
+                    Chọn một Sale/CTV cùng chi nhánh hoặc thêm thành viên trước.
+                  </p>
+                </div>
+              )}
+              <span className="text-xs text-text-tertiary">
+                {smallTeam.leadId ? "Trưởng nhóm" : "Bổ sung trưởng nhóm"}
+              </span>
               <LeadPickerField
-                candidates={members}
+                candidates={leaderCandidates}
                 value={smallTeam.leadId}
                 onChange={(leadId) =>
                   void run(
@@ -175,9 +187,7 @@ export default function SmallTeamDetailDashboard({
                 isDisabled={!canManageTeamDetails}
                 ariaLabel={`Trưởng nhóm ${smallTeam.name}`}
                 placeholder={
-                  members.length === 0
-                    ? "Chưa có thành viên"
-                    : "Chọn trưởng nhóm"
+                  smallTeam.leadId ? "Chọn trưởng nhóm" : "Bổ sung trưởng nhóm"
                 }
                 className="w-full sm:w-60"
               />

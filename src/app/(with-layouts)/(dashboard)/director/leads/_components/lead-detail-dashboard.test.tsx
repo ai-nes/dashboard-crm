@@ -13,8 +13,11 @@ const state = vi.hoisted(() => ({
   convert: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
+  processLead: vi.fn(),
   replace: vi.fn(),
   childIds: [] as string[],
+  status: "ASSIGNED",
+  onProcessLead: undefined as (() => void) | undefined,
   onConvert: undefined as (() => void) | undefined,
   onDelete: undefined as (() => void) | undefined,
 }));
@@ -51,7 +54,7 @@ vi.mock("@/hooks/use-lead-sale-leads-queries", () => ({
           id: state.id,
           leadCode: state.code,
           name: "Võ Khánh Linh",
-          processingStatus: "ASSIGNED",
+          processingStatus: state.status,
           phone: "0835102605",
           province: "HCM",
           school: "THPT An Nhơn Tây",
@@ -63,6 +66,10 @@ vi.mock("@/hooks/use-lead-sale-leads-queries", () => ({
   useConvertLeadToStudentMutation: () => ({ mutate: state.convert }),
   useUpdateLeadMutation: () => ({ mutateAsync: state.update }),
   useDeleteLeadMutation: () => ({ mutate: state.remove }),
+  useProcessLeadMutation: () => ({
+    mutate: state.processLead,
+    isPending: false,
+  }),
 }));
 vi.mock("@/components/common/detail-tabs", () => ({
   default: ({ tabs }: { tabs: { content: ReactNode }[] }) => (
@@ -96,7 +103,10 @@ function captureChild({ leadId }: { leadId: string }) {
   return null;
 }
 vi.mock("./lead-details-tab", () => ({
-  default: (props: { leadId: string }) => captureChild(props),
+  default: (props: { leadId: string; onProcessLead?: () => void }) => {
+    state.onProcessLead = props.onProcessLead;
+    return captureChild(props);
+  },
 }));
 vi.mock("./lead-calls-tab", () => ({
   default: (props: { leadId: string }) => captureChild(props),
@@ -118,6 +128,8 @@ describe("Lead detail route identity", () => {
     vi.clearAllMocks();
     state.allowed = true;
     state.childIds = [];
+    state.status = "ASSIGNED";
+    state.onProcessLead = undefined;
     state.onConvert = undefined;
     state.onDelete = undefined;
   });
@@ -151,6 +163,17 @@ describe("Lead detail route identity", () => {
     });
     expect(state.replace).toHaveBeenCalledWith(
       "/director/students/HS-2026-HCM-002670",
+    );
+  });
+  it("offers the processing mutation before assignment for a NEW Lead", () => {
+    state.status = "NEW";
+    renderToStaticMarkup(<LeadDetailDashboard leadId={state.code} />);
+
+    expect(state.onProcessLead).toBeTypeOf("function");
+    state.onProcessLead?.();
+    expect(state.processLead).toHaveBeenCalledWith(
+      { lead: state.id },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
   });
   it("keeps code routes gated by the existing read permission", () => {
