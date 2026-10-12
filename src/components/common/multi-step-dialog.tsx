@@ -16,6 +16,11 @@ import {
   DialogTitle,
 } from "@/components/tailgrids/core/dialog";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
+import {
+  ScrollArea,
+  ScrollAreaViewport,
+  ScrollBar,
+} from "@/components/tailgrids/core/scroll-area";
 
 interface MultiStepDialogProps {
   isOpen: boolean;
@@ -32,6 +37,7 @@ interface MultiStepDialogProps {
   children: ReactNode;
   formClassName?: string;
   bodyClassName?: string;
+  scrollable?: boolean;
 }
 
 export function MultiStepDialog({
@@ -49,6 +55,7 @@ export function MultiStepDialog({
   children,
   formClassName,
   bodyClassName,
+  scrollable = false,
 }: MultiStepDialogProps) {
   const handleOpenChange = (open: boolean) => {
     if (open || !isBusy) onOpenChange(open);
@@ -108,11 +115,24 @@ export function MultiStepDialog({
             </ol>
           </DialogHeader>
           <form onSubmit={onSubmit} className={formClassName}>
-            <DialogBody
-              className={`max-h-[calc(100vh-15rem)] space-y-4 overflow-y-auto px-6 py-5 ${bodyClassName ?? ""}`}
-            >
-              {children}
-            </DialogBody>
+            {scrollable ? (
+              <ScrollArea className="min-h-0 max-h-[calc(100vh-15rem)] flex-1 overflow-hidden">
+                <ScrollAreaViewport className="max-h-[calc(100vh-15rem)]">
+                  <DialogBody
+                    className={`space-y-4 px-6 py-5 ${bodyClassName ?? ""}`}
+                  >
+                    {children}
+                  </DialogBody>
+                </ScrollAreaViewport>
+                <ScrollBar />
+              </ScrollArea>
+            ) : (
+              <DialogBody
+                className={`max-h-[calc(100vh-15rem)] space-y-4 overflow-y-auto px-6 py-5 ${bodyClassName ?? ""}`}
+              >
+                {children}
+              </DialogBody>
+            )}
             <DialogFooter className="border-t border-card-border px-6 py-4">
               {footer}
             </DialogFooter>

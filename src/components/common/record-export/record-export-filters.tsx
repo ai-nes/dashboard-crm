@@ -1,5 +1,6 @@
 "use client";
 import { Close } from "@tailgrids/icons";
+import { useState } from "react";
 import { Button } from "@/components/tailgrids/core/button";
 import { SegmentFilterLogicSelect } from "@/components/segments/segment-filter-logic-select";
 import type {
@@ -21,6 +22,7 @@ export function RecordExportFilters({
   value: RecordExportConditions;
   onChange: (value: RecordExportConditions) => void;
 }) {
+  const [nextLogic, setNextLogic] = useState<"AND" | "OR">("AND");
   const update = (index: number, condition: RecordExportCondition) =>
     onChange({
       ...value,
@@ -34,11 +36,14 @@ export function RecordExportFilters({
       ...value,
       conditions: [
         ...value.conditions,
-        { field: field.id, operator: field.operators[0] },
+        {
+          field: field.id,
+          operator: field.operators[0],
+          ...(value.conditions.length ? { logic: nextLogic } : {}),
+        },
       ],
     });
   };
-  const setLogic = (logic: "AND" | "OR") => onChange({ ...value, logic });
   if (value.conditions.length === 0)
     return (
       <section
@@ -62,7 +67,9 @@ export function RecordExportFilters({
       className="space-y-3 rounded-2xl border border-card-border bg-card-surface-area p-3 sm:p-4"
     >
       <header className="flex items-center justify-between gap-3 px-1 pb-1">
-        <h3 className="font-semibold text-text-primary">Điều kiện lọc</h3>
+        <h3 className="text-sm font-semibold text-text-primary">
+          Điều kiện lọc
+        </h3>
         <span className="text-xs text-text-tertiary">
           {value.conditions.length}/50 điều kiện
         </span>
@@ -73,11 +80,13 @@ export function RecordExportFilters({
           return (
             <div key={index} className="space-y-2">
               {index > 0 && (
-                <SegmentFilterLogicSelect
-                  value={value.logic}
-                  onChange={setLogic}
-                  ariaLabel={`Toán tử trước điều kiện ${index + 1}`}
-                />
+                <div className="flex items-center gap-3">
+                  <SegmentFilterLogicSelect
+                    value={condition.logic ?? value.logic}
+                    onChange={(logic) => update(index, { ...condition, logic })}
+                    ariaLabel={`Toán tử trước điều kiện ${index + 1}`}
+                  />
+                </div>
               )}
               <div className="flex flex-wrap items-center gap-2 rounded-lg bg-background-gray-secondary p-3">
                 <div className="min-w-40 flex-1">
@@ -87,6 +96,7 @@ export function RecordExportFilters({
                     label={`Trường điều kiện ${index + 1}`}
                     onSelect={(next) =>
                       update(index, {
+                        logic: condition.logic,
                         field: next.id,
                         operator: next.operators[0],
                       })
@@ -97,17 +107,30 @@ export function RecordExportFilters({
                   <RecordExportSelect
                     label={`Phép lọc điều kiện ${index + 1}`}
                     value={condition.operator}
-                    options={(field?.operators ?? []).map((operator) => ({
-                      value: operator,
-                      label: EXPORT_OPERATOR_LABELS[operator] ?? operator,
-                    }))}
+                    options={(field?.operators ?? [])
+                      .filter(
+                        (operator) =>
+                          (!field?.optionField && field?.type !== "enum") ||
+                          !["contains", "not_contains", "eq", "neq"].includes(
+                            operator,
+                          ) ||
+                          operator === condition.operator,
+                      )
+                      .map((operator) => ({
+                        value: operator,
+                        label: EXPORT_OPERATOR_LABELS[operator] ?? operator,
+                      }))}
                     triggerClassName="h-11 bg-card-surface-area"
                     onChange={(operator) =>
-                      update(index, { field: condition.field, operator })
+                      update(index, {
+                        field: condition.field,
+                        operator,
+                        logic: condition.logic,
+                      })
                     }
                   />
                 </div>
-                <div className="min-w-40 flex-1">
+                <div className="flex min-w-40 flex-1">
                   <RecordExportConditionValue
                     field={field}
                     condition={condition}
@@ -140,8 +163,8 @@ export function RecordExportFilters({
       </div>
       <div className="flex flex-wrap items-center gap-3 rounded-lg bg-background-gray-secondary p-3">
         <SegmentFilterLogicSelect
-          value={value.logic}
-          onChange={setLogic}
+          value={nextLogic}
+          onChange={setNextLogic}
           ariaLabel="Toán tử khi thêm bộ lọc"
         />
         <RecordExportFieldPicker
@@ -152,7 +175,7 @@ export function RecordExportFilters({
       </div>
       <p className="px-1 text-xs text-text-tertiary">
         Các điều kiện được kết hợp với bộ lọc danh sách và phạm vi dữ liệu bạn
-        được xem.
+        được xem. “và” được ưu tiên trước “hoặc”.
       </p>
     </section>
   );

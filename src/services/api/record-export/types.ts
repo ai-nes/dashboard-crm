@@ -14,6 +14,7 @@ export interface RecordExportField {
   operators: string[];
   options?: { value: string; label: string }[];
   integer?: boolean;
+  optionField?: string;
 }
 export interface RecordExportCatalog {
   fields: RecordExportField[];
@@ -23,8 +24,9 @@ export interface RecordExportCatalog {
 export interface RecordExportCondition {
   field: string;
   operator: string;
-  value?: string | number | boolean;
+  value?: string | number | boolean | string[];
   valueTo?: string | number;
+  logic?: "AND" | "OR";
 }
 export interface RecordExportConditions {
   logic: "AND" | "OR";

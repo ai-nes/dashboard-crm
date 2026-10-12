@@ -5,6 +5,8 @@ import type {
 } from "@/services/api/record-export/types";
 
 export const EXPORT_OPERATOR_LABELS: Record<string, string> = {
+  in: "Là một trong",
+  not_in: "Không thuộc",
   contains: "Chứa",
   not_contains: "Không chứa",
   eq: "Bằng",
@@ -52,6 +54,25 @@ export function validateExportDraft(
     if (!field || !field.operators.includes(condition.operator))
       return "Vui lòng chọn field và phép lọc hợp lệ.";
     if (["empty", "not_empty"].includes(condition.operator)) continue;
+    if (["in", "not_in"].includes(condition.operator)) {
+      if (
+        (field.type !== "enum" && !field.optionField) ||
+        !Array.isArray(condition.value) ||
+        !condition.value.length ||
+        condition.value.length > 100 ||
+        condition.value.some(
+          (value) =>
+            !value.trim() ||
+            (field.optionField
+              ? value.length > 191
+              : !field.options?.some((option) => option.value === value)),
+        )
+      )
+        return `Vui lòng chọn giá trị hợp lệ cho “${field.label}”.`;
+      continue;
+    }
+    if (Array.isArray(condition.value))
+      return `Giá trị “${field.label}” không hợp lệ.`;
     const values =
       condition.operator === "between"
         ? [condition.value, condition.valueTo]
