@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  ChevronDown,
-  RefreshCircle1Clockwise,
-  Sparkle,
-} from "@tailgrids/icons";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
-import AnalysisDrawer from "@/components/analysis-runs/analysis-drawer";
 import { formatTerminalReason } from "@/components/analysis-runs/analysis-run-meta";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
@@ -17,17 +10,15 @@ import {
   getCrmPermissions,
   hasCrmCapability,
 } from "@/components/common/auth/permissions";
-import DetailTabs from "@/components/common/detail-tabs";
-import { Button } from "@/components/tailgrids/core/button";
+import DetailTabs, {
+  type DetailTabItem,
+} from "@/components/common/detail-tabs";
 import { useStudentAnalysis } from "@/hooks/use-student-ai";
-import { cn } from "@/utils/cn";
-
-import StudentChallengesCard from "./student-challenges-card";
-import StudentContactInsightsCard from "./student-contact-insights-card";
-import StudentPositiveFeedbackCard from "./student-positive-feedback-card";
-import StudentRecentInteractionsCard from "./student-recent-interactions-card";
-import StudentSentimentGaugeCard from "./student-sentiment-gauge-card";
+import StudentInsightCard from "./student-insight-card";
+import StudentAnalysisDimensions from "./student-analysis-dimensions";
+import StudentInsightSignals from "./student-insight-signals";
 import StudentNextBestActions from "./student-next-best-actions";
+import StudentOverviewInteractions from "./student-overview-interactions";
 import type { StudentScoreBreakdown } from "./student-score-breakdown";
 import type { Student360SectionProps } from "./types";
 
@@ -41,7 +32,6 @@ interface StudentClassificationCockpitProps extends Student360SectionProps {
 export default function StudentClassificationCockpit({
   data,
   analysisTargetId,
-  scoreBreakdown,
 }: StudentClassificationCockpitProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const crmPermissions = getCrmPermissions(user);
@@ -57,21 +47,17 @@ export default function StudentClassificationCockpit({
   const canReadAiRecommendations =
     !isAuthLoading && canReadStudentRecord && recommendationPermissions.canRead;
   const canRequestAnalysis =
-    !isAuthLoading &&
-    canReadStudentRecord &&
+    canReadAiRecommendations &&
     recommendationPermissions.canCreate &&
     hasCrmCapability(user, "recommendation.decide");
   const canReadInteractions =
     !isAuthLoading &&
     canReadStudentRecord &&
     getCrmDoctypePermissions(user, "CRM Interaction Type").canRead;
-  const [isOverviewOpen, setIsOverviewOpen] = useState(true);
-  const [isHealthOpen, setIsHealthOpen] = useState(true);
-  const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
   const [nbaCount, setNbaCount] = useState(0);
-
   const {
     run,
+    overview,
     request,
     requestMutation,
     query: runQuery,
@@ -87,256 +73,96 @@ export default function StudentClassificationCockpit({
   const terminalReasonLabel = formatTerminalReason(terminalReason);
 
   useEffect(() => {
-    if (!analysisError) return;
-
-    toast.error("Chưa thể hoàn tất phân tích 360", {
-      description: "Vui lòng thử lại sau.",
-    });
+    if (analysisError)
+      toast.error("Chưa thể hoàn tất phân tích 360", {
+        description: "Vui lòng thử lại sau.",
+      });
   }, [analysisError]);
-
   useEffect(() => {
-    if (!terminalReasonLabel) return;
-
-    toast.warning("Phân tích 360 chưa hoàn tất", {
-      description: `${terminalReasonLabel}. Bạn có thể chọn “Phân tích” để thử lại.`,
-    });
+    if (terminalReasonLabel)
+      toast.warning("Phân tích 360 chưa hoàn tất", {
+        description: terminalReasonLabel,
+      });
   }, [terminalReasonLabel]);
 
-  const handleAnalysisRequest = () => {
-    if (canRequestAnalysis) request();
-  };
+  const analysis = canReadAiRecommendations ? overview?.analysis : null;
+  const labels = canReadAiRecommendations ? overview?.labels : undefined;
+  if (!isAuthLoading && !canReadStudentRecord) return null;
 
-  const student360Stage = useMemo(
-    () =>
-      canReadAiRecommendations
-        ? (run?.stages.find((stage) => stage.stageKind === "student_360") ??
-          null)
-        : null,
-    [canReadAiRecommendations, run],
-  );
-  const report = student360Stage?.report ?? null;
-  const risks = report?.risks ?? [];
-  const recommendations =
-    report?.recommendations.filter((item) => item.kind === "recommendation") ??
-    [];
-  const opportunities =
-    report?.opportunities ??
-    report?.recommendations.filter((item) => item.kind === "opportunity") ??
-    [];
-  const primaryAdvisory = report?.advisorySignals?.[0] ?? null;
-  const reportSummary = report?.summary ?? primaryAdvisory?.summary;
+  const tabs: DetailTabItem[] = [
+    {
+      id: "next-actions",
+      label: "Hành động tiếp theo",
+      badge: nbaCount || undefined,
+      content: (
+        <div className="space-y-3">
+          <h2
+            id="next-best-actions-heading"
+            className="flex items-center gap-2 text-base font-semibold text-text-primary"
+          >
+            Hành động tiếp theo
+          </h2>
+          <StudentNextBestActions
+            data={data}
+            studentId={analysisTargetId}
+            isAnalysisActive={isAnalysisActive}
+            onActionsCountChange={setNbaCount}
+          />
+        </div>
+      ),
+    },
+    {
+      id: "analysis-360",
+      label: "Phân tích 360",
+      content: (
+        <div className="space-y-4">
+          <StudentInsightCard
+            overview={canReadAiRecommendations ? overview : undefined}
+            canRead={canReadAiRecommendations}
+            onAnalyze={canRequestAnalysis ? request : undefined}
+            isBusy={isAnalysisActive}
+            isLoading={
+              isAuthLoading || (canReadAiRecommendations && runQuery.isLoading)
+            }
+            hasError={Boolean(analysisError)}
+            hasTarget={Boolean(analysisTargetId.trim())}
+          />
+          <StudentAnalysisDimensions
+            dimensions={analysis?.insight.dimensions}
+            labels={labels}
+            canRead={canReadAiRecommendations}
+            isLoading={Boolean(isAnalysisActive || runQuery.isLoading)}
+          />
+          <StudentInsightSignals
+            insight={analysis?.insight}
+            labels={labels}
+            canRead={canReadAiRecommendations}
+            isLoading={Boolean(isAnalysisActive || runQuery.isLoading)}
+          />
+        </div>
+      ),
+    },
+  ];
+
+  if (canReadInteractions) {
+    tabs.push({
+      id: "recent-interactions",
+      label: "Tương tác gần đây",
+      content: (
+        <StudentOverviewInteractions
+          studentId={analysisTargetId}
+          canReadInteractions={canReadInteractions}
+        />
+      ),
+    });
+  }
 
   return (
-    <div className="mt-0 space-y-6">
-      <DetailTabs
-        ariaLabel="Các phần trong tổng quan"
-        defaultSelectedKey="next-actions"
-        isSticky={false}
-        tabs={[
-          {
-            id: "next-actions",
-            label: "Hành động tiếp theo",
-            badge: nbaCount || undefined,
-            content: (
-              <StudentNextBestActions
-                data={data}
-                studentId={analysisTargetId}
-                isAnalysisActive={isAnalysisActive}
-                onActionsCountChange={setNbaCount}
-              />
-            ),
-          },
-          {
-            id: "analysis-360",
-            label: "Phân tích 360",
-            content: (
-              <div className="space-y-6">
-                {/* Section 1: Overview */}
-                <section
-                  aria-labelledby="section-overview-heading"
-                  className="space-y-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsOverviewOpen((prev) => !prev)}
-                      className="flex cursor-pointer items-center gap-2 text-base font-semibold text-text-primary transition-colors hover:text-text-secondary focus:outline-hidden"
-                      aria-expanded={isOverviewOpen}
-                    >
-                      <ChevronDown
-                        size={18}
-                        className={cn(
-                          "transition-transform duration-200 text-text-tertiary",
-                          !isOverviewOpen && "-rotate-90",
-                        )}
-                        aria-hidden="true"
-                      />
-                      <h2
-                        id="section-overview-heading"
-                        className="text-base font-semibold tracking-tight"
-                      >
-                        Tổng quan hồ sơ tuyển sinh
-                      </h2>
-                    </button>
-                    {canRequestAnalysis && (
-                      <Button
-                        appearance="outline"
-                        isDisabled={
-                          !analysisTargetId.trim() || isAnalysisActive
-                        }
-                        onPress={handleAnalysisRequest}
-                        size="xs"
-                      >
-                        {isAnalysisActive ? (
-                          <RefreshCircle1Clockwise
-                            className="motion-safe:animate-spin"
-                            size={14}
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <Sparkle size={14} aria-hidden="true" />
-                        )}
-                        {isAnalysisActive ? "Đang phân tích" : "Phân tích"}
-                      </Button>
-                    )}
-                  </div>
-
-                  {isOverviewOpen && (
-                    <div className="space-y-4">
-                      <div className="space-y-4">
-                        {/* Supporting contact context */}
-                        <StudentContactInsightsCard
-                          report={report}
-                          isRefreshing={Boolean(isAnalysisActive)}
-                          onRefresh={
-                            canRequestAnalysis
-                              ? handleAnalysisRequest
-                              : undefined
-                          }
-                        />
-                      </div>
-
-                      {/* Card 2: Recent interactions */}
-                      <StudentRecentInteractionsCard
-                        studentId={data.student.studentId}
-                        recentChanges={report?.recentChanges}
-                        isRefreshing={Boolean(isAnalysisActive)}
-                        onRefresh={
-                          canRequestAnalysis ? handleAnalysisRequest : undefined
-                        }
-                        canReadInteractions={canReadInteractions}
-                      />
-                    </div>
-                  )}
-                </section>
-
-                {/* Section 2: Health */}
-                <section
-                  aria-labelledby="section-health-heading"
-                  className="space-y-4"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setIsHealthOpen((prev) => !prev)}
-                    className="flex cursor-pointer items-center gap-2 text-base font-semibold text-text-primary transition-colors hover:text-text-secondary focus:outline-hidden"
-                    aria-expanded={isHealthOpen}
-                  >
-                    <ChevronDown
-                      size={18}
-                      className={cn(
-                        "transition-transform duration-200 text-text-tertiary",
-                        !isHealthOpen && "-rotate-90",
-                      )}
-                      aria-hidden="true"
-                    />
-                    <h2
-                      id="section-health-heading"
-                      className="text-base font-semibold tracking-tight"
-                    >
-                      Đánh giá điểm tiềm năng hồ sơ
-                    </h2>
-                  </button>
-
-                  {isHealthOpen && (
-                    <div className="space-y-4">
-                      {/* Card 3: Sentiment & Potential with Speedometer Gauge */}
-                      <StudentSentimentGaugeCard
-                        data={data}
-                        reportSummary={reportSummary}
-                        isRefreshing={Boolean(isAnalysisActive)}
-                        onRefresh={handleAnalysisRequest}
-                        scoreBreakdown={scoreBreakdown}
-                      />
-
-                      <div className="grid items-stretch gap-4 lg:grid-cols-2">
-                        {/* Card 4: Challenges */}
-                        <StudentChallengesCard
-                          data={data}
-                          risks={risks}
-                          isRefreshing={Boolean(isAnalysisActive)}
-                          onRefresh={
-                            canRequestAnalysis
-                              ? handleAnalysisRequest
-                              : undefined
-                          }
-                        />
-
-                        {/* Card 5: Positive feedback */}
-                        <StudentPositiveFeedbackCard
-                          data={data}
-                          recommendations={recommendations}
-                          opportunities={opportunities}
-                          isRefreshing={Boolean(isAnalysisActive)}
-                          onRefresh={
-                            canRequestAnalysis
-                              ? handleAnalysisRequest
-                              : undefined
-                          }
-                        />
-                      </div>
-                    </div>
-                  )}
-                </section>
-              </div>
-            ),
-          },
-          /* Tạm ẩn tab Visual 360; giữ nguyên cấu hình để bật lại khi cần.
-          ...(canViewVisual
-            ? [
-                {
-                  id: "visual-360",
-                  label: "Visual 360",
-                  content: (
-                    <StudentVisual360
-                      canReadInteractions={canReadInteractions}
-                      canRead={canViewVisual}
-                      data={data}
-                      report={report}
-                      scoreBreakdown={scoreBreakdown}
-                      isLoading={Boolean(
-                        isAnalysisActive || runQuery.isLoading,
-                      )}
-                      hasError={Boolean(analysisError)}
-                    />
-                  ),
-                },
-              ]
-            : []),
-          */
-        ]}
-      />
-
-      {/* Optional Analysis Drawer for deep claims review */}
-      {run && (
-        <AnalysisDrawer
-          isOpen={isAnalysisDrawerOpen}
-          kind="student"
-          onOpenChange={setIsAnalysisDrawerOpen}
-          run={run}
-          targetId={analysisTargetId}
-          title="Báo cáo phân tích chuyên sâu 360"
-        />
-      )}
-    </div>
+    <DetailTabs
+      ariaLabel="Các phần trong tổng quan"
+      defaultSelectedKey="next-actions"
+      isSticky={false}
+      tabs={tabs}
+    />
   );
 }
