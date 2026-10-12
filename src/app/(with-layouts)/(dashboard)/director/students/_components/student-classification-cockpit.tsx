@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { formatTerminalReason } from "@/components/analysis-runs/analysis-run-meta";
 import { useAuth } from "@/components/common/auth/auth-provider";
@@ -10,13 +10,11 @@ import {
   getCrmPermissions,
   hasCrmCapability,
 } from "@/components/common/auth/permissions";
-import { Badge } from "@/components/tailgrids/core/badge";
 import { useStudentAnalysis } from "@/hooks/use-student-ai";
 import StudentInsightCard from "./student-insight-card";
 import StudentAnalysisDimensions from "./student-analysis-dimensions";
 import StudentInsightSignals from "./student-insight-signals";
 import StudentNextBestActions from "./student-next-best-actions";
-import StudentOverviewInteractions from "./student-overview-interactions";
 import type { StudentScoreBreakdown } from "./student-score-breakdown";
 import type { Student360SectionProps } from "./types";
 
@@ -48,11 +46,6 @@ export default function StudentClassificationCockpit({
     canReadAiRecommendations &&
     recommendationPermissions.canCreate &&
     hasCrmCapability(user, "recommendation.decide");
-  const canReadInteractions =
-    !isAuthLoading &&
-    canReadStudentRecord &&
-    getCrmDoctypePermissions(user, "CRM Interaction Type").canRead;
-  const [nbaCount, setNbaCount] = useState(0);
   const {
     run,
     overview,
@@ -89,28 +82,11 @@ export default function StudentClassificationCockpit({
 
   return (
     <div className="min-w-0 space-y-4">
-      <section
-        aria-labelledby="next-best-actions-heading"
-        className="space-y-3"
-      >
-        <h2
-          id="next-best-actions-heading"
-          className="flex items-center gap-2 text-base font-semibold text-text-primary"
-        >
-          Hành động tiếp theo
-          {canReadAiRecommendations && nbaCount > 0 && (
-            <Badge color="gray" size="sm">
-              {nbaCount}
-            </Badge>
-          )}
-        </h2>
-        <StudentNextBestActions
-          data={data}
-          studentId={analysisTargetId}
-          isAnalysisActive={isAnalysisActive}
-          onActionsCountChange={setNbaCount}
-        />
-      </section>
+      <StudentNextBestActions
+        data={data}
+        studentId={analysisTargetId}
+        isAnalysisActive={isAnalysisActive}
+      />
 
       <div className="space-y-4">
         <StudentInsightCard
@@ -138,12 +114,6 @@ export default function StudentClassificationCockpit({
         />
       </div>
 
-      {canReadInteractions && (
-        <StudentOverviewInteractions
-          studentId={analysisTargetId}
-          canReadInteractions={canReadInteractions}
-        />
-      )}
     </div>
   );
 }
