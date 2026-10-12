@@ -8,10 +8,19 @@ import { getDefaultRouteForRoles, getEffectiveDashboardRoles } from "./rbac";
 export type CrmRecordScope = "assigned" | "team" | "all" | "none";
 export type CrmPermissionAction = "create" | "read" | "update" | "delete";
 
+export function isCrmAdmin(user: CurrentUser | null | undefined): boolean {
+  return Boolean(
+    user?.crm_is_administrator ||
+      user?.roles?.includes("Administrator") ||
+      user?.roles?.includes("System Manager"),
+  );
+}
+
 export function hasCrmCapability(
   user: CurrentUser | null | undefined,
   capability: string,
 ): boolean {
+  if (isCrmAdmin(user)) return true;
   return user?.crm_capabilities?.includes(capability) ?? false;
 }
 
@@ -28,6 +37,15 @@ export function getCrmDoctypePermissions(
   user: CurrentUser | null | undefined,
   documentType: string,
 ): CrmDoctypePermissions {
+  if (isCrmAdmin(user)) {
+    return {
+      canRead: true,
+      canCreate: true,
+      canUpdate: true,
+      canDelete: true,
+      canExport: true,
+    };
+  }
   const permission = user?.crm_doctype_permissions?.[documentType];
   const canRead = permission?.read === true;
   return {
@@ -273,6 +291,19 @@ function toResourcePermissions(
   documentType: string,
   canAssign: boolean,
 ): CrmResourcePermissions {
+  if (isCrmAdmin(user)) {
+    return {
+      scope: "all",
+      readScope: "all",
+      canCreate: true,
+      canRead: true,
+      canUpdate: true,
+      canDelete: true,
+      deleteRequiresOwnership: false,
+      canAssign: true,
+    };
+  }
+
   const permission: CurrentUserDocTypePermission | undefined =
     user?.crm_doctype_permissions?.[documentType];
   if (!permission) return NO_ACCESS;
