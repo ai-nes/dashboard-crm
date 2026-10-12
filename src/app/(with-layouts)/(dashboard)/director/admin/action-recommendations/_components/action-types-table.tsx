@@ -1,6 +1,8 @@
 "use client";
 
-import { Eye, Pencil1, Plus } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+import { Plus } from "@tailgrids/icons";
 import { useState } from "react";
 
 import {
@@ -182,24 +184,9 @@ export default function ActionTypesTable({
                       />
                     </AdminTableCell>
                     <AdminTableCell className="text-center">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        appearance="outline"
-                        onPress={() => {
-                          setIsCreateOpen(false);
-                          setSelected(actionType);
-                        }}
-                        aria-label={`${canUpdate ? "Chỉnh sửa" : "Xem"} nhóm ${actionType.displayName}`}
-                        className="min-w-20"
-                      >
-                        {canUpdate ? (
-                          <Pencil1 size={16} aria-hidden="true" />
-                        ) : (
-                          <Eye size={16} aria-hidden="true" />
-                        )}
-                        {canUpdate ? "Sửa" : "Xem"}
-                      </Button>
+                      <TableRowActions label={actionType.displayName} actions={[
+  { id: canUpdate ? "edit" : "view", label: canUpdate ? "Chỉnh sửa" : "Xem chi tiết", ariaLabel: `${canUpdate ? "Chỉnh sửa" : "Xem"} nhóm ${actionType.displayName}`, onAction: () => { setIsCreateOpen(false); setSelected(actionType); } },
+]} />
                     </AdminTableCell>
                   </AdminTableRow>
                 ))}

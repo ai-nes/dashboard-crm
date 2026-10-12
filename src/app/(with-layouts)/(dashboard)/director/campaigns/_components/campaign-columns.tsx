@@ -1,8 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Pencil1, Trash1 } from "@tailgrids/icons";
 import Link from "next/link";
 
-import { Button } from "@/components/tailgrids/core/button";
+import { TableRowActions } from "@/components/common/table-row-actions";
 import {
   Select,
   SelectContent,
@@ -217,32 +216,11 @@ export function campaignColumns({
       cell: ({ row }) => {
         const campaign = row.original;
         return (
-          <div className="flex items-center gap-1">
-            {canUpdate && (
-              <Button
-                appearance="ghost"
-                size="sm"
-                iconOnly
-                aria-label={`Sửa ${campaign.name}`}
-                className="text-text-tertiary"
-                onPress={() => onEdit(campaign)}
-              >
-                <Pencil1 size={15} aria-hidden="true" />
-              </Button>
-            )}
-            {canDelete && (
-              <Button
-                appearance="ghost"
-                size="sm"
-                iconOnly
-                variant="danger"
-                aria-label={`Xóa ${campaign.name}`}
-                onPress={() => onDelete(campaign)}
-              >
-                <Trash1 size={15} aria-hidden="true" />
-              </Button>
-            )}
-          </div>
+          <TableRowActions label={campaign.name} actions={[
+            { id: "view", label: "Xem chi tiết", href: getCampaignDetailPath(detailListPath, getBusinessRouteKey(campaign.code, campaign.id)) },
+            { id: "edit", label: "Chỉnh sửa", ariaLabel: `Sửa ${campaign.name}`, onAction: () => onEdit(campaign), isVisible: canUpdate },
+            { id: "delete", label: "Xóa", onAction: () => onDelete(campaign), isVisible: canDelete, variant: "danger" },
+          ]} />
         );
       },
     },

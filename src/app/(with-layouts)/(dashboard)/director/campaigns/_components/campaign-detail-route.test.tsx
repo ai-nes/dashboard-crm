@@ -41,6 +41,7 @@ vi.mock("@/hooks/use-lead-sale-campaign-queries", () => ({
   }),
 }));
 vi.mock("@/hooks/use-lead-sale-leads-queries", () => ({
+  useDeleteLeadMutation: () => ({ isPending: false, mutate: vi.fn() }),
   useLeadSaleLeadsQuery: () => ({
     data: { data: [], meta: { stats: {} } },
     isPending: false,

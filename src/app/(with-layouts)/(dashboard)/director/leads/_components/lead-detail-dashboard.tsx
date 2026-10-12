@@ -42,7 +42,13 @@ import {
 } from "./lead-conversion-validation";
 import { normalizeLeadStageStatus } from "./lead-status";
 
-export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
+export default function LeadDetailDashboard({
+  leadId,
+  initialEditContact = false,
+}: {
+  leadId: string;
+  initialEditContact?: boolean;
+}) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
   const permissions = getCrmPermissions(user);
@@ -245,6 +251,7 @@ export default function LeadDetailDashboard({ leadId }: { leadId: string }) {
         <LeadDetailsTab
           canAssign={canAssignLead}
           canEdit={canUpdateLead}
+          initialEditContact={initialEditContact}
           lead={data.lead}
           leadId={resolvedLeadId}
         />

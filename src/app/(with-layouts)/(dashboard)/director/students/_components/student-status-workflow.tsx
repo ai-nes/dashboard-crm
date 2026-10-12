@@ -19,6 +19,7 @@ import { MenuDotsIcon } from "@/utils/icon";
 import {
   studentStatusBadgeColor,
   studentStatusLabel,
+  studentStatusBadgeLabel,
   studentStatusTransitions,
 } from "./student-status";
 
@@ -97,13 +98,14 @@ export default function StudentStatusWorkflow({
             aria-current="step"
             color={studentStatusBadgeColor[value]}
             size="md"
+            title={studentStatusLabel[value]}
             className="mt-1 whitespace-nowrap border border-current px-2.5 py-1 text-sm font-semibold shadow-xs"
           >
             <span
               aria-hidden="true"
               className="size-2 rounded-full bg-current ring-2 ring-current/20"
             />
-            {studentStatusLabel[value]}
+            {studentStatusBadgeLabel[value]}
           </Badge>
         </div>
 

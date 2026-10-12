@@ -2,6 +2,7 @@ import { Badge } from "@/components/tailgrids/core/badge";
 import {
   getStudentStageBadgeColor,
   getStudentStageLabel,
+  getStudentStageBadgeLabel,
 } from "@/components/segments/segment-filter-config";
 import { formatNbaChannel } from "@/services/api/nba/presentation";
 
@@ -52,8 +53,8 @@ export default function StudentDetailPanel({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge color={getStudentStageBadgeColor(student.studentStage)}>
-          {getStudentStageLabel(student.studentStage)}
+        <Badge color={getStudentStageBadgeColor(student.studentStage)} title={getStudentStageLabel(student.studentStage)} className="whitespace-nowrap">
+          {getStudentStageBadgeLabel(student.studentStage)}
         </Badge>
         {student.stageAgeDays !== null && student.stageAgeDays !== undefined ? (
           <Badge color="gray">{student.stageAgeDays} ngày ở giai đoạn</Badge>

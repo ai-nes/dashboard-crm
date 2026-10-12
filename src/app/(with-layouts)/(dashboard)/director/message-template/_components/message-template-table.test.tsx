@@ -83,3 +83,5 @@ describe("MessageTemplateTable", () => {
     expect(html).not.toContain('aria-label="Xóa Other"');
   });
 });
+
+vi.mock("@/components/tailgrids/core/dropdown", async () => import("@/test-utils/open-dropdown"));

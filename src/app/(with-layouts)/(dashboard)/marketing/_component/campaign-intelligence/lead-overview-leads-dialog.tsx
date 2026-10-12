@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TableRowLinkActions } from "@/components/common/table-row-link-actions";
 import { getBusinessRouteKey } from "@/utils/business-record-route";
 import { useState } from "react";
 import { Badge } from "@/components/tailgrids/core/badge";
@@ -159,6 +160,7 @@ export function LeadOverviewLeadsDialog({
                       <th className="px-3 py-3 text-right font-medium">
                         Liên hệ
                       </th>
+                      <th className="px-3 py-3 text-right font-medium">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -200,6 +202,9 @@ export function LeadOverviewLeadsDialog({
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums text-text-secondary">
                           {lead.contactAttemptCount ?? "—"}
+                        </td>
+                        <td className="px-3 py-3">
+                          <TableRowLinkActions label={lead.name} href={`/director/leads/${encodeURIComponent(getBusinessRouteKey(lead.leadCode, lead.id ?? ""))}`} />
                         </td>
                       </tr>
                     ))}

@@ -2,15 +2,15 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
-import { Trash1 } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
+import { TableRowActions } from "@/components/common/table-row-actions";
 
 import {
   SEGMENT_STATUS_BADGE_COLORS,
   SEGMENT_STATUS_LABELS,
   getSegmentDetailHref,
+  getSegmentEditHref,
   type SegmentListItem,
   type SegmentStatus,
 } from "./segment-list-types";
@@ -117,22 +117,15 @@ export function getSegmentListColumns({
 
   columns.push({
     id: "actions",
-    header: "Hành động",
+    header: "Thao tác",
     enableGlobalFilter: false,
-    cell: ({ row }) => canDelete(row.original) ? (
-        <Button
-          iconOnly
-          size="sm"
-          variant="ghost"
-          appearance="ghost"
-          aria-label={`Xóa segment ${row.original.name}`}
-          isDisabled={isDeleteDisabled}
-          className="text-text-tertiary hover:text-error-500"
-          onPress={() => onDelete(row.original)}
-        >
-          <Trash1 size={16} aria-hidden="true" />
-        </Button>
-      ) : null,
+    cell: ({ row }) => (
+      <TableRowActions label={`segment ${row.original.name}`} actions={[
+        { id: "view", label: "Xem chi tiết", href: getSegmentDetailHref(detailBaseHref, row.original) },
+        { id: "edit", label: "Chỉnh sửa", href: getSegmentEditHref(detailBaseHref, row.original), isVisible: canUpdate(row.original) },
+        { id: "delete", label: "Xóa", onAction: () => onDelete(row.original), isVisible: canDelete(row.original), isDisabled: isDeleteDisabled, variant: "danger" },
+      ]} />
+    ),
   });
 
   return columns;

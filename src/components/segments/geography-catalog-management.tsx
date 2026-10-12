@@ -1,46 +1,18 @@
 "use client";
 
-import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+import { Plus } from "@tailgrids/icons";
 import { useCallback, useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminTablePagination } from "@/components/common/admin/admin-table";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Button } from "@/components/tailgrids/core/button";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
-import {
-  TabContent,
-  TabList,
-  TabRoot,
-  TabTrigger,
-} from "@/components/tailgrids/core/tabs";
-import {
-  useDeleteProvinceMutation,
-  useDeleteSchoolAreaMutation,
-  useDeleteSchoolMutation,
-  useDeleteWardMutation,
-  useGeographyOptionsQuery,
-  useProvincesQuery,
-  useSchoolAreasQuery,
-  useSchoolsQuery,
-  useUpdateSchoolAreaMutation,
-  useWardsQuery,
-} from "@/hooks/use-reference-catalog-queries";
+import { Select, SelectContent, SelectIndicator, SelectItem, SelectTrigger, SelectValue } from "@/components/tailgrids/core/select";
+import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow } from "@/components/tailgrids/core/table";
+import { TabContent, TabList, TabRoot, TabTrigger } from "@/components/tailgrids/core/tabs";
+import { useDeleteProvinceMutation, useDeleteSchoolAreaMutation, useDeleteSchoolMutation, useDeleteWardMutation, useGeographyOptionsQuery, useProvincesQuery, useSchoolAreasQuery, useSchoolsQuery, useUpdateSchoolAreaMutation, useWardsQuery } from "@/hooks/use-reference-catalog-queries";
 import type {
   GeographyOptions,
   ProvinceOption,
@@ -54,13 +26,7 @@ import type {
 
 import { AdmissionCatalogPanel } from "./admission-catalog-panel";
 import { CatalogOrderingPanel } from "./catalog-ordering-panel";
-import {
-  CatalogEmpty,
-  CatalogError,
-  CatalogLoading,
-  CatalogToolbar,
-  type StatusFilter,
-} from "./reference-catalog-ui";
+import { CatalogEmpty, CatalogError, CatalogLoading, CatalogToolbar, type StatusFilter } from "./reference-catalog-ui";
 import { ProvinceEditorDialog } from "./province-editor-dialog";
 import { SchoolAreaEditorDialog } from "./school-area-editor-dialog";
 import { SchoolEditorDialog } from "./school-editor-dialog";
@@ -958,18 +924,10 @@ function CatalogActions({
 }) {
   if (!canUpdate && !canDelete) return null;
   return (
-    <div className="flex justify-end gap-1">
-      {canUpdate && (
-        <Button aria-label={`Sửa ${recordName}`} iconOnly size="sm" appearance="ghost" onPress={onEdit}>
-          <Pencil1 size={16} aria-hidden="true" />
-        </Button>
-      )}
-      {canDelete && (
-        <Button aria-label={`Xóa ${recordName}`} iconOnly size="sm" appearance="ghost" variant="danger" onPress={onDelete}>
-          <Trash1 size={16} aria-hidden="true" />
-        </Button>
-      )}
-    </div>
+    <TableRowActions label={recordName} actions={[
+      { id: "edit", label: "Chỉnh sửa", ariaLabel: `Sửa ${recordName}`, onAction: onEdit, isVisible: canUpdate },
+      { id: "delete", label: "Xóa", onAction: onDelete, isVisible: canDelete, variant: "danger" },
+    ]} />
   );
 }
 

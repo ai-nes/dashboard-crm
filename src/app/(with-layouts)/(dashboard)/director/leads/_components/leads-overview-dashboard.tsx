@@ -81,6 +81,14 @@ export default function LeadsOverviewDashboard({
   const createMutation = useCreateLeadMutation();
   const deleteMutation = useDeleteLeadMutation();
   const [leadToDelete, setLeadToDelete] = useState<LeadListItem | null>(null);
+  const canEditLead = (lead: LeadListItem) =>
+    !isAuthLoading &&
+    canPerformStudentAction(
+      permissions.lead,
+      "update",
+      { owner: lead.owner, ownerId: lead.ownerId },
+      user,
+    );
   const canDeleteLead = (lead: LeadListItem) =>
     !isAuthLoading &&
     canPerformStudentAction(
@@ -473,6 +481,7 @@ export default function LeadsOverviewDashboard({
               <span className="min-w-0 truncate">Kết quả</span>
               <span className="min-w-0 truncate">Người phụ trách</span>
               <span className="min-w-0 truncate">Ngày tạo</span>
+              <span className="sr-only">Thao tác</span>
             </div>
             {isPending && !response ? (
               <LeadListSkeleton />
@@ -480,6 +489,7 @@ export default function LeadsOverviewDashboard({
               <LeadList
                 canAssign={canAssignLead}
                 leads={leads}
+                canEditLead={canEditLead}
                 canDeleteLead={canDeleteLead}
                 onDeleteRequest={setLeadToDelete}
                 isDeleting={deleteMutation.isPending || isPlaceholderData}

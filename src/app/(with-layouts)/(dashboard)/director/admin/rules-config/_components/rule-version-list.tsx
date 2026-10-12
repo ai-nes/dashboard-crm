@@ -1,4 +1,5 @@
 "use client";
+import { TableRowActions } from "@/components/common/table-row-actions";
 
 import { Search1 } from "@tailgrids/icons";
 import { useState } from "react";
@@ -169,6 +170,7 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
                     <AdminTableHead scope="col">
                       Cập nhật lần cuối
                     </AdminTableHead>
+                    <AdminTableHead scope="col">Thao tác</AdminTableHead>
                   </AdminTableRow>
                 </AdminTableHeader>
                 <TableBody>
@@ -213,12 +215,15 @@ export function RuleVersionList({ canEdit }: { canEdit: boolean }) {
                       <AdminTableCell className="whitespace-nowrap text-text-secondary">
                         {formatDate(version.modified)}
                       </AdminTableCell>
+                      <AdminTableCell>
+                        <TableRowActions label={version.versionName} actions={[{ id: "view", label: "Xem chi tiết", onAction: () => openVersion(version) }]} />
+                      </AdminTableCell>
                     </AdminTableRow>
                   ))}
                   {versions.length === 0 ? (
                     <AdminTableRow>
                       <AdminTableCell
-                        colSpan={6}
+                        colSpan={7}
                         className="py-16 text-center text-sm text-text-tertiary"
                       >
                         {!hasVersionFilter

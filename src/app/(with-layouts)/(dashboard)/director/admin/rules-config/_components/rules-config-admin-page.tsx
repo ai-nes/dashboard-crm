@@ -330,6 +330,7 @@ export default function RulesConfigAdminPage({
             rulesQuery.isFetching
           }
           canDelete={canMutateRules}
+          canUpdate={canMutateRules}
           canToggle={canMutateRules}
           isDeleteDisabled={
             deleteMutation.isPending ||

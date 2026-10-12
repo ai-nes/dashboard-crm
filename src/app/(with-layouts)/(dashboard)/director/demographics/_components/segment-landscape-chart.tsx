@@ -1,9 +1,11 @@
 "use client";
 
-import { ArrowRight, InfoCircle } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+import { InfoCircle } from "@tailgrids/icons";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
+
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import { demographicSegments as defaultSegments } from "@/services/api/demographics/data";
@@ -102,10 +104,9 @@ export default function SegmentLandscapeChart({
                   <MetricCell value={segment.enrolled} tone="text-success-500" />
                   <MetricCell value={segment.conversion} suffix="%" />
                   <td className="px-5 py-4 text-right">
-                    <Button size="xs" appearance="ghost" onPress={() => onOpenSegment(segment.id)}>
-                      Xem chi tiết
-                      <ArrowRight size={14} aria-hidden="true" />
-                    </Button>
+                    <TableRowActions label={segment.name} actions={[
+  { id: "view", label: "Xem chi tiết", onAction: () => onOpenSegment(segment.id) },
+]} />
                   </td>
                 </tr>
               ))}

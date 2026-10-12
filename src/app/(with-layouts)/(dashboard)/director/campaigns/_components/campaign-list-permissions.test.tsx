@@ -1,7 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import CampaignList from "./campaign-list";
 import type { CampaignListItem } from "./types";
+
+vi.mock("@/components/tailgrids/core/dropdown", async () => import("@/test-utils/open-dropdown"));
 
 const campaign: CampaignListItem = {
   id: "8f2d69d0-1795-4c52-a94a-e77c9ef64918",

@@ -35,6 +35,11 @@ export const studentStatusBadgeColor: Record<
   Disqualified: "error",
 };
 
+export const studentStatusBadgeLabel: Record<StudentStatus, string> = {
+  ...studentStatusLabel,
+  Disqualified: "Không đủ ĐK",
+};
+
 export const studentStatusTransitions: Record<
   StudentStatus,
   readonly StudentStatus[]
