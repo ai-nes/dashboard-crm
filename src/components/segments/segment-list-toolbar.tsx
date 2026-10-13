@@ -19,6 +19,7 @@ interface SegmentListToolbarProps {
     search: string;
     status: string;
     total: number;
+    totalAll: number | null;
     onSearchChange: (value: string) => void;
     onStatusChange: (value: string) => void;
   };
@@ -36,9 +37,11 @@ export function SegmentListToolbar({
   const tabs = SEGMENT_STATUS_FILTER_OPTIONS.map((option) => ({
     ...option,
     count: serverPagination
-      ? option.id === "ALL" || option.id === status
-        ? serverPagination.total
-        : null
+      ? option.id === "ALL"
+        ? serverPagination.totalAll
+        : option.id === status
+          ? serverPagination.total
+          : null
       : option.id === "ALL"
         ? segments.length
         : segments.filter((item) => item.status === option.id).length,

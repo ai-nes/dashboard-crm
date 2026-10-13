@@ -148,18 +148,7 @@ export default function QuickCreateLeadDialog({
     event.preventDefault();
     if (isSubmitting) return;
 
-    const errors: QuickCreateLeadErrors = {};
-    if (!form.student_name.trim())
-      errors.student_name = "Vui lòng nhập họ tên.";
-    if (!form.phone.trim()) errors.phone = "Vui lòng nhập số điện thoại.";
-    if (!form.province.trim())
-      errors.province = "Vui lòng chọn tỉnh / thành phố.";
-    if (!form.campaign.trim()) errors.campaign = "Vui lòng chọn Campaign.";
-    if (!form.email.trim()) {
-      errors.email = "Vui lòng nhập email.";
-    } else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
-      errors.email = "Email không đúng định dạng.";
-    }
+    const errors = validateQuickCreateLeadForm(form);
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -371,6 +360,31 @@ export default function QuickCreateLeadDialog({
       </Dialog>
     </Backdrop>
   );
+}
+
+export function validateQuickCreateLeadForm(
+  form: Pick<
+    QuickCreateLeadForm,
+    "student_name" | "phone" | "email" | "province" | "campaign"
+  >,
+): QuickCreateLeadErrors {
+  const errors: QuickCreateLeadErrors = {};
+  if (!form.student_name.trim()) errors.student_name = "Vui lòng nhập họ tên.";
+  if (!form.phone.trim()) {
+    errors.phone = "Vui lòng nhập số điện thoại.";
+  } else if (!/^0\d{9}$/.test(form.phone.trim().replace(/^\+84/, "0"))) {
+    errors.phone =
+      "Số điện thoại phải có 10 chữ số, bắt đầu bằng 0 (hoặc +84).";
+  }
+  if (!form.province.trim())
+    errors.province = "Vui lòng chọn tỉnh / thành phố.";
+  if (!form.campaign.trim()) errors.campaign = "Vui lòng chọn Campaign.";
+  if (!form.email.trim()) {
+    errors.email = "Vui lòng nhập email.";
+  } else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+    errors.email = "Email không đúng định dạng.";
+  }
+  return errors;
 }
 
 function toLeadCreateFields(form: QuickCreateLeadForm): LeadCreateFields {

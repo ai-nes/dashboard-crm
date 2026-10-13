@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
 
-import type { CRMTask } from "@/services/api/crm-tasks";
+import TaskDescriptionPreview from "@/components/common/task-description-preview";
+import {
+  getTaskDescriptionPreview,
+  type CRMTask,
+} from "@/services/api/crm-tasks";
 import { cn } from "@/utils/cn";
 
 import {
@@ -19,9 +23,11 @@ export default function SegmentTaskCardDetails({
   task,
   deadlineStatus,
 }: SegmentTaskCardDetailsProps) {
+  const descriptionPreview = getTaskDescriptionPreview(task.description);
+
   return (
     <div className="space-y-4 border-t border-border-primary px-4 py-4 sm:px-5">
-      {task.description ? (
+      {descriptionPreview ? (
         <section
           className="border-b border-border-primary pb-4"
           aria-label="Mô tả task"
@@ -29,9 +35,10 @@ export default function SegmentTaskCardDetails({
           <h3 className="mb-2 text-sm font-semibold text-text-primary">
             Mô tả
           </h3>
-          <p className="whitespace-pre-wrap text-sm leading-6 text-text-secondary">
-            {task.description}
-          </p>
+          <TaskDescriptionPreview
+            value={task.description}
+            className="whitespace-pre-wrap text-sm leading-6 text-text-secondary"
+          />
         </section>
       ) : null}
 

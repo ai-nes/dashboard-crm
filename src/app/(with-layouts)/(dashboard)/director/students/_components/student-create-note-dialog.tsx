@@ -142,6 +142,16 @@ export default function StudentCreateNoteDialog({
             <Checkbox
               isSelected={createFollowUpTask}
               onChange={handleFollowUpChange}
+              onClick={(event) => {
+                // React Aria suppresses the native input change on label clicks.
+                if (
+                  canCreateFollowUpTask &&
+                  !isSubmitting &&
+                  event.detail > 0
+                ) {
+                  handleFollowUpChange(!createFollowUpTask);
+                }
+              }}
               isDisabled={!canCreateFollowUpTask}
               className="w-full rounded-lg border border-card-border bg-background-gray-secondary_alt px-3 py-2.5 text-left text-sm text-text-primary transition hover:bg-background-gray-secondary group-data-[disabled=true]:cursor-not-allowed group-data-[disabled=true]:opacity-70"
             >

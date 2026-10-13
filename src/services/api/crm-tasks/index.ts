@@ -69,6 +69,8 @@ function normalizeCRMTask(raw: unknown): CRMTask {
     description: optionalString(obj.description),
     actionCode: optionalString(obj.action_code ?? obj.actionCode),
     student: optionalString(obj.student),
+    studentName: optionalString(obj.student_name ?? obj.studentName),
+    studentCode: optionalString(obj.student_code ?? obj.studentCode),
     linkedInteraction: optionalString(
       obj.linked_interaction ?? obj.linkedInteraction,
     ),
@@ -178,6 +180,38 @@ export async function listTasks(
         ? raw.page_length
         : (params.pageLength ?? 20),
     tasks: rawTasks.map(normalizeCRMTask),
+  };
+}
+
+/** Loads a complete filtered task list using the API's bounded page size. */
+export async function listAllTasks(
+  params: ListTasksParams,
+): Promise<ListTasksResponse> {
+  const pageLength = Math.max(1, Math.min(params.pageLength ?? 100, 100));
+  const firstPage = await listTasks({
+    ...params,
+    start: params.start ?? 0,
+    pageLength,
+  });
+  const tasks = [...firstPage.tasks];
+  let page = firstPage;
+
+  while (tasks.length < page.total && page.tasks.length === pageLength) {
+    page = await listTasks({
+      ...params,
+      start: page.start + page.tasks.length,
+      pageLength,
+    });
+    if (page.tasks.length === 0) break;
+    tasks.push(...page.tasks);
+  }
+
+  return {
+    ...page,
+    total: tasks.length,
+    start: firstPage.start,
+    pageLength: tasks.length,
+    tasks,
   };
 }
 

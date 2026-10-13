@@ -1,6 +1,7 @@
 import type { SessionUser } from "@/services/api/auth";
 import type { CRMTask } from "@/services/api/crm-tasks";
 import type { StudentListItem } from "@/services/api/students/types";
+import { isUuid } from "@/utils/is-uuid";
 import { crmTaskToStudentTask } from "../../students/_components/student-task-mappers";
 
 import type { TaskManagementItem } from "@/services/api/tasks/types";
@@ -17,7 +18,9 @@ function getInitials(name: string): string {
 }
 
 function isIdentifier(value: string | undefined): boolean {
-  return Boolean(value && /^(CK-ID|ENR)-/i.test(value.trim()));
+  return Boolean(
+    value && (/^(CK-ID|ENR)-/i.test(value.trim()) || isUuid(value)),
+  );
 }
 
 function findStudent(task: CRMTask, students: StudentListItem[]) {
@@ -41,6 +44,7 @@ export function crmTaskToManagementItem(
   const studentId = student?.id || task.referenceDocname || task.student || "";
   const studentName =
     student?.name ||
+    task.studentName ||
     (!isIdentifier(task.student) ? task.student : undefined) ||
     "Học sinh";
 
@@ -54,7 +58,7 @@ export function crmTaskToManagementItem(
     ownerId: task.owner,
     studentId,
     studentName,
-    studentCode: student?.code || "",
+    studentCode: student?.code || task.studentCode || "",
     studentInitials: student?.initials || getInitials(studentName),
     studentMajor: student?.major || "—",
   };
