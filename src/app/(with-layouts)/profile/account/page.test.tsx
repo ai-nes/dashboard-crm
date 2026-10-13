@@ -14,20 +14,28 @@ vi.mock("@/components/common/auth/auth-provider", () => ({
 }));
 
 describe("account profile details", () => {
-  it("shows the signed-in identity and a real image picker instead of sample data", () => {
+  it("shows the signed-in identity in Vietnamese and hides unsupported settings", () => {
     const html = renderToStaticMarkup(<AccountPage />);
 
     expect(html).toContain('value="Local Admin"');
     expect(html).toContain('value="admin@example.test"');
     expect(html).not.toContain("Jhon Smith");
     expect(html).not.toContain("jhon@example.com");
-    expect(html).toContain('type="file"');
-    expect(html).toContain('accept="image/png,image/jpeg,image/gif"');
-    expect(html).toContain("Change Avatar");
-    expect(html).not.toContain('alt="United States"');
-    expect(html).toContain("Thông tin hồ sơ chưa thể lưu");
-    expect(html).toMatch(
-      /<button[^>]*aria-disabled="true"[^>]*>Save Changes<\/button>/,
-    );
+    expect(html).toContain("Thông tin tài khoản");
+    expect(html).toContain("Họ và tên");
+    expect(html).toContain("Địa chỉ email");
+    expect(html).not.toContain('type="file"');
+    expect(html).not.toContain("<button");
+    for (const unsupportedName of [
+      "phone",
+      "website",
+      "address",
+      "country",
+      "bio",
+    ]) {
+      expect(html).not.toContain(`name="${unsupportedName}"`);
+    }
+    expect(html).not.toContain("Sign Out");
+    expect(html).not.toContain("Delete Account");
   });
 });
