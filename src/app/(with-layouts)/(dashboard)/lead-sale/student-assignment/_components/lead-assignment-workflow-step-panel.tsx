@@ -46,19 +46,19 @@ export default function LeadAssignmentWorkflowStepPanel({
         {canEdit ? (
           <div className="grid max-w-3xl items-end gap-3 sm:grid-cols-2">
             <label className="block space-y-2 text-sm font-medium text-text-primary">
-              <span>Chờ (phút)</span>
+              <span>Chu kỳ quét (phút)</span>
               <Input
                 type="number"
-                min={0}
+                min={1}
                 max={1440}
                 value={String(input.scheduledMinAgeMinutes)}
                 disabled={isSaving}
-                aria-label="Thời gian chờ tự động (phút)"
+                aria-label="Chu kỳ quét tự động (phút)"
                 className="h-11 w-full text-sm"
                 onChange={(event) =>
                   onSettingsChange({
                     ...input,
-                    scheduledMinAgeMinutes: Number(event.target.value) || 0,
+                    scheduledMinAgeMinutes: Number(event.target.value) || 1,
                   })
                 }
               />
@@ -84,12 +84,14 @@ export default function LeadAssignmentWorkflowStepPanel({
           </div>
         ) : (
           <p className="text-sm text-text-secondary">
-            Thời gian chờ: {input.scheduledMinAgeMinutes} phút · Tối đa{" "}
+            Chu kỳ quét: {input.scheduledMinAgeMinutes} phút · Tối đa{" "}
             {input.maxLeadsPerRun.toLocaleString("vi-VN")} Lead mỗi lượt.
           </p>
         )}
         <p className="text-xs leading-5 text-text-secondary">
-          Chạy thủ công không cần chờ.
+          Worker sẽ quét và phân công Lead theo chu kỳ này. Chạy thủ công không
+          cần chờ. Không có thời gian chờ theo tuổi Lead; Lead đủ điều kiện sẽ
+          được xử lý ở lần quét kế tiếp.
         </p>
       </div>
     );

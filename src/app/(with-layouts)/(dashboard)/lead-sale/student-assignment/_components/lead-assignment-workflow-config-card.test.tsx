@@ -136,6 +136,7 @@ describe("Lead assignment settings", () => {
     const html = renderToStaticMarkup(<LeadAssignmentWorkflowConfigCard />);
     expect(html).toContain("Người nhận Lead");
     expect(html).toContain("Tiếp nhận tự động");
+    expect(html).toContain("Không có thời gian chờ theo tuổi Lead");
     expect(html).toContain("Kiểm tra Lead");
     expect(html).toContain("Xử lý lại");
     expect(html).toContain("Quy tắc hệ thống");
