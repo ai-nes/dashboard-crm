@@ -224,6 +224,10 @@ export function DropdownField({
               id={option.id}
               textValue={`${option.label} ${option.searchText ?? ""}`}
               isDisabled={option.isDisabled}
+              onPress={() => {
+                // Selecting the current value does not emit a selection change.
+                if (option.id === value) handleOpenChange(false);
+              }}
               className={cn(
                 "group/item relative flex w-full cursor-pointer items-center gap-3 rounded-md py-1.5 pr-8 pl-2 text-sm text-text-secondary outline-hidden select-none focus:bg-background-gray-secondary_alt focus:text-text-primary",
                 "data-disabled:pointer-events-none data-disabled:text-input-disabled-text",
@@ -236,7 +240,12 @@ export function DropdownField({
                     renderOption(option, { isSelected })
                   ) : (
                     <span className="flex min-w-0 flex-col">
-                      <span className={cn("truncate text-text-primary", isSelected && "font-medium")}>
+                      <span
+                        className={cn(
+                          "truncate text-text-primary",
+                          isSelected && "font-medium",
+                        )}
+                      >
                         {option.label}
                       </span>
                       {option.description && (

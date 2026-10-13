@@ -219,6 +219,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/director", roles: ROLE_ROUTE_ROLES.director },
   { path: "/admin", roles: ROLE_ROUTE_ROLES.admin },
   { path: "/admin/task-reminders", roles: DASHBOARD_ROLES },
+  { path: "/admin/profile-options", roles: DASHBOARD_ROLES },
   { path: "/marketing", roles: ROLE_ROUTE_ROLES.marketing },
   { path: "/sale", roles: ROLE_ROUTE_ROLES.sale },
   { path: "/sale/next-best-action", roles: ROLE_ROUTE_ROLES.sale },
@@ -434,6 +435,8 @@ export function canAccessDashboardPath(
   isAdministrator = false,
 ): boolean {
   if (!isProtectedDashboardPath(pathname)) return true;
+  if (isPathWithinRoute("/admin/profile-options", pathname))
+    return isAdministrator;
 
   if (isPathWithinRoute("/admin/task-reminders", pathname)) {
     return canConfigureSystem(capabilities, isAdministrator);

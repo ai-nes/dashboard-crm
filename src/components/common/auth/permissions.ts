@@ -187,6 +187,11 @@ export function canReadCrmPath(
 ): boolean {
   const pathname = path.split(/[?#]/, 1)[0];
   if (
+    pathname === "/admin/profile-options" ||
+    pathname.startsWith("/admin/profile-options/")
+  )
+    return isCrmAdmin(user);
+  if (
     pathname === "/admin/task-reminders" ||
     pathname.startsWith("/admin/task-reminders/")
   )
