@@ -365,6 +365,7 @@ export default function SegmentTasksTab({
                 <SegmentTaskCard
                   key={task.name}
                   task={task}
+                  assignees={taskAssignees}
                   canUpdate={canUpdateTask}
                   canDelete={canDeleteTask}
                   isActionPending={isTaskMutationPending}

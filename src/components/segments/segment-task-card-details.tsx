@@ -10,17 +10,20 @@ import { cn } from "@/utils/cn";
 import {
   formatSegmentTaskDate,
   formatSegmentTaskDateTime,
-  getAssigneeInitials,
   type SegmentTaskDeadlineStatus,
 } from "./segment-task-utils";
 
 interface SegmentTaskCardDetailsProps {
   task: CRMTask;
+  assigneeName: string;
+  assigneeInitials: string;
   deadlineStatus: SegmentTaskDeadlineStatus;
 }
 
 export default function SegmentTaskCardDetails({
   task,
+  assigneeName,
+  assigneeInitials,
   deadlineStatus,
 }: SegmentTaskCardDetailsProps) {
   const descriptionPreview = getTaskDescriptionPreview(task.description);
@@ -86,11 +89,11 @@ export default function SegmentTaskCardDetails({
             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700"
             aria-hidden="true"
           >
-            {getAssigneeInitials(task.assignedTo)}
+            {assigneeInitials}
           </span>
           <div className="min-w-0">
             <p className="truncate text-base leading-6 font-semibold text-text-primary">
-              {task.assignedTo || "Chưa phân công"}
+              {assigneeName}
             </p>
             <p className="text-sm leading-5 text-text-secondary">
               {task.assignedTo ? "Phụ trách task segment" : "Cần phân công"}

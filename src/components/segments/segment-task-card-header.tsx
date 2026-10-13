@@ -17,6 +17,7 @@ import type { SegmentTaskDeadlineStatus } from "./segment-task-utils";
 
 interface SegmentTaskCardHeaderProps {
   task: CRMTask;
+  assigneeName: string;
   deadlineStatus: SegmentTaskDeadlineStatus;
   canUpdate: boolean;
   canDelete: boolean;
@@ -29,6 +30,7 @@ interface SegmentTaskCardHeaderProps {
 
 export default function SegmentTaskCardHeader({
   task,
+  assigneeName,
   deadlineStatus,
   canUpdate,
   canDelete,
@@ -55,7 +57,7 @@ export default function SegmentTaskCardHeader({
         </span>
         <StudentTaskTypeBadge actionCode={task.actionCode} size="sm" />
         <span className="hidden truncate font-normal text-text-secondary sm:inline">
-          · {task.assignedTo || "Chưa phân công"}
+          · {assigneeName}
         </span>
       </button>
 

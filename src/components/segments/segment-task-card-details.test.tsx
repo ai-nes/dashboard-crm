@@ -20,6 +20,8 @@ describe("SegmentTaskCardDetails description preview", () => {
     const markup = renderToStaticMarkup(
       <SegmentTaskCardDetails
         task={task}
+        assigneeName="Chưa phân công"
+        assigneeInitials="—"
         deadlineStatus={getSegmentTaskDeadlineStatus(task)}
       />,
     );
