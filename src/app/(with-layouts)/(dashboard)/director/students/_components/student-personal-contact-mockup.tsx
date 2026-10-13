@@ -1,6 +1,7 @@
 "use client";
 
 import { UserCircle1 } from "@tailgrids/icons";
+import { ProfileOptionField } from "@/components/common/profile-option-field";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -203,6 +204,27 @@ export default function StudentPersonalContactMockup({
         {personalContactFields.map((field) => {
           if (isEditing && field.editKey) {
             const editKey = field.editKey;
+            if (
+              editKey === "nationality" ||
+              editKey === "ethnicity" ||
+              editKey === "religion" ||
+              editKey === "id_issued_place"
+            ) {
+              return (
+                <ProfileOptionField
+                  key={field.label}
+                  label={field.label}
+                  type={
+                    editKey === "id_issued_place" ? "idIssuedPlace" : editKey
+                  }
+                  value={form[editKey]}
+                  isDisabled={updateMutation.isPending}
+                  onChange={(value) =>
+                    setForm((current) => ({ ...current, [editKey]: value }))
+                  }
+                />
+              );
+            }
             if (editKey === "major") {
               return (
                 <div key={field.label} className="min-w-0">

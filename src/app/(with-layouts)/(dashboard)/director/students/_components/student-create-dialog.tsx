@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDialogError } from "@/utils/dialog-error";
+import { getDefaultCampusOption } from "@/utils/default-campus";
 
 import { useState, type FormEvent } from "react";
 
@@ -91,7 +92,7 @@ export default function StudentCreateDialog({
   onOpenChange,
   onCreate,
 }: StudentCreateDialogProps) {
-  const [form, setForm] = useState<StudentCreateForm>(initialForm);
+  const [draft, setForm] = useState<StudentCreateForm>(initialForm);
   const [fieldErrors, setFieldErrors] = useState<StudentCreateErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -104,9 +105,9 @@ export default function StudentCreateDialog({
       doctype: "CRM Lead",
       fieldname: "ward",
       limit: 100,
-      province: form.province || undefined,
+      province: draft.province || undefined,
     },
-    isOpen && Boolean(form.province),
+    isOpen && Boolean(draft.province),
   );
   const campaignOptionsQuery = useStudentSchoolFieldOptions(
     { doctype: "CRM Lead", fieldname: "campaign", limit: 100 },
@@ -127,6 +128,10 @@ export default function StudentCreateDialog({
   const campaignOptions = toSelectOptions(campaignOptionsQuery.data?.options);
   const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
   const branchOptions = toSelectOptions(branchOptionsQuery.data?.options);
+  const form: StudentCreateForm = {
+    ...draft,
+    branch: draft.branch || getDefaultCampusOption(branchOptions)?.id || "",
+  };
   const availableAssignedToOptions =
     leadMappingOptionsQuery.data?.staff
       .filter((option) => option.user)

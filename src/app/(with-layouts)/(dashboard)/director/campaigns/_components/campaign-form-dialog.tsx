@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDialogError } from "@/utils/dialog-error";
+import { getDefaultCampusOption } from "@/utils/default-campus";
 
 import { useState, type FormEvent } from "react";
 
@@ -129,9 +130,15 @@ export default function CampaignFormDialog({
   onSubmit,
 }: CampaignFormDialogProps) {
   const isEditing = Boolean(campaign);
-  const [form, setForm] = useState<CampaignFormState>(() =>
+  const [draft, setForm] = useState<CampaignFormState>(() =>
     formFromCampaign(campaign),
   );
+  const form: CampaignFormState = {
+    ...draft,
+    campus: isEditing
+      ? draft.campus
+      : draft.campus || getDefaultCampusOption(routingOptions.campuses)?.label || "",
+  };
   const [fieldErrors, setFieldErrors] = useState<CampaignFormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

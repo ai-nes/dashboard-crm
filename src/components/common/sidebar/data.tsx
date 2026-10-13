@@ -609,6 +609,32 @@ export function getNavigationDataForRoles(
       : [...navigation, { label: "CẤU HÌNH", items: [reminderItem] }];
   }
 
+  if (options.isAdministrator) {
+    const profileOptionsItem = navItem({
+      title: "Danh mục hồ sơ",
+      url: "/admin/profile-options",
+      icon: <IdCard size={18} />,
+    });
+    sections = sections.some((section) => section.label === "CẤU HÌNH")
+      ? sections.map((section) => {
+          if (section.label !== "CẤU HÌNH") return section;
+          const admissionsIndex = section.items.findIndex(
+            (item) => item.url === "/director/admin/majors",
+          );
+          const insertAt =
+            admissionsIndex < 0 ? section.items.length : admissionsIndex + 1;
+          return {
+            ...section,
+            items: [
+              ...section.items.slice(0, insertAt),
+              profileOptionsItem,
+              ...section.items.slice(insertAt),
+            ],
+          };
+        })
+      : [...sections, { label: "CẤU HÌNH", items: [profileOptionsItem] }];
+  }
+
   return sections.map((section) => ({
     ...section,
     items: section.items

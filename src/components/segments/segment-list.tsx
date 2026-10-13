@@ -56,6 +56,7 @@ export function SegmentList({
     refetch,
     transitionSegment,
     total,
+    totalAll,
     currentPage,
     totalPages,
     isFetching,
@@ -199,6 +200,7 @@ export function SegmentList({
                   search,
                   status,
                   total,
+                  totalAll,
                   onSearchChange: setSearch,
                   onStatusChange: (value) =>
                     setStatus(value as SegmentListItem["status"] | "ALL"),
