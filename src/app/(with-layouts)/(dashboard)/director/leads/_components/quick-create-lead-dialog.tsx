@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDialogError } from "@/utils/dialog-error";
+import { getDefaultCampusOption } from "@/utils/default-campus";
 
 import { useState, type FormEvent } from "react";
 
@@ -71,7 +72,7 @@ export default function QuickCreateLeadDialog({
   onOpenChange,
   onCreate,
 }: QuickCreateLeadDialogProps) {
-  const [form, setForm] = useState<QuickCreateLeadForm>(initialForm);
+  const [draft, setForm] = useState<QuickCreateLeadForm>(initialForm);
   const [fieldErrors, setFieldErrors] = useState<QuickCreateLeadErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -84,9 +85,9 @@ export default function QuickCreateLeadDialog({
       doctype: "CRM Lead",
       fieldname: "ward",
       limit: 100,
-      province: form.province || undefined,
+      province: draft.province || undefined,
     },
-    isOpen && Boolean(form.province),
+    isOpen && Boolean(draft.province),
   );
   const campaignOptionsQuery = useStudentSchoolFieldOptions(
     { doctype: "CRM Lead", fieldname: "campaign", limit: 100 },
@@ -106,6 +107,10 @@ export default function QuickCreateLeadDialog({
   const campaignOptions = toSelectOptions(campaignOptionsQuery.data?.options);
   const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
   const branchOptions = toSelectOptions(branchOptionsQuery.data?.options);
+  const form: QuickCreateLeadForm = {
+    ...draft,
+    branch: draft.branch || getDefaultCampusOption(branchOptions)?.id || "",
+  };
 
   const setField = <TField extends QuickCreateLeadField>(
     field: TField,
