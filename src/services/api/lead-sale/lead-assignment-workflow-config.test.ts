@@ -23,7 +23,12 @@ const policy = {
   layers: [
     { key: "campaign", label: "Theo chiến dịch", enabled: true, priority: 1 },
     { key: "group", label: "Theo Team Group/tỉnh", enabled: true, priority: 2 },
-    { key: "global", label: "Chia đều trong campus", enabled: false, priority: 3 },
+    {
+      key: "global",
+      label: "Chia đều trong campus",
+      enabled: false,
+      priority: 3,
+    },
   ],
   layerOrder: ["campaign", "group", "global"],
   distributionStrategy: "least_load",
@@ -48,7 +53,11 @@ function workflowFixture() {
       lastChangedBy: "lead.sale@example.com",
       lastChangeReason: "Giảm tải job nền",
       stored: {
-        input: { enabled: false, scheduledMinAgeMinutes: 12, maxLeadsPerRun: 25 },
+        input: {
+          enabled: false,
+          scheduledMinAgeMinutes: 12,
+          maxLeadsPerRun: 25,
+        },
         classification: { enabled: true },
         review: { maxRetries: 2 },
       },
@@ -136,6 +145,20 @@ describe("Lead assignment workflow config API contract", () => {
       method: "GET",
       credentials: "include",
     });
+  });
+
+  it("normalizes a zero cadence to one minute", async () => {
+    const fixture = workflowFixture();
+    fixture.config.stored.input.scheduledMinAgeMinutes = 0;
+    fixture.steps.input.settings.scheduledMinAgeMinutes = 0;
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(fixture), { status: 200 }),
+    );
+
+    const result = await getLeadAssignmentWorkflowConfig();
+
+    expect(result.config.stored.input.scheduledMinAgeMinutes).toBe(1);
+    expect(result.steps.input.settings.scheduledMinAgeMinutes).toBe(1);
   });
 
   it("sends one step, reason and revision for an update", async () => {
