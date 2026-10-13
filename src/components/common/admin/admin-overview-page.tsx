@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart2,
   Book4,
   Buildings11,
   Gear1,
-  RefreshCircle1Clockwise,
   Shield1Check,
   UserMultiple4,
 } from "@tailgrids/icons";
@@ -29,7 +28,6 @@ import {
 import { useSegmentsQuery } from "@/hooks/use-segment-queries";
 import { useCrmUsersQuery } from "@/hooks/use-user-management-queries";
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
-import { Button } from "@/components/tailgrids/core/button";
 import { listAdminMessageTemplateLibrary } from "@/services/api/message-templates";
 
 import AdminOverviewActivityChart, {
@@ -39,7 +37,6 @@ import AdminOverviewConfiguration, {
   AdminOverviewQuickLinks,
 } from "./admin-overview-configuration";
 import AdminOverviewKpiStrip from "./admin-overview-kpi-strip";
-import { refreshAdminOverviewQueries } from "./admin-overview-refresh";
 import type {
   AdminOverviewLink,
   AdminOverviewModule,
@@ -96,7 +93,6 @@ export default function AdminOverviewPage({
   const schoolsQuery = useSchoolsQuery({ start: 0, pageLength: 1 });
   const schoolAreasQuery = useSchoolAreasQuery({ start: 0, pageLength: 1 });
   const activityQuery = useActivityLogsQuery({ module: "all", pageLength: 50 });
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const usersTotal = totalOf(usersQuery.data);
   const activeUsers =
@@ -125,16 +121,6 @@ export default function AdminOverviewPage({
   ];
   const isCatalogLoading = catalogQueries.some((query) => query.isPending);
   const isCatalogError = catalogQueries.some((query) => query.isError);
-
-  const refresh = async () => {
-    if (isRefreshing) return;
-    setIsRefreshing(true);
-    try {
-      await refreshAdminOverviewQueries(queryList);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   const modules = useMemo<AdminOverviewModule[]>(
     () => [
@@ -303,23 +289,6 @@ export default function AdminOverviewPage({
         section="ADMIN"
         title="Tổng quan hệ thống"
         description="Nắm nhanh tình trạng vận hành và các cấu hình đang phục vụ quy trình tuyển sinh."
-        actions={
-          <Button
-            type="button"
-            size="md"
-            appearance="outline"
-            aria-busy={isRefreshing}
-            isDisabled={isRefreshing}
-            onPress={() => void refresh()}
-          >
-            <RefreshCircle1Clockwise
-              size={16}
-              className={isRefreshing ? "animate-spin" : undefined}
-              aria-hidden="true"
-            />
-            {isRefreshing ? "Đang làm mới dữ liệu…" : "Làm mới dữ liệu"}
-          </Button>
-        }
         metaLabel="Nguồn dữ liệu đã phản hồi"
         metaValue={`${resolvedSources}/${queryList.length} kết nối`}
       />

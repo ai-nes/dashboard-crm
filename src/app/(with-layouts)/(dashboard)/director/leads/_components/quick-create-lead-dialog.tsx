@@ -155,7 +155,9 @@ export default function QuickCreateLeadDialog({
     if (!form.province.trim())
       errors.province = "Vui lòng chọn tỉnh / thành phố.";
     if (!form.campaign.trim()) errors.campaign = "Vui lòng chọn Campaign.";
-    if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+    if (!form.email.trim()) {
+      errors.email = "Vui lòng nhập email.";
+    } else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
       errors.email = "Email không đúng định dạng.";
     }
 
@@ -224,7 +226,7 @@ export default function QuickCreateLeadDialog({
                 <FormFieldError message={fieldErrors.phone} />
               </CreateDialogField>
 
-              <CreateDialogField label="Email">
+              <CreateDialogField label="Email" required>
                 <CreateDialogInput
                   label="Email"
                   placeholder="an@example.com"

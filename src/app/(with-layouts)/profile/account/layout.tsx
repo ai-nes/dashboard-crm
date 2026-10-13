@@ -1,9 +1,13 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Profile Page",
+  title: "Thông tin tài khoản",
 };
 
-export default function AccountPageLayout({ children }: { children: React.ReactNode }) {
+export default function AccountPageLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return <>{children}</>;
 }

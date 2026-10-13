@@ -39,6 +39,14 @@ describe("quick create Lead dialog composition", () => {
     expect(importPanelSource).toContain("<ValidationPreview");
   });
 
+  it("requires email before submitting a manual Lead", () => {
+    expect(dialogSource).toMatch(/if\s*\(!form\.email\.trim\(\)\)/);
+    expect(dialogSource).toContain(
+      '<CreateDialogField label="Email" required>',
+    );
+    expect(dialogSource).toContain("Vui lòng nhập email.");
+  });
+
   it("marks Province as required and blocks submission when it is empty", () => {
     expect(dialogSource).toMatch(
       /if\s*\(!form\.province\.trim\(\)\)\s*errors\.province\s*=/,

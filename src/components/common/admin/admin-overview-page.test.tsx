@@ -177,6 +177,12 @@ describe("admin overview source counts", () => {
     vi.clearAllMocks();
   });
 
+  it("leaves refreshing to the shared application header", () => {
+    const html = renderToStaticMarkup(<AdminOverviewPage links={[]} />);
+    expect(html).not.toContain("Làm mới dữ liệu");
+    expect(html).not.toContain("Đang làm mới dữ liệu");
+  });
+
   it("uses the full NBA action total for status and scoped configuration count", () => {
     const html = renderToStaticMarkup(<AdminOverviewPage links={[]} />);
     expect(html).toContain(
