@@ -18,6 +18,7 @@ import type {
   StudentPriority,
   StudentTaskItem,
 } from "@/services/api/students/types";
+import { getTaskTypeLabel } from "@/services/api/crm-tasks/presentation";
 import { cn } from "@/utils/cn";
 import { taskStatusLabel } from "../../students/_components/student-task-badges";
 
@@ -95,6 +96,8 @@ export default function TaskDialogSidebar({
   onDueTimeChange,
   className,
 }: TaskDialogSidebarProps) {
+  const taskTypeLabel = getTaskTypeLabel(actionCode, actionCode);
+
   return (
     <aside
       className={cn(
@@ -257,8 +260,12 @@ export default function TaskDialogSidebar({
                   onChange={onActionCodeChange}
                 />
               ) : (
-                <span className="flex h-9 w-full items-center px-0 text-sm font-medium text-text-primary">
-                  {actionCode || "None"}
+                <span
+                  aria-label={taskTypeLabel}
+                  title={taskTypeLabel}
+                  className="flex h-9 min-w-0 w-full items-center truncate px-0 text-sm font-medium text-text-primary"
+                >
+                  {taskTypeLabel}
                 </span>
               )}
             </div>

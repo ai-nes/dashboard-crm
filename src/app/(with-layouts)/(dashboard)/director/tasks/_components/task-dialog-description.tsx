@@ -1,6 +1,8 @@
 "use client";
 
 import { RichTextEditor } from "@/components/tailgrids/core/rich-text-editor";
+import TaskDescriptionPreview from "@/components/common/task-description-preview";
+import { getTaskDescriptionPreview } from "@/services/api/crm-tasks";
 import { cn } from "@/utils/cn";
 
 export interface TaskDialogDescriptionProps {
@@ -19,16 +21,22 @@ export default function TaskDialogDescription({
   readOnly = false,
 }: TaskDialogDescriptionProps) {
   if (readOnly) {
-    const plainText = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const hasDescription = Boolean(getTaskDescriptionPreview(value));
     return (
       <section
         aria-label="Ghi chú task"
         className={cn("flex min-h-0 flex-1 flex-col space-y-2", className)}
       >
-        <h3 className="text-sm font-semibold text-text-primary">Ghi chú task</h3>
-        <p className="min-h-36 whitespace-pre-wrap rounded-lg border border-card-border bg-card-background px-4 py-3 text-sm leading-6 text-text-primary">
-          {plainText || "Chưa có ghi chú."}
-        </p>
+        <h3 className="text-sm font-semibold text-text-primary">
+          Ghi chú task
+        </h3>
+        <div className="min-h-36 whitespace-pre-wrap rounded-lg border border-card-border bg-card-background px-4 py-3 text-sm leading-6 text-text-primary">
+          {hasDescription ? (
+            <TaskDescriptionPreview value={value} />
+          ) : (
+            "Chưa có ghi chú."
+          )}
+        </div>
       </section>
     );
   }

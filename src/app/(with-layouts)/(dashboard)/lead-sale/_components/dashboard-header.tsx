@@ -9,6 +9,24 @@ interface DashboardHeaderProps {
   data: LeadSaleDashboardData;
 }
 
+const updateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
+function updateTimeLabel(value: string): string {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return "Chưa cập nhật";
+  const [day, time] = updateTimeFormatter.format(date).split(", ");
+  return `${time} · ${day}`;
+}
+
 export default function DashboardHeader({ data }: DashboardHeaderProps) {
   return (
     <header className="flex flex-col gap-5 border-b border-card-border pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -24,9 +42,12 @@ export default function DashboardHeader({ data }: DashboardHeaderProps) {
           Tổng quan tuyển sinh
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-          {data.teamName} · {data.scopeLabel} · Tổng hợp chỉ tiêu, cơ hội và các hồ sơ cần hỗ trợ.
+          {data.teamName} · {data.scopeLabel} · Tổng hợp chỉ tiêu, cơ hội và các
+          hồ sơ cần hỗ trợ.
         </p>
-        <p className="mt-2 text-[11px] text-text-tertiary">Cập nhật lúc {data.asOf}</p>
+        <p className="mt-2 text-[11px] text-text-tertiary">
+          Cập nhật lúc {updateTimeLabel(data.asOf)}
+        </p>
       </div>
 
       <div className="flex shrink-0 flex-wrap gap-2">
@@ -42,7 +63,11 @@ export default function DashboardHeader({ data }: DashboardHeaderProps) {
           className="group inline-flex items-center gap-2 rounded-lg border border-button-primary-outline-stroke bg-button-primary-outline-background px-3.5 py-2.5 text-sm font-semibold text-button-primary-outline-text transition-colors hover:bg-button-primary-outline-hover-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
         >
           Danh sách công việc
-          <ArrowRight size={16} aria-hidden="true" className="transition-transform group-hover:translate-x-0.5" />
+          <ArrowRight
+            size={16}
+            aria-hidden="true"
+            className="transition-transform group-hover:translate-x-0.5"
+          />
         </Link>
       </div>
     </header>

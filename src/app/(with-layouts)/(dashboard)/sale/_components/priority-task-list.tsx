@@ -7,7 +7,9 @@ import {
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
+import TaskDescriptionPreview from "@/components/common/task-description-preview";
 import type { SaleTask } from "@/services/api/sale";
+import { getTaskDescriptionPreview } from "@/services/api/crm-tasks/presentation";
 
 import { formatTaskDeadline } from "./formatters";
 
@@ -99,7 +101,7 @@ export default function PriorityTaskList({
                     {type.label}
                   </Badge>
                 </div>
-                <p className="mt-1 text-xs leading-5 text-text-secondary">
+                <div className="mt-1 flex min-w-0 items-start gap-1 text-xs leading-5 text-text-secondary">
                   <span className="font-medium text-text-primary">
                     {task.studentName}
                   </span>
@@ -109,8 +111,15 @@ export default function PriorityTaskList({
                   >
                     ·
                   </span>
-                  {task.context ?? "Chưa có ghi chú cho công việc này."}
-                </p>
+                  {getTaskDescriptionPreview(task.context) ? (
+                    <TaskDescriptionPreview
+                      value={task.context}
+                      className="line-clamp-2"
+                    />
+                  ) : (
+                    <span>Chưa có ghi chú cho công việc này.</span>
+                  )}
+                </div>
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-2 sm:w-52 sm:shrink-0 sm:justify-end">
                 <Badge color={priority.color} size="sm">

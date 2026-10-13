@@ -4,6 +4,7 @@ import {
   CrmTaskApiError,
   deleteTask,
   getTask,
+  listAllTasks,
   listTasks,
   updateTask,
 } from "./index";
@@ -43,6 +44,9 @@ describe("CRM Tasks API Service", () => {
             title: "Gọi lại tư vấn viên",
             description: "Xác nhận lịch tư vấn.",
             action_code: "CALL_BACK",
+            student: "7ae8933f-744e-4249-8680-c728ba0bf5de",
+            student_name: "QA Student",
+            student_code: "HS-2026-00005",
             assigned_to: "sale@example.com",
             status: "Todo",
             priority: "High",
@@ -81,6 +85,9 @@ describe("CRM Tasks API Service", () => {
       priority: "High",
       dueDate: "2026-09-05 17:00:00",
       actionCode: "CALL_BACK",
+      student: "7ae8933f-744e-4249-8680-c728ba0bf5de",
+      studentName: "QA Student",
+      studentCode: "HS-2026-00005",
     });
   });
 
@@ -132,6 +139,58 @@ describe("CRM Tasks API Service", () => {
 
     expect(queryOf(0)).toEqual({ start: "0", pageLength: "100" });
     expect(result.total).toBe(0);
+  });
+
+  it("loads every task in 100-item pages while preserving the list filters", async () => {
+    const makeTasks = (start: number, count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        name: `TASK-${start + index + 1}`,
+        title: `Task ${start + index + 1}`,
+        status: "Todo",
+        reference_doctype: "CRM Student",
+        reference_docname: "STU-1",
+      }));
+    fetchMock
+      .mockResolvedValueOnce(
+        json({
+          total: 141,
+          start: 0,
+          page_length: 100,
+          tasks: makeTasks(0, 100),
+        }),
+      )
+      .mockResolvedValueOnce(
+        json({
+          total: 141,
+          start: 100,
+          page_length: 100,
+          tasks: makeTasks(100, 41),
+        }),
+      );
+
+    const result = await listAllTasks({
+      status: "Todo",
+      search: "QA",
+      start: 0,
+      pageLength: 100,
+    });
+
+    expect(result.tasks).toHaveLength(141);
+    expect(result.total).toBe(141);
+    expect(result.pageLength).toBe(141);
+    expect(queryOf(0)).toEqual({
+      status: "Todo",
+      search: "QA",
+      start: "0",
+      pageLength: "100",
+    });
+    expect(queryOf(1)).toEqual({
+      status: "Todo",
+      search: "QA",
+      start: "100",
+      pageLength: "100",
+    });
+    expect(result.tasks[140]?.name).toBe("TASK-141");
   });
 
   it("get task theo name", async () => {

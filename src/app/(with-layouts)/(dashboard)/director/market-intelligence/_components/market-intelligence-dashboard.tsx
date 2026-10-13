@@ -5,6 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/tailgrids/core/button";
 import { sortByAvailableScore } from "@/services/api/market-intelligence";
 import type { DirectorMarketOverview } from "@/services/api/market-intelligence";
+import {
+  filterMarketSchools,
+  getSchoolMarkerFilterAvailability,
+} from "./school-marker-filtering";
 import AllSchoolsInspector from "./all-schools-inspector";
 import { PRIORITY_PROVINCE_CODES } from "./data";
 import MarketMap from "./market-map";
@@ -106,38 +110,20 @@ export default function MarketIntelligenceDashboard({
         left.name.localeCompare(right.name, "vi"),
     );
   }, [provinces]);
+  const schoolFilterAvailability = useMemo(
+    () =>
+      getSchoolMarkerFilterAvailability(
+        provinces.flatMap((province) => province.highSchools),
+      ),
+    [provinces],
+  );
   const filteredProvinces = useMemo(() => {
     return provinces.map((province) => {
-      const highSchools = province.highSchools.filter((school) => {
-        const matchesEngagement =
-          schoolFilters.engagementIds.length === 0 ||
-          school.participations.some((participation) =>
-            schoolFilters.engagementIds.includes(participation.id),
-          );
-        const matchesSchoolGroup =
-          schoolFilters.schoolGroups.length === 0 ||
-          (school.classification !== null &&
-            schoolFilters.schoolGroups.includes(school.classification));
-        const matchesPotentialBand =
-          schoolFilters.potentialBand === "all" ||
-          (school.potentialScore !== null &&
-            (schoolFilters.potentialBand === "80-plus"
-              ? school.potentialScore >= 80
-              : schoolFilters.potentialBand === "60-to-79"
-                ? school.potentialScore >= 60 && school.potentialScore < 80
-                : school.potentialScore < 60));
-        const matchesName =
-          !schoolQuery.trim() ||
-          school.name
-            .toLocaleLowerCase("vi")
-            .includes(schoolQuery.trim().toLocaleLowerCase("vi"));
-        return (
-          matchesEngagement &&
-          matchesSchoolGroup &&
-          matchesPotentialBand &&
-          matchesName
-        );
-      });
+      const highSchools = filterMarketSchools(
+        province.highSchools,
+        schoolFilters,
+        schoolQuery,
+      );
       return { ...province, highSchools, schoolCount: highSchools.length };
     });
   }, [provinces, schoolFilters, schoolQuery]);
@@ -187,6 +173,7 @@ export default function MarketIntelligenceDashboard({
           admissionYear={overview?.admissionYear ?? null}
           engagementOptions={engagementOptions}
           geoData={geoData}
+          schoolFilterAvailability={schoolFilterAvailability}
           onClearSelection={() => {
             setSelectedCode(null);
             setSelectedSchoolId(null);

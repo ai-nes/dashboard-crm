@@ -17,6 +17,8 @@ export interface CRMTask {
   description?: string;
   actionCode?: string;
   student?: string;
+  studentName?: string;
+  studentCode?: string;
   linkedInteraction?: string;
   priority?: CRMTaskPriority;
   startDate?: string;

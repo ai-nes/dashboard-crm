@@ -81,6 +81,13 @@ type ManagedTaskStatus = TaskManagementItem["status"];
 
 const TASK_LANE_PAGE_SIZE = 20;
 
+export function getTaskManagementQueryPageLength(
+  layout: TaskLayout,
+  lanePage: number,
+): number {
+  return layout === "table" ? 100 : lanePage * TASK_LANE_PAGE_SIZE;
+}
+
 const INITIAL_LANE_PAGES: Record<ManagedTaskStatus, number> = {
   todo: 1,
   "in-progress": 1,
@@ -192,9 +199,7 @@ export default function TaskManagementPage({
     return [...uniqueStudents.values()];
   }, [isStudentOptionsReady, studentsQuery.data]);
   const getLanePageLength = (lane: ManagedTaskStatus) =>
-    hasClientFilters
-      ? 100 + (lanePages[lane] - 1) * TASK_LANE_PAGE_SIZE
-      : lanePages[lane] * TASK_LANE_PAGE_SIZE;
+    getTaskManagementQueryPageLength(layout, lanePages[lane]);
   const crmTaskQueryOptions = {
     enabled:
       shouldUseCrmApi &&
@@ -203,6 +208,7 @@ export default function TaskManagementPage({
       Boolean(currentUserId),
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
+    allPages: layout === "table",
   };
   const todoBacklogQuery = useCrmTasksQuery(
     {
