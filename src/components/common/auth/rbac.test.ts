@@ -152,6 +152,7 @@ describe("dashboard RBAC", () => {
       ]);
       expect(navigation[1].items[0].title).toBe("Quản lý segments");
       expect(navigation[2].items.map((item) => item.title)).toEqual([
+        "Phân công Lead",
         "Quản lý Team",
       ]);
       expect(navigation[3].items.map((item) => item.title)).toEqual([
