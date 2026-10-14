@@ -117,6 +117,7 @@ export interface DirectorMarketOverview {
   provinces: DirectorMarketProvince[];
   totalProvinces: number | null;
   totalSchools: number | null;
+  schoolsComplete: boolean;
   admissionYear: number | null;
   asOf: string | null;
   regionSummary: DirectorMarketRegionSummary | null;
@@ -132,5 +133,6 @@ export interface DirectorMarketParams {
   region?: MarketRegionKey;
   metric?: "opportunity" | "leads" | "conversion" | "competition" | "revenue";
   includeSchools?: boolean;
+  includeAllSchools?: boolean;
   schoolLimit?: number;
 }

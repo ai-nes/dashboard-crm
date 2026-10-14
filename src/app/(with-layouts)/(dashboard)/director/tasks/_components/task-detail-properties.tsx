@@ -108,7 +108,8 @@ export default function TaskDetailProperties({
           actionCode={task.actionCode}
           taskType={task.taskType}
           size="sm"
-          compact
+          focusable
+          className="max-w-full whitespace-normal break-words focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
         />
       </TaskDetailRow>
       <TaskDetailRow label="Hạn xử lý">

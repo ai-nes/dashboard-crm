@@ -157,7 +157,7 @@ export const NAV_DATA: NavigationSection[] = [
         icon: <ChatIcon />,
       }),
       navItem({
-        title: "Snippest",
+        title: "Snippet",
         url: "/director/snippest",
         icon: <Widget4Icon />,
       }),
@@ -362,7 +362,7 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
         icon: <ChatIcon />,
       }),
       navItem({
-        title: "Snippest",
+        title: "Snippet",
         url: "/ctv-sale/snippest",
         icon: <Widget4Icon />,
       }),
@@ -451,7 +451,7 @@ export const SALE_NAV_DATA: NavigationSection[] = [
         icon: <ChatIcon />,
       }),
       navItem({
-        title: "Snippest",
+        title: "Snippet",
         url: "/sale/snippest",
         icon: <Widget4Icon />,
       }),
@@ -545,7 +545,7 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         icon: <ChatIcon />,
       }),
       navItem({
-        title: "Snippest",
+        title: "Snippet",
         url: "/lead-sale/snippest",
         icon: <Widget4Icon />,
       }),

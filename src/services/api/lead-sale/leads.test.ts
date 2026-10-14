@@ -212,6 +212,34 @@ describe("Lead list/detail API contract", () => {
     );
   });
 
+  it("preserves the canonical matched-Student boolean when normalizing Lead detail", () => {
+    const normalized = normalizeLeadDetail({
+      ...leadRecord,
+      processingStatus: "PROCESSED",
+      resolution: "PENDING",
+      studentId: null,
+      hasMatchedStudent: true,
+    });
+
+    expect(normalized.lead).toMatchObject({
+      processingStatus: "PROCESSED",
+      result: "PENDING",
+      studentId: null,
+      hasMatchedStudent: true,
+    });
+  });
+
+  it("leaves matched-Student state unknown when the API omits the field", () => {
+    const normalized = normalizeLeadDetail({
+      ...leadRecord,
+      processingStatus: "PROCESSED",
+      resolution: "PENDING",
+      studentId: null,
+    });
+
+    expect(normalized.lead.hasMatchedStudent).toBeUndefined();
+  });
+
   it("exposes the upstream error code and message", async () => {
     fetchMock.mockResolvedValue(
       json({ error: { code: "FORBIDDEN", message: "Không có quyền." } }, 403),

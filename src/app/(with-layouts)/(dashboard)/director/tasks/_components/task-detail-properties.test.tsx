@@ -27,8 +27,22 @@ describe("task student detail link", () => {
     expect(html).toContain(
       'href="/director/students/HS-2026-0001?tab=activities&amp;taskId=task-1"',
     );
-    expect(
-      html,
-    ).not.toContain('href="/director/students/8f2d69d0-1795-4c52-a94a-e77c9ef64918');
+    expect(html).not.toContain(
+      'href="/director/students/8f2d69d0-1795-4c52-a94a-e77c9ef64918',
+    );
+  });
+
+  it("shows the full task type in a wrapping keyboard-accessible badge", () => {
+    const html = renderToStaticMarkup(
+      <TaskDetailProperties
+        task={{ ...task, actionCode: "SEND_OBJECTION_CONTENT" }}
+      />,
+    );
+
+    expect(html).toContain("Gửi thông tin giải đáp băn khoăn");
+    expect(html).toContain('aria-label="Gửi thông tin giải đáp băn khoăn"');
+    expect(html).toContain('tabindex="0"');
+    expect(html).toContain("whitespace-normal");
+    expect(html).toContain("break-words");
   });
 });

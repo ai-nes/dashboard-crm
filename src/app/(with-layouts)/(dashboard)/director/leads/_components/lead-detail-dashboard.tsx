@@ -10,6 +10,8 @@ import {
   canAccessStudent,
   canConvertLeadToStudent,
   canPerformStudentAction,
+  canReadCrmPath,
+  getCrmDoctypePermissions,
   getCrmPermissions,
   hasCrmCapability,
 } from "@/components/common/auth/permissions";
@@ -107,15 +109,24 @@ export default function LeadDetailDashboard({
     !isAuthLoading && hasCrmCapability(user, "lifecycle.transition");
   const canRecordCall =
     !isAuthLoading && hasCrmCapability(user, "interaction.record");
-  const isLeadAssigned =
-    normalizeLeadStageStatus(
-      data?.lead.processingStatus ?? data?.lead.statusCode ?? data?.lead.status,
-    ) === "ASSIGNED";
+  const leadStatus = normalizeLeadStageStatus(
+    data?.lead.processingStatus ?? data?.lead.statusCode ?? data?.lead.status,
+  );
+  const isLeadAssigned = leadStatus === "ASSIGNED";
+  const isOwnedPendingProcessedLead =
+    leadStatus === "PROCESSED" &&
+    Boolean(data?.lead.ownerId || data?.lead.ownerStaff) &&
+    data?.lead.result === "PENDING" &&
+    data?.lead.hasMatchedStudent === false;
   const canConvertLead =
     !isAuthLoading &&
-    isLeadAssigned &&
+    (isLeadAssigned || isOwnedPendingProcessedLead) &&
     !data?.lead.studentId &&
     canConvertLeadToStudent(user?.roles, leadOwnership, user);
+  const canCreateSchool =
+    !isAuthLoading &&
+    getCrmDoctypePermissions(user, "CRM High School").canCreate &&
+    canReadCrmPath("/director/schools", user);
   const submitConversion = () => {
     if (!canConvertLead || !resolvedLeadId) return;
     convertMutation.mutate(resolvedLeadId, {
@@ -365,6 +376,14 @@ export default function LeadDetailDashboard({
             contactNoAnswer={data.lead.contactNoAnswer}
             contactSuccess={data.lead.contactSuccess}
           />
+          {status === "PROCESSED" &&
+            data.lead.ownerId &&
+            (result === "MATCHED" || data.lead.hasMatchedStudent === true) && (
+              <p className="mt-2 text-xs text-text-tertiary" role="status">
+                Lead đã khớp với hồ sơ học sinh hiện có; hãy đối soát hồ sơ
+                trước khi chuyển đổi.
+              </p>
+            )}
         </LeadHeader>
       </div>
       <div className="px-2 pt-4 lg:px-6">
@@ -394,6 +413,7 @@ export default function LeadDetailDashboard({
         isOpen={conversionDialogOpen}
         isSubmitting={updateMutation.isPending || convertMutation.isPending}
         lead={data.lead}
+        canCreateSchool={canCreateSchool}
         missingFields={conversionMissingFields}
         onOpenChange={(open) => {
           setConversionDialogOpen(open);

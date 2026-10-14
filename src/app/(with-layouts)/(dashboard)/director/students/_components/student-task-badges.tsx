@@ -43,12 +43,14 @@ export function StudentTaskTypeBadge({
   size = "sm",
   className,
   compact = false,
+  focusable = false,
 }: {
   actionCode?: string;
   taskType?: StudentTaskType;
   size?: "sm" | "md";
   className?: string;
   compact?: boolean;
+  focusable?: boolean;
 }) {
   const code = actionCode?.trim();
   const action = getTaskActionMetadata(code);
@@ -75,6 +77,8 @@ export function StudentTaskTypeBadge({
           ? `${code} · ${fullLabel}${action?.description ? ` · ${action.description}` : ""}`
           : `Loại task: ${fullLabel}`
       }
+      aria-label={fullLabel}
+      tabIndex={focusable ? 0 : undefined}
       className={cn("whitespace-nowrap font-semibold", className)}
     >
       {label}

@@ -115,4 +115,20 @@ describe("Lead assignment readiness", () => {
     expect(html).toContain("Chọn Sale hoặc CTV phụ trách Lead");
     expect(html).not.toContain("Xử lý Lead để phân công");
   });
+
+  it("shows the owner returned by the Nest detail contract", () => {
+    const html = renderToStaticMarkup(
+      <LeadAssigneeField
+        lead={{
+          ...lead("ASSIGNED"),
+          ownerId: "owner-user-id",
+          owner: "Sale Hcm",
+        }}
+        leadId="lead-id"
+      />,
+    );
+
+    expect(html).toContain("Sale Hcm");
+    expect(html).not.toContain("Chưa có người phụ trách");
+  });
 });

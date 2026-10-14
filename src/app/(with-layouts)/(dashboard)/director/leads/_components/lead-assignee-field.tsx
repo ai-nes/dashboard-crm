@@ -43,6 +43,7 @@ export default function LeadAssigneeField({
   const status = normalizeLeadStageStatus(
     lead.processingStatus ?? lead.statusCode ?? lead.status,
   );
+  const currentOwnerLabel = getAssignedOwnerLabel(lead);
   const assignmentReady = isLeadAssignableStatus(status) && !lead.studentId;
   const targetsQuery = useLeadAssignmentTargetsQuery(leadId, {
     enabled: canAssign && assignmentReady,
@@ -133,8 +134,8 @@ export default function LeadAssigneeField({
         }))}
         placeholder={
           selectedTarget?.displayName ??
-          (lead.ownerStaff
-            ? lead.owner || lead.ownerStaff
+          (currentOwnerLabel
+            ? currentOwnerLabel
             : targetsQuery.isPending
               ? "Đang tải..."
               : "Chưa có người phụ trách")
@@ -150,8 +151,7 @@ export default function LeadAssigneeField({
           </span>
         )}
         selectedLabel={
-          selectedTarget?.displayName ??
-          (lead.ownerStaff ? lead.owner || lead.ownerStaff : undefined)
+          selectedTarget?.displayName ?? currentOwnerLabel ?? undefined
         }
         searchPlaceholder="Tìm Sale hoặc CTV"
         triggerClassName={
@@ -190,13 +190,13 @@ function ReadOnlyAssigneeField({
   onProcessLead?: () => void;
   isProcessingLead: boolean;
 }) {
+  const ownerLabel = getAssignedOwnerLabel(lead);
+
   return (
     <div className="min-w-0">
       <dt className="text-xs leading-5 text-text-tertiary">Người phụ trách</dt>
       <dd className="mt-1 text-sm font-medium leading-6 text-text-primary [overflow-wrap:anywhere]">
-        {lead.ownerStaff
-          ? lead.owner || lead.ownerStaff
-          : "Chưa có người phụ trách"}
+        {ownerLabel ?? "Chưa có người phụ trách"}
       </dd>
       {status === "NEW" && (
         <div className="mt-2 space-y-2" role="note">
@@ -223,6 +223,12 @@ function ReadOnlyAssigneeField({
       )}
     </div>
   );
+}
+
+function getAssignedOwnerLabel(lead: LeadDetail): string | null {
+  if (!lead.ownerStaff && !lead.ownerId) return null;
+  if (lead.owner && lead.owner !== "Chưa phân công") return lead.owner;
+  return lead.ownerStaff || lead.ownerId || null;
 }
 
 function getTargetKey(target: LeadAssignmentTarget): string {

@@ -17,6 +17,9 @@ const state = vi.hoisted(() => ({
   replace: vi.fn(),
   childIds: [] as string[],
   status: "ASSIGNED",
+  ownerId: null as string | null,
+  result: "PENDING" as string,
+  hasMatchedStudent: false as boolean | undefined,
   onProcessLead: undefined as (() => void) | undefined,
   onConvert: undefined as (() => void) | undefined,
   onDelete: undefined as (() => void) | undefined,
@@ -31,6 +34,8 @@ vi.mock("@/components/common/auth/permissions", () => ({
   getCrmPermissions: () => ({
     lead: { canRead: state.allowed, canAssign: state.allowed },
   }),
+  getCrmDoctypePermissions: () => ({ canCreate: state.allowed }),
+  canReadCrmPath: () => state.allowed,
   canAccessStudent: () => state.allowed,
   canPerformStudentAction: () => state.allowed,
   hasCrmCapability: () => state.allowed,
@@ -55,6 +60,9 @@ vi.mock("@/hooks/use-lead-sale-leads-queries", () => ({
           leadCode: state.code,
           name: "Võ Khánh Linh",
           processingStatus: state.status,
+          ownerId: state.ownerId,
+          result: state.result,
+          hasMatchedStudent: state.hasMatchedStudent,
           phone: "0835102605",
           province: "HCM",
           school: "THPT An Nhơn Tây",
@@ -129,6 +137,9 @@ describe("Lead detail route identity", () => {
     state.allowed = true;
     state.childIds = [];
     state.status = "ASSIGNED";
+    state.ownerId = null;
+    state.result = "PENDING";
+    state.hasMatchedStudent = false;
     state.onProcessLead = undefined;
     state.onConvert = undefined;
     state.onDelete = undefined;
@@ -175,6 +186,44 @@ describe("Lead detail route identity", () => {
       { lead: state.id },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
+  });
+  it("offers conversion for an owned PROCESSED lead with pending resolution", () => {
+    state.status = "PROCESSED";
+    state.ownerId = "owner-user-id";
+    renderToStaticMarkup(<LeadDetailDashboard leadId={state.code} />);
+
+    expect(state.onConvert).toBeTypeOf("function");
+  });
+  it("preserves ASSIGNED conversion when match-state metadata is unavailable", () => {
+    state.status = "ASSIGNED";
+    state.hasMatchedStudent = undefined;
+    renderToStaticMarkup(<LeadDetailDashboard leadId={state.code} />);
+
+    expect(state.onConvert).toBeTypeOf("function");
+  });
+  it("keeps conversion unavailable for a matched PROCESSED lead", () => {
+    state.status = "PROCESSED";
+    state.ownerId = "owner-user-id";
+    state.result = "MATCHED";
+    renderToStaticMarkup(<LeadDetailDashboard leadId={state.code} />);
+
+    expect(state.onConvert).toBeUndefined();
+  });
+  it("keeps conversion unavailable when a PENDING Lead is already linked to a matched Student", () => {
+    state.status = "PROCESSED";
+    state.ownerId = "owner-user-id";
+    state.hasMatchedStudent = true;
+    renderToStaticMarkup(<LeadDetailDashboard leadId={state.code} />);
+
+    expect(state.onConvert).toBeUndefined();
+  });
+  it("fails closed for stale PROCESSED Leads when matched-Student state is unknown", () => {
+    state.status = "PROCESSED";
+    state.ownerId = "owner-user-id";
+    state.hasMatchedStudent = undefined;
+    renderToStaticMarkup(<LeadDetailDashboard leadId={state.code} />);
+
+    expect(state.onConvert).toBeUndefined();
   });
   it("keeps code routes gated by the existing read permission", () => {
     state.allowed = false;

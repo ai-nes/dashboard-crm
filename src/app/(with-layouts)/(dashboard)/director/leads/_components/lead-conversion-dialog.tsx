@@ -2,6 +2,7 @@
 
 import { formatDialogError } from "@/utils/dialog-error";
 
+import Link from "next/link";
 import { InfoCircle } from "@tailgrids/icons";
 import { useState, type FormEvent, type ReactNode } from "react";
 import {
@@ -38,6 +39,7 @@ import {
 
 interface LeadConversionDialogProps {
   isOpen: boolean;
+  canCreateSchool?: boolean;
   lead: LeadDetail;
   missingFields: LeadConversionField[];
   isSubmitting?: boolean;
@@ -50,6 +52,7 @@ type LeadConversionErrors = Partial<Record<LeadConversionField, string>>;
 
 export default function LeadConversionDialog({
   isOpen,
+  canCreateSchool = false,
   lead,
   missingFields,
   isSubmitting = false,
@@ -210,6 +213,12 @@ export default function LeadConversionDialog({
                   >
                     <SchoolCombobox
                       ariaLabel={leadConversionFieldLabels.high_school}
+                      emptyMessage={
+                        <LeadConversionSchoolEmptyMessage
+                          canCreateSchool={canCreateSchool}
+                          province={form.province || lead.province || "đã chọn"}
+                        />
+                      }
                       isDisabled={!form.province}
                       province={form.province}
                       requiresWard={false}
@@ -245,7 +254,10 @@ export default function LeadConversionDialog({
                 </p>
               )}
               {submitError && (
-                <p className="text-xs text-badge-error-text whitespace-pre-line break-words" role="alert">
+                <p
+                  className="text-xs text-badge-error-text whitespace-pre-line break-words"
+                  role="alert"
+                >
                   {submitError}
                 </p>
               )}
@@ -271,6 +283,32 @@ export default function LeadConversionDialog({
         </AriaDialog>
       </AriaModal>
     </Backdrop>
+  );
+}
+
+export function LeadConversionSchoolEmptyMessage({
+  province,
+  canCreateSchool,
+}: {
+  province: string;
+  canCreateSchool: boolean;
+}) {
+  return (
+    <span>
+      Danh mục chưa có trường THPT thuộc tỉnh {province}.{" "}
+      {canCreateSchool ? (
+        <Link
+          className="font-medium text-primary-700 underline"
+          href="/director/schools"
+          rel="noreferrer"
+          target="_blank"
+        >
+          Mở danh mục trường để bổ sung
+        </Link>
+      ) : (
+        "Vui lòng liên hệ quản trị viên để cập nhật danh mục."
+      )}
+    </span>
   );
 }
 

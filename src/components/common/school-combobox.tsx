@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState, type ReactNode } from "react";
 
 import {
   DropdownField,
@@ -18,6 +18,7 @@ interface SchoolComboboxProps {
   ariaLabel?: string;
   isDisabled?: boolean;
   className?: string;
+  emptyMessage?: ReactNode;
 }
 
 export function SchoolCombobox({
@@ -30,6 +31,7 @@ export function SchoolCombobox({
   ariaLabel = "Chọn trường THPT",
   isDisabled = false,
   className,
+  emptyMessage = "Không tìm thấy trường phù hợp.",
 }: SchoolComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -80,7 +82,9 @@ export function SchoolCombobox({
     <DropdownField
       ariaLabel={ariaLabel}
       contentClassName="max-w-[calc(100vw-2rem)]"
-      emptyMessage="Không tìm thấy trường phù hợp."
+      emptyMessage={
+        deferredQuery.trim() ? "Không tìm thấy trường phù hợp." : emptyMessage
+      }
       errorMessage="Chưa thể tải danh sách trường."
       filterOptions={false}
       isDisabled={isDisabled}

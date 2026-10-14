@@ -45,21 +45,26 @@ describe("market intelligence normalization", () => {
 
   it("normalizes school coordinates from the market response", () => {
     const result = normalizeMarketOverview({
-      provinces: [
-        {
-          code: "01",
-          name: "Hà Nội",
-          highSchools: [
-            {
-              id: "school-1",
-              name: "THPT Nguyễn Trãi",
-              coordinates: { latitude: 21.03, longitude: 105.81 },
-            },
-          ],
-        },
-      ],
+      data: {
+        schoolsComplete: true,
+        provinces: [
+          {
+            code: "01",
+            name: "Hà Nội",
+            schoolCount: 1,
+            highSchools: [
+              {
+                id: "school-1",
+                name: "THPT Nguyễn Trãi",
+                coordinates: { latitude: 21.03, longitude: 105.81 },
+              },
+            ],
+          },
+        ],
+      },
     });
 
+    expect(result.schoolsComplete).toBe(true);
     expect(result.provinces[0].highSchools[0].coordinates).toEqual({
       latitude: 21.03,
       longitude: 105.81,
@@ -84,6 +89,7 @@ describe("market intelligence normalization", () => {
     expect(averageAvailable([null, 0, 20])).toBe(10);
     expect(averageAvailable([null, null])).toBeNull();
     expect(normalizeMarketOverview({}).provinces).toEqual([]);
+    expect(normalizeMarketOverview({}).schoolsComplete).toBe(false);
   });
 
   it("serializes the request query", async () => {
@@ -101,11 +107,12 @@ describe("market intelligence normalization", () => {
         period: "30d",
         region: "all",
         includeSchools: true,
+        includeAllSchools: true,
         schoolLimit: 5,
       }),
     ).resolves.toEqual(expect.objectContaining({ provinces: [] }));
     expect(fetchMock.mock.calls[0]![0]).toBe(
-      "http://localhost:3001/api/v1/director/market-intelligence?admissionYear=2026&period=30d&region=all&includeSchools=true&schoolLimit=5",
+      "http://localhost:3001/api/v1/director/market-intelligence?admissionYear=2026&period=30d&region=all&includeSchools=true&includeAllSchools=true&schoolLimit=5",
     );
   });
 

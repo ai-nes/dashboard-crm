@@ -214,7 +214,9 @@ export default function TaskDialogSidebar({
 
           {/* Hồ sơ học sinh */}
           <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-2 py-2">
-            <span className="font-medium text-text-secondary">{parentLabel}</span>
+            <span className="font-medium text-text-secondary">
+              {parentLabel}
+            </span>
             <div className="min-w-0">
               {parentField ? (
                 parentField
@@ -263,7 +265,8 @@ export default function TaskDialogSidebar({
                 <span
                   aria-label={taskTypeLabel}
                   title={taskTypeLabel}
-                  className="flex h-9 min-w-0 w-full items-center truncate px-0 text-sm font-medium text-text-primary"
+                  tabIndex={0}
+                  className="flex min-h-9 min-w-0 w-full items-center whitespace-normal break-words px-0 py-1 text-sm font-medium text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 >
                   {taskTypeLabel}
                 </span>

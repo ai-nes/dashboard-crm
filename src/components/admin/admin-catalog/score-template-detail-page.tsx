@@ -15,6 +15,7 @@ import AdminPageHeader from "@/components/common/admin/admin-page-header";
 import { DropdownField } from "@/components/common/dropdown-field";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { getScoreTemplatePermissions } from "./score-template-permissions";
+import { formatScoreModifiedAt } from "./score-template-date-time";
 import ScoreRulesInlineEditor from "./score-rules-inline-editor";
 import { EditableDetailField } from "@/components/common/editable-detail-field";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
@@ -782,7 +783,7 @@ function ScoreTemplateDetailContent({
               ) : null}
 
               <span>
-                Cập nhật lần cuối: {formatScoreDateTime(detail.modified)}
+                Cập nhật lần cuối: {formatScoreModifiedAt(detail.modified)}
               </span>
             </div>
           ) : null
