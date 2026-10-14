@@ -15,6 +15,7 @@ import { useCreateNbaActionTypeMutation, useDeleteNbaActionTypeMutation, useNbaA
 import type { NbaAdminActionType } from "@/services/api/nba-admin";
 
 import NbaAdminDialogHeader from "./nba-admin-dialog-header";
+import { isActionTypeSaveDisabled } from "./action-type-dialog-model";
 
 const BUILT_IN_ACTION_TYPES = new Set(["CONTACT", "INFORMATION", "ENGAGEMENT", "APPLICATION", "CONVERSION", "PARENT", "RECOVERY", "INTERNAL"]);
 
@@ -112,7 +113,29 @@ export default function ActionTypeDetailDialog({
 
         <DialogFooter className="border-t border-card-border px-5 py-3 sm:justify-between">
           <div>{canDelete && record && !isBuiltIn && <Button variant="danger" appearance="ghost" size="sm" onPress={() => void handleDelete()} isDisabled={deleteMutation.isPending}>{deleteMutation.isPending ? "Đang xóa…" : "Xóa nhóm"}</Button>}</div>
-          <div className="flex gap-2"><DialogClose appearance="outline" size="sm">Đóng</DialogClose>{canEdit && <Button size="sm" onPress={() => void handleSave()} isDisabled={detailQuery.isPending || createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu…" : isNew ? "Tạo nhóm" : "Lưu thay đổi"}</Button>}</div>
+          <div className="flex gap-2">
+            <DialogClose appearance="outline" size="sm">
+              Đóng
+            </DialogClose>
+            {canEdit && (
+              <Button
+                size="sm"
+                onPress={() => void handleSave()}
+                isDisabled={isActionTypeSaveDisabled({
+                  isNew,
+                  isDetailPending: detailQuery.isPending,
+                  isSaving:
+                    createMutation.isPending || updateMutation.isPending,
+                })}
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Đang lưu…"
+                  : isNew
+                    ? "Tạo nhóm"
+                    : "Lưu thay đổi"}
+              </Button>
+            )}
+          </div>
         </DialogFooter>
       </Dialog>
     </Backdrop>

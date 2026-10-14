@@ -157,7 +157,7 @@ export const NAV_DATA: NavigationSection[] = [
         icon: <ChatIcon />,
       }),
       navItem({
-        title: "Snippest",
+        title: "Snippet",
         url: "/director/snippest",
         icon: <Widget4Icon />,
       }),
@@ -347,6 +347,11 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
     label: "ĐỘI NGŨ",
     items: [
       navItem({
+        title: "Phân công Lead",
+        url: "/ctv-sale/student-assignment",
+        icon: <UserPencil size={18} />,
+      }),
+      navItem({
         title: "Quản lý Team",
         url: "/lead-sale/team-management",
         icon: <UserMultiple4 size={18} />,
@@ -362,7 +367,7 @@ export const CTV_SALE_NAV_DATA: NavigationSection[] = [
         icon: <ChatIcon />,
       }),
       navItem({
-        title: "Snippest",
+        title: "Snippet",
         url: "/ctv-sale/snippest",
         icon: <Widget4Icon />,
       }),
@@ -436,6 +441,11 @@ export const SALE_NAV_DATA: NavigationSection[] = [
     label: "ĐỘI NGŨ",
     items: [
       navItem({
+        title: "Phân công Lead",
+        url: "/sale/student-assignment",
+        icon: <UserPencil size={18} />,
+      }),
+      navItem({
         title: "Quản lý Team",
         url: "/lead-sale/team-management",
         icon: <UserMultiple4 size={18} />,
@@ -451,7 +461,7 @@ export const SALE_NAV_DATA: NavigationSection[] = [
         icon: <ChatIcon />,
       }),
       navItem({
-        title: "Snippest",
+        title: "Snippet",
         url: "/sale/snippest",
         icon: <Widget4Icon />,
       }),
@@ -545,7 +555,7 @@ export const LEAD_SALE_NAV_DATA: NavigationSection[] = [
         icon: <ChatIcon />,
       }),
       navItem({
-        title: "Snippest",
+        title: "Snippet",
         url: "/lead-sale/snippest",
         icon: <Widget4Icon />,
       }),

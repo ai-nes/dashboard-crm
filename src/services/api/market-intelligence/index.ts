@@ -46,6 +46,10 @@ export async function getDirectorMarketIntelligence(
             params.includeSchools === undefined
               ? undefined
               : String(params.includeSchools),
+          includeAllSchools:
+            params.includeAllSchools === undefined
+              ? undefined
+              : String(params.includeAllSchools),
           schoolLimit: params.schoolLimit,
         },
       },

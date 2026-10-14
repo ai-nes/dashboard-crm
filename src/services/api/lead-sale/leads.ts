@@ -66,6 +66,7 @@ export interface LeadListItem {
   ownerStaff?: string | null;
   owningTeam?: string | null;
   ownershipRevision?: number | null;
+  hasMatchedStudent?: boolean;
   contactNoAnswer: number;
   contactSuccess: number;
   createdAt?: string | null;
@@ -751,6 +752,7 @@ function normalizeListItem(value: unknown): LeadListItem {
     row.processing_status,
   ]);
   const createdAt = firstText([row.createdAt, row.created_at, row.creation]);
+  const hasMatchedStudent = row.hasMatchedStudent ?? row.has_matched_student;
   const owner = firstText(
     [
       row.ownerStaff,
@@ -809,6 +811,7 @@ function normalizeListItem(value: unknown): LeadListItem {
     ownershipRevision: integerOrNull(
       row.ownershipRevision ?? row.ownership_revision,
     ),
+    ...(typeof hasMatchedStudent === "boolean" ? { hasMatchedStudent } : {}),
     contactNoAnswer: count(
       row.contactNoAnswer ?? row.contact_no_answer ?? row.no_answer_calls,
     ),

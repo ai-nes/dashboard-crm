@@ -104,6 +104,52 @@ describe("user management with the Nest backend", () => {
     ).toBe(false);
   });
 
+  it("filters System Manager through its technical identity role", async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes("/api/v1/users?")) {
+        return json({
+          data: [
+            {
+              id: "local-admin",
+              email: "admin@example.test",
+              name: "Local Admin",
+              identityRole: "admin",
+              crmProfile: null,
+              emailVerified: true,
+              status: "active",
+              campus: null,
+            },
+          ],
+          meta: { pagination: { page: 1, pageSize: 8, total: 1 } },
+        });
+      }
+      if (url.endsWith("/api/v1/me")) {
+        return json({ data: { email: "admin@example.test" } });
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    const result = await call("crm.api.session.list_admin_users", {
+      role: "System Manager",
+      start: "0",
+      page_length: "8",
+    });
+
+    expect(result).toMatchObject({
+      total: 1,
+      users: [
+        {
+          name: "local-admin",
+          full_name: "Local Admin",
+          role: "System Manager",
+        },
+      ],
+    });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://api.test/api/v1/users?page=1&pageSize=8&systemManager=true",
+    );
+  });
+
   it.each(["622f458f-aeb1-505b-b02f-a02cd8672f45", null])(
     "maps inline campus changes without resetting the password (%s)",
     async (campusId) => {

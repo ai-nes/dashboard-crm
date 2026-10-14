@@ -13,16 +13,22 @@ export default async function StudentDetailPage({
   searchParams,
 }: {
   params: Promise<{ studentId: string }>;
-  searchParams: Promise<{ tab?: string; taskId?: string; edit?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    taskId?: string;
+    edit?: string;
+    returnTo?: string;
+  }>;
 }) {
   const { studentId } = await params;
-  const { tab, taskId, edit } = await searchParams;
+  const { tab, taskId, edit, returnTo } = await searchParams;
   return (
     <Student360Dashboard
       studentId={studentId}
       initialTab={tab}
       initialTaskId={taskId}
       initialEditPersonal={edit === "personal"}
+      returnTo={returnTo}
     />
   );
 }

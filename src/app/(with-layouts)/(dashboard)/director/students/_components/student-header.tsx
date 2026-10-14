@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { formatDateTime } from "@/utils/format-date";
+import { resolveReturnTo } from "@/utils/detail-navigation";
 import type {
   StudentPriority,
   StudentStatus,
@@ -49,6 +50,7 @@ interface StudentHeaderProps extends Student360SectionProps {
   status?: StudentStatus | null;
   scoreBreakdown?: StudentScoreBreakdown | null;
   canViewStageHistory?: boolean;
+  returnTo?: string;
 }
 
 export default function StudentHeader({
@@ -67,6 +69,7 @@ export default function StudentHeader({
   status,
   scoreBreakdown,
   canViewStageHistory = false,
+  returnTo,
 }: StudentHeaderProps) {
   const { student } = data;
   const subtitle = student.grade || "-";
@@ -79,15 +82,19 @@ export default function StudentHeader({
       : null;
   const studentStatus = status ?? student.studentStage;
   const studentOwner = owner ?? student.counselor ?? "";
+  const backHref = resolveReturnTo(returnTo, "/director/students");
+  const backLabel = backHref.startsWith("/director/students")
+    ? "Danh sách học sinh"
+    : "Quay lại danh sách";
 
   return (
     <header className="min-w-0 shrink-0">
       <Link
-        href="/director/students"
+        href={backHref}
         className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-text-secondary transition hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-button-primary-focus-ring"
       >
         <ArrowLeft size={16} />
-        Danh sách học sinh
+        {backLabel}
       </Link>
 
       <div className="min-w-0 overflow-hidden rounded-2xl border border-card-border bg-card-background">

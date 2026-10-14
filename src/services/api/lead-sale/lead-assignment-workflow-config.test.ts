@@ -133,6 +133,7 @@ describe("Lead assignment workflow config API contract", () => {
       "assignment",
     ]);
     expect(result.config.stored.input.maxLeadsPerRun).toBe(25);
+    expect(result.config.stored.input.autoProcessEnabled).toBe(false);
     expect(result.steps.validation.canToggle).toBe(false);
     expect(result.steps.review.settings).toMatchObject({
       retryMode: "manual",
@@ -158,7 +159,36 @@ describe("Lead assignment workflow config API contract", () => {
     const result = await getLeadAssignmentWorkflowConfig();
 
     expect(result.config.stored.input.scheduledMinAgeMinutes).toBe(1);
-    expect(result.steps.input.settings).toHaveProperty("scheduledMinAgeMinutes", 1);
+    expect(result.steps.input.settings).toHaveProperty(
+      "scheduledMinAgeMinutes",
+      1,
+    );
+  });
+  it("retains automatic processing in the stored config and input step", async () => {
+    const fixture = workflowFixture();
+    const input = { ...fixture.config.stored.input, autoProcessEnabled: true };
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...fixture,
+          config: {
+            ...fixture.config,
+            stored: { ...fixture.config.stored, input },
+          },
+          steps: {
+            ...fixture.steps,
+            input: { ...fixture.steps.input, settings: input },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    const result = await getLeadAssignmentWorkflowConfig();
+    expect(result.config.stored.input.autoProcessEnabled).toBe(true);
+    expect(result.steps.input.settings).toHaveProperty(
+      "autoProcessEnabled",
+      true,
+    );
   });
 
   it("sends one step, reason and revision for an update", async () => {

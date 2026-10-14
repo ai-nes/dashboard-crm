@@ -58,4 +58,11 @@ describe("quick create Lead dialog composition", () => {
       "<FormFieldError message={fieldErrors.province} />",
     );
   });
+
+  it("clears the selected school when the ward changes", () => {
+    expect(dialogSource).toMatch(
+      /const handleWardChange = \(ward: string\) => \{[\s\S]*?ward, high_school: ""/,
+    );
+    expect(dialogSource).toContain("onChange={handleWardChange}");
+  });
 });

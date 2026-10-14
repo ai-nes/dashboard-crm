@@ -79,9 +79,19 @@ export default function ProvinceInspector({ onSelectSchool, province }: Province
 
               return (
                 <button
-                  className="flex w-full items-center gap-2.5 rounded-xl border border-card-border bg-card-background p-2.5 text-left transition hover:border-primary-200 hover:bg-background-soft-50"
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-card-border bg-card-background p-2.5 text-left transition hover:border-primary-200 hover:bg-background-soft-50 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:border-card-border disabled:hover:bg-card-background"
+                  disabled={!school.directoryId}
                   key={school.id}
-                  onClick={() => onSelectSchool(province.code, school.id)}
+                  onClick={() => {
+                    if (school.directoryId) {
+                      onSelectSchool(province.code, school.id);
+                    }
+                  }}
+                  title={
+                    school.directoryId
+                      ? undefined
+                      : "Không thể mở chi tiết: thiếu mã tra cứu trường"
+                  }
                   type="button"
                 >
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-background-soft-100 text-xs font-semibold text-text-secondary">{index + 1}</span>
@@ -90,7 +100,7 @@ export default function ProvinceInspector({ onSelectSchool, province }: Province
                       <span className="truncate text-xs font-semibold text-text-primary" title={school.name}>{school.name}</span>
                       <Badge color={status.color} className="shrink-0 text-[10px]">{status.label}</Badge>
                     </span>
-                    <span className="mt-1 block truncate text-[11px] text-text-tertiary">{school.district ?? "-"} · {formatPercent(school.penetrationRate)} tiếp cận</span>
+                    <span className="mt-1 block truncate text-[11px] text-text-tertiary">{school.district ?? "-"} · {formatPercent(school.penetrationRate)} tiếp cận{!school.directoryId && " · Không có mã tra cứu"}</span>
                   </span>
                   <span className="shrink-0 text-right">
                     <span

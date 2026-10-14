@@ -61,6 +61,7 @@ interface Student360DashboardProps {
   initialTab?: string;
   initialTaskId?: string;
   initialEditPersonal?: boolean;
+  returnTo?: string;
 }
 
 interface StudentStageTransitionVariables {
@@ -78,6 +79,7 @@ export default function Student360Dashboard({
   initialTab,
   initialTaskId,
   initialEditPersonal = false,
+  returnTo,
 }: Student360DashboardProps) {
   const targetId =
     studentId?.trim() ||
@@ -357,6 +359,7 @@ export default function Student360Dashboard({
       <div className="px-2 pt-4 lg:px-6">
         <StudentHeader
           data={data}
+          returnTo={returnTo}
           isStatusUpdating={stageTransitionMutation.isPending}
           status={studentStatus}
           onStatusChange={

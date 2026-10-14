@@ -3,6 +3,7 @@
 import { Play } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import { useLeadSaleLeadsQuery } from "@/hooks/use-lead-sale-leads-queries";
+import { useLeadAssignmentWorkflowConfigQuery } from "@/hooks/use-lead-assignment-workflow-config-queries";
 import { useBatchAssignment } from "../../_shared/lead-assignment-batch/batch-assignment-context";
 
 const currentAdmissionYear = new Date().getFullYear();
@@ -23,6 +24,20 @@ export default function AssignmentBatchHeader() {
       pageSize: 1,
     },
     { refetchInterval: 30_000 },
+  );
+  const workflowConfigQuery = useLeadAssignmentWorkflowConfigQuery();
+  const inputStep = workflowConfigQuery.data?.steps.input;
+  const inputSettings = inputStep?.settings;
+  const scheduledMinAgeMinutes =
+    inputSettings && "scheduledMinAgeMinutes" in inputSettings
+      ? inputSettings.scheduledMinAgeMinutes
+      : undefined;
+  const autoProcessEnabled =
+    inputSettings && "autoProcessEnabled" in inputSettings
+      ? inputSettings.autoProcessEnabled
+      : undefined;
+  const isAutomaticIntakeDisabled = Boolean(
+    inputStep && (!inputStep.enabled || autoProcessEnabled === false),
   );
   const hasPendingLeads = (workflow?.pendingCount ?? 0) > 0;
   const pendingNewCount = leadIntakeQuery.data?.meta.pendingNew ?? 0;
@@ -49,8 +64,25 @@ export default function AssignmentBatchHeader() {
             Phân công Lead
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            Hệ thống tự quét Lead đã xử lý chưa có người phụ trách sau 5 phút;
-            bạn có thể bấm để phân công ngay theo cấu hình hiện tại.
+            {inputStep?.enabled &&
+            autoProcessEnabled &&
+            scheduledMinAgeMinutes !== undefined ? (
+              <>
+                Hệ thống xử lý Lead theo chu kỳ quét{" "}
+                <span className="font-medium text-text-primary">
+                  mỗi {scheduledMinAgeMinutes} phút
+                </span>
+                ; Lead đủ điều kiện được xử lý ở lần quét kế tiếp, không có thời
+                gian chờ theo tuổi Lead. Bạn cũng có thể chạy thủ công ngay.
+              </>
+            ) : isAutomaticIntakeDisabled ? (
+              <>
+                Tự động tiếp nhận Lead đang tắt theo cấu hình; bạn vẫn có thể xử
+                lý và phân công Lead bằng thao tác bên phải.
+              </>
+            ) : (
+              "Bạn có thể xử lý Lead tự động theo cấu hình hiện hành hoặc chạy thủ công ngay."
+            )}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">

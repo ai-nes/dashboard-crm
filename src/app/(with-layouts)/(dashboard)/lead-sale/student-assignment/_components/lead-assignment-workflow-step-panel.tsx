@@ -1,6 +1,8 @@
 "use client";
 
 import { Input } from "@/components/tailgrids/core/input";
+import { Toggle } from "@/components/tailgrids/core/toggle";
+import { Badge } from "@/components/tailgrids/core/badge";
 import type {
   LeadAssignmentWorkflowInputSettings,
   LeadAssignmentWorkflowMatchingSettings,
@@ -43,6 +45,35 @@ export default function LeadAssignmentWorkflowStepPanel({
     const input = settings as LeadAssignmentWorkflowInputSettings;
     return (
       <div className="space-y-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-text-primary">
+              Tự động xử lý Lead đầu vào
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-text-secondary">
+              Kiểm tra dữ liệu và trùng lặp của Lead mới trước khi phân công. Có
+              thể bật riêng khi tắt tự động phân công.
+            </p>
+          </div>
+          {canEdit ? (
+            <Toggle
+              aria-label="Tự động xử lý Lead đầu vào"
+              size="md"
+              checked={input.autoProcessEnabled}
+              disabled={isSaving}
+              onChange={(event) =>
+                onSettingsChange({
+                  ...input,
+                  autoProcessEnabled: event.target.checked,
+                })
+              }
+            />
+          ) : (
+            <Badge color="gray">
+              {input.autoProcessEnabled ? "Bật" : "Tắt"}
+            </Badge>
+          )}
+        </div>
         {canEdit ? (
           <div className="grid max-w-3xl items-end gap-3 sm:grid-cols-2">
             <label className="block space-y-2 text-sm font-medium text-text-primary">
@@ -89,9 +120,9 @@ export default function LeadAssignmentWorkflowStepPanel({
           </p>
         )}
         <p className="text-xs leading-5 text-text-secondary">
-          Worker sẽ quét và phân công Lead theo chu kỳ này. Chạy thủ công không
-          cần chờ. Không có thời gian chờ theo tuổi Lead; Lead đủ điều kiện sẽ
-          được xử lý ở lần quét kế tiếp.
+          Chu kỳ và giới hạn này áp dụng cho tự động xử lý và tự động phân công.
+          Khi bật cả hai, Lead mới được xử lý trước rồi Lead đủ điều kiện được
+          phân công. Chạy thủ công không cần chờ chu kỳ quét.
         </p>
       </div>
     );

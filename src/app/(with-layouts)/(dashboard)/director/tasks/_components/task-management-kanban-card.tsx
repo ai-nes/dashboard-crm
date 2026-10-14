@@ -103,7 +103,7 @@ export default function TaskManagementKanbanCard({
       }`}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+        <div className="flex min-w-0 flex-1 items-center gap-1">
           {canUpdateTask && (
             <button
               ref={handleRef}
@@ -119,7 +119,8 @@ export default function TaskManagementKanbanCard({
             actionCode={task.actionCode}
             taskType={task.taskType}
             size="sm"
-            className="min-w-0 max-w-full truncate whitespace-nowrap"
+            focusable
+            className="min-w-0 max-w-full whitespace-normal break-words focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           />
         </div>
         <div className="shrink-0">
@@ -133,7 +134,9 @@ export default function TaskManagementKanbanCard({
 
       <TaskManagementKanbanTitleEditor
         title={task.title}
-        onSave={onUpdateTask ? (title) => onUpdateTask(task.id, { title }) : undefined}
+        onSave={
+          onUpdateTask ? (title) => onUpdateTask(task.id, { title }) : undefined
+        }
       />
 
       <div className="mt-3">

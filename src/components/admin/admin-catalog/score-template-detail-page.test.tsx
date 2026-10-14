@@ -10,8 +10,7 @@ const session = vi.hoisted(() => ({
     user: "admin@example.test",
     roles: ["System Manager"],
     crm_profile: null as string | null,
-    crm_doctype_permissions:
-      {} as CurrentUser["crm_doctype_permissions"],
+    crm_doctype_permissions: {} as CurrentUser["crm_doctype_permissions"],
   },
 }));
 
@@ -27,6 +26,7 @@ vi.mock("@/hooks/use-admin-catalog-queries", () => ({
       name: "template-1",
       template_name: "Score Template",
       status: "Inactive",
+      modified: "2026-10-14T04:13:00.000Z",
       fit_weight: 0.4,
       engagement_weight: 0.3,
       intent_weight: 0.3,
@@ -64,6 +64,8 @@ describe("score template direct editing", () => {
 
   it("shows identity and weight inputs without entering edit mode", () => {
     const html = renderPage();
+    expect(html).toContain("Cập nhật lần cuối: 14/10/2026 · 11:13");
+    expect(html).not.toContain("04:13");
     expect(html).toContain("Thay đổi hợp lệ được tự động lưu.");
     expect(html).not.toContain("Lưu thay đổi");
     expect(html).toContain('aria-label="Tên template"');

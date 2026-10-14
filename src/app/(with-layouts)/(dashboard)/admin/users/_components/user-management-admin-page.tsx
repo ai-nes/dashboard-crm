@@ -209,75 +209,77 @@ export default function UserManagementAdminPage() {
           value="users"
           className="min-h-0 flex-1 space-y-4 overflow-y-auto px-0"
         >
-          {usersQuery.error ? (
-            <section
-              className="rounded-xl border border-alert-danger-border bg-alert-danger-background p-4"
-              role="alert"
-            >
-              <p className="text-sm font-medium text-alert-danger-title">
-                Không tải được danh sách người dùng.
-              </p>
-              <p className="mt-1 text-sm text-alert-danger-description">
-                {errorMessage(usersQuery.error)}
-              </p>
-              <button
-                type="button"
-                className="mt-3 text-sm font-semibold text-primary-500 hover:underline"
-                onClick={() => void usersQuery.refetch()}
+          <AdminTableFrame>
+            <UserSearchFilterBar
+              search={search}
+              onSearchChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              role={role}
+              onRoleChange={(value) => {
+                setRole(value);
+                setPage(1);
+              }}
+            />
+            {usersQuery.error ? (
+              <section
+                className="rounded-xl border border-alert-danger-border bg-alert-danger-background p-4"
+                role="alert"
               >
-                Thử lại
-              </button>
-            </section>
-          ) : (
-            <AdminTableFrame>
-              <UserSearchFilterBar
-                search={search}
-                onSearchChange={(value) => {
-                  setSearch(value);
-                  setPage(1);
-                }}
-                role={role}
-                onRoleChange={(value) => {
-                  setRole(value);
-                  setPage(1);
-                }}
-              />
-              <UsersTable
-                users={users}
-                total={totalUsers}
-                isLoading={usersQuery.isPending}
-                canManageUsers={canManageUsers}
-                isMutating={isMutating}
-                campusOptions={campusOptions}
-                isCampusLoading={
-                  campusesQuery.isPending || campusesQuery.isError
-                }
-                onChangeCampus={handleChangeCampus}
-                onChangeRole={handleChangeRole}
-                onEdit={openEditUser}
-                onRemove={setUserToRemove}
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-              />
-              {canManageUsers && campusesQuery.isError ? (
-                <div
-                  role="alert"
-                  className="flex items-center gap-2 px-5 py-3 text-sm text-text-secondary"
+                <p className="text-sm font-medium text-alert-danger-title">
+                  Không tải được danh sách người dùng.
+                </p>
+                <p className="mt-1 text-sm text-alert-danger-description">
+                  {errorMessage(usersQuery.error)}
+                </p>
+                <button
+                  type="button"
+                  className="mt-3 text-sm font-semibold text-primary-500 hover:underline"
+                  onClick={() => void usersQuery.refetch()}
                 >
-                  Không tải được danh sách Campus.
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    appearance="ghost"
-                    onPress={() => void campusesQuery.refetch()}
+                  Thử lại
+                </button>
+              </section>
+            ) : (
+              <>
+                <UsersTable
+                  users={users}
+                  total={totalUsers}
+                  isLoading={usersQuery.isPending}
+                  canManageUsers={canManageUsers}
+                  isMutating={isMutating}
+                  campusOptions={campusOptions}
+                  isCampusLoading={
+                    campusesQuery.isPending || campusesQuery.isError
+                  }
+                  onChangeCampus={handleChangeCampus}
+                  onChangeRole={handleChangeRole}
+                  onEdit={openEditUser}
+                  onRemove={setUserToRemove}
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                />
+                {canManageUsers && campusesQuery.isError ? (
+                  <div
+                    role="alert"
+                    className="flex items-center gap-2 px-5 py-3 text-sm text-text-secondary"
                   >
-                    Thử lại
-                  </Button>
-                </div>
-              ) : null}
-            </AdminTableFrame>
-          )}
+                    Không tải được danh sách Campus.
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      appearance="ghost"
+                      onPress={() => void campusesQuery.refetch()}
+                    >
+                      Thử lại
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </AdminTableFrame>
         </AdminTabContent>
 
         <AdminTabContent

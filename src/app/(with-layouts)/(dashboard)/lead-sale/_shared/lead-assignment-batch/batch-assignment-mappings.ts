@@ -300,6 +300,11 @@ export function assignmentActionCategory(
   item: AssignmentReasonContext,
 ): AssignmentActionCategory {
   const code = assignmentErrorCode(item);
+  // Routing needs both a province and a campus; without either, the fix is
+  // on the Lead itself, not in Quản lý Team.
+  if (code === "TEAM_NOT_FOUND" && (!item.province || !item.branch)) {
+    return "lead-data";
+  }
   if (RETIRED_CAPACITY_CODES.has(code)) return "system";
   if (code === "NO_ELIGIBLE_RECIPIENT") {
     // Historical capacity failures should be retried instead of opening settings.
@@ -335,6 +340,18 @@ function contextualReasonLabel(
       ? `Chưa thể phân công vì chưa có ${missing.join(", ")}. Vui lòng bổ sung cấu hình còn thiếu.`
       : "Thông tin Team hoặc hàng chờ không khớp với cấu hình phân công hiện tại.";
   }
+  if (code === "TEAM_NOT_FOUND") {
+    if (!item.province && !item.branch) {
+      return "Lead chưa có tỉnh/thành và cơ sở nên chưa xác định được Team phụ trách. Vui lòng bổ sung tỉnh/thành và cơ sở cho Lead.";
+    }
+    if (!item.branch) {
+      return `Lead ở tỉnh ${item.province} chưa có cơ sở nên chưa xác định được Team phụ trách. Vui lòng bổ sung cơ sở cho Lead.`;
+    }
+    if (!item.province) {
+      return `Lead thuộc cơ sở ${item.branch} chưa có tỉnh/thành nên chưa xác định được Team phụ trách. Vui lòng bổ sung tỉnh/thành cho Lead.`;
+    }
+    return `Chưa có Team đang hoạt động phụ trách tỉnh ${item.province} tại cơ sở ${item.branch}. Vui lòng gán tỉnh ${item.province} cho một Team của cơ sở này.`;
+  }
   if (code === "TEAM_NOT_FOUND_FOR_PROVINCE") {
     return item.province
       ? `Chưa có Team nào được cấu hình phụ trách tỉnh ${item.province}. Vui lòng gán tỉnh này cho một Team đang hoạt động.`
@@ -351,8 +368,12 @@ function contextualReasonLabel(
     const backendReason = item.reason?.trim();
     const nextStep =
       "Vào Quản lý Team để bổ sung Sale/CTV hoặc Trưởng nhóm đang hoạt động.";
-    return backendReason && !isInternalCode(backendReason)
-      ? `${backendReason} ${nextStep}`
+    if (backendReason && !isInternalCode(backendReason)) {
+      return `${backendReason} ${nextStep}`;
+    }
+    const where = item.province ? ` (tỉnh ${item.province})` : "";
+    return item.team
+      ? `Team ${item.team}${where} chưa có Sale/CTV đang hoạt động để nhận Lead. ${nextStep}`
       : nextStep;
   }
   return null;

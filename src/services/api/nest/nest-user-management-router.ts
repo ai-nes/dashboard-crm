@@ -121,15 +121,19 @@ async function listUsers(params: Params) {
     Math.max(1, Number(params.page_length ?? 20) || 20),
   );
   const page = Math.floor(start / pageLength) + 1;
-  const role =
-    params.role && params.role !== "all" ? profileOf(params.role) : undefined;
+  const roleFilter =
+    !params.role || params.role === "all"
+      ? {}
+      : params.role === "System Manager"
+        ? { systemManager: "true" }
+        : { crmProfile: profileOf(params.role) };
   const [users, current] = await Promise.all([
     nestRequest<UsersPage>(USERS, {
       query: {
         page,
         pageSize: pageLength,
         search: params.search?.trim() || undefined,
-        crmProfile: role,
+        ...roleFilter,
       },
     }),
     nestGetCurrentUser().catch(() => null),

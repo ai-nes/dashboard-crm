@@ -9,7 +9,12 @@ const input: LeadAssignmentWorkflowStepSnapshot = {
   id: "input",
   enabled: true,
   canToggle: true,
-  settings: { enabled: true, scheduledMinAgeMinutes: 5, maxLeadsPerRun: 1000 },
+  settings: {
+    enabled: true,
+    autoProcessEnabled: false,
+    scheduledMinAgeMinutes: 5,
+    maxLeadsPerRun: 1000,
+  },
 };
 
 function matching(): LeadAssignmentWorkflowStepSnapshot {

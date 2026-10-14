@@ -17,6 +17,9 @@ describe("TaskDialogSidebar read-only task type", () => {
 
     expect(html).toContain("Gửi thông tin giải đáp băn khoăn");
     expect(html).toContain('aria-label="Gửi thông tin giải đáp băn khoăn"');
+    expect(html).toContain('tabindex="0"');
+    expect(html).toContain("whitespace-normal");
+    expect(html).toContain("break-words");
     expect(html).not.toContain("SEND_OBJECTION_CONTENT");
   });
 });
