@@ -63,6 +63,53 @@ describe("assignmentReasonLabel", () => {
     );
   });
 
+  it("names the province and campus that have no team", () => {
+    const item = {
+      errorCode: "TEAM_NOT_FOUND",
+      reason: "TEAM_NOT_FOUND",
+      province: "Đồng Nai",
+      branch: "HCM",
+    } as LeadAssignmentBatchItem;
+
+    expect(assignmentReasonLabel(item)).toBe(
+      "Chưa có Team đang hoạt động phụ trách tỉnh Đồng Nai tại cơ sở HCM. Vui lòng gán tỉnh Đồng Nai cho một Team của cơ sở này.",
+    );
+    expect(assignmentActionCategory(item)).toBe("team-config");
+  });
+
+  it("asks for the missing campus or province on the Lead itself", () => {
+    const noCampus = {
+      errorCode: "TEAM_NOT_FOUND",
+      province: "Đồng Nai",
+    } as LeadAssignmentBatchItem;
+    const noProvince = {
+      errorCode: "TEAM_NOT_FOUND",
+      branch: "HCM",
+    } as LeadAssignmentBatchItem;
+
+    expect(assignmentReasonLabel(noCampus)).toContain(
+      "Lead ở tỉnh Đồng Nai chưa có cơ sở",
+    );
+    expect(assignmentReasonLabel(noProvince)).toContain(
+      "Lead thuộc cơ sở HCM chưa có tỉnh/thành",
+    );
+    expect(assignmentActionCategory(noCampus)).toBe("lead-data");
+    expect(assignmentActionCategory(noProvince)).toBe("lead-data");
+  });
+
+  it("names the team that has no active Sale/CTV", () => {
+    const item = {
+      errorCode: "NO_ELIGIBLE_RECIPIENT",
+      reason: "NO_ELIGIBLE_RECIPIENT",
+      team: "Tư vấn tuyển sinh TP.HCM",
+      province: "Hồ Chí Minh",
+    } as LeadAssignmentBatchItem;
+
+    expect(assignmentReasonLabel(item)).toContain(
+      "Team Tư vấn tuyển sinh TP.HCM (tỉnh Hồ Chí Minh) chưa có Sale/CTV đang hoạt động",
+    );
+  });
+
   it("prefers the backend's specific reason over the generic status label", () => {
     // The backend's errorCode for a closed Lead is the bare resolution status
     // (INVALID/DUPLICATE/SPAM/FAILED), which has its own generic entry in
