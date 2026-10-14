@@ -2275,3 +2275,15 @@ Stage
 - Biểu đồ xu hướng theo tuần dùng `stageCounts` của bốn trạng thái core (`New`, `Attempting`, `Connected`, `Qualified`); không dùng `Enrollment` hoặc `Target` làm trạng thái.
 - Dashboard chưa hiển thị SLA. Các chỉ báo vận hành dùng việc cần xử lý/danh sách công việc: công việc quá hạn, chưa phân công, đến hạn hôm nay, thiếu giấy tờ, chưa có tương tác và hồ sơ tồn lâu.
 - Tuổi hồ sơ ở stage chỉ dùng để ưu tiên việc cần xử lý; không gắn nhãn hoặc suy diễn thành trạng thái SLA.
+
+## 38. Chất lượng cuộc gọi (NPS Point)
+
+Dashboard hiển thị điểm chất lượng do AI chấm trung bình từ bốn tiêu chí trên thang 1–10; đây không phải NPS khảo sát promoter/passive/detractor.
+
+- Sale và CTV Sale chỉ xem điểm cùng lịch sử của chính mình.
+- Lead Sale xem tổng hợp và lịch sử của các thành viên thuộc team do backend xác định.
+- Director tuyển sinh, CEO và administrator xem tổng hợp toàn hệ thống, breakdown theo Sale và có thể lọc lịch sử theo Sale.
+- Điểm tổng toàn phạm vi là trung bình có trọng số theo số cuộc gọi đã chấm. Cuộc gọi chưa đủ điều kiện chấm không được tính thành 0.
+- Lịch sử chỉ hiển thị cuộc gọi đã chấm, ngày giờ nghiệp vụ theo `Asia/Ho_Chi_Minh`, Sale và điểm; không hiển thị transcript hoặc raw evidence.
+- Bộ lọc ngày dùng ngày địa phương Việt Nam và phân trang bằng cursor; đổi bộ lọc sẽ tải một chuỗi kết quả mới.
+- Profile không được cấp quyền NPS tường minh không thấy card, bộ lọc hoặc lịch sử.

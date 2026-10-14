@@ -8,6 +8,7 @@ import {
   canConvertLeadToStudent,
   canPerformStudentAction,
   getCrmPermissions,
+  getNpsDashboardAccess,
   getCrmDoctypePermissions,
   canReadCrmPath,
   getCrmHomePath,
@@ -80,6 +81,42 @@ describe("Student campaign history permissions", () => {
   );
   it("denies an unauthenticated viewer", () => {
     expect(canReadStudentCampaigns(null)).toBe(false);
+  });
+});
+
+describe("NPS dashboard read permissions", () => {
+  it.each([
+    ["sales", false, "own"],
+    ["ctv_sale", false, "own"],
+    ["lead_sales", false, "team"],
+    ["ceo", false, "all"],
+    ["admissions_director", false, "all"],
+    [null, true, "all"],
+    ["administrator", false, "all"],
+  ] as const)("allows the explicit profile %s", (profile, admin, scope) => {
+    const user = makeUser({
+      crm_profile: profile,
+      crm_is_administrator: admin,
+    });
+    expect(getNpsDashboardAccess(user)).toEqual({ canRead: true, scope });
+  });
+
+  it.each([null, "", "marketing", "campus", "unknown"])(
+    "denies unsupported NPS profile %s",
+    (profile) => {
+      const user = makeUser({ crm_profile: profile });
+      expect(getNpsDashboardAccess(user)).toEqual({
+        canRead: false,
+        scope: null,
+      });
+    },
+  );
+
+  it("denies missing users and does not infer access from a broad admin role label", () => {
+    expect(getNpsDashboardAccess(null)).toEqual({ canRead: false, scope: null });
+    expect(
+      getNpsDashboardAccess(makeUser({ roles: ["Administrator"] })),
+    ).toEqual({ canRead: false, scope: null });
   });
 });
 

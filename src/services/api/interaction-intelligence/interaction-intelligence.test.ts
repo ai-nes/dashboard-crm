@@ -5,6 +5,7 @@ import {
   getInteractionCatalog,
   getInteractionDetail,
   getInteractionNpsPoint,
+  getNpsHistory,
   getNpsSaleSummary,
   listInteractions,
 } from "./index";
@@ -14,6 +15,24 @@ const fetchMock = vi.fn();
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status });
+
+const scoredPoint = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+  name: "NPS-1",
+  interaction: "INTX-1",
+  interaction_datetime: "2026-10-12T02:30:00.000Z",
+  source_revision: 1,
+  sale: "SALE-1",
+  sale_user: "user-1",
+  status: "scored",
+  satisfaction_score: 8,
+  resolution_score: 7,
+  friction_score: 9,
+  complaint_score: 10,
+  total_score: 8.5,
+  normalized_score: 83.33,
+  confidence: "high",
+  ...overrides,
+});
 
 beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", API);
@@ -170,15 +189,10 @@ describe("interaction intelligence API contract", () => {
     fetchMock.mockResolvedValue(
       json({
         point: {
-          name: "NPS-1",
-          interaction: "INTX-1",
-          status: "scored",
-          satisfaction_score: 8,
-          resolution_score: 7,
-          friction_score: 9,
-          complaint_score: 10,
-          total_score: 8.5,
-          normalized_score: 83.33,
+          ...scoredPoint(),
+          student: "STUDENT-1",
+          evidence_refs: { transcript: "private evidence" },
+          explanation: "private explanation",
         },
       }),
     );
@@ -193,6 +207,9 @@ describe("interaction intelligence API contract", () => {
       satisfaction_score: 8,
       normalized_score: 83.33,
     });
+    expect(result.point).not.toHaveProperty("evidence_refs");
+    expect(result.point).not.toHaveProperty("explanation");
+    expect(result.point).not.toHaveProperty("student");
   });
 
   it("preserves an abstained point without turning missing scores into zero", async () => {
@@ -201,8 +218,18 @@ describe("interaction intelligence API contract", () => {
         point: {
           name: "NPS-2",
           interaction: "INTX-2",
+          interaction_datetime: "2026-10-12T02:30:00.000Z",
+          source_revision: 2,
           status: "abstained",
-          terminal_reason: "agent_identity_unmapped",
+          sale: "SALE-1",
+          sale_user: "user-1",
+          satisfaction_score: null,
+          resolution_score: null,
+          friction_score: null,
+          complaint_score: null,
+          total_score: null,
+          normalized_score: null,
+          confidence: null,
         },
       }),
     );
@@ -210,7 +237,6 @@ describe("interaction intelligence API contract", () => {
     await expect(getInteractionNpsPoint("INTX-2")).resolves.toMatchObject({
       point: {
         status: "abstained",
-        terminal_reason: "agent_identity_unmapped",
         total_score: null,
         normalized_score: null,
       },
@@ -234,18 +260,40 @@ describe("interaction intelligence API contract", () => {
     });
   });
 
+  it.each([
+    ["missing response envelope", {}],
+    ["missing point property", { scope: "own" }],
+    ["missing scored criterion", { point: (() => { const point = scoredPoint(); delete point.complaint_score; return point; })() }],
+    ["criterion outside the 1–10 scale", { point: scoredPoint({ satisfaction_score: 11 }) }],
+    ["total outside the 1–10 scale", { point: scoredPoint({ total_score: 0 }) }],
+    ["normalized score outside the 0–100 scale", { point: scoredPoint({ normalized_score: 101 }) }],
+    ["invalid datetime", { point: scoredPoint({ interaction_datetime: "yesterday" }) }],
+    ["invalid source revision", { point: scoredPoint({ source_revision: 1.5 }) }],
+  ])("rejects NPS detail with %s", async (_case, body) => {
+    fetchMock.mockResolvedValue(json(body));
+    await expect(getInteractionNpsPoint("INTX-4")).rejects.toMatchObject({
+      status: 502,
+      code: "INVALID_INTERACTION_NPS_RESPONSE",
+    });
+  });
+
   it("normalizes a Sale aggregate response and preserves an empty state", async () => {
     fetchMock.mockResolvedValue(
       json({
         records: [
           {
             sale: "SALE-1",
+            sale_user: "user-1",
             count: 2,
             average_score: 8.25,
             average_normalized_score: 80.56,
           },
         ],
         total_points: 2,
+        average_score: 8.25,
+        average_normalized_score: 80.56,
+        scope: "own",
+        timezone: "Asia/Ho_Chi_Minh",
       }),
     );
 
@@ -253,17 +301,154 @@ describe("interaction intelligence API contract", () => {
       records: [
         {
           sale: "SALE-1",
-          sale_user: null,
+          sale_user: "user-1",
           count: 2,
           average_score: 8.25,
           average_normalized_score: 80.56,
         },
       ],
       total_points: 2,
+      average_score: 8.25,
+      average_normalized_score: 80.56,
+      scope: "own",
+      timezone: "Asia/Ho_Chi_Minh",
     });
     const url = new URL(fetchMock.mock.calls[0]![0]);
     expect(url.pathname).toBe("/api/v1/interactions/nps-summary");
     expect(url.searchParams.get("sale")).toBe("SALE-1");
+  });
+
+  it("keeps date filters date-only and validates summary contract instead of inventing zeroes", async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        records: [],
+        total_points: 0,
+        average_score: null,
+        average_normalized_score: null,
+        scope: "team",
+        timezone: "Asia/Ho_Chi_Minh",
+      }),
+    );
+    await expect(
+      getNpsSaleSummary({ from_date: "2026-10-01", to_date: "2026-10-12" }),
+    ).resolves.toMatchObject({
+      total_points: 0,
+      average_score: null,
+      scope: "team",
+    });
+    const url = new URL(fetchMock.mock.calls[0]![0]);
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      from_date: "2026-10-01",
+      to_date: "2026-10-12",
+    });
+
+    fetchMock.mockResolvedValue(json({ records: [{ sale: "SALE-1" }] }));
+    await expect(getNpsSaleSummary()).rejects.toMatchObject({
+      status: 502,
+      code: "INVALID_INTERACTION_NPS_SUMMARY_RESPONSE",
+    });
+  });
+
+  it("rejects summary records without a stable Sale user id", async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        records: [{ sale: "Same Name", count: 1, average_score: 8, average_normalized_score: 75 }],
+        total_points: 1,
+        average_score: 8,
+        average_normalized_score: 75,
+        scope: "team",
+        timezone: "Asia/Ho_Chi_Minh",
+      }),
+    );
+    await expect(getNpsSaleSummary()).rejects.toMatchObject({ status: 502 });
+  });
+
+  it("requests history with bounded page size and returns safe scored rows and cursor", async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        items: [
+          {
+            name: "NPS-1",
+            interaction: "INTX-1",
+            interaction_datetime: "2026-10-12T02:30:00Z",
+            source_revision: 3,
+            sale: "SALE-1",
+            sale_user: "user-1",
+            status: "scored",
+            satisfaction_score: 8,
+            resolution_score: 7,
+            friction_score: 9,
+            complaint_score: 10,
+            total_score: 8.5,
+            normalized_score: 83.3,
+            confidence: "high",
+            transcript: "must not be carried into cache",
+          },
+        ],
+        next_cursor: "cursor-2",
+        scope: "team",
+        timezone: "Asia/Ho_Chi_Minh",
+      }),
+    );
+
+    const result = await getNpsHistory({
+      from_date: "2026-10-01",
+      to_date: "2026-10-12",
+      sale: "SALE-1",
+      limit: 500,
+      cursor: "cursor-1",
+    });
+
+    const url = new URL(fetchMock.mock.calls[0]![0]);
+    expect(url.pathname).toBe("/api/v1/interactions/nps-history");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      from_date: "2026-10-01",
+      to_date: "2026-10-12",
+      sale: "SALE-1",
+      limit: "100",
+      cursor: "cursor-1",
+    });
+    expect(result.items[0]).not.toHaveProperty("transcript");
+    expect(result).toMatchObject({ next_cursor: "cursor-2", scope: "team" });
+  });
+
+  it("preserves empty history, rejects malformed items, and keeps backend forbidden errors", async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        items: [],
+        next_cursor: null,
+        scope: "own",
+        timezone: "Asia/Ho_Chi_Minh",
+      }),
+    );
+    await expect(getNpsHistory()).resolves.toMatchObject({
+      items: [],
+      next_cursor: null,
+    });
+
+    fetchMock.mockResolvedValue(
+      json({ items: [{ name: "NPS-1" }], next_cursor: null, scope: "own", timezone: "Asia/Ho_Chi_Minh" }),
+    );
+    await expect(getNpsHistory()).rejects.toMatchObject({
+      status: 502,
+      code: "INVALID_INTERACTION_NPS_HISTORY_RESPONSE",
+    });
+
+    fetchMock.mockResolvedValue(json({ error: { code: "FORBIDDEN", message: "Forbidden" } }, 403));
+    await expect(getNpsHistory()).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("rejects history rows without a stable Sale user id and filters by that id", async () => {
+    fetchMock.mockResolvedValue(
+      json({ items: [{ ...scoredPoint(), sale_user: "" }], next_cursor: null, scope: "team", timezone: "Asia/Ho_Chi_Minh" }),
+    );
+    await expect(getNpsHistory()).rejects.toMatchObject({ status: 502 });
+
+    fetchMock.mockResolvedValue(
+      json({ items: [], next_cursor: null, scope: "team", timezone: "Asia/Ho_Chi_Minh" }),
+    );
+    await getNpsHistory({ sale: "user-2" });
+    expect(new URL(fetchMock.mock.calls[1]![0]).searchParams.get("sale")).toBe("user-2");
   });
 
   it("reads enabled catalogs from reference data in sort order", async () => {

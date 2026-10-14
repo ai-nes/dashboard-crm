@@ -230,34 +230,23 @@ export interface InteractionDetailResponse {
   evidence_refs: InteractionEvidenceReference[];
 }
 
-export type InteractionNpsStatus = "scored" | "abstained" | "superseded";
+export type InteractionNpsStatus = "scored" | "abstained";
 
 export interface InteractionNpsPoint {
   name: string;
   interaction: string;
-  analysis_run?: string | null;
-  student?: string | null;
-  sale?: string | null;
-  sale_user?: string | null;
-  agent_id?: string | null;
-  interaction_datetime?: string | null;
-  source_revision?: number | null;
-  status: InteractionNpsStatus | (string & {});
-  terminal_reason?: string | null;
-  satisfaction_score?: number | null;
-  resolution_score?: number | null;
-  friction_score?: number | null;
-  complaint_score?: number | null;
-  total_score?: number | null;
-  normalized_score?: number | null;
-  confidence?: "low" | "medium" | "high" | (string & {}) | null;
-  evidence_refs?: Record<string, unknown> | null;
-  explanation?: string | null;
-  policy_revision?: string | null;
-  model_revision?: string | null;
-  contract_version?: string | null;
-  supersedes?: string | null;
-  superseded_by?: string | null;
+  sale: string;
+  sale_user: string;
+  interaction_datetime: string;
+  source_revision: number;
+  status: InteractionNpsStatus;
+  satisfaction_score: number | null;
+  resolution_score: number | null;
+  friction_score: number | null;
+  complaint_score: number | null;
+  total_score: number | null;
+  normalized_score: number | null;
+  confidence: "low" | "medium" | "high" | (string & {}) | null;
 }
 
 export interface InteractionNpsPointResponse {
@@ -266,15 +255,54 @@ export interface InteractionNpsPointResponse {
 
 export interface NpsSaleSummary {
   sale: string;
-  sale_user?: string | null;
+  sale_user: string;
   count: number;
   average_score: number;
   average_normalized_score: number;
 }
 
+export interface NpsSummaryFilters {
+  sale?: string;
+  from_date?: string;
+  to_date?: string;
+}
+
 export interface NpsSaleSummaryResponse {
   records: NpsSaleSummary[];
   total_points: number;
+  average_score: number | null;
+  average_normalized_score: number | null;
+  scope: "own" | "team" | "all";
+  timezone: "Asia/Ho_Chi_Minh";
+}
+
+export interface NpsHistoryPoint {
+  name: string;
+  interaction: string;
+  interaction_datetime: string;
+  source_revision: number;
+  sale: string;
+  sale_user: string;
+  status: "scored";
+  satisfaction_score: number;
+  resolution_score: number;
+  friction_score: number;
+  complaint_score: number;
+  total_score: number;
+  normalized_score: number;
+  confidence: string | null;
+}
+
+export interface NpsHistoryFilters extends NpsSummaryFilters {
+  limit?: number;
+  cursor?: string;
+}
+
+export interface NpsHistoryResponse {
+  items: NpsHistoryPoint[];
+  next_cursor: string | null;
+  scope: "own" | "team" | "all";
+  timezone: "Asia/Ho_Chi_Minh";
 }
 
 export interface InteractionTarget {
