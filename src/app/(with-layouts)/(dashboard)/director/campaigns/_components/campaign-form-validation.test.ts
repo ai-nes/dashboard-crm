@@ -54,7 +54,7 @@ describe("campaign form validation", () => {
         ...validForm,
         name: "",
         admissionYear: "26",
-        startDate: "",
+        startDate: "2026-02-30",
         endDate: "2026-02-30",
         status: "UNKNOWN" as CampaignFormState["status"],
         mode: "UNKNOWN" as CampaignFormState["mode"],
@@ -67,7 +67,7 @@ describe("campaign form validation", () => {
     expect(errors).toEqual({
       admissionYear: "Năm tuyển sinh phải gồm 4 chữ số.",
       name: "Vui lòng nhập tên chiến dịch.",
-      startDate: "Vui lòng chọn ngày bắt đầu.",
+      startDate: "Ngày bắt đầu không hợp lệ.",
       endDate: "Ngày kết thúc không hợp lệ.",
       status: "Vui lòng chọn trạng thái hợp lệ.",
       mode: "Vui lòng chọn hình thức hợp lệ.",
@@ -91,6 +91,27 @@ describe("campaign form validation", () => {
     expect(errors).toEqual({
       startDate: "Ngày bắt đầu phải trước ngày kết thúc.",
       endDate: "Ngày kết thúc phải sau ngày bắt đầu.",
+    });
+  });
+
+  it("allows clearing optional dates and preserving a null historical year", () => {
+    expect(
+      validateCampaignForm(
+        { ...validForm, admissionYear: "", startDate: "", endDate: "" },
+        channelTypes,
+      ),
+    ).toEqual({});
+  });
+
+  it("requires explicit valid mode and status when existing values are unknown", () => {
+    expect(
+      validateCampaignForm(
+        { ...validForm, status: "", mode: "" },
+        channelTypes,
+      ),
+    ).toMatchObject({
+      status: "Vui lòng chọn trạng thái hợp lệ.",
+      mode: "Vui lòng chọn hình thức hợp lệ.",
     });
   });
 });

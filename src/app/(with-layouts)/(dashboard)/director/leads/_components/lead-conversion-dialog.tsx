@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDialogError } from "@/utils/dialog-error";
+
 import { InfoCircle } from "@tailgrids/icons";
 import { useState, type FormEvent, type ReactNode } from "react";
 import {
@@ -111,9 +113,7 @@ export default function LeadConversionDialog({
       await onSubmit(fields);
     } catch (error) {
       setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "Chưa thể lưu thông tin bổ sung.",
+        formatDialogError(error, "Chưa thể lưu và chuyển đổi Lead."),
       );
     }
   };
@@ -240,12 +240,12 @@ export default function LeadConversionDialog({
               </div>
 
               {(provinceOptionsQuery.isError || majorOptionsQuery.isError) && (
-                <p className="text-xs text-error-600" role="alert">
+                <p className="text-xs text-badge-error-text" role="alert">
                   Chưa thể tải danh mục. Vui lòng thử lại sau.
                 </p>
               )}
               {submitError && (
-                <p className="text-xs text-error-600" role="alert">
+                <p className="text-xs text-badge-error-text whitespace-pre-line break-words" role="alert">
                   {submitError}
                 </p>
               )}
@@ -291,7 +291,7 @@ function ConversionFieldError({
         {children}
       </CreateDialogField>
       {error && (
-        <p className="mt-1 text-xs text-error-600" role="alert">
+        <p className="mt-1 text-xs text-badge-error-text" role="alert">
           {error}
         </p>
       )}

@@ -116,8 +116,24 @@ export default function AllSchoolsInspector({
                     </span>
                   </span>
                   <span className="shrink-0 text-right">
-                    <span className="block text-sm font-semibold text-primary-600">
-                      {formatNullable(school.potentialScore)}
+                    <span
+                      aria-label={
+                        school.potentialScore === null
+                          ? "Chưa có dữ liệu điểm cơ hội"
+                          : `Điểm cơ hội ${school.potentialScore}`
+                      }
+                      className={
+                        school.potentialScore === null
+                          ? "block max-w-20 whitespace-normal text-[10px] font-medium leading-4 text-text-tertiary"
+                          : "block text-sm font-semibold text-primary-600"
+                      }
+                      title={
+                        school.potentialScore === null
+                          ? "Chưa có dữ liệu điểm cơ hội"
+                          : `${school.potentialScore}/100`
+                      }
+                    >
+                      {formatPotentialScore(school.potentialScore)}
                     </span>
                     <span className="text-[10px] text-text-tertiary">
                       Điểm cơ hội
@@ -133,6 +149,6 @@ export default function AllSchoolsInspector({
   );
 }
 
-function formatNullable(value: number | null) {
-  return value === null ? "-" : String(value);
+function formatPotentialScore(value: number | null) {
+  return value === null ? "Chưa có dữ liệu" : String(value);
 }

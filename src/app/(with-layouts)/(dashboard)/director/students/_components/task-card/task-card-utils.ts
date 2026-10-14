@@ -1,5 +1,6 @@
 import type { StudentTaskItem } from "@/services/api/students/types";
 import { formatDate } from "@/utils/format-date";
+import { crmTaskDateTimeToTimestamp } from "@/utils/crm-task-date-time";
 
 export type TaskDeadlineTone =
   | "overdue"
@@ -95,10 +96,7 @@ export function getTaskDueAt(task: StudentTaskItem): number | null {
   const dateValue = toDateInputValue(task.dueDate);
   if (!dateValue) return null;
 
-  const dueAt = new Date(
-    `${dateValue}T${task.dueTime || "23:59"}`,
-  ).getTime();
-  return Number.isNaN(dueAt) ? null : dueAt;
+  return crmTaskDateTimeToTimestamp(dateValue, task.dueTime || "23:59");
 }
 
 export function getAssigneeInitials(assignee: string): string {

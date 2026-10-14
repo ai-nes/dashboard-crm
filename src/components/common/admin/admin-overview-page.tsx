@@ -7,16 +7,13 @@ import {
   Book4,
   Buildings11,
   Gear1,
-  RefreshCircle1Clockwise,
   Shield1Check,
   UserMultiple4,
 } from "@tailgrids/icons";
 
 import { useActivityLogsQuery } from "@/hooks/use-activity-logs-query";
-import {
-  useNbaAdminActionTypesQuery,
-  useNbaTimingPoliciesQuery,
-} from "@/hooks/use-nba-admin-queries";
+import { useNbaTimingPoliciesQuery } from "@/hooks/use-nba-admin-queries";
+import { useNbaActionsQuery } from "@/hooks/use-nba-actions-queries";
 import { useCrmRuleVersionsQuery } from "@/hooks/use-rules-config-queries";
 import {
   useMajorGroupsQuery,
@@ -31,7 +28,6 @@ import {
 import { useSegmentsQuery } from "@/hooks/use-segment-queries";
 import { useCrmUsersQuery } from "@/hooks/use-user-management-queries";
 import AdminPageHeader from "@/components/common/admin/admin-page-header";
-import { Button } from "@/components/tailgrids/core/button";
 import { listAdminMessageTemplateLibrary } from "@/services/api/message-templates";
 
 import AdminOverviewActivityChart, {
@@ -82,7 +78,7 @@ export default function AdminOverviewPage({
 }) {
   const usersQuery = useCrmUsersQuery();
   const ruleVersionsQuery = useCrmRuleVersionsQuery({ pageLength: 50 });
-  const nbaActionsQuery = useNbaAdminActionTypesQuery({ pageLength: 1 });
+  const nbaActionsQuery = useNbaActionsQuery({ start: 0, pageLength: 1 });
   const nbaPoliciesQuery = useNbaTimingPoliciesQuery({ pageLength: 1 });
   const messageTemplatesQuery = useQuery({
     queryKey: ["admin-overview", "message-templates"],
@@ -105,11 +101,7 @@ export default function AdminOverviewPage({
     (version) => version.isActive,
   );
   const ruleCount = activeVersion?.rulesCount ?? null;
-  const nbaCount = sumKnown([
-    totalOf(nbaActionsQuery.data),
-    totalOf(nbaPoliciesQuery.data),
-    ruleCount,
-  ]);
+  const nbaCount = totalOf(nbaActionsQuery.data);
   const catalogCount = sumKnown([
     totalOf(majorGroupsQuery.data),
     totalOf(majorsQuery.data),
@@ -127,11 +119,8 @@ export default function AdminOverviewPage({
     schoolsQuery,
     schoolAreasQuery,
   ];
-  const nbaQueries = [nbaActionsQuery, nbaPoliciesQuery, ruleVersionsQuery];
   const isCatalogLoading = catalogQueries.some((query) => query.isPending);
   const isCatalogError = catalogQueries.some((query) => query.isError);
-  const isNbaLoading = nbaQueries.some((query) => query.isPending);
-  const isNbaError = nbaQueries.some((query) => query.isError);
 
   const modules = useMemo<AdminOverviewModule[]>(
     () => [
@@ -168,10 +157,10 @@ export default function AdminOverviewPage({
         label: "NBA",
         description: "Hành động, khung giờ và quy tắc gợi ý.",
         value: formatNumber(nbaCount),
-        detail: `${formatNumber(totalOf(nbaActionsQuery.data))} action · ${formatNumber(totalOf(nbaPoliciesQuery.data))} timing`,
+        detail: `${formatNumber(nbaCount)} hành động · ${formatNumber(totalOf(nbaPoliciesQuery.data))} khung giờ`,
         status: statusOf({
-          isPending: isNbaLoading,
-          isError: isNbaError,
+          isPending: nbaActionsQuery.isPending,
+          isError: nbaActionsQuery.isError,
           value: nbaCount,
         }),
         icon: <BarChart2 size={17} aria-hidden="true" />,
@@ -219,12 +208,11 @@ export default function AdminOverviewPage({
       catalogCount,
       isCatalogError,
       isCatalogLoading,
-      isNbaError,
-      isNbaLoading,
       messageTemplatesQuery.data,
       messageTemplatesQuery.isError,
       messageTemplatesQuery.isPending,
-      nbaActionsQuery.data,
+      nbaActionsQuery.isError,
+      nbaActionsQuery.isPending,
       nbaCount,
       nbaPoliciesQuery.data,
       ruleCount,
@@ -301,18 +289,6 @@ export default function AdminOverviewPage({
         section="ADMIN"
         title="Tổng quan hệ thống"
         description="Nắm nhanh tình trạng vận hành và các cấu hình đang phục vụ quy trình tuyển sinh."
-        actions={
-          <Button
-            size="md"
-            appearance="outline"
-            onPress={() =>
-              void Promise.all(queryList.map((query) => query.refetch()))
-            }
-          >
-            <RefreshCircle1Clockwise size={16} aria-hidden="true" />
-            Làm mới dữ liệu
-          </Button>
-        }
         metaLabel="Nguồn dữ liệu đã phản hồi"
         metaValue={`${resolvedSources}/${queryList.length} kết nối`}
       />

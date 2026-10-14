@@ -1,12 +1,20 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock(
+  "@/components/tailgrids/core/dropdown",
+  async () => import("@/test-utils/open-dropdown"),
+);
+
 import ActionTypesTable from "./action-types-table";
 
 const state = vi.hoisted(() => ({ enabled: undefined as boolean | undefined }));
 
 vi.mock("@/hooks/use-nba-admin-queries", () => ({
-  useNbaAdminActionTypesQuery: (_params: unknown, options?: { enabled?: boolean }) => {
+  useNbaAdminActionTypesQuery: (
+    _params: unknown,
+    options?: { enabled?: boolean },
+  ) => {
     state.enabled = options?.enabled;
     return {
       data: {
@@ -34,14 +42,12 @@ vi.mock("../../nba-actions/_components/action-type-detail-dialog", () => ({
   default: () => null,
 }));
 
-function renderTable(
-  permissions: {
-    canRead: boolean;
-    canCreate: boolean;
-    canUpdate: boolean;
-    canDelete: boolean;
-  },
-) {
+function renderTable(permissions: {
+  canRead: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}) {
   return renderToStaticMarkup(<ActionTypesTable {...permissions} />);
 }
 
@@ -73,6 +79,7 @@ describe("NBA action type UI permissions", () => {
 
     expect(state.enabled).toBe(true);
     expect(html).toContain("APPLICATION");
+    expect(html).toContain("10/10/2026 15:00 (UTC+7)");
     expect(html).toContain("Xem nhóm Hồ sơ");
     expect(html).not.toContain("Tạo nhóm");
     expect(html).not.toContain("Chỉnh sửa nhóm Hồ sơ");

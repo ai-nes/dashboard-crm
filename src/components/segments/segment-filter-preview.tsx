@@ -13,6 +13,7 @@ import {
   getSegmentLevelLabel,
   getStudentStageBadgeColor,
   getStudentStageLabel,
+  getStudentStageBadgeLabel,
 } from "./segment-filter-config";
 
 function getStudentInitials(name: string) {
@@ -109,8 +110,8 @@ export function SegmentFilterPreview({
                   <Badge
                     color={getStudentStageBadgeColor(student.stage)}
                     className="shrink-0 whitespace-nowrap"
-                  >
-                    {getStudentStageLabel(student.stage)}
+                   title={getStudentStageLabel(student.stage)}>
+                    {getStudentStageBadgeLabel(student.stage)}
                   </Badge>
                 </div>
                 {(student.potential || student.intent) && (

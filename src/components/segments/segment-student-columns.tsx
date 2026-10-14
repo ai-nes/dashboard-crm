@@ -1,6 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { Badge } from "@/components/tailgrids/core/badge";
+import { TableRowLinkActions } from "@/components/common/table-row-link-actions";
+import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import type { SegmentStudent } from "./segment-detail-types";
 import {
@@ -8,6 +10,7 @@ import {
   getSegmentLevelLabel,
   getStudentStageBadgeColor,
   getStudentStageLabel,
+  getStudentStageBadgeLabel,
 } from "./segment-filter-config";
 
 export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
@@ -44,8 +47,8 @@ export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
       <Badge
         color={getStudentStageBadgeColor(row.original.stage)}
         className="whitespace-nowrap"
-      >
-        {getStudentStageLabel(row.original.stage)}
+       title={getStudentStageLabel(row.original.stage)}>
+        {getStudentStageBadgeLabel(row.original.stage)}
       </Badge>
     ),
   },
@@ -82,5 +85,11 @@ export const segmentStudentColumns: ColumnDef<SegmentStudent>[] = [
     cell: ({ row }) => (
       <span className="whitespace-nowrap">{row.original.owner || "—"}</span>
     ),
+  },
+  {
+    id: "actions",
+    header: "Thao tác",
+    enableGlobalFilter: false,
+    cell: ({ row }) => <TableRowLinkActions label={row.original.name} href={`/director/students/${encodeURIComponent(getBusinessRouteKey(row.original.code === "—" ? "" : row.original.code, row.original.id))}`} />,
   },
 ];

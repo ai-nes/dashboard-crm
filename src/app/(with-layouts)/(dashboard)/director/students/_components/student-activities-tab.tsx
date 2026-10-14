@@ -2,10 +2,12 @@
 
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { crmDateTimeToApi } from "@/utils/crm-task-date-time";
 
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
   canReadStudentCampaigns,
+  canAddStudentCampaign,
   getCrmDoctypePermissions,
   getCrmPermissions,
   hasCrmCapability,
@@ -347,7 +349,9 @@ export default function StudentActivitiesTab({
             priority: "Medium",
             status: "Todo",
             ...(options.followUpDueDate
-              ? { dueDate: `${options.followUpDueDate} 23:59:00` }
+              ? {
+                  dueDate: crmDateTimeToApi(options.followUpDueDate, "23:59"),
+                }
               : {}),
             assignedTo: studentTaskAssignee.name,
           });
@@ -594,6 +598,7 @@ export default function StudentActivitiesTab({
                 messages={zaloMessages}
                 canReadInteractions={canReadInteractions}
                 canReadCampaigns={canReadCampaigns}
+                canAddCampaign={!isAuthLoading && canAddStudentCampaign(user)}
                 isActive={selectedTab === "interactions"}
                 initialCampaignTab={initialCampaignTab}
                 canCreateInteraction={canCreateInteraction}

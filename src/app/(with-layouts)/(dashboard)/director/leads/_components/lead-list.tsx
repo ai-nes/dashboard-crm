@@ -6,15 +6,16 @@ import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import LeadResultCell from "./lead-result-cell";
 import LeadListAssigneeCell from "./lead-list-assignee-cell";
+import LeadRowActions from "./lead-row-actions";
 import {
   leadStageStatusColor,
   leadStageStatusLabel,
   normalizeLeadStageStatus,
 } from "./lead-status";
-import { leadTableGrid } from "./lead-table-grid";
+import { leadTableActionsGrid } from "./lead-table-grid";
 import type { LeadListItem } from "./types";
 
-export const leadListGrid = leadTableGrid;
+export const leadListGrid = leadTableActionsGrid;
 
 export function getLeadDetailHref(leadId: string, leadCode?: string | null) {
   return `/director/leads/${encodeURIComponent(getBusinessRouteKey(leadCode, leadId))}`;
@@ -23,9 +24,20 @@ export function getLeadDetailHref(leadId: string, leadCode?: string | null) {
 interface LeadListProps {
   leads: LeadListItem[];
   canAssign?: boolean;
+  canEditLead?: (lead: LeadListItem) => boolean;
+  canDeleteLead?: (lead: LeadListItem) => boolean;
+  onDeleteRequest?: (lead: LeadListItem) => void;
+  isDeleting?: boolean;
 }
 
-export default function LeadList({ leads, canAssign = false }: LeadListProps) {
+export default function LeadList({
+  leads,
+  canAssign = false,
+  canEditLead,
+  canDeleteLead,
+  onDeleteRequest,
+  isDeleting = false,
+}: LeadListProps) {
   if (leads.length === 0) {
     return (
       <div className="px-5 py-14 text-center">
@@ -122,6 +134,19 @@ export default function LeadList({ leads, canAssign = false }: LeadListProps) {
                 <p className="truncate text-sm text-text-secondary tabular-nums">
                   {formatDate(lead.createdAt ?? "")}
                 </p>
+              </div>
+              <div className="flex items-center justify-end">
+                <LeadRowActions
+                  label={lead.leadCode || lead.name}
+                  detailHref={getLeadDetailHref(lead.id, lead.leadCode)}
+                  canEdit={canEditLead?.(lead) ?? false}
+                  onDelete={
+                    onDeleteRequest && canDeleteLead?.(lead)
+                      ? () => onDeleteRequest(lead)
+                      : undefined
+                  }
+                  isDeleting={isDeleting}
+                />
               </div>
             </div>
           </li>

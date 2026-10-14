@@ -29,6 +29,7 @@ import type {
 } from "@/services/api/crm-tasks";
 import { CRM_TASK_STATUS_LABEL } from "@/services/api/crm-tasks";
 import type { SessionUser } from "@/services/api/auth";
+import { crmTaskDateForInput } from "@/utils/crm-task-date-time";
 
 export interface SegmentTaskFormValues {
   title: string;
@@ -70,22 +71,14 @@ const PRIORITY_OPTIONS: Array<{
   { value: "Low", label: "Thấp" },
 ];
 
-function toDateInputValue(value?: string): string {
-  if (!value) return "";
-  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
-
-  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
-}
-
 function valuesFromTask(task: CRMTask | null): SegmentTaskFormValues {
   return {
     title: task?.title ?? "",
     description: task?.description ?? "",
     priority: task?.priority ?? "Medium",
     status: task?.status ?? "Todo",
-    startDate: toDateInputValue(task?.startDate),
-    dueDate: toDateInputValue(task?.dueDate),
+    startDate: crmTaskDateForInput(task?.startDate),
+    dueDate: crmTaskDateForInput(task?.dueDate),
     assignedTo: task?.assignedTo ?? "",
   };
 }

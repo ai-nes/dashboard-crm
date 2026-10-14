@@ -401,6 +401,25 @@ describe("Lead list/detail API contract", () => {
     });
   });
 
+  it("retains the original campaign identity rather than event participation", () => {
+    expect(
+      normalizeLeadDetail({
+        lead: {
+          id: "lead-1",
+          campaignId: "campaign-2",
+          campaign: "Chiến dịch 2",
+          eventsParticipated: ["Sự kiện khác"],
+        },
+        log: [],
+        meta: {},
+      }).lead,
+    ).toMatchObject({
+      campaignId: "campaign-2",
+      campaign: "Chiến dịch 2",
+      eventsParticipated: ["Sự kiện khác"],
+    });
+  });
+
   it("normalizes a valid list envelope", () => {
     expect(normalizeLeadList(listFixture()).data).toHaveLength(1);
   });
@@ -507,9 +526,7 @@ describe("Lead write API contract", () => {
   it("creates a Lead and reads the new record back", async () => {
     mockRoutes({
       "POST /api/v1/leads": () =>
-        json({ data: { id: "LEAD-2026-00003" } }, 201),
-      "GET /api/v1/leads/LEAD-2026-00003": () => json({ data: leadRecord }),
-      "GET /api/v1/leads/LEAD-2026-00003/timeline": () => json({ data: [] }),
+        json({ data: leadRecord, meta: { created: true } }, 201),
     });
 
     const result = await createLead({
@@ -532,6 +549,25 @@ describe("Lead write API contract", () => {
     });
     expect(result.lead.name).toBe("Lê Văn Cường");
     expect(result.lead.province).toBe("Cần Thơ");
+    expect(result.meta.created).toBe(true);
+    expect(callKeys()).toEqual(["POST /api/v1/leads"]);
+  });
+
+  it("preserves the server's duplicate identity result instead of reporting a new Lead", async () => {
+    mockRoutes({
+      "POST /api/v1/leads": () =>
+        json({ data: leadRecord, meta: { created: false } }, 201),
+    });
+
+    const result = await createLead({
+      student_name: "Another name",
+      phone: "0922222222",
+      province: "PROV-CT",
+      campaign: "CAMP-1",
+    });
+
+    expect(result.meta.created).toBe(false);
+    expect(callKeys()).toEqual(["POST /api/v1/leads"]);
   });
 
   it("rejects a Lead without a name before calling the API", async () => {

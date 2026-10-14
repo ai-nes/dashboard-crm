@@ -1,8 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Pencil1, Trash1 } from "@tailgrids/icons";
 import Link from "next/link";
 
-import { Button } from "@/components/tailgrids/core/button";
+import { TableRowActions } from "@/components/common/table-row-actions";
 import {
   Select,
   SelectContent,
@@ -26,6 +25,8 @@ import {
   campaignModeOptions,
   campaignStatusLabel,
   campaignStatusOptions,
+  getCampaignModeLabel,
+  getCampaignStatusLabel,
 } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -42,6 +43,8 @@ const modeTriggerClass: Record<CampaignMode, string> = {
   ONLINE: "border-transparent bg-badge-sky-background text-badge-sky-text",
   OFFLINE: "border-transparent bg-badge-gray-background text-badge-gray-text",
 };
+const unknownTriggerClass =
+  "border-transparent bg-badge-gray-background text-badge-gray-text";
 
 interface CampaignColumnHandlers {
   detailListPath: string;
@@ -110,7 +113,8 @@ export function campaignColumns({
       header: "Hình thức",
       cell: ({ row }) => {
         const campaign = row.original;
-        if (!canUpdate) return <span>{campaignModeLabel[campaign.mode]}</span>;
+        const modeLabel = getCampaignModeLabel(campaign.mode);
+        if (!canUpdate) return <span>{modeLabel}</span>;
         return (
           <Select
             value={campaign.mode}
@@ -122,9 +126,9 @@ export function campaignColumns({
           >
             <SelectTrigger
               size="sm"
-              className={`w-full ${modeTriggerClass[campaign.mode]}`}
+              className={`w-full ${campaign.mode ? modeTriggerClass[campaign.mode] : unknownTriggerClass}`}
             >
-              <SelectValue />
+              <SelectValue>{modeLabel}</SelectValue>
               <SelectIndicator />
             </SelectTrigger>
             <SelectContent>
@@ -173,8 +177,8 @@ export function campaignColumns({
       header: "Trạng thái",
       cell: ({ row }) => {
         const campaign = row.original;
-        if (!canUpdate)
-          return <span>{campaignStatusLabel[campaign.status]}</span>;
+        const statusLabel = getCampaignStatusLabel(campaign.status);
+        if (!canUpdate) return <span>{statusLabel}</span>;
         return (
           <Select
             value={campaign.status}
@@ -186,9 +190,9 @@ export function campaignColumns({
           >
             <SelectTrigger
               size="sm"
-              className={`w-full ${statusTriggerClass[campaign.status]}`}
+              className={`w-full ${campaign.status ? statusTriggerClass[campaign.status] : unknownTriggerClass}`}
             >
-              <SelectValue />
+              <SelectValue>{statusLabel}</SelectValue>
               <SelectIndicator />
             </SelectTrigger>
             <SelectContent>
@@ -212,32 +216,11 @@ export function campaignColumns({
       cell: ({ row }) => {
         const campaign = row.original;
         return (
-          <div className="flex items-center gap-1">
-            {canUpdate && (
-              <Button
-                appearance="ghost"
-                size="sm"
-                iconOnly
-                aria-label={`Sửa ${campaign.name}`}
-                className="text-text-tertiary"
-                onPress={() => onEdit(campaign)}
-              >
-                <Pencil1 size={15} aria-hidden="true" />
-              </Button>
-            )}
-            {canDelete && (
-              <Button
-                appearance="ghost"
-                size="sm"
-                iconOnly
-                variant="danger"
-                aria-label={`Xóa ${campaign.name}`}
-                onPress={() => onDelete(campaign)}
-              >
-                <Trash1 size={15} aria-hidden="true" />
-              </Button>
-            )}
-          </div>
+          <TableRowActions label={campaign.name} actions={[
+            { id: "view", label: "Xem chi tiết", href: getCampaignDetailPath(detailListPath, getBusinessRouteKey(campaign.code, campaign.id)) },
+            { id: "edit", label: "Chỉnh sửa", ariaLabel: `Sửa ${campaign.name}`, onAction: () => onEdit(campaign), isVisible: canUpdate },
+            { id: "delete", label: "Xóa", onAction: () => onDelete(campaign), isVisible: canDelete, variant: "danger" },
+          ]} />
         );
       },
     },

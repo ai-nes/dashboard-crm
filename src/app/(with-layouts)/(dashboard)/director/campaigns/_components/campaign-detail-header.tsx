@@ -12,10 +12,10 @@ import { formatDate } from "@/utils/format-date";
 
 import { getChannelTypeLabel, type ChannelTypeOption } from "./channel-types";
 import {
-  campaignModeColor,
-  campaignModeLabel,
-  campaignStatusColor,
-  campaignStatusLabel,
+  getCampaignModeColor,
+  getCampaignModeLabel,
+  getCampaignStatusColor,
+  getCampaignStatusLabel,
 } from "./mappings";
 import type { CampaignListItem } from "./types";
 
@@ -44,11 +44,11 @@ export default function CampaignDetailHeader({
         <Badge color="primary">
           {campaign.code.trim() || "Chưa có mã chiến dịch"}
         </Badge>
-        <Badge color={campaignStatusColor[campaign.status]}>
-          {campaignStatusLabel[campaign.status]}
+        <Badge color={getCampaignStatusColor(campaign.status)}>
+          {getCampaignStatusLabel(campaign.status)}
         </Badge>
-        <Badge color={campaignModeColor[campaign.mode]}>
-          {campaignModeLabel[campaign.mode]}
+        <Badge color={getCampaignModeColor(campaign.mode)}>
+          {getCampaignModeLabel(campaign.mode)}
         </Badge>
       </div>
 
@@ -56,7 +56,7 @@ export default function CampaignDetailHeader({
         {campaign.name}
       </h1>
       <p className="mt-2 text-sm leading-6 text-text-secondary">
-        Kỳ tuyển sinh {campaign.admissionYear}
+        Kỳ tuyển sinh {campaign.admissionYear ?? "chưa xác định"}
       </p>
 
       <div className="mt-4 grid divide-y divide-card-border border-t border-card-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">

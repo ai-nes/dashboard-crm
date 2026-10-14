@@ -9,11 +9,12 @@ import { Close, Filter, Search1 } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { AdminTableFrame } from "@/components/common/admin/admin-table";
-import {
-  CRM_ROLES,
-  TECHNICAL_ROLES,
-} from "@/components/common/auth/rbac";
+import { CRM_ROLES, TECHNICAL_ROLES } from "@/components/common/auth/rbac";
 import type { GetActivityLogsParams } from "@/services/api/activity-log";
+import {
+  getActivityDateRangeError,
+  resolveActivityDateDraft,
+} from "./activity-log-utils";
 
 export type ActivityLogFilterState = Pick<
   GetActivityLogsParams,
@@ -50,14 +51,46 @@ export default function ActivityLogFilters({
   onChange,
 }: ActivityLogFiltersProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [dateDraftState, setDateDraftState] = useState(() => ({
+    sourceStartDate: value.startDate,
+    sourceEndDate: value.endDate,
+    startDate: value.startDate ?? "",
+    endDate: value.endDate ?? "",
+  }));
+  const dateDraft = resolveActivityDateDraft(dateDraftState, value);
+  const setDateDraft = (nextDraft: { startDate: string; endDate: string }) =>
+    setDateDraftState({
+      ...nextDraft,
+      sourceStartDate: value.startDate,
+      sourceEndDate: value.endDate,
+    });
+  const dateRangeError = getActivityDateRangeError(
+    dateDraft.startDate,
+    dateDraft.endDate,
+  );
   const activeFilterCount = Object.values(value).filter(Boolean).length;
 
   const update = (field: keyof ActivityLogFilterState, nextValue: string) =>
     onChange({ ...value, [field]: nextValue || undefined });
 
   const applyDateRange = (days: number) => {
-    onChange({ ...value, ...getDateRange(days) });
+    const nextRange = getDateRange(days);
+    setDateDraft(nextRange);
+    onChange({ ...value, ...nextRange });
     setIsAdvancedOpen(true);
+  };
+
+  const updateDate = (field: "startDate" | "endDate", nextValue: string) => {
+    const nextDraft = { ...dateDraft, [field]: nextValue };
+    setDateDraft(nextDraft);
+    if (getActivityDateRangeError(nextDraft.startDate, nextDraft.endDate)) {
+      return;
+    }
+    onChange({
+      ...value,
+      startDate: nextDraft.startDate || undefined,
+      endDate: nextDraft.endDate || undefined,
+    });
   };
 
   return (
@@ -146,8 +179,12 @@ export default function ActivityLogFilters({
             Từ ngày
             <input
               type="date"
-              value={value.startDate ?? ""}
-              onChange={(event) => update("startDate", event.target.value)}
+              value={dateDraft.startDate}
+              aria-invalid={Boolean(dateRangeError)}
+              aria-describedby={
+                dateRangeError ? "activity-date-range-error" : undefined
+              }
+              onChange={(event) => updateDate("startDate", event.target.value)}
               className="h-10 w-full rounded-lg border border-input-border bg-input-background px-3 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             />
           </label>
@@ -155,11 +192,24 @@ export default function ActivityLogFilters({
             Đến ngày
             <input
               type="date"
-              value={value.endDate ?? ""}
-              onChange={(event) => update("endDate", event.target.value)}
+              value={dateDraft.endDate}
+              aria-invalid={Boolean(dateRangeError)}
+              aria-describedby={
+                dateRangeError ? "activity-date-range-error" : undefined
+              }
+              onChange={(event) => updateDate("endDate", event.target.value)}
               className="h-10 w-full rounded-lg border border-input-border bg-input-background px-3 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             />
           </label>
+          {dateRangeError ? (
+            <p
+              id="activity-date-range-error"
+              className="text-xs text-alert-danger-title md:col-span-2 xl:col-span-4"
+              role="alert"
+            >
+              {dateRangeError}
+            </p>
+          ) : null}
         </div>
       )}
 

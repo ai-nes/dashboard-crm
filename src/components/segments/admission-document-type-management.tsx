@@ -1,6 +1,8 @@
 "use client";
 
-import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+import { Plus } from "@tailgrids/icons";
 import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 
@@ -9,31 +11,10 @@ import { AdminSearchInput } from "@/components/common/admin/admin-search-input";
 import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import {
-  ScrollArea,
-  ScrollAreaViewport,
-  ScrollBar,
-} from "@/components/tailgrids/core/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectIndicator,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/tailgrids/core/select";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
-import {
-  useAdmissionDocumentTypesQuery,
-  useDeleteAdmissionDocumentTypeMutation,
-} from "@/hooks/use-admission-catalog-queries";
+import { ScrollArea, ScrollAreaViewport, ScrollBar } from "@/components/tailgrids/core/scroll-area";
+import { Select, SelectContent, SelectIndicator, SelectItem, SelectTrigger, SelectValue } from "@/components/tailgrids/core/select";
+import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow } from "@/components/tailgrids/core/table";
+import { useAdmissionDocumentTypesQuery, useDeleteAdmissionDocumentTypeMutation } from "@/hooks/use-admission-catalog-queries";
 import type {
   AdmissionDocumentTypeOption,
   AdmissionDocumentTypeStatus,
@@ -293,31 +274,10 @@ export function AdmissionDocumentTypeManagement({
                             </Badge>
                           </TableCell>
                           <TableCell className="align-top">
-                            <div className="flex justify-end gap-1">
-                              {canUpdate && (
-                                <Button
-                                  aria-label={`Sửa ${documentType.name}`}
-                                  iconOnly
-                                  size="sm"
-                                  appearance="ghost"
-                                  onPress={() => openEdit(documentType)}
-                                >
-                                  <Pencil1 size={16} aria-hidden="true" />
-                                </Button>
-                              )}
-                              {canDelete && (
-                                <Button
-                                  aria-label={`Xóa ${documentType.name}`}
-                                  iconOnly
-                                  size="sm"
-                                  appearance="ghost"
-                                  variant="danger"
-                                  onPress={() => setToDelete(documentType)}
-                                >
-                                  <Trash1 size={16} aria-hidden="true" />
-                                </Button>
-                              )}
-                            </div>
+                            <TableRowActions label={documentType.name} actions={[
+          { id: "edit", label: "Chỉnh sửa", ariaLabel: `Sửa ${documentType.name}`, onAction: () => openEdit(documentType), isVisible: canUpdate },
+          { id: "delete", label: "Xóa", onAction: () => setToDelete(documentType), isVisible: canDelete, variant: "danger" },
+        ]} />
                           </TableCell>
                         </TableRow>
                       ))}

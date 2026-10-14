@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDialogError } from "@/utils/dialog-error";
+
 import { Eye, EyeDisabled } from "@tailgrids/icons";
 import { useId, useState, type FormEvent } from "react";
 import {
@@ -174,7 +176,7 @@ export default function UserFormDialog({
       setShowPassword(false);
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : "Không thể lưu người dùng.",
+        formatDialogError(error, "Không thể lưu người dùng."),
       );
     }
   };
@@ -314,7 +316,7 @@ export default function UserFormDialog({
                   </div>
                   <p
                     id={passwordHintId}
-                    className={`mt-1.5 text-xs ${hasPasswordError ? "text-error-600" : "text-text-tertiary"}`}
+                    className={`mt-1.5 text-xs ${hasPasswordError ? "text-badge-error-text" : "text-text-tertiary"}`}
                     role={hasPasswordError ? "alert" : undefined}
                   >
                     {passwordRequirement}
@@ -323,7 +325,7 @@ export default function UserFormDialog({
               </div>
 
               {submitError && !hasPasswordError && (
-                <p className="text-xs text-error-600" role="alert">
+                <p className="text-xs text-badge-error-text whitespace-pre-line break-words" role="alert">
                   {submitError}
                 </p>
               )}

@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  ArrowRight,
-  InfoCircle,
-  Play,
-  RefreshCircle1Clockwise,
-  Search1,
-} from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+import { InfoCircle, Play, RefreshCircle1Clockwise, Search1 } from "@tailgrids/icons";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
@@ -223,14 +219,9 @@ export default function AssignmentBatchExecution({
                       {assignmentReasonLabel(item)}
                     </td>
                     <td className="px-4 py-4">
-                      <Button
-                        appearance="ghost"
-                        size="sm"
-                        aria-label={`Xem chi tiết ${item.studentName}`}
-                        onPress={() => inspectItem(item.id)}
-                      >
-                        Chi tiết <ArrowRight size={14} aria-hidden="true" />
-                      </Button>
+                      <TableRowActions label={item.studentName} actions={[
+  { id: "view", label: "Xem chi tiết", onAction: () => inspectItem(item.id) },
+]} />
                     </td>
                   </tr>
                 ))}

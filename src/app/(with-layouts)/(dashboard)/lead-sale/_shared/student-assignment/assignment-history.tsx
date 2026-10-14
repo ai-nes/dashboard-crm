@@ -1,5 +1,7 @@
 "use client";
 
+import { TableRowActions } from "@/components/common/table-row-actions";
+
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { ArrowLeft, ArrowRight, Close, Search1 } from "@tailgrids/icons";
 import { Label } from "react-aria-components";
@@ -95,7 +97,9 @@ export default function AssignmentHistory() {
               <p className="mt-1 text-xs text-text-tertiary">{record.school}</p>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <Badge color={statusColors[record.status]}>{statusLabels[record.status]}</Badge>
-                <Button appearance="ghost" size="sm" className="text-text-secondary" aria-label={`Xem chi tiết ${record.name}`} onPress={() => inspect(record.id)}>Chi tiết <ArrowRight size={14} /></Button>
+                <TableRowActions label={record.name} actions={[
+  { id: "view", label: "Xem chi tiết", onAction: () => inspect(record.id) },
+]} />
               </div>
             </div>
           ))}

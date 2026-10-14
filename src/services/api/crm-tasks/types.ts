@@ -17,6 +17,8 @@ export interface CRMTask {
   description?: string;
   actionCode?: string;
   student?: string;
+  studentName?: string;
+  studentCode?: string;
   linkedInteraction?: string;
   priority?: CRMTaskPriority;
   startDate?: string;
@@ -69,10 +71,10 @@ export interface UpdateTaskPayload {
   title?: string;
   description?: string;
   priority?: CRMTaskPriority;
-  startDate?: string;
-  assignedTo?: string;
+  startDate?: string | null;
+  assignedTo?: string | null;
   status?: CRMTaskStatus;
-  dueDate?: string;
+  dueDate?: string | null;
   linkedInteraction?: string;
 }
 

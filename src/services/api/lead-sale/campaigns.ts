@@ -1,8 +1,9 @@
-import { NestApiError } from "../nest/nest-client";
+import { toServiceError, type NestValidationIssue } from "../nest/nest-client";
 import {
   nestCampaignCreate,
   nestCampaignDelete,
   nestCampaignGet,
+  nestCampaignSourceGet,
   nestCampaignList,
   nestCampaignRoutingOptions,
   nestCampaignUpdate,
@@ -14,15 +15,26 @@ export interface LeadSaleCampaign {
   title: string;
   status: string;
   campus?: string;
+  admissionYear?: number | null;
   startDate?: string;
   endDate?: string;
-  channelBoundary?: string;
-  channelType?: string;
+  channelBoundary?: string | null;
+  channelType?: string | null;
   channelUrl?: string;
   leadRoutingEnabled?: boolean;
   leadRoutingTargetType?: CampaignRoutingTargetType;
   leadRoutingTargetTeam?: string;
   leadRoutingTargetGroup?: string;
+}
+
+export type CampaignSource = Pick<
+  LeadSaleCampaign,
+  "name" | "title" | "channelType"
+>;
+
+/** Read the linked campaign without requiring Campus or Team directory access. */
+export function getCampaignSource(id: string): Promise<CampaignSource> {
+  return viaNest(() => nestCampaignSourceGet(id));
 }
 
 export type CampaignRoutingTargetType = "" | "Team" | "Team Group";
@@ -33,6 +45,7 @@ export interface CampaignRoutingOption {
   campus?: string;
   group?: string;
   province?: string;
+  campusIds?: string[];
 }
 
 export interface CampaignRoutingOptions {
@@ -57,12 +70,13 @@ export interface CampaignListParams {
 export interface CreateCampaignPayload {
   title: string;
   campus: string;
+  admissionYear?: number | null;
   status?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate?: string | null;
+  endDate?: string | null;
   channelBoundary?: string;
-  channelType?: string;
-  channelUrl?: string;
+  channelType?: string | null;
+  channelUrl?: string | null;
   leadRoutingEnabled?: boolean;
   leadRoutingTargetType?: CampaignRoutingTargetType;
   leadRoutingTargetTeam?: string;
@@ -74,12 +88,13 @@ export interface UpdateCampaignPayload {
   stableCode?: string;
   title?: string;
   campus?: string;
+  admissionYear?: number | null;
   status?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate?: string | null;
+  endDate?: string | null;
   channelBoundary?: string;
-  channelType?: string;
-  channelUrl?: string;
+  channelType?: string | null;
+  channelUrl?: string | null;
   leadRoutingEnabled?: boolean;
   leadRoutingTargetType?: CampaignRoutingTargetType;
   leadRoutingTargetTeam?: string;
@@ -91,6 +106,8 @@ export class CampaignApiError extends Error {
     public status: number,
     public code: string,
     message: string,
+    public details: NestValidationIssue[] = [],
+    public requestId?: string,
   ) {
     super(message);
     this.name = "CampaignApiError";
@@ -102,10 +119,7 @@ async function viaNest<T>(call: () => Promise<T>): Promise<T> {
   try {
     return await call();
   } catch (error) {
-    if (error instanceof NestApiError) {
-      throw new CampaignApiError(error.status, error.code, error.message);
-    }
-    throw error;
+    throw toServiceError(error, CampaignApiError);
   }
 }
 
@@ -125,6 +139,10 @@ function count(value: unknown): number {
     : 0;
 }
 
+function nullableNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) ? value : null;
+}
+
 function normalizeCampaign(value: unknown): LeadSaleCampaign | null {
   const row = asRecord(value);
   const name = text(row?.name);
@@ -132,7 +150,10 @@ function normalizeCampaign(value: unknown): LeadSaleCampaign | null {
   const startDate = text(row?.startDate ?? row?.start_date);
   const endDate = text(row?.endDate ?? row?.end_date);
   const channelBoundary = text(row?.channelBoundary ?? row?.channel_boundary);
-  const channelType = text(row?.channelType ?? row?.channel_type);
+  const admissionYearValue =
+    row?.admissionYear !== undefined ? row.admissionYear : row?.admission_year;
+  const channelTypeValue =
+    row?.channelType !== undefined ? row.channelType : row?.channel_type;
   const channelUrl = text(row?.channelUrl ?? row?.channel_url);
   const rawRoutingEnabled =
     row?.leadRoutingEnabled ?? row?.lead_routing_enabled;
@@ -148,11 +169,12 @@ function normalizeCampaign(value: unknown): LeadSaleCampaign | null {
     stableCode: text(row?.stableCode ?? row?.stable_code),
     title: text(row?.title).trim() || "Chiến dịch chưa có tên",
     status: text(row?.status),
+    admissionYear: nullableNumber(admissionYearValue),
     ...(text(row?.campus) ? { campus: text(row?.campus) } : {}),
     ...(startDate ? { startDate } : {}),
     ...(endDate ? { endDate } : {}),
     ...(channelBoundary ? { channelBoundary } : {}),
-    ...(channelType ? { channelType } : {}),
+    channelType: typeof channelTypeValue === "string" ? channelTypeValue : null,
     ...(channelUrl ? { channelUrl } : {}),
     ...(rawRoutingEnabled !== undefined
       ? { leadRoutingEnabled: Boolean(rawRoutingEnabled) }
@@ -250,6 +272,13 @@ function normalizeCampaignRoutingOption(
     ...(text(row?.campus) ? { campus: text(row?.campus) } : {}),
     ...(text(row?.group) ? { group: text(row?.group) } : {}),
     ...(text(row?.province) ? { province: text(row?.province) } : {}),
+    ...(Array.isArray(row?.campusIds)
+      ? {
+          campusIds: row.campusIds.filter(
+            (campusId): campusId is string => typeof campusId === "string",
+          ),
+        }
+      : {}),
   };
 }
 

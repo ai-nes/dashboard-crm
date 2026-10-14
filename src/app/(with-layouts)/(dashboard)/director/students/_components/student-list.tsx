@@ -6,7 +6,8 @@ import type { StudentListItem } from "@/services/api/students/types";
 import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import StudentOwnerCell from "./student-owner-cell";
-import { studentStatusBadgeColor, studentStatusLabel } from "./student-status";
+import StudentRowActions from "./student-row-actions";
+import { studentStatusBadgeColor, studentStatusBadgeLabel, studentStatusLabel } from "./student-status";
 
 interface StudentListProps {
   students: StudentListItem[];
@@ -20,7 +21,7 @@ function getScoreTone(score: number): "success" | "warning" | "error" {
 }
 
 export const studentListGrid =
-  "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(136px,0.8fr)_minmax(88px,0.55fr)_minmax(0,1.2fr)]";
+  "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(136px,0.8fr)_minmax(88px,0.55fr)_minmax(0,1.2fr)_40px]";
 
 export default function StudentList({
   students,
@@ -59,9 +60,11 @@ export default function StudentList({
                 <p className="text-xs text-text-tertiary lg:hidden">
                   Mã học sinh
                 </p>
-                <p className="truncate text-sm font-medium text-text-primary">
-                  {student.code.trim() || "Chưa có mã học sinh"}
-                </p>
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="truncate text-sm font-medium text-text-primary">
+                    {student.code.trim() || "Chưa có mã học sinh"}
+                  </p>
+                </div>
               </div>
 
               {/* Cột 2: Họ và tên */}
@@ -102,8 +105,8 @@ export default function StudentList({
                   Trạng thái
                 </p>
                 {status ? (
-                  <Badge color={studentStatusBadgeColor[status]} size="md">
-                    {studentStatusLabel[status]}
+                  <Badge color={studentStatusBadgeColor[status]} size="md" className="whitespace-nowrap" title={studentStatusLabel[status]}>
+                    {studentStatusBadgeLabel[status]}
                   </Badge>
                 ) : (
                   <span className="text-sm text-text-tertiary">
@@ -140,6 +143,7 @@ export default function StudentList({
                   }
                 />
               </div>
+              <StudentRowActions student={student} />
             </div>
           </li>
         );

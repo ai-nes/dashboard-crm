@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getStudentCampaigns } from "./index";
+import {
+  addStudentCampaign,
+  getStudentCampaignOptions,
+  getStudentCampaigns,
+} from "./index";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -7,6 +11,50 @@ afterEach(() => {
 });
 
 describe("Student campaign history API", () => {
+  it("posts participation for the exact student with session credentials", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://api.test");
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ data: { id: "p" } })));
+    vi.stubGlobal("fetch", fetch);
+    await addStudentCampaign("student/id", "campaign");
+    expect(fetch).toHaveBeenCalledWith(
+      "http://api.test/api/v1/students/student%2Fid/campaigns",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({ campaignId: "campaign" }),
+      }),
+    );
+  });
+  it("paginates and searches eligible campaign options", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://api.test");
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ data: [], meta: { hasNextPage: false } }),
+        ),
+      );
+    vi.stubGlobal("fetch", fetch);
+    await getStudentCampaignOptions("student", "đợt", 2);
+    expect(String(fetch.mock.calls[0][0])).toContain(
+      "/students/student/campaign-options?",
+    );
+    expect(String(fetch.mock.calls[0][0])).toContain("page=2");
+  });
+  it("sends the custom registration timestamp unchanged", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://api.test");
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ data: { id: "p" } })));
+    vi.stubGlobal("fetch", fetch);
+    await addStudentCampaign("student", "campaign", "2026-09-25T02:30:00.000Z");
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({
+      campaignId: "campaign",
+      registeredAt: "2026-09-25T02:30:00.000Z",
+    });
+  });
   it("reads the requested page with session credentials and cancellation", async () => {
     vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://api.test");
     const body = {

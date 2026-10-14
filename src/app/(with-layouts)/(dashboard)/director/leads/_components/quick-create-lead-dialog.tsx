@@ -1,5 +1,8 @@
 "use client";
 
+import { formatDialogError } from "@/utils/dialog-error";
+import { getDefaultCampusOption } from "@/utils/default-campus";
+
 import { useState, type FormEvent } from "react";
 
 import { SchoolCombobox } from "@/components/common/school-combobox";
@@ -69,7 +72,7 @@ export default function QuickCreateLeadDialog({
   onOpenChange,
   onCreate,
 }: QuickCreateLeadDialogProps) {
-  const [form, setForm] = useState<QuickCreateLeadForm>(initialForm);
+  const [draft, setForm] = useState<QuickCreateLeadForm>(initialForm);
   const [fieldErrors, setFieldErrors] = useState<QuickCreateLeadErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -82,9 +85,9 @@ export default function QuickCreateLeadDialog({
       doctype: "CRM Lead",
       fieldname: "ward",
       limit: 100,
-      province: form.province || undefined,
+      province: draft.province || undefined,
     },
-    isOpen && Boolean(form.province),
+    isOpen && Boolean(draft.province),
   );
   const campaignOptionsQuery = useStudentSchoolFieldOptions(
     { doctype: "CRM Lead", fieldname: "campaign", limit: 100 },
@@ -104,6 +107,10 @@ export default function QuickCreateLeadDialog({
   const campaignOptions = toSelectOptions(campaignOptionsQuery.data?.options);
   const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
   const branchOptions = toSelectOptions(branchOptionsQuery.data?.options);
+  const form: QuickCreateLeadForm = {
+    ...draft,
+    branch: draft.branch || getDefaultCampusOption(branchOptions)?.id || "",
+  };
 
   const setField = <TField extends QuickCreateLeadField>(
     field: TField,
@@ -146,14 +153,7 @@ export default function QuickCreateLeadDialog({
     event.preventDefault();
     if (isSubmitting) return;
 
-    const errors: QuickCreateLeadErrors = {};
-    if (!form.student_name.trim())
-      errors.student_name = "Vui lòng nhập họ tên.";
-    if (!form.phone.trim()) errors.phone = "Vui lòng nhập số điện thoại.";
-    if (!form.campaign.trim()) errors.campaign = "Vui lòng chọn Campaign.";
-    if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) {
-      errors.email = "Email không đúng định dạng.";
-    }
+    const errors = validateQuickCreateLeadForm(form);
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -167,9 +167,7 @@ export default function QuickCreateLeadDialog({
       await onCreate(toLeadCreateFields(form));
       reset();
     } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Chưa thể tạo Lead.",
-      );
+      setSubmitError(formatDialogError(error, "Chưa thể tạo Lead."));
     }
   };
 
@@ -222,7 +220,7 @@ export default function QuickCreateLeadDialog({
                 <FormFieldError message={fieldErrors.phone} />
               </CreateDialogField>
 
-              <CreateDialogField label="Email">
+              <CreateDialogField label="Email" required>
                 <CreateDialogInput
                   label="Email"
                   placeholder="an@example.com"
@@ -248,7 +246,7 @@ export default function QuickCreateLeadDialog({
                 <FormFieldError message={fieldErrors.campaign} />
               </CreateDialogField>
 
-              <CreateDialogField label="Tỉnh / thành phố">
+              <CreateDialogField label="Tỉnh / thành phố" required>
                 <CreateDialogSelect
                   label="Tỉnh / thành phố"
                   options={provinceOptions}
@@ -259,6 +257,7 @@ export default function QuickCreateLeadDialog({
                   isDisabled={provinceOptionsQuery.isPending}
                   onChange={handleProvinceChange}
                 />
+                <FormFieldError message={fieldErrors.province} />
               </CreateDialogField>
 
               <CreateDialogField label="Xã / phường">
@@ -335,12 +334,15 @@ export default function QuickCreateLeadDialog({
             {(campaignOptionsQuery.isError ||
               provinceOptionsQuery.isError ||
               wardOptionsQuery.isError) && (
-              <p className="text-xs text-error-600" role="alert">
+              <p className="text-xs text-badge-error-text" role="alert">
                 Chưa thể tải một số danh mục Lead. Vui lòng thử lại sau.
               </p>
             )}
             {submitError && (
-              <p className="text-xs text-error-600" role="alert">
+              <p
+                className="text-xs text-badge-error-text whitespace-pre-line break-words"
+                role="alert"
+              >
                 {submitError}
               </p>
             )}
@@ -363,6 +365,31 @@ export default function QuickCreateLeadDialog({
       </Dialog>
     </Backdrop>
   );
+}
+
+export function validateQuickCreateLeadForm(
+  form: Pick<
+    QuickCreateLeadForm,
+    "student_name" | "phone" | "email" | "province" | "campaign"
+  >,
+): QuickCreateLeadErrors {
+  const errors: QuickCreateLeadErrors = {};
+  if (!form.student_name.trim()) errors.student_name = "Vui lòng nhập họ tên.";
+  if (!form.phone.trim()) {
+    errors.phone = "Vui lòng nhập số điện thoại.";
+  } else if (!/^0\d{9}$/.test(form.phone.trim().replace(/^\+84/, "0"))) {
+    errors.phone =
+      "Số điện thoại phải có 10 chữ số, bắt đầu bằng 0 (hoặc +84).";
+  }
+  if (!form.province.trim())
+    errors.province = "Vui lòng chọn tỉnh / thành phố.";
+  if (!form.campaign.trim()) errors.campaign = "Vui lòng chọn Campaign.";
+  if (!form.email.trim()) {
+    errors.email = "Vui lòng nhập email.";
+  } else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+    errors.email = "Email không đúng định dạng.";
+  }
+  return errors;
 }
 
 function toLeadCreateFields(form: QuickCreateLeadForm): LeadCreateFields {
@@ -398,7 +425,7 @@ function toSelectOptions(options?: { value: string; label: string }[]) {
 function FormFieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p className="text-xs text-error-600" role="alert">
+    <p className="text-xs text-badge-error-text" role="alert">
       {message}
     </p>
   );

@@ -3,7 +3,7 @@ import {
   type ChannelTypeOption,
   validateChannelUrl,
 } from "./channel-types";
-import { campaignModeOptions, campaignStatusOptions } from "./mappings";
+import { isCampaignMode, isCampaignStatus } from "./mappings";
 import type { CampaignFormState } from "./types";
 
 export type CampaignFormErrors = Partial<
@@ -26,14 +26,12 @@ export function validateCampaignForm(
   const startDate = form.startDate.trim();
   const endDate = form.endDate.trim();
 
-  if (!admissionYear) {
-    errors.admissionYear = "Vui lòng nhập năm tuyển sinh.";
-  } else if (!/^\d{4}$/.test(admissionYear)) {
+  if (admissionYear && !/^\d{4}$/.test(admissionYear)) {
     errors.admissionYear = "Năm tuyển sinh phải gồm 4 chữ số.";
-  } else if (
+  } else if (admissionYear && (
     Number(admissionYear) < MIN_ADMISSION_YEAR ||
     Number(admissionYear) > MAX_ADMISSION_YEAR
-  ) {
+  )) {
     errors.admissionYear = `Năm tuyển sinh phải từ ${MIN_ADMISSION_YEAR} đến ${MAX_ADMISSION_YEAR}.`;
   }
 
@@ -43,19 +41,17 @@ export function validateCampaignForm(
     errors.name = `Tên chiến dịch không được vượt quá ${MAX_CAMPAIGN_NAME_LENGTH} ký tự.`;
   }
 
-  if (!startDate) {
-    errors.startDate = "Vui lòng chọn ngày bắt đầu.";
-  } else if (!isValidIsoDate(startDate)) {
+  if (startDate && !isValidIsoDate(startDate)) {
     errors.startDate = "Ngày bắt đầu không hợp lệ.";
   }
 
-  if (!endDate) {
-    errors.endDate = "Vui lòng chọn ngày kết thúc.";
-  } else if (!isValidIsoDate(endDate)) {
+  if (endDate && !isValidIsoDate(endDate)) {
     errors.endDate = "Ngày kết thúc không hợp lệ.";
   }
 
   if (
+    startDate &&
+    endDate &&
     isValidIsoDate(startDate) &&
     isValidIsoDate(endDate) &&
     startDate > endDate
@@ -64,11 +60,11 @@ export function validateCampaignForm(
     errors.endDate = "Ngày kết thúc phải sau ngày bắt đầu.";
   }
 
-  if (!campaignStatusOptions.includes(form.status)) {
+  if (!isCampaignStatus(form.status)) {
     errors.status = "Vui lòng chọn trạng thái hợp lệ.";
   }
 
-  if (!campaignModeOptions.includes(form.mode)) {
+  if (!isCampaignMode(form.mode)) {
     errors.mode = "Vui lòng chọn hình thức hợp lệ.";
   }
 

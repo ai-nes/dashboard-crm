@@ -5,6 +5,7 @@ import { Button } from "@/components/tailgrids/core/button";
 import {
   getStudentStageBadgeColor,
   getStudentStageLabel,
+  getStudentStageBadgeLabel,
 } from "@/components/segments/segment-filter-config";
 import { formatNbaChannel } from "@/services/api/nba/presentation";
 
@@ -62,8 +63,8 @@ export default function RecentStudentRow({
             <Badge
               color={getStudentStageBadgeColor(student.studentStage)}
               size="sm"
-            >
-              {getStudentStageLabel(student.studentStage)}
+             title={getStudentStageLabel(student.studentStage)} className="whitespace-nowrap">
+              {getStudentStageBadgeLabel(student.studentStage)}
             </Badge>
             {priority ? (
               <Badge color={priority.color} size="sm">

@@ -55,6 +55,9 @@ function LeadListSkeletonRow() {
         <div className="min-w-0">
           <Skeleton className="h-4 w-20 max-w-full" />
         </div>
+        <div className="flex justify-end">
+          <Skeleton className="size-9 rounded-lg" />
+        </div>
       </div>
     </li>
   );

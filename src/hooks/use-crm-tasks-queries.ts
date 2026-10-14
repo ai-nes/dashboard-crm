@@ -11,6 +11,7 @@ import {
   createTask,
   deleteTask,
   getTask,
+  listAllTasks,
   listTasks,
   updateTask,
   type CRMTask,
@@ -23,26 +24,33 @@ import {
 export const crmTasksKeys = {
   all: ["crm-tasks"] as const,
   list: (params: ListTasksParams) => ["crm-tasks", "list", params] as const,
+  listAll: (params: ListTasksParams) =>
+    ["crm-tasks", "list", params, "all-pages"] as const,
   detail: (name: string) => ["crm-tasks", "detail", name] as const,
 };
 
+type CRMTaskListQueryKey =
+  | ReturnType<typeof crmTasksKeys.list>
+  | ReturnType<typeof crmTasksKeys.listAll>;
+
+type CRMTaskListQueryOptions<TData> = Omit<
+  UseQueryOptions<ListTasksResponse, Error, TData, CRMTaskListQueryKey>,
+  "queryKey" | "queryFn"
+> & { allPages?: boolean };
+
 export function useCrmTasksQuery<TData = ListTasksResponse>(
   params: ListTasksParams,
-  options?: Omit<
-    UseQueryOptions<
-      ListTasksResponse,
-      Error,
-      TData,
-      ReturnType<typeof crmTasksKeys.list>
-    >,
-    "queryKey" | "queryFn"
-  >,
+  options?: CRMTaskListQueryOptions<TData>,
 ): UseQueryResult<TData, Error> {
-  return useQuery({
-    queryKey: crmTasksKeys.list(params),
-    queryFn: () => listTasks(params),
-    enabled: options?.enabled ?? true,
-    ...options,
+  const { allPages = false, ...queryOptions } = options ?? {};
+
+  return useQuery<ListTasksResponse, Error, TData, CRMTaskListQueryKey>({
+    queryKey: allPages
+      ? crmTasksKeys.listAll(params)
+      : crmTasksKeys.list(params),
+    queryFn: () => (allPages ? listAllTasks(params) : listTasks(params)),
+    enabled: queryOptions.enabled ?? true,
+    ...queryOptions,
   });
 }
 
@@ -76,9 +84,7 @@ export function useCreateCrmTaskMutation() {
   });
 }
 
-function getTaskCachePatch(
-  updates: UpdateTaskPayload,
-): Partial<CRMTask> {
+function getTaskCachePatch(updates: UpdateTaskPayload): Partial<CRMTask> {
   return {
     ...(updates.title !== undefined ? { title: updates.title } : {}),
     ...(updates.description !== undefined
@@ -86,13 +92,15 @@ function getTaskCachePatch(
       : {}),
     ...(updates.priority !== undefined ? { priority: updates.priority } : {}),
     ...(updates.startDate !== undefined
-      ? { startDate: updates.startDate }
+      ? { startDate: updates.startDate ?? undefined }
       : {}),
     ...(updates.assignedTo !== undefined
-      ? { assignedTo: updates.assignedTo }
+      ? { assignedTo: updates.assignedTo ?? undefined }
       : {}),
     ...(updates.status !== undefined ? { status: updates.status } : {}),
-    ...(updates.dueDate !== undefined ? { dueDate: updates.dueDate } : {}),
+    ...(updates.dueDate !== undefined
+      ? { dueDate: updates.dueDate ?? undefined }
+      : {}),
     ...(updates.linkedInteraction !== undefined
       ? { linkedInteraction: updates.linkedInteraction }
       : {}),

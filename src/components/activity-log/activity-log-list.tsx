@@ -1,4 +1,5 @@
 import { Badge } from "@/components/tailgrids/core/badge";
+import { TableRowActions } from "@/components/common/table-row-actions";
 import {
   AdminTableCell,
   AdminTableFrame,
@@ -109,6 +110,7 @@ export default function ActivityLogList({
                 <AdminTableHead className="min-w-72">Sự kiện</AdminTableHead>
                 <AdminTableHead className="min-w-80">Thay đổi</AdminTableHead>
                 <AdminTableHead className="w-32">Mức độ</AdminTableHead>
+                <AdminTableHead className="w-16 text-right">Thao tác</AdminTableHead>
               </AdminTableRow>
             </AdminTableHeader>
             <tbody>
@@ -187,6 +189,9 @@ export default function ActivityLogList({
                     >
                       {log.severity === "critical" ? "Cần chú ý" : "Thông tin"}
                     </Badge>
+                  </AdminTableCell>
+                  <AdminTableCell className="py-4">
+                    <TableRowActions label={getActivityTitle(log)} actions={[{ id: "view", label: "Xem chi tiết", onAction: () => onSelectLog(log) }]} />
                   </AdminTableCell>
                 </AdminTableRow>
               ))}

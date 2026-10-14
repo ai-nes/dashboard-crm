@@ -5,20 +5,26 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { tabsItems } from "./data";
 
-export default function ProfileLayout({ children }: { children: React.ReactNode }) {
+export default function ProfileLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
 
   return (
     <div className="mt-6 space-y-5">
       {/* Header Section */}
       <div className="flex flex-col-reverse items-start justify-between gap-3 px-2 sm:flex-row sm:items-center lg:px-6">
-        <h1 className="mb-1 text-[28px] leading-8 font-medium text-text-primary">Profile</h1>
+        <h1 className="mb-1 text-[28px] leading-8 font-medium text-text-primary">
+          Hồ sơ cá nhân
+        </h1>
         <div>
           <Breadcrumbs
             dividerType="chevron"
             items={[
-              { href: "/", label: "Home" },
-              { href: "/profile", label: "Profile" },
+              { href: "/", label: "Trang chủ" },
+              { href: "/profile", label: "Hồ sơ cá nhân" },
             ]}
           />
         </div>
@@ -42,7 +48,9 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
                     {item.icon}
                   </div>
                   <div className="flex flex-col items-start gap-1">
-                    <span className="text-sm font-semibold text-text-primary">{item.title}</span>
+                    <span className="text-sm font-semibold text-text-primary">
+                      {item.title}
+                    </span>
                     <span className="text-xs font-normal text-text-tertiary">
                       {item.description}
                     </span>

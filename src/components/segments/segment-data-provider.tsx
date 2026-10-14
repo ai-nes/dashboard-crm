@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 import {
   useSegmentsQuery,
@@ -30,6 +25,7 @@ const SegmentDataContext = createContext<{
     expectedRevision: number;
   }) => Promise<unknown>;
   total: number;
+  totalAll: number | null;
   currentPage: number;
   totalPages: number;
   isFetching: boolean;
@@ -66,7 +62,13 @@ export function SegmentDataProvider({
     },
     { enabled: serverPaginated && canRead },
   );
-  const visibleSegmentsQuery = useVisibleSegmentsQuery(visibleStudentsOnly && canRead);
+  const allStatusesCountQuery = useSegmentsQuery(
+    { search, start: 0, pageLength: 1 },
+    { enabled: serverPaginated && canRead && status !== "ALL" },
+  );
+  const visibleSegmentsQuery = useVisibleSegmentsQuery(
+    visibleStudentsOnly && canRead,
+  );
   const transitionMutation = useTransitionSegmentMutation();
   const segmentsQuery = visibleStudentsOnly
     ? visibleSegmentsQuery
@@ -77,6 +79,11 @@ export function SegmentDataProvider({
   const segments = rawSegments.map((segment) => toSegmentListItem(segment));
   const total = serverPaginated
     ? (allSegmentsQuery.data?.total ?? 0)
+    : segments.length;
+  const totalAll = serverPaginated
+    ? status === "ALL"
+      ? total
+      : (allStatusesCountQuery.data?.total ?? null)
     : segments.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -90,6 +97,7 @@ export function SegmentDataProvider({
         refetch: segmentsQuery.refetch,
         transitionSegment: (payload) => transitionMutation.mutateAsync(payload),
         total,
+        totalAll,
         currentPage: page,
         totalPages,
         isFetching: segmentsQuery.isFetching,

@@ -199,7 +199,16 @@ export async function nestCreateLead(
     method: "POST",
     body: toNestLeadBody(fields),
   });
-  return nestLeadDetail(created.data.id);
+  return {
+    lead: created.data,
+    log: [],
+    meta: {
+      asOf: created.data.modifiedAt ?? null,
+      ...(typeof created.meta?.created === "boolean"
+        ? { created: created.meta.created }
+        : {}),
+    },
+  };
 }
 
 export async function nestUpdateLead(

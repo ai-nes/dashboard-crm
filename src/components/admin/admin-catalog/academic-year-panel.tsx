@@ -322,6 +322,7 @@ function AcademicYearPanelContent({ permissions }: { permissions: CrmDoctypePerm
                     </td>
                     <td className="px-3 py-3">
                       <RowActions
+                        recordLabel={year.year_name}
                         isDisabled={isDeleting}
                         onEdit={permissions.canUpdate ? () => {
                           setIsCustomYear(false);

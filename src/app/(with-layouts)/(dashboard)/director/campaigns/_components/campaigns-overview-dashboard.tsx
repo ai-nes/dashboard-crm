@@ -258,6 +258,13 @@ export default function CampaignsOverviewDashboard() {
   };
 
   const handleFormSubmit = async (fields: CampaignFormValues) => {
+    if (!fields.status) {
+      throw new Error("Vui lòng chọn trạng thái hợp lệ.");
+    }
+    if (!fields.mode) {
+      throw new Error("Vui lòng chọn hình thức hợp lệ.");
+    }
+
     if (formDialog?.mode === "edit") {
       if (!canUpdateCampaign) return;
       const { campaign } = formDialog;
@@ -265,6 +272,7 @@ export default function CampaignsOverviewDashboard() {
         name: campaign.id,
         title: fields.name.trim(),
         campus: fields.campus,
+        admissionYear: fields.admissionYear,
         status: fields.status,
         startDate: fields.startDate,
         endDate: fields.endDate,
@@ -290,12 +298,13 @@ export default function CampaignsOverviewDashboard() {
       await createCampaignMutation.mutateAsync({
         title: fields.name.trim(),
         campus: fields.campus,
+        admissionYear: fields.admissionYear,
         status: fields.status,
         startDate: fields.startDate,
         endDate: fields.endDate,
         channelBoundary: fields.mode === "ONLINE" ? "Digital" : "Field",
-        channelType: fields.channelType || undefined,
-        channelUrl: fields.channelUrl.trim() || undefined,
+        channelType: fields.channelType,
+        channelUrl: fields.channelUrl.trim(),
         leadRoutingEnabled: fields.leadRoutingEnabled,
         leadRoutingTargetType: fields.leadRoutingTargetType,
         leadRoutingTargetTeam: fields.leadRoutingTargetTeam,

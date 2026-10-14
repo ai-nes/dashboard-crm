@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash1 } from "@tailgrids/icons";
+
 
 import {
   AdminTableCell,
@@ -11,7 +11,7 @@ import {
   AdminTableRow,
 } from "@/components/common/admin/admin-table";
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
+import { TableRowActions } from "@/components/common/table-row-actions";
 import { Toggle } from "@/components/tailgrids/core/toggle";
 import { TableBody } from "@/components/tailgrids/core/table";
 import {
@@ -26,6 +26,7 @@ interface RulesConfigTableProps {
   isLoading: boolean;
   canDelete: boolean;
   canToggle?: boolean;
+  canUpdate?: boolean;
   isDeleteDisabled?: boolean;
   onSelect: (rule: CrmRule) => void;
   onDelete: (rule: CrmRule) => void;
@@ -41,6 +42,7 @@ export default function RulesConfigTable({
   isLoading,
   canDelete,
   canToggle = false,
+  canUpdate = false,
   isDeleteDisabled = false,
   onSelect,
   onDelete,
@@ -49,7 +51,7 @@ export default function RulesConfigTable({
   totalPages,
   onPageChange,
 }: RulesConfigTableProps) {
-  const columnCount = 6 + (canToggle ? 1 : 0) + (canDelete ? 1 : 0);
+  const columnCount = 7 + (canToggle ? 1 : 0);
 
   return (
     <>
@@ -65,9 +67,7 @@ export default function RulesConfigTable({
             {canToggle ? (
               <AdminTableHead scope="col">Bật Rule</AdminTableHead>
             ) : null}
-            {canDelete ? (
-              <AdminTableHead scope="col">Hành động</AdminTableHead>
-            ) : null}
+            <AdminTableHead scope="col">Thao tác</AdminTableHead>
           </AdminTableRow>
         </AdminTableHeader>
         <TableBody>
@@ -138,27 +138,12 @@ export default function RulesConfigTable({
                       />
                     </AdminTableCell>
                   ) : null}
-                  {canDelete ? (
-                    <AdminTableCell>
-                      <div
-                        className="inline-flex"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <Button
-                          iconOnly
-                          size="sm"
-                          variant="ghost"
-                          appearance="ghost"
-                          aria-label={`Xóa Rule ${rule.ruleName}`}
-                          isDisabled={isDeleteDisabled}
-                          className="text-text-tertiary hover:text-error-500"
-                          onPress={() => onDelete(rule)}
-                        >
-                          <Trash1 size={16} aria-hidden="true" />
-                        </Button>
-                      </div>
-                    </AdminTableCell>
-                  ) : null}
+                  <AdminTableCell>
+                    <TableRowActions label={`Rule ${rule.ruleName}`} actions={[
+                      { id: canUpdate ? "edit" : "view", label: canUpdate ? "Chỉnh sửa" : "Xem chi tiết", onAction: () => onSelect(rule) },
+                      { id: "delete", label: "Xóa", onAction: () => onDelete(rule), isVisible: canDelete, isDisabled: isDeleteDisabled, variant: "danger" },
+                    ]} />
+                  </AdminTableCell>
                 </AdminTableRow>
               ))
             : null}

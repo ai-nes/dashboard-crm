@@ -8,6 +8,7 @@ import type { LeadAssignmentWorkflowStepId } from "./lead-assignment-batch";
 
 export type LeadAssignmentWorkflowInputSettings = {
   enabled: boolean;
+  /** Legacy API field name; it is now the worker polling cadence. */
   scheduledMinAgeMinutes: number;
   maxLeadsPerRun: number;
 };
@@ -179,7 +180,7 @@ function normalizeSettings(
       return {
         enabled: boolean(source.enabled, true),
         scheduledMinAgeMinutes: Math.max(
-          0,
+          1,
           Math.min(integer(source.scheduledMinAgeMinutes, 5), 1440),
         ),
         maxLeadsPerRun: Math.max(

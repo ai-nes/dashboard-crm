@@ -7,6 +7,7 @@ import { CalendarTime } from "@tailgrids/icons";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 import type { StudentTaskItem } from "@/services/api/students/types";
 import { cn } from "@/utils/cn";
+import { crmTaskDateTimeToTimestamp } from "@/utils/crm-task-date-time";
 import { formatDate } from "@/utils/format-date";
 
 import {
@@ -30,12 +31,11 @@ interface TaskManagementKanbanCardProps {
 function isOverdue(task: TaskManagementItem): boolean {
   if (task.status === "done" || task.status === "canceled") return false;
 
-  const ddmmyyyy = task.dueDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  const date = ddmmyyyy
-    ? `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`
-    : task.dueDate;
-
-  return new Date(`${date}T${task.dueTime || "23:59"}`).getTime() < Date.now();
+  const dueAt = crmTaskDateTimeToTimestamp(
+    task.dueDate,
+    task.dueTime || "23:59",
+  );
+  return dueAt !== null && dueAt < Date.now();
 }
 
 function getAssigneeInitials(name?: string): string {
@@ -102,28 +102,33 @@ export default function TaskManagementKanbanCard({
         isDragging ? "opacity-60 ring-2 ring-primary-500" : ""
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-1">
-          {canUpdateTask && <button
-            ref={handleRef}
-            type="button"
-            aria-label={`Kéo task của ${task.studentName} để chuyển trạng thái`}
-            title="Kéo để chuyển trạng thái"
-            className="flex size-7 shrink-0 cursor-grab items-center justify-center rounded-md text-base leading-none text-text-tertiary outline-none transition hover:bg-background-soft-50 hover:text-text-primary active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-primary-500"
-          >
-            <span aria-hidden="true">⠿</span>
-          </button>}
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+          {canUpdateTask && (
+            <button
+              ref={handleRef}
+              type="button"
+              aria-label={`Kéo task của ${task.studentName} để chuyển trạng thái`}
+              title="Kéo để chuyển trạng thái"
+              className="flex size-7 shrink-0 cursor-grab items-center justify-center rounded-md text-base leading-none text-text-tertiary outline-none transition hover:bg-background-soft-50 hover:text-text-primary active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-primary-500"
+            >
+              <span aria-hidden="true">⠿</span>
+            </button>
+          )}
           <StudentTaskTypeBadge
             actionCode={task.actionCode}
             taskType={task.taskType}
             size="sm"
+            className="min-w-0 max-w-full truncate whitespace-nowrap"
           />
         </div>
-        <TaskManagementTaskActions
-          task={task}
-          onUpdateTask={onUpdateTask}
-          onDeleteTask={onDeleteTask}
-        />
+        <div className="shrink-0">
+          <TaskManagementTaskActions
+            task={task}
+            onUpdateTask={onUpdateTask}
+            onDeleteTask={onDeleteTask}
+          />
+        </div>
       </div>
 
       <TaskManagementKanbanTitleEditor

@@ -4,6 +4,7 @@ import type { CurrentUser } from "@/services/api/auth";
 
 import {
   canReadStudentCampaigns,
+  canAddStudentCampaign,
   canManageCrmRules,
   canConvertLeadToStudent,
   canPerformStudentAction,
@@ -40,6 +41,44 @@ const makeDoctypePermission = (
 });
 
 describe("Student campaign history permissions", () => {
+  it("requires Student write and Campaign read for participation without requiring campaign create", () => {
+    const user = makeUser({ crm_doctype_permissions: {
+      "CRM Student": makeDoctypePermission(),
+      "CRM Campaign": makeDoctypePermission({ write: false, create: false }),
+    } });
+    expect(canAddStudentCampaign(user)).toBe(true);
+    expect(canAddStudentCampaign(makeUser({ crm_doctype_permissions: { ...user.crm_doctype_permissions, "CRM Student": makeDoctypePermission({ write: false }) } }))).toBe(false);
+    expect(canAddStudentCampaign(makeUser({ crm_doctype_permissions: { ...user.crm_doctype_permissions, "CRM Campaign": makeDoctypePermission({ read: false }) } }))).toBe(false);
+    expect(canAddStudentCampaign(null)).toBe(false);
+  });
+  it("uses the authoritative owner UUID instead of a coincidentally identical display name for deletion", () => {
+    const user = makeUser({
+      crm_user_id: "my-user-id",
+      crm_doctype_permissions: {
+        "CRM Lead": makeDoctypePermission({
+          row_scope: "all",
+          delete_requires_ownership: true,
+        }),
+      },
+    });
+    const permissions = getCrmPermissions(user).lead;
+    expect(
+      canPerformStudentAction(
+        permissions,
+        "delete",
+        { ownerId: "another-user-id", owner: "CRM Staff" },
+        user,
+      ),
+    ).toBe(false);
+    expect(
+      canPerformStudentAction(
+        permissions,
+        "delete",
+        { ownerId: "my-user-id", owner: "Renamed Staff" },
+        user,
+      ),
+    ).toBe(true);
+  });
   it.each([
     {
       student: true,

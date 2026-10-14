@@ -28,6 +28,7 @@ import StudentCreateInteractionDialog from "./student-create-interaction-dialog"
 import StudentOtherInteractionsTab from "./student-other-interactions-tab";
 import StudentZaloTab from "./student-zalo-tab";
 import StudentCampaignsTab from "./student-campaigns-tab";
+import StudentAddCampaignDialog from "./student-add-campaign-dialog";
 import { isOtherInteractionType } from "./student-interaction-utils";
 
 interface StudentInteractionsTabsProps {
@@ -36,6 +37,7 @@ interface StudentInteractionsTabsProps {
   canReadInteractions: boolean;
   canCreateInteraction: boolean;
   canReadCampaigns?: boolean;
+  canAddCampaign?: boolean;
   isActive?: boolean;
   initialCampaignTab?: boolean;
   calls: StudentCallRecord[];
@@ -56,6 +58,7 @@ export default function StudentInteractionsTabs({
   canReadInteractions,
   canCreateInteraction,
   canReadCampaigns = false,
+  canAddCampaign = false,
   isActive = true,
   initialCampaignTab = false,
   calls,
@@ -68,6 +71,15 @@ export default function StudentInteractionsTabs({
       ? "campaigns"
       : getDefaultInteractionTab(calls);
   const normalizedStudentId = studentId.trim();
+  const [selection, setSelection] = useState({
+    defaultKey: defaultSelectedKey,
+    key: defaultSelectedKey,
+  });
+  const selectedTab =
+    selection.defaultKey === defaultSelectedKey
+      ? selection.key
+      : defaultSelectedKey;
+  const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const catalogQuery = useInteractionCatalogQuery(canReadInteractions);
@@ -147,7 +159,7 @@ export default function StudentInteractionsTabs({
         <StudentCampaignsTab
           key={normalizedStudentId}
           studentId={normalizedStudentId}
-          isActive={isActive}
+          isActive={isActive && selectedTab === "campaigns"}
         />
       ),
     },
@@ -162,8 +174,25 @@ export default function StudentInteractionsTabs({
         key={defaultSelectedKey}
         defaultSelectedKey={defaultSelectedKey}
         isSticky={false}
+        onSelectionChange={(key) => {
+          setSelection({ defaultKey: defaultSelectedKey, key });
+          setIsCreateDialogOpen(false);
+          setIsCampaignDialogOpen(false);
+        }}
         actions={
-          canCreateInteraction ? (
+          selectedTab === "campaigns" ? (
+            canReadCampaigns && canAddCampaign ? (
+              <Button
+                type="button"
+                size="sm"
+                onPress={() => setIsCampaignDialogOpen(true)}
+                isDisabled={!normalizedStudentId}
+              >
+                <Plus size={16} aria-hidden="true" />
+                <span>Thêm chiến dịch</span>
+              </Button>
+            ) : undefined
+          ) : canCreateInteraction ? (
             <Button
               type="button"
               size="sm"
@@ -183,6 +212,16 @@ export default function StudentInteractionsTabs({
         }
         tabs={interactionTabs}
       />
+      {isCampaignDialogOpen &&
+        canReadCampaigns &&
+        canAddCampaign &&
+        selectedTab === "campaigns" && (
+          <StudentAddCampaignDialog
+            studentId={normalizedStudentId}
+            studentName={studentName}
+            onOpenChange={setIsCampaignDialogOpen}
+          />
+        )}
       {isCreateDialogOpen && (
         <StudentCreateInteractionDialog
           isOpen

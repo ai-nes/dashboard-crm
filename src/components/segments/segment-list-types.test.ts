@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getSegmentDetailHref,
+  getSegmentStatusOptions,
   toSegmentListItem,
 } from "./segment-list-types";
 
@@ -49,5 +50,29 @@ describe("segment list mapping", () => {
     expect(getSegmentDetailHref("/sale/segments/", result)).toBe(
       "/sale/segments/SEG-2026-0042",
     );
+  });
+
+  it("uses the resolved creator label instead of showing the owner id", () => {
+    const result = toSegmentListItem({
+      name: "segment-id",
+      segment_code: "SEG-2026-0042",
+      title: "Tiềm năng cao",
+      owner: "user-id",
+      owner_name: "Nguyễn An",
+      status: "draft",
+      revision: 0,
+    });
+
+    expect(result.creator).toBe("Nguyễn An");
+  });
+
+  it("offers a restore transition for archived segments", () => {
+    const options = getSegmentStatusOptions("archive").map(
+      (option) => option.value,
+    );
+
+    expect(options).toContain("inactive");
+    expect(options).toContain("archive");
+    expect(options).not.toContain("active");
   });
 });

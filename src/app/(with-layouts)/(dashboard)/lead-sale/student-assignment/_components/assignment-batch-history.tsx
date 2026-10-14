@@ -1,5 +1,7 @@
 "use client";
 
+import { TableRowActions } from "@/components/common/table-row-actions";
+
 import { ArrowLeft, ArrowRight, Close, Search1 } from "@tailgrids/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -94,9 +96,9 @@ function HistoryRow({
       </TableCell>
       <TableCell className="min-w-32 text-right">
         {needsAttention(item) ? (
-          <Button appearance="outline" size="sm" onPress={() => onInspect(item)}>
-            Xử lý
-          </Button>
+          <TableRowActions label={item.leadCode || item.studentName || "Lead"} actions={[
+  { id: "view", label: "Xử lý", onAction: () => onInspect(item) },
+]} />
         ) : (
           <span className="text-xs text-text-tertiary">—</span>
         )}

@@ -27,6 +27,42 @@ export interface StudentCampaignsResponse {
   };
 }
 
+export interface StudentCampaignOptionsResponse {
+  data: {
+    id: string;
+    title: string;
+    stableCode: string | null;
+    status: CampaignStatus;
+  }[];
+  meta: { page: number; total: number; hasNextPage: boolean };
+}
+
+export function getStudentCampaignOptions(
+  studentId: string,
+  search: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<StudentCampaignOptionsResponse> {
+  return nestRequest(
+    `/api/v1/students/${encodeURIComponent(studentId)}/campaign-options`,
+    { query: { search, page, pageSize: 20 }, signal },
+  );
+}
+
+export function addStudentCampaign(
+  studentId: string,
+  campaignId: string,
+  registeredAt?: string,
+): Promise<{ data: { id: string; campaignId: string } }> {
+  return nestRequest(
+    `/api/v1/students/${encodeURIComponent(studentId)}/campaigns`,
+    {
+      method: "POST",
+      body: { campaignId, ...(registeredAt ? { registeredAt } : {}) },
+    },
+  );
+}
+
 export function getStudentCampaigns(
   studentId: string,
   page: number,

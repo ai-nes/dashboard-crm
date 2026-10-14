@@ -6,6 +6,11 @@ import { Plus } from "@tailgrids/icons";
 import { toast } from "sonner";
 
 import { Button } from "@/components/tailgrids/core/button";
+import {
+  crmCurrentDateKey,
+  crmTaskDateKey,
+  crmTaskDateTimeToTimestamp,
+} from "@/utils/crm-task-date-time";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import { getCrmPermissions } from "@/components/common/auth/permissions";
 import {
@@ -15,8 +20,12 @@ import {
   useUpdateCrmTaskMutation,
 } from "@/hooks/use-crm-tasks-queries";
 import { useTaskAssigneesQuery } from "@/hooks/use-task-assignees-query";
-import { useAssignedStudentsQuery } from "@/hooks/use-students-queries";
+import {
+  useAssignedStudentsInfiniteQuery,
+} from "@/hooks/use-students-queries";
+import { useAdmissionYearsQuery } from "@/hooks/use-admin-catalog-queries";
 import type { CRMTaskStatus } from "@/services/api/crm-tasks";
+import type { StudentListItem } from "@/services/api/students/types";
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 
 import TaskCreateDialog from "./task-create-dialog";
@@ -29,6 +38,7 @@ import { mergeTaskLists } from "./merge-task-lists";
 import { crmTaskToManagementItem } from "./task-management-mappers";
 import { canManageTaskRecord } from "./task-management-permissions";
 import type { TaskLayout, TaskStatusFilter, TaskView } from "./types";
+import { toTaskAdmissionYearOptions } from "./task-admission-year-options";
 import {
   studentTaskToCreatePayload,
   studentTaskToUpdatePayload,
@@ -38,29 +48,11 @@ interface TaskManagementPageProps {
   useCrmApi?: boolean;
 }
 
-function startOfDay(date: Date): number {
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  ).getTime();
-}
-
-function toDateInputValue(value: string): string {
-  const ddmmyyyy = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (ddmmyyyy) {
-    const [, day, month, year] = ddmmyyyy;
-    return `${year}-${month}-${day}`;
-  }
-
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
-}
-
 function dueTimestamp(task: TaskManagementItem): number {
-  const date = toDateInputValue(task.dueDate);
-  return date
-    ? new Date(`${date}T${task.dueTime || "23:59"}`).getTime()
-    : Number.POSITIVE_INFINITY;
+  return (
+    crmTaskDateTimeToTimestamp(task.dueDate, task.dueTime || "23:59") ??
+    Number.POSITIVE_INFINITY
+  );
 }
 
 function isOverdue(task: TaskManagementItem, now = Date.now()): boolean {
@@ -72,22 +64,29 @@ function isOverdue(task: TaskManagementItem, now = Date.now()): boolean {
 }
 
 function isDueToday(task: TaskManagementItem, now = new Date()): boolean {
-  const date = toDateInputValue(task.dueDate);
-  if (!date) return false;
-  const due = new Date(`${date}T00:00:00`);
-  return startOfDay(due) === startOfDay(now);
+  const date = crmTaskDateKey(task.dueDate);
+  return Boolean(date && date === crmCurrentDateKey(now));
 }
 
 function isUpcoming(task: TaskManagementItem, now = new Date()): boolean {
-  const date = toDateInputValue(task.dueDate);
-  if (!date) return false;
-  const due = new Date(`${date}T00:00:00`);
-  return !isOverdue(task, now.getTime()) && startOfDay(due) > startOfDay(now);
+  const date = crmTaskDateKey(task.dueDate);
+  return Boolean(
+    date &&
+      !isOverdue(task, now.getTime()) &&
+      date > crmCurrentDateKey(now),
+  );
 }
 
 type ManagedTaskStatus = TaskManagementItem["status"];
 
 const TASK_LANE_PAGE_SIZE = 20;
+
+export function getTaskManagementQueryPageLength(
+  layout: TaskLayout,
+  lanePage: number,
+): number {
+  return layout === "table" ? 100 : lanePage * TASK_LANE_PAGE_SIZE;
+}
 
 const INITIAL_LANE_PAGES: Record<ManagedTaskStatus, number> = {
   todo: 1,
@@ -143,28 +142,64 @@ export default function TaskManagementPage({
   const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>("all");
   const [layout, setLayout] = useState<TaskLayout>("kanban");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedAdmissionYear, setSelectedAdmissionYear] =
+    useState<number | null>(null);
+  const [studentSearch, setStudentSearch] = useState("");
   const [lanePages, setLanePages] = useState(INITIAL_LANE_PAGES);
   const pendingTaskUpdates = useRef(new Set<string>());
   const hasClientFilters =
     layout === "table" &&
     (view !== "all" || statusFilter !== "all" || searchQuery.trim().length > 0);
-  const studentsQuery = useAssignedStudentsQuery(
-    {
-      admissionYear: 2026,
-      page: 1,
-      pageSize: 100,
-    },
+  const admissionYearsQuery = useAdmissionYearsQuery({
+    pageLength: 100,
+    enabled: canCreateTask && permissions.student.canRead && !isAuthLoading,
+  });
+  const admissionYearOptions = useMemo(
+    () => toTaskAdmissionYearOptions(admissionYearsQuery.data?.years ?? []),
+    [admissionYearsQuery.data?.years],
+  );
+  const selectedYearIsAvailable = admissionYearOptions.some(
+    (option) => option.value === selectedAdmissionYear,
+  );
+  const queryAdmissionYear = selectedYearIsAvailable
+    ? selectedAdmissionYear
+    : null;
+  const studentsQuery = useAssignedStudentsInfiniteQuery(
+    queryAdmissionYear === null
+      ? undefined
+      : {
+          admissionYear: queryAdmissionYear,
+          pageSize: 100,
+          q: studentSearch.trim() || undefined,
+        },
     currentUserId,
     {
       enabled:
-        canCreateTask && permissions.student.canRead && !isAuthLoading,
+        canCreateTask &&
+        permissions.student.canRead &&
+        !isAuthLoading &&
+        queryAdmissionYear !== null,
       staleTime: 5 * 60 * 1000,
     },
   );
+  const isStudentOptionsReady = Boolean(
+    queryAdmissionYear !== null &&
+      studentsQuery.data?.pages[0]?.meta.admissionYear === queryAdmissionYear &&
+      !studentsQuery.isPlaceholderData,
+  );
+  const availableStudents = useMemo(() => {
+    if (!isStudentOptionsReady || !studentsQuery.data) return [];
+
+    const uniqueStudents = new Map<string, StudentListItem>();
+    for (const page of studentsQuery.data.pages) {
+      for (const student of page.data) {
+        uniqueStudents.set(student.id, student);
+      }
+    }
+    return [...uniqueStudents.values()];
+  }, [isStudentOptionsReady, studentsQuery.data]);
   const getLanePageLength = (lane: ManagedTaskStatus) =>
-    hasClientFilters
-      ? 100 + (lanePages[lane] - 1) * TASK_LANE_PAGE_SIZE
-      : lanePages[lane] * TASK_LANE_PAGE_SIZE;
+    getTaskManagementQueryPageLength(layout, lanePages[lane]);
   const crmTaskQueryOptions = {
     enabled:
       shouldUseCrmApi &&
@@ -173,6 +208,7 @@ export default function TaskManagementPage({
       Boolean(currentUserId),
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
+    allPages: layout === "table",
   };
   const todoBacklogQuery = useCrmTasksQuery(
     {
@@ -241,7 +277,7 @@ export default function TaskManagementPage({
       ]).map((task) =>
         crmTaskToManagementItem(
           task,
-          studentsQuery.data?.data ?? [],
+          availableStudents,
           taskAssignees,
         ),
       ),
@@ -249,7 +285,7 @@ export default function TaskManagementPage({
       canceledQuery.data?.tasks,
       doneQuery.data?.tasks,
       inProgressQuery.data?.tasks,
-      studentsQuery.data?.data,
+      availableStudents,
       taskAssignees,
       todoBacklogQuery.data?.tasks,
       todoQuery.data?.tasks,
@@ -420,6 +456,13 @@ export default function TaskManagementPage({
   const handleCreateTask = async (task: TaskManagementItem) => {
     if (!canCreateTask) {
       throw new Error("CTV Sale không có quyền tạo task.");
+    }
+    if (
+      queryAdmissionYear === null ||
+      !isStudentOptionsReady ||
+      !availableStudents.some((student) => student.id === task.studentId)
+    ) {
+      throw new Error("Chọn học sinh thuộc năm tuyển sinh đã chọn.");
     }
     if (shouldUseCrmApi) {
       if (!task.assigneeId) {
@@ -594,11 +637,36 @@ export default function TaskManagementPage({
         <TaskCreateDialog
           isOpen={sheetOpen}
           onOpenChange={setSheetOpen}
-          students={studentsQuery.data?.data ?? []}
+          students={availableStudents}
+          admissionYearOptions={admissionYearOptions}
+          selectedAdmissionYear={queryAdmissionYear}
+          onAdmissionYearChange={(year) => {
+            setSelectedAdmissionYear(year);
+            setStudentSearch("");
+          }}
+          isLoadingAdmissionYears={admissionYearsQuery.isFetching}
+          admissionYearsError={admissionYearsQuery.error}
+          isStudentOptionsReady={isStudentOptionsReady}
+          studentPagination={{
+            enabled: isStudentOptionsReady,
+            hasMore: studentsQuery.hasNextPage,
+            isLoading: studentsQuery.isFetchingNextPage,
+            isError: studentsQuery.isFetchNextPageError,
+            loadMore: () =>
+              studentsQuery.fetchNextPage({ cancelRefetch: false }),
+            onSearchChange: setStudentSearch,
+          }}
           isLoadingStudents={
-            isAuthLoading || (Boolean(currentUserId) && studentsQuery.isPending)
+            isAuthLoading ||
+            (queryAdmissionYear !== null &&
+              studentsQuery.isPending &&
+              !studentsQuery.isError)
           }
-          studentsError={studentsQuery.error}
+          studentsError={
+            studentsQuery.isError && !studentsQuery.data
+              ? studentsQuery.error
+              : null
+          }
           assignees={taskAssignees}
           isLoadingAssignees={taskAssigneesQuery.isPending}
           assigneesError={taskAssigneesQuery.error}

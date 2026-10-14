@@ -26,8 +26,8 @@ import { useUpdateLeadMutation } from "@/hooks/use-lead-sale-leads-queries";
 import type { LeadDetail, LeadUpdateFields } from "@/services/api/lead-sale";
 
 import LeadDetailSection from "./lead-detail-section";
-import { LeadDetailTags } from "./lead-detail-field";
 import LeadAssigneeField from "./lead-assignee-field";
+import LeadCampaignSource from "./lead-campaign-source";
 
 import {
   getContactForm,
@@ -45,6 +45,10 @@ interface LeadDetailsTabProps {
   leadId: string;
   canEdit?: boolean;
   canAssign?: boolean;
+  canProcess?: boolean;
+  initialEditContact?: boolean;
+  onProcessLead?: () => void;
+  isProcessingLead?: boolean;
 }
 
 const emptyOption: EditableDetailOption = {
@@ -65,9 +69,15 @@ export default function LeadDetailsTab({
   leadId,
   canEdit = true,
   canAssign = false,
+  canProcess = false,
+  initialEditContact = false,
+  onProcessLead,
+  isProcessingLead = false,
 }: LeadDetailsTabProps) {
   const [editingSection, setEditingSection] =
-    useState<EditableLeadSection | null>(null);
+    useState<EditableLeadSection | null>(
+      canEdit && initialEditContact ? "contact" : null,
+    );
   const [contactForm, setContactForm] = useState<ContactForm>(() =>
     getContactForm(lead),
   );
@@ -91,10 +101,6 @@ export default function LeadDetailsTab({
       province: contactForm.province || undefined,
     },
     editingSection === "contact" && Boolean(contactForm.province),
-  );
-  const sourceOptionsQuery = useStudentSchoolFieldOptions(
-    { doctype: "CRM Lead", fieldname: "source" },
-    editingSection === "source",
   );
   const majorOptionsQuery = useStudentSchoolFieldOptions(
     { doctype: "CRM Lead", fieldname: "major" },
@@ -122,11 +128,6 @@ export default function LeadDetailsTab({
     wardOptionsQuery.data?.options,
     contactForm.ward,
     contactForm.ward === lead.wardId ? lead.ward : undefined,
-  );
-  const sourceOptions = toEditableOptions(
-    sourceOptionsQuery.data?.options,
-    sourceForm.source,
-    sourceForm.source === lead.sourceId ? lead.source : undefined,
   );
   const majorOptions = toMajorSelectorOptions(majorOptionsQuery.data?.options);
   if (
@@ -259,12 +260,6 @@ export default function LeadDetailsTab({
     event.preventDefault();
     const initial = getSourceForm(lead);
     const fields: LeadUpdateFields = {};
-    if (sourceForm.source !== initial.source) {
-      fields.source = nullable(sourceForm.source);
-    }
-    if (sourceForm.advertising_channel !== initial.advertising_channel) {
-      fields.advertising_channel = nullable(sourceForm.advertising_channel);
-    }
     if (sourceForm.segments !== initial.segments) {
       fields.segments = serializeSegments(sourceForm.segments);
     }
@@ -508,10 +503,13 @@ export default function LeadDetailsTab({
           />
           <LeadAssigneeField
             canAssign={canAssign}
+            canProcess={canProcess}
             key={leadId}
             lead={lead}
             leadId={leadId}
             isEditing={admissionEditing}
+            onProcessLead={onProcessLead}
+            isProcessingLead={isProcessingLead}
           />
         </dl>
       </LeadDetailSection>
@@ -527,35 +525,10 @@ export default function LeadDetailsTab({
         onEdit={() => startEditing("source")}
         onSave={saveSource}
         title="Nguồn & phân loại"
-        description="Nguồn tiếp cận, nhóm Lead và các hoạt động đã tham gia"
+        description="Kênh của chiến dịch tham gia và phân loại Lead"
       >
         <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
-          <EditableDetailField
-            isEditing={sourceEditing}
-            isDisabled={
-              sourceOptionsQuery.isLoading || sourceOptions.length === 0
-            }
-            label="Nguồn Lead"
-            onChange={(value) =>
-              setSourceForm((form) => ({ ...form, source: value }))
-            }
-            options={sourceOptions}
-            pagination={sourceOptionsQuery.pagination}
-            value={sourceEditing ? sourceForm.source : lead.source}
-          />
-          <EditableDetailField
-            isEditing={sourceEditing}
-            label="Kênh quảng cáo"
-            onChange={(value) =>
-              setSourceForm((form) => ({
-                ...form,
-                advertising_channel: value,
-              }))
-            }
-            value={
-              sourceEditing ? sourceForm.advertising_channel : lead.adChannel
-            }
-          />
+          <LeadCampaignSource lead={lead} />
           <EditableDetailField
             isEditing={sourceEditing}
             label="Phân khúc"
@@ -567,12 +540,6 @@ export default function LeadDetailsTab({
               sourceEditing ? sourceForm.segments : lead.segments.join(", ")
             }
           />
-          <LeadDetailTags
-            label="Sự kiện tham gia"
-            values={lead.eventsParticipated}
-            className="xl:row-span-2"
-          />
-          <LeadDetailTags label="Thẻ gắn" values={lead.tags} />
           <div className="min-w-0 sm:col-span-2 xl:col-span-3">
             <dt className="text-xs leading-5 text-text-tertiary">Mô tả</dt>
             {sourceEditing ? (

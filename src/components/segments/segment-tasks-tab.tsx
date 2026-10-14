@@ -30,7 +30,10 @@ import SegmentTaskDialog, {
 } from "./segment-task-dialog";
 import SegmentTaskCard from "./segment-task-card";
 import SegmentTaskCreateDialog from "./segment-task-create-dialog";
-import { taskCreateFormValuesToSegmentPayload } from "./segment-task-form-mappers";
+import {
+  segmentTaskFormValuesToUpdatePayload,
+  taskCreateFormValuesToSegmentPayload,
+} from "./segment-task-form-mappers";
 import { groupSegmentTasks } from "./segment-task-utils";
 
 const PAGE_SIZE = 8;
@@ -222,13 +225,7 @@ export default function SegmentTasksTab({
 
       await updateTaskMutation.mutateAsync({
         name: taskToEdit.name,
-        title: values.title,
-        description: values.description.trim(),
-        priority: values.priority,
-        startDate: values.startDate,
-        assignedTo: values.assignedTo,
-        status: values.status,
-        dueDate: values.dueDate,
+        ...segmentTaskFormValuesToUpdatePayload(values, taskToEdit),
       });
       await taskQuery.refetch();
       toast.success("Đã cập nhật task.");
@@ -368,6 +365,7 @@ export default function SegmentTasksTab({
                 <SegmentTaskCard
                   key={task.name}
                   task={task}
+                  assignees={taskAssignees}
                   canUpdate={canUpdateTask}
                   canDelete={canDeleteTask}
                   isActionPending={isTaskMutationPending}

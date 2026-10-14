@@ -1,24 +1,15 @@
 "use client";
 
-import { Copy4, Trash1 } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+
 import type { KeyboardEvent } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
+
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRoot,
-  TableRow,
-} from "@/components/tailgrids/core/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/tailgrids/core/tooltip";
+import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow } from "@/components/tailgrids/core/table";
+
 
 import type { SnippetRecord } from "@/services/api/snippets";
 
@@ -194,47 +185,11 @@ export default function SnippetTable({
                   {formatDate(snippet.modifiedAt)}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div
-                    className="flex justify-end gap-1"
-                    onClick={(event) => event.stopPropagation()}
-                    onKeyDown={(event) => event.stopPropagation()}
-                  >
-                    {canCreate ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            iconOnly
-                            size="sm"
-                            appearance="ghost"
-                            aria-label={`Nhân bản ${snippet.internalName}`}
-                            onPress={() => onDuplicate(snippet)}
-                          >
-                            <Copy4 size={17} aria-hidden="true" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Nhân bản</TooltipContent>
-                      </Tooltip>
-                    ) : null}
-                    {canDelete && snippet.canEdit ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            iconOnly
-                            size="sm"
-                            appearance="ghost"
-                            variant="danger"
-                            aria-label={`Xóa ${snippet.internalName}`}
-                            onPress={() => onDelete(snippet)}
-                          >
-                            <Trash1 size={17} aria-hidden="true" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Xóa</TooltipContent>
-                      </Tooltip>
-                    ) : null}
-                  </div>
+                  <TableRowActions label={snippet.internalName} actions={[
+          { id: "edit", label: "Chỉnh sửa", onAction: () => onEdit(snippet), isVisible: canUpdate && snippet.canEdit },
+          { id: "duplicate", label: "Nhân bản", onAction: () => onDuplicate(snippet), isVisible: canCreate },
+          { id: "delete", label: "Xóa", onAction: () => onDelete(snippet), isVisible: canDelete && snippet.canEdit, variant: "danger" },
+        ]} />
                 </TableCell>
               </TableRow>
             ))}

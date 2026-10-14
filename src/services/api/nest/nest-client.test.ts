@@ -38,6 +38,17 @@ describe("getApiUrl", () => {
 });
 
 describe("nestRequest", () => {
+  it("preserves Better Auth flat error codes for password change feedback", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        { code: "INVALID_PASSWORD", message: "Invalid password" },
+        400,
+      ),
+    );
+    await expect(
+      nestRequest("/api/auth/change-password", { method: "POST", body: {} }),
+    ).rejects.toMatchObject({ status: 400, code: "INVALID_PASSWORD" });
+  });
   it("sends credentials and builds the query string", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
 
@@ -150,6 +161,27 @@ describe("toServiceError", () => {
   it("passes other errors through untouched", () => {
     const original = new Error("boom");
     expect(toServiceError(original, ServiceError)).toBe(original);
+  });
+
+  it("preserves backend validation details and request ID through service adapters", () => {
+    const details = [
+      {
+        field: "password",
+        code: "too_small",
+        message: "Password must have at least 6 characters.",
+      },
+    ];
+    const result = toServiceError(
+      new NestApiError(
+        400,
+        "INVALID_INPUT",
+        "The request is invalid.",
+        details,
+        "backend-request-id",
+      ),
+      ServiceError,
+    );
+    expect(result).toMatchObject({ details, requestId: "backend-request-id" });
   });
 });
 

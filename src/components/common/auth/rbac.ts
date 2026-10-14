@@ -218,6 +218,8 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/crm-chatbot", roles: NON_SYSTEM_MANAGER_ROLES },
   { path: "/director", roles: ROLE_ROUTE_ROLES.director },
   { path: "/admin", roles: ROLE_ROUTE_ROLES.admin },
+  { path: "/admin/task-reminders", roles: DASHBOARD_ROLES },
+  { path: "/admin/profile-options", roles: DASHBOARD_ROLES },
   { path: "/marketing", roles: ROLE_ROUTE_ROLES.marketing },
   { path: "/sale", roles: ROLE_ROUTE_ROLES.sale },
   { path: "/sale/next-best-action", roles: ROLE_ROUTE_ROLES.sale },
@@ -430,8 +432,15 @@ export function canAccessDashboardPath(
   pathname: string,
   roles: readonly string[] | null | undefined,
   capabilities: readonly string[] | null | undefined = [],
+  isAdministrator = false,
 ): boolean {
   if (!isProtectedDashboardPath(pathname)) return true;
+  if (isPathWithinRoute("/admin/profile-options", pathname))
+    return isAdministrator;
+
+  if (isPathWithinRoute("/admin/task-reminders", pathname)) {
+    return canConfigureSystem(capabilities, isAdministrator);
+  }
 
   if (
     isPathWithinRoute("/director/admin/rules-config", pathname) &&
@@ -445,6 +454,16 @@ export function canAccessDashboardPath(
 
   return rule.roles.some((role) =>
     getEffectiveDashboardRoles(roles).includes(role),
+  );
+}
+
+/** Mirrors the backend's system configuration capability and identity-admin override. */
+export function canConfigureSystem(
+  capabilities: readonly string[] | null | undefined,
+  isAdministrator = false,
+): boolean {
+  return (
+    isAdministrator || (capabilities?.includes("system.configure") ?? false)
   );
 }
 

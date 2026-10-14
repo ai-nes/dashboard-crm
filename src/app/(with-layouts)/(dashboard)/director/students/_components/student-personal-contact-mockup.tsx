@@ -1,6 +1,7 @@
 "use client";
 
 import { UserCircle1 } from "@tailgrids/icons";
+import { ProfileOptionField } from "@/components/common/profile-option-field";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -66,6 +67,7 @@ interface StudentPersonalContactMockupProps {
   data: Student360Data;
   studentId: string;
   canEdit?: boolean;
+  initialEdit?: boolean;
 }
 
 const genderOptions: EditableDetailOption[] = [
@@ -78,8 +80,9 @@ export default function StudentPersonalContactMockup({
   data,
   studentId,
   canEdit = true,
+  initialEdit = false,
 }: StudentPersonalContactMockupProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(canEdit && initialEdit);
   const [form, setForm] = useState<PersonalForm>(() => getPersonalForm(data));
   const updateMutation = useStudentProfileUpdate(studentId);
   const details = data.student.profileDetails?.personal;
@@ -201,6 +204,27 @@ export default function StudentPersonalContactMockup({
         {personalContactFields.map((field) => {
           if (isEditing && field.editKey) {
             const editKey = field.editKey;
+            if (
+              editKey === "nationality" ||
+              editKey === "ethnicity" ||
+              editKey === "religion" ||
+              editKey === "id_issued_place"
+            ) {
+              return (
+                <ProfileOptionField
+                  key={field.label}
+                  label={field.label}
+                  type={
+                    editKey === "id_issued_place" ? "idIssuedPlace" : editKey
+                  }
+                  value={form[editKey]}
+                  isDisabled={updateMutation.isPending}
+                  onChange={(value) =>
+                    setForm((current) => ({ ...current, [editKey]: value }))
+                  }
+                />
+              );
+            }
             if (editKey === "major") {
               return (
                 <div key={field.label} className="min-w-0">

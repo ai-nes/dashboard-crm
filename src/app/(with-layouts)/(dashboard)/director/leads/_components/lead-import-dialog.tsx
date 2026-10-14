@@ -122,7 +122,7 @@ export default function LeadImportDialog({
             className="flex items-center justify-between gap-3 rounded-lg border border-card-border px-3 py-2"
             role="alert"
           >
-            <p className="text-xs text-error-600">
+            <p className="text-xs text-badge-error-text">
               {campaignsQuery.error.message ||
                 "Chưa thể tải danh sách chiến dịch."}
             </p>
@@ -139,7 +139,7 @@ export default function LeadImportDialog({
         {!campaignsQuery.isPending &&
           !campaignsQuery.isError &&
           campaignOptions.length === 0 && (
-            <p className="text-sm text-text-secondary" role="alert">
+            <p className="text-sm text-badge-error-text" role="alert">
               Chưa có chiến dịch đang hoạt động hoặc đã đóng để nhập Lead.
             </p>
           )}

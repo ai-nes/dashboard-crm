@@ -7,6 +7,7 @@ import type {
   DirectorStudentsParams,
   DirectorStudentsResponse,
   StudentJourneyStage,
+  StudentAssignmentStatus,
   StudentLifecycleStatus,
   StudentListItem,
   StudentPriority,
@@ -60,8 +61,8 @@ const JOURNEY: Record<string, StudentJourneyStage> = {
   Attempting: "Tìm hiểu",
   Qualified: "Ứng tuyển",
   Registration: "Đăng ký",
-  Connected: "Nhập học",
-  "New Enter": "New Enter",
+  Connected: "Tư vấn",
+  "New Enter": "Nhập học",
   Disqualified: "Quan tâm",
 };
 
@@ -70,8 +71,8 @@ const LIFECYCLE: Record<string, StudentLifecycleStatus> = {
   Attempting: "MQL",
   Qualified: "Applicant",
   Registration: "Registration",
-  Connected: "Enrolled",
-  "New Enter": "New Enter",
+  Connected: "MQL",
+  "New Enter": "Enrolled",
   Disqualified: "Lost",
 };
 
@@ -110,6 +111,7 @@ function toListItem(student: NestStudent): StudentListItem {
     lastActivity: student.modifiedAt,
     nextAction: "",
     owner: student.owner,
+    ownerId: student.ownerUserId,
     // The list revision is the ownership compare-and-set token.
     revision: student.ownershipRevision ?? student.revision,
     source: student.source,
@@ -117,25 +119,40 @@ function toListItem(student: NestStudent): StudentListItem {
   };
 }
 
+export function toNestStudentFilters(params: DirectorStudentsParams = {}) {
+  const assignmentStatus: StudentAssignmentStatus | undefined =
+    params.assignmentStatus === "assigned" ||
+    params.assignmentStatus === "unassigned"
+      ? params.assignmentStatus
+      : undefined;
+  const stage =
+    params.stage && STUDENT_STAGES.has(params.stage) ? params.stage : undefined;
+  return {
+    admissionYear:
+      params.admissionYear === undefined
+        ? undefined
+        : String(params.admissionYear),
+    q: params.q,
+    stage,
+    assignmentStatus,
+    ownerId: params.ownerId,
+    provinceId: params.provinceId,
+    campaignId:
+      params.campaign && params.campaign !== "all"
+        ? params.campaign
+        : undefined,
+    order: params.order,
+  };
+}
+
 export async function nestDirectorStudents(
   params: DirectorStudentsParams = {},
 ): Promise<DirectorStudentsResponse> {
-  const stage =
-    params.stage && STUDENT_STAGES.has(params.stage) ? params.stage : undefined;
   const result = await nestRequest<NestStudentList>("/api/v1/students", {
     query: {
-      admissionYear: params.admissionYear,
+      ...toNestStudentFilters(params),
       page: params.page,
       pageSize: params.pageSize,
-      q: params.q,
-      stage,
-      ownerId: params.ownerId,
-      provinceId: params.provinceId,
-      campaignId:
-        params.campaign && params.campaign !== "all"
-          ? params.campaign
-          : undefined,
-      order: params.order,
     },
   });
   return {

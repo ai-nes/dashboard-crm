@@ -18,6 +18,7 @@ export interface CampaignLeadRow {
   result: LeadResultStatus | "";
   source: string;
   owner: string;
+  ownerId?: string | null;
   contactNoAnswer: number;
   contactSuccess: number;
   createdAt: string;
@@ -89,6 +90,7 @@ export function toCampaignLeadRow(lead: LeadListItem): CampaignLeadRow {
     result: lead.result,
     source: lead.source,
     owner: lead.owner,
+    ownerId: lead.ownerId,
     contactNoAnswer: lead.contactNoAnswer,
     contactSuccess: lead.contactSuccess,
     createdAt: lead.createdAt ?? "",

@@ -62,6 +62,7 @@ export interface LeadListItem {
   result: LeadResolution | "";
   source: string;
   owner: string;
+  ownerId?: string | null;
   ownerStaff?: string | null;
   owningTeam?: string | null;
   ownershipRevision?: number | null;
@@ -79,6 +80,8 @@ export type ConversionPotential =
 export type FptAspiration = string;
 
 export interface LeadDetail extends LeadListItem {
+  campaignId?: string | null;
+  campaign?: string;
   provinceId?: string | null;
   wardId?: string | null;
   highSchoolId?: string | null;
@@ -177,7 +180,7 @@ export interface LeadListResponse {
 export interface LeadDetailResponse {
   lead: LeadDetail;
   log: LeadLogEntry[];
-  meta: { asOf?: string | null };
+  meta: { asOf?: string | null; created?: boolean };
 }
 
 export interface LeadProcessRequest {
@@ -793,6 +796,8 @@ function normalizeListItem(value: unknown): LeadListItem {
     result: normalizeResolution(row.result ?? row.resolution),
     source: firstText([row.source]),
     owner,
+    ownerId:
+      firstText([row.ownerUserId, row.ownerId, row.owner_user_id]) || null,
     ownerStaff:
       firstText([
         row.ownerStaff,
@@ -895,6 +900,8 @@ function normalizeDetail(value: unknown): LeadDetail {
 
   return {
     ...normalizeListItem(row),
+    campaignId: nullableText(row.campaignId),
+    campaign: firstText([row.campaign]),
     provinceId: nullableText(row.provinceId),
     wardId: nullableText(row.wardId),
     highSchoolId: nullableText(row.highSchoolId),
@@ -1000,7 +1007,10 @@ export function normalizeLeadDetail(value: unknown): LeadDetailResponse {
     return {
       lead: normalizeDetail(legacyLead),
       log: payload.log.map(normalizeLogEntry),
-      meta: { asOf: nullableText(meta.asOf ?? meta.as_of) },
+      meta: {
+        asOf: nullableText(meta.asOf ?? meta.as_of),
+        ...(typeof meta.created === "boolean" ? { created: meta.created } : {}),
+      },
     };
   }
 
@@ -1018,6 +1028,7 @@ export function normalizeLeadDetail(value: unknown): LeadDetailResponse {
         nullableText(
           payload.modifiedAt ?? payload.modified_at ?? payload.modified,
         ),
+      ...(typeof meta.created === "boolean" ? { created: meta.created } : {}),
     },
   };
 }

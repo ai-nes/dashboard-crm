@@ -38,7 +38,8 @@ export function toSegmentListItem(
     status: segment.status,
     updatedAt: segment.modified || segment.creation || "",
     createdAt: segment.creation || segment.modified || "",
-    creator: segment.owner || segment.responsible_user || "—",
+    creator:
+      segment.owner_name?.trim() || (segment.owner ? "Không xác định" : "—"),
     ownerUserId: segment.owner ?? null,
     usedIn: 0,
     description: segment.purpose || "",
@@ -62,6 +63,22 @@ export const SEGMENT_STATUS_LABELS: Record<SegmentStatus, string> = {
   inactive: "Không hoạt động",
   archive: "Lưu trữ",
 };
+
+const segmentEditRoutes: Record<string, string> = {
+  "/sale/segments": "/sale/segments/edit",
+  "/sale/next-best-action": "/sale/segments/edit",
+  "/lead-sale/segments": "/lead-sale/segments/edit",
+  "/lead-sale/next-best-action": "/lead-sale/segments/edit",
+  "/director/admin/segments": "/director/admin/segments/edit",
+};
+
+export function getSegmentEditHref(
+  detailBaseHref: string,
+  segment: Pick<SegmentListItem, "id" | "segmentCode">,
+): string | undefined {
+  const editBase = segmentEditRoutes[detailBaseHref.replace(/\/$/, "")];
+  return editBase ? getSegmentDetailHref(editBase, segment) : undefined;
+}
 
 export const SEGMENT_STATUS_BADGE_COLORS: Record<
   SegmentStatus,
@@ -110,6 +127,18 @@ export const SEGMENT_STATUS_OPTIONS: Array<{
     description: "Segment đã được lưu trữ để tham khảo.",
   },
 ];
+
+const segmentStatusChoices: Record<SegmentStatus, readonly SegmentStatus[]> = {
+  draft: ["draft", "active", "archive"],
+  active: ["active", "inactive", "archive"],
+  inactive: ["inactive", "active", "archive"],
+  archive: ["archive", "inactive"],
+};
+
+export function getSegmentStatusOptions(status: SegmentStatus) {
+  const allowed = new Set(segmentStatusChoices[status]);
+  return SEGMENT_STATUS_OPTIONS.filter((option) => allowed.has(option.value));
+}
 
 export const SEGMENT_STATUS_FILTER_OPTIONS = [
   { id: "ALL", label: "Tất cả" },

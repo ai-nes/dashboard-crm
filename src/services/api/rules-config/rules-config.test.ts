@@ -130,6 +130,50 @@ describe("CRM Rule API", () => {
     });
   });
 
+  it.each([true, false])(
+    "preserves boolean fact values through rule request and response normalization (%s)",
+    async (value) => {
+      const condition = {
+        fact: "student.is_opted_out",
+        op: "eq" as const,
+        value,
+      };
+      fetchMock.mockResolvedValue(
+        json({
+          name: "CRM-RULE-BOOL",
+          rule_id: "CRM-RULE-BOOL",
+          rule_group: "lead_assignment",
+          rule_name: "Boolean fact rule",
+          feature_scope: "all",
+          rule_type: "GUARDRAIL",
+          gate_outcome: "PASS",
+          action: "CALL",
+          condition,
+          status: "draft",
+        }),
+      );
+
+      const result = await createCrmRule({
+        versionName: "NBA-V1",
+        expectedVersionRevision: 2,
+        ruleId: "CRM-RULE-BOOL",
+        ruleGroup: "lead_assignment",
+        ruleName: "Boolean fact rule",
+        featureScope: "all",
+        ruleType: "GUARDRAIL",
+        gateOutcome: "PASS",
+        priority: 100,
+        action: "CALL",
+        targetActions: ["CALL"],
+        condition,
+      });
+
+      expect(lastCall().body.condition).toEqual(condition);
+      expect(result.condition).toEqual(condition);
+      expect(typeof lastCall().body.condition.value).toBe("boolean");
+    },
+  );
+
   it("publishes a version with both optimistic revisions", async () => {
     fetchMock.mockImplementation(async () =>
       json({

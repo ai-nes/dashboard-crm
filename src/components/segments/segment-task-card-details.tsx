@@ -1,27 +1,36 @@
 import type { ReactNode } from "react";
 
-import type { CRMTask } from "@/services/api/crm-tasks";
+import TaskDescriptionPreview from "@/components/common/task-description-preview";
+import {
+  getTaskDescriptionPreview,
+  type CRMTask,
+} from "@/services/api/crm-tasks";
 import { cn } from "@/utils/cn";
 
 import {
   formatSegmentTaskDate,
   formatSegmentTaskDateTime,
-  getAssigneeInitials,
   type SegmentTaskDeadlineStatus,
 } from "./segment-task-utils";
 
 interface SegmentTaskCardDetailsProps {
   task: CRMTask;
+  assigneeName: string;
+  assigneeInitials: string;
   deadlineStatus: SegmentTaskDeadlineStatus;
 }
 
 export default function SegmentTaskCardDetails({
   task,
+  assigneeName,
+  assigneeInitials,
   deadlineStatus,
 }: SegmentTaskCardDetailsProps) {
+  const descriptionPreview = getTaskDescriptionPreview(task.description);
+
   return (
     <div className="space-y-4 border-t border-border-primary px-4 py-4 sm:px-5">
-      {task.description ? (
+      {descriptionPreview ? (
         <section
           className="border-b border-border-primary pb-4"
           aria-label="Mô tả task"
@@ -29,9 +38,10 @@ export default function SegmentTaskCardDetails({
           <h3 className="mb-2 text-sm font-semibold text-text-primary">
             Mô tả
           </h3>
-          <p className="whitespace-pre-wrap text-sm leading-6 text-text-secondary">
-            {task.description}
-          </p>
+          <TaskDescriptionPreview
+            value={task.description}
+            className="whitespace-pre-wrap text-sm leading-6 text-text-secondary"
+          />
         </section>
       ) : null}
 
@@ -79,11 +89,11 @@ export default function SegmentTaskCardDetails({
             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700"
             aria-hidden="true"
           >
-            {getAssigneeInitials(task.assignedTo)}
+            {assigneeInitials}
           </span>
           <div className="min-w-0">
             <p className="truncate text-base leading-6 font-semibold text-text-primary">
-              {task.assignedTo || "Chưa phân công"}
+              {assigneeName}
             </p>
             <p className="text-sm leading-5 text-text-secondary">
               {task.assignedTo ? "Phụ trách task segment" : "Cần phân công"}

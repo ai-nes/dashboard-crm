@@ -15,6 +15,7 @@ import {
 import type { TaskManagementItem } from "@/services/api/tasks/types";
 import type { StudentTaskItem } from "@/services/api/students/types";
 import { cn } from "@/utils/cn";
+import { crmTaskDateTimeToTimestamp } from "@/utils/crm-task-date-time";
 import { formatDate } from "@/utils/format-date";
 
 import {
@@ -49,12 +50,11 @@ function getInitials(name?: string, fallback = "--"): string {
 function isOverdue(task: TaskManagementItem): boolean {
   if (task.status === "done" || task.status === "canceled") return false;
 
-  const ddmmyyyy = task.dueDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  const date = ddmmyyyy
-    ? `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`
-    : task.dueDate;
-
-  return new Date(`${date}T${task.dueTime || "23:59"}`).getTime() < Date.now();
+  const dueAt = crmTaskDateTimeToTimestamp(
+    task.dueDate,
+    task.dueTime || "23:59",
+  );
+  return dueAt !== null && dueAt < Date.now();
 }
 
 function handleRowKeyDown(
@@ -142,12 +142,12 @@ function TaskTableRow({
           className="max-w-[9rem] truncate whitespace-nowrap"
         />
       </TableCell>
-      <TableCell className="w-[40%] max-w-0 align-middle">
+      <TableCell className="w-64 min-w-64 align-middle">
         <button
           type="button"
           onClick={() => onOpenTask(task)}
           title={task.title}
-          className="block max-w-full truncate text-left text-sm font-semibold text-text-primary outline-none hover:text-primary-500 focus-visible:underline"
+          className="block w-full min-w-0 truncate text-left text-sm font-semibold text-text-primary outline-none hover:text-primary-500 focus-visible:underline"
         >
           {task.title}
         </button>
@@ -167,6 +167,7 @@ function TaskTableRow({
       <TableCell className="w-12 whitespace-nowrap text-right align-middle">
         <TaskManagementTaskActions
           task={task}
+          onOpenTask={() => onOpenTask(task)}
           onUpdateTask={canUpdateTask?.(task) ? onUpdateTask : undefined}
           onDeleteTask={canDeleteTask?.(task) ? onDeleteTask : undefined}
         />
@@ -199,11 +200,14 @@ export default function TaskManagementTable({
     <div className="bg-transparent px-0 pb-0 pt-1">
       <div className="overflow-hidden rounded-xl border border-card-border bg-card-background">
         <div>
-          <TableRoot fullBleed className="w-full min-w-0 table-fixed border-0">
+          <TableRoot
+            fullBleed
+            className="w-full min-w-[70rem] table-fixed border-0"
+          >
             <TableHeader>
               <TableRow className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card-background">
                 <TableHead className="w-44">Loại task</TableHead>
-                <TableHead className="w-[40%]">Tên task</TableHead>
+                <TableHead className="w-64 min-w-64">Tên task</TableHead>
                 <TableHead className="w-48">Phụ trách</TableHead>
                 <TableHead className="w-44">Hạn xử lý</TableHead>
                 <TableHead className="w-28">Ưu tiên</TableHead>
