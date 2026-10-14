@@ -1,12 +1,8 @@
 name: AI-NES CI/CD
 
+# Legacy (Frappe) pipeline kept for reference; `main` now deploys through
+# ci-cd-nest.yml, so this one only runs when started by hand.
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:

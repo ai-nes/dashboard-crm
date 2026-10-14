@@ -3,7 +3,7 @@ name: AI-NES CI/CD (Nest)
 on:
   push:
     branches:
-      - main-nest
+      - main
   workflow_dispatch:
 
 permissions:
