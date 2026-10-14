@@ -120,6 +120,42 @@ export async function nestLoginWithPassword(
   }
 }
 
+/**
+ * Starts Google sign-in on the Nest backend. Better Auth returns the Google
+ * consent URL instead of redirecting, so the caller can navigate to it.
+ */
+export async function nestStartGoogleLogin(
+  callbackURL: string,
+  errorCallbackURL: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  try {
+    const result = await nestRequest<{ url?: string }>(
+      "/api/auth/sign-in/social",
+      {
+        method: "POST",
+        body: {
+          provider: "google",
+          callbackURL,
+          errorCallbackURL,
+          disableRedirect: true,
+        },
+      },
+    );
+    if (result?.url) return { ok: true, url: result.url };
+  } catch (error) {
+    if (error instanceof NestApiError && error.status === 429) {
+      return {
+        ok: false,
+        error: "Thử đăng nhập quá nhiều lần. Vui lòng đợi rồi thử lại.",
+      };
+    }
+  }
+  return {
+    ok: false,
+    error: "Không thể bắt đầu đăng nhập Google. Vui lòng thử lại.",
+  };
+}
+
 export async function nestLogout(): Promise<void> {
   try {
     await nestRequest("/api/auth/sign-out", { method: "POST", body: {} });

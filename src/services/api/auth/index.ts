@@ -3,28 +3,28 @@ import {
   nestLoginWithPassword,
   nestLogout,
   nestSessionUsers,
+  nestStartGoogleLogin,
 } from "../nest/nest-auth";
 import type { CurrentUser, SessionUser } from "./types";
 
 export type * from "./types";
 
-/*
- * Google sign-in is left unchanged on purpose: it still points at the legacy
- * entry point until Google is configured on the Nest backend. Nothing else in
- * this module talks to Frappe.
- */
-const FRAPPE_URL = (
-  process.env.NEXT_PUBLIC_FRAPPE_URL ?? "http://localhost:8001"
-).replace(/\/+$/, "");
-
 /**
- * Full-page navigation to Frappe's Google entry point. Frappe issues the guest
- * session cookie, bounces through Google, then redirects the browser back to
- * `returnTo` (defaults to this dashboard's `/auth/callback`).
+ * Starts Google sign-in on the Nest backend, then navigates to Google. Better
+ * Auth sets the session cookie on `/api/auth/callback/google` and sends the
+ * browser to `returnTo` (defaults to this dashboard's `/auth/callback`).
  */
-export function startGoogleLogin(returnTo?: string): void {
-  const target = returnTo ?? `${window.location.origin}/auth/callback`;
-  window.location.href = `${FRAPPE_URL}/api/method/crm.api.google_auth.login?redirect_to=${encodeURIComponent(target)}`;
+export async function startGoogleLogin(
+  returnTo?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const origin = window.location.origin;
+  const result = await nestStartGoogleLogin(
+    returnTo ?? `${origin}/auth/callback`,
+    `${origin}/login`,
+  );
+  if (!result.ok) return result;
+  window.location.href = result.url;
+  return { ok: true };
 }
 
 /** Current Better Auth session, or `null` when the caller is signed out. */

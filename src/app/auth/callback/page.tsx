@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 /**
- * Landing route after Frappe completes the Google OAuth exchange. The session
- * cookie is already set on the Frappe origin; re-check it, then route onward.
+ * Landing route after the CRM backend completes the Google OAuth exchange. The session
+ * cookie is already set by Better Auth; re-check it, then route onward.
  */
 export default function AuthCallbackPage() {
   const { user, isLoading, refetch } = useAuth();

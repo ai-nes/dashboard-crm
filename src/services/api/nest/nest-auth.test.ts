@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { nestGetCurrentUser, rolesForProfile } from "./nest-auth";
+import {
+  nestGetCurrentUser,
+  nestStartGoogleLogin,
+  rolesForProfile,
+} from "./nest-auth";
 import {
   canAccessDashboardPath,
   getDefaultRouteForRoles,
@@ -135,5 +139,39 @@ describe("Nest effective Lead permissions", () => {
     expect(
       (await nestGetCurrentUser())?.crm_doctype_permissions?.["CRM Lead"],
     ).toEqual(lead);
+  });
+});
+
+describe("Nest Google sign-in", () => {
+  it("asks Better Auth for the Google consent URL without redirecting", async () => {
+    vi.mocked(nestRequest).mockResolvedValue({
+      url: "https://accounts.google.com/o/oauth2/v2/auth?x=1",
+    });
+
+    await expect(
+      nestStartGoogleLogin(
+        "https://app.test/auth/callback",
+        "https://app.test/login",
+      ),
+    ).resolves.toEqual({
+      ok: true,
+      url: "https://accounts.google.com/o/oauth2/v2/auth?x=1",
+    });
+    expect(nestRequest).toHaveBeenCalledWith("/api/auth/sign-in/social", {
+      method: "POST",
+      body: {
+        provider: "google",
+        callbackURL: "https://app.test/auth/callback",
+        errorCallbackURL: "https://app.test/login",
+        disableRedirect: true,
+      },
+    });
+  });
+
+  it("reports a failure when the backend gives no URL", async () => {
+    vi.mocked(nestRequest).mockResolvedValue({});
+
+    const result = await nestStartGoogleLogin("https://a/b", "https://a/c");
+    expect(result.ok).toBe(false);
   });
 });

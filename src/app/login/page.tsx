@@ -15,7 +15,12 @@ export const metadata: Metadata = {
 const systemFont =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   return (
     <main
       style={{ fontFamily: systemFont }}
@@ -35,7 +40,7 @@ export default function LoginPage() {
           hoặc
         </div>
 
-        <GoogleLoginButton />
+        <GoogleLoginButton errorCode={error} />
       </section>
     </main>
   );
