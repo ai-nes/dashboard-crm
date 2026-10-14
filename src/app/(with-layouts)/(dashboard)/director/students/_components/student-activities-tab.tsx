@@ -7,6 +7,7 @@ import { crmDateTimeToApi } from "@/utils/crm-task-date-time";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
   canReadStudentCampaigns,
+  canAddStudentCampaign,
   getCrmDoctypePermissions,
   getCrmPermissions,
   hasCrmCapability,
@@ -597,6 +598,7 @@ export default function StudentActivitiesTab({
                 messages={zaloMessages}
                 canReadInteractions={canReadInteractions}
                 canReadCampaigns={canReadCampaigns}
+                canAddCampaign={!isAuthLoading && canAddStudentCampaign(user)}
                 isActive={selectedTab === "interactions"}
                 initialCampaignTab={initialCampaignTab}
                 canCreateInteraction={canCreateInteraction}

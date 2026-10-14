@@ -4,6 +4,7 @@ import {
   nestLogout,
   nestRequestPasswordReset,
   nestResetPassword,
+  nestChangePassword,
   nestSessionUsers,
 } from "../nest/nest-auth";
 import type { CurrentUser, SessionUser } from "./types";
@@ -67,6 +68,14 @@ export async function resetPassword(
   newPassword: string,
 ): Promise<void> {
   await nestResetPassword(token, newPassword);
+}
+
+/** Change the signed-in user's credential and revoke sessions on other devices. */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  await nestChangePassword(currentPassword, newPassword);
 }
 
 /** End the session. Errors are swallowed; the client routes to /login regardless. */

@@ -38,6 +38,17 @@ describe("getApiUrl", () => {
 });
 
 describe("nestRequest", () => {
+  it("preserves Better Auth flat error codes for password change feedback", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        { code: "INVALID_PASSWORD", message: "Invalid password" },
+        400,
+      ),
+    );
+    await expect(
+      nestRequest("/api/auth/change-password", { method: "POST", body: {} }),
+    ).rejects.toMatchObject({ status: 400, code: "INVALID_PASSWORD" });
+  });
   it("sends credentials and builds the query string", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
 

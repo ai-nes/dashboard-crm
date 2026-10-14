@@ -1,5 +1,13 @@
 # API Detail Student theo `student_id`
 
+## Ghi nhận tham gia chiến dịch thủ công
+
+- `GET /api/v1/students/{id}/campaign-options?search=&page=1&pageSize=20`: trả `{ data: [{ id, title, stableCode, status }], meta: { page, total, hasNextPage } }`. Chỉ liệt kê chiến dịch `ACTIVE`/`CLOSED` chưa tham gia; hỗ trợ tìm tên/mã và phân trang.
+- `POST /api/v1/students/{id}/campaigns`, body `{ "campaignId": "<id hoặc stableCode>", "registeredAt": "2026-09-25T09:30:00+07:00" }`: trả HTTP 201 với `{ data: { id, campaignId } }`. `registeredAt` là ngày giờ ISO 8601 có múi giờ, không bắt buộc cho client cũ (mặc định thời gian hiện tại với chiến dịch mới). Dialog cho nhập ngày và giờ, chuyển thời gian theo múi giờ thiết bị sang UTC trước khi gửi. Lặp lại cùng chiến dịch trả cùng quan hệ và giữ thời gian đăng ký đầu tiên.
+- Cả hai API yêu cầu quyền `CRM Student.read`, `CRM Student.write`, `CRM Campaign.read` và phạm vi truy cập học sinh. Thiếu quyền trả 403; học sinh ngoài phạm vi hoặc chiến dịch không tồn tại trả 404; payload sai hoặc chiến dịch không hợp lệ trả 400.
+- Ghi nhận vào lịch sử `LeadCampaign`, giữ chiến dịch nguồn, chủ sở hữu và thông tin hồ sơ. Học sinh nhập từ hệ thống cũ chưa có Lead liên kết sẽ được nối một Lead gốc trong cùng transaction, không tạo thêm học sinh.
+- Trong `Tương tác → Chiến dịch`, nút “Thêm chiến dịch” mở dialog chọn chiến dịch và làm mới lịch sử sau khi lưu. Các tab tương tác khác giữ nút “Tạo tương tác”.
+
 API này phục vụ trang `/director/students/{studentId}`, ví dụ `/director/students/nguyen-minh-an` hoặc mã hồ sơ `ENR-2026-00005`. `student_id` có thể là slug nội bộ, mã hồ sơ hoặc mã học sinh nếu backend hỗ trợ resolver tương ứng.
 
 ## 1. Endpoint
