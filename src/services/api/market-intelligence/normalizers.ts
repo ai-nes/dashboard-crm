@@ -304,17 +304,27 @@ export function normalizeMarketOverview(
   );
   const meta = record(root.meta);
   const provinces = Array.isArray(data.provinces) ? data.provinces : [];
+  const normalizedProvinces = provinces
+    .map(normalizeProvince)
+    .filter((item): item is DirectorMarketProvince => item !== null);
   const normalizedAvailability = availability(
     root.dataAvailability ?? data.dataAvailability,
   );
   const normalizedMeta = normalizeMeta(root.meta);
 
   return {
-    provinces: provinces
-      .map(normalizeProvince)
-      .filter((item): item is DirectorMarketProvince => item !== null),
+    provinces: normalizedProvinces,
     totalProvinces: number(data.totalProvinces),
     totalSchools: number(data.totalSchools),
+    schoolsComplete:
+      typeof data.schoolsComplete === "boolean"
+        ? data.schoolsComplete
+        : normalizedProvinces.length > 0 &&
+          normalizedProvinces.every(
+            (province) =>
+              province.schoolCount !== null &&
+              province.highSchools.length === province.schoolCount,
+          ),
     admissionYear: number(meta.admissionYear ?? data.admissionYear),
     asOf: text(meta.asOf ?? data.asOf),
     regionSummary: normalizeRegionSummary(

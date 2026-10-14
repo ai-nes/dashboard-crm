@@ -15,8 +15,12 @@ interface AllSchoolsInspectorProps {
 }
 
 function getSchoolBadge(classification: HighSchoolItem["classification"]) {
-  if (!classification) return { color: "gray" as const, label: "Chưa phân loại" };
-  return { color: SCHOOL_CLASSIFICATION_VISUALS[classification].badgeColor, label: classification };
+  if (!classification)
+    return { color: "gray" as const, label: "Chưa phân loại" };
+  return {
+    color: SCHOOL_CLASSIFICATION_VISUALS[classification].badgeColor,
+    label: classification,
+  };
 }
 
 export default function AllSchoolsInspector({
@@ -51,7 +55,8 @@ export default function AllSchoolsInspector({
               Tất cả địa bàn
             </h2>
             <p className="mt-0.5 text-xs text-text-secondary">
-              Toàn quốc · {schools.length} trường trong danh sách
+              {provinces.length} thị trường trọng điểm · {schools.length} trường
+              trong danh sách
             </p>
           </div>
         </div>
@@ -88,9 +93,19 @@ export default function AllSchoolsInspector({
 
               return (
                 <button
-                  className="flex w-full items-center gap-2.5 rounded-xl border border-card-border bg-card-background p-2.5 text-left transition hover:border-primary-200 hover:bg-background-soft-50"
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-card-border bg-card-background p-2.5 text-left transition hover:border-primary-200 hover:bg-background-soft-50 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:border-card-border disabled:hover:bg-card-background"
+                  disabled={!school.directoryId}
                   key={`${province.code}-${school.id}`}
-                  onClick={() => onSelectSchool(province.code, school.id)}
+                  onClick={() => {
+                    if (school.directoryId) {
+                      onSelectSchool(province.code, school.id);
+                    }
+                  }}
+                  title={
+                    school.directoryId
+                      ? undefined
+                      : "Không thể mở chi tiết: thiếu mã tra cứu trường"
+                  }
                   type="button"
                 >
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-background-soft-100 text-xs font-semibold text-text-secondary">
@@ -113,6 +128,7 @@ export default function AllSchoolsInspector({
                     </span>
                     <span className="mt-1 block truncate text-[11px] text-text-tertiary">
                       {province.name} · {school.district ?? "-"}
+                      {!school.directoryId && " · Không có mã tra cứu"}
                     </span>
                   </span>
                   <span className="shrink-0 text-right">

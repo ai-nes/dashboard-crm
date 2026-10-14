@@ -23,6 +23,7 @@ import {
 } from "@/hooks/use-admin-catalog-queries";
 import { normalizeCatalogError } from "@/services/api/admin-catalog";
 
+import { getAdmissionYearDateRangeError } from "./academic-year-date-range";
 import {
   CatalogListToolbar,
   CatalogPagination,
@@ -95,6 +96,10 @@ function AcademicYearPanelContent({ permissions }: { permissions: CrmDoctypePerm
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
     null,
   );
+  const dateRangeError = getAdmissionYearDateRangeError(
+    yearForm.start_date,
+    yearForm.end_date,
+  );
 
   const saveYear = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -102,6 +107,10 @@ function AcademicYearPanelContent({ permissions }: { permissions: CrmDoctypePerm
     const yearName = yearForm.year_name.trim();
     if (!yearName) {
       toast.error("Vui lòng chọn năm tuyển sinh.");
+      return;
+    }
+    if (dateRangeError) {
+      toast.error(dateRangeError);
       return;
     }
 
@@ -270,14 +279,16 @@ function AcademicYearPanelContent({ permissions }: { permissions: CrmDoctypePerm
                   required
                 />
               </Field>
-              <Field label="Kết thúc">
+              <Field label="Kết thúc" error={dateRangeError ?? undefined}>
                 <DatePickerField
                   value={yearForm.end_date}
                   onChange={(value) =>
                     setYearForm({ ...yearForm, end_date: value })
                   }
                   ariaLabel="Ngày kết thúc năm tuyển sinh"
+                  min={yearForm.start_date || undefined}
                   required
+                  isInvalid={Boolean(dateRangeError)}
                 />
               </Field>
               <Checkbox

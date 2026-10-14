@@ -22,7 +22,7 @@ export function TaskActionSelect({
       {!hideLabel && <Label>Loại task *</Label>}
       <DropdownField
         ariaLabel="Chọn loại task"
-        contentClassName="min-w-[320px] max-w-[calc(100vw-2rem)] sm:min-w-[360px]"
+        contentClassName="w-[min(360px,calc(100vw-2rem))] min-w-0 max-w-[calc(100vw-2rem)]"
         emptyMessage="Không tìm thấy loại task phù hợp."
         isDisabled={isDisabled}
         isSearchable
@@ -38,16 +38,16 @@ export function TaskActionSelect({
         placeholder="Chọn loại task"
         renderOption={(option) => (
           <span className="flex min-w-0 flex-col">
-            <span className="block truncate font-medium text-text-primary">
+            <span className="block min-w-0 whitespace-normal break-words font-medium text-text-primary">
               {option.label}
             </span>
-            <span className="mt-0.5 block truncate text-xs text-text-tertiary">
+            <span className="mt-0.5 block min-w-0 whitespace-normal break-words text-xs text-text-tertiary">
               {option.description}
             </span>
           </span>
         )}
         searchPlaceholder="Tìm theo tên..."
-        triggerClassName="border-card-border bg-card-background pr-2.5 pl-3 text-left text-sm font-medium shadow-xs"
+        triggerClassName="h-auto min-h-9 border-card-border bg-card-background pr-2.5 pl-3 text-left text-sm font-medium shadow-xs [&>span:first-child]:whitespace-normal [&>span:first-child]:break-words"
         value={value}
       />
     </div>

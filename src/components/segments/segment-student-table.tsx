@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Search1 } from "@tailgrids/icons";
 import {
   flexRender,
@@ -25,7 +26,8 @@ import {
   TableRow,
 } from "@/components/tailgrids/core/table";
 import StudentCardEmptyState from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-card-empty-state";
-import { segmentStudentColumns } from "./segment-student-columns";
+import { createSegmentStudentColumns } from "./segment-student-columns";
+import { getCurrentPath } from "@/utils/detail-navigation";
 import type { SegmentStudent } from "./segment-detail-types";
 
 const normalize = (value: string) =>
@@ -59,6 +61,16 @@ export function SegmentStudentTable({
   totalItems?: number;
   onPageChange?: (page: number) => void;
 }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const returnTo = useMemo(
+    () => getCurrentPath(pathname, searchParams),
+    [pathname, searchParams],
+  );
+  const columns = useMemo(
+    () => createSegmentStudentColumns(returnTo),
+    [returnTo],
+  );
   const [localSearch, setLocalSearch] = useState("");
   const [localPagination, setLocalPagination] = useState({
     pageIndex: 0,
@@ -76,7 +88,7 @@ export function SegmentStudentTable({
     : localPagination;
   const table = useReactTable({
     data: students,
-    columns: segmentStudentColumns,
+    columns,
     state: isServerPaginated
       ? { pagination }
       : { globalFilter: search, pagination },
@@ -212,19 +224,19 @@ export function SegmentStudentTable({
           học sinh
         </p>
         <div className="flex shrink-0 items-center justify-end max-sm:w-full">
-              <Pagination
-                currentPage={pagination.pageIndex + 1}
-                totalPages={totalPages}
+          <Pagination
+            currentPage={pagination.pageIndex + 1}
+            totalPages={totalPages}
             onPageChange={(page) => {
               if (isServerPaginated) {
                 onPageChange?.(page);
               } else {
                 table.setPageIndex(page - 1);
               }
-                }}
-                variant="compact"
-                isDisabled={isLoading}
-              />
+            }}
+            variant="compact"
+            isDisabled={isLoading}
+          />
         </div>
       </footer>
     </div>

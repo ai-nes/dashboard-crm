@@ -24,6 +24,7 @@ import SchoolEngagementFilter, {
   type SchoolEngagementOption,
   type SchoolMarkerFilters,
 } from "./school-engagement-filter";
+import { getSchoolMapCoverage, SCHOOL_MAP_BOUNDS } from "./school-map-coverage";
 import { ZoomInIcon, ZoomOutIcon } from "./icons";
 import type {
   MetricKey,
@@ -34,12 +35,7 @@ import type {
 } from "./types";
 
 const MASTER_VIEWBOX = { width: 620, height: 780, padding: 16 };
-const MASTER_BOUNDS = {
-  minLongitude: 101.8,
-  maxLongitude: 110.2,
-  minLatitude: 8.2,
-  maxLatitude: 23.6,
-};
+const MASTER_BOUNDS = SCHOOL_MAP_BOUNDS;
 
 // Default viewport for the active southern market: Khánh Hoà, Đắk Lắk,
 // Lâm Đồng, TP.HCM, Đồng Nai, Đồng Tháp and Tây Ninh.
@@ -68,6 +64,8 @@ interface MarketMapProps {
   engagementOptions: SchoolEngagementOption[];
   schoolFilterAvailability: SchoolMarkerFilterAvailability;
   totalSchools: number | null;
+  loadedSchoolCount: number;
+  schoolListComplete: boolean;
   totalProvinces: number;
 }
 
@@ -193,6 +191,8 @@ export default function MarketMap({
   engagementOptions,
   schoolFilterAvailability,
   totalSchools: totalSchoolsFromApi,
+  loadedSchoolCount,
+  schoolListComplete,
   totalProvinces,
 }: MarketMapProps) {
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
@@ -203,6 +203,10 @@ export default function MarketMap({
   const provinceByCode = useMemo(
     () => new Map(provinces.map((province) => [province.code, province])),
     [provinces],
+  );
+  const schoolMapCoverage = useMemo(
+    () => getSchoolMapCoverage(provinces, activeRegion),
+    [activeRegion, provinces],
   );
   const totalSchools =
     totalSchoolsFromApi ??
@@ -224,6 +228,22 @@ export default function MarketMap({
     }),
     [provinceHeatScores],
   );
+  const schoolClassificationCoverage = useMemo(() => {
+    const classifications = new Set<string>();
+    let hasUnclassifiedSchools = false;
+
+    for (const province of provinces) {
+      for (const school of province.highSchools) {
+        if (school.classification === null) {
+          hasUnclassifiedSchools = true;
+        } else {
+          classifications.add(school.classification);
+        }
+      }
+    }
+
+    return { classifications, hasUnclassifiedSchools };
+  }, [provinces]);
 
   const paths = useMemo<MapPath[]>(
     () =>
@@ -258,17 +278,17 @@ export default function MarketMap({
   }, [activeRegion, isPriorityFocus, manualZoom]);
 
   const searchResults = query.trim()
-    ? provinces
-        .filter((p) =>
-          p.name.toLowerCase().includes(query.trim().toLowerCase()),
-        )
+    ? provinces.filter((p) =>
+        p.name.toLowerCase().includes(query.trim().toLowerCase()),
+      )
     : [];
-  const { visibleItems: visibleSearchResults, onScrollToLoadMore } = useInfinityScroll(searchResults, {
-    enabled: isSearchFocused,
-    pageSize: 5,
-    getItemKey: (province) => province.code,
-    resetKey: `${isSearchFocused}:${query}`,
-  });
+  const { visibleItems: visibleSearchResults, onScrollToLoadMore } =
+    useInfinityScroll(searchResults, {
+      enabled: isSearchFocused,
+      pageSize: 5,
+      getItemKey: (province) => province.code,
+      resetKey: `${isSearchFocused}:${query}`,
+    });
   const selectedPriorityProvince = PRIORITY_PROVINCES.find(
     (province) => province.code === selectedCode,
   );
@@ -306,10 +326,23 @@ export default function MarketMap({
               </span>
             </div>
             <p className="mt-0.5 truncate text-xs text-text-tertiary">
-              {totalSchools} trường trong phạm vi ·{" "}
+              {schoolListComplete
+                ? `${totalSchools} trường trong phạm vi`
+                : `Đã tải ${loadedSchoolCount}/${totalSchools} trường`}{" "}
+              ·{" "}
               {admissionYear === null
                 ? "Kỳ hiện hành"
                 : `Niên khóa ${admissionYear}`}
+            </p>
+            <p
+              aria-live="polite"
+              className="mt-1 text-[10px] text-text-secondary"
+            >
+              {schoolMapCoverage.locatedSchoolCount}/
+              {schoolMapCoverage.matchingSchoolCount} trường phù hợp có tọa độ
+              trên bản đồ
+              {schoolMapCoverage.unlocatedSchoolCount > 0 &&
+                ` · ${schoolMapCoverage.unlocatedSchoolCount} trường thiếu tọa độ hợp lệ; vẫn có trong danh sách`}
             </p>
           </div>
         </div>
@@ -402,7 +435,10 @@ export default function MarketMap({
             />
 
             {isSearchFocused && searchResults.length > 0 && (
-              <div className="absolute top-full right-0 z-50 mt-1 max-h-48 w-48 overflow-y-auto rounded-xl bg-card-background p-1 shadow-theme-md" onScroll={onScrollToLoadMore}>
+              <div
+                className="absolute top-full right-0 z-50 mt-1 max-h-48 w-48 overflow-y-auto rounded-xl bg-card-background p-1 shadow-theme-md"
+                onScroll={onScrollToLoadMore}
+              >
                 {visibleSearchResults.map((p) => {
                   const heatScore = getProvinceMapValue(p, "opportunity");
                   return (
@@ -435,41 +471,50 @@ export default function MarketMap({
       {/* 3. MAP CANVAS: 100% Unobstructed SVG Viewport with Light/Dark Support */}
       {/* ========================================================================= */}
       <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl bg-background-soft-50 p-1 ring-1 ring-card-border/50">
-        <div className="pointer-events-none absolute top-2.5 right-2.5 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-x-3 gap-y-1 rounded-lg bg-card-background/90 px-2.5 py-1.5 text-[10px] shadow-xs backdrop-blur-md">
-          <span className="flex items-center gap-1.5 text-text-secondary">
-            <span
-              className="size-2.5 animate-pulse rounded-full bg-badge-orange-icon-color"
-              aria-hidden="true"
-            />
-            Trọng điểm
-          </span>
-          <span className="flex items-center gap-1.5 text-text-secondary">
-            <span
-              className="size-2 rounded-full bg-info-500"
-              aria-hidden="true"
-            />
-            Mở rộng
-          </span>
-          <span className="flex items-center gap-1.5 text-text-secondary">
-            <span
-              className="size-1.5 rounded-full bg-warning-500"
-              aria-hidden="true"
-            />
-            Duy trì
-          </span>
-          <span className="flex items-center gap-1.5 text-text-secondary">
-            <span
-              className="size-1 rounded-full bg-text-tertiary"
-              aria-hidden="true"
-            />
-            Sàng lọc
-          </span>
-          {provinces.some((province) =>
-            province.highSchools.some((school) => school.classification === null),
-          ) && (
+        <div
+          aria-label="Chú giải phân loại trường"
+          className="pointer-events-none absolute top-2.5 right-2.5 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap justify-end gap-x-3 gap-y-1 rounded-lg bg-card-background/90 px-2.5 py-1.5 text-[10px] shadow-xs backdrop-blur-md"
+        >
+          {schoolClassificationCoverage.classifications.has("Trọng điểm") && (
+            <span className="flex items-center gap-1.5 text-text-secondary">
+              <span
+                className="size-2.5 animate-pulse rounded-full bg-badge-orange-icon-color"
+                aria-hidden="true"
+              />
+              Trọng điểm
+            </span>
+          )}
+          {schoolClassificationCoverage.classifications.has("Mở rộng") && (
+            <span className="flex items-center gap-1.5 text-text-secondary">
+              <span
+                className="size-2 rounded-full bg-info-500"
+                aria-hidden="true"
+              />
+              Mở rộng
+            </span>
+          )}
+          {schoolClassificationCoverage.classifications.has("Duy trì") && (
+            <span className="flex items-center gap-1.5 text-text-secondary">
+              <span
+                className="size-1.5 rounded-full bg-warning-500"
+                aria-hidden="true"
+              />
+              Duy trì
+            </span>
+          )}
+          {schoolClassificationCoverage.classifications.has("Sàng lọc") && (
             <span className="flex items-center gap-1.5 text-text-secondary">
               <span
                 className="size-1 rounded-full bg-text-tertiary"
+                aria-hidden="true"
+              />
+              Sàng lọc
+            </span>
+          )}
+          {schoolClassificationCoverage.hasUnclassifiedSchools && (
+            <span className="flex items-center gap-1.5 text-text-secondary">
+              <span
+                className="size-2 rounded-full border border-text-tertiary bg-card-background"
                 aria-hidden="true"
               />
               Chưa phân loại
@@ -625,11 +670,9 @@ export default function MarketMap({
           </g>
 
           <HighSchoolMarkerLayer
-            activeRegion={activeRegion}
-            geoData={geoData}
             onSelectSchool={onSelectSchool}
             projectPoint={projectPoint}
-            provinces={provinces}
+            schools={schoolMapCoverage.locatedSchools}
             selectedProvinceCode={selectedCode}
             selectedSchoolId={selectedSchoolId}
           />

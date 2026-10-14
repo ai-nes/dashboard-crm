@@ -149,6 +149,17 @@ export default function QuickCreateLeadDialog({
     setSubmitError(null);
   };
 
+  const handleWardChange = (ward: string) => {
+    setForm((current) => ({ ...current, ward, high_school: "" }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.ward;
+      delete next.high_school;
+      return next;
+    });
+    setSubmitError(null);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSubmitting) return;
@@ -269,7 +280,7 @@ export default function QuickCreateLeadDialog({
                   searchPlaceholder="Tìm xã / phường..."
                   value={form.ward}
                   isDisabled={!form.province || wardOptionsQuery.isPending}
-                  onChange={(value) => setField("ward", value)}
+                  onChange={handleWardChange}
                 />
               </CreateDialogField>
 

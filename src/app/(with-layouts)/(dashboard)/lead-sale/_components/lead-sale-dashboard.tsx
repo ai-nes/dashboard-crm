@@ -37,7 +37,7 @@ export default function LeadSaleDashboard() {
   return (
     <main id="main-content" className="min-w-0 space-y-6 overflow-x-hidden px-2 py-4 pb-8 lg:px-6">
       <DashboardHeader data={data} />
-      <NpsSaleScoreCard />
+      <NpsSaleScoreCard mode="team" />
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:items-stretch">
         <section aria-label="Công việc ưu tiên" className="min-w-0">

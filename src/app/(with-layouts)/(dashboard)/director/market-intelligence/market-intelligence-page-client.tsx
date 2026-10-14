@@ -14,7 +14,7 @@ const REQUEST = {
   region: "all" as const,
   metric: "opportunity" as const,
   includeSchools: true,
-  schoolLimit: 20,
+  includeAllSchools: true,
 };
 
 export default function MarketIntelligencePageClient() {
@@ -51,8 +51,11 @@ export default function MarketIntelligencePageClient() {
 }
 
 function marketErrorMessage(error: unknown): string {
-  if (error instanceof DirectorMarketApiError && error.status === 401) return "Phiên đăng nhập không còn hợp lệ.";
-  if (error instanceof DirectorMarketApiError && error.status === 403) return "Bạn không có quyền xem dữ liệu thị trường.";
-  if (error instanceof DirectorMarketApiError && error.status >= 500) return "Nguồn dữ liệu thị trường hiện chưa sẵn sàng.";
+  if (error instanceof DirectorMarketApiError && error.status === 401)
+    return "Phiên đăng nhập không còn hợp lệ.";
+  if (error instanceof DirectorMarketApiError && error.status === 403)
+    return "Bạn không có quyền xem dữ liệu thị trường.";
+  if (error instanceof DirectorMarketApiError && error.status >= 500)
+    return "Nguồn dữ liệu thị trường hiện chưa sẵn sàng.";
   return "Không thể tải dữ liệu thị trường từ CRM.";
 }

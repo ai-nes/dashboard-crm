@@ -131,7 +131,7 @@ describe("dashboard RBAC", () => {
         "Danh sách Trường",
       ],
       ["Phân công Lead", "Quản lý Team"],
-      ["Message Template", "Snippest"],
+      ["Message Template", "Snippet"],
     ]);
   });
 
@@ -157,7 +157,7 @@ describe("dashboard RBAC", () => {
       ]);
       expect(navigation[3].items.map((item) => item.title)).toEqual([
         "Message Template",
-        "Snippest",
+        "Snippet",
       ]);
     }
   });
@@ -316,7 +316,7 @@ describe("dashboard RBAC", () => {
       "Phân tích xu hướng",
       "Hoạt động & chiến dịch",
       "Message Template",
-      "Snippest",
+      "Snippet",
     ]);
     expect(getNavigationUrls(directorNavigation)).toHaveLength(14);
     expect(getNavigationUrls(directorNavigation)).toContain("/director/leads");

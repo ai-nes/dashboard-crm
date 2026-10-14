@@ -147,7 +147,9 @@ export default function MarketIntelligenceDashboard({
     const school = provinces
       .find((province) => province.code === provinceCode)
       ?.highSchools.find((item) => item.id === schoolId);
-    if (school) router.push(`/director/schools/${school.id}`);
+    if (school?.directoryId) {
+      router.push(`/director/schools/${school.directoryId}`);
+    }
   };
   const changeRegion = (nextRegion: RegionKey) => {
     setRegion(nextRegion);
@@ -163,8 +165,7 @@ export default function MarketIntelligenceDashboard({
     setSelectedCode(first?.code ?? null);
   };
   if (apiError || geometryError) return <MapError message={apiError} />;
-  if (loading)
-    return <MarketIntelligenceSkeleton />;
+  if (loading) return <MarketIntelligenceSkeleton />;
   return (
     <main className="min-w-0 px-2 py-3 lg:px-6 xl:h-[calc(100vh-112px)] xl:overflow-hidden">
       <div className="grid min-h-[640px] min-w-0 grid-cols-1 items-stretch gap-2 xl:h-full xl:min-h-0 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.75fr)]">
@@ -188,6 +189,11 @@ export default function MarketIntelligenceDashboard({
           schoolFilters={schoolFilters}
           selectedCode={selectedCode}
           selectedSchoolId={visibleSelectedSchoolId}
+          loadedSchoolCount={provinces.reduce(
+            (total, province) => total + province.highSchools.length,
+            0,
+          )}
+          schoolListComplete={overview?.schoolsComplete ?? false}
           totalSchools={overview?.totalSchools ?? null}
           totalProvinces={overview?.totalProvinces ?? provinces.length}
         />

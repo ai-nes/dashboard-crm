@@ -8,6 +8,11 @@ import type {
   InteractionFeedResponse,
   InteractionNpsPoint,
   InteractionNpsPointResponse,
+  NpsHistoryFilters,
+  NpsHistoryPoint,
+  NpsHistoryResponse,
+  NpsSaleSummary,
+  NpsSummaryFilters,
   NpsSaleSummaryResponse,
   InteractionSummary,
   InteractionTarget,
@@ -38,47 +43,266 @@ function normalizeString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isScore(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= 1 && value <= 10;
+}
+
+function isNormalizedScore(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= 0 && value <= 100;
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 0;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) > 0;
+}
+
+function isIsoDateTime(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(value) &&
+    !Number.isNaN(Date.parse(value))
+  );
+}
+
+function isConfidence(
+  value: unknown,
+): value is "low" | "medium" | "high" | null {
+  return (
+    value === null ||
+    value === "low" ||
+    value === "medium" ||
+    value === "high"
+  );
+}
+
+function hasOwn(record: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+function invalidNpsResponse(code: string): never {
+  throw new InteractionIntelligenceApiError(
+    502,
+    code,
+    "Phản hồi điểm chất lượng cuộc gọi không hợp lệ.",
+  );
+}
+
+function normalizeNpsScope(value: unknown): "own" | "team" | "all" | null {
+  return value === "own" || value === "team" || value === "all" ? value : null;
+}
+
+function readNpsFilters(
+  filters: NpsSummaryFilters | NpsHistoryFilters,
+): Record<string, string> {
+  const query: Record<string, string> = {};
+  for (const key of ["sale", "from_date", "to_date"] as const) {
+    const value = filters[key];
+    if (value?.trim()) query[key] = value.trim();
+  }
+  return query;
+}
+
 function normalizeNpsPoint(value: unknown): InteractionNpsPoint | null {
   const item = asRecord(value);
   const name = normalizeString(item?.name);
   const interaction = normalizeString(item?.interaction);
+  const sale = normalizeString(item?.sale);
+  const saleUser = normalizeString(item?.sale_user);
+  const interactionDatetime = item?.interaction_datetime;
   const status = normalizeString(item?.status);
-  if (!name || !interaction || !status) return null;
+  if (
+    !item ||
+    !name ||
+    !interaction ||
+    !sale ||
+    !saleUser ||
+    !isIsoDateTime(interactionDatetime) ||
+    !isNonNegativeInteger(item.source_revision) ||
+    !isConfidence(item.confidence) ||
+    (status !== "scored" && status !== "abstained") ||
+    ![
+      "satisfaction_score",
+      "resolution_score",
+      "friction_score",
+      "complaint_score",
+      "total_score",
+      "normalized_score",
+    ].every((key) => hasOwn(item, key))
+  ) {
+    return null;
+  }
+
+  const scores = [
+    item.satisfaction_score,
+    item.resolution_score,
+    item.friction_score,
+    item.complaint_score,
+    item.total_score,
+  ];
+  const normalizedScore = item.normalized_score;
+  const scored = status === "scored";
+  if (
+    (scored && (!scores.every(isScore) || !isNormalizedScore(normalizedScore))) ||
+    (!scored &&
+      (!scores.every((score) => score === null) || normalizedScore !== null))
+  ) {
+    return null;
+  }
+
   return {
     name,
     interaction,
-    analysis_run: normalizeString(item?.analysis_run),
-    student: normalizeString(item?.student),
-    sale: normalizeString(item?.sale),
-    sale_user: normalizeString(item?.sale_user),
-    agent_id: normalizeString(item?.agent_id),
-    interaction_datetime: normalizeString(item?.interaction_datetime),
-    source_revision:
-      typeof item?.source_revision === "number" ? item.source_revision : null,
+    sale,
+    sale_user: saleUser,
+    interaction_datetime: interactionDatetime,
+    source_revision: item.source_revision,
     status,
-    terminal_reason: normalizeString(item?.terminal_reason),
-    satisfaction_score:
-      typeof item?.satisfaction_score === "number"
-        ? item.satisfaction_score
-        : null,
-    resolution_score:
-      typeof item?.resolution_score === "number" ? item.resolution_score : null,
-    friction_score:
-      typeof item?.friction_score === "number" ? item.friction_score : null,
-    complaint_score:
-      typeof item?.complaint_score === "number" ? item.complaint_score : null,
-    total_score:
-      typeof item?.total_score === "number" ? item.total_score : null,
-    normalized_score:
-      typeof item?.normalized_score === "number" ? item.normalized_score : null,
-    confidence: normalizeString(item?.confidence),
-    evidence_refs: asRecord(item?.evidence_refs),
-    explanation: normalizeString(item?.explanation),
-    policy_revision: normalizeString(item?.policy_revision),
-    model_revision: normalizeString(item?.model_revision),
-    contract_version: normalizeString(item?.contract_version),
-    supersedes: normalizeString(item?.supersedes),
-    superseded_by: normalizeString(item?.superseded_by),
+    satisfaction_score: item.satisfaction_score as number | null,
+    resolution_score: item.resolution_score as number | null,
+    friction_score: item.friction_score as number | null,
+    complaint_score: item.complaint_score as number | null,
+    total_score: item.total_score as number | null,
+    normalized_score: normalizedScore as number | null,
+    confidence: item.confidence,
+  };
+}
+
+function normalizeNpsSummary(value: unknown): NpsSaleSummaryResponse {
+  const payload = asRecord(value);
+  const scope = normalizeNpsScope(payload?.scope);
+  const averageScore = payload?.average_score;
+  const averageNormalizedScore = payload?.average_normalized_score;
+  if (
+    !payload ||
+    !Array.isArray(payload.records) ||
+    !isNonNegativeInteger(payload.total_points) ||
+    (averageScore !== null && !isScore(averageScore)) ||
+    (averageNormalizedScore !== null &&
+      !isNormalizedScore(averageNormalizedScore)) ||
+    !scope ||
+    payload.timezone !== "Asia/Ho_Chi_Minh"
+  ) {
+    return invalidNpsResponse("INVALID_INTERACTION_NPS_SUMMARY_RESPONSE");
+  }
+
+  const records: NpsSaleSummary[] = payload.records.map((value) => {
+    const item = asRecord(value);
+    const sale = normalizeString(item?.sale);
+    const saleUser = normalizeString(item?.sale_user);
+    const count = item?.count;
+    const average = item?.average_score;
+    const normalizedAverage = item?.average_normalized_score;
+    if (
+      !item ||
+      !sale ||
+      !isPositiveInteger(count) ||
+      !isScore(average) ||
+      !isNormalizedScore(normalizedAverage) ||
+      !saleUser
+    ) {
+      return invalidNpsResponse("INVALID_INTERACTION_NPS_SUMMARY_RESPONSE");
+    }
+    return {
+      sale,
+      sale_user: saleUser,
+      count,
+      average_score: average,
+      average_normalized_score: normalizedAverage,
+    };
+  });
+
+  if (
+    records.reduce((total, record) => total + record.count, 0) !==
+      payload.total_points ||
+    (payload.total_points === 0) !== (payload.average_score === null) ||
+    (payload.total_points === 0) !==
+      (payload.average_normalized_score === null)
+  ) {
+    return invalidNpsResponse("INVALID_INTERACTION_NPS_SUMMARY_RESPONSE");
+  }
+
+  return {
+    records,
+    total_points: payload.total_points,
+    average_score: averageScore,
+    average_normalized_score: averageNormalizedScore,
+    scope,
+    timezone: "Asia/Ho_Chi_Minh",
+  };
+}
+
+function normalizeNpsHistoryPoint(value: unknown): NpsHistoryPoint | null {
+  const item = asRecord(value);
+  const name = normalizeString(item?.name);
+  const interaction = normalizeString(item?.interaction);
+  const interactionDatetime = item?.interaction_datetime;
+  const sale = normalizeString(item?.sale);
+  const saleUser = normalizeString(item?.sale_user);
+  if (
+    !name ||
+    !interaction ||
+    !isIsoDateTime(interactionDatetime) ||
+    !sale ||
+    !saleUser ||
+    item?.status !== "scored" ||
+    !isNonNegativeInteger(item.source_revision) ||
+    !isScore(item.satisfaction_score) ||
+    !isScore(item.resolution_score) ||
+    !isScore(item.friction_score) ||
+    !isScore(item.complaint_score) ||
+    !isScore(item.total_score) ||
+    !isNormalizedScore(item.normalized_score) ||
+    !isConfidence(item.confidence)
+  ) {
+    return null;
+  }
+
+  return {
+    name,
+    interaction,
+    interaction_datetime: interactionDatetime,
+    source_revision: item.source_revision,
+    sale,
+    sale_user: saleUser,
+    status: "scored",
+    satisfaction_score: item.satisfaction_score,
+    resolution_score: item.resolution_score,
+    friction_score: item.friction_score,
+    complaint_score: item.complaint_score,
+    total_score: item.total_score,
+    normalized_score: item.normalized_score,
+    confidence: item.confidence,
+  };
+}
+
+function normalizeNpsHistory(value: unknown): NpsHistoryResponse {
+  const payload = asRecord(value);
+  const scope = normalizeNpsScope(payload?.scope);
+  if (
+    !payload ||
+    !Array.isArray(payload.items) ||
+    (payload.next_cursor !== null && typeof payload.next_cursor !== "string") ||
+    !scope ||
+    payload.timezone !== "Asia/Ho_Chi_Minh"
+  ) {
+    return invalidNpsResponse("INVALID_INTERACTION_NPS_HISTORY_RESPONSE");
+  }
+  const items = payload.items.map(normalizeNpsHistoryPoint);
+  if (items.some((item) => item === null)) {
+    return invalidNpsResponse("INVALID_INTERACTION_NPS_HISTORY_RESPONSE");
+  }
+  return {
+    items: items as NpsHistoryPoint[],
+    next_cursor: normalizeString(payload.next_cursor),
+    scope,
+    timezone: "Asia/Ho_Chi_Minh",
   };
 }
 
@@ -326,9 +550,12 @@ export async function getInteractionNpsPoint(
       `/api/v1/interactions/${encodeURIComponent(id)}/nps-point`,
     ),
   );
-  if (payload?.point === null || payload?.point === undefined)
+  if (!payload || !hasOwn(payload, "point") || payload.point === undefined) {
+    return invalidNpsResponse("INVALID_INTERACTION_NPS_RESPONSE");
+  }
+  if (payload.point === null)
     return { point: null };
-  const point = normalizeNpsPoint(payload?.point);
+  const point = normalizeNpsPoint(payload.point);
   if (!point) {
     throw new InteractionIntelligenceApiError(
       502,
@@ -340,43 +567,31 @@ export async function getInteractionNpsPoint(
 }
 
 export async function getNpsSaleSummary(
-  filters: { sale?: string; from_date?: string; to_date?: string } = {},
+  filters: NpsSummaryFilters = {},
 ): Promise<NpsSaleSummaryResponse> {
-  const query: Record<string, string> = {};
-  for (const key of ["sale", "from_date", "to_date"] as const) {
-    const value = filters[key];
-    if (value?.trim()) query[key] = value.trim();
-  }
-  const payload = asRecord(
-    await nestInteractionRequest<unknown>("/api/v1/interactions/nps-summary", {
-      query,
-    }),
+  const payload = await nestInteractionRequest<unknown>(
+    "/api/v1/interactions/nps-summary",
+    { query: readNpsFilters(filters) },
   );
-  const records = Array.isArray(payload?.records)
-    ? payload.records
-        .map((value) => {
-          const item = asRecord(value);
-          const sale = normalizeString(item?.sale);
-          if (!sale) return null;
-          return {
-            sale,
-            sale_user: normalizeString(item?.sale_user),
-            count: typeof item?.count === "number" ? item.count : 0,
-            average_score:
-              typeof item?.average_score === "number" ? item.average_score : 0,
-            average_normalized_score:
-              typeof item?.average_normalized_score === "number"
-                ? item.average_normalized_score
-                : 0,
-          };
-        })
-        .filter((value): value is NonNullable<typeof value> => value !== null)
-    : [];
-  return {
-    records,
-    total_points:
-      typeof payload?.total_points === "number" ? payload.total_points : 0,
+  return normalizeNpsSummary(payload);
+}
+
+export async function getNpsHistory(
+  filters: NpsHistoryFilters = {},
+): Promise<NpsHistoryResponse> {
+  const limit = Number.isFinite(filters.limit)
+    ? Math.min(Math.max(Math.floor(filters.limit ?? 10), 1), 100)
+    : 10;
+  const query = {
+    ...readNpsFilters(filters),
+    limit: String(limit),
+    ...(filters.cursor?.trim() ? { cursor: filters.cursor.trim() } : {}),
   };
+  const payload = await nestInteractionRequest<unknown>(
+    "/api/v1/interactions/nps-history",
+    { query },
+  );
+  return normalizeNpsHistory(payload);
 }
 
 export async function createInteraction(

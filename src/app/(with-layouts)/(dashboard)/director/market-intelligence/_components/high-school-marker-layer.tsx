@@ -2,100 +2,55 @@
 
 import { useMemo, useState } from "react";
 
-import {
-  getDistributedGeometryPoints,
-  getGeometryCenter,
-} from "./map-geometry";
 import { sortByAvailableScore } from "@/services/api/market-intelligence";
 import { SCHOOL_CLASSIFICATION_VISUALS } from "./school-classification-visuals";
-import type {
-  ProvinceFeatureCollection,
-  ProvinceMetrics,
-  RegionKey,
-} from "./types";
+import type { LocatedSchoolMapEntry } from "./school-map-coverage";
+
+const UNCLASSIFIED_MARKER_VISUAL = {
+  markerColor: "var(--icon-tertiary)",
+  markerRadius: SCHOOL_CLASSIFICATION_VISUALS["Trọng điểm"].markerRadius / 2,
+  markerCoreRadius:
+    SCHOOL_CLASSIFICATION_VISUALS["Trọng điểm"].markerCoreRadius / 2,
+};
 
 interface HighSchoolMarkerLayerProps {
-  activeRegion: RegionKey;
-  geoData: ProvinceFeatureCollection;
   onSelectSchool: (provinceCode: string, schoolId: string) => void;
   projectPoint: (point: [number, number]) => [number, number];
-  provinces: ProvinceMetrics[];
+  schools: LocatedSchoolMapEntry[];
   selectedProvinceCode: string | null;
   selectedSchoolId: string | null;
 }
 
 interface SchoolMarker {
   point: [number, number];
-  provinceCode: string;
-  provinceName: string;
-  school: ProvinceMetrics["highSchools"][number];
+  provinceCode: LocatedSchoolMapEntry["provinceCode"];
+  provinceName: LocatedSchoolMapEntry["provinceName"];
+  school: LocatedSchoolMapEntry["school"];
 }
 
-const MARKER_OFFSETS: Array<[number, number]> = [
-  [0, 0],
-  [6, 4],
-  [-6, -4],
-  [7, -5],
-  [-7, 5],
-  [0, 8],
-];
-
 export default function HighSchoolMarkerLayer({
-  activeRegion,
-  geoData,
   onSelectSchool,
   projectPoint,
-  provinces,
+  schools,
   selectedProvinceCode,
   selectedSchoolId,
 }: HighSchoolMarkerLayerProps) {
   const [hoveredSchoolId, setHoveredSchoolId] = useState<string | null>(null);
 
   const markers = useMemo<SchoolMarker[]>(() => {
-    const featuresByCode = new Map(
-      geoData.features.map((feature) => [feature.properties.code, feature]),
-    );
-
-    return provinces
-      .filter(
-        (province) =>
-          activeRegion === "all" || province.regionKey === activeRegion,
-      )
-      .flatMap((province) => {
-        const feature = featuresByCode.get(province.code);
-        if (!feature) return [];
-
-        const schools = sortByAvailableScore(
-          province.highSchools,
-          "potentialScore",
-        );
-        const distributedPoints = getDistributedGeometryPoints(
-          feature.geometry.coordinates,
-          schools.length,
-        );
-
-        const center = getGeometryCenter(feature.geometry.coordinates);
-        const [centerX, centerY] = projectPoint(center);
-        return schools.map((school, index) => {
-          const [xOffset, yOffset] = MARKER_OFFSETS[index] ?? [0, 0];
-          const point: [number, number] = school.coordinates
-            ? projectPoint([
-                school.coordinates.longitude,
-                school.coordinates.latitude,
-              ])
-            : distributedPoints[index]
-              ? projectPoint(distributedPoints[index])
-              : [centerX + xOffset, centerY + yOffset];
-
-          return {
-            point,
-            provinceCode: province.code,
-            provinceName: province.name,
-            school,
-          };
-        });
-      });
-  }, [activeRegion, geoData, projectPoint, provinces]);
+    return sortByAvailableScore(
+      schools.map((entry) => ({
+        ...entry,
+        potentialScore: entry.school.potentialScore,
+      })),
+      "potentialScore",
+    ).map(({ coordinates, provinceCode, provinceName, school }) => ({
+      point: projectPoint(coordinates),
+      provinceCode,
+      provinceName,
+      school,
+    }));
+  }, [projectPoint, schools]);
 
   return (
     <g
@@ -108,10 +63,11 @@ export default function HighSchoolMarkerLayer({
         const isHovered = hoveredSchoolId === school.id;
         const isInSelectedProvince = selectedProvinceCode === provinceCode;
         const classification = school.classification;
+        const canOpenDetails = Boolean(school.directoryId);
         const classificationLabel = classification ?? "Chưa phân loại";
-        const style = SCHOOL_CLASSIFICATION_VISUALS[
-          classification ?? "Sàng lọc"
-        ];
+        const style = classification
+          ? SCHOOL_CLASSIFICATION_VISUALS[classification]
+          : UNCLASSIFIED_MARKER_VISUAL;
         const emphasis =
           isSelected || isHovered ? 1.2 : isInSelectedProvince ? 1.08 : 1;
         const haloRadius = style.markerRadius * emphasis;
@@ -120,30 +76,29 @@ export default function HighSchoolMarkerLayer({
 
         return (
           <g
-            aria-label={`${school.name}, ${provinceName}: ${classificationLabel}, ${school.potentialScore ?? "chưa có"} điểm tiềm năng`}
-            className="cursor-pointer outline-none focus:outline-none"
+            aria-disabled={!canOpenDetails}
+            aria-label={`${school.name}, ${provinceName}: ${classificationLabel}, ${school.potentialScore ?? "chưa có"} điểm tiềm năng${canOpenDetails ? "" : ", không thể mở chi tiết: thiếu mã tra cứu trường"}`}
+            className={`${canOpenDetails ? "cursor-pointer" : "cursor-default"} outline-none focus:outline-none`}
             key={school.id}
             onBlur={() => setHoveredSchoolId(null)}
             onClick={(event) => {
               event.stopPropagation();
-              onSelectSchool(provinceCode, school.id);
+              if (school.directoryId) onSelectSchool(provinceCode, school.id);
             }}
             onFocus={() => setHoveredSchoolId(school.id)}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                onSelectSchool(provinceCode, school.id);
+                if (school.directoryId) onSelectSchool(provinceCode, school.id);
               }
             }}
             onMouseEnter={() => setHoveredSchoolId(school.id)}
             onMouseLeave={() => setHoveredSchoolId(null)}
             role="button"
-            tabIndex={0}
+            tabIndex={canOpenDetails ? 0 : -1}
           >
             <title>
-              {school.name} · {classificationLabel} ·{" "}
-              {school.potentialScore ?? "-"}
-              {school.potentialScore === null ? "" : "/100"}
+              {`${school.name} · ${classificationLabel} · ${school.potentialScore ?? "-"}${school.potentialScore === null ? "" : "/100"}${canOpenDetails ? "" : " · Không thể mở chi tiết: thiếu mã tra cứu trường"}`}
             </title>
             <circle
               cx={markerX}
@@ -180,14 +135,25 @@ export default function HighSchoolMarkerLayer({
               fillOpacity={isSelected || isHovered ? 0.36 : 0.26}
               r={haloRadius}
             />
-            <circle
-              cx={markerX}
-              cy={markerY}
-              fill={style.markerColor}
-              r={coreRadius}
-              stroke="var(--card-background)"
-              strokeWidth={isSelected ? 0.5 : 0.25}
-            />
+            {classification === null ? (
+              <circle
+                cx={markerX}
+                cy={markerY}
+                fill="var(--card-background)"
+                r={coreRadius}
+                stroke="var(--icon-tertiary)"
+                strokeWidth={isSelected ? 1 : 0.75}
+              />
+            ) : (
+              <circle
+                cx={markerX}
+                cy={markerY}
+                fill={style.markerColor}
+                r={coreRadius}
+                stroke="var(--card-background)"
+                strokeWidth={isSelected ? 0.5 : 0.25}
+              />
+            )}
           </g>
         );
       })}
