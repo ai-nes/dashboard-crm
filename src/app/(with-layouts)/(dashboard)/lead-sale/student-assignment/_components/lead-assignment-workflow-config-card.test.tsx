@@ -53,6 +53,7 @@ const policy: LeadRoutingPolicy = {
 };
 const input = {
   enabled: true,
+  autoProcessEnabled: false,
   scheduledMinAgeMinutes: 5,
   maxLeadsPerRun: 1000,
 };
@@ -136,7 +137,8 @@ describe("Lead assignment settings", () => {
     const html = renderToStaticMarkup(<LeadAssignmentWorkflowConfigCard />);
     expect(html).toContain("Người nhận Lead");
     expect(html).toContain("Tiếp nhận tự động");
-    expect(html).toContain("Không có thời gian chờ theo tuổi Lead");
+    expect(html).toContain("Tự động xử lý Lead đầu vào");
+    expect(html).toContain("Chạy thủ công không cần chờ chu kỳ quét");
     expect(html).toContain("Kiểm tra Lead");
     expect(html).toContain("Xử lý lại");
     expect(html).toContain("Quy tắc hệ thống");
