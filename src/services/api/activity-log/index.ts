@@ -46,7 +46,9 @@ function normalizeActivityLog(raw: unknown): ActivityLogEntry {
     newValue: rawValue(record.new_value ?? record.newValue),
     owner: (record.owner as string | null | undefined) ?? null,
     ownerFullName:
-      (record.owner_full_name as string | null | undefined) ?? null,
+      (record.owner_full_name as string | null | undefined) ??
+      (record.ownerFullName as string | null | undefined) ??
+      null,
     occurredAt: String(record.occurred_at ?? record.occurredAt ?? ""),
     eventType: String(record.event_type ?? record.eventType ?? ""),
     category: String(record.category ?? ""),

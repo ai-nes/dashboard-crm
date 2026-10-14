@@ -1,6 +1,8 @@
 "use client";
 
-import { Eye, Pencil1, Plus } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+import { Plus } from "@tailgrids/icons";
 import { useState } from "react";
 
 import {
@@ -212,24 +214,9 @@ export default function TimingPoliciesTable({
                       {policy.modified ?? "—"}
                     </AdminTableCell>
                     <AdminTableCell className="text-center">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        appearance="outline"
-                        onPress={() => {
-                          setIsCreateOpen(false);
-                          setSelected(policy);
-                        }}
-                        aria-label={`${canEdit ? "Chỉnh sửa" : "Xem"} ${policy.policyKey}`}
-                        className="min-w-20"
-                      >
-                        {canEdit ? (
-                          <Pencil1 size={16} aria-hidden="true" />
-                        ) : (
-                          <Eye size={16} aria-hidden="true" />
-                        )}
-                        {canEdit ? "Sửa" : "Xem"}
-                      </Button>
+                      <TableRowActions label={policy.policyKey} actions={[
+  { id: canEdit ? "edit" : "view", label: canEdit ? "Chỉnh sửa" : "Xem chi tiết", ariaLabel: `${canEdit ? "Chỉnh sửa" : "Xem"} ${policy.policyKey}`, onAction: () => { setIsCreateOpen(false); setSelected(policy); } },
+]} />
                     </AdminTableCell>
                   </AdminTableRow>
                 ))}

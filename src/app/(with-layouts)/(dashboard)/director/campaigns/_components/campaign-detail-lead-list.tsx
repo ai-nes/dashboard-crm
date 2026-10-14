@@ -6,22 +6,34 @@ import {
   leadStageStatusColor,
   leadStageStatusLabel,
 } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-status";
-import { leadTableGrid } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-table-grid";
+import { leadTableActionsGrid } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-table-grid";
+import LeadRowActions from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-row-actions";
+import { leadDetailHref } from "@/app/(with-layouts)/(dashboard)/director/leads/_components/lead-source-navigation";
 import { formatDate } from "@/utils/format-date";
 import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import type { CampaignLeadRow } from "./campaign-detail-leads";
 
-export const campaignLeadListGrid = leadTableGrid;
+export const campaignLeadListGrid = leadTableActionsGrid;
 
 interface CampaignDetailLeadListProps {
   leads: CampaignLeadRow[];
   isFiltered?: boolean;
+  canEditLead?: (lead: CampaignLeadRow) => boolean;
+  canDeleteLead?: (lead: CampaignLeadRow) => boolean;
+  onDeleteRequest?: (lead: CampaignLeadRow) => void;
+  isDeleting?: boolean;
+  returnTo: string;
 }
 
 export default function CampaignDetailLeadList({
   leads,
   isFiltered = false,
+  canEditLead,
+  canDeleteLead,
+  onDeleteRequest,
+  isDeleting = false,
+  returnTo,
 }: CampaignDetailLeadListProps) {
   if (leads.length === 0) {
     return (
@@ -59,7 +71,10 @@ export default function CampaignDetailLeadList({
 
             <div className="min-w-0">
               <Link
-                href={`/director/leads/${encodeURIComponent(getBusinessRouteKey(lead.leadCode, lead.id))}`}
+                href={leadDetailHref(
+                  getBusinessRouteKey(lead.leadCode, lead.id),
+                  returnTo,
+                )}
                 className="block truncate font-semibold text-text-primary underline-offset-4 hover:text-primary-600 hover:underline"
               >
                 {lead.name}
@@ -123,6 +138,20 @@ export default function CampaignDetailLeadList({
                 {formatDate(lead.createdAt)}
               </p>
             </div>
+            <LeadRowActions
+              label={lead.leadCode || lead.name}
+              detailHref={leadDetailHref(
+                getBusinessRouteKey(lead.leadCode, lead.id),
+                returnTo,
+              )}
+              canEdit={canEditLead?.(lead) ?? false}
+              onDelete={
+                onDeleteRequest && canDeleteLead?.(lead)
+                  ? () => onDeleteRequest(lead)
+                  : undefined
+              }
+              isDeleting={isDeleting}
+            />
           </div>
         </li>
       ))}

@@ -1,6 +1,8 @@
 "use client";
 
-import { Eye, Pencil1 } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+
 
 import {
   AdminTableCell,
@@ -11,7 +13,7 @@ import {
   AdminTableRoot,
   AdminTableRow,
 } from "@/components/common/admin/admin-table";
-import { Button } from "@/components/tailgrids/core/button";
+
 import { TableBody } from "@/components/tailgrids/core/table";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import type {
@@ -242,29 +244,9 @@ function ActionTableRows({
           <RecordStatusBadge status={action.enabled ? "active" : "inactive"} />
         </AdminTableCell>
         <AdminTableCell className="text-center">
-          <Button
-            type="button"
-            size="sm"
-            variant="primary"
-            appearance={isSelected ? "fill" : "outline"}
-            onPress={() => onSelectAction(action.name)}
-            aria-expanded={isSelected}
-            aria-haspopup="dialog"
-            aria-label={
-              isSelected
-                ? `Đóng cấu hình ${action.displayName}`
-                : `${canUpdate ? "Chỉnh sửa" : "Xem"} ${action.displayName}`
-            }
-            className="min-w-20"
-          >
-            {!isSelected &&
-              (canUpdate ? (
-                <Pencil1 size={16} aria-hidden="true" />
-              ) : (
-                <Eye size={16} aria-hidden="true" />
-              ))}
-            {isSelected ? "Đóng" : canUpdate ? "Sửa" : "Xem"}
-          </Button>
+          <TableRowActions label={action.displayName} actions={[
+  { id: isSelected ? "close" : canUpdate ? "edit" : "view", label: isSelected ? "Đóng cấu hình" : canUpdate ? "Chỉnh sửa" : "Xem cấu hình", onAction: () => onSelectAction(action.name) },
+]} />
         </AdminTableCell>
       </AdminTableRow>
     </>

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import { DropdownField } from "@/components/common/dropdown-field";
+import { Button } from "@/components/tailgrids/core/button";
 import {
   useAssignLeadMutation,
   useLeadAssignmentTargetsQuery,
@@ -13,13 +14,19 @@ import type {
   LeadAssignmentTarget,
 } from "@/services/api/lead-sale";
 
-import { isLeadAssignableStatus } from "./lead-status";
+import {
+  isLeadAssignableStatus,
+  normalizeLeadStageStatus,
+} from "./lead-status";
 
 interface LeadAssigneeFieldProps {
   lead: LeadDetail;
   leadId: string;
   canAssign?: boolean;
+  canProcess?: boolean;
   isEditing?: boolean;
+  onProcessLead?: () => void;
+  isProcessingLead?: boolean;
 }
 
 const EMPTY_TARGETS: LeadAssignmentTarget[] = [];
@@ -28,12 +35,15 @@ export default function LeadAssigneeField({
   lead,
   leadId,
   canAssign = false,
+  canProcess = false,
   isEditing = false,
+  onProcessLead,
+  isProcessingLead = false,
 }: LeadAssigneeFieldProps) {
-  const assignmentReady =
-    isLeadAssignableStatus(
-      lead.processingStatus ?? lead.statusCode ?? lead.status,
-    ) && !lead.studentId;
+  const status = normalizeLeadStageStatus(
+    lead.processingStatus ?? lead.statusCode ?? lead.status,
+  );
+  const assignmentReady = isLeadAssignableStatus(status) && !lead.studentId;
   const targetsQuery = useLeadAssignmentTargetsQuery(leadId, {
     enabled: canAssign && assignmentReady,
   });
@@ -60,7 +70,15 @@ export default function LeadAssigneeField({
   );
 
   if (!canAssign || !assignmentReady) {
-    return <ReadOnlyAssigneeField lead={lead} />;
+    return (
+      <ReadOnlyAssigneeField
+        canProcess={canProcess}
+        isProcessingLead={isProcessingLead}
+        lead={lead}
+        onProcessLead={onProcessLead}
+        status={status}
+      />
+    );
   }
 
   const handleChange = (value: string) => {
@@ -159,7 +177,19 @@ export default function LeadAssigneeField({
   );
 }
 
-function ReadOnlyAssigneeField({ lead }: { lead: LeadDetail }) {
+function ReadOnlyAssigneeField({
+  lead,
+  status,
+  canProcess,
+  onProcessLead,
+  isProcessingLead,
+}: {
+  lead: LeadDetail;
+  status: ReturnType<typeof normalizeLeadStageStatus>;
+  canProcess: boolean;
+  onProcessLead?: () => void;
+  isProcessingLead: boolean;
+}) {
   return (
     <div className="min-w-0">
       <dt className="text-xs leading-5 text-text-tertiary">Người phụ trách</dt>
@@ -168,6 +198,29 @@ function ReadOnlyAssigneeField({ lead }: { lead: LeadDetail }) {
           ? lead.owner || lead.ownerStaff
           : "Chưa có người phụ trách"}
       </dd>
+      {status === "NEW" && (
+        <div className="mt-2 space-y-2" role="note">
+          <p className="text-xs text-text-tertiary">
+            Lead mới cần được xử lý trước khi có thể phân công.
+          </p>
+          {canProcess && (
+            <Button
+              appearance="outline"
+              isDisabled={isProcessingLead}
+              onPress={onProcessLead}
+              size="sm"
+              variant="primary"
+            >
+              {isProcessingLead ? "Đang xử lý…" : "Xử lý Lead để phân công"}
+            </Button>
+          )}
+        </div>
+      )}
+      {status === "CLOSED" && (
+        <p className="mt-2 text-xs text-text-tertiary">
+          Lead đã đóng nên không thể phân công.
+        </p>
+      )}
     </div>
   );
 }

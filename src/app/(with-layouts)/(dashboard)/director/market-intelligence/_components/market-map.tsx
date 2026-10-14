@@ -19,6 +19,7 @@ import {
   REGION_CONFIGS,
 } from "./data";
 import HighSchoolMarkerLayer from "./high-school-marker-layer";
+import type { SchoolMarkerFilterAvailability } from "./school-marker-filtering";
 import SchoolEngagementFilter, {
   type SchoolEngagementOption,
   type SchoolMarkerFilters,
@@ -65,6 +66,7 @@ interface MarketMapProps {
   schoolFilters: SchoolMarkerFilters;
   selectedSchoolId: string | null;
   engagementOptions: SchoolEngagementOption[];
+  schoolFilterAvailability: SchoolMarkerFilterAvailability;
   totalSchools: number | null;
   totalProvinces: number;
 }
@@ -189,6 +191,7 @@ export default function MarketMap({
   schoolFilters,
   selectedSchoolId,
   engagementOptions,
+  schoolFilterAvailability,
   totalSchools: totalSchoolsFromApi,
   totalProvinces,
 }: MarketMapProps) {
@@ -375,6 +378,7 @@ export default function MarketMap({
             </DropdownMenuContent>
           </DropdownMenu>
           <SchoolEngagementFilter
+            availability={schoolFilterAvailability}
             onChange={onEngagementChange}
             options={engagementOptions}
             value={schoolFilters}
@@ -460,6 +464,17 @@ export default function MarketMap({
             />
             Sàng lọc
           </span>
+          {provinces.some((province) =>
+            province.highSchools.some((school) => school.classification === null),
+          ) && (
+            <span className="flex items-center gap-1.5 text-text-secondary">
+              <span
+                className="size-1 rounded-full bg-text-tertiary"
+                aria-hidden="true"
+              />
+              Chưa phân loại
+            </span>
+          )}
         </div>
 
         {/* Quick Zoom Buttons (Top-Left) */}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableRowLinkActions } from "@/components/common/table-row-link-actions";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
@@ -58,12 +59,7 @@ export default function SlaRiskCases({ riskCases }: SlaRiskCasesProps) {
                   {riskCase.owner}
                 </td>
                 <td className="px-5 py-3.5 text-right">
-                  <Link
-                    href={riskCase.href ?? "/director/students"}
-                    className="text-xs font-semibold text-primary-500 hover:text-primary-600"
-                  >
-                    Xem hồ sơ
-                  </Link>
+                  <TableRowLinkActions label={riskCase.name} href={riskCase.href ?? "/director/students"} />
                 </td>
               </tr>
             ))}

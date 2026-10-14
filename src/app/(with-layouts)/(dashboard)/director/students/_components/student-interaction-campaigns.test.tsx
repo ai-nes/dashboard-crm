@@ -13,11 +13,14 @@ vi.mock("@/components/common/detail-tabs", () => ({
   default: ({
     tabs,
     defaultSelectedKey,
+    actions,
   }: {
     tabs: { label: string }[];
     defaultSelectedKey: string;
+    actions?: React.ReactNode;
   }) => (
     <div data-selected={defaultSelectedKey}>
+      {actions}
       {tabs.map((t) => (
         <span key={t.label}>{t.label}</span>
       ))}
@@ -26,6 +29,52 @@ vi.mock("@/components/common/detail-tabs", () => ({
 }));
 
 describe("Campaigns inside Student interactions", () => {
+  it("shows Add campaign instead of Create interaction on the campaign tab", () => {
+    const html = renderToStaticMarkup(
+      <StudentInteractionsTabs
+        studentId="s"
+        canReadInteractions
+        canReadCampaigns
+        canAddCampaign
+        canCreateInteraction
+        initialCampaignTab
+        calls={[]}
+        messages={[]}
+      />,
+    );
+    expect(html).toContain("Thêm chiến dịch");
+    expect(html).not.toContain("Tạo tương tác");
+  });
+  it("hides the campaign mutation action for read-only users", () => {
+    const html = renderToStaticMarkup(
+      <StudentInteractionsTabs
+        studentId="s"
+        canReadInteractions
+        canReadCampaigns
+        canCreateInteraction
+        initialCampaignTab
+        calls={[]}
+        messages={[]}
+      />,
+    );
+    expect(html).not.toContain("Thêm chiến dịch");
+    expect(html).not.toContain("Tạo tương tác");
+  });
+  it("retains Create interaction on other tabs", () => {
+    const html = renderToStaticMarkup(
+      <StudentInteractionsTabs
+        studentId="s"
+        canReadInteractions
+        canReadCampaigns
+        canAddCampaign
+        canCreateInteraction
+        calls={[]}
+        messages={[]}
+      />,
+    );
+    expect(html).toContain("Tạo tương tác");
+    expect(html).not.toContain("Thêm chiến dịch");
+  });
   it("places Campaigns after Other when both grants are allowed", () => {
     const html = renderToStaticMarkup(
       <StudentInteractionsTabs

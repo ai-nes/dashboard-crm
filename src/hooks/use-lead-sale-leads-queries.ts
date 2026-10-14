@@ -255,8 +255,7 @@ export function useDeleteLeadMutation() {
 
   return useMutation<{ deleted: string }, Error, string>({
     mutationFn: (leadId) => deleteLead(leadId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: leadSaleLeadsKeys.all }),
+    onSuccess: () => refreshLeadFieldQueries(queryClient),
   });
 }
 

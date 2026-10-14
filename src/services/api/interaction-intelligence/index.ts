@@ -1,4 +1,4 @@
-import { NestApiError, nestRequest } from "../nest/nest-client";
+import { nestRequest, toServiceError } from "../nest/nest-client";
 import type {
   CreateInteractionInput,
   InteractionCatalog,
@@ -439,14 +439,7 @@ async function nestInteractionRequest<T>(
   try {
     return await nestRequest<T>(path, options);
   } catch (error) {
-    if (error instanceof NestApiError) {
-      throw new InteractionIntelligenceApiError(
-        error.status,
-        error.code,
-        error.message,
-      );
-    }
-    throw error;
+    throw toServiceError(error, InteractionIntelligenceApiError);
   }
 }
 
@@ -661,14 +654,7 @@ async function getNestCatalogItems<T extends InteractionCatalogItem>(
       query: { pageSize: 100 },
     });
   } catch (error) {
-    if (error instanceof NestApiError) {
-      throw new InteractionIntelligenceApiError(
-        error.status,
-        error.code,
-        error.message,
-      );
-    }
-    throw error;
+      throw toServiceError(error, InteractionIntelligenceApiError);
   }
   const rows = asRecord(raw)?.data;
   if (!Array.isArray(rows)) return [];

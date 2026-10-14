@@ -53,6 +53,22 @@ export function membersOfSmallTeam(
     .filter((item): item is TeamMember => item !== null);
 }
 
+export function teamLeaderCandidates(
+  state: TeamOrgState,
+  smallTeam: SmallTeam,
+): TeamMember[] {
+  const memberIds = new Set(smallTeam.memberIds);
+  return state.members.filter((member) => {
+    if (member.isActive === false || member.role === "LEAD_SALE") return false;
+    if (memberIds.has(member.id)) return true;
+    return (
+      member.isAvailableForTeam === true &&
+      member.campusId === smallTeam.campusId &&
+      (member.teamIds ?? []).length === 0
+    );
+  });
+}
+
 export function membersOfBigTeam(
   state: TeamOrgState,
   bigTeam: BigTeam,

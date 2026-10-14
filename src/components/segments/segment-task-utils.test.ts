@@ -6,6 +6,7 @@ import {
   getSegmentTaskDeadlineStatus,
   groupSegmentTasks,
   isSegmentTaskOverdue,
+  formatSegmentTaskDate,
 } from "./segment-task-utils";
 
 function task(overrides: Partial<CRMTask>): CRMTask {
@@ -19,6 +20,23 @@ function task(overrides: Partial<CRMTask>): CRMTask {
 }
 
 describe("segment task deadline helpers", () => {
+  it("uses the actual hour for overdue work rather than waiting until midnight", () => {
+    expect(
+      isSegmentTaskOverdue(
+        task({ dueDate: "2026-10-12T02:00:00Z", status: "Todo" }),
+        Date.parse("2026-10-12T03:00:00Z"),
+      ),
+    ).toBe(true);
+  });
+  it("displays and groups a UTC midnight boundary in the CRM calendar day", () => {
+    const item = task({ dueDate: "2026-10-12T17:00:00Z", status: "Todo" });
+    expect(formatSegmentTaskDate(item.dueDate)).toBe("13/10/2026");
+    const groups = groupSegmentTasks(
+      [item],
+      Date.parse("2026-10-12T16:00:00Z"),
+    );
+    expect(groups[0].id).toBe("2026-10-13");
+  });
   const now = new Date(2026, 8, 9, 10).getTime();
 
   it("marks an unfinished task with a past due date as overdue", () => {
@@ -47,6 +65,6 @@ describe("segment task deadline helpers", () => {
       now,
     );
 
-    expect(groups.map((group) => group.id)).toEqual(["overdue", "2026-8-12"]);
+    expect(groups.map((group) => group.id)).toEqual(["overdue", "2026-09-12"]);
   });
 });

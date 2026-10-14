@@ -81,6 +81,30 @@ describe("nestContentRequest", () => {
     ).resolves.toEqual({ name: "s1", deleted: true });
   });
 
+  it("preserves admin library pagination and caps preview contact requests", async () => {
+    fetchMock.mockImplementation(() => json({ templates: [], total: 19 }));
+    await call(
+      "crm.api.message_templates.list_admin_message_template_library",
+      {
+        query: { start: "16", page_length: "8" },
+      },
+    );
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      "http://api.test/api/v1/message-templates/library/admin?start=16&page_length=8",
+    );
+
+    fetchMock.mockImplementation(() => json({ contacts: [], total: 0 }));
+    await call(
+      "crm.api.message_templates.list_message_template_preview_contacts",
+      {
+        query: { context: "student", page_length: "50" },
+      },
+    );
+    expect(String(fetchMock.mock.calls[1]?.[0])).toBe(
+      "http://api.test/api/v1/message-templates/preview-contacts?context=student&limit=50",
+    );
+  });
+
   it("rejects methods that have no Nest equivalent", async () => {
     await expect(call("crm.api.unknown.thing")).rejects.toMatchObject({
       status: 501,

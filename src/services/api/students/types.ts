@@ -212,6 +212,7 @@ export interface StudentClassificationDimension {
 
 export interface StudentListItem {
   id: string;
+  ownerId?: string | null;
   /** Canonical CRM Student name used by Student stage commands. */
   studentId?: string | null;
   initials: string;

@@ -4,9 +4,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/common/delete-record-dialog";
+import { TableRowActions } from "@/components/common/table-row-actions";
 import { DatePickerField } from "@/components/common/date-picker-field";
 import { toMajorSelectorOptions } from "@/components/common/major-selector";
-import { Button } from "@/components/tailgrids/core/button";
 import { useAdmissionMethodsQuery } from "@/hooks/use-admission-catalog-queries";
 import { useMajorsQuery } from "@/hooks/use-major-catalog-queries";
 import {
@@ -33,7 +33,6 @@ import {
   LoadingState,
   Panel,
   PanelHeaderActions,
-  RowActions,
   SelectInput,
   StatusBadge,
   Table,
@@ -469,13 +468,8 @@ export default function AdmissionOfferingPanel() {
                     </StatusBadge>
                   </td>
                   <td className="px-3 py-3">
-                    <div className="flex flex-wrap justify-end gap-1">
-                      <RowActions
-                        isDisabled={isMutating}
-                        onEdit={
-                          offering.status === "Active"
-                            ? undefined
-                            : () => {
+                    <TableRowActions label={offering.name} isDisabled={isMutating} actions={[
+                      { id: "edit", label: "Chỉnh sửa", isVisible: offering.status !== "Active", onAction: () => {
                                 setForm({
                                   name: offering.name,
                                   admission_year: offering.admission_year,
@@ -488,37 +482,11 @@ export default function AdmissionOfferingPanel() {
                                   status: offering.status,
                                 });
                                 setIsEditorOpen(true);
-                              }
-                        }
-                        onDelete={
-                          offering.status === "Active"
-                            ? undefined
-                            : () => setPendingDelete(offering)
-                        }
-                      />
-                      {offering.status === "Draft" ||
-                      offering.status === "Pending Approval" ? (
-                        <Button
-                          size="sm"
-                          appearance="outline"
-                          isDisabled={isMutating}
-                          onPress={() => void setStatus(offering, "Active")}
-                        >
-                          Duyệt
-                        </Button>
-                      ) : null}
-                      {offering.status === "Active" ? (
-                        <Button
-                          size="sm"
-                          appearance="ghost"
-                          variant="danger"
-                          isDisabled={isMutating}
-                          onPress={() => void setStatus(offering, "Retired")}
-                        >
-                          Ngừng dùng
-                        </Button>
-                      ) : null}
-                    </div>
+                              } },
+                      { id: "delete", label: "Xóa", onAction: () => setPendingDelete(offering), isVisible: offering.status !== "Active", variant: "danger" },
+                      { id: "approve", label: "Duyệt", onAction: () => { void setStatus(offering, "Active"); }, isVisible: offering.status === "Draft" || offering.status === "Pending Approval" },
+                      { id: "retire", label: "Ngừng dùng", onAction: () => { void setStatus(offering, "Retired"); }, isVisible: offering.status === "Active", variant: "danger" },
+                    ]} />
                   </td>
                 </tr>
               ))}

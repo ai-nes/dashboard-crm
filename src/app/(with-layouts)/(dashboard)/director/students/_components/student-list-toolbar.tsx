@@ -100,7 +100,7 @@ export default function StudentListToolbar({
               aria-label="Tìm học sinh"
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
-              placeholder="Tìm theo tên, mã, trường, tư vấn viên…"
+              placeholder="Tìm mọi thông tin hồ sơ: tên, CCCD, SĐT…"
             />
           </InputGroup>
           <Select

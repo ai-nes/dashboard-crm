@@ -8,8 +8,10 @@ import { toast } from "sonner";
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import TaskDescriptionPreview from "@/components/common/task-description-preview";
 import { useUpdateCrmTaskMutation } from "@/hooks/use-crm-tasks-queries";
 import type { CtvSalePriorityTask } from "@/services/api/ctv-sale";
+import { getTaskTypeLabel } from "@/services/api/crm-tasks/presentation";
 
 import { formatDueTime } from "./formatters";
 
@@ -116,12 +118,13 @@ export default function PriorityTasks({
                       {task.studentName}
                     </p>
                     <Badge color={styles.badge} size="sm">
-                      {task.taskTypeLabel}
+                      {getTaskTypeLabel(task.taskTypeLabel, task.taskTypeLabel)}
                     </Badge>
                   </div>
-                  <p className="mt-1 truncate text-xs text-text-tertiary">
-                    {task.detail}
-                  </p>
+                  <TaskDescriptionPreview
+                    value={task.detail}
+                    className="mt-1 line-clamp-2 text-xs text-text-tertiary"
+                  />
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-text-primary">

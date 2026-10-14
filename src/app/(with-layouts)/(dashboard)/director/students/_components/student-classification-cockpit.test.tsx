@@ -131,15 +131,14 @@ beforeEach(() => {
   mocks.nba.mockReturnValue(<div>Next best actions</div>);
 });
 describe("student Insight overview", () => {
-  it("renders the accepted order and keeps one overview without inner tabs", () => {
+  it("keeps the streamlined NBA header before analysis without inner tabs or recent interactions", () => {
     const html = render();
     const sections = [
+      "Next best actions",
       "Insight Card",
       "Phân tích 6 chiều",
       "Tín hiệu thuận lợi",
       "Thông tin còn thiếu",
-      "Hành động tiếp theo",
-      "Recent interactions",
     ];
     let position = -1;
     for (const section of sections) {
@@ -148,6 +147,7 @@ describe("student Insight overview", () => {
       position = next;
     }
     expect(html).not.toContain('role="tablist"');
+    expect(html).not.toContain("Recent interactions");
     expect(html).toContain(overview.analysis!.insight.insight_card.headline);
     expect(html).toContain("Đang tiến triển");
     expect(html).toContain("Chủ động hỏi học bổng.");

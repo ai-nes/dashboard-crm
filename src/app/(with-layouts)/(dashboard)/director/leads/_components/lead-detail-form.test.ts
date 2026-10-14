@@ -43,7 +43,7 @@ describe("Lead detail form initialization", () => {
       admission_year: "y-id",
       branch: "c-id",
     });
-    expect(getSourceForm(lead).source).toBe("s-id");
+    expect(getSourceForm(lead)).toEqual({ segments: "", notes: "" });
   });
 
   it("keeps legacy labels when an older response has no IDs", () => {
@@ -59,6 +59,6 @@ describe("Lead detail form initialization", () => {
     }).lead;
     expect(getContactForm(lead).province).toBe("Province");
     expect(getAdmissionForm(lead).major).toBe("Major");
-    expect(getSourceForm(lead).source).toBe("Source");
+    expect(getSourceForm(lead)).not.toHaveProperty("source");
   });
 });

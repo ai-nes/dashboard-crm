@@ -5,6 +5,7 @@ import LeadsOverviewDashboard from "./leads-overview-dashboard";
 
 const state = vi.hoisted(() => ({
   read: true,
+  export: false,
   list: vi.fn<(params: unknown, options: unknown) => { isPending: boolean }>(
     () => ({ isPending: true }),
   ),
@@ -17,7 +18,11 @@ vi.mock("@/components/common/auth/auth-provider", () => ({
       roles: ["Admissions Director"],
       crm_capabilities: [],
       crm_doctype_permissions: {
-        "CRM Lead": { read: state.read, row_scope: "all" },
+        "CRM Lead": {
+          read: state.read,
+          export: state.export,
+          row_scope: "all",
+        },
       },
     },
   }),
@@ -29,6 +34,7 @@ vi.mock("@tanstack/react-query", () => ({
 vi.mock("@/hooks/use-lead-sale-leads-queries", () => ({
   useLeadSaleLeadsQuery: state.list,
   useCreateLeadMutation: () => ({}),
+  useDeleteLeadMutation: () => ({}),
   useImportLeadFileMutation: () => ({}),
   usePreviewNewLeadsMutation: () => ({}),
   useProcessNewLeadsMutation: () => ({}),
@@ -47,7 +53,22 @@ vi.mock("./lead-processing-preview-dialog", () => ({ default: () => null }));
 describe("Director lead list scope", () => {
   beforeEach(() => {
     state.read = true;
+    state.export = false;
     state.list.mockClear();
+  });
+
+  it("shows Excel export only with effective Lead read and export grants", () => {
+    state.export = true;
+    expect(renderToStaticMarkup(<DirectorLeadsPage />)).toContain("Xuất Excel");
+    state.export = false;
+    expect(renderToStaticMarkup(<DirectorLeadsPage />)).not.toContain(
+      "Xuất Excel",
+    );
+    state.export = true;
+    state.read = false;
+    expect(renderToStaticMarkup(<DirectorLeadsPage />)).not.toContain(
+      "Xuất Excel",
+    );
   });
 
   it("requests all leads without a default year, status, campaign or owner filter", () => {

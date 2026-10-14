@@ -18,7 +18,7 @@ function getAdmissionTabs(
     {
       id: "admission-management",
       label: "Thông tin quản lí nhập học",
-      content: <StudentAdmissionManagementMockup />,
+      content: <StudentAdmissionManagementMockup profile={data.admissionProfiles?.[0]} />,
     },
     {
       id: "admission-documents",

@@ -1,5 +1,7 @@
 import { Badge } from "@/components/tailgrids/core/badge";
+import TaskDescriptionPreview from "@/components/common/task-description-preview";
 import type { SaleTask } from "@/services/api/sale";
+import { getTaskDescriptionPreview } from "@/services/api/crm-tasks/presentation";
 
 import { formatDueTime, formatTaskDeadline } from "./formatters";
 import {
@@ -86,9 +88,13 @@ export default function TaskDetailPanel({
       </SaleDetailSection>
 
       <SaleDetailSection title="Nội dung">
-        <p className="rounded-xl border border-card-border bg-background-soft-50 p-4 text-sm leading-6 text-text-secondary">
-          {task.context ?? "Chưa có ghi chú cho công việc này."}
-        </p>
+        <div className="rounded-xl border border-card-border bg-background-soft-50 p-4 text-sm leading-6 text-text-secondary">
+          {getTaskDescriptionPreview(task.context) ? (
+            <TaskDescriptionPreview value={task.context} />
+          ) : (
+            "Chưa có ghi chú cho công việc này."
+          )}
+        </div>
       </SaleDetailSection>
 
       <p className="text-xs text-text-tertiary">

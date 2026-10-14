@@ -21,12 +21,13 @@ import {
   type LeadSaleTrendPoint,
 } from "./lead-sale-dashboard.types";
 
-const STAGE_DETAIL_IDS: Record<LeadSaleDashboardStage["id"], LeadSaleDetailId> = {
-  new: "stage-new",
-  attempting: "stage-attempting",
-  connected: "stage-connected",
-  qualified: "stage-qualified",
-};
+const STAGE_DETAIL_IDS: Record<LeadSaleDashboardStage["id"], LeadSaleDetailId> =
+  {
+    new: "stage-new",
+    attempting: "stage-attempting",
+    connected: "stage-connected",
+    qualified: "stage-qualified",
+  };
 
 const REP_DETAIL_IDS: LeadSaleDetailId[] = [
   "rep-a",
@@ -97,7 +98,12 @@ const DETAIL_IDS: LeadSaleDetailId[] = [
 
 function initials(value: string): string {
   const words = value.trim().split(/\s+/).filter(Boolean);
-  return words.slice(-2).map((word) => word[0]?.toUpperCase() ?? "").join("") || "–";
+  return (
+    words
+      .slice(-2)
+      .map((word) => word[0]?.toUpperCase() ?? "")
+      .join("") || "–"
+  );
 }
 
 function formatAge(days: number): string {
@@ -116,16 +122,21 @@ function formatActivity(value: string): string {
   if (!value) return "Chưa ghi nhận hoạt động";
   const date = new Date(value.replace(" ", "T"));
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+  }).format(date);
 }
 
 function issueLabel(code: string): string {
-  return {
-    overdue: "Quá hạn xử lý",
-    "missing-documents": "Thiếu giấy tờ",
-    uncontacted: "Chưa có tương tác",
-    aging: "Tồn lâu, cần cập nhật",
-  }[code] ?? "Cần rà soát";
+  return (
+    {
+      overdue: "Quá hạn xử lý",
+      "missing-documents": "Thiếu giấy tờ",
+      uncontacted: "Chưa có tương tác",
+      aging: "Tồn lâu, cần cập nhật",
+    }[code] ?? "Cần rà soát"
+  );
 }
 
 function toDetailRecord(
@@ -168,13 +179,14 @@ function createDetails(
   reps: LeadSaleRepPerformance[],
   agingBuckets: LeadSaleAgingBucket[],
 ): Record<LeadSaleDetailId, LeadSaleDetail> {
-  const details = Object.fromEntries(DETAIL_IDS.map((id) => [id, emptyDetail(id)])) as Record<
-    LeadSaleDetailId,
-    LeadSaleDetail
-  >;
+  const details = Object.fromEntries(
+    DETAIL_IDS.map((id) => [id, emptyDetail(id)]),
+  ) as Record<LeadSaleDetailId, LeadSaleDetail>;
   const records = payload.priorityQueue.map((row) => toDetailRecord(row));
+  const groupRecords = (id: string) =>
+    (payload.detailRecords?.[id] ?? []).map((row) => toDetailRecord(row));
   const set = (id: LeadSaleDetailId, patch: Partial<LeadSaleDetail>) => {
-    details[id] = { ...details[id], ...patch };
+    details[id] = { ...(details[id] ?? emptyDetail(id)), ...patch };
   };
 
   set("enrollment", {
@@ -184,10 +196,14 @@ function createDetails(
     metrics: [
       { label: "Đã nhập học", value: String(payload.summary.enrollment) },
       { label: "Chỉ tiêu", value: formatMetric(payload.summary.target) },
-      { label: "Mức đạt", value: formatMetric(payload.summary.achievement, "%") },
+      {
+        label: "Mức đạt",
+        value: formatMetric(payload.summary.achievement, "%"),
+      },
     ],
-    records,
-    recommendedAction: "Theo dõi nhóm hồ sơ đã hoàn tất và tập trung phần chỉ tiêu còn thiếu.",
+    records: groupRecords("enrollment"),
+    recommendedAction:
+      "Theo dõi nhóm hồ sơ đã hoàn tất và tập trung phần chỉ tiêu còn thiếu.",
   });
   set("forecast", {
     eyebrow: "DỰ BÁO NHẬP HỌC",
@@ -206,7 +222,8 @@ function createDetails(
       detailId: stage.detailId,
     })),
     kind: "stage-breakdown",
-    recommendedAction: "Ưu tiên các giai đoạn có độ phủ thấp hoặc nhiều hồ sơ cần xử lý.",
+    recommendedAction:
+      "Ưu tiên các giai đoạn có độ phủ thấp hoặc nhiều hồ sơ cần xử lý.",
   });
 
   for (const action of actions) {
@@ -218,9 +235,15 @@ function createDetails(
       tone: action.tone,
       metrics: [
         { label: "Số hồ sơ", value: String(action.value) },
-        { label: "Tuổi cao nhất", value: formatAge(action.value ? action.value : 0) },
+        {
+          label: "Tuổi cao nhất",
+          value: formatAge(
+            payload.actions.find((row) => row.id === action.id)
+              ?.longestAgeDays ?? 0,
+          ),
+        },
       ],
-      records,
+      records: action.value === 0 ? [] : groupRecords(detailId),
       recommendedAction: action.subtext,
     });
   }
@@ -233,10 +256,16 @@ function createDetails(
       tone: stage.tone,
       metrics: [
         { label: "Hồ sơ", value: String(stage.volume) },
-        { label: "Tỷ lệ chuyển đổi", value: stage.nextStepConversion === null ? "—" : `${stage.nextStepConversion}%` },
+        {
+          label: "Tỷ lệ chuyển đổi",
+          value:
+            stage.nextStepConversion === null
+              ? "—"
+              : `${stage.nextStepConversion}%`,
+        },
         { label: "Cần xử lý", value: String(stage.actionItemCount) },
       ],
-      records,
+      records: groupRecords(stage.detailId),
       recommendedAction: stage.actionItemCount
         ? "Rà soát và cập nhật bước tiếp theo cho các hồ sơ này."
         : "Tiếp tục theo dõi và cập nhật bước tiếp theo.",
@@ -248,9 +277,15 @@ function createDetails(
       eyebrow: "TUỔI HỒ SƠ",
       title: bucket.label,
       tone: bucket.tone,
-      metrics: [{ label: "Số hồ sơ", value: String(bucket.count) }, { label: "Khoảng thời gian", value: bucket.label }],
-      records,
-      recommendedAction: bucket.id === "0-2-days" ? "Theo dõi theo lịch xử lý." : "Ưu tiên rà soát và cập nhật bước tiếp theo.",
+      metrics: [
+        { label: "Số hồ sơ", value: String(bucket.count) },
+        { label: "Khoảng thời gian", value: bucket.label },
+      ],
+      records: groupRecords(bucket.detailId),
+      recommendedAction:
+        bucket.id === "0-2-days"
+          ? "Theo dõi theo lịch xử lý."
+          : "Ưu tiên rà soát và cập nhật bước tiếp theo.",
     });
   }
 
@@ -260,22 +295,28 @@ function createDetails(
     set(detailId, {
       eyebrow: "CHI TIẾT THEO SALE",
       title: rep.name,
-      tone: (rep.coverage !== null && rep.coverage < 1) || rep.overdue > 0 ? "warning" : "success",
+      tone:
+        (rep.coverage !== null && rep.coverage < 1) || rep.overdue > 0
+          ? "warning"
+          : "success",
       metrics: [
         { label: "Đã nhập học", value: String(rep.enrollment) },
         { label: "Độ phủ", value: formatCoverage(rep.coverage) },
-        { label: "Quá hạn / Cần xử lý", value: `${rep.overdue} / ${rep.actionItemCount}` },
+        {
+          label: "Quá hạn / Cần xử lý",
+          value: `${rep.overdue} / ${rep.actionItemCount}`,
+        },
       ],
       records: records.filter((record) => record.owner === rep.name),
-      recommendedAction: rep.overdue || rep.actionItemCount
-        ? "Cùng nhân viên tư vấn xử lý các hồ sơ quá hạn và việc cần xử lý trước khi nhận thêm."
-        : "Tiếp tục duy trì nhịp xử lý và cập nhật pipeline.",
+      recommendedAction:
+        rep.overdue || rep.actionItemCount
+          ? "Cùng nhân viên tư vấn xử lý các hồ sơ quá hạn và việc cần xử lý trước khi nhận thêm."
+          : "Tiếp tục duy trì nhịp xử lý và cập nhật pipeline.",
     });
   });
 
   priorityQueue.forEach((record, index) => {
-    const detailId = RECORD_DETAIL_IDS[index];
-    if (!detailId) return;
+    const detailId = record.detailId;
     set(detailId, {
       eyebrow: "HỒ SƠ CẦN XỬ LÝ",
       title: record.name,
@@ -314,22 +355,34 @@ export function toLeadSaleDashboardData(
       "due-today": "Hồ sơ có lịch gọi lại hoặc tư vấn trong ngày.",
       aging: "Hồ sơ đã ở giai đoạn hiện tại lâu, cần cập nhật bước tiếp theo.",
     }[action.id],
-    subtext: action.longestAgeDays ? `Hồ sơ lâu nhất: ${action.longestAgeDays} ngày` : "Không có hồ sơ trong nhóm này",
-    tone: action.id === "overdue" ? "danger" : action.id === "unassigned" ? "violet" : action.id === "aging" ? "warning" : "primary",
+    subtext:
+      action.value > 0
+        ? `Hồ sơ lâu nhất: ${action.longestAgeDays} ngày`
+        : "Không có hồ sơ trong nhóm này",
+    tone:
+      action.id === "overdue"
+        ? "danger"
+        : action.id === "unassigned"
+          ? "violet"
+          : action.id === "aging"
+            ? "warning"
+            : "primary",
     detailId: ACTION_DETAIL_IDS[action.id],
   }));
-  const priorityQueue: LeadSaleQueueRecord[] = payload.priorityQueue.map((row, index) => ({
-    id: row.id,
-    name: row.name,
-    initials: initials(row.name),
-    owner: row.owner,
-    stage: row.stageLabel,
-    issue: issueLabel(row.issueCode),
-    age: formatAge(row.ageDays),
-    nextAction: row.nextAction,
-    tone: ISSUE_TONES[row.issueCode] ?? "warning",
-    detailId: RECORD_DETAIL_IDS[index] ?? "aging",
-  }));
+  const priorityQueue: LeadSaleQueueRecord[] = payload.priorityQueue.map(
+    (row, index) => ({
+      id: row.id,
+      name: row.name,
+      initials: initials(row.name),
+      owner: row.owner,
+      stage: row.stageLabel,
+      issue: issueLabel(row.issueCode),
+      age: formatAge(row.ageDays),
+      nextAction: row.nextAction,
+      tone: ISSUE_TONES[row.issueCode] ?? "warning",
+      detailId: RECORD_DETAIL_IDS[index] ?? `record:${row.id}`,
+    }),
+  );
   const stages: LeadSaleStageAnalysis[] = payload.stages.map((stage) => ({
     ...stage,
     note: stage.actionItemCount
@@ -349,24 +402,33 @@ export function toLeadSaleDashboardData(
     },
   }));
   const trend: LeadSaleTrendPoint[] = payload.trend;
-  const agingBuckets: LeadSaleAgingBucket[] = payload.agingBuckets.map((bucket) => ({
-    ...bucket,
-    label: {
-      "0-2-days": "0–2 ngày",
-      "3-5-days": "3–5 ngày",
-      "6-10-days": "6–10 ngày",
-      "over-10-days": "Trên 10 ngày",
-    }[bucket.id],
-    note: bucket.id === "0-2-days" ? "Đang trong mốc xử lý" : "Cần theo dõi sát",
-    tone: bucket.id === "0-2-days" ? "success" : bucket.id === "3-5-days" ? "warning" : "danger",
-    detailId: AGING_DETAIL_IDS[bucket.id],
-  }));
+  const agingBuckets: LeadSaleAgingBucket[] = payload.agingBuckets.map(
+    (bucket) => ({
+      ...bucket,
+      label: {
+        "0-2-days": "0–2 ngày",
+        "3-5-days": "3–5 ngày",
+        "6-10-days": "6–10 ngày",
+        "over-10-days": "Trên 10 ngày",
+      }[bucket.id],
+      note:
+        bucket.id === "0-2-days" ? "Đang trong mốc xử lý" : "Cần theo dõi sát",
+      tone:
+        bucket.id === "0-2-days"
+          ? "success"
+          : bucket.id === "3-5-days"
+            ? "warning"
+            : "danger",
+      detailId: AGING_DETAIL_IDS[bucket.id],
+    }),
+  );
 
   const data = {
     asOf: response.meta.asOf,
     teamName: response.meta.team.name,
     periodLabel: `Kỳ tuyển sinh ${response.meta.admissionYear}`,
-    scopeLabel: "Toàn đội · Tất cả chương trình · Tất cả nguồn · Tất cả khu vực",
+    scopeLabel:
+      "Toàn đội · Tất cả chương trình · Tất cả nguồn · Tất cả khu vực",
     activeFilters: filters,
     summary,
     actions: actionItems,
@@ -376,7 +438,16 @@ export function toLeadSaleDashboardData(
     trend,
     agingBuckets,
     details: {} as Record<LeadSaleDetailId, LeadSaleDetail>,
-  } satisfies Omit<LeadSaleDashboardData, "details"> & { details: Record<LeadSaleDetailId, LeadSaleDetail> };
-  data.details = createDetails(payload, actionItems, priorityQueue, stages, reps, agingBuckets);
+  } satisfies Omit<LeadSaleDashboardData, "details"> & {
+    details: Record<LeadSaleDetailId, LeadSaleDetail>;
+  };
+  data.details = createDetails(
+    payload,
+    actionItems,
+    priorityQueue,
+    stages,
+    reps,
+    agingBuckets,
+  );
   return data;
 }

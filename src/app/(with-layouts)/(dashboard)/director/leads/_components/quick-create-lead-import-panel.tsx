@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDialogError } from "@/utils/dialog-error";
+
 import { UploadCloud } from "@tailgrids/icons";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 
@@ -121,9 +123,7 @@ const QuickCreateLeadImportPanel = forwardRef<
     } catch (requestError) {
       if (requestId === inspectRequestRef.current) {
         setError(
-          requestError instanceof Error
-            ? requestError.message
-            : "Chưa thể kiểm tra file import.",
+          formatDialogError(requestError, "Chưa thể kiểm tra file import."),
         );
       }
     } finally {
@@ -182,9 +182,7 @@ const QuickCreateLeadImportPanel = forwardRef<
         setCurrentStep(2);
       } catch (requestError) {
         setError(
-          requestError instanceof Error
-            ? requestError.message
-            : "Chưa thể kiểm tra dữ liệu đã map.",
+          formatDialogError(requestError, "Chưa thể kiểm tra dữ liệu đã map."),
         );
       } finally {
         setIsPreviewing(false);
@@ -209,9 +207,7 @@ const QuickCreateLeadImportPanel = forwardRef<
       setResult(await onImport(file, campaignCode, mapping));
     } catch (requestError) {
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Chưa thể nhập Lead.",
+        formatDialogError(requestError, "Chưa thể nhập Lead."),
       );
     }
   };
@@ -306,7 +302,7 @@ const QuickCreateLeadImportPanel = forwardRef<
         </p>
       )}
       {error && (
-        <p className="text-xs text-error-600" role="alert">
+        <p className="whitespace-pre-line break-words text-xs text-badge-error-text" role="alert">
           {error}
         </p>
       )}
@@ -486,7 +482,7 @@ function ValidationPreview({
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-text-tertiary">
           Mỗi dòng đã được đối chiếu trước khi nhập. Dấu{" "}
-          <span className="font-semibold text-error-600">Trùng</span> màu đỏ là
+          <span className="font-semibold text-badge-error-text">Trùng</span> màu đỏ là
           hồ sơ cần xem lại; không có dữ liệu nào được tạo ở bước này.
         </p>
         <StickyColumnPicker
@@ -566,7 +562,7 @@ function ValidationPreview({
             Đã tạo {result.created}/{result.total} Lead.
           </p>
           {result.errors.length > 0 && (
-            <div className="space-y-1 text-xs text-error-600">
+            <div className="space-y-1 text-xs text-badge-error-text">
               <p>
                 {result.errors.length} dòng chưa được nhập; kiểm tra lỗi trên
                 từng dòng.
@@ -714,7 +710,7 @@ function ResultStat({
       <p
         className={cn(
           "mt-1 text-lg font-semibold",
-          tone === "error" ? "text-error-600" : "text-text-primary",
+          tone === "error" ? "text-badge-error-text" : "text-text-primary",
         )}
       >
         {value}

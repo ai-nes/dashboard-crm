@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { studentsKeys } from "@/hooks/use-students-queries";
+import { refreshStudentProfileQueries } from "@/hooks/refresh-student-profile-queries";
 import {
   updateStudent,
   type StudentUpdateFields,
@@ -15,17 +15,7 @@ export function useStudentProfileUpdate(studentId: string) {
     mutationFn: (fields: StudentUpdateFields) =>
       updateStudent(studentId, fields),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: studentsKeys.student360(studentId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: studentsKeys.directorStudentsRoot,
-        }),
-        queryClient.invalidateQueries({
-          queryKey: studentsKeys.assignedStudentsRoot,
-        }),
-      ]);
+      await refreshStudentProfileQueries(queryClient);
     },
   });
 }

@@ -1,5 +1,10 @@
 import { CRM_TASK_STATUS_LABEL, type CRMTask } from "@/services/api/crm-tasks";
-import { formatDate, formatDateTime } from "@/utils/format-date";
+import {
+  crmCurrentDateKey,
+  crmDateTimeToApi,
+  crmTaskDateKey,
+  crmTaskDateTimeParts,
+} from "@/utils/crm-task-date-time";
 
 export type SegmentTaskDeadlineTone =
   | "overdue"
@@ -55,19 +60,14 @@ export const SEGMENT_TASK_PRIORITY_COLOR: Record<
   High: "error",
 };
 
-function toDateInputValue(value?: string): string {
-  if (!value) return "";
-  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
-
-  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
-}
-
 function getTaskDueAt(task: CRMTask): number | null {
-  const dateValue = toDateInputValue(task.dueDate);
-  if (!dateValue) return null;
-
-  const dueAt = new Date(`${dateValue}T23:59:59`).getTime();
+  if (!task.dueDate) return null;
+  const parts = crmTaskDateTimeParts(task.dueDate);
+  const value = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(task.dueDate)
+    ? task.dueDate
+    : crmDateTimeToApi(parts.date, parts.time ?? "23:59");
+  if (!value) return null;
+  const dueAt = new Date(value).getTime();
   return Number.isNaN(dueAt) ? null : dueAt;
 }
 
@@ -111,7 +111,7 @@ export function getSegmentTaskDeadlineStatus(
     return {
       tone: "overdue",
       label: "Quá hạn",
-      detail: `Đã quá hạn từ ${formatDate(task.dueDate)}`,
+      detail: `Đã quá hạn từ ${formatSegmentTaskDate(task.dueDate)}`,
     };
   }
 
@@ -120,14 +120,14 @@ export function getSegmentTaskDeadlineStatus(
     return {
       tone: "soon",
       label: "Sắp đến hạn",
-      detail: `Hạn xử lý ${formatDate(task.dueDate)}`,
+      detail: `Hạn xử lý ${formatSegmentTaskDate(task.dueDate)}`,
     };
   }
 
   return {
     tone: "upcoming",
     label: "Sắp tới",
-    detail: `Hạn xử lý ${formatDate(task.dueDate)}`,
+    detail: `Hạn xử lý ${formatSegmentTaskDate(task.dueDate)}`,
   };
 }
 
@@ -135,56 +135,30 @@ export function getSegmentTaskDate(task: CRMTask): Date {
   const source = task.dueDate || task.modified || task.creation;
   if (!source) return new Date(0);
 
-  const vnMatch = source.match(
-    /(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*·\s*(\d{1,2}):(\d{2}))?/,
-  );
-  if (vnMatch) {
-    const [, day, month, year, hour = "0", minute = "0"] = vnMatch;
-    return new Date(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hour),
-      Number(minute),
-    );
-  }
-
-  const dateOnly = source.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (dateOnly) {
-    return new Date(
-      Number(dateOnly[1]),
-      Number(dateOnly[2]) - 1,
-      Number(dateOnly[3]),
-    );
-  }
-
-  const parsed = new Date(source);
+  const parts = crmTaskDateTimeParts(source);
+  const value = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(source)
+    ? source
+    : crmDateTimeToApi(parts.date, parts.time ?? "00:00");
+  const parsed = new Date(value ?? "");
   return Number.isNaN(parsed.getTime()) ? new Date(0) : parsed;
 }
 
 function dateKey(date: Date): string {
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  return crmTaskDateKey(date.toISOString());
 }
 
-function dateGroupLabel(date: Date): string {
-  const today = new Date();
+function dateGroupLabel(date: Date, now: number): string {
   const startOfToday = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
+    `${crmCurrentDateKey(new Date(now))}T00:00:00Z`,
   );
-  const startOfDate = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  );
+  const startOfDate = new Date(`${dateKey(date)}T00:00:00Z`);
   const daysFromToday = Math.round(
     (startOfToday.getTime() - startOfDate.getTime()) / 86_400_000,
   );
 
   if (daysFromToday === 0) return "Hôm nay";
   if (daysFromToday === 1) return "Hôm qua";
-  return formatDate(date);
+  return formatSegmentTaskDate(date.toISOString());
 }
 
 export function groupSegmentTasks(
@@ -210,7 +184,7 @@ export function groupSegmentTasks(
       label: overdue
         ? "Quá hạn"
         : validDate
-          ? dateGroupLabel(date)
+          ? dateGroupLabel(date, now)
           : "Chưa xác định thời gian",
       tasks: [task],
       sortTime: overdue
@@ -228,14 +202,16 @@ export function formatSegmentTaskDate(
   value?: string,
   fallback = "Chưa thiết lập",
 ): string {
-  return formatDate(value, fallback);
+  return value ? crmTaskDateTimeParts(value).date || fallback : fallback;
 }
 
 export function formatSegmentTaskDateTime(
   value?: string,
   fallback = "Chưa thiết lập",
 ): string {
-  return formatDateTime(value, fallback);
+  if (!value) return fallback;
+  const parts = crmTaskDateTimeParts(value);
+  return parts.time ? `${parts.date} · ${parts.time}` : parts.date || fallback;
 }
 
 export function getAssigneeInitials(assignee?: string): string {

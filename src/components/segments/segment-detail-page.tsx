@@ -193,15 +193,13 @@ function SegmentDetailContent({
         >
           {[
             { id: "overview", label: "Tổng quan" },
-            { id: "next-action", label: "Hành động tiếp theo" },
             { id: "tasks", label: "Task" },
             { id: "activity-log", label: "Ghi chú nhật ký" },
           ].map((tab) => (
             <Tab
               key={tab.id}
               id={tab.id}
-              isDisabled={tab.id === "next-action"}
-              className="shrink-0 cursor-pointer border-b-2 border-transparent px-4 py-3.5 text-sm font-medium text-text-secondary outline-none data-[selected]:border-primary-500 data-[selected]:text-primary-500 data-[disabled]:cursor-default data-[disabled]:text-text-tertiary data-[disabled]:opacity-60 data-[focus-visible]:outline-2 data-[focus-visible]:outline-primary-500"
+              className="shrink-0 cursor-pointer border-b-2 border-transparent px-4 py-3.5 text-sm font-medium text-text-secondary outline-none data-[selected]:border-primary-500 data-[selected]:text-primary-500 data-[focus-visible]:outline-2 data-[focus-visible]:outline-primary-500"
             >
               {tab.label}
             </Tab>

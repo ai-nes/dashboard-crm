@@ -5,13 +5,14 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Pencil1, Search1, Trash1 } from "@tailgrids/icons";
+import { Search1 } from "@tailgrids/icons";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
+
 import { Card } from "@/components/tailgrids/core/card";
+import { TableRowActions } from "@/components/common/table-row-actions";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import { formatDate } from "@/utils/format-date";
 import { getBusinessRouteKey } from "@/utils/business-record-route";
@@ -25,10 +26,10 @@ import {
   type ChannelTypeValue,
 } from "./channel-types";
 import {
-  campaignModeColor,
-  campaignModeLabel,
-  campaignStatusColor,
-  campaignStatusLabel,
+  getCampaignModeColor,
+  getCampaignModeLabel,
+  getCampaignStatusColor,
+  getCampaignStatusLabel,
 } from "./mappings";
 import type { CampaignListItem, CampaignMode, CampaignStatus } from "./types";
 
@@ -157,8 +158,8 @@ export default function CampaignList({
                 <p className="font-mono text-xs font-semibold text-text-primary">
                   {campaign.code.trim() || "Chưa có mã chiến dịch"}
                 </p>
-                <Badge color={campaignStatusColor[campaign.status]}>
-                  {campaignStatusLabel[campaign.status]}
+                <Badge color={getCampaignStatusColor(campaign.status)}>
+                  {getCampaignStatusLabel(campaign.status)}
                 </Badge>
               </div>
               <Link
@@ -175,8 +176,8 @@ export default function CampaignList({
                 {formatDate(campaign.endDate)}
               </p>
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                <Badge color={campaignModeColor[campaign.mode]}>
-                  {campaignModeLabel[campaign.mode]}
+                <Badge color={getCampaignModeColor(campaign.mode)}>
+                  {getCampaignModeLabel(campaign.mode)}
                 </Badge>
                 {canUpdate ? (
                   <CampaignChannelCell
@@ -198,28 +199,10 @@ export default function CampaignList({
               </div>
               {(canUpdate || canDelete) && (
                 <div className="mt-3 flex items-center justify-end gap-2 border-t border-card-border/60 pt-2.5">
-                  {canUpdate && (
-                    <Button
-                      appearance="ghost"
-                      size="sm"
-                      className="text-text-secondary"
-                      onPress={() => onEdit(campaign)}
-                    >
-                      <Pencil1 size={14} aria-hidden="true" />
-                      Sửa
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button
-                      appearance="ghost"
-                      size="sm"
-                      variant="danger"
-                      onPress={() => onDelete(campaign)}
-                    >
-                      <Trash1 size={14} aria-hidden="true" />
-                      Xóa
-                    </Button>
-                  )}
+                  <TableRowActions label={campaign.name} actions={[
+                    { id: "edit", label: "Chỉnh sửa", onAction: () => onEdit(campaign), isVisible: canUpdate },
+                    { id: "delete", label: "Xóa", onAction: () => onDelete(campaign), isVisible: canDelete, variant: "danger" },
+                  ]} />
                 </div>
               )}
             </div>

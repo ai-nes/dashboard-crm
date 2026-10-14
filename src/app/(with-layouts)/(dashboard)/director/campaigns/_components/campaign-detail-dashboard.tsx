@@ -1,19 +1,26 @@
 "use client";
 
 import { keepPreviousData, useQueries } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { DeleteRecordDialog } from "@/components/common/delete-record-dialog";
 import { Card } from "@/components/tailgrids/core/card";
 import { Pagination } from "@/components/tailgrids/core/pagination";
 import { useAuth } from "@/components/common/auth/auth-provider";
 import {
   getCrmDoctypePermissions,
   getCrmPermissions,
+  canPerformStudentAction,
 } from "@/components/common/auth/permissions";
 import {
   useLeadSaleCampaignChannelTypesQuery,
   useLeadSaleCampaignQuery,
 } from "@/hooks/use-lead-sale-campaign-queries";
-import { useLeadSaleLeadsQuery } from "@/hooks/use-lead-sale-leads-queries";
+import {
+  useDeleteLeadMutation,
+  useLeadSaleLeadsQuery,
+} from "@/hooks/use-lead-sale-leads-queries";
 import {
   useAssignedStudentsQuery,
   useDirectorStudentsQuery,
@@ -34,6 +41,7 @@ import {
   filterCampaignLeads,
   toCampaignLeadRow,
   type CampaignLeadStatusFilter,
+  type CampaignLeadRow,
 } from "./campaign-detail-leads";
 import CampaignDetailLeadToolbar from "./campaign-detail-lead-toolbar";
 import CampaignDetailRecordTabs, {
@@ -46,6 +54,7 @@ import StudentList, {
   studentListGrid,
 } from "../../students/_components/student-list";
 import { studentStatusOptions } from "../../students/_components/student-status";
+import { campaignStudentQuery } from "./campaign-student-query";
 import { toCampaignListItem } from "./campaign-mappers";
 import { getCampaignListPath } from "./campaign-routes";
 
@@ -57,8 +66,29 @@ export default function CampaignDetailDashboard({
 }: {
   campaignCode: string;
 }) {
+  const pathname = usePathname();
   const { user, isLoading: isAuthLoading } = useAuth();
   const studentPermissions = getCrmPermissions(user);
+  const deleteLead = useDeleteLeadMutation();
+  const [leadToDelete, setLeadToDelete] = useState<CampaignLeadRow | null>(
+    null,
+  );
+  const canDeleteLead = (lead: CampaignLeadRow) =>
+    !isAuthLoading &&
+    canPerformStudentAction(
+      studentPermissions.lead,
+      "delete",
+      { ownerId: lead.ownerId },
+      user,
+    );
+  const canEditLead = (lead: CampaignLeadRow) =>
+    !isAuthLoading &&
+    canPerformStudentAction(
+      studentPermissions.lead,
+      "update",
+      { ownerId: lead.ownerId },
+      user,
+    );
   const canReadCampaign = getCrmDoctypePermissions(
     user,
     "CRM Campaign",
@@ -85,8 +115,7 @@ export default function CampaignDetailDashboard({
   const leadsQuery = useLeadSaleLeadsQuery(
     { campaign: campaignQuery.data?.name ?? "", page: 1, pageSize: 100 },
     {
-      enabled:
-        Boolean(campaignQuery.data) && canReadLeads && !isAuthLoading,
+      enabled: Boolean(campaignQuery.data) && canReadLeads && !isAuthLoading,
     },
   );
   const fetchedLeads = useMemo(
@@ -140,14 +169,19 @@ export default function CampaignDetailDashboard({
     return Math.round((converted / fetchedLeads.length) * 100);
   }, [fetchedLeads, serverConversionRate]);
 
-  const studentQueryParams: DirectorStudentsParams = {
-    admissionYear: campaign?.admissionYear ?? 2026,
+  const baseStudentQueryParams: DirectorStudentsParams = {
+    ...(campaign?.admissionYear != null
+      ? { admissionYear: campaign.admissionYear }
+      : {}),
     page: studentPage,
     pageSize: studentPageSize,
     q: studentQuery || undefined,
     campaign: campaign?.id || undefined,
-    lifecycleStatus: studentStatus === "all" ? undefined : studentStatus,
   };
+  const studentQueryParams = campaignStudentQuery(
+    baseStudentQueryParams,
+    studentStatus,
+  );
   const sessionScopedStudentsQuery = useAssignedStudentsQuery(
     studentQueryParams,
     user?.user,
@@ -177,12 +211,10 @@ export default function CampaignDetailDashboard({
   ];
   const studentStatusCountQueries = useQueries({
     queries: studentStatusFilters.map((status) => {
-      const countParams: DirectorStudentsParams = {
-        ...studentQueryParams,
-        page: 1,
-        pageSize: 1,
-        lifecycleStatus: status === "all" ? undefined : status,
-      };
+      const countParams = campaignStudentQuery(
+        { ...baseStudentQueryParams, page: 1, pageSize: 1 },
+        status,
+      );
 
       return {
         queryKey: isSessionScopedStudentView
@@ -382,9 +414,17 @@ export default function CampaignDetailDashboard({
                 <span className="min-w-0 truncate">Kết quả</span>
                 <span className="min-w-0 truncate">Người phụ trách</span>
                 <span className="min-w-0 truncate">Ngày tạo</span>
+                <span className="sr-only">Thao tác</span>
               </div>
               <CampaignDetailLeadList
                 leads={visibleLeads}
+                returnTo={pathname}
+                canEditLead={canEditLead}
+                canDeleteLead={canDeleteLead}
+                onDeleteRequest={setLeadToDelete}
+                isDeleting={
+                  deleteLead.isPending || leadsQuery.isPlaceholderData
+                }
                 isFiltered={Boolean(leadQuery.trim()) || leadStatus !== "all"}
               />
               {totalLeads > 0 && (
@@ -444,6 +484,7 @@ export default function CampaignDetailDashboard({
                 <span className="min-w-0 truncate">Trạng thái</span>
                 <span className="min-w-0 truncate">Điểm tiềm năng</span>
                 <span className="min-w-0 truncate">Người phụ trách</span>
+                <span className="sr-only">Thao tác</span>
               </div>
               <StudentList
                 students={students}
@@ -483,6 +524,28 @@ export default function CampaignDetailDashboard({
             </div>
           )}
         </Card>
+      )}
+      {leadToDelete && canDeleteLead(leadToDelete) && (
+        <DeleteRecordDialog
+          isOpen
+          isDeleting={deleteLead.isPending}
+          recordType="Lead"
+          recordName={leadToDelete.name}
+          onOpenChange={(open) => {
+            if (!open) setLeadToDelete(null);
+          }}
+          onConfirm={() => {
+            if (deleteLead.isPending || !canDeleteLead(leadToDelete)) return;
+            deleteLead.mutate(leadToDelete.id, {
+              onSuccess: () => {
+                setLeadToDelete(null);
+                toast.success("Đã xóa Lead.");
+              },
+              onError: (error) =>
+                toast.error(error.message || "Chưa thể xóa Lead."),
+            });
+          }}
+        />
       )}
     </main>
   );

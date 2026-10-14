@@ -6,6 +6,7 @@ import { DialogTrigger } from "react-aria-components";
 import { Button } from "@/components/tailgrids/core/button";
 import { Popover } from "@/components/tailgrids/core/popover";
 import type { SchoolClassification } from "@/services/api/schools/types";
+import type { SchoolMarkerFilterAvailability } from "./school-marker-filtering";
 
 export interface SchoolEngagementOption {
   id: string;
@@ -25,6 +26,7 @@ export interface SchoolMarkerFilters {
 export type SchoolPriorityGroup = SchoolClassification;
 
 interface SchoolEngagementFilterProps {
+  availability: SchoolMarkerFilterAvailability;
   onChange: (filters: SchoolMarkerFilters) => void;
   options: SchoolEngagementOption[];
   value: SchoolMarkerFilters;
@@ -44,6 +46,7 @@ const schoolGroups: Array<{ label: string; value: SchoolPriorityGroup }> = [
 ];
 
 export default function SchoolEngagementFilter({
+  availability,
   onChange,
   options,
   value,
@@ -104,6 +107,12 @@ export default function SchoolEngagementFilter({
               {potentialBands.map((band) => (
                 <FilterChip
                   active={draft.potentialBand === band.value}
+                  disabledReason={
+                    band.value !== "all" &&
+                    !availability.potentialBands.has(band.value)
+                      ? "Chưa có trường nào có điểm cơ hội trong khoảng này."
+                      : undefined
+                  }
                   key={band.value}
                   label={band.label}
                   onPress={() =>
@@ -118,6 +127,11 @@ export default function SchoolEngagementFilter({
               {schoolGroups.map((schoolGroup) => (
                 <FilterChip
                   active={draft.schoolGroups.includes(schoolGroup.value)}
+                  disabledReason={
+                    !availability.schoolGroups.has(schoolGroup.value)
+                      ? "Chưa có dữ liệu nguồn cho nhóm trường này."
+                      : undefined
+                  }
                   key={schoolGroup.value}
                   label={schoolGroup.label}
                   onPress={() =>
@@ -205,19 +219,24 @@ function FilterSection({
 }
 function FilterChip({
   active,
+  disabledReason,
   label,
   onPress,
 }: {
   active: boolean;
+  disabledReason?: string;
   label: string;
   onPress: () => void;
 }) {
   return (
     <button
+      aria-label={disabledReason ? `${label}. ${disabledReason}` : undefined}
       aria-pressed={active}
-      className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-button-primary-focus-ring ${active ? "border-brand-500 bg-brand-500/10 text-brand-600" : "border-card-border bg-card-background text-text-secondary hover:bg-background-soft-50 hover:text-text-primary"}`}
+      className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-button-primary-focus-ring disabled:cursor-not-allowed disabled:opacity-50 ${active ? "border-brand-500 bg-brand-500/10 text-brand-600" : "border-card-border bg-card-background text-text-secondary hover:bg-background-soft-50 hover:text-text-primary"}`}
+      disabled={Boolean(disabledReason)}
       onClick={onPress}
       type="button"
+      title={disabledReason}
     >
       {label}
     </button>

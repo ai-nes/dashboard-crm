@@ -19,8 +19,6 @@ export interface AdmissionForm {
 }
 
 export interface SourceForm {
-  source: string;
-  advertising_channel: string;
   segments: string;
   notes: string;
 }
@@ -51,8 +49,6 @@ export function getAdmissionForm(lead: LeadDetail): AdmissionForm {
 
 export function getSourceForm(lead: LeadDetail): SourceForm {
   return {
-    source: lead.sourceId || lead.source || "",
-    advertising_channel: lead.adChannel || "",
     segments: lead.segments.join(", "),
     notes: lead.description || "",
   };

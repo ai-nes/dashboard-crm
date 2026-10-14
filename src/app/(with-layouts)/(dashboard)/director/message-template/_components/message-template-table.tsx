@@ -1,23 +1,14 @@
 "use client";
 
-import { Copy4, Trash1 } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+
 import type { KeyboardEvent } from "react";
 
-import {
-  AdminTableBody,
-  AdminTableCell,
-  AdminTableHead,
-  AdminTableHeader,
-  AdminTableRoot,
-  AdminTableRow,
-} from "@/components/common/admin/admin-table";
-import { Button } from "@/components/tailgrids/core/button";
+import { AdminTableBody, AdminTableCell, AdminTableHead, AdminTableHeader, AdminTableRoot, AdminTableRow } from "@/components/common/admin/admin-table";
+
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/tailgrids/core/tooltip";
+
 
 import type { MessageTemplateRecord } from "./message-template-data";
 
@@ -158,47 +149,11 @@ export default function MessageTemplateTable({
                 {formatDate(template.modifiedAt)}
               </AdminTableCell>
               <AdminTableCell className="text-right">
-                <div
-                  className="flex justify-end gap-1"
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                >
-                  {canCreate ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          iconOnly
-                          size="sm"
-                          appearance="ghost"
-                          aria-label={`Nhân bản ${template.name}`}
-                          onPress={() => onDuplicate(template)}
-                        >
-                          <Copy4 size={17} aria-hidden="true" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Nhân bản</TooltipContent>
-                    </Tooltip>
-                  ) : null}
-                  {canDelete && template.canEdit ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          iconOnly
-                          size="sm"
-                          appearance="ghost"
-                          variant="danger"
-                          aria-label={`Xóa ${template.name}`}
-                          onPress={() => onDelete(template)}
-                        >
-                          <Trash1 size={17} aria-hidden="true" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Xóa</TooltipContent>
-                    </Tooltip>
-                  ) : null}
-                </div>
+                <TableRowActions label={template.name} actions={[
+          { id: "edit", label: "Chỉnh sửa", onAction: () => onEdit(template), isVisible: canUpdate && template.canEdit },
+          { id: "duplicate", label: "Nhân bản", onAction: () => onDuplicate(template), isVisible: canCreate },
+          { id: "delete", label: "Xóa", onAction: () => onDelete(template), isVisible: canDelete && template.canEdit, variant: "danger" },
+        ]} />
               </AdminTableCell>
             </AdminTableRow>
           ))

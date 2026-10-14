@@ -1,18 +1,13 @@
 "use client";
 
-import { Pencil1, Trash1 } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+
 
 import { Avatar, AvatarFallback } from "@/components/tailgrids/core/avatar";
-import {
-  AdminTableCell,
-  AdminTableHead,
-  AdminTableHeader,
-  AdminTablePagination,
-  AdminTableRoot,
-  AdminTableRow,
-} from "@/components/common/admin/admin-table";
+import { AdminTableCell, AdminTableHead, AdminTableHeader, AdminTablePagination, AdminTableRoot, AdminTableRow } from "@/components/common/admin/admin-table";
 import { Badge } from "@/components/tailgrids/core/badge";
-import { Button } from "@/components/tailgrids/core/button";
+
 import { TableBody } from "@/components/tailgrids/core/table";
 import type { CrmUser } from "@/services/api/user-management";
 
@@ -160,34 +155,10 @@ export default function UsersTable({
                     </AdminTableCell>
                     {canManageUsers ? (
                       <AdminTableCell className="py-3.5">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            iconOnly
-                            size="sm"
-                            variant="ghost"
-                            appearance="ghost"
-                            aria-label={`Sửa ${user.fullName}`}
-                            isDisabled={isMutating}
-                            className="text-text-tertiary hover:text-primary-500"
-                            onPress={() => onEdit(user)}
-                          >
-                            <Pencil1 size={16} aria-hidden="true" />
-                          </Button>
-                          <Button
-                            iconOnly
-                            size="sm"
-                            variant="ghost"
-                            appearance="ghost"
-                            aria-label={`Gỡ ${user.fullName} khỏi CRM`}
-                            isDisabled={
-                              isMutating || isSystemManager || user.sessionUser
-                            }
-                            className="text-text-tertiary hover:text-error-500"
-                            onPress={() => onRemove(user)}
-                          >
-                            <Trash1 size={16} aria-hidden="true" />
-                          </Button>
-                        </div>
+                        <TableRowActions label={user.fullName} isDisabled={isMutating} actions={[
+      { id: "edit", label: "Chỉnh sửa", ariaLabel: `Sửa ${user.fullName}`, onAction: () => onEdit(user) },
+      { id: "delete", label: "Gỡ khỏi CRM", ariaLabel: `Gỡ ${user.fullName} khỏi CRM`, onAction: () => onRemove(user), isVisible: !isSystemManager && !user.sessionUser, variant: "danger" },
+    ]} />
                       </AdminTableCell>
                     ) : null}
                   </AdminTableRow>

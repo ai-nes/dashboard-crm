@@ -29,7 +29,12 @@ export function DashboardAccessGuard({
   const isProtectedPath = isProtectedDashboardPath(pathname);
   const hasAccess =
     canReadCrmPath(pathname, user) &&
-    canAccessDashboardPath(pathname, user?.roles, user?.crm_capabilities);
+    canAccessDashboardPath(
+      pathname,
+      user?.roles,
+      user?.crm_capabilities,
+      user?.crm_is_administrator,
+    );
   const fallbackRoute = getCrmHomePath(user);
 
   useEffect(() => {

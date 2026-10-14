@@ -84,3 +84,5 @@ describe("System Manager role editing", () => {
     );
   });
 });
+
+vi.mock("@/components/tailgrids/core/dropdown", async () => import("@/test-utils/open-dropdown"));

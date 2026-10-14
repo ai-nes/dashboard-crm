@@ -3,7 +3,7 @@ import type {
   CampaignChannelTypeMode,
 } from "@/services/api/lead-sale";
 
-import type { CampaignMode } from "./types";
+import type { CampaignModeValue } from "./types";
 
 export type ChannelTypeValue = CampaignChannelType["code"];
 export type ChannelTypeOption = CampaignChannelType;
@@ -26,8 +26,9 @@ export function validateChannelUrl(value: string): string | null {
 
 export function channelTypeOptionsForMode(
   options: readonly ChannelTypeOption[],
-  mode: CampaignMode,
+  mode: CampaignModeValue,
 ): ChannelTypeOption[] {
+  if (!mode) return [];
   return options.filter((option) => option.modes.includes(mode as CampaignChannelTypeMode));
 }
 
@@ -40,10 +41,11 @@ export function getChannelTypeLabel(
 
 export function isChannelTypeValidForMode(
   value: ChannelTypeValue | "",
-  mode: CampaignMode,
+  mode: CampaignModeValue,
   options: readonly ChannelTypeOption[],
 ): boolean {
   if (!value) return true;
+  if (!mode) return false;
   const option = options.find((item) => item.code.toLowerCase() === value.toLowerCase());
   return option ? option.modes.includes(mode) : false;
 }

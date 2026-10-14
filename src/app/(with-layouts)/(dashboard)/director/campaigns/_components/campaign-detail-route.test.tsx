@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import CampaignDetailDashboard from "./campaign-detail-dashboard";
 
 const routeHook = vi.hoisted(() => vi.fn());
+const directorStudentsHook = vi.hoisted(() => vi.fn());
 
 vi.mock("@/hooks/use-canonical-business-route", () => ({
   useCanonicalBusinessRoute: routeHook,
@@ -33,12 +34,14 @@ vi.mock("@/hooks/use-lead-sale-campaign-queries", () => ({
       status: "ACTIVE",
       startDate: "2026-01-01",
       endDate: "2026-12-31",
+      admissionYear: null,
     },
     isPending: false,
     isError: false,
   }),
 }));
 vi.mock("@/hooks/use-lead-sale-leads-queries", () => ({
+  useDeleteLeadMutation: () => ({ isPending: false, mutate: vi.fn() }),
   useLeadSaleLeadsQuery: () => ({
     data: { data: [], meta: { stats: {} } },
     isPending: false,
@@ -47,7 +50,10 @@ vi.mock("@/hooks/use-lead-sale-leads-queries", () => ({
 }));
 vi.mock("@/hooks/use-students-queries", () => ({
   useAssignedStudentsQuery: () => ({ data: { data: [], meta: {} } }),
-  useDirectorStudentsQuery: () => ({ data: { data: [], meta: {} } }),
+  useDirectorStudentsQuery: (params: unknown) => {
+    directorStudentsHook(params);
+    return { data: { data: [], meta: {} } };
+  },
   studentsKeys: {
     assignedStudents: () => ["assigned-students"],
     directorStudents: () => ["director-students"],
@@ -60,7 +66,10 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 describe("campaign detail routes", () => {
-  beforeEach(() => routeHook.mockClear());
+  beforeEach(() => {
+    routeHook.mockClear();
+    directorStudentsHook.mockClear();
+  });
 
   it("canonicalizes a legacy campaign id to its loaded business code", () => {
     renderToStaticMarkup(
@@ -71,5 +80,16 @@ describe("campaign detail routes", () => {
       "8f2d69d0-1795-4c52-a94a-e77c9ef64918",
       "K26-014",
     );
+  });
+
+  it("does not invent an admission-year filter for a legacy campaign with no year", () => {
+    renderToStaticMarkup(
+      <CampaignDetailDashboard campaignCode="8f2d69d0-1795-4c52-a94a-e77c9ef64918" />,
+    );
+
+    const [query] = directorStudentsHook.mock.calls[0] as [
+      Record<string, unknown>,
+    ];
+    expect(query).not.toHaveProperty("admissionYear");
   });
 });

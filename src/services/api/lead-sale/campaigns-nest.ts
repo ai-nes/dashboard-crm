@@ -1,6 +1,6 @@
 /**
  * Campaigns against the NestJS reference-data API, reshaped for the existing
- * campaign screens. Lead routing maps onto the campaign's owning team.
+ * campaign screens. Lead routing maps onto its owning team or routing group.
  */
 import { NestApiError, nestRequest } from "../nest/nest-client";
 
@@ -15,11 +15,14 @@ interface NestCampaign {
   stableCode: string | null;
   status: string;
   campusId: string;
+  admissionYear: number | null;
   startDate: string | null;
   endDate: string | null;
   channelBoundary: string | null;
+  channelType: string | null;
   channelUrl: string | null;
   owningTeamId: string | null;
+  routingGroupId: string | null;
 }
 
 interface NestNamed {
@@ -27,6 +30,14 @@ interface NestNamed {
   name: string;
   campusId?: string;
   approvalState?: string;
+  isActive?: boolean;
+  teamType?: string;
+}
+
+interface NestCampaignRoutingGroup {
+  id: string;
+  name: string;
+  campusIds: string[];
 }
 
 const PAGE_SIZE = 500;
@@ -62,13 +73,24 @@ function toDashboard(
     title: campaign.title,
     status: campaign.status,
     campus: campusName.get(campaign.campusId) ?? campaign.campusId,
+    admission_year: campaign.admissionYear ?? null,
     start_date: isoDay(campaign.startDate),
     end_date: isoDay(campaign.endDate),
     channel_boundary: campaign.channelBoundary ?? "",
+    channel_type: campaign.channelType ?? null,
     channel_url: campaign.channelUrl ?? "",
-    lead_routing_enabled: campaign.owningTeamId !== null,
-    lead_routing_target_type: campaign.owningTeamId ? "Team" : "",
-    lead_routing_target_team: campaign.owningTeamId ?? "",
+    lead_routing_enabled: Boolean(
+      campaign.routingGroupId || campaign.owningTeamId,
+    ),
+    lead_routing_target_type: campaign.routingGroupId
+      ? "Team Group"
+      : campaign.owningTeamId
+        ? "Team"
+        : "",
+    lead_routing_target_team: campaign.routingGroupId
+      ? ""
+      : (campaign.owningTeamId ?? ""),
+    lead_routing_target_group: campaign.routingGroupId ?? "",
   };
 }
 
@@ -85,6 +107,14 @@ export async function nestCampaignList(params: {
     campaigns: result.data.map((row) => toDashboard(row, maps.campusName)),
     total: result.meta.pagination.total,
   };
+}
+
+/** Fetch only the campaign linked to the Lead; never infer a replacement. */
+export async function nestCampaignSourceGet(id: string) {
+  const { data } = await nestRequest<{ data: NestCampaign }>(
+    `/api/v1/reference-data/campaigns/${encodeURIComponent(id)}`,
+  );
+  return { name: data.id, title: data.title, channelType: data.channelType };
 }
 
 /** Look a campaign up by id, then by stable code or title. */
@@ -112,50 +142,80 @@ export async function nestCampaignGet(code: string): Promise<unknown> {
 }
 
 export async function nestCampaignRoutingOptions(): Promise<unknown> {
-  const maps = await nameMaps();
+  const [maps, routingGroups] = await Promise.all([
+    nameMaps(),
+    nestRequest<{ data: NestCampaignRoutingGroup[] }>(
+      "/api/v1/reference-data/campaign-routing-groups",
+    ),
+  ]);
   return {
     campuses: maps.campuses.map((campus) => ({
       name: campus.id,
       campus_name: campus.name,
     })),
-    teams: maps.teams.map((team) => ({
-      name: team.id,
-      team_name: team.name,
-      campus: maps.campusName.get(team.campusId ?? "") ?? "",
+    teams: maps.teams
+      .filter((team) => team.isActive && team.teamType === "Sales")
+      .map((team) => ({
+        name: team.id,
+        team_name: team.name,
+        campus: maps.campusName.get(team.campusId ?? "") ?? "",
+      })),
+    groups: routingGroups.data.map((group) => ({
+      name: group.id,
+      group_name: group.name,
+      campusIds: [...new Set(group.campusIds)].sort(),
     })),
-    groups: [],
   };
 }
 
 interface CampaignInput {
   title?: string;
   campus?: string;
+  admissionYear?: number | null;
   status?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate?: string | null;
+  endDate?: string | null;
   channelBoundary?: string;
-  channelUrl?: string;
+  channelType?: string | null;
+  channelUrl?: string | null;
   leadRoutingEnabled?: boolean;
+  leadRoutingTargetType?: "" | "Team" | "Team Group";
   leadRoutingTargetTeam?: string;
+  leadRoutingTargetGroup?: string;
   stableCode?: string;
 }
 
 async function toBody(input: CampaignInput): Promise<Record<string, unknown>> {
   const body: Record<string, unknown> = {};
   if (input.title !== undefined) body.title = input.title;
+  if (input.admissionYear !== undefined)
+    body.admissionYear = input.admissionYear;
   if (input.status) body.status = input.status;
-  if (input.startDate) body.startDate = input.startDate.slice(0, 10);
-  if (input.endDate) body.endDate = input.endDate.slice(0, 10);
+  if (input.startDate !== undefined)
+    body.startDate = input.startDate ? input.startDate.slice(0, 10) : null;
+  if (input.endDate !== undefined)
+    body.endDate = input.endDate ? input.endDate.slice(0, 10) : null;
   if (input.channelBoundary) body.channelBoundary = input.channelBoundary;
-  if (input.channelUrl) body.channelUrl = input.channelUrl;
+  if (input.channelType !== undefined)
+    body.channelType = input.channelType?.trim() || null;
+  if (input.channelUrl !== undefined)
+    body.channelUrl = input.channelUrl?.trim() || null;
   if (input.stableCode) body.stableCode = input.stableCode;
   if (input.campus) {
     const maps = await nameMaps();
     body.campusId = maps.campusId.get(input.campus) ?? input.campus;
   }
-  if (input.leadRoutingEnabled === false) body.owningTeamId = null;
-  else if (input.leadRoutingTargetTeam) {
-    body.owningTeamId = input.leadRoutingTargetTeam;
+  if (input.leadRoutingEnabled === false) {
+    body.owningTeamId = null;
+    body.routingGroupId = null;
+  } else if (input.leadRoutingEnabled === true) {
+    if (input.leadRoutingTargetType === "Team Group") {
+      body.owningTeamId = null;
+      body.routingGroupId = input.leadRoutingTargetGroup || null;
+    } else if (input.leadRoutingTargetType === "Team") {
+      body.owningTeamId = input.leadRoutingTargetTeam || null;
+      body.routingGroupId = null;
+    }
   }
   return body;
 }

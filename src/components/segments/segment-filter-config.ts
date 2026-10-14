@@ -12,6 +12,7 @@ import {
   TAG_SUBTYPE_LABEL,
 } from "@/services/api/student-classification/classification-types";
 import { isUuid } from "@/utils/is-uuid";
+import { studentStatusBadgeLabel } from "@/app/(with-layouts)/(dashboard)/director/students/_components/student-status";
 
 export {
   LEAD_NEED_CATEGORY_LABEL,
@@ -178,6 +179,10 @@ export const STUDENT_STAGE_BADGE_COLORS: Record<
 export function getStudentStageLabel(value: string | null | undefined): string {
   if (!value) return "Chưa cập nhật";
   return STUDENT_STAGE_LABEL[value as StudentStageValue] ?? value;
+}
+
+export function getStudentStageBadgeLabel(value: string | null | undefined): string {
+  return studentStatusBadgeLabel[value as keyof typeof studentStatusBadgeLabel] ?? getStudentStageLabel(value);
 }
 
 export function getStudentStageBadgeColor(

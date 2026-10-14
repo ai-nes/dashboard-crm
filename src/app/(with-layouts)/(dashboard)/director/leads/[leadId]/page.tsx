@@ -9,9 +9,18 @@ export const metadata: Metadata = {
 
 export default async function LeadDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ leadId: string }>;
+  searchParams: Promise<{ edit?: string; returnTo?: string }>;
 }) {
   const { leadId } = await params;
-  return <LeadDetailDashboard leadId={leadId} />;
+  const { edit, returnTo } = await searchParams;
+  return (
+    <LeadDetailDashboard
+      leadId={leadId}
+      initialEditContact={edit === "contact"}
+      returnTo={returnTo}
+    />
+  );
 }

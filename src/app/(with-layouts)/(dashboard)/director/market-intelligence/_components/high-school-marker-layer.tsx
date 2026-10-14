@@ -107,8 +107,11 @@ export default function HighSchoolMarkerLayer({
         const isSelected = selectedSchoolId === school.id;
         const isHovered = hoveredSchoolId === school.id;
         const isInSelectedProvince = selectedProvinceCode === provinceCode;
-        const classification = school.classification ?? "Sàng lọc";
-        const style = SCHOOL_CLASSIFICATION_VISUALS[classification];
+        const classification = school.classification;
+        const classificationLabel = classification ?? "Chưa phân loại";
+        const style = SCHOOL_CLASSIFICATION_VISUALS[
+          classification ?? "Sàng lọc"
+        ];
         const emphasis =
           isSelected || isHovered ? 1.2 : isInSelectedProvince ? 1.08 : 1;
         const haloRadius = style.markerRadius * emphasis;
@@ -117,7 +120,7 @@ export default function HighSchoolMarkerLayer({
 
         return (
           <g
-            aria-label={`${school.name}, ${provinceName}: ${classification}, ${school.potentialScore ?? "chưa có"} điểm tiềm năng`}
+            aria-label={`${school.name}, ${provinceName}: ${classificationLabel}, ${school.potentialScore ?? "chưa có"} điểm tiềm năng`}
             className="cursor-pointer outline-none focus:outline-none"
             key={school.id}
             onBlur={() => setHoveredSchoolId(null)}
@@ -138,7 +141,7 @@ export default function HighSchoolMarkerLayer({
             tabIndex={0}
           >
             <title>
-              {school.name} · {classification} ·{" "}
+              {school.name} · {classificationLabel} ·{" "}
               {school.potentialScore ?? "-"}
               {school.potentialScore === null ? "" : "/100"}
             </title>

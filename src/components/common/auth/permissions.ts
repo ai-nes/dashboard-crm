@@ -3,7 +3,11 @@ import type {
   CurrentUserDocTypePermission,
 } from "@/services/api/auth";
 
-import { getDefaultRouteForRoles, getEffectiveDashboardRoles } from "./rbac";
+import {
+  canConfigureSystem,
+  getDefaultRouteForRoles,
+  getEffectiveDashboardRoles,
+} from "./rbac";
 
 export type CrmRecordScope = "assigned" | "team" | "all" | "none";
 export type CrmPermissionAction = "create" | "read" | "update" | "delete";
@@ -40,11 +44,7 @@ export function getNpsDashboardAccess(
 }
 
 export function isCrmAdmin(user: CurrentUser | null | undefined): boolean {
-  return Boolean(
-    user?.crm_is_administrator ||
-      user?.roles?.includes("Administrator") ||
-      user?.roles?.includes("System Manager"),
-  );
+  return user?.crm_is_administrator === true;
 }
 
 export function hasCrmCapability(
@@ -96,6 +96,10 @@ export function canReadStudentCampaigns(
     getCrmPermissions(user).student.canRead &&
     getCrmDoctypePermissions(user, "CRM Campaign").canRead
   );
+}
+
+export function canAddStudentCampaign(user: CurrentUser | null | undefined): boolean {
+  return canReadStudentCampaigns(user) && getCrmPermissions(user).student.canUpdate;
 }
 
 const CRM_PATH_RESOURCES: ReadonlyArray<{
@@ -217,6 +221,19 @@ export function canReadCrmPath(
   user: CurrentUser | null | undefined,
 ): boolean {
   const pathname = path.split(/[?#]/, 1)[0];
+  if (
+    pathname === "/admin/profile-options" ||
+    pathname.startsWith("/admin/profile-options/")
+  )
+    return isCrmAdmin(user);
+  if (
+    pathname === "/admin/task-reminders" ||
+    pathname.startsWith("/admin/task-reminders/")
+  )
+    return canConfigureSystem(
+      user?.crm_capabilities,
+      user?.crm_is_administrator,
+    );
   if (pathname === "/director/admin/activity-logs")
     return user?.crm_is_administrator === true;
   if (pathname === "/director/sla")
@@ -397,6 +414,12 @@ export function isStudentAssignedToUser(
   student: StudentOwnershipInfo,
   user: CurrentUser | null | undefined,
 ): boolean {
+  if (student.ownerId?.trim()) {
+    const ownerId = normalizeIdentity(student.ownerId);
+    return [user?.crm_user_id, user?.user, user?.email].some(
+      (id) => normalizeIdentity(id) === ownerId,
+    );
+  }
   const userIdentifiers = getUserIdentifiers(user);
   if (userIdentifiers.size === 0) return false;
 

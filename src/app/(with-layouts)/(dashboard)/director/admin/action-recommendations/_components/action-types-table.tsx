@@ -1,6 +1,8 @@
 "use client";
 
-import { Eye, Pencil1, Plus } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
+
+import { Plus } from "@tailgrids/icons";
 import { useState } from "react";
 
 import {
@@ -35,6 +37,26 @@ const statusOptions: SelectOption[] = [
   { id: "disabled", label: "Tạm dừng" },
 ];
 const PAGE_SIZE = 8;
+
+function formatNbaGroupDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("day")}/${part("month")}/${part("year")} ${part("hour")}:${part("minute")} (UTC+7)`;
+}
 
 export default function ActionTypesTable({
   canRead,
@@ -174,7 +196,7 @@ export default function ActionTypesTable({
                       {actionType.sortOrder}
                     </AdminTableCell>
                     <AdminTableCell className="text-text-secondary">
-                      {actionType.modified ?? "—"}
+                      {formatNbaGroupDateTime(actionType.modified)}
                     </AdminTableCell>
                     <AdminTableCell>
                       <RecordStatusBadge
@@ -182,24 +204,20 @@ export default function ActionTypesTable({
                       />
                     </AdminTableCell>
                     <AdminTableCell className="text-center">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        appearance="outline"
-                        onPress={() => {
-                          setIsCreateOpen(false);
-                          setSelected(actionType);
-                        }}
-                        aria-label={`${canUpdate ? "Chỉnh sửa" : "Xem"} nhóm ${actionType.displayName}`}
-                        className="min-w-20"
-                      >
-                        {canUpdate ? (
-                          <Pencil1 size={16} aria-hidden="true" />
-                        ) : (
-                          <Eye size={16} aria-hidden="true" />
-                        )}
-                        {canUpdate ? "Sửa" : "Xem"}
-                      </Button>
+                      <TableRowActions
+                        label={actionType.displayName}
+                        actions={[
+                          {
+                            id: canUpdate ? "edit" : "view",
+                            label: canUpdate ? "Chỉnh sửa" : "Xem chi tiết",
+                            ariaLabel: `${canUpdate ? "Chỉnh sửa" : "Xem"} nhóm ${actionType.displayName}`,
+                            onAction: () => {
+                              setIsCreateOpen(false);
+                              setSelected(actionType);
+                            },
+                          },
+                        ]}
+                      />
                     </AdminTableCell>
                   </AdminTableRow>
                 ))}

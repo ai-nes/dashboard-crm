@@ -15,11 +15,11 @@ import {
   validateChannelUrl,
 } from "./channel-types";
 import CampaignChannelTypeDropdown from "./campaign-channel-type-dropdown";
-import type { CampaignMode } from "./types";
+import type { CampaignModeValue } from "./types";
 
 interface CampaignChannelCellProps {
   campaignName: string;
-  mode: CampaignMode;
+  mode: CampaignModeValue;
   channelTypes: readonly ChannelTypeOption[];
   channelType: ChannelTypeValue | "";
   channelUrl: string;
@@ -141,7 +141,9 @@ export default function CampaignChannelCell({
           placeholder={
             mode === "OFFLINE"
               ? "https://forms.gle/..."
-              : "https://meet.google.com/..."
+              : mode === "ONLINE"
+                ? "https://meet.google.com/..."
+                : "Nhập Channel URL"
           }
           className="mt-1.5 h-9 w-full px-3 py-2 text-sm"
           onKeyDown={(event) => {

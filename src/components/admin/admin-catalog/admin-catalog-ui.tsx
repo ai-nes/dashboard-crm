@@ -2,7 +2,8 @@
 
 import { InfiniteSelectInput } from "@/components/common/infinite-select-input";
 
-import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
+import { Plus } from "@tailgrids/icons";
+import { TableRowActions } from "@/components/common/table-row-actions";
 import type {
   FormEvent,
   InputHTMLAttributes,
@@ -335,41 +336,20 @@ export function RowActions({
   onDelete,
   deleteLabel = "Xóa",
   isDisabled = false,
+  recordLabel = "bản ghi",
 }: {
   onEdit?: () => void;
   onDelete?: () => void;
   deleteLabel?: string;
   isDisabled?: boolean;
+  recordLabel?: string;
 }) {
   if (!onEdit && !onDelete) return null;
   return (
-    <div className="flex justify-end gap-1">
-      {onEdit ? (
-        <Button
-          aria-label="Sửa"
-          iconOnly
-          size="sm"
-          appearance="ghost"
-          isDisabled={isDisabled}
-          onPress={onEdit}
-        >
-          <Pencil1 size={16} aria-hidden="true" />
-        </Button>
-      ) : null}
-      {onDelete ? (
-        <Button
-          aria-label={deleteLabel}
-          iconOnly
-          size="sm"
-          appearance="ghost"
-          variant="danger"
-          isDisabled={isDisabled}
-          onPress={onDelete}
-        >
-          <Trash1 size={16} aria-hidden="true" />
-        </Button>
-      ) : null}
-    </div>
+    <TableRowActions label={recordLabel} isDisabled={isDisabled} actions={[
+      { id: "edit", label: "Chỉnh sửa", ariaLabel: "Sửa", onAction: onEdit },
+      { id: "delete", label: deleteLabel, ariaLabel: deleteLabel, onAction: onDelete, variant: "danger" },
+    ]} />
   );
 }
 
