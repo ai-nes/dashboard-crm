@@ -19,6 +19,8 @@ import {
 } from "@/components/tailgrids/core/table";
 import { Input } from "@/components/tailgrids/core/input";
 import { TextField } from "@/components/tailgrids/core/text-field";
+import { useAuth } from "@/components/common/auth/auth-provider";
+import { hasCrmCapability } from "@/components/common/auth/permissions";
 import { useLeadAssignmentHistoryQuery } from "@/hooks/use-lead-assignment-batch-queries";
 import type { LeadAssignmentHistoryItem } from "@/services/api/lead-sale";
 import { cn } from "@/utils/cn";
@@ -41,7 +43,7 @@ const statusTabs = [
   { id: "pending", label: "Chờ phân công" },
 ] as const;
 
-type HistoryStatus = (typeof statusTabs)[number]["id"];
+export type HistoryStatus = (typeof statusTabs)[number]["id"];
 
 function needsAttention(item: LeadAssignmentHistoryItem): boolean {
   return ["deferred", "manual_review", "failed"].includes(item.status);
@@ -49,17 +51,23 @@ function needsAttention(item: LeadAssignmentHistoryItem): boolean {
 
 function HistoryRow({
   item,
+  canResolve,
   onInspect,
 }: {
   item: LeadAssignmentHistoryItem;
+  canResolve: boolean;
   onInspect: (item: LeadAssignmentHistoryItem) => void;
 }) {
   return (
     <TableRow>
       <TableCell className="min-w-56">
-        <div className="font-semibold text-text-primary">{item.studentName}</div>
+        <div className="font-semibold text-text-primary">
+          {item.studentName}
+        </div>
         <div className="mt-0.5 text-xs text-text-tertiary">
-          <span className="font-medium text-text-secondary">{item.leadCode ?? "Chưa có mã Lead"}</span>
+          <span className="font-medium text-text-secondary">
+            {item.leadCode ?? "Chưa có mã Lead"}
+          </span>
         </div>
       </TableCell>
       <TableCell className="min-w-36 whitespace-nowrap text-sm text-text-secondary">
@@ -95,10 +103,13 @@ function HistoryRow({
         {item.batchCreatedAt ? formatDate(item.batchCreatedAt) : "—"}
       </TableCell>
       <TableCell className="min-w-32 text-right">
-        {needsAttention(item) ? (
-          <TableRowActions label={item.leadCode || item.studentName || "Lead"} actions={[
-  { id: "view", label: "Xử lý", onAction: () => onInspect(item) },
-]} />
+        {canResolve && needsAttention(item) ? (
+          <TableRowActions
+            label={item.leadCode || item.studentName || "Lead"}
+            actions={[
+              { id: "view", label: "Xử lý", onAction: () => onInspect(item) },
+            ]}
+          />
         ) : (
           <span className="text-xs text-text-tertiary">—</span>
         )}
@@ -107,14 +118,26 @@ function HistoryRow({
   );
 }
 
-export default function AssignmentBatchHistory() {
+/** `statuses` limits the visible status filters; the first one is the default. */
+export default function AssignmentBatchHistory({
+  statuses,
+}: {
+  statuses?: readonly HistoryStatus[];
+}) {
   const searchParams = useSearchParams();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  // The drawer re-runs assignment, so it needs the routing operator capability.
+  const canResolve =
+    !isAuthLoading && hasCrmCapability(user, "student.routing.operate");
+  const visibleTabs = statuses
+    ? statusTabs.filter((tab) => statuses.includes(tab.id))
+    : statusTabs;
   const requestedStatus = searchParams.get("status");
-  const initialStatus: HistoryStatus = statusTabs.some(
+  const initialStatus: HistoryStatus = visibleTabs.some(
     (tab) => tab.id === requestedStatus,
   )
     ? (requestedStatus as HistoryStatus)
-    : "all";
+    : (visibleTabs[0]?.id ?? "all");
   const leadIds = useMemo(
     () =>
       (searchParams.get("leadIds") ?? "")
@@ -166,7 +189,11 @@ export default function AssignmentBatchHistory() {
   return (
     <section aria-label="Lịch sử phân công" className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <TextField value={query} onChange={changeQuery} className="w-full sm:w-96">
+        <TextField
+          value={query}
+          onChange={changeQuery}
+          className="w-full sm:w-96"
+        >
           <Label className="sr-only">Tìm hồ sơ phân công</Label>
           <div className="relative">
             <Search1
@@ -193,32 +220,36 @@ export default function AssignmentBatchHistory() {
           </div>
         </TextField>
         <p className="text-sm text-text-secondary" aria-live="polite">
-          {pagination ? `${formatCount(pagination.total)} hồ sơ` : "Đang tải hồ sơ…"}
+          {pagination
+            ? `${formatCount(pagination.total)} hồ sơ`
+            : "Đang tải hồ sơ…"}
         </p>
       </div>
 
-      <div
-        className="flex flex-wrap gap-1.5"
-        role="tablist"
-        aria-label="Trạng thái hồ sơ"
-      >
-        {statusTabs.map((tab) => (
-          <Button
-            key={tab.id}
-            appearance="ghost"
-            size="sm"
-            aria-pressed={status === tab.id}
-            className={cn(
-              "text-text-secondary",
-              status === tab.id &&
-                "bg-badge-primary-background text-badge-primary-text",
-            )}
-            onPress={() => changeStatus(tab.id)}
-          >
-            {tab.label}
-          </Button>
-        ))}
-      </div>
+      {visibleTabs.length > 1 && (
+        <div
+          className="flex flex-wrap gap-1.5"
+          role="tablist"
+          aria-label="Trạng thái hồ sơ"
+        >
+          {visibleTabs.map((tab) => (
+            <Button
+              key={tab.id}
+              appearance="ghost"
+              size="sm"
+              aria-pressed={status === tab.id}
+              className={cn(
+                "text-text-secondary",
+                status === tab.id &&
+                  "bg-badge-primary-background text-badge-primary-text",
+              )}
+              onPress={() => changeStatus(tab.id)}
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {error && (
         <Card className="border-badge-error-text/30 px-5 py-4 text-sm text-badge-error-text">
@@ -242,7 +273,10 @@ export default function AssignmentBatchHistory() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-12 text-center text-text-tertiary">
+                <TableCell
+                  colSpan={7}
+                  className="py-12 text-center text-text-tertiary"
+                >
                   Đang tải lịch sử phân công…
                 </TableCell>
               </TableRow>
@@ -251,7 +285,10 @@ export default function AssignmentBatchHistory() {
                 <HistoryRow
                   key={`${item.batchId}:${item.id}`}
                   item={item}
-                  onInspect={(row) => setInspectedId(`${row.batchId}:${row.id}`)}
+                  canResolve={canResolve}
+                  onInspect={(row) =>
+                    setInspectedId(`${row.batchId}:${row.id}`)
+                  }
                 />
               ))
             ) : (
@@ -276,8 +313,8 @@ export default function AssignmentBatchHistory() {
         {pagination && pagination.total > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border px-5 py-3">
             <p className="text-xs text-text-tertiary">
-              {(page - 1) * pagination.pageSize + 1} đến {" "}
-              {Math.min(page * pagination.pageSize, pagination.total)} trong {" "}
+              {(page - 1) * pagination.pageSize + 1} đến{" "}
+              {Math.min(page * pagination.pageSize, pagination.total)} trong{" "}
               {formatCount(pagination.total)} hồ sơ
             </p>
             <div className="flex items-center gap-2">
@@ -309,7 +346,7 @@ export default function AssignmentBatchHistory() {
         )}
       </Card>
 
-      {inspectedItem && (
+      {canResolve && inspectedItem && (
         <AssignmentHistoryItemDrawer
           item={inspectedItem}
           onClose={() => setInspectedId(null)}

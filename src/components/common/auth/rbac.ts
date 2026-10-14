@@ -224,6 +224,7 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/sale", roles: ROLE_ROUTE_ROLES.sale },
   { path: "/sale/next-best-action", roles: ROLE_ROUTE_ROLES.sale },
   { path: "/sale/leads", roles: ROLE_ROUTE_ROLES.sale },
+  { path: "/sale/student-assignment", roles: ROLE_ROUTE_ROLES.sale },
   { path: "/sale/campaigns", roles: ROLE_ROUTE_ROLES.sale },
   { path: "/sale/students", roles: ROLE_ROUTE_ROLES.sale },
   { path: "/sale/tasks", roles: ROLE_ROUTE_ROLES.sale },
@@ -233,6 +234,10 @@ export const ROUTE_ACCESS: readonly RouteAccessRule[] = [
   { path: "/ctv-sale", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/results", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/leads", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
+  {
+    path: "/ctv-sale/student-assignment",
+    roles: ROLE_ROUTE_ROLES["ctv-sale"],
+  },
   { path: "/ctv-sale/campaigns", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/students", roles: ROLE_ROUTE_ROLES["ctv-sale"] },
   { path: "/ctv-sale/tasks", roles: ROLE_ROUTE_ROLES["ctv-sale"] },

@@ -1,4 +1,8 @@
-export default function AssignmentHistoryHeader() {
+export default function AssignmentHistoryHeader({
+  description = "Xem toàn bộ hồ sơ Lead, trạng thái xử lý và kết quả phân công.",
+}: {
+  description?: string;
+}) {
   return (
     <header>
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-text-tertiary">
@@ -10,7 +14,7 @@ export default function AssignmentHistoryHeader() {
         Lịch sử phân công
       </h1>
       <p className="mt-2 text-sm leading-6 text-text-secondary">
-        Xem toàn bộ hồ sơ Lead, trạng thái xử lý và kết quả phân công.
+        {description}
       </p>
     </header>
   );
