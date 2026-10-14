@@ -3,6 +3,7 @@ import {
   nestGetCurrentUser,
   nestRequestPasswordReset,
   nestResetPassword,
+  nestChangePassword,
   rolesForProfile,
 } from "./nest-auth";
 import {
@@ -35,6 +36,17 @@ describe("Nest Director workspace roles", () => {
 });
 
 describe("password reset requests", () => {
+  it("changes the signed-in user's password and revokes other sessions", async () => {
+    await nestChangePassword("current-password", "new-password");
+    expect(nestRequest).toHaveBeenCalledWith("/api/auth/change-password", {
+      method: "POST",
+      body: {
+        currentPassword: "current-password",
+        newPassword: "new-password",
+        revokeOtherSessions: true,
+      },
+    });
+  });
   it("requests a reset link with the application callback URL", async () => {
     await nestRequestPasswordReset(
       "user@example.test",

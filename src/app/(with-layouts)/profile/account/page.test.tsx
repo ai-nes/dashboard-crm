@@ -25,7 +25,13 @@ describe("account profile details", () => {
     expect(html).toContain("Họ và tên");
     expect(html).toContain("Địa chỉ email");
     expect(html).not.toContain('type="file"');
-    expect(html).not.toContain("<button");
+    expect(html).toContain("Đổi mật khẩu");
+    expect(html).toContain('name="currentPassword"');
+    expect(html).toContain('name="newPassword"');
+    expect(html).toContain('name="confirmPassword"');
+    expect(html).toContain('autoComplete="current-password"');
+    expect(html).toContain('minLength="6"');
+    expect(html).toContain('maxLength="128"');
     for (const unsupportedName of [
       "phone",
       "website",

@@ -10,6 +10,7 @@ import { useAuth } from "@/components/common/auth/auth-provider";
 import { Input } from "@/components/tailgrids/core/input";
 import { Label } from "@/components/tailgrids/core/label";
 import { TextField } from "@/components/tailgrids/core/text-field";
+import ChangePasswordForm from "./change-password-form";
 
 export default function AccountPage() {
   const { user } = useAuth();
@@ -53,6 +54,7 @@ export default function AccountPage() {
           </div>
         </div>
       </Card>
+      {user && <ChangePasswordForm />}
     </div>
   );
 }

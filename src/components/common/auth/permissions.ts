@@ -67,6 +67,10 @@ export function canReadStudentCampaigns(
   );
 }
 
+export function canAddStudentCampaign(user: CurrentUser | null | undefined): boolean {
+  return canReadStudentCampaigns(user) && getCrmPermissions(user).student.canUpdate;
+}
+
 const CRM_PATH_RESOURCES: ReadonlyArray<{
   path: string;
   documentTypes: readonly string[];

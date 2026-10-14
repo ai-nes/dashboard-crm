@@ -128,6 +128,16 @@ export async function nestLogout(): Promise<void> {
   }
 }
 
+export async function nestChangePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  await nestRequest("/api/auth/change-password", {
+    method: "POST",
+    body: { currentPassword, newPassword, revokeOtherSessions: true },
+  });
+}
+
 export async function nestRequestPasswordReset(
   email: string,
   redirectTo: string,

@@ -158,7 +158,7 @@ describe("Lead assignment workflow config API contract", () => {
     const result = await getLeadAssignmentWorkflowConfig();
 
     expect(result.config.stored.input.scheduledMinAgeMinutes).toBe(1);
-    expect(result.steps.input.settings.scheduledMinAgeMinutes).toBe(1);
+    expect(result.steps.input.settings).toHaveProperty("scheduledMinAgeMinutes", 1);
   });
 
   it("sends one step, reason and revision for an update", async () => {
