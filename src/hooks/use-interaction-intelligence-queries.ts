@@ -12,6 +12,7 @@ import {
   getInteractionCatalog,
   getInteractionDetail,
   getInteractionNpsPoint,
+  getNpsHistory,
   getNpsSaleSummary,
   listInteractions,
   type InteractionCatalog,
@@ -19,6 +20,9 @@ import {
   type InteractionFeedFilters,
   type InteractionFeedResponse,
   type InteractionNpsPointResponse,
+  type NpsHistoryFilters,
+  type NpsHistoryResponse,
+  type NpsSummaryFilters,
   type NpsSaleSummaryResponse,
 } from "@/services/api/interaction-intelligence";
 
@@ -29,9 +33,12 @@ export const interactionIntelligenceKeys = {
   detail: (interactionId: string) =>
     ["interaction-intelligence", "detail", interactionId] as const,
   catalog: () => ["interaction-intelligence", "catalog"] as const,
-  npsPoint: (interactionId: string) =>
-    ["interaction-intelligence", "nps-point", interactionId] as const,
-  npsSummary: () => ["interaction-intelligence", "nps-summary"] as const,
+  npsPoint: (viewerKey: string, interactionId: string) =>
+    ["interaction-intelligence", "nps-point", viewerKey, interactionId] as const,
+  npsSummary: (viewerKey: string, filters: NpsSummaryFilters) =>
+    ["interaction-intelligence", "nps-summary", viewerKey, filters] as const,
+  npsHistory: (viewerKey: string, filters: Omit<NpsHistoryFilters, "cursor">) =>
+    ["interaction-intelligence", "nps-history", viewerKey, filters] as const,
 };
 
 export function useInteractionFeedQuery(
@@ -80,9 +87,13 @@ export function useInteractionCatalogQuery(
 export function useInteractionNpsPointQuery(
   interactionId: string | null,
   enabled = true,
+  viewerKey = "",
 ): UseQueryResult<InteractionNpsPointResponse, Error> {
   return useQuery({
-    queryKey: interactionIntelligenceKeys.npsPoint(interactionId ?? ""),
+    queryKey: interactionIntelligenceKeys.npsPoint(
+      viewerKey,
+      interactionId ?? "",
+    ),
     queryFn: () => getInteractionNpsPoint(interactionId ?? ""),
     enabled: Boolean(interactionId) && enabled,
     staleTime: 30_000,
@@ -90,11 +101,39 @@ export function useInteractionNpsPointQuery(
 }
 
 export function useNpsSaleSummaryQuery(
+  filters: NpsSummaryFilters = {},
   enabled = true,
+  viewerKey = "",
 ): UseQueryResult<NpsSaleSummaryResponse, Error> {
   return useQuery({
-    queryKey: interactionIntelligenceKeys.npsSummary(),
-    queryFn: () => getNpsSaleSummary(),
+    queryKey: interactionIntelligenceKeys.npsSummary(viewerKey, filters),
+    queryFn: () => getNpsSaleSummary(filters),
+    enabled,
+    staleTime: 30_000,
+  });
+}
+
+export function useNpsHistoryQuery(
+  filters: NpsHistoryFilters = {},
+  enabled = true,
+  viewerKey = "",
+) {
+  const stableFilters: Omit<NpsHistoryFilters, "cursor"> = {
+    sale: filters.sale,
+    from_date: filters.from_date,
+    to_date: filters.to_date,
+    limit: filters.limit,
+  };
+  return useInfiniteQuery({
+    queryKey: interactionIntelligenceKeys.npsHistory(viewerKey, stableFilters),
+    queryFn: ({ pageParam }) =>
+      getNpsHistory({
+        ...stableFilters,
+        ...(typeof pageParam === "string" ? { cursor: pageParam } : {}),
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: NpsHistoryResponse) =>
+      lastPage.next_cursor ?? undefined,
     enabled,
     staleTime: 30_000,
   });

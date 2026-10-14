@@ -12,6 +12,37 @@ import {
 export type CrmRecordScope = "assigned" | "team" | "all" | "none";
 export type CrmPermissionAction = "create" | "read" | "update" | "delete";
 
+export type NpsReadScope = "own" | "team" | "all";
+
+export interface NpsDashboardAccess {
+  canRead: boolean;
+  scope: NpsReadScope | null;
+}
+
+/** Mirrors the backend's explicit NPS profile allowlist and fails closed. */
+export function getNpsDashboardAccess(
+  user: CurrentUser | null | undefined,
+): NpsDashboardAccess {
+  if (!user) return { canRead: false, scope: null };
+
+  if (user.crm_is_administrator || user.crm_profile === "administrator") {
+    return { canRead: true, scope: "all" };
+  }
+
+  switch (user.crm_profile) {
+    case "sales":
+    case "ctv_sale":
+      return { canRead: true, scope: "own" };
+    case "lead_sales":
+      return { canRead: true, scope: "team" };
+    case "ceo":
+    case "admissions_director":
+      return { canRead: true, scope: "all" };
+    default:
+      return { canRead: false, scope: null };
+  }
+}
+
 export function isCrmAdmin(user: CurrentUser | null | undefined): boolean {
   return user?.crm_is_administrator === true;
 }

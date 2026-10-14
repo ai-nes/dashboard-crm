@@ -56,11 +56,11 @@ export default function StudentInteractionDetail({
 
   return (
     <div className="border-t border-card-border pt-4">
-      <StudentConversationSummary
-        intelligence={detail.analysis?.intelligence}
-        callSummary={callSummary}
-      />
-      <div className="mt-5">
+      <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(15rem,0.42fr)] xl:items-start">
+        <StudentConversationSummary
+          intelligence={detail.analysis?.intelligence}
+          callSummary={callSummary}
+        />
         <StudentCallQualityScore interactionId={interactionId} />
       </div>
     </div>

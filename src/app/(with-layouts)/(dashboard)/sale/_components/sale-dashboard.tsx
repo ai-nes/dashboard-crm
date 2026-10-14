@@ -6,6 +6,7 @@ import { useSaleOverviewQuery } from "@/hooks/use-sale-overview-query";
 import { Button } from "@/components/tailgrids/core/button";
 import { Card } from "@/components/tailgrids/core/card";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
+import NpsSaleScoreCard from "@/components/common/nps-sale-score-card";
 
 import ConversionTrendChart from "./conversion-trend-chart";
 import SaleDetailSheet from "./sale-detail-sheet";
@@ -74,6 +75,8 @@ export default function SaleDashboard() {
         </div>
       ) : null}
       <SalePageHeader meta={overview.meta} />
+
+      <NpsSaleScoreCard mode="personal" />
 
       <section aria-label="Việc cần làm hôm nay" className="min-w-0">
         <PriorityTasks
