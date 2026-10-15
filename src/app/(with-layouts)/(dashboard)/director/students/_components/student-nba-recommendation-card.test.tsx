@@ -37,6 +37,12 @@ describe("main student NBA card UI", () => {
   it("hides decision actions when the server permits none", () => {
     expect(render({ permittedDecisions: [] })).not.toContain("<button");
   });
+  it("labels supplemental cards without labeling model-selected cards", () => {
+    expect(render({ suggestionSource: "supplemental" })).toContain(
+      "Gợi ý thêm",
+    );
+    expect(render()).not.toContain("Gợi ý thêm");
+  });
   it("hides decision actions without the effective mutation grants", () => {
     expect(render({}, { canDecide: false, canAccept: false })).not.toContain(
       "<button",

@@ -232,6 +232,10 @@ function normalizeRecommendation(
     studentName: text(record.studentName) ?? text(record.student_name),
     actionId,
     priority,
+    ...(record.suggestion_source === "supplemental" ||
+    record.suggestion_source === "ai"
+      ? { suggestionSource: record.suggestion_source }
+      : {}),
     channel: text(record.channel),
     reason: reason ?? "",
     objective: text(record.objective),

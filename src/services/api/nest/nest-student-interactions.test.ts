@@ -11,6 +11,20 @@ function json(body: unknown, status = 200) {
   );
 }
 
+function withEmptyCanonicalFeed() {
+  const mock = vi.mocked(fetch);
+  const timeline = mock.getMockImplementation()!;
+  mock.mockImplementation((url, init) =>
+    String(url).includes("/interactions")
+      ? Promise.resolve(
+          new Response(JSON.stringify({ items: [], next_cursor: null })),
+        )
+      : Promise.resolve(timeline(url, init)).then((response) =>
+          response.clone(),
+        ),
+  );
+}
+
 describe("student interactions with the Nest backend", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -49,6 +63,7 @@ describe("student interactions with the Nest backend", () => {
       }),
     );
 
+    withEmptyCanonicalFeed();
     const api = await import("../students");
     const result = await api.getStudentChatwootInteractions("student-1");
 

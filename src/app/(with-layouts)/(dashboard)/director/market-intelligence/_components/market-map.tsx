@@ -205,8 +205,8 @@ export default function MarketMap({
     [provinces],
   );
   const schoolMapCoverage = useMemo(
-    () => getSchoolMapCoverage(provinces, activeRegion),
-    [activeRegion, provinces],
+    () => getSchoolMapCoverage(provinces, activeRegion, geoData),
+    [activeRegion, provinces, geoData],
   );
   const totalSchools =
     totalSchoolsFromApi ??
@@ -339,10 +339,10 @@ export default function MarketMap({
               className="mt-1 text-[10px] text-text-secondary"
             >
               {schoolMapCoverage.locatedSchoolCount}/
-              {schoolMapCoverage.matchingSchoolCount} trường phù hợp có tọa độ
-              trên bản đồ
+              {schoolMapCoverage.matchingSchoolCount} trường phù hợp có vị trí
+              hợp lệ trên bản đồ
               {schoolMapCoverage.unlocatedSchoolCount > 0 &&
-                ` · ${schoolMapCoverage.unlocatedSchoolCount} trường thiếu tọa độ hợp lệ; vẫn có trong danh sách`}
+                ` · ${schoolMapCoverage.unlocatedSchoolCount} trường thiếu tọa độ hoặc tọa độ ngoài tỉnh; vẫn có trong danh sách`}
             </p>
           </div>
         </div>

@@ -89,6 +89,7 @@ export interface NbaRecommendation {
   studentName: string | null;
   actionId: string;
   priority: NbaRecommendationPriority;
+  suggestionSource?: "ai" | "supplemental";
   channel: string | null;
   reason: string;
   objective: string | null;

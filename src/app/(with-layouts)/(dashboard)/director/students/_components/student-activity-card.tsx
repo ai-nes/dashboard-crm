@@ -17,6 +17,7 @@ interface StudentActivityCardProps {
   preview?: ReactNode;
   aiInsight?: ReactNode;
   children: ReactNode;
+  footer?: ReactNode;
 }
 
 export default function StudentActivityCard({
@@ -30,6 +31,7 @@ export default function StudentActivityCard({
   preview,
   aiInsight,
   children,
+  footer,
 }: StudentActivityCardProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const expanded = expandedProp ?? internalExpanded;
@@ -80,6 +82,7 @@ export default function StudentActivityCard({
           {aiInsight}
         </div>
       )}
+      {footer}
     </article>
   );
 }

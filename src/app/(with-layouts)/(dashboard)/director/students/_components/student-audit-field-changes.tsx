@@ -5,6 +5,8 @@ import {
   type StudentAuditFieldChange,
 } from "./student-audit-changes";
 import type { StudentAuditLog } from "@/services/api/student-audit";
+import StudentAuditValueDetails from "./student-audit-value-details";
+import { needsStudentAuditDetails } from "./student-audit-summary";
 
 export default function StudentAuditFieldChanges({
   changes,
@@ -31,30 +33,39 @@ export default function StudentAuditFieldChanges({
               {change.fieldLabel}
             </Badge>
           </dt>
-          <dd className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1">
-            {isUpdate && (
-              <>
-                <span className="max-w-full whitespace-pre-wrap break-words text-text-secondary">
-                  <span className="sr-only">từ </span>
-                  {formatStudentAuditChangeValue(
-                    change.fieldname,
-                    change.oldValue,
-                  )}
-                </span>
-                <ArrowRight
-                  className="size-4 shrink-0 text-badge-sky-text"
-                  aria-hidden="true"
-                />
-              </>
-            )}
-            <span className="max-w-full whitespace-pre-wrap break-words font-semibold text-badge-sky-text">
-              {isUpdate && <span className="sr-only">tới </span>}
-              {formatStudentAuditChangeValue(
-                change.fieldname,
-                action === "deleted" ? change.oldValue : change.newValue,
+          {(isUpdate && needsStudentAuditDetails(change.oldValue)) ||
+          needsStudentAuditDetails(
+            action === "deleted" ? change.oldValue : change.newValue,
+          ) ? (
+            <dd className="min-w-0 w-full max-w-full">
+              <StudentAuditValueDetails change={change} action={action} />
+            </dd>
+          ) : (
+            <dd className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1">
+              {isUpdate && (
+                <>
+                  <span className="max-w-full whitespace-pre-wrap break-words text-text-secondary">
+                    <span className="sr-only">từ </span>
+                    {formatStudentAuditChangeValue(
+                      change.fieldname,
+                      change.oldValue,
+                    )}
+                  </span>
+                  <ArrowRight
+                    className="size-4 shrink-0 text-badge-sky-text"
+                    aria-hidden="true"
+                  />
+                </>
               )}
-            </span>
-          </dd>
+              <span className="max-w-full whitespace-pre-wrap break-words font-semibold text-badge-sky-text">
+                {isUpdate && <span className="sr-only">tới </span>}
+                {formatStudentAuditChangeValue(
+                  change.fieldname,
+                  action === "deleted" ? change.oldValue : change.newValue,
+                )}
+              </span>
+            </dd>
+          )}
         </div>
       ))}
     </dl>

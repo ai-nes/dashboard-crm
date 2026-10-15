@@ -75,10 +75,7 @@ function isConfidence(
   value: unknown,
 ): value is "low" | "medium" | "high" | null {
   return (
-    value === null ||
-    value === "low" ||
-    value === "medium" ||
-    value === "high"
+    value === null || value === "low" || value === "medium" || value === "high"
   );
 }
 
@@ -149,7 +146,8 @@ function normalizeNpsPoint(value: unknown): InteractionNpsPoint | null {
   const normalizedScore = item.normalized_score;
   const scored = status === "scored";
   if (
-    (scored && (!scores.every(isScore) || !isNormalizedScore(normalizedScore))) ||
+    (scored &&
+      (!scores.every(isScore) || !isNormalizedScore(normalizedScore))) ||
     (!scored &&
       (!scores.every((score) => score === null) || normalizedScore !== null))
   ) {
@@ -222,8 +220,7 @@ function normalizeNpsSummary(value: unknown): NpsSaleSummaryResponse {
     records.reduce((total, record) => total + record.count, 0) !==
       payload.total_points ||
     (payload.total_points === 0) !== (payload.average_score === null) ||
-    (payload.total_points === 0) !==
-      (payload.average_normalized_score === null)
+    (payload.total_points === 0) !== (payload.average_normalized_score === null)
   ) {
     return invalidNpsResponse("INVALID_INTERACTION_NPS_SUMMARY_RESPONSE");
   }
@@ -522,7 +519,22 @@ export async function getInteractionDetail(
       (asRecord(payload?.analysis) as InteractionDetailResponse["analysis"]) ??
       null,
     intents: Array.isArray(payload?.intents)
-      ? (payload.intents as InteractionDetailResponse["intents"])
+      ? payload.intents.flatMap((value) => {
+          const intent = asRecord(value);
+          const code = normalizeString(
+            intent?.semantic_key ?? intent?.intent_type,
+          );
+          return intent && code
+            ? [
+                {
+                  ...intent,
+                  id: normalizeString(intent.id ?? intent.name) ?? undefined,
+                  semantic_key: code,
+                  role: normalizeString(intent.role ?? intent.intent_role),
+                } as InteractionDetailResponse["intents"][number],
+              ]
+            : [];
+        })
       : [],
     score_effects: Array.isArray(payload?.score_effects)
       ? (payload.score_effects as InteractionDetailResponse["score_effects"])
@@ -553,8 +565,7 @@ export async function getInteractionNpsPoint(
   if (!payload || !hasOwn(payload, "point") || payload.point === undefined) {
     return invalidNpsResponse("INVALID_INTERACTION_NPS_RESPONSE");
   }
-  if (payload.point === null)
-    return { point: null };
+  if (payload.point === null) return { point: null };
   const point = normalizeNpsPoint(payload.point);
   if (!point) {
     throw new InteractionIntelligenceApiError(
@@ -654,7 +665,7 @@ async function getNestCatalogItems<T extends InteractionCatalogItem>(
       query: { pageSize: 100 },
     });
   } catch (error) {
-      throw toServiceError(error, InteractionIntelligenceApiError);
+    throw toServiceError(error, InteractionIntelligenceApiError);
   }
   const rows = asRecord(raw)?.data;
   if (!Array.isArray(rows)) return [];

@@ -21,6 +21,10 @@ export interface AiDimension {
   summary?: string | null;
   evidence?: AiDimensionEvidence[];
   missing?: string[];
+  /** Ordinal level projected onto 0/50/100; barrier is inverted to readiness. */
+  readiness_score?: number | null;
+  score_basis?: "level";
+  evidence_quality?: "clear" | "partial" | "insufficient";
 }
 
 export interface AiInsightCard {
@@ -39,7 +43,8 @@ export interface AiInsight {
 export interface AiNbaItem {
   rank: number;
   need_code: string;
-  need_score: number;
+  need_score: number | null;
+  source?: "ai" | "supplemental";
   action_code: string;
   title: string;
   goal: string;
@@ -85,6 +90,11 @@ export interface StudentAiOverview {
   state: StudentAiState;
   error?: string;
   analysis: StudentAnalysis | null;
+  previous_analysis?: {
+    source_revision: number;
+    generated_at: string;
+    insight: Pick<AiInsight, "dimensions">;
+  } | null;
   /** The analysis was made before the student's data last changed. */
   stale: boolean;
   labels: StudentAiLabels;
@@ -100,7 +110,11 @@ export interface AiMemoryItem {
   due: string | null;
   status: AiMemoryStatus;
   /** Who wrote it last: the AI or a sale. */
-  source: "ai" | "sale";
+  source: "ai" | "sale" | "manual";
+  provenance?: {
+    created_by: "ai" | "manual";
+    source_notes: { id: string; content: string; created_at: string }[];
+  };
   valid_from: string;
   updated_at: string;
 }

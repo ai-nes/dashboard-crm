@@ -4,6 +4,30 @@ import HighSchoolMarkerLayer from "./high-school-marker-layer";
 import { getSchoolMapCoverage } from "./school-map-coverage";
 import type { ProvinceMetrics } from "./types";
 
+const mapGeometry: import("./types").ProvinceFeatureCollection = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: { code: "79", name: "Test province" },
+      geometry: {
+        type: "MultiPolygon",
+        coordinates: [
+          [
+            [
+              [106, 10],
+              [107, 10],
+              [107, 11],
+              [106, 11],
+              [106, 10],
+            ],
+          ],
+        ],
+      },
+    },
+  ],
+};
+
 const province: ProvinceMetrics = {
   code: "79",
   name: "TP. Hồ Chí Minh",
@@ -90,7 +114,9 @@ describe("high school map markers", () => {
         <HighSchoolMarkerLayer
           onSelectSchool={() => undefined}
           projectPoint={([longitude, latitude]) => [longitude, latitude]}
-          schools={getSchoolMapCoverage([province], "all").locatedSchools}
+          schools={
+            getSchoolMapCoverage([province], "all", mapGeometry).locatedSchools
+          }
           selectedProvinceCode={null}
           selectedSchoolId={null}
         />
@@ -110,7 +136,9 @@ describe("high school map markers", () => {
         <HighSchoolMarkerLayer
           onSelectSchool={() => undefined}
           projectPoint={([longitude, latitude]) => [longitude, latitude]}
-          schools={getSchoolMapCoverage([province], "all").locatedSchools}
+          schools={
+            getSchoolMapCoverage([province], "all", mapGeometry).locatedSchools
+          }
           selectedProvinceCode={null}
           selectedSchoolId={null}
         />

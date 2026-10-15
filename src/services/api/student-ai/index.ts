@@ -18,10 +18,11 @@ export function getStudentAi(studentId: string): Promise<StudentAiOverview> {
 /** Queues one analysis ("Phân tích"); returns where it stands. */
 export function requestStudentAnalysis(
   studentId: string,
+  force = false,
 ): Promise<{ state: StudentAiState; error?: string }> {
   return nestRequest(`${base(studentId)}/analysis`, {
     method: "POST",
-    body: {},
+    body: { force },
   });
 }
 
@@ -42,13 +43,18 @@ export function editStudentMemory(
   edit: AiMemoryEdit & { expectedUpdatedAt?: string },
 ): Promise<AiMemoryItem> {
   const { expectedUpdatedAt, ...values } = edit;
-  return nestRequest(`${base(studentId)}/memory/${encodeURIComponent(itemId)}`, {
-    method: "PATCH",
-    body: {
-      ...values,
-      ...(expectedUpdatedAt ? { expected_updated_at: expectedUpdatedAt } : {}),
+  return nestRequest(
+    `${base(studentId)}/memory/${encodeURIComponent(itemId)}`,
+    {
+      method: "PATCH",
+      body: {
+        ...values,
+        ...(expectedUpdatedAt
+          ? { expected_updated_at: expectedUpdatedAt }
+          : {}),
+      },
     },
-  });
+  );
 }
 
 export function closeStudentMemory(
@@ -63,7 +69,9 @@ export function closeStudentMemory(
       method: "POST",
       body: {
         status,
-        ...(expectedUpdatedAt ? { expected_updated_at: expectedUpdatedAt } : {}),
+        ...(expectedUpdatedAt
+          ? { expected_updated_at: expectedUpdatedAt }
+          : {}),
       },
     },
   );
@@ -75,10 +83,13 @@ export function acceptNbaCard(
   cardId: string,
   due?: string,
 ): Promise<{ card_id: string; status: string; task_id: string }> {
-  return nestRequest(`${base(studentId)}/cards/${encodeURIComponent(cardId)}/accept`, {
-    method: "POST",
-    body: due ? { due } : {},
-  });
+  return nestRequest(
+    `${base(studentId)}/cards/${encodeURIComponent(cardId)}/accept`,
+    {
+      method: "POST",
+      body: due ? { due } : {},
+    },
+  );
 }
 
 export function rejectNbaCard(
@@ -86,8 +97,11 @@ export function rejectNbaCard(
   cardId: string,
   reason?: string,
 ): Promise<{ card_id: string; status: string }> {
-  return nestRequest(`${base(studentId)}/cards/${encodeURIComponent(cardId)}/reject`, {
-    method: "POST",
-    body: reason ? { reason } : {},
-  });
+  return nestRequest(
+    `${base(studentId)}/cards/${encodeURIComponent(cardId)}/reject`,
+    {
+      method: "POST",
+      body: reason ? { reason } : {},
+    },
+  );
 }

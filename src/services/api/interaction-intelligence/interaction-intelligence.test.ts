@@ -39,6 +39,12 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
 });
 
+it("normalizes intents from the canonical CRM interaction response", async () => {
+  fetchMock.mockResolvedValue(json({ interaction: {id:'I',interaction_type:'Zalo',occurred_at:'2026-10-14T09:00:00Z'}, intents:[{name:'intent-1',intent_type:'TUITION_CONCERN',intent_role:'parent',notes:'Mẹ cần phương án học phí.',confidence:0.94}] }));
+  const result=await getInteractionDetail('I');
+  expect(result.intents[0]).toMatchObject({id:'intent-1',semantic_key:'TUITION_CONCERN',role:'parent',notes:'Mẹ cần phương án học phí.',confidence:0.94});
+});
+
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();

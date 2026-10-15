@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { StudentAuditLog } from "@/services/api/student-audit";
 import StudentAuditItem from "./student-audit-item";
+import StudentAuditStructuredValue from "./student-audit-structured-value";
 
 const event: StudentAuditLog = {
   eventId: "audit-1",
@@ -297,8 +298,21 @@ describe("Student audit diary content", () => {
     expect(content).not.toContain(id);
     expect(content).not.toContain("source Lead Id");
     expect(content).toContain("Trường THPT");
-    expect(content).toContain("Phụ huynh yêu cầu gọi sau 17h");
-    expect(content).toContain("Sắp quá hạn chăm sóc");
+    expect(content).toContain("Xem chi tiết");
+    expect(content).not.toContain("Phụ huynh yêu cầu gọi sau 17h");
+    const details = renderToStaticMarkup(
+      <StudentAuditStructuredValue
+        field="payload"
+        value={{
+          sourceLeadId: id,
+          content: "Phụ huynh yêu cầu gọi sau 17h",
+          slaStatus: "warning",
+        }}
+      />,
+    );
+    expect(details).toContain("Phụ huynh yêu cầu gọi sau 17h");
+    expect(details).toContain("Sắp quá hạn chăm sóc");
+    expect(details).not.toContain(id);
     expect(
       text({
         ...event,
