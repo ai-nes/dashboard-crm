@@ -60,26 +60,31 @@ export default function StudentNbaRecommendationCard({
 
   return (
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-card-border bg-card-background">
-      <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-5">
-        <h3 className="break-words text-lg leading-7 font-semibold text-text-primary">
+      <div className="min-w-0 flex-1 px-4 py-4">
+        {recommendation.suggestionSource === "supplemental" && (
+          <span className="mb-2 inline-flex rounded-md bg-card-surface-area px-2 py-1 text-xs text-text-tertiary">
+            Gợi ý thêm
+          </span>
+        )}
+        <h3 className="break-words text-base leading-6 font-semibold text-text-primary">
           {recommendation.action.title}
         </h3>
 
         {recommendation.objective && (
-          <div className="mt-3 border-t border-card-border pt-3">
+          <div className="mt-2 border-t border-card-border pt-2">
             <p className="text-xs font-semibold text-text-tertiary">Mục tiêu</p>
-            <p className="mt-1.5 max-w-3xl text-sm leading-5 text-text-primary">
+            <p className="mt-1 max-w-3xl text-sm leading-5 text-text-primary">
               {recommendation.objective}
             </p>
           </div>
         )}
 
         {(timeLabel || dateLabel || expiresLabel) && (
-          <div className="mt-3 border-t border-card-border pt-3">
+          <div className="mt-2 border-t border-card-border pt-2">
             <p className="text-xs font-semibold text-text-tertiary">
               Thời gian
             </p>
-            <p className="mt-1.5 text-sm leading-5 text-text-primary">
+            <p className="mt-1 text-sm leading-5 text-text-primary">
               {[timeLabel, dateLabel].filter(Boolean).join(" · ") ||
                 "Chưa xác định"}
             </p>
@@ -94,8 +99,10 @@ export default function StudentNbaRecommendationCard({
 
       {hasRevision && operations.length > 0 && (
         <div
-          className="grid gap-2 border-t border-card-border px-4 py-3 sm:px-5"
-          style={{ gridTemplateColumns: `repeat(${operations.length}, 1fr)` }}
+          className="grid gap-2 border-t border-card-border px-3 py-2"
+          style={{
+            gridTemplateColumns: `repeat(${operations.length}, minmax(0, 1fr))`,
+          }}
         >
           {operations.map((operation) => (
             <NbaOperationButton
@@ -126,7 +133,7 @@ function NbaOperationButton({
       variant={isAccept ? "success" : isReject ? "danger" : "primary"}
       appearance={isAccept ? "fill" : "outline"}
       onPress={onPress}
-      className="w-full whitespace-nowrap"
+      className="min-w-0 w-full whitespace-nowrap px-2 text-xs"
     >
       <span>{CARD_OPERATION_LABELS[operation]}</span>
     </Button>

@@ -128,17 +128,20 @@ beforeEach(() => {
     isActive: false,
   });
   mocks.interactions.mockReturnValue(<div>Recent interactions</div>);
-  mocks.nba.mockReturnValue(<div>Next best actions</div>);
+  mocks.nba.mockImplementation(
+    ({ headerAction }: { headerAction?: import("react").ReactNode }) => (
+      <div>Next best actions{headerAction}</div>
+    ),
+  );
 });
 describe("student Insight overview", () => {
-  it("keeps the streamlined NBA header before analysis without inner tabs or recent interactions", () => {
+  it("renders the approved briefing, real NBA and selected evidence without replacing outer tabs", () => {
     const html = render();
     const sections = [
       "Next best actions",
-      "Insight Card",
+      "Radar tổng quan",
+      "Tóm tắt phân tích",
       "Phân tích 6 chiều",
-      "Tín hiệu thuận lợi",
-      "Thông tin còn thiếu",
     ];
     let position = -1;
     for (const section of sections) {
@@ -147,12 +150,21 @@ describe("student Insight overview", () => {
       position = next;
     }
     expect(html).not.toContain('role="tablist"');
+    expect(html).not.toContain("Phân tích học sinh");
+    expect(html).toContain("@5xl:grid-cols-4");
     expect(html).not.toContain("Recent interactions");
     expect(html).toContain(overview.analysis!.insight.insight_card.headline);
     expect(html).toContain("Đang tiến triển");
     expect(html).toContain("Chủ động hỏi học bổng.");
+    expect(html).toContain("Tín hiệu thuận lợi");
+    expect(html).toContain("Thông tin còn thiếu");
     expect(html).toContain("Chưa biết ngân sách gia đình.");
-    expect(html).toContain("Xem dẫn chứng Rào cản");
+    expect(html).toContain("Giải quyết rào cản");
+    expect(html).toContain("Mức chuẩn hoá");
+    expect(html).toContain("Phụ huynh hỏi phương án đóng phí.");
+    expect(html).not.toContain("Nguyễn Minh Anh");
+    expect(mocks.nba.mock.calls.at(-1)?.[0].compact).toBeUndefined();
+    expect(mocks.nba.mock.calls.at(-1)?.[0].showRunButton).toBe(false);
     expect(mocks.nba.mock.calls.at(-1)?.[0].studentId).toBe("STUDENT-1");
   });
   it.each(["create", "capability", "recommendation-read", "loading"])(

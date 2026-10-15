@@ -40,12 +40,14 @@ const outcomeConfig: Record<
   missed: { label: "Cuộc gọi nhỡ", color: "error" },
   "no-answer": { label: "Không nghe máy", color: "warning" },
   callback: { label: "Hẹn gọi lại", color: "primary" },
+  unknown: { label: "Chưa ghi nhận kết quả", color: "primary" },
 };
 
 const directionLabel: Record<StudentCallDirection, string> = {
   inbound: "Cuộc gọi đến",
   outbound: "Cuộc gọi đi",
   missed: "Cuộc gọi nhỡ",
+  unknown: "Chưa rõ chiều gọi",
 };
 
 const directionBadgeColor: Record<
@@ -55,6 +57,7 @@ const directionBadgeColor: Record<
   inbound: "primary",
   outbound: "warning",
   missed: "error",
+  unknown: "primary",
 };
 
 export default function StudentCallsTab({
@@ -290,6 +293,7 @@ function CallMeta({
 }
 
 function formatDuration(value?: number): string {
+  if (value === undefined) return "Chưa ghi nhận";
   if (!value || value <= 0) return "Không kết nối";
   const minutes = Math.floor(value / 60);
   const seconds = value % 60;

@@ -35,6 +35,7 @@ import type {
 } from "@/services/api/students/types";
 
 import StudentActivitiesTab from "./student-activities-tab";
+import StudentAcademicResults from "./student-academic-results";
 import StudentAdmissionInformationMockup from "./student-admission-information-mockup";
 import StudentAdmissionTabs from "./student-admission-tabs";
 import StudentAuditTab from "./student-audit-tab";
@@ -408,6 +409,7 @@ export default function Student360Dashboard({
             !isAuthLoading && hasStudentAccess,
             user?.user,
             initialEditPersonal,
+            canDeleteStudent,
           )}
           initialChatwootInteractions={initialChatwootInteractions}
           initialStudentInteractions={initialStudentInteractions}
@@ -436,6 +438,7 @@ function getStudentTabs(
   canReadStudent: boolean,
   sessionUserId?: string,
   initialEditPersonal = false,
+  canDeleteStudent = false,
 ): DetailTabItem[] {
   const auditStudentId = data.student.studentId || analysisTargetId;
   const showHighSchoolScore = isHighSchoolAdmissionMethod(data);
@@ -495,6 +498,12 @@ function getStudentTabs(
               />
             )}
           </div>
+          <StudentAcademicResults
+            studentId={analysisTargetId}
+            canRead={canReadStudent}
+            canEdit={canUpdateStudent}
+            canDelete={canDeleteStudent}
+          />
         </div>
       ),
     },

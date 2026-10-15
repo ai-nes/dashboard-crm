@@ -71,6 +71,16 @@ describe("student NBA through Nest", () => {
     expect(JSON.parse(init.body)).toEqual({ student_id: "HS-1" });
     expect(result.recommendations[0].expectedRevision).toBe("rev-1");
   });
+  it("keeps the supplemental source from the worklist API", async () => {
+    fetchMock.mockImplementation(() =>
+      json({
+        items: [{ ...recommendation, suggestion_source: "supplemental" }],
+      }),
+    );
+    const { getStudentNbaWorklist } = await import("./index");
+    const result = await getStudentNbaWorklist({ studentId: "HS-1" });
+    expect(result.items[0].suggestionSource).toBe("supplemental");
+  });
 
   it("preserves queued evaluation state so the UI waits for the analysis instead of claiming an empty result", async () => {
     fetchMock.mockImplementation(() =>

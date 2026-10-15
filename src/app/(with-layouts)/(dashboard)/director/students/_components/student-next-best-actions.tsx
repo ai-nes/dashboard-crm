@@ -1,7 +1,7 @@
 "use client";
 
 import { InfoTriangle, RefreshCircle1Clockwise } from "@tailgrids/icons";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -32,10 +32,7 @@ import { getBusinessRouteKey } from "@/utils/business-record-route";
 import StudentNbaRecommendationCard from "./student-nba-recommendation-card";
 import StudentNbaDecisionDialog from "./student-nba-decision-dialog";
 import { getStudentInternalId } from "./student-identifiers";
-import {
-  isStudentStatusTerminal,
-  studentStatusOptions,
-} from "./student-status";
+import { studentStatusOptions } from "./student-status";
 import {
   NBA_OPERATION_LABELS,
   type DecisionFields,
@@ -47,12 +44,18 @@ interface StudentNextBestActionsProps {
   data: Student360Data;
   studentId: string;
   isAnalysisActive?: boolean;
+  showRunButton?: boolean;
+  headerAction?: ReactNode;
+  analysisDisposition?: "RECOMMEND" | "NO_ACTION" | "STOPPED";
 }
 
 export default function StudentNextBestActions({
   data,
   studentId,
   isAnalysisActive = false,
+  showRunButton = true,
+  headerAction,
+  analysisDisposition,
 }: StudentNextBestActionsProps) {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -91,8 +94,9 @@ export default function StudentNextBestActions({
   const studentStageKnown = studentStage
     ? studentStatusOptions.includes(studentStage)
     : false;
-  const terminalStage = isStudentStatusTerminal(studentStage);
-  const nbaBlocked = !studentStageKnown || terminalStage;
+  // NBA follows the AI pipeline: enrollment does not stop follow-up actions.
+  const nbaStopped = studentStage === "Disqualified";
+  const nbaBlocked = !studentStageKnown || nbaStopped;
   const canGenerateNba = canRunNba && !nbaBlocked;
   const [decision, setDecision] = useState<{
     recommendation: NbaRecommendation;
@@ -129,14 +133,14 @@ export default function StudentNextBestActions({
   const worklistActions = useMemo(
     // The endpoint applies the student filter and resolves legacy Lead
     // ids to the canonical CRM Student id before returning this list.
-    () => (nbaBlocked ? [] : (query.data?.items ?? [])),
+    () => (nbaBlocked ? [] : (query.data?.items ?? []).slice(0, 3)),
     [query.data?.items, nbaBlocked],
   );
   const actions = useMemo(() => {
     if (nbaBlocked) return [];
     if (postRecommendations === null) return worklistActions;
 
-    return postRecommendations.map((recommendation) => {
+    return postRecommendations.slice(0, 3).map((recommendation) => {
       const worklistItem = worklistActions.find((item) =>
         sameNbaRecommendation(item, recommendation),
       );
@@ -284,7 +288,10 @@ export default function StudentNextBestActions({
 
   if (isAuthLoading) {
     return (
-      <section aria-labelledby="next-best-actions-heading" className="min-w-0">
+      <section
+        aria-labelledby="next-best-actions-heading"
+        className="@container/nba flex h-full min-w-0 flex-col"
+      >
         <NbaPanelSkeleton />
       </section>
     );
@@ -306,8 +313,11 @@ export default function StudentNextBestActions({
 
   return (
     <>
-      <section aria-labelledby="next-best-actions-heading" className="min-w-0">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <section
+        aria-labelledby="next-best-actions-heading"
+        className="@container/nba flex h-full min-w-0 flex-col"
+      >
+        <div className="flex min-h-10 flex-wrap items-center justify-between gap-2">
           <h2
             id="next-best-actions-heading"
             className="flex items-center gap-2 text-base font-semibold text-text-primary"
@@ -319,48 +329,52 @@ export default function StudentNextBestActions({
               </Badge>
             )}
           </h2>
-          <div className="flex shrink-0 items-center gap-2">
-            <Button
-              variant="primary"
-              appearance="outline"
-              size="sm"
-              onPress={() =>
-                canGenerateNba ? void runNba() : void query.refetch()
-              }
-              isDisabled={
-                query.isFetching ||
-                runMutation.isPending ||
-                isAnalysisActive ||
-                decisionMutation.isPending
-              }
-            >
-              <RefreshCircle1Clockwise
-                className={
-                  query.isFetching || runMutation.isPending || isAnalysisActive
-                    ? "motion-safe:animate-spin"
-                    : undefined
+          {headerAction}
+          {showRunButton && (
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="primary"
+                appearance="outline"
+                size="sm"
+                onPress={() =>
+                  canGenerateNba ? void runNba() : void query.refetch()
                 }
-                size={16}
-                aria-hidden="true"
-              />
-              {runMutation.isPending || isAnalysisActive
-                ? "Đang phân tích NBA…"
-                : query.isFetching
-                  ? "Đang tải NBA…"
-                  : canGenerateNba
-                    ? "Gợi ý & tải lại NBA"
-                    : "Tải lại NBA"}
-            </Button>
-          </div>
+                isDisabled={
+                  query.isFetching ||
+                  runMutation.isPending ||
+                  isAnalysisActive ||
+                  decisionMutation.isPending
+                }
+              >
+                <RefreshCircle1Clockwise
+                  className={
+                    query.isFetching ||
+                    runMutation.isPending ||
+                    isAnalysisActive
+                      ? "motion-safe:animate-spin"
+                      : undefined
+                  }
+                  size={16}
+                  aria-hidden="true"
+                />
+                {runMutation.isPending || isAnalysisActive
+                  ? "Đang phân tích NBA…"
+                  : query.isFetching
+                    ? "Đang tải NBA…"
+                    : canGenerateNba
+                      ? "Gợi ý & tải lại NBA"
+                      : "Tải lại NBA"}
+              </Button>
+            </div>
+          )}
         </div>
 
-        {terminalStage && (
+        {nbaStopped && (
           <div
             className="mt-4 rounded-lg border border-card-border bg-background-gray-secondary px-3 py-2.5 text-xs leading-5 text-text-secondary"
             role="status"
           >
-            Student stage <strong>{studentStage}</strong> là terminal; hiện
-            không phát sinh NBA mới.
+            Học sinh không đủ điều kiện; hiện không phát sinh NBA mới.
           </div>
         )}
 
@@ -385,18 +399,26 @@ export default function StudentNextBestActions({
               <InfoTriangle size={18} aria-hidden="true" />
             </span>
             <p className="mt-4 text-sm font-semibold text-text-primary">
-              Chưa có hành động phù hợp lúc này
+              {isAnalysisActive
+                ? "Đang phân tích NBA…"
+                : analysisDisposition === "NO_ACTION"
+                  ? "AI đã phân tích, chưa có hành động phù hợp"
+                  : "Chưa có hành động phù hợp lúc này"}
             </p>
             <p className="mt-1 max-w-md text-xs leading-5 text-text-secondary">
-              {query.data?.emptyReason ??
-                "Hệ thống sẽ cập nhật khi có tín hiệu mới. Bạn cũng có thể chọn “Gợi ý hành động” để chạy đánh giá NBA ngay."}
+              {isAnalysisActive
+                ? "NBA và biểu đồ sẽ được cập nhật khi phân tích hoàn tất."
+                : analysisDisposition === "NO_ACTION"
+                  ? "Bổ sung thông tin hoặc tương tác mới, rồi chọn Phân tích lại để đánh giá lại cả NBA và biểu đồ."
+                  : (query.data?.emptyReason ??
+                    "Chưa có đề xuất đang chờ xử lý cho học sinh này.")}
             </p>
           </div>
         )}
 
         {!query.isLoading && !query.isError && actions.length > 0 && (
           <div
-            className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-3"
+            className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-4 @xl/nba:grid-cols-2 @3xl/nba:grid-cols-3"
             aria-label="Danh sách đề xuất NBA"
           >
             {actions.map((action) => (
@@ -509,7 +531,7 @@ function decisionErrorMessage(error: unknown): string {
 function NbaPanelSkeleton() {
   return (
     <div
-      className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-3"
+      className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-4 @xl/nba:grid-cols-2 @3xl/nba:grid-cols-3"
       role="status"
       aria-live="polite"
     >

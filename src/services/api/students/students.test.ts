@@ -57,6 +57,20 @@ afterEach(() => {
   fetchMock.mockReset();
 });
 
+function withEmptyCanonicalFeed() {
+  const mock = vi.mocked(fetch);
+  const timeline = mock.getMockImplementation()!;
+  mock.mockImplementation((url, init) =>
+    String(url).includes("/interactions")
+      ? Promise.resolve(
+          new Response(JSON.stringify({ items: [], next_cursor: null })),
+        )
+      : Promise.resolve(timeline(url, init)).then((response) =>
+          response.clone(),
+        ),
+  );
+}
+
 describe("director students API contract", () => {
   it("reports a missing API URL instead of showing fixture data", async () => {
     vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "");
@@ -204,6 +218,7 @@ describe("student interactions API contract", () => {
   it("reads calls from the student timeline", async () => {
     fetchMock.mockResolvedValue(json({ data: [], meta: { total: 0 } }));
 
+    withEmptyCanonicalFeed();
     const result = await getStudentInteractions("ENR-1");
 
     const parsed = new URL(fetchMock.mock.calls[0]![0] as string);
@@ -220,6 +235,7 @@ describe("student interactions API contract", () => {
   it("rejects a timeline response without a data list", async () => {
     fetchMock.mockResolvedValue(json({ data: "nope" }));
 
+    withEmptyCanonicalFeed();
     await expect(getStudentInteractions("ENR-1")).rejects.toEqual(
       expect.objectContaining<Partial<DirectorStudentsApiError>>({
         status: 502,
@@ -244,6 +260,7 @@ describe("student Chatwoot interactions API contract", () => {
       json({ data: [...entries, { id: "call-1", type: "call" }] }),
     );
 
+    withEmptyCanonicalFeed();
     const result = await getStudentChatwootInteractions("ENR-1", {
       page: 2,
       pageSize: 10,
@@ -259,7 +276,7 @@ describe("student Chatwoot interactions API contract", () => {
     });
     expect(result?.data).toHaveLength(1);
     expect(result?.data[0]).toMatchObject({
-      name: "INTX-11",
+      name: "INTX-1",
       channel: "chatwoot",
       direction: "inbound",
     });
@@ -268,6 +285,7 @@ describe("student Chatwoot interactions API contract", () => {
   it("rejects an invalid timeline envelope", async () => {
     fetchMock.mockResolvedValue(json({ meta: {} }));
 
+    withEmptyCanonicalFeed();
     await expect(getStudentChatwootInteractions("ENR-1")).rejects.toEqual(
       expect.objectContaining<Partial<DirectorStudentsApiError>>({
         status: 502,

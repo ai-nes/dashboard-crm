@@ -1,6 +1,106 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+function withEmptyCanonicalFeed() {
+  const mock = vi.mocked(fetch);
+  const timeline = mock.getMockImplementation()!;
+  mock.mockImplementation((url, init) =>
+    String(url).includes("/interactions")
+      ? Promise.resolve(
+          new Response(JSON.stringify({ items: [], next_cursor: null })),
+        )
+      : Promise.resolve(timeline(url, init)).then((response) =>
+          response.clone(),
+        ),
+  );
+}
+
 describe("student interactions with the Nest backend", () => {
+  it("shows Zalo records with unknown direction using the recorded interaction type", async () => {
+    vi.mocked(fetch).mockImplementation(
+      async (url) =>
+        new Response(
+          JSON.stringify(
+            String(url).includes("/timeline")
+              ? { data: [] }
+              : {
+                  items: [
+                    {
+                      id: "zalo-unknown",
+                      interaction_type: "ZALO",
+                      channel: null,
+                      direction: null,
+                      occurred_at: "2026-10-14T09:00:00Z",
+                      summary: "Recorded summary",
+                    },
+                  ],
+                  next_cursor: null,
+                },
+          ),
+        ),
+    );
+    const api = await import("./index");
+    const result = await api.getStudentChatwootInteractions("S");
+    expect(result?.zalo_messages).toEqual([
+      expect.objectContaining({
+        id: "zalo-unknown",
+        direction: "unknown",
+        senderName: "Chưa ghi nhận",
+        content: "Recorded summary",
+      }),
+    ]);
+  });
+  it("includes canonical calls and Zalo records even without timeline copies", async () => {
+    vi.mocked(fetch).mockImplementation(
+      async (url) =>
+        new Response(
+          JSON.stringify(
+            String(url).includes("/timeline")
+              ? { data: [] }
+              : {
+                  items: [
+                    {
+                      id: "canonical-call",
+                      interaction_type: "Call",
+                      channel: "call",
+                      direction: "outbound",
+                      outcome: "Connected",
+                      occurred_at: "2026-10-01T09:00:00Z",
+                      summary: "Đã tư vấn ngành học.",
+                    },
+                    {
+                      id: "canonical-zalo",
+                      interaction_type: "Zalo",
+                      channel: "zalo",
+                      direction: "inbound",
+                      outcome: "Replied",
+                      occurred_at: "2026-10-02T09:00:00Z",
+                      summary: "Em hỏi về học phí.",
+                    },
+                  ],
+                  next_cursor: null,
+                },
+          ),
+        ),
+    );
+    const api = await import("./index");
+    expect((await api.getStudentInteractions("student-1"))?.calls).toEqual([
+      expect.objectContaining({
+        id: "canonical-call",
+        outcome: "connected",
+        summary: "Đã tư vấn ngành học.",
+      }),
+    ]);
+    const messages = (await api.getStudentChatwootInteractions("student-1"))
+      ?.zalo_messages;
+    expect(messages).toEqual([
+      expect.objectContaining({
+        id: "canonical-zalo",
+        content: "Em hỏi về học phí.",
+        direction: "inbound",
+      }),
+    ]);
+    expect(messages?.[0].status).toBeUndefined();
+  });
   beforeEach(() => {
     vi.resetModules();
     vi.stubEnv("NEXT_PUBLIC_CRM_API_URL", "http://api.test");
@@ -42,6 +142,7 @@ describe("student interactions with the Nest backend", () => {
       ),
     );
 
+    withEmptyCanonicalFeed();
     const { getStudentInteractions } = await import("./index");
     await expect(getStudentInteractions("student-1")).resolves.toEqual({
       student_id: "student-1",
@@ -73,6 +174,7 @@ describe("student interactions with the Nest backend", () => {
       new Response(JSON.stringify({ data: null }), { status: 200 }),
     );
 
+    withEmptyCanonicalFeed();
     const { getStudentInteractions } = await import("./index");
     await expect(getStudentInteractions("student-1")).rejects.toMatchObject({
       status: 502,
