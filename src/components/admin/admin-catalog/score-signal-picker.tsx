@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { Combobox, ComboboxItem } from "@/components/tailgrids/core/combobox";
 import { useScoreSignalsQuery } from "@/hooks/use-admin-catalog-queries";
@@ -34,12 +34,10 @@ export default function ScoreSignalPicker({
   allowedCategories,
   quiet = false,
 }: ScoreSignalPickerProps) {
-  const [search, setSearch] = useState("");
-  const query = useScoreSignalsQuery({
-    search,
-    start: 0,
-    pageLength: 100,
-  });
+  // Load the full list once and let the combobox filter locally. Feeding the
+  // typed/selected text back into the query key made every selection change
+  // refetch, which flipped the selected item's label and looped the render.
+  const query = useScoreSignalsQuery({ start: 0, pageLength: 100 });
 
   const signals = useMemo(() => {
     const rows = query.data?.signals ?? [];
@@ -76,12 +74,8 @@ export default function ScoreSignalPicker({
             : undefined
         }
         value={value || null}
-        onChange={(key) => {
-          setSearch("");
-          onChange(key?.toString() ?? "");
-        }}
-        onInputChange={setSearch}
-        placeholder="Tìm theo tên hoặc signal key…"
+        onChange={(key) => onChange(key?.toString() ?? "")}
+        placeholder="Tìm theo tên tín hiệu…"
         emptyMessage={
           query.isPending
             ? "Đang tải tín hiệu…"
