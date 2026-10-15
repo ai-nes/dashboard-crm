@@ -77,7 +77,7 @@ export default function StudentsOverviewDashboard() {
     pageSize,
     q: query || undefined,
     province,
-    lifecycleStatus: studentStatus === "all" ? undefined : studentStatus,
+    stage: studentStatus === "all" ? undefined : studentStatus,
     assignmentStatus,
     campaign: campaign || undefined,
     order,
