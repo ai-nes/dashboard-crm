@@ -196,6 +196,17 @@ describe("student 360 API contract", () => {
     expect(result?.student.name).toBe("Nguyễn Minh An");
   });
 
+  it("maps the legacy Contacted stage to an actionable workflow stage", async () => {
+    fetchMock.mockResolvedValue(
+      json({ data: { ...studentRow, studentStage: "Contacted" } }),
+    );
+
+    const result = await getStudent360("HS-2026-HCM-002702");
+
+    expect(result?.student.studentStage).toBe("Attempting");
+    expect(result?.student.studentStageLabel).toBe("Đã liên hệ");
+  });
+
   it("rejects a response without a student with 502", async () => {
     fetchMock.mockResolvedValue(json({}));
 

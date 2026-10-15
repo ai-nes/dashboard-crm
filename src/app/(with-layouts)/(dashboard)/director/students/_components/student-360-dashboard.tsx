@@ -363,6 +363,7 @@ export default function Student360Dashboard({
           returnTo={returnTo}
           isStatusUpdating={stageTransitionMutation.isPending}
           status={studentStatus}
+          statusLabel={data.student.studentStageLabel}
           onStatusChange={
             canUpdateStudent ? handleStudentStatusChange : undefined
           }

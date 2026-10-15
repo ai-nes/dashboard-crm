@@ -64,6 +64,7 @@ const stageActionDisabledClassName =
 type TransitionResult = boolean | Promise<boolean>;
 
 interface StudentStatusWorkflowProps {
+  currentStatusLabel?: string;
   isDisabled?: boolean;
   onTransition: (nextStatus: StudentStatus) => TransitionResult;
   studentName: string;
@@ -71,6 +72,7 @@ interface StudentStatusWorkflowProps {
 }
 
 export default function StudentStatusWorkflow({
+  currentStatusLabel,
   isDisabled = false,
   onTransition,
   studentName,
@@ -98,14 +100,14 @@ export default function StudentStatusWorkflow({
             aria-current="step"
             color={studentStatusBadgeColor[value]}
             size="md"
-            title={studentStatusLabel[value]}
+            title={currentStatusLabel ?? studentStatusLabel[value]}
             className="mt-1 whitespace-nowrap border border-current px-2.5 py-1 text-sm font-semibold shadow-xs"
           >
             <span
               aria-hidden="true"
               className="size-2 rounded-full bg-current ring-2 ring-current/20"
             />
-            {studentStatusBadgeLabel[value]}
+            {currentStatusLabel ?? studentStatusBadgeLabel[value]}
           </Badge>
         </div>
 

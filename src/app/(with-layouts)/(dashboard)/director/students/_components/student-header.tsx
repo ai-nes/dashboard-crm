@@ -48,6 +48,7 @@ interface StudentHeaderProps extends Student360SectionProps {
   tagStudentId?: string | null;
   tagsEditable?: boolean;
   status?: StudentStatus | null;
+  statusLabel?: string | null;
   scoreBreakdown?: StudentScoreBreakdown | null;
   canViewStageHistory?: boolean;
   returnTo?: string;
@@ -67,6 +68,7 @@ export default function StudentHeader({
   tagStudentId,
   tagsEditable = false,
   status,
+  statusLabel,
   scoreBreakdown,
   canViewStageHistory = false,
   returnTo,
@@ -81,6 +83,9 @@ export default function StudentHeader({
       ? scoreCandidate
       : null;
   const studentStatus = status ?? student.studentStage;
+  const currentStatusLabel =
+    statusLabel ??
+    (studentStatus ? studentStatusLabel[studentStatus] : undefined);
   const studentOwner = owner ?? student.counselor ?? "";
   const backHref = resolveReturnTo(returnTo, "/director/students");
   const backLabel = backHref.startsWith("/director/students")
@@ -221,6 +226,7 @@ export default function StudentHeader({
                 <StudentStatusWorkflow
                   studentName={student.name || "học sinh"}
                   value={studentStatus}
+                  currentStatusLabel={currentStatusLabel}
                   isDisabled={isStatusUpdating}
                   onTransition={onStatusChange}
                 />
@@ -237,7 +243,9 @@ export default function StudentHeader({
                 </div>
               ) : (
                 <p className="mt-0.5 text-sm text-text-tertiary">
-                  Chưa có CRM Student
+                  {studentId
+                    ? "Chưa xác định trạng thái"
+                    : "Chưa có CRM Student"}
                 </p>
               )}
             </div>

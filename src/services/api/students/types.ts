@@ -426,6 +426,8 @@ export interface Student360Data {
     admissionMethod?: string | null;
     /** Contact-stage enum used by the editable status control. */
     studentStage?: StudentStatus | null;
+    /** Display text retained when an older CRM stage is normalized for the workflow. */
+    studentStageLabel?: string | null;
     studyStage?: string | null;
     major: string;
     phone: string;

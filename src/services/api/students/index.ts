@@ -821,6 +821,7 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
   const province = text(student.province) || "Chưa xác định";
   const major = text(student.major) || "Chưa xác định";
   const qualityBucket = text(student.qualityBucket);
+  const isLegacyContactedStage = stage === "Contacted";
   const score = Number(student.latestScore);
   const signalScore = Number.isFinite(score) ? score : null;
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -833,17 +834,19 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
   const studyStage = nullableText(student.studyStage);
   const currentGrade = nullableText(student.currentGrade);
   const modifiedAt = text(student.modifiedAt) || new Date().toISOString();
-  const normalizedStage = [
-    "New",
-    "Attempting",
-    "Connected",
-    "Qualified",
-    "Registration",
-    "New Enter",
-    "Disqualified",
-  ].includes(stage)
-    ? (stage as Student360Data["student"]["studentStage"])
-    : null;
+  const normalizedStage = isLegacyContactedStage
+    ? "Attempting"
+    : [
+          "New",
+          "Attempting",
+          "Connected",
+          "Qualified",
+          "Registration",
+          "New Enter",
+          "Disqualified",
+        ].includes(stage)
+      ? (stage as Student360Data["student"]["studentStage"])
+      : null;
   const readinessLevel = text(student.readinessLevel);
   const readinessValue =
     readinessLevel === "High" ? 85 : readinessLevel === "Medium" ? 60 : 35;
@@ -860,6 +863,7 @@ function toNestStudent360(student: Record<string, unknown>): Student360Data {
       grade: currentGrade || studyStage || "Chưa xác định",
       admissionYear,
       studentStage: normalizedStage,
+      studentStageLabel: isLegacyContactedStage ? "Đã liên hệ" : null,
       studyStage,
       major,
       phone: text(student.phone),
