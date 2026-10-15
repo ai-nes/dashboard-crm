@@ -10,6 +10,37 @@ import StudentAnalysisRadarShape from "./student-analysis-radar-shape";
 import StudentAnalysisRadar from "./student-analysis-radar";
 
 describe("student analysis view model", () => {
+  it("distinguishes matching historical scores with dashed outlines and hollow outer markers", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentAnalysisRadarShape, {
+        previous: true,
+        points: [
+          { x: 50, y: 10, value: 100 },
+          { x: 90, y: 50, value: 100 },
+          { x: 50, y: 90, value: 50 },
+        ],
+      }),
+    );
+    expect(html).toContain('stroke-dasharray="5 4"');
+    expect(html).toContain('r="5" fill="none"');
+    expect(html).toContain('stop-color="var(--info-500)"');
+  });
+  it("explains when the current and previous radar values coincide", () => {
+    const dimensions = buildAnalysisDimensions([
+      { code: "interest", level: "high", level_source: "crm" },
+    ]);
+    const html = renderToStaticMarkup(
+      createElement(StudentAnalysisRadar, {
+        dimensions,
+        previous: dimensions,
+        showPrevious: true,
+        selectedCode: "interest",
+        previousAt: "2026-10-12T03:00:00Z",
+        compact: true,
+      }),
+    );
+    expect(html).toContain("Lần trước (trùng hiện tại)");
+  });
   it("fills adjacent known radar sectors while leaving a missing axis unfilled", () => {
     const html = renderToStaticMarkup(
       createElement(StudentAnalysisRadarShape, {

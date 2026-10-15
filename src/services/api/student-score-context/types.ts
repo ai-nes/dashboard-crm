@@ -1,4 +1,5 @@
 export interface StudentScoreHistoryDetail {
+  label?: string | null;
   category: string | null;
   ruleId: string | null;
   signal: string | null;

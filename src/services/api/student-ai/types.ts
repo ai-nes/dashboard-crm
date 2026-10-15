@@ -84,6 +84,8 @@ export interface StudentAiLabels {
 
 export interface StudentAiOverview {
   student_id: string;
+  /** Deterministic CRM Score Template result, independent of radar levels. */
+  potential_score?: number | null;
   revision: number;
   /** False when crm-backend has no crm-ai configured, so nothing can be analysed. */
   enabled: boolean;

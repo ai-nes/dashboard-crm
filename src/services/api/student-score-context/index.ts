@@ -46,6 +46,7 @@ function normalizeHistoryDetail(value: unknown): StudentScoreHistoryDetail {
   const source = asRecord(value) ?? {};
   return {
     category: optionalString(source.category),
+    label: optionalString(source.label),
     ruleId: optionalString(source.rule_id ?? source.ruleId),
     signal: optionalString(source.signal),
     score: optionalNumber(source.score) ?? 0,

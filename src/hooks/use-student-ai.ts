@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   useMutation,
   useQuery,
@@ -22,6 +23,8 @@ import {
   type StudentAiOverview,
 } from "@/services/api/student-ai";
 import { toAnalysisRun } from "@/services/api/student-ai/to-analysis-run";
+import { refreshStudentProfileQueries } from "./refresh-student-profile-queries";
+import { studentScoreContextKeys } from "./use-student-score-context-query";
 
 export const studentAiKeys = {
   all: ["student-ai"] as const,
@@ -38,13 +41,24 @@ export function useStudentAi(
   studentId: string,
   enabled = true,
 ): UseQueryResult<StudentAiOverview, Error> {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: studentAiKeys.overview(studentId),
     queryFn: () => getStudentAi(studentId),
     enabled: Boolean(studentId.trim()) && enabled,
     refetchInterval: (query) => (isWorking(query.state.data) ? 3000 : false),
     refetchOnWindowFocus: true,
   });
+  const generatedAt = query.data?.analysis?.generated_at;
+  const score = query.data?.potential_score;
+  useEffect(() => {
+    if (!enabled || !generatedAt || score == null) return;
+    void refreshStudentProfileQueries(queryClient);
+    void queryClient.invalidateQueries({
+      queryKey: studentScoreContextKeys.all,
+    });
+  }, [enabled, studentId, generatedAt, score, queryClient]);
+  return query;
 }
 
 interface StudentAnalysisRun {

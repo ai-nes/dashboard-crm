@@ -45,6 +45,9 @@ export default function StudentAnalysisRadar({
     current: d.score,
     previous: previous?.find((p) => p.code === d.code)?.score ?? null,
   }));
+  const matchesPrevious =
+    previousKnown > 0 &&
+    data.every((point) => point.current === point.previous);
   return (
     <section
       className={compact ? "min-w-0 p-3" : "min-w-0 p-4 sm:p-5"}
@@ -79,13 +82,6 @@ export default function StudentAnalysisRadar({
                 tick={false}
                 angle={90}
               />
-              {showPrevious && (
-                <Radar
-                  dataKey="previous"
-                  isAnimationActive={false}
-                  shape={<StudentAnalysisRadarShape previous />}
-                />
-              )}
               <Radar
                 dataKey="current"
                 isAnimationActive="auto"
@@ -94,6 +90,13 @@ export default function StudentAnalysisRadar({
                   <StudentAnalysisRadarShape selectedCode={selectedCode} />
                 }
               />
+              {showPrevious && (
+                <Radar
+                  dataKey="previous"
+                  isAnimationActive={false}
+                  shape={<StudentAnalysisRadarShape previous />}
+                />
+              )}
             </RadarChart>
           </ChartContainer>
         </div>
@@ -119,8 +122,9 @@ export default function StudentAnalysisRadar({
           </span>
           {showPrevious && previousAt && (
             <span className="inline-flex items-center gap-2">
-              <span className="h-0.5 w-4 bg-info-500" />
+              <span className="w-4 border-t-2 border-dashed border-info-500" />
               {compact ? "Lần trước" : formatDate(previousAt)}
+              {matchesPrevious && " (trùng hiện tại)"}
             </span>
           )}
         </div>
@@ -166,7 +170,7 @@ function RadarAxisLabel({
   return (
     <text
       x={x}
-      y={y}
+      y={textAnchor === "middle" && label !== "Gia đình" ? y - 16 : y}
       textAnchor={textAnchor}
       fill="var(--text-primary)"
       fontSize={11}
