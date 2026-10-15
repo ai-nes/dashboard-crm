@@ -48,6 +48,8 @@ const fieldLabels: Record<string, string> = {
   slastatus: "Tình trạng chăm sóc",
   reason: "Lý do",
   payload: "Chi tiết",
+  insight: "Tóm tắt phân tích",
+  generatedat: "Thời gian phân tích",
 };
 
 const technicalFields = new Set([
@@ -59,6 +61,8 @@ const technicalFields = new Set([
   "sha256",
   "sourcekey",
   "idempotencykey",
+  "sourcerevision",
+  "aibasis",
 ]);
 
 export function isStudentAuditIdentifierKey(key: string): boolean {

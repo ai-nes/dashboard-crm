@@ -71,7 +71,7 @@ export function useStudentAnalysis(
       if (!canRequest) {
         throw new Error("Bạn không có quyền yêu cầu phân tích hồ sơ.");
       }
-      return requestStudentAnalysis(studentId);
+      return requestStudentAnalysis(studentId, Boolean(query.data?.analysis));
     },
     onSuccess: () =>
       queryClient.invalidateQueries({
@@ -101,11 +101,12 @@ export function useStudentAnalysis(
 
 export function useStudentMemory(
   studentId: string,
+  enabled = true,
 ): UseQueryResult<AiMemoryItem[], Error> {
   return useQuery({
     queryKey: studentAiKeys.memory(studentId),
     queryFn: () => listStudentMemory(studentId),
-    enabled: Boolean(studentId.trim()),
+    enabled: enabled && Boolean(studentId.trim()),
   });
 }
 

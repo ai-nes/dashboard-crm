@@ -92,12 +92,14 @@ export interface StudentChannelPerformanceItem {
 
 export type StudentTaskType = "call" | "email" | "todo";
 
-export type StudentZaloDirection = "inbound" | "outbound";
+export type StudentZaloDirection = "inbound" | "outbound" | "unknown";
 
 export type StudentZaloMessageStatus = "sent" | "delivered" | "read" | "failed";
 
 export interface StudentZaloMessage {
   id: string;
+  interactionId?: string;
+  isSummary?: boolean;
   time: string;
   senderName: string;
   senderRole?: string;
@@ -141,13 +143,18 @@ export interface StudentChatwootInteractionsResponse {
   };
 }
 
-export type StudentCallDirection = "inbound" | "outbound" | "missed";
+export type StudentCallDirection =
+  | "inbound"
+  | "outbound"
+  | "missed"
+  | "unknown";
 
 export type StudentCallOutcome =
   | "connected"
   | "missed"
   | "no-answer"
-  | "callback";
+  | "callback"
+  | "unknown";
 
 export type StudentCallSummaryStatus =
   | "COMPLETED"

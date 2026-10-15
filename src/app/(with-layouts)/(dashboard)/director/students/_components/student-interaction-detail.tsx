@@ -1,4 +1,5 @@
 "use client";
+import { StudentInteractionIntents } from "./student-recorded-interaction-intents";
 
 import { InfoCircle, RefreshCircle1Clockwise } from "@tailgrids/icons";
 
@@ -56,6 +57,7 @@ export default function StudentInteractionDetail({
 
   return (
     <div className="border-t border-card-border pt-4">
+      <StudentInteractionIntents intents={detail.intents} />
       <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(15rem,0.42fr)] xl:items-start">
         <StudentConversationSummary
           intelligence={detail.analysis?.intelligence}

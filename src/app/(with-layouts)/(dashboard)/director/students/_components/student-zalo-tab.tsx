@@ -267,7 +267,9 @@ export function StudentZaloSummary({
       parseStudentActivityDate(b.time).getTime() -
       parseStudentActivityDate(a.time).getTime(),
   )[0];
-  const status = zaloMessageStatusConfig[latestMessage.status ?? "sent"];
+  const status = latestMessage.status
+    ? zaloMessageStatusConfig[latestMessage.status]
+    : undefined;
 
   return (
     <div className="space-y-3">
@@ -279,7 +281,7 @@ export function StudentZaloSummary({
             · {latestMessage.senderName}
           </span>
         </div>
-        <Badge color={status.color}>{status.label}</Badge>
+        {status && <Badge color={status.color}>{status.label}</Badge>}
       </div>
       <div className="rounded-lg bg-background-gray-secondary/60 px-4 py-3">
         <p className="text-xs text-text-tertiary">

@@ -1,4 +1,5 @@
 "use client";
+import { useStudentMemory } from "@/hooks/use-student-ai";
 
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -181,11 +182,14 @@ export default function StudentActivitiesTab({
   // Task/Action APIs use CRM Student; the backend resolves a legacy Lead route ID
   // to its canonical Student during the migration window.
   const studentDocname = studentId.trim();
+  const memoryQuery = useStudentMemory(
+    studentDocname,
+    shouldLoadNotes && permissions.student.canRead && !isAuthLoading,
+  );
   const chatwootInteractionsQuery = useStudentChatwootInteractionsQuery(
     studentDocname,
     {
-      enabled:
-        shouldLoadInteractions && permissions.student.canRead && !isAuthLoading,
+      enabled: shouldLoadInteractions && canReadInteractions,
       initialData: initialChatwootInteractions ?? undefined,
     },
   );
@@ -575,13 +579,25 @@ export default function StudentActivitiesTab({
               <StudentNotesTab
                 studentName={data.student.name}
                 notes={notes}
+                memoryItems={memoryQuery.data}
+                studentId={studentDocname}
+                canEditMemory={!isAuthLoading && permissions.student.canUpdate}
+                memoryError={
+                  memoryQuery.isError
+                    ? "Không thể tải ghi chú được theo dõi."
+                    : undefined
+                }
                 onCreateNote={handleCreateNote}
                 onUpdateNote={handleUpdateNote}
                 onDeleteNote={handleDeleteNote}
                 isCreating={
                   createNoteMutation.isPending || createTaskMutation.isPending
                 }
-                isLoading={crmNotesQuery.isPending && notes.length === 0}
+                isLoading={
+                  (crmNotesQuery.isPending || memoryQuery.isLoading) &&
+                  notes.length === 0 &&
+                  !memoryQuery.data?.length
+                }
                 canCreateFollowUpTask={canCreateTask}
                 followUpTaskDisabledReason={taskCreationDisabledReason}
               />

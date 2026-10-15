@@ -30,6 +30,7 @@ const callDirectionLabel: Record<LeadCallRecord["direction"], string> = {
   inbound: "Cuộc gọi đến",
   outbound: "Cuộc gọi đi",
   missed: "Cuộc gọi nhỡ",
+  unknown: "Chưa rõ chiều gọi",
 };
 
 function formatCallDuration(value?: number): string {

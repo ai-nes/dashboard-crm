@@ -1,5 +1,6 @@
 import { NestApiError, nestRequest } from "../nest/nest-client";
 import { nestDirectorStudents } from "./students-nest";
+import { getStudentActivityRows } from "./student-activity-feed";
 import { student360Data, studentListData } from "./data";
 import type {
   StudentAdmissionProfile,
@@ -37,21 +38,38 @@ function normalizeNestStudentCall(value: unknown): StudentCallRecord | null {
   if (
     typeof row.id !== "string" ||
     typeof row.occurredAt !== "string" ||
-    !["inbound", "outbound", "missed"].includes(String(direction)) ||
-    !["connected", "missed", "no-answer", "callback"].includes(String(outcome))
+    !["inbound", "outbound", "missed", "unknown"].includes(String(direction)) ||
+    !["connected", "missed", "no-answer", "callback", "unknown"].includes(
+      String(outcome),
+    )
   ) {
     return null;
   }
 
   return {
     id: row.id,
+    ...(typeof row.interactionId === "string"
+      ? { interactionId: row.interactionId }
+      : {}),
     time: row.occurredAt,
     direction: direction as StudentCallRecord["direction"],
     outcome: outcome as StudentCallRecord["outcome"],
     callerName:
-      typeof row.callerName === "string" ? row.callerName : "Tư vấn viên",
+      typeof row.callerName === "string"
+        ? row.callerName
+        : direction === "inbound"
+          ? "Người liên hệ"
+          : direction === "outbound"
+            ? "Tư vấn viên"
+            : "Chưa ghi nhận",
     receiverName:
-      typeof row.receiverName === "string" ? row.receiverName : "Học sinh",
+      typeof row.receiverName === "string"
+        ? row.receiverName
+        : direction === "inbound"
+          ? "Tư vấn viên"
+          : direction === "outbound"
+            ? "Học sinh"
+            : "Chưa ghi nhận",
     ...(typeof row.callerRole === "string"
       ? { callerRole: row.callerRole }
       : {}),
@@ -1012,11 +1030,13 @@ export async function getStudentChatwootInteractions(
   options: { page?: number; pageSize?: number } = {},
 ): Promise<StudentChatwootInteractionsResponse | null> {
   try {
-    const result = await nestRequest<{
-      data?: Array<Record<string, unknown>>;
-    }>(`/api/v1/students/${encodeURIComponent(studentId)}/timeline`, {
-      query: { limit: 200 },
-    });
+    const result = {
+      data: await getStudentActivityRows(
+        studentId,
+        200,
+        "INVALID_CHATWOOT_INTERACTIONS_RESPONSE",
+      ),
+    };
     if (!Array.isArray(result.data)) {
       throw new DirectorStudentsApiError(
         502,
@@ -1031,23 +1051,30 @@ export async function getStudentChatwootInteractions(
         student: studentId,
         crm_contact: null,
         interaction_type:
-          typeof entry.channel === "string" && entry.channel
-            ? entry.channel
-            : "interaction",
+          typeof entry.interactionType === "string" && entry.interactionType
+            ? entry.interactionType
+            : typeof entry.channel === "string" && entry.channel
+              ? entry.channel
+              : "interaction",
         interaction_datetime:
           typeof entry.occurredAt === "string" ? entry.occurredAt : "",
         summary: typeof entry.title === "string" ? entry.title : null,
         notes: typeof entry.content === "string" ? entry.content : null,
         channel: typeof entry.channel === "string" ? entry.channel : null,
         direction:
-          entry.direction === "inbound" || entry.direction === "outbound"
-            ? (entry.direction as "inbound" | "outbound")
+          entry.direction === "inbound" ||
+          entry.direction === "outbound" ||
+          entry.direction === "unknown"
+            ? (entry.direction as "inbound" | "outbound" | "unknown")
             : null,
         conversation_id: null,
         agent_id: null,
         outcome: typeof entry.outcome === "string" ? entry.outcome : null,
         actor: typeof entry.author === "string" ? entry.author : null,
-        source_namespace: "nest.timeline",
+        source_namespace:
+          typeof entry.sourceNamespace === "string"
+            ? entry.sourceNamespace
+            : "nest.timeline",
         source_record_id: typeof entry.id === "string" ? entry.id : null,
         creation:
           typeof entry.occurredAt === "string" ? entry.occurredAt : null,
@@ -1059,7 +1086,33 @@ export async function getStudentChatwootInteractions(
     return {
       student_id: studentId,
       data: interactions.slice(start, start + pageSize),
-      zalo_messages: [],
+      zalo_messages: interactions
+        .filter((entry) =>
+          ["zalo", "zalo-chat"].includes(
+            (entry.channel ?? entry.interaction_type).trim().toLowerCase(),
+          ),
+        )
+        .map((entry) => ({
+          id: entry.name,
+          time: entry.interaction_datetime,
+          ...(entry.source_namespace === "nest.interaction"
+            ? { interactionId: entry.name, isSummary: true }
+            : {}),
+          senderName:
+            entry.direction === "inbound"
+              ? "Người liên hệ"
+              : entry.direction === "outbound"
+                ? "Tư vấn viên"
+                : "Chưa ghi nhận",
+          recipientName:
+            entry.direction === "inbound"
+              ? "Tư vấn viên"
+              : entry.direction === "outbound"
+                ? "Người liên hệ"
+                : "Chưa ghi nhận",
+          direction: entry.direction ?? "unknown",
+          content: entry.notes ?? entry.summary ?? "",
+        })),
       meta: {
         page,
         page_size: pageSize,
@@ -1084,11 +1137,13 @@ export async function getStudentInteractions(
   studentId: string,
 ): Promise<StudentInteractionsResponse | null> {
   try {
-    const result = await nestRequest<{
-      data?: Array<Record<string, unknown>>;
-    }>(`/api/v1/students/${encodeURIComponent(studentId)}/timeline`, {
-      query: { limit: 100 },
-    });
+    const result = {
+      data: await getStudentActivityRows(
+        studentId,
+        100,
+        "INVALID_INTERACTIONS_RESPONSE",
+      ),
+    };
     if (!Array.isArray(result.data)) {
       throw new DirectorStudentsApiError(
         502,

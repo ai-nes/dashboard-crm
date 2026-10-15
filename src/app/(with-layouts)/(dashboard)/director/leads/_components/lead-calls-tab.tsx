@@ -57,12 +57,14 @@ const outcomeConfig: Record<
   missed: { label: "Cuộc gọi nhỡ", color: "error" },
   "no-answer": { label: "Không nghe máy", color: "warning" },
   callback: { label: "Hẹn gọi lại", color: "primary" },
+  unknown: { label: "Chưa ghi nhận kết quả", color: "primary" },
 };
 
 const directionLabel: Record<LeadCallDirection, string> = {
   inbound: "Cuộc gọi đến",
   outbound: "Cuộc gọi đi",
   missed: "Cuộc gọi nhỡ",
+  unknown: "Chưa rõ chiều gọi",
 };
 
 const directionBadgeColor: Record<
@@ -72,6 +74,7 @@ const directionBadgeColor: Record<
   inbound: "primary",
   outbound: "warning",
   missed: "error",
+  unknown: "primary",
 };
 
 export default function LeadCallsTab({

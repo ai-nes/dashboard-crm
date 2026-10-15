@@ -1,4 +1,5 @@
 "use client";
+import StudentRecordedInteractionIntents from "./student-recorded-interaction-intents";
 
 import { FileText } from "@tailgrids/icons";
 
@@ -26,7 +27,9 @@ interface StudentZaloMessageDetailsProps {
 export default function StudentZaloMessageDetails({
   message,
 }: StudentZaloMessageDetailsProps) {
-  const status = zaloMessageStatusConfig[message.status ?? "sent"];
+  const status = message.status
+    ? zaloMessageStatusConfig[message.status]
+    : undefined;
   const isOutbound = message.direction === "outbound";
 
   return (
@@ -57,6 +60,11 @@ export default function StudentZaloMessageDetails({
             : "mt-3 w-fit max-w-2xl rounded-2xl rounded-bl-md bg-background-gray-secondary px-4 py-3"
         }
       >
+        {message.isSummary && (
+          <p className="mb-1 text-xs font-medium text-text-secondary">
+            Tóm tắt trao đổi Zalo
+          </p>
+        )}
         <p className="whitespace-pre-line text-sm leading-6 text-text-primary">
           {message.content}
         </p>
@@ -64,15 +72,24 @@ export default function StudentZaloMessageDetails({
 
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
         <Badge color={isOutbound ? "sky" : "gray"}>
-          {isOutbound ? "Tin nhắn gửi" : "Tin nhắn đến"}
+          {message.direction === "unknown"
+            ? "Chưa rõ chiều trao đổi"
+            : isOutbound
+              ? "Tin nhắn gửi"
+              : "Tin nhắn đến"}
         </Badge>
-        <Badge color={status.color}>{status.label}</Badge>
+        {status && <Badge color={status.color}>{status.label}</Badge>}
         {message.attachmentName ? (
           <Badge color="primary" prefixIcon={<FileText size={12} />}>
             {message.attachmentName}
           </Badge>
         ) : null}
       </div>
+      {message.interactionId && (
+        <StudentRecordedInteractionIntents
+          interactionId={message.interactionId}
+        />
+      )}
     </>
   );
 }
