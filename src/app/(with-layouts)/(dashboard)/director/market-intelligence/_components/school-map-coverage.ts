@@ -1,4 +1,10 @@
-import type { HighSchoolItem, ProvinceMetrics, RegionKey } from "./types";
+import { containsMapPoint } from "./province-geometry";
+import type {
+  HighSchoolItem,
+  ProvinceFeatureCollection,
+  ProvinceMetrics,
+  RegionKey,
+} from "./types";
 
 export const SCHOOL_MAP_BOUNDS = {
   minLongitude: 101.8,
@@ -24,7 +30,14 @@ export interface SchoolMapCoverage {
 export function getSchoolMapCoverage(
   provinces: ProvinceMetrics[],
   region: RegionKey,
+  geoData: ProvinceFeatureCollection,
 ): SchoolMapCoverage {
+  const geometryByCode = new Map(
+    geoData.features.map((feature) => [
+      feature.properties.code,
+      feature.geometry,
+    ]),
+  );
   const scopedProvinces = provinces.filter(
     (province) => region === "all" || province.regionKey === region,
   );
@@ -43,6 +56,17 @@ export function getSchoolMapCoverage(
         coordinates.latitude > SCHOOL_MAP_BOUNDS.maxLatitude ||
         coordinates.longitude < SCHOOL_MAP_BOUNDS.minLongitude ||
         coordinates.longitude > SCHOOL_MAP_BOUNDS.maxLongitude
+      ) {
+        return [];
+      }
+
+      const geometry = geometryByCode.get(province.code);
+      if (
+        !geometry ||
+        !containsMapPoint(geometry, [
+          coordinates.longitude,
+          coordinates.latitude,
+        ])
       ) {
         return [];
       }
