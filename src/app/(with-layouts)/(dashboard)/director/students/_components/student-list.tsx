@@ -7,7 +7,10 @@ import { getBusinessRouteKey } from "@/utils/business-record-route";
 
 import StudentOwnerCell from "./student-owner-cell";
 import StudentRowActions from "./student-row-actions";
-import { studentStatusBadgeColor, studentStatusBadgeLabel, studentStatusLabel } from "./student-status";
+import {
+  getStudentStatusDisplayColor,
+  getStudentStatusDisplayLabel,
+} from "./student-status";
 
 interface StudentListProps {
   students: StudentListItem[];
@@ -48,7 +51,7 @@ export default function StudentList({
     <ul className="divide-y divide-card-border" aria-label="Danh sách học sinh">
       {students.map((student) => {
         const scoreTone = getScoreTone(student.score);
-        const status = student.studentStage;
+        const status = student.studentStage as string | null | undefined;
 
         return (
           <li key={student.id}>
@@ -105,12 +108,12 @@ export default function StudentList({
                   Trạng thái
                 </p>
                 {status ? (
-                  <Badge color={studentStatusBadgeColor[status]} size="md" className="whitespace-nowrap" title={studentStatusLabel[status]}>
-                    {studentStatusBadgeLabel[status]}
+                  <Badge color={getStudentStatusDisplayColor(status)} size="md" className="whitespace-nowrap" title={getStudentStatusDisplayLabel(status)}>
+                    {getStudentStatusDisplayLabel(status)}
                   </Badge>
                 ) : (
                   <span className="text-sm text-text-tertiary">
-                    Chưa có CRM Student
+                    Chưa cập nhật
                   </span>
                 )}
               </div>
