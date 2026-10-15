@@ -40,6 +40,20 @@ export const studentStatusBadgeLabel: Record<StudentStatus, string> = {
   Disqualified: "Không đủ ĐK",
 };
 
+export function getStudentStatusDisplayLabel(status: string): string {
+  if (status === "Contacted") return "Đã liên hệ";
+  return studentStatusBadgeLabel[status as StudentStatus] ?? status;
+}
+
+export function getStudentStatusDisplayColor(
+  status: string,
+): "success" | "error" | "warning" | "primary" | "sky" | "gray" {
+  if (!Object.prototype.hasOwnProperty.call(studentStatusBadgeColor, status)) {
+    return "gray";
+  }
+  return studentStatusBadgeColor[status as StudentStatus];
+}
+
 export const studentStatusTransitions: Record<
   StudentStatus,
   readonly StudentStatus[]
