@@ -1,4 +1,5 @@
 "use client";
+import { useId } from "react";
 import {
   radarSegments,
   type AnalysisRadarPoint,
@@ -15,6 +16,7 @@ export default function StudentAnalysisRadarShape({
   selectedCode,
   previous = false,
 }: Props) {
+  const fillId = useId();
   const known = points.filter(
     (p) => typeof p.value === "number" && Number.isFinite(p.value),
   );
@@ -24,13 +26,27 @@ export default function StudentAnalysisRadarShape({
   const center = points.find(
     (p) => Number.isFinite(p.cx) && Number.isFinite(p.cy),
   );
-  const fill = previous ? "var(--info-500)" : "var(--primary-500)";
-  const fillOpacity = 0.24;
+  const areaColor = previous ? "var(--info-500)" : "var(--primary-500)";
+  const fill = `url(#${fillId})`;
   return (
     <g
       aria-hidden="true"
       data-analysis-radar={previous ? "previous" : "current"}
     >
+      <defs>
+        <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+          <stop
+            offset="0%"
+            stopColor={areaColor}
+            stopOpacity={previous ? 0.3 : 0.6}
+          />
+          <stop
+            offset="100%"
+            stopColor={areaColor}
+            stopOpacity={previous ? 0.1 : 0.2}
+          />
+        </linearGradient>
+      </defs>
       {!complete && center && segments.length > 0 && (
         <path
           data-radar-fill={previous ? "previous" : "current"}
@@ -40,7 +56,6 @@ export default function StudentAnalysisRadarShape({
             )
             .join(" ")}
           fill={fill}
-          fillOpacity={fillOpacity}
           stroke="none"
         />
       )}
@@ -49,9 +64,9 @@ export default function StudentAnalysisRadarShape({
           points={points.map((p) => `${p.x},${p.y}`).join(" ")}
           data-radar-fill={previous ? "previous" : "current"}
           fill={fill}
-          fillOpacity={fillOpacity}
           stroke={color}
           strokeWidth={2}
+          strokeDasharray={previous ? "5 4" : undefined}
         />
       ) : (
         segments.map((line, i) => (
@@ -61,6 +76,7 @@ export default function StudentAnalysisRadarShape({
             fill="none"
             stroke={color}
             strokeWidth={2}
+            strokeDasharray={previous ? "5 4" : undefined}
           />
         ))
       )}
@@ -71,11 +87,13 @@ export default function StudentAnalysisRadarShape({
           data-previous-dimension-point={previous ? p.payload?.code : undefined}
           cx={p.x}
           cy={p.y}
-          r={previous ? 2.5 : p.payload?.code === selectedCode ? 6 : 3.5}
+          r={previous ? 5 : p.payload?.code === selectedCode ? 6 : 3.5}
           fill={
-            !previous && p.payload?.code === selectedCode
-              ? color
-              : "var(--card-background)"
+            previous
+              ? "none"
+              : p.payload?.code === selectedCode
+                ? color
+                : "var(--card-background)"
           }
           stroke={color}
           strokeWidth={2}
