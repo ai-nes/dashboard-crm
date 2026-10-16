@@ -6,6 +6,7 @@ import {
   getApiErrorStatus,
   isForbiddenApiError,
   redirectToAccessDenied,
+  redirectToActivate,
 } from "./forbidden-redirect";
 
 afterEach(() => {
@@ -54,6 +55,37 @@ describe("forbidden API redirect helpers", () => {
     });
 
     redirectToAccessDenied();
+
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("sends a license 403 to the activation page, not access-denied", async () => {
+    const replace = vi.fn();
+    vi.stubGlobal("window", { location: { pathname: "/sale", replace } });
+    const queryClient = new QueryClient({
+      queryCache: createForbiddenQueryCache(),
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    await expect(
+      queryClient.fetchQuery({
+        queryKey: ["students"],
+        queryFn: async () => {
+          throw { status: 403, code: "LICENSE_REQUIRED" };
+        },
+      }),
+    ).rejects.toMatchObject({ status: 403 });
+
+    expect(replace).toHaveBeenCalledWith("/activate");
+    expect(replace).not.toHaveBeenCalledWith("/access-denied");
+    queryClient.clear();
+  });
+
+  it("does not redirect when already on the activation page", () => {
+    const replace = vi.fn();
+    vi.stubGlobal("window", { location: { pathname: "/activate", replace } });
+
+    redirectToActivate();
 
     expect(replace).not.toHaveBeenCalled();
   });

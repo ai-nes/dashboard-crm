@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthProvider } from "@/components/common/auth/auth-provider";
+import { LicenseGate } from "@/components/common/license/license-gate";
 import { createCrmQueryClient } from "@/services/api/crm-query-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -12,7 +13,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>{children}</AuthProvider>
+      <LicenseGate>
+        <AuthProvider>{children}</AuthProvider>
+      </LicenseGate>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

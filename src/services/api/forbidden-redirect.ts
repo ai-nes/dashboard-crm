@@ -1,4 +1,5 @@
 import { QueryCache } from "@tanstack/react-query";
+import { ACTIVATE_PATH, isLicenseApiError } from "./license";
 
 export const ACCESS_DENIED_PATH = "/access-denied";
 
@@ -20,10 +21,19 @@ export function redirectToAccessDenied(): void {
   window.location.replace(ACCESS_DENIED_PATH);
 }
 
+/** The backend lost its license: send every screen to activation. */
+export function redirectToActivate(): void {
+  if (typeof window === "undefined") return;
+  if (window.location.pathname === ACTIVATE_PATH) return;
+
+  window.location.replace(ACTIVATE_PATH);
+}
+
 export function createForbiddenQueryCache(): QueryCache {
   return new QueryCache({
     onError: (error) => {
-      if (isForbiddenApiError(error)) redirectToAccessDenied();
+      if (isLicenseApiError(error)) redirectToActivate();
+      else if (isForbiddenApiError(error)) redirectToAccessDenied();
     },
   });
 }
