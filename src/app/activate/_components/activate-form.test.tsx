@@ -10,10 +10,9 @@ vi.mock("@tanstack/react-query", () => ({
     invalidateQueries: vi.fn(),
   }),
 }));
-vi.mock("@/services/api/auth", () => ({ loginWithPassword: vi.fn() }));
 
 describe("activation form", () => {
-  it("asks only for the license key at first", () => {
+  it("asks only for the license key", () => {
     const html = renderToStaticMarkup(<ActivateForm />);
 
     expect(html).toContain('name="licenseKey"');

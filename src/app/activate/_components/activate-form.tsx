@@ -6,30 +6,21 @@ import {
   AlertDescription,
 } from "@/components/tailgrids/core/alert";
 import { Button } from "@/components/tailgrids/core/button";
-import { loginWithPassword } from "@/services/api/auth";
 import {
   LICENSE_QUERY_KEY,
   activateLicense,
   activationErrorMessage,
 } from "@/services/api/license";
-import { NestApiError } from "@/services/api/nest/nest-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { FormTextField } from "./form-text-field";
 
-const ADMIN_LOGIN_REQUIRED =
-  "Cần đăng nhập tài khoản quản trị viên để kích hoạt license.";
-
-/**
- * Sends the key to crm-backend, which checks it with the License Hub. Only an
- * administrator may activate, so a missing session reveals the sign-in fields.
- */
+/** Sends the key to crm-backend, which checks it with the License Hub. */
 export function ActivateForm() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const [needsLogin, setNeedsLogin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,28 +34,12 @@ export function ActivateForm() {
     setSubmitting(true);
 
     try {
-      if (needsLogin) {
-        const login = await loginWithPassword(
-          String(form.get("email") ?? "").trim(),
-          String(form.get("password") ?? ""),
-        );
-        if (!login.ok) {
-          setError(login.error ?? "Đăng nhập thất bại.");
-          return;
-        }
-      }
-
       const status = await activateLicense(licenseKey);
       queryClient.setQueryData(LICENSE_QUERY_KEY, status);
       await queryClient.invalidateQueries();
       toast.success("Kích hoạt license thành công.");
       router.replace("/");
     } catch (failure) {
-      if (failure instanceof NestApiError && failure.status === 401) {
-        setNeedsLogin(true);
-        setError(ADMIN_LOGIN_REQUIRED);
-        return;
-      }
       setError(activationErrorMessage(failure));
     } finally {
       setSubmitting(false);
@@ -73,6 +48,10 @@ export function ActivateForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+      <p className="text-center text-sm leading-6 text-text-secondary">
+        Nhập license key do nhà cung cấp gửi để mở khóa hệ thống.
+      </p>
+
       {error ? (
         <Alert status="error" role="alert">
           <AlertContent>
@@ -89,26 +68,6 @@ export function ActivateForm() {
         disabled={submitting}
         autoFocus
       />
-
-      {needsLogin ? (
-        <>
-          <FormTextField
-            label="Email quản trị viên"
-            name="email"
-            type="email"
-            placeholder="admin@example.com"
-            autoComplete="username"
-            disabled={submitting}
-          />
-          <FormTextField
-            label="Mật khẩu"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            disabled={submitting}
-          />
-        </>
-      ) : null}
 
       <Button type="submit" isDisabled={submitting} className="w-full">
         {submitting ? "Đang kích hoạt…" : "Kích hoạt"}

@@ -56,6 +56,7 @@ const ACTIVATION_MESSAGES: Record<string, string> = {
     "Không kết nối được máy chủ license. Kiểm tra Internet của máy chủ CRM rồi thử lại.",
   LICENSE_OPERATION_IN_PROGRESS: "Đang kích hoạt, vui lòng đợi.",
   FORBIDDEN: "Chỉ quản trị viên mới được kích hoạt license.",
+  UNAUTHENTICATED: "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.",
   API_UNAVAILABLE: "Không kết nối được máy chủ CRM.",
 };
 

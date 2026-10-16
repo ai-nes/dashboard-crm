@@ -13,9 +13,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <LicenseGate>
-        <AuthProvider>{children}</AuthProvider>
-      </LicenseGate>
+      <AuthProvider>
+        <LicenseGate>{children}</LicenseGate>
+      </AuthProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

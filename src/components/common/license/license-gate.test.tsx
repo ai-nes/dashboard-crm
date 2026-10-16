@@ -7,17 +7,28 @@ const navigation = vi.hoisted(() => ({ pathname: "/sale", replace: vi.fn() }));
 const query = vi.hoisted(() => ({
   current: {} as Record<string, unknown>,
 }));
+const auth = vi.hoisted(() => ({
+  current: { user: null as unknown, isLoading: false },
+}));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => navigation.pathname,
   useRouter: () => ({ replace: navigation.replace }),
 }));
+vi.mock("@/components/common/auth/auth-provider", () => ({
+  useAuth: () => auth.current,
+}));
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => query.current,
 }));
 
-function render(pathname: string, state: Record<string, unknown>) {
+function render(
+  pathname: string,
+  state: Record<string, unknown>,
+  user: unknown = { email: "sale@example.com" },
+) {
   navigation.pathname = pathname;
+  auth.current = { user, isLoading: false };
   query.current = { isPending: false, isError: false, ...state };
   return renderToStaticMarkup(
     <LicenseGate>
@@ -58,5 +69,23 @@ describe("LicenseGate", () => {
 
     expect(html).toContain("Không kết nối được máy chủ CRM");
     expect(html).not.toContain("CRM content");
+  });
+
+  it("keeps sign-in screens usable without a license", () => {
+    expect(
+      render("/login", { data: { status: "NOT_ACTIVATED" } }, null),
+    ).toContain("CRM content");
+    expect(
+      render("/forgot-password", { data: { status: "NOT_ACTIVATED" } }, null),
+    ).toContain("CRM content");
+  });
+
+  it("leaves signed-out screens to AuthGuard instead of the activation page", () => {
+    expect(
+      render("/sale", { data: { status: "NOT_ACTIVATED" } }, null),
+    ).toContain("CRM content");
+    expect(
+      render("/activate", { data: { status: "NOT_ACTIVATED" } }, null),
+    ).not.toContain("CRM content");
   });
 });
