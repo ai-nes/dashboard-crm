@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mock = vi.hoisted(() => ({
@@ -31,6 +32,11 @@ vi.mock("@/components/common/auth/auth-provider", () => ({
 vi.mock("@/hooks/use-interaction-intelligence-queries", () => ({
   useNpsSaleSummaryQuery: mock.useSummary,
   useNpsHistoryQuery: mock.useHistory,
+}));
+
+// Keep filter fields available to these data-contract assertions outside the portal.
+vi.mock("./nps-history-filters", () => ({
+  default: ({ children }: { children: ReactNode }) => children,
 }));
 
 import NpsSaleScoreCard from "./nps-sale-score-card";
